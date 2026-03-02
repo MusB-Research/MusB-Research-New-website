@@ -361,10 +361,14 @@ export default function Trials() {
                                         </div>
                                     </div>
                                     <p className="text-slate-400 font-medium mb-10 flex-grow leading-relaxed">{study.description}</p>
-                                    <div className="grid grid-cols-1 gap-6 mb-10">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
                                         <div className="bg-white/2 rounded-2xl p-4 border border-white/5">
                                             <div className="text-[9px] font-black uppercase tracking-widest text-slate-600 mb-1">Benefit</div>
                                             <div className="text-sm font-bold text-white">{study.benefit}</div>
+                                        </div>
+                                        <div className="bg-white/2 rounded-2xl p-4 border border-white/5">
+                                            <div className="text-[9px] font-black uppercase tracking-widest text-slate-600 mb-1">Duration</div>
+                                            <div className="text-sm font-bold text-white">{study.duration}</div>
                                         </div>
                                     </div>
                                     {study.status === 'Recruiting' ? (
