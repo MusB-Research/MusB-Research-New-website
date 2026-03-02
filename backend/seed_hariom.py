@@ -35,6 +35,7 @@ def seed_hariom():
             "role": "Co-Founder",
             "bio": short_bio,
             "expanded_bio": full_bio,
+            "image": "team/hariom_yadav.jpg",
             "linkedin_url": "https://www.linkedin.com/in/yadavhariom/",
             "expertise_tags": ["Microbiome", "Metabolic Health", "Longevity", "Gut-Brain Axis"],
             "areas_of_expertise": [

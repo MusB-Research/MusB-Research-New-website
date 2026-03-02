@@ -340,13 +340,13 @@ export default function Trials() {
                         ))}
                     </div>
 
-                    <div className="p-8 md:p-16 rounded-[2.5rem] md:rounded-[4.5rem] bg-slate-900/40 border border-white/5 backdrop-blur-3xl relative overflow-hidden group/container">
+                    <div className="p-8 md:p-16 rounded-[2.5rem] md:rounded-[4.5rem] relative overflow-hidden group/container">
                         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-cyan-500/5 blur-[120px] rounded-full"></div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
                             {filteredStudies.map((study) => (
                                 <div key={study.id} className="group bg-slate-950/50 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-6 md:p-10 hover:bg-slate-900 hover:border-cyan-500/30 transition-all shadow-2xl flex flex-col relative overflow-hidden shadow-2xl">
-                                    <div className="absolute -inset-1 bg-gradient-to-tr from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    <div className="absolute -inset-1 bg-gradient-to-tr from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                                     <div className="flex justify-between items-start mb-8">
                                         <div className="space-y-4">
                                             <div className={`inline-block px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${study.status === 'Recruiting' ? 'bg-cyan-500/10 text-cyan-400' : 'bg-slate-500/10 text-slate-400 opacity-50'}`}>
@@ -372,12 +372,14 @@ export default function Trials() {
                                         </div>
                                     </div>
                                     {study.status === 'Recruiting' ? (
-                                        <Link
-                                            to="#contact"
+                                        <a
+                                            href={`https://musb-research-f3on.vercel.app/studies/${study.slug || study.id || study._id}/screener?study=${study.id || study._id}&name=${encodeURIComponent(study.title || study.name)}&duration=${encodeURIComponent(study.duration || '')}&compensation=${encodeURIComponent(study.compensation || '')}&location=${encodeURIComponent(study.location || '')}&commitment=${encodeURIComponent(study.timeCommitment || '')}&category=${encodeURIComponent(study.condition || study.category || '')}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
                                             className="block w-full text-center py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all bg-cyan-500 text-slate-900 hover:bg-white"
                                         >
                                             Join Study
-                                        </Link>
+                                        </a>
                                     ) : (
                                         <button
                                             disabled
@@ -392,31 +394,7 @@ export default function Trials() {
                     </div>
                 </section >
 
-                {/* JOIN THE MISSION */}
-                <section id="join" className="bg-white/5 backdrop-blur-3xl py-24 relative overflow-hidden border-y border-white/5" >
 
-                    <div className="max-w-[1400px] mx-auto px-6 relative z-10">
-                        <div className="max-w-3xl space-y-12">
-                            <h2 className="text-3xl md:text-5xl lg:text-7xl font-black text-white tracking-tight leading-tight uppercase">Join the MusB™ Research Mission</h2>
-                            <p className="text-xl md:text-2xl text-slate-400 font-bold max-w-2xl">
-                                Make history in some of the world's largest studies on supplements and natural health products.
-                            </p>
-                            <div className="grid md:grid-cols-2 gap-8">
-                                {[
-                                    "Receive a 6-week supply at no cost",
-                                    "Participate in virtual trials",
-                                    "Contribute to science & validate products",
-                                    "Receive a personalized health report"
-                                ].map((bullet, i) => (
-                                    <div key={i} className="flex items-start gap-4 text-slate-300 font-bold uppercase text-xs tracking-widest group">
-                                        <CheckSquare className="w-6 h-6 mt-0.5 text-cyan-400" /> {bullet}
-                                    </div>
-                                ))}
-                            </div>
-                            <Link to="#contact" className="bg-cyan-500 text-slate-900 px-12 py-6 rounded-3xl font-black text-lg uppercase tracking-widest inline-block hover:bg-white hover:scale-105 transition-all shadow-2xl">Join a Study</Link>
-                        </div>
-                    </div>
-                </section >
 
                 {/* VOLUNTEER FAQ */}
                 <section id="faq" className="py-24 max-w-[1000px] mx-auto px-4 md:px-12" >

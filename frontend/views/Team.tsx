@@ -9,7 +9,7 @@ const TeamMemberCard = ({ member }: { member: any }) => {
         <div className="group bg-white/5 backdrop-blur-xl rounded-[2.5rem] border-2 border-white/10 overflow-hidden hover:border-cyan-400/50 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col">
             <div className="p-8 md:p-10 flex flex-col md:flex-row gap-8 items-center md:items-start text-center md:text-left flex-1 min-h-[460px]">
                 {/* Headshot */}
-                <div className="flex-shrink-0 relative">
+                <div className="flex-shrink-0 relative md:ml-4">
                     <div className="w-40 h-40 md:w-48 md:h-48 rounded-[2.5rem] bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 border-2 border-white/10 flex items-center justify-center overflow-hidden shadow-2xl group-hover:scale-105 transition-transform duration-500">
                         {member.image ? (
                             <img
@@ -164,7 +164,7 @@ const AdvisorCard = ({ advisor }: { advisor: any }) => {
         <div className="group bg-white/5 backdrop-blur-xl rounded-[2.5rem] border-2 border-white/10 overflow-hidden hover:border-indigo-400/50 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col h-full">
             <div className="p-6 md:p-8 flex flex-col md:flex-row gap-6 items-center md:items-start flex-1">
                 {/* Left Side: Portrait Image */}
-                <div className="flex-shrink-0 relative">
+                <div className="flex-shrink-0 relative md:ml-4">
                     <div className="w-40 h-52 md:w-44 md:h-56 rounded-[2rem] bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-2 border-white/10 flex items-center justify-center overflow-hidden shadow-2xl group-hover:scale-105 transition-transform duration-500">
                         {advisor.image ? (
                             <img src={advisor.image} alt={advisor.name} className="w-full h-full object-cover" />
@@ -278,7 +278,7 @@ export default function Team() {
             </div>
 
             {/* Hero Section */}
-            <section className="relative z-10 pt-32 pb-20 px-6 overflow-hidden">
+            <section className="relative z-10 pt-32 pb-10 px-6 overflow-hidden">
                 <div className="max-w-7xl mx-auto">
                     <div className="grid lg:grid-cols-2 gap-12 items-center">
                         {/* Left: Title + Intro */}
@@ -344,7 +344,7 @@ export default function Team() {
             </section>
 
             {/* SECTION 1: Leadership & Scientific Team */}
-            <section className="relative z-10 py-20 px-6">
+            <section id="leadership" className="relative z-10 pt-6 pb-20 px-6">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 border-b border-white/10 pb-12">
                         <div className="space-y-4">
@@ -384,7 +384,7 @@ export default function Team() {
             </section>
 
             {/* SECTION 2: Advisors */}
-            <section className="relative z-10 py-20 px-6 bg-white/[0.02]">
+            <section id="advisors" className="relative z-10 pt-6 pb-20 px-6 bg-white/[0.02]">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 border-b border-white/10 pb-12">
                         <div className="space-y-4">
@@ -431,12 +431,21 @@ export default function Team() {
             </section>
 
             {/* SECTION 3: Clinical Collaborators */}
-            <section className="relative z-10 py-8 px-6">
+            <section className="relative z-10 py-20 px-6">
                 <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-16">
-                        <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">
-                            Clinical Collaborators
-                        </h2>
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 border-b border-white/10 pb-12">
+                        <div className="space-y-4">
+                            <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight">
+                                Clinical <span className="text-purple-400">Collaborators</span>
+                            </h2>
+                            <p className="text-slate-400 text-xl max-w-2xl font-medium">
+                                A scalable network of specialized institutions and clinics highlighting our translational research strength and sponsor-ready infrastructure.
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-4 text-slate-500 font-bold uppercase tracking-widest text-xs h-fit bg-white/5 px-6 py-3 rounded-full border border-white/10">
+                            <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></div>
+                            Network Strength
+                        </div>
                     </div>
 
                     <div className="grid md:grid-cols-3 lg:grid-cols-3 gap-6">
@@ -467,28 +476,60 @@ export default function Team() {
             </section>
 
             {/* SECTION 4: Staff */}
-            <section className="relative z-10 py-8 px-6">
+            <section className="relative z-10 py-20 px-6">
                 <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-16">
-                        <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">
-                            Staff
-                        </h2>
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 border-b border-white/10 pb-12">
+                        <div className="space-y-4">
+                            <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight">
+                                Operational <span className="text-cyan-400">Staff</span>
+                            </h2>
+                            <p className="text-slate-400 text-xl max-w-2xl font-medium">
+                                The dedicated professionals ensuring operational excellence, regulatory compliance, and seamless execution in every study.
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-4 text-slate-500 font-bold uppercase tracking-widest text-xs h-fit bg-white/5 px-6 py-3 rounded-full border border-white/10">
+                            <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
+                            Execution Excellence
+                        </div>
                     </div>
 
-                    <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        {staffMembers.map((staff, index) => (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                        {[
+                            { name: "Ms. Vaishnavi S", role: "Business & Administration Manager", dept: "Operations" },
+                            { name: "Mr. Indushekar Manjunatha", role: "Clinical Coordinator", dept: "Clinical Research" },
+                            { name: "Mrs. Falguni Kanani", role: "Community Outreach Liaison", dept: "Public Relations" },
+                            { name: "Mr. Alain Ramirez", role: "Laboratory Technician", dept: "Lab Services" },
+                            { name: "Dr. Andreas Mbah", role: "Medical Laboratory Director", dept: "Diagnostics" },
+                            { name: "Mr. Jason Chandler", role: "IT Professional", dept: "Technology" },
+                            { name: "Mr. Shray Paliwal", role: "Research Intern", dept: "Scientific Support" },
+                            { name: "Dr. Osula Ebiuwa", role: "Research Intern", dept: "Scientific Support" },
+                            { name: "Mr. Barenya Prasad Mishra", role: "Digital Health Platform Developer", dept: "Product Engineering" },
+                            { name: "Mr. Brijesh Kumar", role: "Junior Software Engineer", dept: "Software Development" }
+                        ].map((staff, idx) => (
                             <div
-                                key={staff.id}
-                                className={`group bg-white/5 backdrop-blur-xl rounded-[2rem] p-6 border-2 border-white/10 hover:border-cyan-400/50 hover:bg-white/10 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] ${index === 8 ? 'lg:col-start-2' : ''}`}
+                                key={idx}
+                                className="group bg-white/5 backdrop-blur-xl rounded-[2.5rem] p-8 border-2 border-white/10 hover:border-cyan-400/50 hover:bg-white/10 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col items-center text-center relative overflow-hidden h-full"
                             >
+                                {/* Decorative Gradient Blobs */}
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 blur-3xl rounded-full -translate-y-12 translate-x-12 group-hover:bg-cyan-500/10 transition-colors"></div>
+                                <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-500/5 blur-3xl rounded-full translate-y-12 -translate-x-12 group-hover:bg-indigo-500/10 transition-colors"></div>
 
+                                {/* Staff Info */}
+                                <div className="space-y-3 relative z-10">
+                                    <div className="space-y-1">
+                                        <h3 className="text-xl font-black text-white leading-tight tracking-tight group-hover:text-cyan-400 transition-colors underline decoration-cyan-400/0 group-hover:decoration-cyan-400/30 underline-offset-4">
+                                            {staff.name}
+                                        </h3>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400/70 py-1">
+                                            {staff.role}
+                                        </p>
+                                    </div>
 
-                                {/* Name & Role */}
-                                <div className="text-center space-y-2">
-                                    <h3 className="text-lg font-black text-white leading-tight">{staff.name}</h3>
-                                    <p className="text-xs font-bold uppercase tracking-wider text-cyan-400">{staff.role}</p>
-                                    <p className="text-xs text-slate-500 font-semibold">{staff.department}</p>
-                                    <p className="text-sm text-slate-400 font-medium leading-relaxed pt-2">{staff.role_description}</p>
+                                    <div className="pt-2">
+                                        <span className="inline-block px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-[9px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-slate-300 group-hover:border-white/20 transition-all">
+                                            {staff.dept}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -497,36 +538,45 @@ export default function Team() {
             </section>
 
             {/* SECTION 5: Sponsors */}
-            <section className="relative z-10 py-8 pb-16 px-6">
+            <section className="relative z-10 py-20 px-6">
                 <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-16">
-
-                        <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">
-                            Sponsors
-                        </h2>
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 border-b border-white/10 pb-12">
+                        <div className="space-y-4">
+                            <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight">
+                                Strategic <span className="text-indigo-400">Sponsors</span>
+                            </h2>
+                            <p className="text-slate-400 text-xl max-w-2xl font-medium">
+                                Our research is made possible through the support of visionary organizations committed to advancing clinical excellence.
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-4 text-slate-500 font-bold uppercase tracking-widest text-xs h-fit bg-white/5 px-6 py-3 rounded-full border border-white/10">
+                            <div className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></div>
+                            Ecosystem Partners
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
                         {partners.map((partner) => (
                             <div
                                 key={partner.id}
-                                className="group bg-white/5 backdrop-blur-xl rounded-[1.5rem] p-6 border-2 border-white/10 hover:border-indigo-400/50 hover:bg-white/10 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col items-center justify-center text-center"
+                                className="group bg-white/5 backdrop-blur-xl rounded-[2rem] p-8 border-2 border-white/10 hover:border-indigo-400/50 hover:bg-white/10 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col items-center justify-center text-center relative overflow-hidden"
                             >
                                 {/* Logo Placeholder */}
-                                <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-2 border-white/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-500 overflow-hidden">
+                                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-2 border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 overflow-hidden relative shadow-2xl">
                                     {partner.logo ? (
                                         <img src={partner.logo} alt={partner.name} className="w-full h-full object-cover" />
                                     ) : (
-                                        <Handshake className="w-8 h-8 text-indigo-400" />
+                                        <Handshake className="w-10 h-10 text-indigo-400" />
                                     )}
+                                    <div className="absolute inset-0 bg-indigo-400/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                 </div>
 
                                 {/* Partner Name */}
-                                <h3 className="text-sm font-bold text-white leading-tight mb-2">{partner.name}</h3>
+                                <h3 className="text-lg font-black text-white leading-tight mb-4 group-hover:text-indigo-400 transition-colors">{partner.name}</h3>
 
                                 {/* Category Tag */}
                                 {partner.category && (
-                                    <span className="px-2 py-1 text-xs font-bold bg-indigo-400/10 text-indigo-400 rounded-full border border-indigo-400/20">
+                                    <span className="px-3 py-1 text-[10px] font-black bg-indigo-400/10 text-indigo-400 rounded-full border border-indigo-400/20 uppercase tracking-widest">
                                         {partner.category}
                                     </span>
                                 )}

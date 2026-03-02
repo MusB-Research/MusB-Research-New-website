@@ -38,6 +38,7 @@ def seed_shalini():
             "role": "CEO and Co-Founder",
             "bio": short_bio,
             "expanded_bio": full_bio,
+            "image": "team/shalini_jain.JPG",
             "linkedin_url": "https://www.linkedin.com/in/shaliniscientist/",
             "expertise_tags": ["Microbiome Science", "Immunology", "Clinical Translation", "Biotics"],
             "areas_of_expertise": [
