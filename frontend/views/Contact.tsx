@@ -17,7 +17,6 @@ import {
     MessageCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { submitContactForm, fetchInquiryTypes } from '@/api';
 
 const defaultInquiryTypes = [
     { value: 'business', label: 'Business / Sponsorship' },
@@ -77,16 +76,7 @@ export default function Contact() {
     const [inquiryTypes, setInquiryTypes] = useState(defaultInquiryTypes);
     const formRef = useRef<HTMLDivElement>(null);
 
-    // Fetch inquiry types from the backend contact app
-    useEffect(() => {
-        fetchInquiryTypes()
-            .then((data: any[]) => {
-                if (data.length) {
-                    setInquiryTypes(data.map((d: any) => ({ value: d.slug, label: d.label })));
-                }
-            })
-            .catch(() => { }); // Fallback to defaults
-    }, []);
+
 
     const handleCardClick = (id: string) => {
         setInquiryType(id);
@@ -107,7 +97,8 @@ export default function Contact() {
         };
 
         try {
-            await submitContactForm(formData);
+            await new Promise(resolve => setTimeout(resolve, 800)); // Mock API call
+            console.log('Contact form submitted', formData);
             setSubmitted(true);
             setTimeout(() => setSubmitted(false), 5000);
         } catch (error) {

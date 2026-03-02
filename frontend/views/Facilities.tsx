@@ -5,10 +5,59 @@ import {
     ClipboardCheck, Users, Lock, Zap, Handshake
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { fetchFacilitiesPageData, submitFacilityInquiry } from '@/api';
+
+
+const HARDCODED_DATA = {
+    settings: {
+        hero_title: "Purpose-Built for Innovation",
+        hero_subtext_1: "State-of-the-art infrastructure for clinical trials, and laboratory analysis.",
+        hero_subtext_2: "Designed for regulatory compliance, participant comfort, and scientific rigor.",
+        hero_image: "",
+        research_pillar_title: "Research & Innovation",
+        research_pillar_desc: "Comprehensive facilities supporting Phase I-IV trials and translational research models.",
+        lab_pillar_title: "Central Laboratory Services",
+        lab_pillar_desc: "Advanced testing capabilities with robust SOPs and quality control.",
+        bio_pillar_title: "Biorepository",
+        bio_pillar_desc: "Secure, temperature-monitored storage for critical biological samples."
+    },
+    modules: [
+        {
+            id: 1, pillar: 'Research', layout: 'ImageRight', badge_label: 'Clinical', title: 'Multidisciplinary Clinical Research Site',
+            one_line_summary: 'Fully equipped for diverse therapeutic studies.',
+            description: 'Our clinical research site is designed to handle complex study protocols while ensuring participant safety and data integrity.',
+            micro_bullets: ['Phase I-IV capabilities', 'Dedicated monitoring spaces', 'Advanced diagnostic tools', 'Comfortable participant lounges'],
+            image: ''
+        },
+        {
+            id: 2, pillar: 'Lab', layout: 'ImageLeft', badge_label: 'Testing', title: 'Central Laboratory',
+            one_line_summary: 'High-throughput processing and biomarker analysis.',
+            description: 'Our central laboratory enables rapid turnaround times and high-precision testing for clinical and translational endpoints.',
+            micro_bullets: ['Biochemistry & Hematology', 'Molecular diagnostics', 'Microbiome sequencing prep', 'Strict QA/QC protocols'],
+            image: ''
+        },
+        {
+            id: 3, pillar: 'Biorepository', layout: 'ImageRight', badge_label: 'Storage', title: 'Secure Biospecimen Storage',
+            one_line_summary: 'Long-term preservation of valuable samples.',
+            description: 'Our biorepository features continuous temperature monitoring and redundant backup systems to protect the integrity of your biological samples.',
+            micro_bullets: ['-80°C and -20°C freezers', 'Liquid nitrogen storage', '24/7 remote monitoring', 'Barcoded inventory management'],
+            image: ''
+        }
+    ],
+    trust_badges: [
+        { icon: 'ShieldCheck', label: 'Compliance First' },
+        { icon: 'Lock', label: 'Data Security' },
+        { icon: 'ClipboardCheck', label: 'SOP Driven' }
+    ],
+    success_signals: [
+        { icon: 'Microscope', title: 'Scientific Rigor', description: 'Our facilities are built to support the highest standards of scientific investigation.' },
+        { icon: 'Users', title: 'Participant Centric', description: 'Designed for comfort and accessibility to improve recruitment and retention rates.' },
+        { icon: 'Zap', title: 'Rapid Execution', description: 'Streamlined workflows from sample collection to data reporting.' }
+    ],
+    pillars: []
+};
 
 export default function Facilities() {
-    const [data, setData] = useState<any>(null);
+    const data = HARDCODED_DATA;
     const [activeAccordion, setActiveAccordion] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -20,15 +69,7 @@ export default function Facilities() {
     const [formStatus, setFormStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
     useEffect(() => {
-        fetchFacilitiesPageData()
-            .then((res: any) => {
-                setData(res);
-                setLoading(false);
-            })
-            .catch((err: any) => {
-                console.error("Failed to fetch facilities data", err);
-                setLoading(false);
-            });
+        setLoading(false);
     }, []);
 
     const toggleAccordion = (id: number) => {
@@ -39,13 +80,7 @@ export default function Facilities() {
         e.preventDefault();
         setFormStatus('submitting');
         try {
-            await submitFacilityInquiry({
-                name: formState.name,
-                email: formState.email,
-                company: formState.company,
-                interest: formState.interest,
-                stage: formState.stage
-            });
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Mocked API call
             setFormStatus('success');
             setFormState({ name: '', email: '', company: '', role: '', interest: 'Research', stage: 'Concept' });
         } catch (err) {

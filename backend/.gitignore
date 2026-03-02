@@ -7,15 +7,8 @@ __pycache__/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-media/*
+media/
 !media/advisors/
-!media/team/
-!media/home/
-!media/facilities/
-!media/capabilities/
-!media/partners/
-!media/certifications/
-!media/blog/
 staticfiles/
 
 # Environment variables

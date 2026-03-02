@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-import { fetchNews, subscribeNewsletter } from '@/api';
 import { NewsItem, NewsType } from '@/types';
 
 const categories: (NewsType | 'All')[] = [
@@ -39,6 +38,69 @@ const sectionDefinitions: { type: NewsType; label: string; accent: string }[] = 
     { type: 'Educational Material', label: 'Educational Materials', accent: 'amber' },
 ];
 
+
+const HARDCODED_NEWS: NewsItem[] = [
+    {
+        id: '1',
+        title: 'MusB Research Announces New Partnership for Microbiome Analysis',
+        excerpt: 'A groundbreaking collaboration to advance the understanding of the gut microbiome and its impact on metabolic health.',
+        content: '',
+        date: 'Oct 24, 2023',
+        type: 'Partnership',
+        imageUrl: '/news_partnership.png',
+        isFeatured: true,
+        publishStatus: 'Published'
+    },
+    {
+        id: '2',
+        title: 'Upcoming Webinar: Innovations in Anti-Aging Research',
+        excerpt: 'Join our lead researchers as they discuss the latest findings in cellular senescence and novel interventions.',
+        content: '',
+        date: 'Nov 15, 2023',
+        type: 'Event',
+        imageUrl: '/news_webinar.png',
+        locationType: 'Virtual',
+        startTime: '10:00 AM',
+        endTime: '11:30 AM EST',
+        registrationLink: '#',
+        isFeatured: false,
+        publishStatus: 'Published'
+    },
+    {
+        id: '3',
+        title: 'Recent Publication on Cognitive Decline Biomarkers',
+        excerpt: 'Our team has identified potential early indicators of cognitive decline in a recent longitudinal study published in the Journal of Aging Sciences.',
+        content: '',
+        date: 'Sep 10, 2023',
+        type: 'Publication',
+        imageUrl: '/news_publication.png',
+        isFeatured: false,
+        publishStatus: 'Published'
+    },
+    {
+        id: '4',
+        title: 'Launch of the Center for Clinical Excellence',
+        excerpt: 'We are expanding our facilities to accommodate a broader range of clinical trials and multi-center studies.',
+        content: '',
+        date: 'Aug 05, 2023',
+        type: 'News',
+        imageUrl: '/news_facility.png',
+        isFeatured: false,
+        publishStatus: 'Published'
+    },
+    {
+        id: '5',
+        title: 'Understanding Biotics: Educational Resource Guide',
+        excerpt: 'A comprehensive overview of prebiotics, probiotics, and postbiotics for healthcare professionals.',
+        content: '',
+        date: 'Jul 20, 2023',
+        type: 'Educational Material',
+        imageUrl: '/news_education.png',
+        isFeatured: false,
+        publishStatus: 'Published'
+    }
+];
+
 export default function News() {
     const [activeCategory, setActiveCategory] = useState<NewsType | 'All'>('All');
     const [searchQuery, setSearchQuery] = useState('');
@@ -53,7 +115,7 @@ export default function News() {
         setSubmitting(true);
         setSubscribeStatus('idle');
         try {
-            await subscribeNewsletter(email);
+            await new Promise(resolve => setTimeout(resolve, 800));
             setSubscribeStatus('success');
             setEmail('');
         } catch (error) {
@@ -63,13 +125,10 @@ export default function News() {
             setSubmitting(false);
         }
     };
-
-    // Fetch news from backend API
     useEffect(() => {
-        fetchNews().then((data: any[]) => {
-            if (data.length) setNewsItems(data as NewsItem[]);
-        }).catch(() => { }); // Fallback to static data
+        setNewsItems(HARDCODED_NEWS);
     }, []);
+
 
     const filteredItems = useMemo(() => {
         return newsItems.filter(item => {

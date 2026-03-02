@@ -5,7 +5,6 @@ import {
     FlaskConical, Beaker, ShieldCheck, Zap, Target, Users, RefreshCcw, Lightbulb,
     Globe, Award, BookOpen, Layers, CheckCircle2, Sparkles, Eye, Heart
 } from 'lucide-react';
-import { fetchAboutSettings } from '@/api';
 
 // Icon lookup map for dynamic rendering from backend data
 const iconMap: Record<string, React.ElementType> = {
@@ -76,32 +75,25 @@ const defaultPartnerFeatures = [
 ];
 
 export default function WhyChooseUs() {
-    const [settings, setSettings] = useState<any>(null);
-
-    useEffect(() => {
-        fetchAboutSettings()
-            .then((data: any) => setSettings(data))
-            .catch(() => setSettings(null)); // Fall back to defaults
-    }, []);
 
     // Use backend data if available, otherwise defaults
-    const trustIndicators = settings?.trust_indicators?.length ? settings.trust_indicators : defaultTrustIndicators;
-    const threeWays = settings?.three_ways_cards?.length ? settings.three_ways_cards : defaultThreeWays;
-    const coreValues = settings?.core_values?.length ? settings.core_values : defaultCoreValues;
-    const partnerFeatures = settings?.partner_features?.length ? settings.partner_features : defaultPartnerFeatures;
-    const heroTagline = settings?.hero_tagline || 'Scientist-Led Growth';
-    const heroTitle = settings?.hero_title || 'Your Science Partner for <span class="text-cyan-400">Evidence-Driven</span> Growth';
-    const heroDesc = settings?.hero_description || "At MusB™ Research, we don't just run studies—we help you understand your product's strengths, limitations, and real-world impact so you can make the best scientific, business, and health decisions.";
-    const threeWaysTitle = settings?.three_ways_title || 'Three Integrated Ways We Support Your Innovation';
-    const threeWaysSubtext = settings?.three_ways_subtitle || 'MusB Research offers flexible, end-to-end support—whether you need discovery research, laboratory testing, or secure sample management.';
-    const storyTitle = settings?.story_title || 'Our Story';
-    const storyContent = settings?.story_content || "MusB Research was founded by highly experienced scientists with a shared mission: to elevate the scientific integrity of products reaching the market.\n\nLed by world-renowned experts including Dr. Hariom Yadav and Dr. Shalini Jain, MusB Research was created to support innovators who value evidence, transparency, and responsible growth.\n\nWe believe every product in the market should be scientifically understood—not just for its benefits, but also for its limitations. This clarity empowers better business decisions, better healthcare choices, and greater public trust.\n\nWe do not differentiate between large and small partners. We treat every collaboration with the same scientific rigor, commitment, and respect.";
-    const partnerTitle = settings?.partner_title || 'An Extension of Your R&D Team';
-    const partnerContent = settings?.partner_content || 'MusB Research functions as an extension of your internal R&D—providing facilities, expertise, and resources that scale with your needs.\n\nWhether you are an early-stage innovator or an established global brand, we integrate seamlessly with your team to deliver credible, actionable science.';
-    const missionTitle = settings?.mission_title || 'Our Mission';
-    const missionContent = settings?.mission_content || 'MusB Research is committed to being your growth partner by providing robust, reliable scientific evidence for your products. We are passionate about supporting your success through meticulous research, innovative approaches, and uncompromising scientific integrity.';
-    const visionTitle = settings?.vision_title || 'Our Vision';
-    const visionContent = settings?.vision_content || 'We envision becoming a global leader in healthcare research—driving groundbreaking innovations that enhance public health and well-being for all.';
+    const trustIndicators = defaultTrustIndicators;
+    const threeWays = defaultThreeWays;
+    const coreValues = defaultCoreValues;
+    const partnerFeatures = defaultPartnerFeatures;
+    const heroTagline = 'Scientist-Led Growth';
+    const heroTitle = 'Your Science Partner for <span class="text-cyan-400">Evidence-Driven</span> Growth';
+    const heroDesc = "At MusB™ Research, we don't just run studies—we help you understand your product's strengths, limitations, and real-world impact so you can make the best scientific, business, and health decisions.";
+    const threeWaysTitle = 'Three Integrated Ways We Support Your Innovation';
+    const threeWaysSubtext = 'MusB Research offers flexible, end-to-end support—whether you need discovery research, laboratory testing, or secure sample management.';
+    const storyTitle = 'Our Story';
+    const storyContent = "MusB Research was founded by highly experienced scientists with a shared mission: to elevate the scientific integrity of products reaching the market.\n\nLed by world-renowned experts including Dr. Hariom Yadav and Dr. Shalini Jain, MusB Research was created to support innovators who value evidence, transparency, and responsible growth.\n\nWe believe every product in the market should be scientifically understood—not just for its benefits, but also for its limitations. This clarity empowers better business decisions, better healthcare choices, and greater public trust.\n\nWe do not differentiate between large and small partners. We treat every collaboration with the same scientific rigor, commitment, and respect.";
+    const partnerTitle = 'An Extension of Your R&D Team';
+    const partnerContent = 'MusB Research functions as an extension of your internal R&D—providing facilities, expertise, and resources that scale with your needs.\n\nWhether you are an early-stage innovator or an established global brand, we integrate seamlessly with your team to deliver credible, actionable science.';
+    const missionTitle = 'Our Mission';
+    const missionContent = 'MusB Research is committed to being your growth partner by providing robust, reliable scientific evidence for your products. We are passionate about supporting your success through meticulous research, innovative approaches, and uncompromising scientific integrity.';
+    const visionTitle = 'Our Vision';
+    const visionContent = 'We envision becoming a global leader in healthcare research—driving groundbreaking innovations that enhance public health and well-being for all.';
 
     const colorMap: Record<string, { accent: string; bg: string; glow: string; dot: string }> = {
         cyan: { accent: 'text-cyan-400', bg: 'bg-cyan-500/10', glow: 'shadow-[0_0_8px_rgba(34,211,238,0.6)]', dot: 'bg-cyan-400' },
@@ -166,7 +158,7 @@ export default function WhyChooseUs() {
                 {/* ============================================================ */}
                 {/* SECTION 2: Three Ways We Support Your Program */}
                 {/* ============================================================ */}
-                {(settings?.show_three_ways_section !== false) && (
+                {true && (
                     <section className="py-16 relative z-10 mb-16">
                         <div className="max-w-[1700px] mx-auto px-4 md:px-12">
                             <div className="text-center space-y-8 mb-24 max-w-7xl mx-auto">
@@ -220,7 +212,7 @@ export default function WhyChooseUs() {
                 {/* ============================================================ */}
                 {/* SECTION 3: Our Story */}
                 {/* ============================================================ */}
-                {(settings?.show_story_section !== false) && (
+                {true && (
                     <section className="py-32 relative z-10">
                         <div className="max-w-[1700px] mx-auto px-4 md:px-12">
                             <div className="grid lg:grid-cols-2 gap-20 items-center">
@@ -265,7 +257,7 @@ export default function WhyChooseUs() {
                 {/* ============================================================ */}
                 {/* SECTION 4: Extended R&D Partner */}
                 {/* ============================================================ */}
-                {(settings?.show_partner_section !== false) && (
+                {true && (
                     <section className="py-24 relative z-10 bg-slate-900/30 border-y border-white/5">
                         <div className="max-w-[1700px] mx-auto px-4 md:px-12">
                             <div className="text-center space-y-6 mb-20">
@@ -300,7 +292,7 @@ export default function WhyChooseUs() {
                 {/* ============================================================ */}
                 {/* SECTION 5: Mission & Vision */}
                 {/* ============================================================ */}
-                {(settings?.show_mission_vision_section !== false) && (
+                {true && (
                     <section className="py-32 relative z-10">
                         <div className="max-w-[1700px] mx-auto px-4 md:px-12">
                             <div className="grid md:grid-cols-2 gap-12">
@@ -330,7 +322,7 @@ export default function WhyChooseUs() {
                 {/* ============================================================ */}
                 {/* SECTION 6: Core Values */}
                 {/* ============================================================ */}
-                {(settings?.show_core_values_section !== false) && (
+                {true && (
                     <section className="py-24 relative z-10">
                         <div className="max-w-[1700px] mx-auto px-4 md:px-12">
                             <div className="text-center space-y-6 mb-20">
@@ -358,12 +350,12 @@ export default function WhyChooseUs() {
                 {/* ============================================================ */}
                 {/* SECTION 7: Trust Indicators / Why Partner With Us */}
                 {/* ============================================================ */}
-                {(settings?.show_trust_indicators !== false) && (
+                {true && (
                     <section className="py-24 relative z-10 bg-slate-900/40 backdrop-blur-3xl border-y border-white/5">
                         <div className="max-w-[1700px] mx-auto px-4 md:px-12">
                             <div className="text-center space-y-6 mb-20">
                                 <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight uppercase">
-                                    {settings?.why_choose_title || 'Why Partner With Us'}
+                                    {'Why Partner With Us'}
                                 </h2>
                                 <div className="h-1.5 w-24 bg-cyan-500 mx-auto rounded-full"></div>
                             </div>
@@ -390,7 +382,7 @@ export default function WhyChooseUs() {
                 {/* ============================================================ */}
                 {/* SECTION 8: Final Call to Action */}
                 {/* ============================================================ */}
-                {(settings?.show_final_cta !== false) && (
+                {true && (
                     <section className="max-w-[1700px] mx-auto px-4 md:px-12 text-center space-y-12 py-32">
                         <div className="space-y-6">
                             <p className="text-3xl md:text-4xl font-black text-white leading-[1.1] tracking-tighter">

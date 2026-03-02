@@ -1,6 +1,128 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Linkedin, ChevronDown, ChevronUp, Building2, Users, Stethoscope, Briefcase, Handshake, Activity, FileText } from 'lucide-react';
-import { fetchTeamMembers, fetchAdvisors, fetchCollaborators, fetchStaffMembers, fetchPartners } from '@/api';
+
+const LEADERSHIP_DATA = [
+    {
+        name: "Dr. Shalini Jain",
+        role: "CEO and Co-Founder",
+        bio: "Dr. Shalini Jain, CEO and Co-Founder of MusB Research, is a seasoned translational scientist with over 24 years of experience in biotics, functional foods, and microbiome research. Her scientific expertise integrates basic science, mechanistic biology, and clinical translation to transform laboratory discoveries into real-world health solutions.",
+        expanded_bio: "Dr. Shalini Jain is CEO and Co-Founder of MusB Research and a seasoned translational scientist with more than 24 years of experience in biotics, functional foods, and microbiome research. She received her training from the National Dairy Research Institute and conducted advanced research at globally respected institutions including the University of Illinois Urbana-Champaign, the US National Institutes of Health (NIH), Wake Forest School of Medicine, and USF Morsani College of Medicine.\n\nHer scientific expertise spans microbiome science, immunology, brain health, women’s health, cancer, metabolic disorders, diabetes, obesity, nutrition, and environmental toxicants. Dr. Jain has led multidisciplinary research programs integrating basic science, mechanistic biology, and clinical translation.\n\nShe is deeply committed to transforming laboratory discoveries into real-world health solutions. With a strong vision for industry collaboration, she has built MusB Research as a high-quality scientific platform that supports rigorous, evidence-based validation of natural products. Her goal is to position MusB Research as an extended R&D arm for industry partners, ensuring scientific excellence, regulatory readiness, and strong consumer confidence.",
+        image: "/images/team/shalini_jain.webp",
+        linkedin_url: "https://www.linkedin.com/in/shaliniscientist/",
+        expertise_tags: ["Microbiome Science", "Immunology", "Clinical Translation", "Biotics"],
+        areas_of_expertise: [
+            "Microbiome Science", "Immunology", "Brain Health", "Women's Health", 
+            "Cancer", "Metabolic Disorders", "Diabetes", "Obesity", "Nutrition", "Environmental Toxicants"
+        ],
+        affiliations: [
+            "National Dairy Research Institute", 
+            "University of Illinois Urbana-Champaign", 
+            "National Institutes of Health (NIH)", 
+            "Wake Forest School of Medicine", 
+            "USF Morsani College of Medicine"
+        ],
+        publications: []
+    },
+    {
+        name: "Dr. Hariom Yadav",
+        role: "Co-Founder",
+        bio: "Dr. Hariom Yadav, Co-Founder of MusB Research, is a globally recognized translational scientist with over 25 years of transformative experience in microbiome and biotics research. His work centers on translating cutting-edge discoveries into clinically validated solutions for metabolic health, longevity, and the gut–brain axis.",
+        expanded_bio: "Dr. Hariom Yadav is Co-Founder of MusB Research and a globally recognized translational scientist with more than 25 years of transformative experience in microbiome and biotics research. He has been trained and conducted research at world-renowned institutions including the US National Institutes of Health (NIH), Wake Forest School of Medicine, and USF Morsani College of Medicine. His work centers on translating cutting-edge discoveries into clinically validated solutions for metabolic health, longevity, and the gut–brain axis.\n\nDr. Yadav has led pioneering programs investigating probiotics and postbiotics in aging biology, metabolic disorders, cognitive decline, leaky gut, and systemic inflammation (inflammaging). His expertise supports a rigorous, evidence-based scientific platform for the validation of natural products, positioning MusB Research as an extended R&D arm for industry partners, ensuring scientific excellence, regulatory readiness, and strong consumer confidence.",
+        image: "/images/team/hariom_yadav.webp",
+        linkedin_url: "https://www.linkedin.com/in/yadavhariom/",
+        expertise_tags: ["Microbiome", "Metabolic Health", "Longevity", "Gut-Brain Axis"],
+        areas_of_expertise: [
+            "Microbiome Research", "Probiotics & Postbiotics", "Aging Biology", 
+            "Metabolic Disorders", "Cognitive Decline", "Leaky Gut", "Systemic Inflammation"
+        ],
+        affiliations: [
+            "National Institutes of Health (NIH)", 
+            "Wake Forest School of Medicine", 
+            "USF Morsani College of Medicine"
+        ],
+        publications: []
+    }
+];
+
+const ADVISORS_DATA = [
+    {
+        name: "Douglas Lynch",
+        advisory_role: "Business Development Advisory Board Member",
+        expertise_area: "Sales & Marketing",
+        organization: "Organic and Natural Health Association",
+        bio: "DOUGLAS LYNCH is an award-winning, global sales/marketing executive with over three decades of experience commercializing supplements, functional foods, medical foods, cosmeceuticals, animal health, and proprietary bioactive ingredients. He combines C-suite, omni-channel sales and marketing leadership, with IP-portfolio management expertise. Douglas has developed hundreds of consumer products for global markets. An entrepreneur, Douglas partners with universities, public and private entities to develop non-pharmaceutical solutions for age-related conditions. Douglas advises multinationals and start-ups on sales and marketing tactics. He’s a frequent, global speaker on consumer trends, and serves on the board of the Organic and Natural Health Association in Washington, D.C.",
+        image: "/images/team/dougla_lynch.webp",
+        linkedin_url: "https://www.linkedin.com/in/marketwellnutritionceo/"
+    },
+    {
+        name: "NAGENDRA RANGAVAJLA, Ph.D., FACN",
+        advisory_role: "Business Development Advisory Board Member",
+        expertise_area: "R&D Strategy & Innovation",
+        organization: "Former Abbott / Nestlé Executive",
+        bio: "Nagendra Rangavajla, Ph.D., FACN, is a strategic R&D leader with over 25 years of experience driving innovation from discovery to commercialization for global CPG leaders like Abbott, Nestlé, and Mead Johnson, as well as high-growth startups like Califia Farms and one.bio. He specializes in building robust science and technology roadmaps that link consumer insights to differentiated products across functional ingredients, beverages, and nutritional categories. His expertise spans the entire lifecycle of innovation, from ingredient scouting and bioconversion to managing complex clinical efficacy studies and global regulatory strategies.\n\nAs a seasoned advisor, Nagendra has expertise in scaling R&D operations, having optimized organizational processes to increase speed, productivity and innovation culture. He is a prolific innovator with over 20 patents and 50 publications, particularly in the areas of gut health, cognition, metabolic wellness, etc., and leverages a deep network of academic and external partners to help emerging companies navigate the transition from discovery to global distribution.",
+        image: "/images/team/nagendra_rangavajla.webp",
+        linkedin_url: "https://www.linkedin.com/in/nagendra-rangavajla-053584/"
+    },
+    {
+        name: "Peter As Alphonse",
+        advisory_role: "Business Development Advisory Board Member",
+        expertise_area: "Scientific & Regulatory Affairs",
+        organization: "Stelioz Solutions Inc.",
+        bio: "Peter Alphonse, PhD, CFS\nScientific and Regulatory Affairs Consultant, Stelioz Solutions Inc.\n\nDr. Peter Alphonse is the Scientific and Regulatory Affairs Consultant at Stelioz Solutions Inc., a specialized consultancy serving the natural health product, nutraceutical, dietary supplement, functional food, and veterinary health product sectors. He provides comprehensive regulatory and scientific leadership, supporting companies from early-stage concept development through successful market commercialization in Canada and the United States.\n\nAt Stelioz Solutions Inc., (www.steliozsolutions.com) Dr. Alphonse leads Health Canada NPN and site license applications, FDA food and dietary supplement compliance, GMP and quality systems implementation, labeling and packaging review, and SFCR licensing. The firm also offers clinical research strategy, scientific and technical writing, health claim substantiation, formulation development, analytical testing guidance, and regulatory pathway planning.\n\nWith a PhD in Human Nutritional Sciences and extensive experience in regulatory affairs, research, and product innovation, Dr. Alphonse is committed to advancing science-based wellness solutions that meet the highest standards of quality, safety, and compliance.",
+        image: "/images/team/peter_alphonse.webp",
+        linkedin_url: ""
+    },
+    {
+        name: "Sean M. Garvey, Ph.D",
+        advisory_role: "Business Development Advisory Board Member",
+        expertise_area: "Nutritional Science & Business Development",
+        organization: "Strategic Advisor",
+        bio: "Biography pending.",
+        image: "", 
+        linkedin_url: "https://www.linkedin.com/in/sean-garvey-phd-638a253/"
+    },
+    {
+        name: "Dr. Paulo Binetti",
+        advisory_role: "Business Development Advisory Board Member",
+        expertise_area: "Bioengineering & Venture Finance",
+        organization: "VitaDAO / LongGame",
+        bio: "Paolo Binetti is one of the top contributors of VitaDAO, a web3 organization funding longevity drug discovery. He is also an advisor for LongGame, a longevity biotech VC, a venture fellow for Healthspan Capital, another longevity biotech VC, as well as a biotech expert for Capital Cell, a crowd equity platform. Previously he held positions in strategy, business development, portfolio management, and program management, in industry and government.\n\nBorn and raised in Milano, Italy, Paolo holds a PhD in controls, robotics and bioengineering from the University of Pisa, a MS in aerospace engineering from Politecnico di Milano, a specialization in bioinformatics from the University of California San Diego, a certificate in drug discovery and development from Harvard Medical School, and a certificate in venture finance from the University of Oxford.",
+        image: "/images/team/Paulo Binetti Image.webp",
+        linkedin_url: "https://www.linkedin.com/in/paolo-binetti-1a3a991/"
+    }
+];
+
+const COLLABORATORS_DATA = [
+    { id: 1, name: 'Tampa General Hospital', specialty: 'Multi-Specialty Research', location: 'Tampa, FL', logo: '' },
+    { id: 2, name: 'Moffitt Cancer Center', specialty: 'Oncology', location: 'Tampa, FL', logo: '' },
+    { id: 3, name: 'USF Health', specialty: 'Academic Research', location: 'Tampa, FL', logo: '' },
+    { id: 4, name: 'Bay Area Gastroenterology', specialty: 'Gastroenterology', location: 'St. Petersburg, FL', logo: '' },
+    { id: 5, name: 'Florida Neurology Associates', specialty: 'Neurology', location: 'Tampa Bay Area', logo: '' },
+    { id: 6, name: "Women's Health Specialists", specialty: "Women's Health", location: 'Clearwater, FL', logo: '' },
+];
+
+const STAFF_DATA = [
+    { name: "Ms. Vaishnavi S", role: "Business & Administration Manager", dept: "Operations" },
+    { name: "Mr. Indushekar Manjunatha", role: "Clinical Coordinator", dept: "Clinical Research" },
+    { name: "Mrs. Falguni Kanani", role: "Community Outreach Liaison", dept: "Public Relations" },
+    { name: "Mr. Alain Ramirez", role: "Laboratory Technician", dept: "Lab Services" },
+    { name: "Dr. Andreas Mbah", role: "Medical Laboratory Director", dept: "Diagnostics" },
+    { name: "Mr. Jason Chandler", role: "IT Professional", dept: "Technology" },
+    { name: "Mr. Shray Paliwal", role: "Research Intern", dept: "Scientific Support" },
+    { name: "Dr. Osula Ebiuwa", role: "Research Intern", dept: "Scientific Support" },
+    { name: "Mr. Barenya Prasad Mishra", role: "Digital Health Platform Developer", dept: "Product Engineering" },
+    { name: "Mr. Brijesh Kumar", role: "Junior Software Engineer", dept: "Software Development" }
+];
+
+const PARTNERS_DATA = [
+    { id: 1, name: "University of South Florida", category: "Academic", logo: "" },
+    { id: 2, name: "Tampa General Hospital", category: "Academic", logo: "" },
+    { id: 3, name: "Global Pharma Solutions", category: "Industry", logo: "" },
+    { id: 4, name: "BioTech Innovations Inc.", category: "Industry", logo: "" },
+    { id: 5, name: "Clinical Research Alliance", category: "CRO", logo: "" },
+    { id: 6, name: "MedTrials Network", category: "CRO", logo: "" },
+    { id: 7, name: "Tampa Bay Health Foundation", category: "Community", logo: "" }
+];
 
 const TeamMemberCard = ({ member }: { member: any }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -251,21 +373,7 @@ const AdvisorCard = ({ advisor }: { advisor: any }) => {
 };
 
 export default function Team() {
-    // Removed expandedBios, expandedAdvisors state - now handled internally in cards
-    const [teamMembers, setTeamMembers] = useState<any[]>([]);
-    const [advisors, setAdvisors] = useState<any[]>([]);
-    const [clinicalCollaborators, setClinicalCollaborators] = useState<any[]>([]);
-    const [staffMembers, setStaffMembers] = useState<any[]>([]);
-    const [partners, setPartners] = useState<any[]>([]);
 
-    // Fetch all team data from backend
-    useEffect(() => {
-        fetchTeamMembers().then((data: any[]) => { if (data.length) setTeamMembers(data as any); }).catch(() => { });
-        fetchAdvisors().then((data: any[]) => { if (data.length) setAdvisors(data as any); }).catch(() => { });
-        fetchCollaborators().then((data: any[]) => { if (data.length) setClinicalCollaborators(data as any); }).catch(() => { });
-        fetchStaffMembers().then((data: any[]) => { if (data.length) setStaffMembers(data as any); }).catch(() => { });
-        fetchPartners().then((data: any[]) => { if (data.length) setPartners(data as any); }).catch(() => { });
-    }, []);
 
     return (
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden">
@@ -362,22 +470,8 @@ export default function Team() {
                     </div>
 
                     <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-                        {teamMembers.map((member, index) => (
+                        {LEADERSHIP_DATA.map((member, index) => (
                             <TeamMemberCard key={index} member={member} />
-                        ))}
-                        {teamMembers.length < 2 && [1, 2].slice(teamMembers.length).map((_, idx) => (
-                            <TeamMemberCard
-                                key={`placeholder-${idx}`}
-                                member={{
-                                    name: "Next Team Member",
-                                    role: "Scientific Leadership Role",
-                                    bio: "This is a placeholder for a professional bio. Once content is provided, this card will reflect the expertise and background of your team leader.",
-                                    expertise_tags: ["Expertise A", "Expertise B", "Expertise C"],
-                                    areas_of_expertise: ["Area 1", "Area 2"],
-                                    affiliations: ["Affiliation 1"],
-                                    publications: ["Sample Publication Title"]
-                                }}
-                            />
                         ))}
                     </div>
                 </div>
@@ -402,30 +496,9 @@ export default function Team() {
                     </div>
 
                     <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-                        {advisors.length > 0 ? (
-                            advisors.map((advisor, index) => (
-                                <AdvisorCard key={index} advisor={advisor} />
-                            ))
-                        ) : (
-                            [
-                                { name: "Dr. Paolo Binetti", org: "VitaDAO / LongGame" },
-                                { name: "Douglas Lynch", org: "MarketWell Nutrition" },
-                                { name: "NAGENDRA\nRANGAVAJLA Ph.D., FACN", org: "Expert Consultant" },
-                                { name: "Sean M. Garvey, Ph.D", org: "Strategic Advisor" },
-                                { name: "Strategic Advisor", org: "Pending Content" }
-                            ].map((place, idx) => (
-                                <AdvisorCard
-                                    key={idx}
-                                    advisor={{
-                                        name: place.name,
-                                        advisory_role: "Business Development Advisory Board Member",
-                                        expertise_area: "Business Development & Strategy",
-                                        organization: place.org,
-                                        bio: "This is a placeholder for a professional advisor bio. Once content is provided, this card will reflect the strategic guidance and industry expertise of our board members."
-                                    }}
-                                />
-                            ))
-                        )}
+                        {ADVISORS_DATA.map((advisor, index) => (
+                            <AdvisorCard key={index} advisor={advisor} />
+                        ))}
                     </div>
                 </div>
             </section>
@@ -449,7 +522,7 @@ export default function Team() {
                     </div>
 
                     <div className="grid md:grid-cols-3 lg:grid-cols-3 gap-6">
-                        {clinicalCollaborators.map((collaborator) => (
+                        {COLLABORATORS_DATA.map((collaborator) => (
                             <div
                                 key={collaborator.id}
                                 className="group bg-white/5 backdrop-blur-xl rounded-[2rem] p-6 border-2 border-white/10 hover:border-purple-400/50 hover:bg-white/10 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] text-center"
@@ -494,18 +567,7 @@ export default function Team() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                        {[
-                            { name: "Ms. Vaishnavi S", role: "Business & Administration Manager", dept: "Operations" },
-                            { name: "Mr. Indushekar Manjunatha", role: "Clinical Coordinator", dept: "Clinical Research" },
-                            { name: "Mrs. Falguni Kanani", role: "Community Outreach Liaison", dept: "Public Relations" },
-                            { name: "Mr. Alain Ramirez", role: "Laboratory Technician", dept: "Lab Services" },
-                            { name: "Dr. Andreas Mbah", role: "Medical Laboratory Director", dept: "Diagnostics" },
-                            { name: "Mr. Jason Chandler", role: "IT Professional", dept: "Technology" },
-                            { name: "Mr. Shray Paliwal", role: "Research Intern", dept: "Scientific Support" },
-                            { name: "Dr. Osula Ebiuwa", role: "Research Intern", dept: "Scientific Support" },
-                            { name: "Mr. Barenya Prasad Mishra", role: "Digital Health Platform Developer", dept: "Product Engineering" },
-                            { name: "Mr. Brijesh Kumar", role: "Junior Software Engineer", dept: "Software Development" }
-                        ].map((staff, idx) => (
+                        {STAFF_DATA.map((staff, idx) => (
                             <div
                                 key={idx}
                                 className="group bg-white/5 backdrop-blur-xl rounded-[2.5rem] p-8 border-2 border-white/10 hover:border-cyan-400/50 hover:bg-white/10 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col items-center text-center relative overflow-hidden h-full"
@@ -556,7 +618,7 @@ export default function Team() {
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                        {partners.map((partner) => (
+                        {PARTNERS_DATA.map((partner) => (
                             <div
                                 key={partner.id}
                                 className="group bg-white/5 backdrop-blur-xl rounded-[2rem] p-8 border-2 border-white/10 hover:border-indigo-400/50 hover:bg-white/10 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col items-center justify-center text-center relative overflow-hidden"

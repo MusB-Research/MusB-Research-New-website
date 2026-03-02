@@ -23,7 +23,67 @@ import {
     Stethoscope
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { fetchStudies, submitContactForm } from '@/api';
+
+
+
+const HARDCODED_STUDIES = [
+    {
+        id: '1',
+        title: 'Gut Microbiome & Metabolic Health',
+        condition: 'Gut',
+        type: 'Hybrid',
+        status: 'Recruiting',
+        description: 'Evaluating the impact of a novel synbiotic formulation on gut microbiome diversity and metabolic markers over a 12-week period.',
+        benefit: 'Free 12-week supply of study product & comprehensive microbiome analysis.',
+        duration: '12 Weeks',
+        tags: ['Microbiome', 'Metabolism', 'Supplement'],
+        compensation: '$250',
+        location: 'Tampa, FL & Virtual',
+        timeCommitment: '4 clinic visits, weekly surveys'
+    },
+    {
+        id: '2',
+        title: 'Cognitive Performance & Omega-3s',
+        condition: 'Brain/Cognition',
+        type: 'Virtual',
+        status: 'Recruiting',
+        description: 'A fully virtual study assessing the effects of a high-DHA omega-3 supplement on memory, focus, and overall cognitive performance in adults aged 50-75.',
+        benefit: 'Free 8-week supply of high-DHA omega-3 & individualized cognitive assessment report.',
+        duration: '8 Weeks',
+        tags: ['Cognition', 'Omega-3', 'Aging'],
+        compensation: '$150',
+        location: 'Virtual',
+        timeCommitment: 'Online cognitive tests bi-weekly'
+    },
+    {
+        id: '3',
+        title: 'Skin Hydration & Collagen Peptides',
+        condition: 'Skin',
+        type: 'On-site',
+        status: 'Recruiting',
+        description: 'Investigating the efficacy of a bio-active collagen peptide blend on skin hydration, elasticity, and wrinkle reduction using advanced dermal imaging.',
+        benefit: 'Free 8-week supply of collagen supplement & professional skin health analysis.',
+        duration: '8 Weeks',
+        tags: ['Dermatology', 'Collagen', 'Aesthetics'],
+        compensation: '$300',
+        location: 'Tampa, FL',
+        timeCommitment: '3 clinic visits for dermal imaging'
+    },
+    {
+        id: '4',
+        title: 'Women\'s Health & Hormonal Balance',
+        condition: 'Women\'s Health',
+        type: 'Virtual',
+        status: 'Recruiting',
+        description: 'Studying a botanical blend for the support of hormonal balance and reduction of peri-menopausal symptoms in women aged 40-60.',
+        benefit: 'Free 12-week supply of botanical supplement & hormone health tracking app access.',
+        duration: '12 Weeks',
+        tags: ['Women\'s Health', 'Botanicals', 'Hormones'],
+        compensation: '$200',
+        location: 'Virtual',
+        timeCommitment: 'Daily app tracking, weekly surveys'
+    }
+];
 
 export default function Trials() {
     const [selectedCondition, setSelectedCondition] = useState('All');
@@ -55,16 +115,11 @@ export default function Trials() {
             }
         }
     }, []);
-
     useEffect(() => {
-        fetchStudies().then((data: any) => {
-            setStudies(data);
-            setLoading(false);
-        }).catch((err: any) => {
-            console.error("Failed to fetch studies", err);
-            setLoading(false);
-        });
+        setStudies(HARDCODED_STUDIES);
+        setLoading(false);
     }, []);
+
 
     // Hardcoded studies removed in favor of API data
 
@@ -118,7 +173,8 @@ export default function Trials() {
         `;
 
         try {
-            await submitContactForm({
+            await new Promise(resolve => setTimeout(resolve, 800));
+            console.log('Study Matching Form Submitted', {
                 name: formData.name,
                 email: formData.email,
                 subject: 'Study Matching Request',

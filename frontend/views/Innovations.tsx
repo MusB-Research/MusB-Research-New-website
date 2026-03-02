@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { Sparkles, CheckCircle2, Zap, TrendingUp, FlaskConical, Shield, ArrowRight, Target, FileText, BookOpen, Newspaper, Paperclip, Mail, X, Stethoscope, Microscope, Pill, ChevronLeft, ChevronRight, Verified } from 'lucide-react';
 
 import { useState, useEffect } from 'react';
-import { fetchTechnologies, submitBookletDownload } from '@/api';
 
 const defaultTechnologies = [
     {
@@ -179,7 +178,8 @@ export default function Innovations() {
         setBookletSubmitting(true);
         setBookletError('');
         try {
-            await submitBookletDownload({ ...bookletForm, technology_name: bookletTechName });
+            await new Promise(resolve => setTimeout(resolve, 800)); // Mock API call
+            console.log('Booklet form submitted', bookletForm);
             setShowBookletForm(false);
             // Trigger download — placeholder PDF for now
             const link = document.createElement('a');
@@ -217,116 +217,7 @@ export default function Innovations() {
         }
     };
 
-    useEffect(() => {
-        fetchTechnologies().then((data: any[]) => {
-            if (data.length) {
-                const iconMap: Record<string, any> = {
-                    trendingup: TrendingUp,
-                    flaskconical: FlaskConical,
-                    shield: Shield,
-                    filetext: FileText,
-                    bookopen: BookOpen,
-                    paperclip: Paperclip,
-                    mail: Mail
-                };
 
-                // Find the local definition that has the details we want to preserve
-                const increLacDetails = defaultTechnologies.find(t => t.name.toLowerCase().includes("increlac"))?.details;
-                const increLacIncludes = defaultTechnologies.find(t => t.name.toLowerCase().includes("increlac"))?.includes;
-                const movixDetails = defaultTechnologies.find(t => t.name.toLowerCase().includes("movix"))?.details;
-                const movixIncludes = defaultTechnologies.find(t => t.name.toLowerCase().includes("movix"))?.includes;
-                const plastiSheildDetails = defaultTechnologies.find(t => t.name.toLowerCase().includes("plastisheild"))?.details;
-                const alcoProtectDetails = defaultTechnologies.find(t => t.name.toLowerCase().includes("alcoprotect"))?.details;
-
-                const technologies = data.map((d: any) => {
-                    let details = d.details;
-                    let name = d.name;
-                    let includes = (d.features || []).map((f: string) => ({ icon: FileText, text: f })); // Simple mapping for now
-                    let tagline = d.tagline;
-                    let positioning = d.description;
-                    let focusAreas = d.focus_areas || [];
-
-                    // Rename PlastiCheck to PlastiSheild
-                    if (name.includes("PlastiCheck")) {
-                        name = name.replace("PlastiCheck", "PlastiSheild");
-                    }
-
-                    if (!details) {
-                        if (name.toLowerCase().includes("increlac")) {
-                            details = increLacDetails;
-                            includes = increLacIncludes;
-                            // Force local content for IncreLac
-                            const localIncreLac = defaultTechnologies.find(t => t.name.toLowerCase().includes("increlac"));
-                            if (localIncreLac) {
-                                name = localIncreLac.name;
-                                tagline = localIncreLac.tagline;
-                                positioning = localIncreLac.positioning;
-                                focusAreas = localIncreLac.focusAreas;
-                            }
-                        }
-                        if (name.toLowerCase().includes("movix")) {
-                            details = movixDetails;
-                            includes = movixIncludes;
-                            // Force local content for Movix
-                            const localMovix = defaultTechnologies.find(t => t.name.toLowerCase().includes("movix"));
-                            if (localMovix) {
-                                name = localMovix.name;
-                                tagline = localMovix.tagline;
-                                positioning = localMovix.positioning;
-                                // Correcting the variable name in the actual code
-                                positioning = localMovix.positioning;
-                                focusAreas = localMovix.focusAreas;
-                            }
-                        }
-                        if (name.toLowerCase().includes("plastisheild") || name.toLowerCase().includes("plasticheck")) {
-                            details = plastiSheildDetails;
-                            // Force local content for PlastiSheild
-                            const localPlastiSheild = defaultTechnologies.find(t => t.name.toLowerCase().includes("plastisheild") || t.name.toLowerCase().includes("plasticheck"));
-                            if (localPlastiSheild) {
-                                name = localPlastiSheild.name;
-                                tagline = localPlastiSheild.tagline;
-                                positioning = localPlastiSheild.positioning;
-                                focusAreas = localPlastiSheild.focusAreas;
-                                includes = localPlastiSheild.includes;
-                            }
-                        }
-                        if (name.toLowerCase().includes("alcoprotect")) details = alcoProtectDetails;
-                    }
-
-                    return {
-                        name: name,
-                        tagline: tagline,
-                        positioning: positioning, // Mapping description to positioning
-                        focusAreas: focusAreas,
-                        includes: includes,
-                        icon: iconMap[d.icon?.toLowerCase()] || FlaskConical,
-                        gradient: d.gradient || "from-blue-500 to-indigo-500",
-                        details: details
-                    };
-                });
-
-                // Ensure Movix is present if not in API
-                if (!technologies.find((t: any) => t.name.toLowerCase().includes("movix"))) {
-                    const movix = defaultTechnologies.find(t => t.name.toLowerCase().includes("movix"));
-                    if (movix) technologies.push(movix);
-                }
-
-                // Ensure PlastiSheild is present if not in API (or renamed)
-                if (!technologies.find((t: any) => t.name.toLowerCase().includes("plastisheild"))) {
-                    const plastiSheild = defaultTechnologies.find(t => t.name.toLowerCase().includes("plastisheild"));
-                    if (plastiSheild) technologies.push(plastiSheild);
-                }
-
-                // Ensure AlcoProtect is present if not in API
-                if (!technologies.find((t: any) => t.name.toLowerCase().includes("alcoprotect"))) {
-                    const alcoProtect = defaultTechnologies.find(t => t.name.toLowerCase().includes("alcoprotect"));
-                    if (alcoProtect) technologies.push(alcoProtect);
-                }
-
-                setTechnologies(technologies);
-            }
-        }).catch(() => { });
-    }, []);
     return (
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden">
             {/* Atmospheric Background Layers - PRESERVED */}

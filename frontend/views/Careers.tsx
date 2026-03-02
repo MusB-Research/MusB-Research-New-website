@@ -23,24 +23,23 @@ import {
     SearchX
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { fetchJobOpenings, fetchCareerCategories } from '@/api';
 import { JobOpening, CareerCategory } from '@/types';
 
 const hiringProcess = [
     {
-        id: 1,
+        id: '1',
         title: 'Apply Online',
         desc: 'Submit your application through our careers portal.',
         icon: FileText
     },
     {
-        id: 2,
+        id: '2',
         title: 'Interview & Discussion',
         desc: 'Meet with our team to discuss skills, experience, and fit.',
         icon: MessagesSquare
     },
     {
-        id: 3,
+        id: '3',
         title: 'Join the Team',
         desc: 'Successful candidates receive an offer and onboarding support.',
         icon: Users
@@ -65,21 +64,57 @@ const benefitPoints = [
     'Real-world impact on public health'
 ];
 
+
+const HARDCODED_CATEGORIES: CareerCategory[] = [
+    { id: '1', name: 'Research & Innovation', description: 'Scientists, postdocs, research associates.', icon: 'microscope' },
+    { id: '2', name: 'Clinical Research', description: 'Coordinators, nurses, and trial managers.', icon: 'activity' },
+    { id: '3', name: 'Laboratory & Diagnostics', description: 'Lab technicians, analysts, QA/QC professionals.', icon: 'test-tube' },
+    { id: '4', name: 'Data & Biostatistics', description: 'Data scientists and statisticians.', icon: 'bar-chart' },
+    { id: '5', name: 'Operations & Administration', description: 'HR, finance, and compliance professionals.', icon: 'briefcase' },
+    { id: '6', name: 'Students & Internships', description: 'Interns, trainees, and fellows.', icon: 'graduation-cap' }
+];
+
+const HARDCODED_JOBS: JobOpening[] = [
+    {
+        id: '1', title: 'Senior Clinical Research Coordinator', department: 'Clinical Research',
+        location: 'Tampa, FL (On-site)', type: 'Full-time', experienceLevel: 'Senior',
+        summary: 'Lead the management of complex clinical trials in microbiome and metabolic health.',
+        description: '',
+        isFeatured: true,
+        status: 'Live'
+    },
+    {
+        id: '2', title: 'Research Associate - Biotics & Omics', department: 'Research & Innovation',
+        location: 'Tampa, FL (Hybrid)', type: 'Full-time', experienceLevel: 'Mid-level',
+        summary: 'Support bench-top research in our multi-omics laboratory.',
+        description: '',
+        isFeatured: false,
+        status: 'Live'
+    },
+    {
+        id: '3', title: 'Laboratory Technician', department: 'Laboratory & Diagnostics',
+        location: 'Tampa, FL (On-site)', type: 'Full-time', experienceLevel: 'Entry-level',
+        summary: 'Execute standard laboratory protocols for clinical sample processing.',
+        description: '',
+        isFeatured: false,
+        status: 'Live'
+    },
+    {
+        id: '4', title: 'Clinical Data Analyst', department: 'Data & Biostatistics',
+        location: 'Remote / Tampa, FL', type: 'Contract', experienceLevel: 'Mid-level',
+        summary: 'Perform statistical cleaning and analysis of microbiome-based clinical data.',
+        description: '',
+        isFeatured: false,
+        status: 'Live'
+    }
+];
+
 export default function Careers() {
     const [activeDept, setActiveDept] = useState<string>('All');
     const [searchQuery, setSearchQuery] = useState('');
-    const [jobOpenings, setJobOpenings] = useState<JobOpening[]>([]);
-    const [careerCategories, setCareerCategories] = useState<CareerCategory[]>([]);
+    const jobOpenings = HARDCODED_JOBS;    const careerCategories = HARDCODED_CATEGORIES;
 
-    // Fetch jobs and career categories from backend
-    useEffect(() => {
-        fetchJobOpenings().then((data: any[]) => {
-            if (data.length) setJobOpenings(data as JobOpening[]);
-        }).catch(() => { });
-        fetchCareerCategories().then((data: any[]) => {
-            if (data.length) setCareerCategories(data as CareerCategory[]);
-        }).catch(() => { });
-    }, []);
+
 
     const departments = useMemo(() => {
         const depts = new Set(jobOpenings.map(job => job.department));

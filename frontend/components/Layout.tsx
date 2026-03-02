@@ -1,7 +1,7 @@
 import React, { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ArrowRight, Linkedin, Mail, MapPin, Phone, ChevronDown, Youtube, Facebook, Instagram, Send, Loader2, CheckCircle2 } from 'lucide-react';
-import { subscribeNewsletter } from '@/api';
+
 
 interface LayoutProps {
     children: ReactNode;
@@ -27,7 +27,7 @@ export default function Layout({ children }: LayoutProps) {
         if (!email) return;
         setNewsletterStatus('loading');
         try {
-            await subscribeNewsletter(email);
+            await new Promise(resolve => setTimeout(resolve, 800));
             setNewsletterStatus('success');
             setEmail('');
         } catch (err) {

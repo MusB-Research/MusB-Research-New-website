@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronLeft, ChevronRight, Brain, FlaskConical, Activity, TestTube, Microscope, Leaf, Flower, ShieldCheck, Zap, Beaker, BarChart, FileText, Stethoscope, Database, Smartphone, Box, CheckCircle2, Building2, Globe, HeartPulse } from 'lucide-react';
 import StudyFilterSection from '@/components/StudyFilterSection';
-import { fetchCapabilities, fetchFacilities, fetchCertifications, fetchPartners, fetchHomeSettings } from '@/api';
 
 const slides = [
     {
@@ -35,32 +34,56 @@ const slides = [
 
 
 
+
+const CAPABILITIES_DATA = [
+    {id: 1, title: 'Clinical Trials', description: 'Phase I–IV trials, including natural products and medical devices.', icon: 'activity'},
+    {id: 2, title: 'Preclinical Research', description: 'In-depth in vitro and animal models for translational research.', icon: 'test-tube'},
+    {id: 3, title: 'Microbiome, Biotics & Omics', description: 'Advanced analysis of microbial ecosystems and multi-omics data.', icon: 'microscope'},
+    {id: 4, title: 'Nutrition & Natural Products', description: 'Efficacy and safety studies for dietary supplements and functional foods.', icon: 'leaf'},
+    {id: 5, title: 'Aging, Metabolic & Brain Health', description: 'Focusing on musculoskeletal aging, brain health, and metabolic disorders.', icon: 'brain'},
+    {id: 6, title: 'Leaky Gut, Inflammation, Skin & Women\'s Health', description: 'Specialized research in skin health, inflammation, and women-specific conditions.', icon: 'flower'},
+    {id: 7, title: 'Immunomodulatory Research', description: 'Studying immune system responses and therapeutic interventions.', icon: 'shield-check'},
+    {id: 8, title: 'Muscle, Gut, Skin & Vascular Health', description: 'Analysis of cardiovascular fitness and skeletal muscle performance.', icon: 'zap'},
+    {id: 9, title: 'Toxicology & Bioavailability', description: 'Safety profiling and assessment of compound absorption rates.', icon: 'beaker'},
+    {id: 10, title: 'Biostatistics & Data Science', description: 'Complex data analysis and robust statistical modeling workflows.', icon: 'bar-chart'},
+    {id: 11, title: 'Regulatory Compliance Support', description: 'End-to-end guidance for FDA, FTC, and international compliance.', icon: 'file-text'}
+];
+
+const FACILITIES_DATA = [
+    {id: 1, name: 'Multidisciplinary Clinical Research Site', description: 'State-of-the-art facility equipped for diverse therapeutic studies.', features: ['Consultation Rooms', 'Locked Storage', 'Reception Area']},
+    {id: 2, name: 'Participant-Friendly Clinics', description: 'Designed for comfort and efficiency during research visits.', features: ['Private Bays', 'Waiting Lounge', 'Accessible Facilities']},
+    {id: 3, name: 'Central Laboratory & Biorepository', description: 'Secure on-site storage and advanced sample processing capabilities.', features: ['-80°C Freezers', 'Centrifuges', 'Cryogenic Storage']},
+    {id: 4, name: 'Sample Processing & Secure IT Systems', description: 'HIPAA-compliant, high-security infrastructure for data management.', features: ['Encrypted Servers', '24/7 Monitoring', 'Redundant Backups']},
+    {id: 5, name: 'Mobile Clinic & Phlebotomy Services', description: 'Bringing research to the community with mobile phlebotomy units.', features: ['On-site Collection', 'Remote Monitoring', 'Outreach Kits']},
+    {id: 6, name: 'Metabolic Chambers', description: 'Precision measurement of energy expenditure and metabolic rates.', features: ['Gas Analysis', 'Controlled Environment', 'Real-time Tracking']}
+];
+
+const CERTIFICATIONS_DATA = [
+    {id: 1, label: 'IRB-approved studies'},
+    {id: 2, label: 'GCP-trained staff'},
+    {id: 3, label: 'HIPAA-compliant systems'},
+    {id: 4, label: 'CLIA/COLA partner laboratory'},
+    {id: 5, label: 'SOP-driven operations'},
+    {id: 6, label: 'ISO Certification'},
+    {id: 7, label: 'GLP Certification'}
+];
+
+const PARTNERS_DATA = [
+    {id: 1, name: 'University of South Florida', category: 'Academic'},
+    {id: 2, name: 'Tampa General Hospital', category: 'Academic'},
+    {id: 3, name: 'Global Pharma Solutions', category: 'Industry'},
+    {id: 4, name: 'BioTech Innovations Inc.', category: 'Industry'},
+    {id: 5, name: 'Clinical Research Alliance', category: 'CRO'},
+    {id: 6, name: 'MedTrials Network', category: 'CRO'},
+    {id: 7, name: 'Tampa Bay Health Foundation', category: 'Community'}
+];
+
 export default function Home() {
     const [currentSlide, setCurrentSlide] = useState(0);
-    const [capabilities, setCapabilities] = useState<any[]>([]);
-    const [facilities, setFacilities] = useState<any[]>([]);
-    const [certifications, setCertifications] = useState<any[]>([]);
-    const [partners, setPartners] = useState<any[]>([]);
-    const [homeSettings, setHomeSettings] = useState<any>(null);
+    
+    const activeSlides = slides;
 
-    const activeSlides = (homeSettings?.hero_slides && homeSettings.hero_slides.length > 0) ? homeSettings.hero_slides : slides;
 
-    // Fetch data from backend APIs (fallback to static data on error)
-    useEffect(() => {
-        fetchHomeSettings().then(setHomeSettings).catch(() => { });
-        fetchCapabilities().then((data: any[]) => {
-            if (data.length) setCapabilities(data.map((d: any, i: number) => ({ id: d.id || i + 1, title: d.title, description: d.description, icon: d.icon || 'activity' })));
-        }).catch(() => { });
-        fetchFacilities().then((data: any[]) => {
-            if (data.length) setFacilities(data.map((d: any, i: number) => ({ id: d.id || i + 1, name: d.name, description: d.description, features: d.features || [] })));
-        }).catch(() => { });
-        fetchCertifications().then((data: any[]) => {
-            if (data.length) setCertifications(data.map((d: any, i: number) => ({ id: d.id || i + 1, label: d.label, imageUrl: d.image_url || d.image || '' })));
-        }).catch(() => { });
-        fetchPartners().then((data: any[]) => {
-            if (data.length) setPartners(data.map((d: any, i: number) => ({ id: d.id || i + 1, name: d.name, logo: d.logo || '' })));
-        }).catch(() => { });
-    }, []);
 
     // Defensive: reset index if slides count changes or if it goes out of bounds
     useEffect(() => {
@@ -191,11 +214,12 @@ export default function Home() {
             </div>
 
             {/* Find a Clinical Study Section */}
-            {(homeSettings?.show_studies_section !== false) && <StudyFilterSection />}
+            <StudyFilterSection />
 
             {/* Section 3: Three Ways We Support You */}
-            {(homeSettings?.show_services_section !== false) && (
-                <div className="py-12 relative z-10" id="services">
+            {
+                (
+<div className="py-12 relative z-10" id="services">
                     <div className="max-w-[1700px] mx-auto px-6 md:px-12">
                         <div className="text-center space-y-8 mb-24 max-w-7xl mx-auto">
                             <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight">
@@ -330,8 +354,9 @@ export default function Home() {
             )}
 
             {/* Why Choose MusB™ Research Section */}
-            {(homeSettings?.show_trust_indicators !== false) && (
-                <div className="pt-20 pb-8 relative z-10 overflow-hidden" id="why-choose-us">
+            {
+                (
+<div className="pt-20 pb-8 relative z-10 overflow-hidden" id="why-choose-us">
                     {/* Background Glows */}
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full pointer-events-none">
                         <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-cyan-500/10 blur-[150px] rounded-full"></div>
@@ -400,8 +425,7 @@ export default function Home() {
             )}
 
             {/* Section 04: Capabilities Snapshot */}
-            {
-                (homeSettings?.show_capabilities_section !== false) && (
+            { (
                     <div className="pt-8 pb-4 relative z-10" id="capabilities">
                         <div className="max-w-[1700px] mx-auto px-6 md:px-12">
                             <div className="flex flex-col md:flex-row justify-between items-end gap-12 mb-10">
@@ -422,7 +446,7 @@ export default function Home() {
                                 <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-cyan-500/5 blur-[120px] rounded-full"></div>
 
                                 <div className="flex flex-wrap justify-center gap-6 relative z-10">
-                                    {capabilities.map((cap: any, idx: number) => {
+                                    {CAPABILITIES_DATA.map((cap: any, idx: number) => {
                                         const IconComponent = {
                                             activity: Activity,
                                             'test-tube': TestTube,
@@ -462,8 +486,7 @@ export default function Home() {
             }
 
             {/* Section 05: Facilities & Infrastructure */}
-            {
-                (homeSettings?.show_facilities_section !== false) && (
+            { (
                     <div className="pt-4 pb-16 relative z-10" id="facilities">
                         <div className="max-w-[1700px] mx-auto px-6 md:px-12">
                             <div className="grid lg:grid-cols-2 gap-32 items-center">
@@ -476,7 +499,7 @@ export default function Home() {
                                     </div>
 
                                     <div className="grid md:grid-cols-2 gap-8">
-                                        {facilities.map((fac: any, idx: number) => (
+                                        {FACILITIES_DATA.map((fac: any, idx: number) => (
                                             <div key={fac.id} className={`flex gap-5 group animate-fade-in-up stagger-${(idx % 4) + 1}`}>
                                                 <div className="w-10 h-10 shrink-0 rounded-lg bg-white/5 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-slate-900 transition-all duration-300">
                                                     {fac.name.includes('Site') ? <Building2 className="w-5 h-5" /> :
@@ -518,8 +541,7 @@ export default function Home() {
             }
 
             {/* Section 06: Certifications & Compliance */}
-            {
-                (homeSettings?.show_certifications_section !== false) && (
+            { (
                     <div className="py-24 relative z-10 bg-slate-900/40 border-y border-white/5 overflow-hidden" id="certifications">
                         <div className="max-w-[1700px] mx-auto px-6 md:px-12 mb-20">
                             <div className="text-center space-y-6 animate-fade-in-up">
@@ -536,7 +558,7 @@ export default function Home() {
                         {/* Left to Right Scrolling Marquee (Reverse of Partners) */}
                         <div className="relative flex overflow-x-hidden mask-fade-edges py-12">
                             <div className="animate-marquee-reverse whitespace-nowrap flex items-center gap-24 pr-24">
-                                {[...certifications, ...certifications].map((cert: any, idx: number) => (
+                                {[...CERTIFICATIONS_DATA, ...CERTIFICATIONS_DATA].map((cert: any, idx: number) => (
                                     <div key={`${cert.id}-${idx}`} className="flex flex-col items-center gap-4 group min-w-[200px]">
                                         <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-slate-900 group-hover:scale-110 transition-all duration-500 shadow-xl">
                                             <ShieldCheck className="w-10 h-10" />
@@ -547,7 +569,7 @@ export default function Home() {
                             </div>
 
                             <div className="absolute top-0 py-12 animate-marquee2-reverse whitespace-nowrap flex items-center gap-24 pr-24">
-                                {[...certifications, ...certifications].map((cert: any, idx: number) => (
+                                {[...CERTIFICATIONS_DATA, ...CERTIFICATIONS_DATA].map((cert: any, idx: number) => (
                                     <div key={`${cert.id}-repeat-${idx}`} className="flex flex-col items-center gap-4 group min-w-[200px]">
                                         <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-slate-900 group-hover:scale-110 transition-all duration-500 shadow-xl">
                                             <ShieldCheck className="w-10 h-10" />
@@ -562,8 +584,7 @@ export default function Home() {
             }
 
             {/* Section 07: Collaborations & Partners */}
-            {
-                (homeSettings?.show_partners_section !== false) && (
+            { (
                     <div className="py-24 relative z-10 overflow-hidden" id="partners">
                         <div className="max-w-[1700px] mx-auto px-6 md:px-12 mb-20">
                             <div className="text-center space-y-4 animate-fade-in-up">
@@ -575,7 +596,7 @@ export default function Home() {
                         {/* Right to Left Scrolling Marquee */}
                         <div className="relative flex overflow-x-hidden mask-fade-edges py-12">
                             <div className="animate-marquee whitespace-nowrap flex items-center gap-32 pr-32">
-                                {[...partners, ...partners].map((partner: any, i: number) => (
+                                {[...PARTNERS_DATA, ...PARTNERS_DATA].map((partner: any, i: number) => (
                                     <div key={i} className="flex items-center gap-4 opacity-30 hover:opacity-100 grayscale hover:grayscale-0 transition-all duration-700 cursor-default group scale-90 hover:scale-100">
                                         <div className="w-12 h-12 rounded-xl bg-indigo-400/10 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-400 group-hover:text-slate-900 transition-all duration-500">
                                             <Globe className="w-6 h-6" />
@@ -586,7 +607,7 @@ export default function Home() {
                             </div>
 
                             <div className="absolute top-0 py-12 animate-marquee2 whitespace-nowrap flex items-center gap-32 pr-32">
-                                {[...partners, ...partners].map((partner: any, i: number) => (
+                                {[...PARTNERS_DATA, ...PARTNERS_DATA].map((partner: any, i: number) => (
                                     <div key={i} className="flex items-center gap-4 opacity-30 hover:opacity-100 grayscale hover:grayscale-0 transition-all duration-700 cursor-default group scale-90 hover:scale-100">
                                         <div className="w-12 h-12 rounded-xl bg-indigo-400/10 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-400 group-hover:text-slate-900 transition-all duration-500">
                                             <Globe className="w-6 h-6" />
@@ -601,8 +622,7 @@ export default function Home() {
             }
 
             {/* Section 08: Dual Call to Action */}
-            {
-                (homeSettings?.show_final_cta !== false) && (
+            { (
                     <div className="py-12 relative z-10">
                         <div className="max-w-[1400px] mx-auto px-6 md:px-12">
                             <div className="grid md:grid-cols-2 gap-8">

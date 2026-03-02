@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { fetchCapabilities } from '@/api';
+import React from 'react';
 import {
   Activity,
   TestTube,
@@ -15,14 +14,23 @@ import {
   Globe
 } from 'lucide-react';
 
-const Capabilities: React.FC = () => {
-  const [capabilities, setCapabilities] = useState<any[]>([]);
 
-  useEffect(() => {
-    fetchCapabilities().then((data: any[]) => {
-      if (data.length) setCapabilities(data.map((d: any, i: number) => ({ id: d.id || i + 1, title: d.title, description: d.description, icon: d.icon || 'activity' })));
-    }).catch(() => { });
-  }, []);
+const CAPABILITIES_DATA = [
+    {id: 1, title: 'Clinical Trials', description: 'Phase I–IV trials, including natural products and medical devices.', icon: 'activity'},
+    {id: 2, title: 'Preclinical Research', description: 'In-depth in vitro and animal models for translational research.', icon: 'test-tube'},
+    {id: 3, title: 'Microbiome, Biotics & Omics', description: 'Advanced analysis of microbial ecosystems and multi-omics data.', icon: 'microscope'},
+    {id: 4, title: 'Nutrition & Natural Products', description: 'Efficacy and safety studies for dietary supplements and functional foods.', icon: 'leaf'},
+    {id: 5, title: 'Aging, Metabolic & Brain Health', description: 'Focusing on musculoskeletal aging, brain health, and metabolic disorders.', icon: 'brain'},
+    {id: 6, title: 'Leaky Gut, Inflammation, Skin & Women\'s Health', description: 'Specialized research in skin health, inflammation, and women-specific conditions.', icon: 'flower'},
+    {id: 7, title: 'Immunomodulatory Research', description: 'Studying immune system responses and therapeutic interventions.', icon: 'shield-check'},
+    {id: 8, title: 'Muscle, Gut, Skin & Vascular Health', description: 'Analysis of cardiovascular fitness and skeletal muscle performance.', icon: 'zap'},
+    {id: 9, title: 'Toxicology & Bioavailability', description: 'Safety profiling and assessment of compound absorption rates.', icon: 'beaker'},
+    {id: 10, title: 'Biostatistics & Data Science', description: 'Complex data analysis and robust statistical modeling workflows.', icon: 'bar-chart'},
+    {id: 11, title: 'Regulatory Compliance Support', description: 'End-to-end guidance for FDA, FTC, and international compliance.', icon: 'file-text'}
+];
+
+const Capabilities: React.FC = () => {
+  const capabilities = CAPABILITIES_DATA;
   return (
     <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden">
       {/* Atmospheric Background Layers */}
@@ -69,8 +77,7 @@ const Capabilities: React.FC = () => {
                   'file-text': FileText
                 };
                 const IconComponent = IconMap[cap.icon as string] || Globe;
-
-                return (
+  return (
                   <div key={cap.id} className="bg-slate-950/50 backdrop-blur-xl p-8 md:p-10 rounded-[3rem] border border-white/5 hover:bg-slate-900 hover:border-cyan-500/30 transition-all duration-500 group shadow-[0_40px_80px_-20px_rgba(0,0,0,0.7)] hover:shadow-[0_50px_100px_-20px_rgba(6,182,212,0.15)] flex flex-col items-start gap-8 relative overflow-hidden">
                     <div className="absolute -inset-1 bg-gradient-to-tr from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                     <div className="w-16 h-16 rounded-2xl bg-cyan-400 flex items-center justify-center text-slate-900 shadow-[0_0_20px_rgba(6,182,212,0.4)] group-hover:scale-110 transition-transform duration-500 relative z-10">
