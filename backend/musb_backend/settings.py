@@ -29,7 +29,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-%s_3@h)4+#%gs%)nm@x
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,musb-backend.onrender.com').split(',')
+ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,musb-backend.onrender.com,musb-research-new-website.onrender.com').split(',')
 
 
 # Application definition
@@ -151,6 +151,11 @@ else:
         'CORS_ALLOWED_ORIGINS',
         'http://localhost:3000,https://musbresearchnewwebsite.vercel.app,https://musbhealth.com,https://www.musbhealth.com'
     ).split(',')
+CSRF_TRUSTED_ORIGINS = [
+    'https://musbresearchnewwebsite.vercel.app',
+    'https://musbhealth.com',
+    'https://www.musbhealth.com',
+]
 
 CORS_ALLOW_HEADERS = [
     "authorization",
