@@ -401,7 +401,7 @@ export default function Trials() {
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
                             {filteredStudies.map((study) => (
-                                <div key={study.id} className="group bg-slate-950/50 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-6 md:p-10 hover:bg-slate-900 hover:border-cyan-500/30 transition-all shadow-2xl flex flex-col relative overflow-hidden shadow-2xl">
+                                <div key={study.id} className="group border border-white/5 rounded-[3rem] p-6 md:p-10 hover:bg-slate-900 hover:border-cyan-500/30 transition-all flex flex-col relative overflow-hidden shadow-2xl">
                                     <div className="absolute -inset-1 bg-gradient-to-tr from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                                     <div className="flex justify-between items-start mb-8">
                                         <div className="space-y-4">
@@ -429,7 +429,7 @@ export default function Trials() {
                                     </div>
                                     {study.status === 'Recruiting' ? (
                                         <a
-                                            href={`https://musb-research-f3on.vercel.app/studies/${study.slug || study.id || study._id}/screener?study=${study.id || study._id}&name=${encodeURIComponent(study.title || study.name)}&duration=${encodeURIComponent(study.duration || '')}&compensation=${encodeURIComponent(study.compensation || '')}&location=${encodeURIComponent(study.location || '')}&commitment=${encodeURIComponent(study.timeCommitment || '')}&category=${encodeURIComponent(study.condition || study.category || '')}`}
+                                            href={`https://musb-research-vct.vercel.app/studies/${study.slug || study.id || study._id}/screener?study=${study.id || study._id}&name=${encodeURIComponent(study.title || study.name)}&duration=${encodeURIComponent(study.duration || '')}&compensation=${encodeURIComponent(study.compensation || '')}&location=${encodeURIComponent(study.location || '')}&commitment=${encodeURIComponent(study.timeCommitment || '')}&category=${encodeURIComponent(study.condition || study.category || '')}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="block w-full text-center py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all bg-cyan-500 text-slate-900 hover:bg-white"

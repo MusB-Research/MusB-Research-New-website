@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django.core.cache import cache
 
 PUBLIC_KEY_URL = (
-    "https://musb-research-f3on.vercel.app/api/auth/public-key"
+    "https://musb-research-vct.vercel.app/api/auth/public-key"
 )
 
 # Public routes — no token needed

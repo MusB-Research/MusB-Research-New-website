@@ -31,8 +31,7 @@ export default function AuthCallback() {
             } else {
                 navigate("/");
             }
-        } else if (!token && !role) {
-            // Only redirect if we don't have partial data
+        } else {
             navigate("/");
         }
     }, [navigate, searchParams]);
