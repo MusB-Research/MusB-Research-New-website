@@ -149,7 +149,7 @@ if DEBUG:
 else:
     CORS_ALLOWED_ORIGINS = os.getenv(
         'CORS_ALLOWED_ORIGINS',
-        'http://localhost:3000,https://musbresearchnewwebsite.vercel.app,https://musb-research-vct.vercel.app'
+        'http://localhost:3000,https://musbresearchnewwebsite.vercel.app,https://musbhealth.com,https://www.musbhealth.com'
     ).split(',')
 
 CORS_ALLOW_HEADERS = [
