@@ -1,5 +1,5 @@
 const VCT_URL = "https://musb-research-f3on.vercel.app";
-const MAIN_URL = "https://musbresearchwebsite.vercel.app";
+const MAIN_URL = "https://musbresearchnewwebsite.vercel.app";
 
 export const getToken = () => localStorage.getItem("token");
 export const getRole = () => localStorage.getItem("role");
