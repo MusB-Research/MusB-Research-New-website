@@ -23,3 +23,9 @@ env/
 # IDE files
 .vscode/
 .idea/
+
+# Logs and debug output
+logs/
+
+# Data dumps
+data/

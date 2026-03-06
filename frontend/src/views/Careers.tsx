@@ -112,7 +112,7 @@ const HARDCODED_JOBS: JobOpening[] = [
 export default function Careers() {
     const [activeDept, setActiveDept] = useState<string>('All');
     const [searchQuery, setSearchQuery] = useState('');
-    const jobOpenings = HARDCODED_JOBS;    const careerCategories = HARDCODED_CATEGORIES;
+    const jobOpenings = HARDCODED_JOBS; const careerCategories = HARDCODED_CATEGORIES;
 
 
 
@@ -145,7 +145,7 @@ export default function Careers() {
     return (
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden">
             {/* Atmospheric Background Layers */}
-            <div className="absolute inset-0 z-0 pointer-events-none">
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-blue-600/10 blur-[120px] rounded-full"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] bg-indigo-600/10 blur-[150px] rounded-full"></div>
                 <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] bg-cyan-600/10 blur-[100px] rounded-full"></div>
@@ -158,10 +158,10 @@ export default function Careers() {
                 <div className="max-w-[1700px] mx-auto px-6 md:px-12 grid lg:grid-cols-2 gap-16 items-center relative z-10">
                     <div className="space-y-8">
                         <span className="text-cyan-400 font-black text-xs uppercase tracking-[0.4em]">Join Our Mission</span>
-                        <h1 className="text-6xl md:text-8xl font-black text-white tracking-tight leading-[0.9] uppercase italic">
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[0.9] uppercase italic">
                             Build the <span className="text-cyan-400 italic">Future</span> of Health Science
                         </h1>
-                        <p className="text-xl text-slate-400 leading-relaxed font-medium max-w-xl">
+                        <p className="text-lg md:text-xl text-slate-400 leading-relaxed font-medium max-w-xl">
                             Join a mission-driven research organization advancing microbiome, aging, metabolic, and clinical science.
                             Work alongside world-class scientists in an environment built on integrity, innovation, and collaboration.
                         </p>

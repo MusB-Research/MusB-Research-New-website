@@ -37,7 +37,7 @@ export default function About() {
     return (
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden">
             {/* Background */}
-            <div className="absolute inset-0 z-0 pointer-events-none">
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-purple-600/10 blur-[120px] rounded-full"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] bg-indigo-600/10 blur-[150px] rounded-full"></div>
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.03)_0%,transparent_100%)]"></div>
@@ -50,10 +50,10 @@ export default function About() {
                         <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-purple-400/10 border border-purple-400/20 text-purple-400 font-bold text-xs tracking-widest uppercase mb-8">
                             <Building2 className="w-4 h-4" /> About MusB™ Research
                         </div>
-                        <h1 className="text-3xl md:text-5xl lg:text-7xl font-black text-white tracking-tight leading-tight mb-6">
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight mb-6">
                             Learn More <span className="text-purple-400">About Us</span>
                         </h1>
-                        <p className="text-xl text-slate-400 font-medium max-w-3xl mx-auto">
+                        <p className="text-lg md:text-xl text-slate-400 font-medium max-w-3xl mx-auto">
                             Explore our research capabilities, facilities, team, and opportunities to participate in clinical studies.
                         </p>
                     </div>

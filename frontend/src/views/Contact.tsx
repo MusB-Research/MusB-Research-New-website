@@ -17,6 +17,7 @@ import {
     MessageCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { submitContactForm } from '../api';
 
 const defaultInquiryTypes = [
     { value: 'business', label: 'Business / Sponsorship' },
@@ -73,46 +74,51 @@ const trustPoints = [
 export default function Contact() {
     const [inquiryType, setInquiryType] = useState('general');
     const [submitted, setSubmitted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [inquiryTypes, setInquiryTypes] = useState(defaultInquiryTypes);
     const formRef = useRef<HTMLDivElement>(null);
-
-
 
     const handleCardClick = (id: string) => {
         setInquiryType(id);
         if (formRef.current) { window.scrollTo({ top: formRef.current.getBoundingClientRect().top + window.scrollY, behavior: 'smooth' }); }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (isSubmitting) return;
 
-        const form = e.target as HTMLFormElement;
+        const form = e.currentTarget;
+        const formDataObj = new FormData(form);
+
         const formData = {
-            name: (form.elements[0] as HTMLInputElement).value,
-            email: (form.elements[1] as HTMLInputElement).value,
-            phone: (form.elements[2] as HTMLInputElement).value,
-            company: (form.elements[5] as HTMLInputElement).value,
-            message: (form.elements[6] as HTMLTextAreaElement).value,
+            name: formDataObj.get('name') as string,
+            email: formDataObj.get('email') as string,
+            phone: formDataObj.get('phone') as string,
+            company: formDataObj.get('company') as string,
+            message: formDataObj.get('message') as string,
             inquiry_type_slug: inquiryType,
         };
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 800)); // Mock API call
-            console.log('Contact form submitted', formData);
+            setIsSubmitting(true);
+            await submitContactForm(formData);
             setSubmitted(true);
             setTimeout(() => setSubmitted(false), 5000);
+            form.reset();
         } catch (error) {
             console.error('Error submitting form:', error);
-            // Fallback to success state for demo purposes if backend isn't running
-            setSubmitted(true);
-            setTimeout(() => setSubmitted(false), 5000);
+            alert('Failed to send message. Please try again later or contact us directly at info@musbresearch.com');
+        } finally {
+            setIsSubmitting(false);
         }
+
     };
+
 
     return (
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden">
             {/* Atmospheric Background Layers */}
-            <div className="absolute inset-0 z-0 pointer-events-none">
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-blue-600/10 blur-[120px] rounded-full"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] bg-indigo-600/10 blur-[150px] rounded-full"></div>
                 <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] bg-cyan-600/10 blur-[100px] rounded-full"></div>
@@ -122,10 +128,10 @@ export default function Contact() {
             <section className="relative pt-40 pb-20 overflow-hidden px-6">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.12)_0%,transparent_70%)]"></div>
                 <div className="max-w-[1700px] mx-auto relative z-10 text-center space-y-8 animate-in fade-in slide-in-from-top-4 duration-700">
-                    <h1 className="text-4xl md:text-6xl lg:text-8xl font-black text-white tracking-tighter uppercase italic leading-[0.9]">
+                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tighter uppercase italic leading-[0.9]">
                         Contact Us
                     </h1>
-                    <p className="text-xl md:text-2xl text-slate-400 font-medium max-w-2xl mx-auto leading-relaxed">
+                    <p className="text-lg md:text-xl text-slate-400 font-medium max-w-2xl mx-auto leading-relaxed">
                         We’re here to help. Reach out to discuss research collaborations, laboratory services, biorepository support, or participation in our clinical studies.
                     </p>
                 </div>
@@ -181,18 +187,18 @@ export default function Contact() {
                                 <div className="grid md:grid-cols-2 gap-10">
                                     <div className="space-y-3">
                                         <label className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400 ml-1">Full Name *</label>
-                                        <input required type="text" placeholder="John Doe" className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-cyan-500 font-bold text-white transition-all" />
+                                        <input required name="name" type="text" placeholder="John Doe" className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-cyan-500 font-bold text-white transition-all" />
                                     </div>
                                     <div className="space-y-3">
                                         <label className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400 ml-1">Email Address *</label>
-                                        <input required type="email" placeholder="john@example.com" className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-cyan-500 font-bold text-white transition-all" />
+                                        <input required name="email" type="email" placeholder="john@example.com" className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-cyan-500 font-bold text-white transition-all" />
                                     </div>
                                 </div>
 
                                 <div className="grid md:grid-cols-2 gap-10">
                                     <div className="space-y-3">
                                         <label className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400 ml-1">Phone Number (Optional)</label>
-                                        <input type="tel" placeholder="+1 (555) 000-0000" className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-cyan-500 font-bold text-white transition-all" />
+                                        <input name="phone" type="tel" placeholder="+1 (555) 000-0000" className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-cyan-500 font-bold text-white transition-all" />
                                     </div>
                                     <div className="space-y-3">
                                         <label className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400 ml-1">Inquiry Type *</label>
@@ -236,16 +242,20 @@ export default function Contact() {
 
                                 <div className="space-y-3">
                                     <label className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400 ml-1">Organization / Company (Optional)</label>
-                                    <input type="text" placeholder="Company Name" className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-cyan-500 font-bold text-white transition-all" />
+                                    <input name="company" type="text" placeholder="Company Name" className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-cyan-500 font-bold text-white transition-all" />
                                 </div>
 
                                 <div className="space-y-3">
                                     <label className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400 ml-1">Message *</label>
-                                    <textarea required rows={5} placeholder="How can we help your program succeed?" className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-cyan-500 font-bold text-white transition-all resize-none"></textarea>
+                                    <textarea name="message" required rows={5} placeholder="How can we help your program succeed?" className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-cyan-500 font-bold text-white transition-all resize-none"></textarea>
                                 </div>
 
-                                <button type="submit" className="w-full bg-cyan-500 text-slate-950 py-6 rounded-3xl font-black text-sm uppercase tracking-[0.3em] hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/10 flex items-center justify-center gap-3">
-                                    Submit Inquiry <Send className="w-5 h-5" />
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className={`w-full ${isSubmitting ? 'bg-slate-700' : 'bg-cyan-500'} text-slate-950 py-6 rounded-3xl font-black text-sm uppercase tracking-[0.3em] hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/10 flex items-center justify-center gap-3`}
+                                >
+                                    {isSubmitting ? 'Sending...' : 'Submit Inquiry'} <Send className="w-5 h-5" />
                                 </button>
                             </form>
                         )}

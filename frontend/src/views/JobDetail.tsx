@@ -88,7 +88,7 @@ export default function JobDetail() {
         return (
             <div className="min-h-screen pt-40 pb-24 flex items-center justify-center text-center px-4 md:px-6 relative overflow-hidden">
                 {/* Atmospheric Background Layers */}
-                <div className="absolute inset-0 z-0 pointer-events-none">
+                <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                     <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-blue-600/10 blur-[120px] rounded-full"></div>
                     <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] bg-indigo-600/10 blur-[150px] rounded-full"></div>
                     <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] bg-cyan-600/10 blur-[100px] rounded-full"></div>
@@ -131,7 +131,7 @@ export default function JobDetail() {
                                 )}
                                 <span className="text-xs font-black uppercase tracking-widest text-cyan-400">{job.department}</span>
                             </div>
-                            <h1 className="text-4xl md:text-7xl font-black text-white uppercase italic tracking-tighter leading-none">
+                            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white uppercase italic tracking-tighter leading-none">
                                 {job.title}
                             </h1>
                             <div className="flex flex-wrap gap-8 text-sm font-bold text-slate-400 uppercase tracking-widest">

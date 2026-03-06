@@ -11,14 +11,14 @@ const LEADERSHIP_DATA = [
         linkedin_url: "https://www.linkedin.com/in/shaliniscientist/",
         expertise_tags: ["Microbiome Science", "Immunology", "Clinical Translation", "Biotics"],
         areas_of_expertise: [
-            "Microbiome Science", "Immunology", "Brain Health", "Women's Health", 
+            "Microbiome Science", "Immunology", "Brain Health", "Women's Health",
             "Cancer", "Metabolic Disorders", "Diabetes", "Obesity", "Nutrition", "Environmental Toxicants"
         ],
         affiliations: [
-            "National Dairy Research Institute", 
-            "University of Illinois Urbana-Champaign", 
-            "National Institutes of Health (NIH)", 
-            "Wake Forest School of Medicine", 
+            "National Dairy Research Institute",
+            "University of Illinois Urbana-Champaign",
+            "National Institutes of Health (NIH)",
+            "Wake Forest School of Medicine",
             "USF Morsani College of Medicine"
         ],
         publications: []
@@ -32,12 +32,12 @@ const LEADERSHIP_DATA = [
         linkedin_url: "https://www.linkedin.com/in/yadavhariom/",
         expertise_tags: ["Microbiome", "Metabolic Health", "Longevity", "Gut-Brain Axis"],
         areas_of_expertise: [
-            "Microbiome Research", "Probiotics & Postbiotics", "Aging Biology", 
+            "Microbiome Research", "Probiotics & Postbiotics", "Aging Biology",
             "Metabolic Disorders", "Cognitive Decline", "Leaky Gut", "Systemic Inflammation"
         ],
         affiliations: [
-            "National Institutes of Health (NIH)", 
-            "Wake Forest School of Medicine", 
+            "National Institutes of Health (NIH)",
+            "Wake Forest School of Medicine",
             "USF Morsani College of Medicine"
         ],
         publications: []
@@ -78,7 +78,7 @@ const ADVISORS_DATA = [
         expertise_area: "Nutritional Science & Business Development",
         organization: "Strategic Advisor",
         bio: "Biography pending.",
-        image: "", 
+        image: "",
         linkedin_url: "https://www.linkedin.com/in/sean-garvey-phd-638a253/"
     },
     {
@@ -378,7 +378,7 @@ export default function Team() {
     return (
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden">
             {/* ... Background & Hero ... */}
-            <div className="absolute inset-0 z-0 pointer-events-none">
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-cyan-600/10 blur-[120px] rounded-full"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] bg-indigo-600/10 blur-[150px] rounded-full"></div>
                 <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] bg-purple-600/10 blur-[100px] rounded-full"></div>
@@ -395,12 +395,12 @@ export default function Team() {
                                 <span className="inline-block px-4 py-1.5 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 text-sm font-bold tracking-wider uppercase">
                                     Scientific Leadership
                                 </span>
-                                <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white tracking-tight leading-[0.9]">
+                                <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[0.9]">
                                     Our <span className="text-cyan-400">Team</span>
                                 </h1>
                             </div>
 
-                            <div className="space-y-6 text-xl md:text-2xl text-slate-300 font-medium leading-relaxed">
+                            <div className="space-y-6 text-lg md:text-xl text-slate-300 font-medium leading-relaxed">
                                 <p>A multidisciplinary team of scientists, clinicians, and professionals dedicated to advancing translational and clinical research.</p>
                                 <p className="text-slate-400 border-l-4 border-cyan-400/30 pl-6 italic">Built on academic rigor, regulatory excellence, and community engagement.</p>
                             </div>

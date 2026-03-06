@@ -209,7 +209,7 @@ export default function News() {
     return (
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden">
             {/* Atmospheric Background Layers */}
-            <div className="absolute inset-0 z-0 pointer-events-none">
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-blue-600/10 blur-[120px] rounded-full"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] bg-indigo-600/10 blur-[150px] rounded-full"></div>
                 <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] bg-cyan-600/10 blur-[100px] rounded-full"></div>
@@ -220,10 +220,10 @@ export default function News() {
             <section className="relative pt-40 pb-20 overflow-hidden">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.12)_0%,transparent_70%)]"></div>
                 <div className="max-w-[1700px] mx-auto px-4 md:px-12 relative z-10 text-center">
-                    <h1 className="text-5xl md:text-7xl font-black text-white mb-6 tracking-tight">
+                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-6 tracking-tight">
                         News & <span className="text-cyan-400">Events</span>
                     </h1>
-                    <p className="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed font-medium">
+                    <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed font-medium">
                         Stay updated on MusB™ Research's latest scientific advances, publications, partnerships, and educational resources.
                     </p>
                 </div>

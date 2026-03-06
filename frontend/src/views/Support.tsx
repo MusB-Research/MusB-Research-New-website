@@ -92,7 +92,7 @@ const Support: React.FC = () => {
     return (
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden">
             {/* Atmospheric Background Layers */}
-            <div className="absolute inset-0 z-0 pointer-events-none">
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-blue-600/10 blur-[120px] rounded-full"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] bg-indigo-600/10 blur-[150px] rounded-full"></div>
                 <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] bg-cyan-600/10 blur-[100px] rounded-full"></div>
@@ -133,7 +133,7 @@ const Support: React.FC = () => {
                 </div>
             )}
 
-            <div className="relative z-10 pt-40 pb-24 animate-in fade-in duration-1000">
+            <div className="relative z-10 pt-24 pb-24 animate-in fade-in duration-1000">
                 {/* Section 1: Hero */}
                 <section className="relative overflow-hidden min-h-[80vh] flex items-center">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.12)_0%,transparent_70%)]"></div>
@@ -142,7 +142,7 @@ const Support: React.FC = () => {
                             {/* Left Content */}
                             <div className="space-y-10 animate-fade-in-up text-left">
                                 <div className="space-y-6">
-                                    <h1 className="text-[40px] md:text-[70px] font-black text-white tracking-tight leading-[0.9] uppercase italic">
+                                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[0.9] uppercase italic">
                                         Your Trusted Partner in <span className="text-cyan-400">R&D Excellence</span>
                                     </h1>
                                     <div className="space-y-4">
@@ -153,7 +153,7 @@ const Support: React.FC = () => {
                                         ].map((text, i) => (
                                             <div key={i} className="flex items-start gap-4">
                                                 <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 mt-2.5 shadow-[0_0_10px_rgba(6,182,212,0.8)] shrink-0"></div>
-                                                <p className="text-[15px] text-slate-300 font-medium leading-tight m-0">{text}</p>
+                                                <p className="text-lg md:text-xl text-slate-300 font-medium leading-tight m-0">{text}</p>
                                             </div>
                                         ))}
                                     </div>
@@ -496,9 +496,9 @@ const Support: React.FC = () => {
                             </p>
                         </div>
                         <div className="flex flex-col items-center gap-6">
-                            <button onClick={() => setShowRouter(true)} className="bg-cyan-500 text-slate-900 px-12 py-6 rounded-3xl font-black text-lg uppercase tracking-widest hover:bg-white hover:scale-105 transition-all shadow-xl">
+                            <Link to="/contact" className="bg-cyan-500 text-slate-900 px-12 py-6 rounded-3xl font-black text-lg uppercase tracking-widest hover:bg-white hover:scale-105 transition-all shadow-xl">
                                 Request a Consultation
-                            </button>
+                            </Link>
                             <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">
                                 Typical response time: 1–2 business days. <br />Confidential discussions welcomed.
                             </p>

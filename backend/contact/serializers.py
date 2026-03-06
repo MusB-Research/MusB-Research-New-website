@@ -21,7 +21,7 @@ class InquiryTypeSerializer(serializers.ModelSerializer):
 
 class SubmissionSerializer(serializers.ModelSerializer):
     id = serializers.CharField(read_only=True)
-    inquiry_type_slug = serializers.CharField(write_only=True, required=False)
+    inquiry_type_slug = serializers.CharField(write_only=True, required=False, allow_blank=True)
     
     class Meta:
         model = Submission
@@ -32,18 +32,19 @@ class SubmissionSerializer(serializers.ModelSerializer):
         inquiry_slug = validated_data.pop('inquiry_type_slug', None)
         if inquiry_slug:
             try:
+                # Try to find by slug
                 validated_data['inquiry_type'] = InquiryType.objects.get(slug=inquiry_slug)
-            except InquiryType.DoesNotExist:
-                pass # or raise validation error? For now, leave null if not found
+            except (InquiryType.DoesNotExist, Exception):
+                pass 
         
-        # Determine routing
         instance = super().create(validated_data)
         
-        if instance.inquiry_type:
+        # Determine routing - always ensure info@musbresearch.com is the fallback
+        if instance.inquiry_type and instance.inquiry_type.recipient_email:
             instance.routed_to = instance.inquiry_type.recipient_email
         else:
-            # Default fallback? or leave empty
-            pass
+            instance.routed_to = "info@musbresearch.com"
             
         instance.save()
         return instance
+

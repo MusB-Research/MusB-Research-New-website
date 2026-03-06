@@ -104,7 +104,7 @@ export default function WhyChooseUs() {
     return (
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden">
             {/* Atmospheric Background Layers */}
-            <div className="absolute inset-0 z-0 pointer-events-none">
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-cyan-600/10 blur-[120px] rounded-full"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] bg-indigo-600/10 blur-[150px] rounded-full"></div>
                 <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] bg-blue-600/10 blur-[100px] rounded-full"></div>
@@ -123,10 +123,10 @@ export default function WhyChooseUs() {
                                 <Microscope className="w-4 h-4" /> {heroTagline}
                             </div>
                             <h1
-                                className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.1] uppercase"
+                                className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.1] uppercase"
                                 dangerouslySetInnerHTML={{ __html: heroTitle }}
                             />
-                            <p className="text-xl md:text-2xl text-slate-400 font-medium leading-relaxed max-w-2xl">
+                            <p className="text-lg md:text-xl text-slate-400 font-medium leading-relaxed max-w-2xl">
                                 {heroDesc}
                             </p>
                             <div className="flex flex-wrap gap-6 pt-4">

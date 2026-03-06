@@ -106,7 +106,7 @@ export default function Facilities() {
     return (
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden selection:bg-cyan-500/30">
             {/* Atmospheric Background Layers */}
-            <div className="absolute inset-0 z-0 pointer-events-none">
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-cyan-600/10 blur-[120px] rounded-full"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] bg-indigo-600/10 blur-[150px] rounded-full"></div>
                 <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] bg-purple-600/10 blur-[100px] rounded-full"></div>
@@ -118,17 +118,17 @@ export default function Facilities() {
 
                 <div className="max-w-[90rem] mx-auto grid lg:grid-cols-2 gap-12 items-center relative z-10">
                     <div className="space-y-8 animate-in slide-in-from-left duration-700">
-                        <h1 className="text-3xl md:text-5xl lg:text-7xl font-black text-white tracking-tight leading-[1.1]">
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.1]">
                             {settings.hero_title}
                         </h1>
-                        <div className="space-y-4 text-lg text-slate-400 font-medium">
+                        <div className="space-y-4 text-lg md:text-xl text-slate-400 font-medium">
                             <p className="border-l-4 border-cyan-500 pl-4">{settings.hero_subtext_1}</p>
                             <p>{settings.hero_subtext_2}</p>
                         </div>
                         <div className="flex flex-wrap gap-4 pt-4">
-                            <a href="#lead-capture" className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-8 py-4 rounded-xl font-bold uppercase tracking-wide transition-all shadow-lg shadow-cyan-500/20">
+                            <Link to="/contact" className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-8 py-4 rounded-xl font-bold uppercase tracking-wide transition-all shadow-lg shadow-cyan-500/20">
                                 Start a Project
-                            </a>
+                            </Link>
                             <button className="flex items-center gap-2 px-8 py-4 rounded-xl border border-slate-700 hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-all font-bold text-cyan-400 uppercase tracking-wide">
                                 <FileText className="w-5 h-5" /> Download Capabilities Deck (PDF)
                             </button>
@@ -212,7 +212,7 @@ export default function Facilities() {
                         <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white">{settings.research_pillar_title || 'Research & Innovation'}</h2>
                         <p className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto">{settings.research_pillar_desc}</p>
                         <div className="flex justify-center gap-4 flex-wrap">
-                            <a href="#lead-capture" className="bg-white text-slate-900 px-6 py-3 rounded-lg font-bold hover:bg-slate-200 transition-colors">Discuss a Research Plan</a>
+                            <Link to="/contact" className="bg-white text-slate-900 px-6 py-3 rounded-lg font-bold hover:bg-slate-200 transition-colors">Discuss a Research Plan</Link>
                             <button className="text-slate-400 font-bold hover:text-white transition-colors">See Example Study Designs</button>
                         </div>
                     </div>
@@ -278,9 +278,9 @@ export default function Facilities() {
 
                     {/* Pillar CTA Strip */}
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-12 border-t border-slate-900/50 mt-12">
-                        <a href="#lead-capture" className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-8 py-4 rounded-xl font-bold uppercase tracking-wide transition-all shadow-lg shadow-cyan-500/20">
+                        <Link to="/contact" className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-8 py-4 rounded-xl font-bold uppercase tracking-wide transition-all shadow-lg shadow-cyan-500/20">
                             Start a Research Project
-                        </a>
+                        </Link>
                         <button className="flex items-center gap-2 px-8 py-4 rounded-xl border border-slate-700 hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-all font-bold text-cyan-400 uppercase tracking-wide">
                             Request a Feasibility Call
                         </button>
@@ -296,7 +296,7 @@ export default function Facilities() {
                         <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white">{settings.lab_pillar_title || 'Central Laboratory Services'}</h2>
                         <p className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto">{settings.lab_pillar_desc}</p>
                         <div className="flex justify-center gap-4 flex-wrap">
-                            <a href="#lead-capture" className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-lg font-bold transition-colors">Request Lab Services</a>
+                            <Link to="/contact" className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-lg font-bold transition-colors">Request Lab Services</Link>
                             <button className="text-slate-400 font-bold hover:text-white transition-colors">Get a Sample Handling Guide</button>
                         </div>
                     </div>
@@ -349,9 +349,9 @@ export default function Facilities() {
 
                     {/* Pillar CTA Strip */}
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-12 border-t border-slate-900/50 mt-12">
-                        <a href="#lead-capture" className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-xl font-bold uppercase tracking-wide transition-all shadow-lg shadow-indigo-500/20">
+                        <Link to="/contact" className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-xl font-bold uppercase tracking-wide transition-all shadow-lg shadow-indigo-500/20">
                             Get a Testing Quote
-                        </a>
+                        </Link>
                         <button className="flex items-center gap-2 px-8 py-4 rounded-xl border border-slate-700 hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all font-bold text-indigo-400 uppercase tracking-wide">
                             Speak With Lab Director
                         </button>
@@ -367,7 +367,7 @@ export default function Facilities() {
                         <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white">{settings.bio_pillar_title || 'Biorepository'}</h2>
                         <p className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto">{settings.bio_pillar_desc}</p>
                         <div className="flex justify-center gap-4 flex-wrap">
-                            <a href="#lead-capture" className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-lg font-bold transition-colors">Explore Biorepository Support</a>
+                            <Link to="/contact" className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-lg font-bold transition-colors">Explore Biorepository Support</Link>
                             <button className="text-slate-400 font-bold hover:text-white transition-colors">Request Storage Pricing</button>
                         </div>
                     </div>
@@ -417,9 +417,9 @@ export default function Facilities() {
 
                     {/* Pillar CTA Strip */}
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-12 border-t border-slate-900/50 mt-12">
-                        <a href="#lead-capture" className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-xl font-bold uppercase tracking-wide transition-all shadow-lg shadow-purple-500/20">
+                        <Link to="/contact" className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-xl font-bold uppercase tracking-wide transition-all shadow-lg shadow-purple-500/20">
                             Schedule a Storage Consult
-                        </a>
+                        </Link>
                         <button className="flex items-center gap-2 px-8 py-4 rounded-xl border border-slate-700 hover:border-purple-500/50 hover:bg-purple-500/10 transition-all font-bold text-purple-400 uppercase tracking-wide">
                             Download Sample Submission SOP
                         </button>
@@ -442,9 +442,9 @@ export default function Facilities() {
                         })}
                     </div>
                     <div>
-                        <a href="#lead-capture" className="inline-flex items-center justify-center px-8 py-4 text-sm font-bold tracking-widest text-slate-900 uppercase transition-all bg-cyan-400 rounded-xl hover:bg-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.3)]">
+                        <Link to="/contact" className="inline-flex items-center justify-center px-8 py-4 text-sm font-bold tracking-widest text-slate-900 uppercase transition-all bg-cyan-400 rounded-xl hover:bg-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.3)]">
                             Talk to a Scientist
-                        </a>
+                        </Link>
                     </div>
                 </div>
             </section >
@@ -467,9 +467,9 @@ export default function Facilities() {
                     })}
                 </div>
                 <div className="text-center mt-6">
-                    <a href="#lead-capture" className="inline-flex items-center justify-center px-8 py-4 text-sm font-bold tracking-widest text-white uppercase transition-all bg-indigo-600 rounded-xl hover:bg-indigo-500 shadow-lg shadow-indigo-500/25">
+                    <Link to="/contact" className="inline-flex items-center justify-center px-8 py-4 text-sm font-bold tracking-widest text-white uppercase transition-all bg-indigo-600 rounded-xl hover:bg-indigo-500 shadow-lg shadow-indigo-500/25">
                         Start the Conversation
-                    </a>
+                    </Link>
                 </div>
             </section >
 

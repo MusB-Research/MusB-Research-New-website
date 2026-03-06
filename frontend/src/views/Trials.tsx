@@ -198,7 +198,7 @@ export default function Trials() {
     return (
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden">
             {/* Atmospheric Background Layers */}
-            <div className="absolute inset-0 z-0 pointer-events-none">
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-blue-600/10 blur-[120px] rounded-full"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] bg-indigo-600/10 blur-[150px] rounded-full"></div>
                 <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] bg-cyan-600/10 blur-[100px] rounded-full"></div>
@@ -214,15 +214,15 @@ export default function Trials() {
                             <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 font-bold text-xs tracking-widest uppercase">
                                 <HeartPulse className="w-4 h-4" /> Active Clinical Trials
                             </div>
-                            <h1 className="text-3xl md:text-5xl lg:text-7xl font-black text-white tracking-tight leading-[0.85] uppercase italic">
+                            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[0.85] uppercase italic">
                                 Join a Study. Help Advance <span className="text-cyan-400 italic font-black">Natural</span> Health Science.
                             </h1>
                             <ul className="space-y-4">
-                                <li className="flex items-start gap-4 text-xl text-slate-300 font-medium">
+                                <li className="flex items-start gap-4 text-lg md:text-xl text-slate-300 font-medium">
                                     <div className="w-2 h-2 rounded-full bg-cyan-500 mt-2.5"></div>
                                     Be part of large research studies on supplements and natural health products
                                 </li>
-                                <li className="flex items-start gap-4 text-xl text-slate-300 font-medium">
+                                <li className="flex items-start gap-4 text-lg md:text-xl text-slate-300 font-medium">
                                     <div className="w-2 h-2 rounded-full bg-cyan-500 mt-2.5"></div>
                                     Receive a 2-6-week supply of a study product at no cost (when eligible)
                                 </li>

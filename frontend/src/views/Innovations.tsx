@@ -1,8 +1,7 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { Sparkles, CheckCircle2, Zap, TrendingUp, FlaskConical, Shield, ArrowRight, Target, FileText, BookOpen, Newspaper, Paperclip, Mail, X, Stethoscope, Microscope, Pill, ChevronLeft, ChevronRight, Verified } from 'lucide-react';
-
-import { useState, useEffect } from 'react';
 
 const defaultTechnologies = [
     {
@@ -161,6 +160,7 @@ export default function Innovations() {
     const [bookletSubmitting, setBookletSubmitting] = useState(false);
     const [bookletError, setBookletError] = useState('');
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const showcaseRef = useRef<HTMLElement>(null);
 
     const handleBookletOpen = (techName: string) => {
         setBookletTechName(techName);
@@ -218,10 +218,16 @@ export default function Innovations() {
     };
 
 
+    const scrollToShowcase = () => {
+        if (showcaseRef.current) {
+            showcaseRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
+
     return (
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden">
             {/* Atmospheric Background Layers - PRESERVED */}
-            <div className="absolute inset-0 z-0 pointer-events-none">
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-blue-600/10 blur-[120px] rounded-full"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] bg-indigo-600/10 blur-[150px] rounded-full"></div>
                 <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] bg-cyan-600/10 blur-[100px] rounded-full"></div>
@@ -235,7 +241,7 @@ export default function Innovations() {
                         {/* Text Left */}
                         <div className="space-y-10">
                             <div className="space-y-6 md:space-y-8">
-                                <h1 className="text-4xl md:text-6xl lg:text-8xl font-black tracking-tight leading-[1.1] uppercase">
+                                <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] uppercase">
                                     <span className="block text-white">Where Innovation</span>
                                     <span className="block text-cyan-400">Meets Scientific Proof</span>
                                 </h1>
@@ -258,7 +264,10 @@ export default function Innovations() {
                                 <Link to="/contact" className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-xs md:text-base uppercase tracking-widest shadow-[0_0_30px_rgba(6,182,212,0.4)] border border-cyan-400/30 hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] transition-all duration-300 hover:scale-105 flex items-center justify-center text-center">
                                     Start an Innovation Discussion
                                 </Link>
-                                <button className="w-full sm:w-auto border-2 border-cyan-400/40 bg-cyan-400/10 text-white px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-xs md:text-base uppercase tracking-widest hover:bg-cyan-400/20 hover:border-cyan-400/60 transition-all duration-300">
+                                <button
+                                    onClick={scrollToShowcase}
+                                    className="w-full sm:w-auto border-2 border-cyan-400/40 bg-cyan-400/10 text-white px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-xs md:text-base uppercase tracking-widest hover:bg-cyan-400/20 hover:border-cyan-400/60 transition-all duration-300"
+                                >
                                     Explore Our Technologies
                                 </button>
                             </div>
@@ -434,7 +443,7 @@ export default function Innovations() {
                 </section>
 
                 {/* SECTION 5: TECHNOLOGY SHOWCASE */}
-                <section className="max-w-[1700px] mx-auto px-4 md:px-12 space-y-16">
+                <section ref={showcaseRef} className="max-w-[1700px] mx-auto px-4 md:px-12 space-y-16 scroll-mt-32">
                     <div className="text-center space-y-4">
                         <span className="text-cyan-400 font-black text-sm uppercase tracking-[0.4em]">OUR INNOVATION PIPELINE</span>
                         <h2 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tight">Technology Showcase</h2>
@@ -527,17 +536,17 @@ export default function Innovations() {
 
                 {/* TECHNOLOGY DETAIL MODAL OVERLAY */}
                 {
-                    activeTech && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    activeTech && createPortal(
+                        <div className="fixed inset-0 z-[1000] flex items-start justify-center p-4 py-20 md:py-32 overflow-y-auto">
                             {/* Backdrop */}
                             <div
-                                className="absolute inset-0 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300"
+                                className="fixed inset-0 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300"
                                 onClick={() => setActiveTech(null)}
                             ></div>
 
 
                             {/* Centered Modal Panel */}
-                            <div className="relative w-full max-w-4xl bg-[#0B101B] h-full sm:h-auto sm:max-h-[85vh] shadow-2xl rounded-[1.5rem] sm:rounded-[2rem] border border-white/10 overflow-hidden flex flex-col animate-envelope-reveal">
+                            <div className="relative w-full max-w-4xl bg-[#0B101B] shadow-2xl rounded-[1.5rem] sm:rounded-[2rem] border border-white/10 overflow-hidden flex flex-col animate-envelope-reveal">
 
 
                                 {/* Close Button */}
@@ -548,8 +557,8 @@ export default function Innovations() {
                                     <X className="w-6 h-6" />
                                 </button>
 
-                                {/* Scrollable Content Container */}
-                                <div className="overflow-y-auto custom-scrollbar">
+                                {/* Scrollable Content Container removed overflow because parent has it */}
+                                <div className="">
                                     {/* Header Image/Gradient */}
                                     <div className={`relative h-40 md:h-56 bg-gradient-to-br ${activeTech.gradient} flex items-end p-6 md:p-10`}>
                                         <div className="absolute inset-0 bg-slate-950/20"></div>
@@ -646,16 +655,17 @@ export default function Innovations() {
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </div>,
+                        document.body
                     )
                 }
 
                 {/* BOOKLET DOWNLOAD FORM MODAL */}
                 {
-                    showBookletForm && (
-                        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                    showBookletForm && createPortal(
+                        <div className="fixed inset-0 z-[1100] flex items-start justify-center p-4 py-20 md:py-32 overflow-y-auto">
                             <div
-                                className="absolute inset-0 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300"
+                                className="fixed inset-0 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300"
                                 onClick={() => setShowBookletForm(false)}
                             ></div>
 
@@ -668,7 +678,7 @@ export default function Innovations() {
                                         <X className="w-4 h-4" />
                                     </button>
 
-                                    <div className="overflow-y-auto custom-scrollbar px-5 py-4 space-y-3">
+                                    <div className="px-5 py-4 space-y-3">
                                         {/* Header */}
                                         <div className="space-y-1 text-center animate-field-reveal field-delay-1">
                                             <h3 className="text-lg font-black text-white uppercase tracking-tight">
@@ -786,7 +796,8 @@ export default function Innovations() {
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </div>,
+                        document.body
                     )
                 }
                 {/* SECTION 6: WHY INNOVATE WITH MUSB RESEARCH */}

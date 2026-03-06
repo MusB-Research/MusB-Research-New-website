@@ -108,7 +108,7 @@ export default function Home() {
     return (
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden">
             {/* Atmospheric Background Layers */}
-            <div className="absolute inset-0 z-0 pointer-events-none">
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-blue-600/10 blur-[120px] rounded-full"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] bg-indigo-600/10 blur-[150px] rounded-full"></div>
                 <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] bg-cyan-600/10 blur-[100px] rounded-full"></div>
@@ -116,7 +116,7 @@ export default function Home() {
             </div>
 
             {/* Slider Container */}
-            <div className="relative h-auto md:h-[95vh] min-h-[600px] md:min-h-[800px] w-full flex items-center overflow-hidden bg-transparent z-10">
+            <div className="relative h-auto md:h-[95vh] min-h-[450px] md:min-h-[800px] w-full flex items-center overflow-hidden bg-transparent z-10">
                 {/* Global Background Effect */}
                 <div className="absolute inset-0 z-0">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.12)_0%,transparent_70%)]"></div>
@@ -142,7 +142,7 @@ export default function Home() {
                                         <div className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-transparent to-slate-950/80"></div>
                                     </div>
 
-                                    <div className={`relative z-10 h-full max-w-[1800px] mx-auto px-6 md:px-12 w-full flex flex-col items-center justify-center pt-24 md:pt-32 transform transition-all duration-1000 ${isActive ? 'scale-100 -translate-y-8 md:-translate-y-12' : 'scale-95 translate-y-12'}`}>
+                                    <div className={`relative z-10 h-full max-w-[1800px] mx-auto px-6 md:px-12 w-full flex flex-col items-center justify-center pt-16 md:pt-32 transform transition-all duration-1000 ${isActive ? 'scale-100 -translate-y-8 md:-translate-y-12' : 'scale-95 translate-y-12'}`}>
                                         {/* Content (Centered) */}
                                         <div className="space-y-12 flex flex-col items-center text-center">
                                             <div className="space-y-8 max-w-5xl relative">
@@ -655,7 +655,7 @@ export default function Home() {
             }
 
             {/* Section 09: Closing Statement */}
-            <div className="py-24 relative z-10 overflow-hidden" id="closing">
+            <div className="pt-20 pb-10 relative z-10 overflow-hidden" id="closing">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-7xl h-full bg-cyan-500/5 blur-[180px] rounded-full pointer-events-none"></div>
                 <div className="max-w-7xl mx-auto px-6 text-center space-y-16 relative">
                     <div className="space-y-8 animate-fade-in-up">

@@ -85,7 +85,7 @@ export default function Layout({ children }: LayoutProps) {
     }, [location]);
 
     return (
-        <div className="min-h-screen flex flex-col font-sans text-slate-100 relative z-10">
+        <div className="min-h-screen flex flex-col font-sans text-slate-100 relative">
             {/* Animated Mesh Background */}
 
 
@@ -353,12 +353,12 @@ export default function Layout({ children }: LayoutProps) {
             </header>
 
             {/* Main Content */}
-            <main className="flex-grow w-full relative z-10">
+            <main className="flex-grow w-full">
                 {children}
             </main>
 
             {/* Footer Section */}
-            <footer className="relative z-10 pt-24 md:pt-48 bg-slate-950/40 border-t border-white/5">
+            <footer className="pt-12 md:pt-20 bg-slate-950/40 border-t border-white/5">
                 <div className="max-w-[1700px] mx-auto px-6 md:px-12 pb-12">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 lg:gap-16 mb-16 md:mb-24">
                         {/* Left Column: Branding & Contact */}
