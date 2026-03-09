@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Filter, Check, ChevronDown, ArrowRight, Clock } from 'lucide-react';
 import { Condition } from '@/types';
 
-const conditions: Condition[] = ['Gut Health', 'Brain Health', 'Metabolic Health', 'Aging Health', 'Women’s Health', 'Cancer Support'];
+const conditions: Condition[] = ['Gut Health', 'Brain Health', 'Metabolic Health', 'Aging', 'Women’s Health', 'Cancer Support'];
 
 
 const HARDCODED_STUDIES = [

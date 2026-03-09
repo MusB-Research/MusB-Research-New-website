@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Search, ChevronDown, ArrowRight, Clock, ShieldCheck, DollarSign } from 'lucide-react';
 import { Condition, Study } from '@/types';
 
-const conditions: Condition[] = ['Gut Health', 'Brain Health', 'Metabolic Health', 'Aging Health', 'Women’s Health', 'Cancer Support'];
+const conditions: Condition[] = ['Gut Health', 'Brain Health', 'Metabolic Health', 'Aging', 'Women’s Health', 'Cancer Support'];
 
 
 const HARDCODED_STUDIES = [
@@ -22,7 +22,7 @@ const HARDCODED_STUDIES = [
     {
         id: '2',
         title: 'VITAL-Age Study',
-        condition: 'Aging Health',
+        condition: 'Aging',
         type: 'On-site',
         status: 'Recruiting',
         description: 'Anti-aging probiotics',
@@ -141,7 +141,7 @@ export default function StudyFilterSection() {
                                 <div className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${study.condition === 'Gut Health' ? 'bg-green-500/10 text-green-400' :
                                     study.condition === 'Brain Health' ? 'bg-purple-500/10 text-purple-400' :
                                         study.condition === 'Metabolic Health' ? 'bg-orange-500/10 text-orange-400' :
-                                            study.condition === 'Aging Health' ? 'bg-blue-500/10 text-blue-400' :
+                                            study.condition === 'Aging' ? 'bg-blue-500/10 text-blue-400' :
                                                 study.condition === 'Women’s Health' ? 'bg-pink-500/10 text-pink-400' :
                                                     'bg-cyan-500/10 text-cyan-400'
                                     }`}>

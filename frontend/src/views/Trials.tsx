@@ -43,7 +43,7 @@ const HARDCODED_STUDIES = [
     {
         id: '2',
         title: 'VITAL-Age Study',
-        condition: 'Aging Health',
+        condition: 'Aging',
         type: 'On-site',
         status: 'Recruiting',
         description: 'Anti-aging probiotics',
@@ -122,7 +122,7 @@ export default function Trials() {
 
     // Hardcoded studies removed in favor of API data
 
-    const conditions = ["All", "Gut Health", "Metabolic Health", "Aging Health", "Women’s Health", "Brain Health", "Skin", "Other"];
+    const conditions = ["All", "Gut Health", "Metabolic Health", "Aging", "Women’s Health", "Brain Health", "Skin", "Other"];
     const types = ["All", "Virtual", "On-site", "Hybrid"];
 
     const filteredStudies = studies.filter((study: any) => {
