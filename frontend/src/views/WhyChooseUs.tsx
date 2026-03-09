@@ -231,13 +231,17 @@ export default function WhyChooseUs() {
                                 </div>
                                 <div className="relative animate-fade-in-up stagger-1">
                                     <div className="absolute -inset-4 bg-gradient-to-tr from-indigo-500/20 to-cyan-500/20 blur-3xl opacity-50 rounded-[4rem]"></div>
-                                    <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-[4rem] p-6 overflow-hidden shadow-2xl">
+                                    <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-[4rem] p-6 overflow-hidden shadow-2xl group">
                                         <div className="aspect-[4/3] rounded-[3rem] bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 flex items-center justify-center relative overflow-hidden">
-                                            <FlaskConical className="w-32 h-32 text-indigo-400/20" />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent"></div>
+                                            <img
+                                                src="/images/our-story.webp"
+                                                alt="Our Story - MusB Research Laboratory"
+                                                className="absolute inset-0 w-full h-full object-cover brightness-75 group-hover:scale-110 group-hover:brightness-90 transition-all duration-1000"
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent"></div>
                                             <div className="absolute bottom-8 left-8 right-8">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 flex items-center justify-center text-cyan-400">
+                                                    <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 backdrop-blur-md border border-cyan-400/30 flex items-center justify-center text-cyan-400">
                                                         <Award className="w-7 h-7" />
                                                     </div>
                                                     <div>

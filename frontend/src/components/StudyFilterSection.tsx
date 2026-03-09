@@ -1,73 +1,57 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ChevronDown, ArrowRight, Clock, ShieldCheck, Activity } from 'lucide-react';
+import { Search, ChevronDown, ArrowRight, Clock, ShieldCheck, DollarSign } from 'lucide-react';
 import { Condition, Study } from '@/types';
 
-const conditions: Condition[] = ['Gut', 'Brain', 'Metabolic', 'Aging', 'Women’s Health', 'Cancer Support'];
+const conditions: Condition[] = ['Gut Health', 'Brain Health', 'Metabolic Health', 'Aging Health', 'Women’s Health', 'Cancer Support'];
 
 
 const HARDCODED_STUDIES = [
     {
         id: '1',
-        title: 'Gut Microbiome & Metabolic Health',
-        condition: 'Gut',
-        type: 'Hybrid',
+        title: 'Beat The Bloat Study',
+        condition: 'Gut Health',
+        type: 'On-site',
         status: 'Recruiting',
-        description: 'Evaluating the impact of a novel synbiotic formulation on gut microbiome diversity and metabolic markers over a 12-week period.',
-        benefit: 'Free 12-week supply of study product & comprehensive microbiome analysis.',
-        duration: '12 Weeks',
-        tags: ['Microbiome', 'Metabolism', 'Supplement'],
-        compensation: '$250',
-        location: 'Tampa, FL & Virtual',
-        timeCommitment: '4 clinic visits, weekly surveys',
+        description: 'Bloating reducing natural formula',
+        duration: '12 Weeks (2-3 visits)',
+        compensation_range: 'Get PAID',
         is_paid: true,
-        is_free_testing: true
+        is_free_testing: false
     },
     {
         id: '2',
-        title: 'Cognitive Performance & Omega-3s',
-        condition: 'Brain',
-        type: 'Virtual',
+        title: 'VITAL-Age Study',
+        condition: 'Aging Health',
+        type: 'On-site',
         status: 'Recruiting',
-        description: 'A fully virtual study assessing the effects of a high-DHA omega-3 supplement on memory, focus, and overall cognitive performance in adults aged 50-75.',
-        benefit: 'Free 8-week supply of high-DHA omega-3 & individualized cognitive assessment report.',
-        duration: '8 Weeks',
-        tags: ['Cognition', 'Omega-3', 'Aging'],
-        compensation: '$150',
-        location: 'Virtual',
-        timeCommitment: 'Online cognitive tests bi-weekly',
+        description: 'Anti-aging probiotics',
+        duration: '5 Months (3-4 visits)',
+        compensation_range: 'Get PAID',
         is_paid: true,
         is_free_testing: false
     },
     {
         id: '3',
-        title: 'Skin Hydration & Collagen Peptides',
-        condition: 'Aging',
+        title: 'SAM Study',
+        condition: 'Women’s Health',
         type: 'On-site',
         status: 'Recruiting',
-        description: 'Investigating the efficacy of a bio-active collagen peptide blend on skin hydration, elasticity, and wrinkle reduction using advanced dermal imaging.',
-        benefit: 'Free 8-week supply of collagen supplement & professional skin health analysis.',
-        duration: '8 Weeks',
-        tags: ['Dermatology', 'Collagen', 'Aesthetics'],
-        compensation: '$300',
-        location: 'Tampa, FL',
-        timeCommitment: '3 clinic visits for dermal imaging',
+        description: 'Herbal formula for women health',
+        duration: '12 weeks (4 visits)',
+        compensation_range: 'Get PAID',
         is_paid: true,
-        is_free_testing: true
+        is_free_testing: false
     },
     {
         id: '4',
-        title: 'Women\'s Health & Hormonal Balance',
-        condition: 'Women\'s Health',
-        type: 'Virtual',
+        title: 'SHINE Study',
+        condition: 'Women’s Health',
+        type: 'On-site',
         status: 'Recruiting',
-        description: 'Studying a botanical blend for the support of hormonal balance and reduction of peri-menopausal symptoms in women aged 40-60.',
-        benefit: 'Free 12-week supply of botanical supplement & hormone health tracking app access.',
-        duration: '12 Weeks',
-        tags: ['Women\'s Health', 'Botanicals', 'Hormones'],
-        compensation: '$200',
-        location: 'Virtual',
-        timeCommitment: 'Daily app tracking, weekly surveys',
+        description: 'Bioenhancer formula for women health',
+        duration: '8 weeks (3-4 visits)',
+        compensation_range: 'Get PAID',
         is_paid: true,
         is_free_testing: false
     }
@@ -154,10 +138,10 @@ export default function StudyFilterSection() {
                     ) : displayedStudies.length > 0 ? (
                         displayedStudies.map((study) => (
                             <div key={study.id} className="group relative bg-white/5 backdrop-blur-xl rounded-[3rem] p-10 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.7)] hover:shadow-[0_50px_100px_-20px_rgba(6,182,212,0.25)] hover:bg-white/10 border border-white/5 transition-all duration-500 flex flex-col items-start gap-8">
-                                <div className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${study.condition === 'Gut' ? 'bg-green-500/10 text-green-400' :
-                                    study.condition === 'Brain' ? 'bg-purple-500/10 text-purple-400' :
-                                        study.condition === 'Metabolic' ? 'bg-orange-500/10 text-orange-400' :
-                                            study.condition === 'Aging' ? 'bg-blue-500/10 text-blue-400' :
+                                <div className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${study.condition === 'Gut Health' ? 'bg-green-500/10 text-green-400' :
+                                    study.condition === 'Brain Health' ? 'bg-purple-500/10 text-purple-400' :
+                                        study.condition === 'Metabolic Health' ? 'bg-orange-500/10 text-orange-400' :
+                                            study.condition === 'Aging Health' ? 'bg-blue-500/10 text-blue-400' :
                                                 study.condition === 'Women’s Health' ? 'bg-pink-500/10 text-pink-400' :
                                                     'bg-cyan-500/10 text-cyan-400'
                                     }`}>
@@ -182,7 +166,7 @@ export default function StudyFilterSection() {
                                         {study.compensation_range && (
                                             <div className="flex items-center gap-4 text-slate-400">
                                                 <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-cyan-400 transition-colors">
-                                                    <Activity className="w-5 h-5" />
+                                                    <DollarSign className="w-5 h-5" />
                                                 </div>
                                                 <div>
                                                     <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Compensation</div>

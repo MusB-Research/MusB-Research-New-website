@@ -12,7 +12,7 @@ const HARDCODED_DATA = {
         hero_title: "Purpose-Built for Innovation",
         hero_subtext_1: "State-of-the-art infrastructure for clinical trials, and laboratory analysis.",
         hero_subtext_2: "Designed for regulatory compliance, participant comfort, and scientific rigor.",
-        hero_image: "",
+        hero_image: "/images/facilities-hero.webp",
         research_pillar_title: "Research & Innovation",
         research_pillar_desc: "Comprehensive facilities supporting Phase I-IV trials and translational research models.",
         lab_pillar_title: "Central Laboratory Services",

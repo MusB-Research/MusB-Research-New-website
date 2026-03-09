@@ -54,7 +54,7 @@ export interface Facility {
     features: string[];
 }
 
-export type Condition = 'Gut' | 'Brain' | 'Metabolic' | 'Aging' | 'Women’s Health' | 'Cancer Support';
+export type Condition = 'Gut Health' | 'Brain Health' | 'Metabolic Health' | 'Aging Health' | 'Women’s Health' | 'Cancer Support';
 
 export interface Study {
     id: string;

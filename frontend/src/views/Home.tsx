@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ChevronLeft, ChevronRight, Brain, FlaskConical, Activity, TestTube, Microscope, Leaf, Flower, ShieldCheck, Zap, Beaker, BarChart, FileText, Stethoscope, Database, Smartphone, Box, CheckCircle2, Building2, Globe, HeartPulse } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, ChevronDown, Brain, FlaskConical, Activity, TestTube, Microscope, Leaf, Flower, ShieldCheck, Zap, Beaker, BarChart, FileText, Stethoscope, Database, Smartphone, Box, CheckCircle2, Building2, Globe, HeartPulse, X } from 'lucide-react';
 import StudyFilterSection from '@/components/StudyFilterSection';
 
 const slides = [
@@ -35,18 +35,478 @@ const slides = [
 
 
 
-const CAPABILITIES_DATA = [
-    { id: 1, title: 'Clinical Trials', description: 'Phase I–IV trials, including natural products and medical devices.', icon: 'activity' },
-    { id: 2, title: 'Preclinical Research', description: 'In-depth in vitro and animal models for translational research.', icon: 'test-tube' },
-    { id: 3, title: 'Microbiome, Biotics & Omics', description: 'Advanced analysis of microbial ecosystems and multi-omics data.', icon: 'microscope' },
-    { id: 4, title: 'Nutrition & Natural Products', description: 'Efficacy and safety studies for dietary supplements and functional foods.', icon: 'leaf' },
-    { id: 5, title: 'Aging, Metabolic & Brain Health', description: 'Focusing on musculoskeletal aging, brain health, and metabolic disorders.', icon: 'brain' },
-    { id: 6, title: 'Leaky Gut, Inflammation, Skin & Women\'s Health', description: 'Specialized research in skin health, inflammation, and women-specific conditions.', icon: 'flower' },
-    { id: 7, title: 'Immunomodulatory Research', description: 'Studying immune system responses and therapeutic interventions.', icon: 'shield-check' },
-    { id: 8, title: 'Muscle, Gut, Skin & Vascular Health', description: 'Analysis of cardiovascular fitness and skeletal muscle performance.', icon: 'zap' },
-    { id: 9, title: 'Toxicology & Bioavailability', description: 'Safety profiling and assessment of compound absorption rates.', icon: 'beaker' },
-    { id: 10, title: 'Biostatistics & Data Science', description: 'Complex data analysis and robust statistical modeling workflows.', icon: 'bar-chart' },
-    { id: 11, title: 'Regulatory Compliance Support', description: 'End-to-end guidance for FDA, FTC, and international compliance.', icon: 'file-text' }
+const EXPERTISE_DATA = [
+    {
+        label: 'Leaky Gut',
+        icon: Flower,
+        color: 'text-cyan-400',
+        glow: 'shadow-[0_0_15px_rgba(34,211,238,0.4)]',
+        description: 'Investigating intestinal permeability and its impact on systemic inflammation and chronic disease markers.',
+        content: [
+            { type: 'paragraph', text: "Leaky gut syndrome is prevalent in various conditions, including antibiotic use, chemotherapy, inflammatory bowel diseases, aging, obesity, diabetes, and poor diet. It is a significant source of inflammation, exacerbating numerous diseases such as cognitive decline, Alzheimer's, cardiovascular disorders, and cancer." },
+            { type: 'question', text: "Is your product the answer to reducing leaky gut and its related issues?" },
+            { type: 'paragraph', text: "At MusB Research, we offer advanced research services to help you develop evidence that your products or ingredients can reduce leaky gut. We conduct transwell, preclinical and clinical studies, that allow to:" },
+            {
+                type: 'list', items: [
+                    "Assess Gut Epithelial Function: Determine the impact of your ingredients on gut epithelial integrity and function.",
+                    "Evaluate Leaky Gut: Test various doses and treatment times to see if your product reduces gut permeability.",
+                    "Microbiome Interactions: Examine how your product interacts with the microbiome and its effects on leaky gut.",
+                    "Preclinical and Clinical assessments: Determine whether your product(s) have safety and efficacy in reducing leaky gut in animals and humans."
+                ]
+            },
+            { type: 'closing', text: "Our comprehensive approach ensures that we provide you with detailed insights into how your product can help manage and improve gut health." },
+            { type: 'cta', text: "Contact us today to get started on your project!" }
+        ]
+    },
+    {
+        label: 'Inflammation',
+        icon: Activity,
+        color: 'text-indigo-400',
+        glow: 'shadow-[0_0_15px_rgba(129,140,248,0.4)]',
+        description: 'Studying acute and chronic inflammatory responses through advanced biomarker analysis and cytokine profiling.',
+        content: [
+            { type: 'title', text: "Anti- and Pro-Inflammatory Testing Services" },
+            { type: 'paragraph', text: "Chronic inflammation is linked to numerous health conditions, including autoimmune diseases, cardiovascular disorders, and cancer. Understanding how your product influences inflammation is crucial for its success and efficacy." },
+            { type: 'question', text: "Is your product the key to managing inflammation and promoting better health?" },
+            { type: 'paragraph', text: "At MusB Research, we offer advanced testing services to help you generate evidence on the anti- and/or pro-inflammatory effects of your products. Our state-of-the-art facilities and experienced team provide comprehensive analysis through various methods:" },
+            {
+                type: 'list', items: [
+                    "Inflammatory Marker Analysis: Evaluate the impact of your product on key inflammatory markers, such as cytokines and chemokines, to determine its anti-inflammatory potential.",
+                    "Cell Culture Systems: Utilize primary cells and cell lines to assess the pro-inflammatory or anti-inflammatory effects of your product at different concentrations and exposure times.",
+                    "Ex-Vivo Models: Test your product in human or animal primary cells like PBMCs to gain insights into its effects on inflammation and overall health.",
+                    "Preclinical and Clinical assessments: Determine whether your product(s) have safety and efficacy in reducing acute and/or chronic inflammation in animals and humans."
+                ]
+            },
+            { type: 'closing', text: "Our holistic approach ensures that you receive detailed and reliable data on how your product can help manage inflammation and improve health outcomes." },
+            { type: 'cta', text: "Contact us today to get started on your project!" }
+        ]
+    },
+    {
+        label: 'Microbiome',
+        icon: Microscope,
+        color: 'text-blue-400',
+        glow: 'shadow-[0_0_15px_rgba(96,165,250,0.4)]',
+        description: 'Exploring the complex ecosystem of gut flora and its profound influence on metabolic and immune health.',
+        content: [
+            { type: 'title', text: "Unlock the Potential of Microbiome Research" },
+            { type: 'paragraph', text: "Are you seeking evidence on how your products, ingredients, and technologies influence the microbiome? Look no further! At MusB Research, we offer comprehensive microbiome culture services to provide you with the insights you need." },
+            { type: 'paragraph', text: "Our established ex-vivo system allows us to culture microbiomes from a wide range of sources, including:" },
+            {
+                type: 'list', items: [
+                    "Human Gut Microbiome", "Dog Gut Microbiome", "Cat Gut Microbiome", "Cattle Gut Microbiome",
+                    "Equine Gut Microbiome", "Mice, Hamsters, Rats, Rabbits", "Goat Gut Microbiome",
+                    "Pig Gut Microbiome", "Chicken Gut Microbiome"
+                ]
+            },
+            { type: 'title', text: "Our Services Include:" },
+            {
+                type: 'list', items: [
+                    "Microbiome Analysis: Determine how your products or ingredients affect various microbiomes and their metabolites.",
+                    "Biological Effects Assessment: Evaluate the impact of your products on leaky gut, inflammation, cognitive health, metabolic health, and more.",
+                    "Human and Animal Health: Assess the effects of your products on both human and animal health.",
+                    "Ecosystem Impact: Understand how your innovations influence different ecosystems."
+                ]
+            },
+            { type: 'title', text: "Why Choose MusB Research?" },
+            {
+                type: 'list', items: [
+                    "Advanced Ex-Vivo System: Our cutting-edge ex-vivo system ensures accurate and reliable microbiome cultures.",
+                    "Diverse Sources: We culture microbiomes from a variety of species, providing comprehensive insights.",
+                    "Expert Analysis: Our team of experts delivers detailed analysis and interpretation of your product’s effects."
+                ]
+            },
+            { type: 'paragraph', text: "We can help you in developing your products/ingredients for microbiome modulation in pets, large animals as well as human clinical trials." },
+            { type: 'cta', text: "Contact us today to get started on your project!" }
+        ]
+    },
+    {
+        label: 'Biotics',
+        icon: FlaskConical,
+        color: 'text-cyan-400',
+        glow: 'shadow-[0_0_15px_rgba(34,211,238,0.4)]',
+        description: 'Scientific validation of prebiotics, probiotics, and postbiotics in enhancing host-microbe interactions.',
+        content: [
+            { type: 'title', text: "Develop and Innovate with Our Probiotics Expertise" },
+            { type: 'paragraph', text: "Are you interested in developing your own probiotics or selecting from a vast, well-curated collection? Look no further! At MusB Research, we offer comprehensive solutions for all your probiotic development needs." },
+            { type: 'paragraph', text: "With over 20 years of experience, we specialize in creating novel probiotics sourced from humans (covering six sites: eyes, ears, nasal, oral, skin, and gut), animals, foods, soil, and water. Our extensive Probiotics Consortium offers a wide variety of strains for you to choose from, or we can help you develop a custom probiotic tailored to your specific requirements." },
+            { type: 'title', text: "Why Choose MusB Research for Probiotics Development?" },
+            {
+                type: 'list', items: [
+                    "Extensive Experience: Benefit from our two decades of expertise in developing innovative probiotics.",
+                    "Diverse Sources: Access probiotics from a wide range of sources, ensuring the best possible strain for your needs.",
+                    "Comprehensive Consortium: Choose from our large collection of probiotics in our Probiotics Consortium Contact us.",
+                    "Probiotics produces: We also have established relationships with large probiotics manufacturers who can scale-up, produce, pack and label your products."
+                ]
+            },
+            { type: 'title', text: "Our Key Assays Include:" },
+            {
+                type: 'columns',
+                columns: [
+                    {
+                        items: [
+                            "Bile Tolerance", "Acid Tolerance", "Protoplast Regeneration", "Adherence",
+                            "Antibiotics Sensitivity", "Pathogenic Genes", "Competition with Pathogens",
+                            "Bile Salt Hydrolase Activity", "Short Chain Fatty Acid Production", "Drug Interactions"
+                        ]
+                    },
+                    {
+                        items: [
+                            "Gram Staining", "Genomic Characterization", "Compatibility with Delivery Systems",
+                            "Biological Efficacies", "Bacteriocin Production", "Anti-Microbial Effects",
+                            "Anti-Aging Potential", "Anti-Obesity Potential", "Postbiotic Abilities"
+                        ]
+                    }
+                ]
+            },
+            { type: 'paragraph', text: "Whether you need to select a probiotic strain from our consortium or develop and substantiate your unique probiotic, MusB Research has you covered. Our state-of-the-art facilities and expert team are ready to help you every step of the way." },
+            { type: 'cta', text: "Contact us today to get started on your project!" }
+        ]
+    },
+    {
+        label: 'Aging',
+        icon: Leaf,
+        color: 'text-indigo-400',
+        glow: 'shadow-[0_0_15px_rgba(129,140,248,0.4)]',
+        description: 'Researching cellular senescence and longevity markers to promote healthy biological aging and cellular rejuvenation.',
+        content: [
+            { type: 'paragraph', text: "Anti-aging screening of your compounds using robust models like C. elegans and versatile models of senescent cell culture can unlock the market potential of your ingredients in the longevity market by providing scientifically validated evidence. This rigorous testing will build consumer trust and position your products as credible and effective solutions in the competitive anti-aging market." },
+            {
+                type: 'dropdown',
+                items: [
+                    {
+                        heading: "SENESCENCE USING CELL CULTURE SYSTEM",
+                        text: "Establish the Potential of Your Products for Anti-Aging Effects",
+                        content: "As we age, our bodies accumulate senescent or \"zombie\" cells that can negatively impact various organs. Individuals with higher levels of these cells often experience the early onset and increased severity of aging-related diseases. Our cell culture system for senescence measures can determine how your products or ingredients impact senescence in distinct cell types, in faster and more economical ways before testing them in large animals and humans. These can help you gain valuable evidence of your compounds' ability to reduce senescence, potentially mitigating aging-related issues such as aging itself, cancer, and weakened immune function.",
+                        question: "Curious if your product or ingredient can mitigate senescence?",
+                        bullets: [
+                            "Large Scale Screening: Our cell assays can determine how your products or ingredients affect the senescence process. We can use distinct cell lines from humans and look for effects on the overall body as well as organ-specific effects. This data can be crucial for developing indications related to aging biology and health.",
+                            "Dose, Time Scales, and Toxicity Profiles: Our assays test various doses, treatment times, and other measures, including toxicity profiles, to better understand the effects of your compounds.",
+                            "Detailed Reporting: Obtain comprehensive reports on the protective effects of your products on senescence and aging, substantiating your claims with robust scientific data.",
+                            "Future Recommendations and Consulting: Get expert advice on further studies in animal models and humans to maximize your product’s market potential."
+                        ],
+                        cta: "Contact us today to get started on your project!"
+                    },
+                    {
+                        heading: "ANTI-AGING SCREENING USING C. ELEGANS",
+                        text: "Unlock the Potential of Your Products' Anti-Aging Activities:",
+                        content: "Aging is a natural process that leads to various health conditions in humans and animals. While aging itself is not a disease, studies have shown that certain products and ingredients can exhibit anti-aging effects.",
+                        question: "Curious if your product or ingredient has anti-aging properties?",
+                        bullets: [
+                            "C. elegans Screening: Utilize our optimized system to screen a wide range of ingredients and compounds, including probiotics, prebiotics, synbiotics, postbiotics, and more, for their potential anti-aging effects.",
+                            "Automated and Robust System: Benefit from our automated and robust screening system, capable of efficiently handling large numbers of samples.",
+                            "Detailed Reporting: Obtain comprehensive reports on the anti-aging health effects of your products, aiding in substantiating your claims with robust scientific data."
+                        ],
+                        closing: "Unlock the market potential of your products with our scientifically validated evidence"
+                    },
+                    {
+                        heading: "ANTI-AGING EFFECTS IN SMALL ANIMALS, PETS AND LIVESTOCK CLINICAL TRIALS",
+                        content: "Aging in pets and livestock, much like in humans, can lead to various health challenges. Although aging is a natural process, certain products and ingredients may offer anti-aging benefits that enhance the health and longevity of animals.",
+                        bullets: [
+                            "Targeted Anti-Aging Markers: : Utilize our specialized aging biology markers to assess a wide range of ingredients, including probiotics, prebiotics, synbiotics, postbiotics, herbals, nutraceuticals, pharmacological, and non-pharmacological compounds, for their potential anti-aging effects in pets and livestock.",
+                            "Efficient and Comprehensive Testing: Leverage our well-established and optimized assays designed to efficiently handle large sample volumes, delivering reliable data on your products' impact on animal aging.",
+                            "In-Depth Reporting: Access detailed reports that clearly document the anti-aging health benefits of your products, helping you substantiate your claims with robust scientific evidence."
+                        ],
+                        closing: "Unlock new market opportunities by validating the anti-aging potential of your products for pets and livestock through our expert clinical trials.",
+                        cta: "Contact us today to get started on your project!"
+                    },
+                    {
+                        heading: "ANTI-AGING EFFECTS IN HUMAN CLINICAL TRIALS",
+                        content: "Aging in humans is a natural process, but it often leads to a range of health challenges. While aging cannot be prevented, certain products and ingredients may offer anti-aging benefits that promote health and longevity.",
+                        bullets: [
+                            "Unique Aging Biology Markers: Leverage our specialized aging biology markers to assess a wide range of ingredients, including probiotics, prebiotics, synbiotics, postbiotics, herbals, nutraceuticals, pharmacological, and non-pharmacological compounds, for their potential anti-aging effects in humans.",
+                            "Reliable and Comprehensive Testing: Utilize our well-established and optimized assays, designed to efficiently handle large sample volumes, providing you with reliable data on your products' impact on human aging.",
+                            "In-Depth Reporting: Access detailed reports that clearly document the anti-aging health benefits of your products, helping you substantiate your claims with robust scientific evidence."
+                        ],
+                        closing: "Unlock new market opportunities by validating the anti-aging potential of your products through our expert human clinical trials.",
+                        cta: "Contact us today to get started on your project!"
+                    }
+                ]
+            },
+            { type: 'paragraph', text: "At MusB Research, we are dedicated to providing you with the scientific evidence needed to substantiate your anti-aging product claims. Let us help you drive innovation and success in the longevity market. Contact us today to get started on your project!" }
+        ]
+    },
+    {
+        label: 'Cognitive Health',
+        icon: Brain,
+        color: 'text-blue-400',
+        glow: 'shadow-[0_0_15px_rgba(96,165,250,0.4)]',
+        description: 'Assessing memory, focus, and neurological performance through clinical and functional assessments.',
+        content: [
+            { type: 'paragraph', text: "Cognitive health is crucial, especially with rising cases of neurodegenerative diseases. Caenorhabditis elegans (C. elegans), with its sensory, learning, and memory behavior, is an ideal model for large-scale screening to assess the cognitive effects of your components." },
+            {
+                type: 'dropdown',
+                items: [
+                    {
+                        heading: "SCREEN COGNITIVE BENEFITS USING C. ELEGANS",
+                        text: "Is your product the next breakthrough in cognitive health?",
+                        bullets: [
+                            "C. elegans Muscle Screening: Utilize our established assays to evaluate the impact of your products on muscle functions such as proliferation, muscle wasting, and insulin sensitivity in C. elegans.",
+                            "Cell Culture Analysis: Assess your components' effects on muscle cells, providing detailed insights into muscle proliferation, differentiation, and function.",
+                            "High-Throughput Screening: Benefit from our efficient platform for rapid, large-scale assessment of your product's impact on muscle health, including various doses and treatment times. Comprehensive Muscle Function Testing: Evaluate key aspects of muscle health, including insulin sensitivity, muscle wasting prevention, and overall muscle function, to support your product's efficacy.",
+                            "Detailed Reporting: Obtain comprehensive reports on the muscle health effects of your products, aiding in substantiating your claims with robust scientific data."
+                        ],
+                        cta: "Contact us today to get started on your project!"
+                    },
+                    {
+                        heading: "COGNITIVE BENEFICIAL EFFECTS IN HUMAN CLINICAL TRIALS",
+                        content: "Cognitive health is critical for overall well-being, and innovative products have the potential to make significant impacts. Determining the cognitive benefits of your ingredients could position your product as the next breakthrough in cognitive health.",
+                        bullets: [
+                            "In-Depth Behavioral Analysis: Examine detailed behavioral changes related to sensory, learning, and memory functions in response to your components, providing valuable insights into the cognitive benefits of your products.",
+                            "Specialized Cognitive Health Markers: Leverage our advanced cognitive health markers to assess a wide range of ingredients, including probiotics, prebiotics, synbiotics, postbiotics, herbals, nutraceuticals, pharmacological, and non-pharmacological compounds, for their potential cognitive benefits in humans.",
+                            "Comprehensive Reporting: Access thorough reports that clearly document the cognitive health benefits of your products, helping you substantiate your claims with solid scientific evidence."
+                        ],
+                        closing: "Unlock new market opportunities by validating the cognitive health potential of your products through our expert human clinical trials.",
+                        cta: "Contact us today to get started on your project!"
+                    }
+                ]
+            },
+            { type: 'paragraph', text: "At MusB Research, we are dedicated to providing you with the scientific evidence needed to substantiate your cognitive health product claims. Let us help you drive innovation and success in the cognitive health market. Contact us today to get started on your project and elevate your products to the next level!" }
+        ]
+    },
+    {
+        label: 'Neurodegeneration',
+        icon: Brain,
+        color: 'text-cyan-400',
+        glow: 'shadow-[0_0_15px_rgba(34,211,238,0.4)]',
+        description: 'In-depth studies on neuroprotective pathways and strategies to mitigate age-related cognitive decline.'
+    },
+    {
+        label: 'Muscle Health',
+        icon: Zap,
+        color: 'text-indigo-400',
+        glow: 'shadow-[0_0_15px_rgba(129,140,248,0.4)]',
+        description: 'Evaluating protein synthesis, muscle mass maintenance, and musculoskeletal integrity across life stages.',
+        content: [
+            { type: 'paragraph', text: "Muscle health is vital for metabolic and physical well-being, playing a key role in joint function, glucose management, body weight control, and overall stamina. Using cell culture and Caenorhabditis elegans (C. elegans), we offer large-scale screening to assess the effects of your components on muscle health." },
+            {
+                type: 'dropdown',
+                items: [
+                    {
+                        heading: "SCREEN COGNITIVE BENEFITS USING C. ELEGANS",
+                        text: "Is your product the next breakthrough in cognitive health?",
+                        bullets: [
+                            "C. elegans Muscle Screening: Utilize our established assays to evaluate the impact of your products on muscle functions such as proliferation, muscle wasting, and insulin sensitivity in C. elegans.",
+                            "Cell Culture Analysis: Assess your components' effects on muscle cells, providing detailed insights into muscle proliferation, differentiation, and function.",
+                            "High-Throughput Screening: Benefit from our efficient platform for rapid, large-scale assessment of your product's impact on muscle health, including various doses and treatment times.",
+                            "Comprehensive Muscle Function Testing: Evaluate key aspects of muscle health, including insulin sensitivity, muscle wasting prevention, and overall muscle function, to support your product's efficacy.",
+                            "Detailed Reporting: Obtain comprehensive reports on the muscle health effects of your products, aiding in substantiating your claims with robust scientific data."
+                        ],
+                        cta: "Contact us today to get started on your project!"
+                    },
+                    {
+                        heading: "GROWING, BETTER, AND FASTER MUSCLES IN PETS AND LIVESTOCK TRIALS",
+                        text: "Enhance Muscle Health and Growth in Pets and Livestock with Expert Clinical Trials",
+                        content: "Muscle health is crucial not only for the overall well-being and performance of pets and livestock, such as horses, but also for the meat industry, where enhancing muscle mass and promoting faster growth in meat-producing animals is essential. Whether you are focused on improving the quality of life for pets and livestock or boosting muscle development in meat-producing animals, your products can make a significant impact.",
+                        bullets: [
+                            "Explore Muscle-Promoting and Preserving Effects: Aging in pets and livestock, like in humans, can lead to muscle deterioration and other health challenges. However, certain products and ingredients may help preserve muscle health and promote muscle growth, supporting both animal longevity and performance.",
+                            "Targeted Muscle Health Markers: Utilize our specialized muscle biology markers to assess a wide range of ingredients, including probiotics, prebiotics, synbiotics, postbiotics, herbals, nutraceuticals, pharmacological, and non-pharmacological compounds, for their potential to promote muscle growth and preserve muscle health in pets and livestock.",
+                            "Efficient and Comprehensive Testing: Leverage our well-established and optimized assays for exercise tolerance and muscle health evaluation, designed to efficiently handle both small and large animals. We provide reliable data on your products' impact on muscle health and development in various species.",
+                            "In-Depth Reporting: Access detailed reports that clearly document the muscle health benefits of your products, helping you substantiate your claims with robust scientific evidence."
+                        ],
+                        closing: "Unlock new market opportunities by validating the muscle-promoting potential of your products for pets, horses, and meat-producing livestock through our expert clinical trials.",
+                        cta: "Contact us today to get started on your project"
+                    },
+                    {
+                        heading: "MUSCLE HEALTH PROMOTING AND PRESERVING IN HUMAN CLINICAL TRIALS",
+                        text: "Preserve and Promote Muscle Health in Humans with Advanced Human Clinical Testing",
+                        content: "Muscle loss is a significant concern during aging and weight loss, affecting overall health, mobility, and quality of life. Position your products as market leaders by ensuring they not only promote muscle growth but also preserve muscle mass during these critical periods.",
+                        bullets: [
+                            "Explore Muscle-Preserving and Promoting Effects: Muscle health is essential for maintaining overall well-being, particularly as we age or undergo weight loss. Test whether your products and ingredients can play a role in preserving muscle mass while simultaneously promoting muscle growth, enhancing physical performance and longevity.",
+                            "Targeted Muscle Health Markers: We utilize our specialized muscle biology markers to evaluate a diverse range of ingredients—probiotics, prebiotics, synbiotics, postbiotics, herbals, nutraceuticals, pharmacological, and non-pharmacological compounds. We provide precise assessments of their potential to maintain and enhance muscle health during aging and weight loss.",
+                            "Efficient and Comprehensive Testing: Our well-established and optimized assays are designed for accurate muscle health evaluations, delivering reliable data on your products' impact on muscle preservation and growth. Our methodologies ensure consistent and reproducible results, making them ideal for clinical trials.",
+                            "In-Depth Reporting: We provide detailed reports that clearly outline the muscle health benefits of your products. These scientifically backed reports help substantiate your claims, providing robust support for your marketing strategies and regulatory submissions."
+                        ],
+                        closing: "Validate the muscle-preserving and promoting potential of your products in humans through our expert clinical trials.",
+                        cta: "Contact us today to get started on your project!"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        label: 'Gut Health',
+        icon: Activity,
+        color: 'text-blue-400',
+        glow: 'shadow-[0_0_15px_rgba(96,165,250,0.4)]',
+        description: 'Comprehensive analysis of digestive function, nutrient absorption, and gastrointestinal wellness.',
+        content: [
+            {
+                type: 'paragraph',
+                text: "Are you looking to develop new probiotics or postbiotics, or test your products for their impact on microbiome, leaky gut, and other gut health symptoms? MusB Research can help. With our expertise in probiotics development, microbiome analyses, and state-of-the-art culture systems, we can unlock the market potential of your ingredients in human, pet, and agricultural markets. Our advanced leaky gut assays provide scientifically validated evidence to elevate your products, ingredients, or technology to the next level."
+            },
+            {
+                type: 'dropdown',
+                items: [
+                    {
+                        heading: "Leaky Gut",
+                        content: "Leaky gut syndrome is prevalent in various conditions, including antibiotic use, chemotherapy, inflammatory bowel diseases, aging, obesity, diabetes, and poor diet. It is a significant source of inflammation, exacerbating numerous diseases such as cognitive decline, Alzheimer's, cardiovascular disorders, and cancer.",
+                        text: "Is your product the answer to reducing leaky gut and its related issues?",
+                        question: "At MusB Research, we offer advanced research services to help you develop evidence that your products or ingredients can reduce leaky gut. We conduct transwell, preclinical and clinical studies, that allow to:",
+                        bullets: [
+                            "Assess Gut Epithelial Function: Determine the impact of your ingredients on gut epithelial integrity and function.",
+                            "Evaluate Leaky Gut: Test various doses and treatment times to see if your product reduces gut permeability.",
+                            "Microbiome Interactions: Examine how your product interacts with the microbiome and its effects on leaky gut.",
+                            "Preclinical and Clinical assessments: Determine whether your product(s) have safety and efficacy in reducing leaky gut in animals and humans."
+                        ],
+                        closing: "Our comprehensive approach ensures that we provide you with detailed insights into how your product can help manage and improve gut health."
+                    },
+                    {
+                        heading: "Probiotic Development",
+                        text: "Develop and Innovate with Our Probiotics Expertise",
+                        content: "Are you interested in developing your own probiotics or selecting from a vast, well-curated collection? Look no further! At MusB Research, we offer comprehensive solutions for all your probiotic development needs.\n\nWith over 20 years of experience, we specialize in creating novel probiotics sourced from humans (covering six sites: eyes, ears, nasal, oral, skin, and gut), animals, foods, soil, and water. Our extensive Probiotics Consortium offers a wide variety of strains for you to choose from, or we can help you develop a custom probiotic tailored to your specific requirements.",
+                        sections: [
+                            { type: 'question', text: "Why Choose MusB Research for Probiotics Development?" },
+                            {
+                                type: 'list', items: [
+                                    "Extensive Experience: Benefit from our two decades of expertise in developing innovative probiotics.",
+                                    "Diverse Sources: Access probiotics from a wide range of sources, ensuring the best possible strain for your needs.",
+                                    "Comprehensive Consortium: Choose from our large collection of probiotics in our Probiotics Consortium Contact us.",
+                                    "Probiotics produces: We also have established relationships with large probiotics manufacturers who can scale-up, produce, pack and label your products."
+                                ]
+                            },
+                            { type: 'title', text: "Our Key Assays Include:" },
+                            {
+                                type: 'columns',
+                                columns: [
+                                    {
+                                        items: [
+                                            "Bile Tolerance", "Acid Tolerance", "Protoplast Regeneration", "Adherence",
+                                            "Antibiotics Sensitivity", "Pathogenic Genes", "Competition with Pathogens",
+                                            "Bile Salt Hydrolase Activity", "Short Chain Fatty Acid Production", "Drug Interactions"
+                                        ]
+                                    },
+                                    {
+                                        items: [
+                                            "Gram Staining", "Genomic Characterization", "Compatibility with Delivery Systems",
+                                            "Biological Efficacies", "Bacteriocin Production", "Anti-Microbial Effects",
+                                            "Anti-Aging Potential", "Anti-Obesity Potential", "Postbiotic Abilities"
+                                        ]
+                                    }
+                                ]
+                            },
+                            { type: 'paragraph', text: "Whether you need to select a probiotic strain from our consortium or develop and substantiate your unique probiotic, MusB Research has you covered. Our state-of-the-art facilities and expert team are ready to help you every step of the way." }
+                        ]
+                    },
+                    {
+                        heading: "Microbiome",
+                        text: "Unlock the Potential of Microbiome Research",
+                        content: "Are you seeking evidence on how your products, ingredients, and technologies influence the microbiome? Look no further! At MusB Research, we offer comprehensive microbiome culture services to provide you with the insights you need.\n\nOur established ex-vivo system allows us to culture microbiomes from a wide range of sources, including:",
+                        sections: [
+                            {
+                                type: 'list', items: [
+                                    "Human Gut Microbiome", "Dog Gut Microbiome", "Cat Gut Microbiome", "Cattle Gut Microbiome",
+                                    "Equine Gut Microbiome", "Mice, Hamsters, Rats, Rabbits", "Goat Gut Microbiome",
+                                    "Pig Gut Microbiome", "Chicken Gut Microbiome"
+                                ]
+                            },
+                            { type: 'title', text: "Our Services Include:" },
+                            {
+                                type: 'list', items: [
+                                    "Microbiome Analysis: Determine how your products or ingredients affect various microbiomes and their metabolites.",
+                                    "Biological Effects Assessment: Evaluate the impact of your products on leaky gut, inflammation, cognitive health, metabolic health, and more.",
+                                    "Human and Animal Health: Assess the effects of your products on both human and animal health.",
+                                    "Ecosystem Impact: Understand how your innovations influence different ecosystems."
+                                ]
+                            },
+                            { type: 'title', text: "Why Choose MusB Research?" },
+                            {
+                                type: 'list', items: [
+                                    "Advanced Ex-Vivo System: Our cutting-edge ex-vivo system ensures accurate and reliable microbiome cultures.",
+                                    "Diverse Sources: We culture microbiomes from a variety of species, providing comprehensive insights.",
+                                    "Expert Analysis: Our team of experts delivers detailed analysis and interpretation of your product’s effects."
+                                ]
+                            },
+                            { type: 'paragraph', text: "We can help you in developing your products/ingredients for microbiome modulation in pets, large animals as well as human clinical trials." }
+                        ]
+                    }
+                ]
+            },
+            {
+                type: 'paragraph',
+                text: "At MusB Research, we are dedicated to providing you with the scientific evidence needed to substantiate your gut health product claims. Let us help you drive innovation and success in the gut health market. Contact us today to get started on your project and elevate your products to the next level!"
+            }
+        ]
+    },
+    {
+        label: 'Diabetes & Obesity',
+        icon: Activity,
+        color: 'text-cyan-400',
+        glow: 'shadow-[0_0_15px_rgba(34,211,238,0.4)]',
+        description: 'Translational research on glycemic control, insulin sensitivity, and weight management interventions.'
+    },
+    {
+        label: 'Skin Health',
+        icon: Flower,
+        color: 'text-indigo-400',
+        glow: 'shadow-[0_0_15px_rgba(129,140,248,0.4)]',
+        description: 'Clinical evaluation of dermatological health, including barrier function, hydration, and anti-aging efficacy.'
+    },
+    {
+        label: 'Brain Health',
+        icon: Brain,
+        color: 'text-blue-400',
+        glow: 'shadow-[0_0_15px_rgba(96,165,250,0.4)]',
+        description: 'Holistic assessment of neurological wellness, mental clarity, and neurotransmitter balance.'
+    },
+    {
+        label: 'Vascular Health',
+        icon: HeartPulse,
+        color: 'text-cyan-400',
+        glow: 'shadow-[0_0_15px_rgba(34,211,238,0.4)]',
+        description: 'Studying endothelial function, blood flow dynamics, and cardiovascular wellness markers.'
+    },
+    {
+        label: 'Toxicology',
+        icon: Beaker,
+        color: 'text-indigo-400',
+        glow: 'shadow-[0_0_15px_rgba(129,140,248,0.4)]',
+        description: 'Rigorous safety assessments and toxicity profiling of ingredients and final formulations.'
+    },
+    {
+        label: 'Bioavailability',
+        icon: BarChart,
+        color: 'text-blue-400',
+        glow: 'shadow-[0_0_15px_rgba(96,165,250,0.4)]',
+        description: 'Measuring nutrient absorption, pharmacokinetics, and delivery efficiency of bioactive compounds.',
+        content: [
+            {
+                type: 'dropdown',
+                items: [
+                    {
+                        heading: "TEST BIOAVAILABILITY OF FUNCTIONAL MOLECULES IN YOUR PRODUCTS/ INGREDIENTS",
+                        text: "Determine the Bioavailability of The Functional Molecule(s)",
+                        content: "Understanding the bioavailability of functional molecules is key to ensuring their effectiveness. Using our state-of-the-art transwell cell culture assays, we offer comprehensive services to assess the permeability of your products from the gut to the bloodstream.",
+                        question: "Curious about how your product's functional molecules are absorbed?",
+                        bullets: [
+                            "Large Scale Screening: Assess the permeability of your functional molecules across gut epithelial cells to understand absorption rates and potential bioavailability.",
+                            "Evaluate Doses and Timelines: Gain insights into the optimal doses and treatment timelines for maximum absorption and effectiveness.",
+                            "Toxicity Profiles: Ensure safety by evaluating the toxicity profiles of your functional molecules during permeability testing.",
+                            "Comprehensive Analysis and Reporting: Obtain detailed reports on the bioavailability, dosing, timelines, and safety of your products, supporting your claims with robust scientific data.",
+                            "Future Recommendations and Consulting: Get expert advice on further studies in animal models and humans to maximize your product’s market potential."
+                        ],
+                        cta: "Contact us today to get started on your project!"
+                    },
+                    {
+                        heading: "TEST BENEFITS OF BOOSTING NUTRIENT ABSORPTION IN HUMAN CLINICAL TRIALS",
+                        text: "Test Nutrient Absorption Benefits of Your Products in Human Clinical Trials",
+                        content: "Position your products as leaders in improving nutrient absorption and overall health. Whether your goal is to enhance nutrient uptake from the gut, reduce deficiencies, or support general wellness, we provide the scientific validation you need. Our clinical trials demonstrate your products' efficacy in optimizing nutrient absorption and promoting comprehensive health.",
+                        bullets: [
+                            "Evaluate Nutrient Absorption: Test if your products enhance nutrient uptake from the gut, reducing deficiencies and supporting better overall health.",
+                            "Assess Health Improvements: Determine if your ingredients contribute to improved digestion, better absorption of essential vitamins and minerals, and overall enhanced well-being.",
+                            "Utilize Specialized Nutrient Absorption Markers: Use our targeted assays to evaluate a range of ingredients, including probiotics, prebiotics, and functional foods, for their impact on nutrient absorption.",
+                            "Receive Detailed Reporting: Obtain comprehensive reports detailing the benefits of your products in improving nutrient absorption, providing robust support for your marketing and regulatory needs."
+                        ],
+                        closing: "Validate your products' benefits in nutrient absorption through our expert clinical trials.",
+                        cta: "Contact us today to get started on your project!"
+                    }
+                ]
+            },
+            {
+                type: 'paragraph',
+                text: "At MusB Research, we are dedicated to providing you with the scientific evidence needed to substantiate your product claims for brain health. Let us help you drive innovation and success in the competitive market. Contact us today to get started on your project!"
+            }
+        ]
+    },
 ];
 
 const FACILITIES_DATA = [
@@ -62,24 +522,88 @@ const CERTIFICATIONS_DATA = [
     { id: 1, label: 'IRB-approved studies' },
     { id: 2, label: 'GCP-trained staff' },
     { id: 3, label: 'HIPAA-compliant systems' },
-    { id: 4, label: 'CLIA/COLA partner laboratory' },
+    { id: 4, label: 'CLIA & COLA APPROVED LABORATORY' },
     { id: 5, label: 'SOP-driven operations' },
     { id: 6, label: 'ISO Certification' },
     { id: 7, label: 'GLP Certification' }
 ];
 
-const PARTNERS_DATA = [
-    { id: 1, name: 'University of South Florida', category: 'Academic' },
-    { id: 2, name: 'Tampa General Hospital', category: 'Academic' },
-    { id: 3, name: 'Global Pharma Solutions', category: 'Industry' },
-    { id: 4, name: 'BioTech Innovations Inc.', category: 'Industry' },
-    { id: 5, name: 'Clinical Research Alliance', category: 'CRO' },
-    { id: 6, name: 'MedTrials Network', category: 'CRO' },
-    { id: 7, name: 'Tampa Bay Health Foundation', category: 'Community' }
+const PARTNERS_ROW_1 = [
+    { id: 1, name: 'UNILEVER' },
+    { id: 2, name: 'SYNBIOTIC HEALTH' },
+    { id: 3, name: 'VIDYA HERBS' },
+    { id: 4, name: 'BIOVA' },
+    { id: 5, name: 'INDIA GLYCOL LTD' },
+    { id: 6, name: 'APT TESTING AND RESEARCH PVT. LTD.' }
 ];
+
+const PARTNERS_ROW_2 = [
+    { id: 7, name: 'CROISSANCE CLINICAL RESEARCH' },
+    { id: 8, name: 'CLINTEK' },
+    { id: 9, name: 'ZEDA AI' },
+    { id: 10, name: 'EXCEL IMAGING CENER' },
+    { id: 11, name: 'Bay Area Gastroenterology Associates LLC' }
+];
+
+const ServiceCard = ({ icon: Icon, title, whoItsFor, whatWeDeliver, footerText, linkTo, linkText, accentColor }: any) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    return (
+        <div className={`group relative bg-white/5 backdrop-blur-xl rounded-[4rem] p-8 md:p-12 border border-white/5 hover:bg-white/10 hover:border-${accentColor}-500/30 transition-all duration-700 flex flex-col`}>
+            <div className={`w-20 h-20 mb-10 rounded-3xl bg-${accentColor}-500/10 flex items-center justify-center text-${accentColor}-400 group-hover:bg-${accentColor}-500 group-hover:text-slate-900 transition-all duration-500 shadow-xl`}>
+                <Icon className="w-10 h-10" />
+            </div>
+            <h3 className={`text-3xl font-black text-white mb-8 group-hover:text-${accentColor}-400 transition-colors uppercase tracking-tight min-h-[80px]`}>{title}</h3>
+
+            <div className="space-y-6 flex-grow">
+                <div className="min-h-[100px]">
+                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-3">Who it's for:</h4>
+                    <p className="text-slate-300 font-bold leading-relaxed">{whoItsFor}</p>
+                </div>
+
+                <div className={`transition-all duration-700 overflow-hidden ${isExpanded ? 'max-h-[1000px] opacity-100 mt-6' : 'max-h-0 opacity-0'}`}>
+                    <div className="space-y-8">
+                        <div>
+                            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-3">What we deliver:</h4>
+                            <ul className="space-y-4">
+                                {whatWeDeliver.map((item: string, i: number) => (
+                                    <li key={i} className="flex items-start gap-3">
+                                        <div className={`w-1.5 h-1.5 rounded-full bg-${accentColor}-400 mt-2 shadow-[0_0_8px_rgba(34,211,238,0.6)]`}></div>
+                                        <span className="text-slate-400 text-base font-medium">{item}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                        <div className={`p-6 rounded-2xl bg-${accentColor}-400/5 border border-${accentColor}-400/10`}>
+                            <p className={`text-sm text-${accentColor}-200/80 leading-relaxed italic`}>
+                                {footerText}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <button
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className={`mt-4 text-${accentColor}-400 hover:text-white font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-colors`}
+                >
+                    {isExpanded ? 'View Less' : 'View More'}
+                    <ChevronDown className={`w-4 h-4 transition-transform duration-500 ${isExpanded ? 'rotate-180' : ''}`} />
+                </button>
+            </div>
+
+            <Link to={linkTo} className={`mt-12 w-full bg-${accentColor}-500 text-slate-900 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2 group/btn`}>
+                {linkText}
+                <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+            </Link>
+        </div>
+    );
+};
+
 
 export default function Home() {
     const [currentSlide, setCurrentSlide] = useState(0);
+    const [selectedExpertise, setSelectedExpertise] = useState<any>(null);
+    const [activeAccordionIndex, setActiveAccordionIndex] = useState<number | null>(0);
 
     const activeSlides = slides;
 
@@ -147,7 +671,7 @@ export default function Home() {
                                         <div className="space-y-12 flex flex-col items-center text-center">
                                             <div className="space-y-8 max-w-5xl relative">
                                                 <div className="animate-fade-in-up">
-                                                    <span className="text-[13px] md:text-sm font-black uppercase tracking-[0.2em] md:tracking-[0.6em] text-red-700 whitespace-normal md:whitespace-nowrap block md:inline-block px-4 md:px-0">
+                                                    <span className="text-[13px] md:text-sm font-black uppercase tracking-[0.2em] md:tracking-[0.6em] text-white whitespace-normal md:whitespace-nowrap block md:inline-block px-4 md:px-0">
                                                         Bench to Bedside. Discovery to Validation.
                                                     </span>
                                                 </div>
@@ -233,121 +757,55 @@ export default function Home() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
                                 {/* 1. Research & Innovation */}
-                                <div className="group relative bg-white/5 backdrop-blur-xl rounded-[4rem] p-8 md:p-12 border border-white/5 hover:bg-white/10 hover:border-cyan-500/30 transition-all duration-700 flex flex-col">
-                                    <div className="w-20 h-20 mb-10 rounded-3xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-slate-900 transition-all duration-500 shadow-xl">
-                                        <FlaskConical className="w-10 h-10" />
-                                    </div>
-                                    <h3 className="text-3xl font-black text-white mb-8 group-hover:text-cyan-400 transition-colors">Research & Innovation</h3>
-                                    <div className="space-y-8 flex-grow">
-                                        <div>
-                                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3">Who it's for:</h4>
-                                            <p className="text-slate-300 font-bold leading-relaxed">Biotech, nutrition, pharma, ingredient, and wellness companies seeking scientific validation.</p>
-                                        </div>
-                                        <div>
-                                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3">What we deliver:</h4>
-                                            <ul className="space-y-4">
-                                                {[
-                                                    'Preclinical screening and mechanistic studies',
-                                                    'In vitro, C. elegans, and animal models',
-                                                    'Human clinical trials and translational research',
-                                                    'Biomarkers, microbiome, and functional outcomes'
-                                                ].map((item, i) => (
-                                                    <li key={i} className="flex items-start gap-3">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-2 shadow-[0_0_8px_rgba(34,211,238,0.6)]"></div>
-                                                        <span className="text-slate-400 text-sm font-medium">{item}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                        <div className="p-6 rounded-2xl bg-cyan-400/5 border border-cyan-400/10">
-                                            <p className="text-xs text-cyan-200/80 leading-relaxed italic">
-                                                We turn scientific concepts into credible evidence that informs product development, claims, and commercialization.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <Link to="/contact" className="mt-12 w-full bg-cyan-500 text-slate-900 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2 group/btn">
-                                        Discuss a Research Project
-                                        <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                                    </Link>
-                                </div>
+                                <ServiceCard
+                                    icon={FlaskConical}
+                                    title="Research & Innovation"
+                                    whoItsFor="Biotech, nutrition, pharma, ingredient, and wellness companies seeking scientific validation."
+                                    whatWeDeliver={[
+                                        'Preclinical screening and mechanistic studies',
+                                        'In vitro, C. elegans, and animal models',
+                                        'Human clinical trials and translational research',
+                                        'Biomarkers, microbiome, and functional outcomes'
+                                    ]}
+                                    footerText="We turn scientific concepts into credible evidence that informs product development, claims, and commercialization."
+                                    linkTo="/contact"
+                                    linkText="Discuss a Research Project"
+                                    accentColor="cyan"
+                                />
 
                                 {/* 2. Central Laboratory Services */}
-                                <div className="group relative bg-white/5 backdrop-blur-xl rounded-[4rem] p-8 md:p-12 border border-white/5 hover:bg-white/10 hover:border-indigo-500/30 transition-all duration-700 flex flex-col">
-                                    <div className="w-20 h-20 mb-10 rounded-3xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500 group-hover:text-slate-900 transition-all duration-500 shadow-xl">
-                                        <Microscope className="w-10 h-10" />
-                                    </div>
-                                    <h3 className="text-3xl font-black text-white mb-8 group-hover:text-indigo-400 transition-colors">Central Laboratory Services</h3>
-                                    <div className="space-y-8 flex-grow">
-                                        <div>
-                                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3">Who it's for:</h4>
-                                            <p className="text-slate-300 font-bold leading-relaxed">Sponsors needing reliable, compliant testing to support research and clinical studies.</p>
-                                        </div>
-                                        <div>
-                                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3">What we deliver:</h4>
-                                            <ul className="space-y-4">
-                                                {[
-                                                    'Clinical and research biomarker testing',
-                                                    'ELISA, proteomics, real-time PCR',
-                                                    'Microbiome and molecular analysis',
-                                                    'SOP-driven workflows with sponsor-ready reporting'
-                                                ].map((item, i) => (
-                                                    <li key={i} className="flex items-start gap-3">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-2 shadow-[0_0_8px_rgba(129,140,248,0.6)]"></div>
-                                                        <span className="text-slate-400 text-sm font-medium">{item}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                        <div className="p-6 rounded-2xl bg-indigo-400/5 border border-indigo-400/10">
-                                            <p className="text-xs text-indigo-200/80 leading-relaxed italic">
-                                                Our central lab services ensure accuracy, reproducibility, and data integrity across preclinical and clinical programs.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <Link to="/contact" className="mt-12 w-full bg-indigo-500 text-slate-900 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2 group/btn">
-                                        Request Laboratory Services
-                                        <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                                    </Link>
-                                </div>
+                                <ServiceCard
+                                    icon={Microscope}
+                                    title="Central Laboratory Services"
+                                    whoItsFor="Sponsors needing reliable, compliant testing to support research and clinical studies."
+                                    whatWeDeliver={[
+                                        'Clinical and research biomarker testing',
+                                        'ELISA, proteomics, real-time PCR',
+                                        'Microbiome and molecular analysis',
+                                        'SOP-driven workflows with sponsor-ready reporting'
+                                    ]}
+                                    footerText="Our central lab services ensure accuracy, reproducibility, and data integrity across preclinical and clinical programs."
+                                    linkTo="/contact"
+                                    linkText="Request Laboratory Services"
+                                    accentColor="indigo"
+                                />
 
                                 {/* 3. Biorepository */}
-                                <div className="group relative bg-white/5 backdrop-blur-xl rounded-[4rem] p-8 md:p-12 border border-white/5 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-700 flex flex-col">
-                                    <div className="w-20 h-20 mb-10 rounded-3xl bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover:bg-blue-500 group-hover:text-slate-900 transition-all duration-500 shadow-xl">
-                                        <Database className="w-10 h-10" />
-                                    </div>
-                                    <h3 className="text-3xl font-black text-white mb-8 group-hover:text-blue-400 transition-colors">Biorepository</h3>
-                                    <div className="space-y-8 flex-grow">
-                                        <div>
-                                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3">Who it's for:</h4>
-                                            <p className="text-slate-300 font-bold leading-relaxed">Organizations managing biological samples across studies, sites, or timepoints.</p>
-                                        </div>
-                                        <div>
-                                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3">What we deliver:</h4>
-                                            <ul className="space-y-4">
-                                                {[
-                                                    'Sample processing, labeling, and tracking',
-                                                    'Secure, long-term storage under controlled conditions',
-                                                    'Support for longitudinal and multi-omics studies',
-                                                    'Retrieval and chain-of-custody documentation'
-                                                ].map((item, i) => (
-                                                    <li key={i} className="flex items-start gap-3">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2 shadow-[0_0_8px_rgba(96,165,250,0.6)]"></div>
-                                                        <span className="text-slate-400 text-sm font-medium">{item}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                        <div className="p-6 rounded-2xl bg-blue-400/5 border border-blue-400/10">
-                                            <p className="text-xs text-blue-200/80 leading-relaxed italic">
-                                                Our biorepository protects the long-term value of your samples and supports future discovery and regulatory needs.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <Link to="/contact" className="mt-12 w-full bg-blue-500 text-slate-900 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2 group/btn">
-                                        Explore Biorepository Support
-                                        <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                                    </Link>
-                                </div>
+                                <ServiceCard
+                                    icon={Database}
+                                    title="Biorepository"
+                                    whoItsFor="Organizations managing biological samples across studies, sites, or timepoints."
+                                    whatWeDeliver={[
+                                        'Sample processing, labeling, and tracking',
+                                        'Secure, long-term storage under controlled conditions',
+                                        'Support for longitudinal and multi-omics studies',
+                                        'Retrieval and chain-of-custody documentation'
+                                    ]}
+                                    footerText="Our biorepository protects the long-term value of your samples and supports future discovery and regulatory needs."
+                                    linkTo="/contact"
+                                    linkText="Explore Biorepository Support"
+                                    accentColor="blue"
+                                />
                             </div>
                         </div>
                     </div>
@@ -424,66 +882,66 @@ export default function Home() {
 
                 )}
 
-            {/* Section 04: Capabilities Snapshot */}
+            {/* Section 04: Expertise Snapshot */}
             {(
-                <div className="pt-8 pb-4 relative z-10" id="capabilities">
+                <div className="pt-8 pb-4 relative z-10" id="expertise">
                     <div className="max-w-[1700px] mx-auto px-6 md:px-12">
-                        <div className="flex flex-col md:flex-row justify-between items-end gap-12 mb-10">
-                            <div className="space-y-6 max-w-3xl">
-                                <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight leading-tight">Our Capabilities</h2>
-                                <p className="text-xl text-slate-400 font-medium leading-relaxed">
-                                    Comprehensive research solutions spanning clinical trials, preclinical models, and specialized therapeutic focus areas.
-                                </p>
+                        <div className="text-center space-y-8 mb-20 max-w-5xl mx-auto">
+                            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 font-black text-sm md:text-base uppercase tracking-[0.3em] animate-fade-in-up mb-4">
+                                <Microscope className="w-5 h-5 md:w-6 md:h-6" />
+                                Science Credibility
                             </div>
-                            <div className="flex gap-4">
-                                <Link to="/capabilities" className="bg-white/5 text-white px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all border border-white/10">Explore Our Capabilities</Link>
-                                <Link to="/contact" className="bg-cyan-500 text-slate-900 px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg">Start the Conversation</Link>
-                            </div>
+                            <h2 className="text-4xl md:text-6xl lg:text-7xl font-black text-white tracking-tight leading-tight uppercase animate-fade-in-up stagger-1">
+                                Our Expertise Lies In
+                            </h2>
+                            <p className="text-lg md:text-2xl text-slate-400 font-medium leading-relaxed animate-fade-in-up stagger-2">
+                                Our team includes leading experts across multiple health disciplines to deliver rigorous, innovative, and decision-driving research.
+                            </p>
                         </div>
 
-                        {/* Enhanced Grid Container with Section Outline */}
-                        <div className="p-6 md:p-16 rounded-[4.5rem] bg-transparent border-none relative overflow-hidden group/container">
-                            <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-cyan-500/5 blur-[120px] rounded-full"></div>
+                        {/* Enhanced Grid Container */}
+                        <div className="relative group/container">
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-cyan-500/5 blur-[120px] rounded-full pointer-events-none"></div>
 
-                            <div className="flex flex-wrap justify-center gap-6 relative z-10">
-                                {CAPABILITIES_DATA.map((cap: any, idx: number) => {
-                                    const IconComponent = {
-                                        activity: Activity,
-                                        'test-tube': TestTube,
-                                        microscope: Microscope,
-                                        leaf: Leaf,
-                                        brain: Brain,
-                                        flower: Flower,
-                                        'shield-check': ShieldCheck,
-                                        zap: Zap,
-                                        beaker: Beaker,
-                                        'heart-pulse': HeartPulse,
-                                        'bar-chart': BarChart,
-                                        'file-text': FileText
-                                    }[cap.icon as string] || Globe;
-
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-8 relative z-10">
+                                {EXPERTISE_DATA.map((item: any, idx: number) => {
+                                    const IconComponent = item.icon;
                                     return (
                                         <div
-                                            key={cap.id}
-                                            className={`p-6 md:p-10 rounded-[2.5rem] bg-slate-950/50 border border-white/5 hover:bg-slate-900 hover:border-cyan-500/30 transition-all duration-500 group animate-fade-in-up flex flex-col items-start gap-6 shadow-2xl relative overflow-hidden w-full md:w-[calc(50%-1.5rem)] lg:w-[calc(25%-1.5rem)]`}
+                                            key={idx}
+                                            onClick={() => {
+                                                setSelectedExpertise(item);
+                                                setActiveAccordionIndex(0);
+                                            }}
+                                            className={`group p-6 md:p-8 rounded-[2rem] bg-slate-950/40 border border-white/5 hover:bg-white/10 hover:border-${item.color.split('-')[1]}-500/30 transition-all duration-500 flex flex-col items-center text-center gap-6 animate-fade-in-up stagger-${(idx % 5) + 1} hover:-translate-y-2 cursor-pointer relative overflow-hidden`}
                                         >
-                                            <div className="absolute -inset-1 bg-gradient-to-tr from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                            <div className="w-14 h-14 rounded-2xl bg-cyan-400 flex items-center justify-center text-slate-900 shadow-[0_0_20px_rgba(6,182,212,0.4)] group-hover:scale-110 transition-transform duration-500 relative z-10">
-                                                <IconComponent className="w-7 h-7" />
+                                            <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Zap className="w-3 h-3 text-cyan-400" />
                                             </div>
-                                            <div className="space-y-3 relative z-10">
-                                                <h3 className="text-xl font-black text-white uppercase group-hover:text-cyan-400 transition-colors leading-tight">{cap.title}</h3>
-                                                <p className="text-slate-400 text-sm font-medium leading-relaxed">{cap.description}</p>
+                                            <div className={`w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform duration-500 ${item.glow}`}>
+                                                <IconComponent className="w-8 h-8" />
                                             </div>
+                                            <span className="text-sm md:text-base font-black text-slate-200 group-hover:text-white transition-colors uppercase tracking-wider leading-tight">
+                                                {item.label}
+                                            </span>
                                         </div>
                                     );
                                 })}
                             </div>
+
+                            <div className="flex justify-center mt-20 animate-fade-in-up stagger-3">
+                                <Link
+                                    to="/contact"
+                                    className="px-12 py-5 bg-cyan-500 text-slate-900 rounded-2xl font-black text-sm uppercase tracking-[0.3em] hover:bg-white hover:-translate-y-2 transition-all shadow-[0_20px_50px_-10px_rgba(6,182,212,0.5)] flex items-center gap-3 group"
+                                >
+                                    Start the Conversation
+                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 </div>
-            )
-            }
+            )}
 
             {/* Section 05: Facilities & Infrastructure */}
             {(
@@ -510,26 +968,30 @@ export default function Home() {
                                                                     fac.name.includes('Mobile') ? <Smartphone className="w-5 h-5" /> :
                                                                         <Activity className="w-5 h-5" />}
                                             </div>
-                                            <div className="space-y-1">
-                                                <h4 className="text-white font-bold group-hover:text-cyan-400 transition-colors uppercase text-sm tracking-wide">{fac.name}</h4>
-                                                <p className="text-slate-400 text-xs leading-relaxed font-medium">{fac.description}</p>
+                                            <div className="space-y-2">
+                                                <h4 className="text-white font-black group-hover:text-cyan-400 transition-colors uppercase text-lg md:text-xl tracking-tight leading-tight">{fac.name}</h4>
+                                                <p className="text-slate-400 text-sm md:text-base leading-relaxed font-medium">{fac.description}</p>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
 
                                 <div className="flex gap-4 pt-4">
-                                    <Link to="/facilities" className="bg-white/5 text-white px-8 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all border border-white/10">View Our Facilities</Link>
-                                    <Link to="/contact" className="bg-cyan-400 text-slate-900 px-8 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-white transition-all">Start the Conversation</Link>
+                                    <Link to="/facilities" className="bg-white/5 text-white px-8 py-5 rounded-xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-white/10 transition-all border border-white/10">View Our Facilities</Link>
+                                    <Link to="/contact" className="bg-cyan-400 text-slate-900 px-8 py-5 rounded-xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-white transition-all">Start the Conversation</Link>
                                 </div>
                             </div>
 
                             <div className="relative group">
                                 <div className="absolute -inset-4 bg-gradient-to-tr from-cyan-500/20 to-indigo-500/20 blur-3xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                                <div className="relative aspect-square rounded-[4rem] bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
-                                    <Building2 className="w-32 h-32 text-slate-700 group-hover:scale-110 group-hover:text-cyan-400/30 transition-all duration-700" />
+                                <div className="relative aspect-square rounded-[4rem] bg-indigo-500/5 border border-white/10 overflow-hidden flex items-center justify-center">
+                                    <img
+                                        src="/images/home-facilities.webp"
+                                        alt="MusB Research Facilities"
+                                        className="absolute inset-0 w-full h-full object-cover brightness-75 group-hover:scale-110 group-hover:brightness-90 transition-all duration-1000"
+                                    />
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60"></div>
-                                    <div className="absolute bottom-12 left-12 right-12 p-8 glass-dark rounded-3xl border border-white/10">
+                                    <div className="absolute bottom-12 left-12 right-12 p-8 glass-dark rounded-3xl border border-white/10 backdrop-blur-md">
                                         <p className="text-slate-300 italic text-sm">"Our facility is more than just a lab; it's a hub of clinical innovation designed with participant care at its core."</p>
                                     </div>
                                 </div>
@@ -547,9 +1009,9 @@ export default function Home() {
                         <div className="text-center space-y-6 animate-fade-in-up">
                             <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight uppercase">Certifications & <span className="text-cyan-400">Compliance</span></h2>
                             <div className="h-1.5 w-24 bg-cyan-500 mx-auto rounded-full"></div>
-                            <p className="text-lg text-slate-400 font-medium leading-relaxed">
+                            <p className="text-lg md:text-xl text-slate-400 font-medium leading-relaxed">
                                 IRB-approved studies • GCP-trained staff • HIPAA-compliant systems <br />
-                                CLIA/COLA laboratory partnerships • SOP-driven operations <br />
+                                CLIA & COLA APPROVED LABORATORY • SOP-driven operations <br />
                                 ISO and GLP-aligned practices
                             </p>
                         </div>
@@ -563,7 +1025,7 @@ export default function Home() {
                                     <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-slate-900 group-hover:scale-110 transition-all duration-500 shadow-xl">
                                         <ShieldCheck className="w-10 h-10" />
                                     </div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-white transition-colors text-center px-2 leading-tight">{cert.label}</span>
+                                    <span className="text-xs md:text-sm font-black uppercase tracking-widest text-slate-400 group-hover:text-white transition-colors text-center px-2 leading-tight">{cert.label}</span>
                                 </div>
                             ))}
                         </div>
@@ -574,7 +1036,7 @@ export default function Home() {
                                     <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-slate-900 group-hover:scale-110 transition-all duration-500 shadow-xl">
                                         <ShieldCheck className="w-10 h-10" />
                                     </div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-white transition-colors text-center px-2 leading-tight">{cert.label}</span>
+                                    <span className="text-xs md:text-sm font-black uppercase tracking-widest text-slate-400 group-hover:text-white transition-colors text-center px-2 leading-tight">{cert.label}</span>
                                 </div>
                             ))}
                         </div>
@@ -593,26 +1055,39 @@ export default function Home() {
                         </div>
                     </div>
 
-                    {/* Right to Left Scrolling Marquee */}
-                    <div className="relative flex overflow-x-hidden mask-fade-edges py-12">
+                    {/* First Line: Right to Left */}
+                    <div className="relative flex overflow-x-hidden mask-fade-edges py-4">
                         <div className="animate-marquee whitespace-nowrap flex items-center gap-32 pr-32">
-                            {[...PARTNERS_DATA, ...PARTNERS_DATA].map((partner: any, i: number) => (
-                                <div key={i} className="flex items-center gap-4 opacity-30 hover:opacity-100 grayscale hover:grayscale-0 transition-all duration-700 cursor-default group scale-90 hover:scale-100">
-                                    <div className="w-12 h-12 rounded-xl bg-indigo-400/10 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-400 group-hover:text-slate-900 transition-all duration-500">
-                                        <Globe className="w-6 h-6" />
-                                    </div>
-                                    <span className="text-3xl md:text-4xl font-black text-white tracking-widest uppercase italic">{partner.name}</span>
+                            {[...PARTNERS_ROW_1, ...PARTNERS_ROW_1].map((partner: any, i: number) => (
+                                <div key={i} className="flex items-center gap-4 opacity-70 hover:opacity-100 grayscale hover:grayscale-0 transition-all duration-700 cursor-default group scale-90 hover:scale-100">
+                                    <span className="text-xl md:text-3xl font-black text-white tracking-widest uppercase italic">{partner.name}</span>
                                 </div>
                             ))}
                         </div>
 
-                        <div className="absolute top-0 py-12 animate-marquee2 whitespace-nowrap flex items-center gap-32 pr-32">
-                            {[...PARTNERS_DATA, ...PARTNERS_DATA].map((partner: any, i: number) => (
-                                <div key={i} className="flex items-center gap-4 opacity-30 hover:opacity-100 grayscale hover:grayscale-0 transition-all duration-700 cursor-default group scale-90 hover:scale-100">
-                                    <div className="w-12 h-12 rounded-xl bg-indigo-400/10 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-400 group-hover:text-slate-900 transition-all duration-500">
-                                        <Globe className="w-6 h-6" />
-                                    </div>
-                                    <span className="text-3xl md:text-4xl font-black text-white tracking-widest uppercase italic">{partner.name}</span>
+                        <div className="absolute top-0 py-4 animate-marquee2 whitespace-nowrap flex items-center gap-32 pr-32">
+                            {[...PARTNERS_ROW_1, ...PARTNERS_ROW_1].map((partner: any, i: number) => (
+                                <div key={i} className="flex items-center gap-4 opacity-70 hover:opacity-100 grayscale hover:grayscale-0 transition-all duration-700 cursor-default group scale-90 hover:scale-100">
+                                    <span className="text-xl md:text-3xl font-black text-white tracking-widest uppercase italic">{partner.name}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Second Line: Left to Right */}
+                    <div className="relative flex overflow-x-hidden mask-fade-edges py-4">
+                        <div className="animate-marquee-reverse whitespace-nowrap flex items-center gap-32 pr-32">
+                            {[...PARTNERS_ROW_2, ...PARTNERS_ROW_2].map((partner: any, i: number) => (
+                                <div key={i} className="flex items-center gap-4 opacity-70 hover:opacity-100 grayscale hover:grayscale-0 transition-all duration-700 cursor-default group scale-90 hover:scale-100">
+                                    <span className="text-xl md:text-3xl font-black text-white tracking-widest uppercase italic">{partner.name}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="absolute top-0 py-4 animate-marquee2-reverse whitespace-nowrap flex items-center gap-32 pr-32">
+                            {[...PARTNERS_ROW_2, ...PARTNERS_ROW_2].map((partner: any, i: number) => (
+                                <div key={i} className="flex items-center gap-4 opacity-70 hover:opacity-100 grayscale hover:grayscale-0 transition-all duration-700 cursor-default group scale-90 hover:scale-100">
+                                    <span className="text-xl md:text-3xl font-black text-white tracking-widest uppercase italic">{partner.name}</span>
                                 </div>
                             ))}
                         </div>
@@ -628,10 +1103,10 @@ export default function Home() {
                         <div className="grid md:grid-cols-2 gap-8">
                             <div className="p-8 md:p-14 rounded-[3rem] bg-gradient-to-br from-cyan-500/10 via-slate-900/50 to-transparent border border-white/5 backdrop-blur-3xl space-y-8 group hover:border-cyan-500/30 transition-all duration-700 relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-500/5 blur-[80px] rounded-full group-hover:bg-cyan-500/10 transition-colors"></div>
-                                <span className="text-cyan-400 font-black text-[10px] uppercase tracking-[0.5em] block animate-fade-in-up">Participants</span>
+                                <span className="text-cyan-400 font-black text-sm uppercase tracking-[0.6em] block animate-fade-in-up">Participants</span>
                                 <div className="space-y-4 animate-fade-in-up stagger-1">
-                                    <h3 className="text-3xl md:text-4xl font-black text-white leading-[1.1] tracking-tighter">Interested in <br />a study?</h3>
-                                    <p className="text-lg md:text-xl text-slate-400 font-medium leading-relaxed">Get paid. Get tested. <br />Contribute to science.</p>
+                                    <h3 className="text-3xl md:text-4xl font-black text-white leading-[1.1] tracking-tighter">Interested in a study?</h3>
+                                    <p className="text-lg md:text-xl text-slate-400 font-medium leading-relaxed">Get paid. Get tested. Contribute to science.</p>
                                 </div>
                                 <div className="flex flex-wrap gap-4 pt-4 animate-fade-in-up stagger-2">
                                     <Link to="/trials" className="bg-cyan-500 text-slate-900 px-8 py-4 rounded-xl font-black text-xs uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-2 transition-all shadow-xl">Join Research</Link>
@@ -640,7 +1115,7 @@ export default function Home() {
 
                             <div className="p-8 md:p-14 rounded-[3rem] bg-gradient-to-br from-indigo-500/10 via-slate-900/50 to-transparent border border-white/5 backdrop-blur-3xl space-y-8 group hover:border-indigo-500/30 transition-all duration-700 relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/5 blur-[80px] rounded-full group-hover:bg-indigo-500/10 transition-colors"></div>
-                                <span className="text-indigo-400 font-black text-[10px] uppercase tracking-[0.5em] block animate-fade-in-up">Sponsors</span>
+                                <span className="text-indigo-400 font-black text-sm uppercase tracking-[0.6em] block animate-fade-in-up">Sponsors</span>
                                 <div className="space-y-4 animate-fade-in-up stagger-1">
                                     <h3 className="text-3xl md:text-4xl font-black text-white leading-[1.1] tracking-tighter">Need high-quality research, <br />testing, or biorepository support?</h3>
                                 </div>
@@ -682,6 +1157,247 @@ export default function Home() {
             </div>
 
 
+            {/* Expertise Detail Modal */}
+            {selectedExpertise && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8">
+                    <div
+                        className="absolute inset-0 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300"
+                        onClick={() => {
+                            setSelectedExpertise(null);
+                            setActiveAccordionIndex(null);
+                        }}
+                    ></div>
+                    <div className="relative w-full max-w-4xl bg-slate-900 border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+                        {/* Modal Header Decoration */}
+                        <div className={`absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-${selectedExpertise.color.split('-')[1]}-500 to-transparent opacity-50 z-20`}></div>
+
+                        {/* Modal Header */}
+                        <div className="p-8 md:p-12 pb-4 md:pb-6 flex-shrink-0 relative z-10">
+                            <div className="flex justify-between items-start">
+                                <div className="flex items-center gap-6">
+                                    <div className={`w-16 h-16 md:w-20 md:h-20 rounded-3xl bg-white/5 flex items-center justify-center ${selectedExpertise.color} ${selectedExpertise.glow}`}>
+                                        <selectedExpertise.icon className="w-8 h-8 md:w-10 md:h-10" />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <h3 className="text-2xl md:text-4xl font-black text-white uppercase tracking-tight">
+                                            {selectedExpertise.label}
+                                        </h3>
+                                        <div className="h-1 w-16 md:w-20 bg-cyan-500 rounded-full"></div>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setSelectedExpertise(null);
+                                        setActiveAccordionIndex(null);
+                                    }}
+                                    className="p-3 rounded-xl bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+                                >
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Scrollable Content */}
+                        <div className="flex-1 overflow-y-auto px-8 md:px-12 py-2 space-y-8 custom-scrollbar">
+                            {selectedExpertise.content ? (
+                                <div className="space-y-6">
+                                    {selectedExpertise.content.map((item: any, i: number) => {
+                                        const renderContentItem = (item: any, i: number) => {
+                                            switch (item.type) {
+                                                case 'title':
+                                                    return (
+                                                        <h4 key={i} className="text-white font-black text-2xl md:text-3xl border-b border-white/10 pb-4 mt-8 first:mt-0">
+                                                            {item.text}
+                                                        </h4>
+                                                    );
+                                                case 'paragraph':
+                                                    return (
+                                                        <p key={i} className="text-lg md:text-xl text-slate-300 font-medium leading-relaxed">
+                                                            {item.text}
+                                                        </p>
+                                                    );
+                                                case 'question':
+                                                    return (
+                                                        <p key={i} className="text-lg md:text-xl text-white font-black leading-relaxed">
+                                                            {item.text}
+                                                        </p>
+                                                    );
+                                                case 'list':
+                                                    return (
+                                                        <ul key={i} className="grid grid-cols-1 gap-4 pt-2">
+                                                            {item.items.map((bullet: string, j: number) => {
+                                                                const hasColon = bullet.includes(':');
+                                                                const [title, ...rest] = bullet.split(':');
+                                                                const text = rest.join(':');
+                                                                return (
+                                                                    <li key={j} className="flex items-start gap-3">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-2.5 shadow-[0_0_8px_rgba(34,211,238,0.6)] flex-shrink-0"></div>
+                                                                        <p className="text-slate-300 text-base md:text-lg font-medium leading-relaxed">
+                                                                            {hasColon ? (
+                                                                                <>
+                                                                                    <span className="text-white font-bold">{title}:</span>{text}
+                                                                                </>
+                                                                            ) : bullet}
+                                                                        </p>
+                                                                    </li>
+                                                                );
+                                                            })}
+                                                        </ul>
+                                                    );
+                                                case 'dropdown':
+                                                    return (
+                                                        <div key={i} className="space-y-4 pt-2">
+                                                            {item.items.map((dropItem: any, idx: number) => (
+                                                                <div key={idx} className="border border-white/5 rounded-[2rem] overflow-hidden bg-white/2">
+                                                                    <button
+                                                                        onClick={() => setActiveAccordionIndex(activeAccordionIndex === idx ? null : idx)}
+                                                                        className="w-full p-6 md:p-8 flex items-center justify-between hover:bg-white/5 transition-all text-left"
+                                                                    >
+                                                                        <span className="text-white font-black text-lg md:text-xl uppercase tracking-tight">{dropItem.heading}</span>
+                                                                        <div className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center transition-transform duration-500 ${activeAccordionIndex === idx ? 'rotate-180 bg-cyan-500/20 text-cyan-400' : 'text-slate-500'}`}>
+                                                                            <ChevronDown className="w-5 h-5" />
+                                                                        </div>
+                                                                    </button>
+                                                                    <div className={`transition-all duration-500 ease-in-out ${activeAccordionIndex === idx ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
+                                                                        <div className="p-8 md:p-10 pt-0 space-y-6 border-t border-white/5 bg-slate-900/40">
+                                                                            {dropItem.text && (
+                                                                                <p className="text-white font-black text-xl md:text-2xl leading-tight">
+                                                                                    {dropItem.text}
+                                                                                </p>
+                                                                            )}
+                                                                            {dropItem.content && (
+                                                                                <p className="text-slate-300 text-lg md:text-xl font-medium leading-relaxed">
+                                                                                    {dropItem.content}
+                                                                                </p>
+                                                                            )}
+                                                                            {dropItem.question && (
+                                                                                <p className="text-white font-black text-lg md:text-xl leading-relaxed">
+                                                                                    {dropItem.question}
+                                                                                </p>
+                                                                            )}
+                                                                            {dropItem.bullets && (
+                                                                                <ul key="bullets" className="grid grid-cols-1 gap-4 pt-2">
+                                                                                    {dropItem.bullets.map((bullet: string, j: number) => {
+                                                                                        const hasColon = bullet.includes(':');
+                                                                                        const [title, ...rest] = bullet.split(':');
+                                                                                        const text = rest.join(':');
+                                                                                        return (
+                                                                                            <li key={j} className="flex items-start gap-4">
+                                                                                                <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-2.5 shadow-[0_0_8px_rgba(34,211,238,0.6)] flex-shrink-0"></div>
+                                                                                                <p className="text-slate-300 text-base md:text-lg font-medium leading-relaxed">
+                                                                                                    {hasColon ? (
+                                                                                                        <>
+                                                                                                            <span className="text-white font-bold">{title}:</span>{text}
+                                                                                                        </>
+                                                                                                    ) : bullet}
+                                                                                                </p>
+                                                                                            </li>
+                                                                                        );
+                                                                                    })}
+                                                                                </ul>
+                                                                            )}
+                                                                            {dropItem.sections && dropItem.sections.map((section: any, sIdx: number) => (
+                                                                                <div key={sIdx} className="space-y-4">
+                                                                                    {renderContentItem(section, sIdx)}
+                                                                                </div>
+                                                                            ))}
+                                                                            {dropItem.closing && (
+                                                                                <div className="p-6 rounded-2xl bg-cyan-500/5 border border-cyan-500/10 italic">
+                                                                                    <p className="text-lg md:text-xl text-slate-300 font-medium leading-relaxed">
+                                                                                        {dropItem.closing}
+                                                                                    </p>
+                                                                                </div>
+                                                                            )}
+                                                                            {dropItem.cta && (
+                                                                                <p className="text-lg md:text-xl text-cyan-400 font-black leading-relaxed">
+                                                                                    {dropItem.cta}
+                                                                                </p>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    );
+                                                case 'columns':
+                                                    return (
+                                                        <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2">
+                                                            {item.columns.map((column: any, colIdx: number) => (
+                                                                <ul key={colIdx} className="space-y-4">
+                                                                    {column.items.map((bullet: string, j: number) => (
+                                                                        <li key={j} className="flex items-start gap-3">
+                                                                            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-2.5 shadow-[0_0_8px_rgba(34,211,238,0.6)] flex-shrink-0"></div>
+                                                                            <p className="text-slate-300 text-base md:text-lg font-medium leading-relaxed">
+                                                                                {bullet}
+                                                                            </p>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            ))}
+                                                        </div>
+                                                    );
+                                                case 'closing':
+                                                    return (
+                                                        <div key={i} className="p-6 rounded-2xl bg-cyan-500/5 border border-cyan-500/10 italic">
+                                                            <p className="text-lg md:text-xl text-slate-300 font-medium leading-relaxed">
+                                                                {item.text}
+                                                            </p>
+                                                        </div>
+                                                    );
+                                                case 'cta':
+                                                    return (
+                                                        <p key={i} className="text-lg md:text-xl text-cyan-400 font-black leading-relaxed">
+                                                            {item.text}
+                                                        </p>
+                                                    );
+                                                default:
+                                                    return null;
+                                            }
+                                        };
+                                        return renderContentItem(item, i);
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="space-y-8">
+                                    <p className="text-lg md:text-xl text-slate-300 font-medium leading-relaxed">
+                                        {selectedExpertise.description}
+                                    </p>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                                        <div className="bg-white/5 rounded-2xl p-6 border border-white/5">
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Focus Area</div>
+                                            <div className="text-white font-bold">Clinical & Translational Research</div>
+                                        </div>
+                                        <div className="bg-white/5 rounded-2xl p-6 border border-white/5">
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Methodology</div>
+                                            <div className="text-white font-bold">Evidence-Based Validation</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Modal Footer Buttons */}
+                        <div className="p-8 md:p-12 pt-4 md:pt-6 flex-shrink-0 relative z-10 border-t border-white/5 bg-slate-900">
+                            <div className="flex flex-col sm:flex-row gap-4">
+                                <Link
+                                    to="/contact"
+                                    onClick={() => setSelectedExpertise(null)}
+                                    className="flex-1 bg-cyan-500 text-slate-900 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all text-center shadow-lg shadow-cyan-500/20"
+                                >
+                                    Discuss Research
+                                </Link>
+                                <button
+                                    onClick={() => setSelectedExpertise(null)}
+                                    className="flex-1 bg-white/5 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all border border-white/10"
+                                >
+                                    Close Details
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 }

@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import {
     Search,
     ArrowRight,
-    Activity,
     Clock,
     MapPin,
     ChevronDown,
@@ -29,59 +28,59 @@ import { Link } from 'react-router-dom';
 const HARDCODED_STUDIES = [
     {
         id: '1',
-        title: 'Gut Microbiome & Metabolic Health',
-        condition: 'Gut',
-        type: 'Hybrid',
+        title: 'Beat The Bloat Study',
+        condition: 'Gut Health',
+        type: 'On-site',
         status: 'Recruiting',
-        description: 'Evaluating the impact of a novel synbiotic formulation on gut microbiome diversity and metabolic markers over a 12-week period.',
-        benefit: 'Free 12-week supply of study product & comprehensive microbiome analysis.',
-        duration: '12 Weeks',
-        tags: ['Microbiome', 'Metabolism', 'Supplement'],
-        compensation: '$250',
-        location: 'Tampa, FL & Virtual',
-        timeCommitment: '4 clinic visits, weekly surveys'
+        description: 'Bloating reducing natural formula',
+        benefit: 'Free supply of study product & personalized health report.',
+        duration: '12 Weeks (2-3 visits)',
+        tags: ['Gut Health', 'Natural Formula', 'Bloating'],
+        compensation: 'Get PAID',
+        location: 'Tampa, FL',
+        timeCommitment: '2-3 clinic visits'
     },
     {
         id: '2',
-        title: 'Cognitive Performance & Omega-3s',
-        condition: 'Brain/Cognition',
-        type: 'Virtual',
+        title: 'VITAL-Age Study',
+        condition: 'Aging Health',
+        type: 'On-site',
         status: 'Recruiting',
-        description: 'A fully virtual study assessing the effects of a high-DHA omega-3 supplement on memory, focus, and overall cognitive performance in adults aged 50-75.',
-        benefit: 'Free 8-week supply of high-DHA omega-3 & individualized cognitive assessment report.',
-        duration: '8 Weeks',
-        tags: ['Cognition', 'Omega-3', 'Aging'],
-        compensation: '$150',
-        location: 'Virtual',
-        timeCommitment: 'Online cognitive tests bi-weekly'
+        description: 'Anti-aging probiotics',
+        benefit: 'Free supply of anti-aging probiotics & health assessments.',
+        duration: '5 Months (3-4 visits)',
+        tags: ['Aging', 'Probiotics', 'Vitality'],
+        compensation: 'Get PAID',
+        location: 'Tampa, FL',
+        timeCommitment: '3-4 clinic visits'
     },
     {
         id: '3',
-        title: 'Skin Hydration & Collagen Peptides',
-        condition: 'Skin',
+        title: 'SAM Study',
+        condition: 'Women’s Health',
         type: 'On-site',
         status: 'Recruiting',
-        description: 'Investigating the efficacy of a bio-active collagen peptide blend on skin hydration, elasticity, and wrinkle reduction using advanced dermal imaging.',
-        benefit: 'Free 8-week supply of collagen supplement & professional skin health analysis.',
-        duration: '8 Weeks',
-        tags: ['Dermatology', 'Collagen', 'Aesthetics'],
-        compensation: '$300',
+        description: 'Herbal formula for women health',
+        benefit: 'Free clinical supply of herbal formula & hormone tracking.',
+        duration: '12 weeks (4 visits)',
+        tags: ['Women\'s Health', 'Herbal', 'Hormonal'],
+        compensation: 'Get PAID',
         location: 'Tampa, FL',
-        timeCommitment: '3 clinic visits for dermal imaging'
+        timeCommitment: '4 clinic visits'
     },
     {
         id: '4',
-        title: 'Women\'s Health & Hormonal Balance',
-        condition: 'Women\'s Health',
-        type: 'Virtual',
+        title: 'SHINE Study',
+        condition: 'Women’s Health',
+        type: 'On-site',
         status: 'Recruiting',
-        description: 'Studying a botanical blend for the support of hormonal balance and reduction of peri-menopausal symptoms in women aged 40-60.',
-        benefit: 'Free 12-week supply of botanical supplement & hormone health tracking app access.',
-        duration: '12 Weeks',
-        tags: ['Women\'s Health', 'Botanicals', 'Hormones'],
-        compensation: '$200',
-        location: 'Virtual',
-        timeCommitment: 'Daily app tracking, weekly surveys'
+        description: 'Bioenhancer formula for women health',
+        benefit: 'Free bioenhancer formula & expert health consultations.',
+        duration: '8 weeks (3-4 visits)',
+        tags: ['Women\'s Health', 'Bioenhancer', 'Wellness'],
+        compensation: 'Get PAID',
+        location: 'Tampa, FL',
+        timeCommitment: '3-4 clinic visits'
     }
 ];
 
@@ -123,7 +122,7 @@ export default function Trials() {
 
     // Hardcoded studies removed in favor of API data
 
-    const conditions = ["All", "Gut", "Metabolic", "Aging", "Women’s Health", "Brain/Cognition", "Skin", "Other"];
+    const conditions = ["All", "Gut Health", "Metabolic Health", "Aging Health", "Women’s Health", "Brain Health", "Skin", "Other"];
     const types = ["All", "Virtual", "On-site", "Hybrid"];
 
     const filteredStudies = studies.filter((study: any) => {
@@ -364,7 +363,7 @@ export default function Trials() {
                 </section >
 
                 {/* CURRENT STUDIES */}
-                <section id="current-studies" className="py-24 max-w-[1400px] mx-auto px-4 md:px-12" >
+                <section id="current-studies" className="pt-24 pb-8 relative z-10 overflow-hidden max-w-[1400px] mx-auto px-4 md:px-12" >
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
                         <div className="space-y-4">
                             <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight uppercase">Currently Recruiting Studies</h2>
@@ -396,12 +395,12 @@ export default function Trials() {
                         ))}
                     </div>
 
-                    <div className="p-8 md:p-16 rounded-[2.5rem] md:rounded-[4.5rem] relative overflow-hidden group/container">
+                    <div className="relative bg-slate-950/40 backdrop-blur-xl rounded-3xl border border-white/10 p-8 md:pt-16 md:pb-8 md:px-16 overflow-hidden group/container">
                         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-cyan-500/5 blur-[120px] rounded-full"></div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
                             {filteredStudies.map((study) => (
-                                <div key={study.id} className="group border border-white/5 rounded-[3rem] p-6 md:p-10 hover:bg-slate-900 hover:border-cyan-500/30 transition-all flex flex-col relative overflow-hidden shadow-2xl">
+                                <div key={study.id} className="group border border-white/5 rounded-[3rem] p-6 md:p-10 bg-slate-900/40 hover:bg-slate-900 hover:border-cyan-500/30 transition-all flex flex-col relative overflow-hidden shadow-2xl">
                                     <div className="absolute -inset-1 bg-gradient-to-tr from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                                     <div className="flex justify-between items-start mb-8">
                                         <div className="space-y-4">
@@ -453,7 +452,7 @@ export default function Trials() {
 
 
                 {/* VOLUNTEER FAQ */}
-                <section id="faq" className="py-24 max-w-[1000px] mx-auto px-4 md:px-12" >
+                <section id="faq" className="pt-8 pb-24 max-w-[1000px] mx-auto px-4 md:px-12" >
                     <div className="text-center mb-16 space-y-4">
                         <h2 className="text-4xl font-black text-white uppercase tracking-tight">Study Volunteer FAQs</h2>
                         <div className="h-1 w-24 bg-cyan-500 mx-auto rounded-full"></div>

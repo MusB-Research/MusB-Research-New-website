@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Filter, Check, ChevronDown, ArrowRight, Activity } from 'lucide-react';
+import { Filter, Check, ChevronDown, ArrowRight, Clock } from 'lucide-react';
 import { Condition } from '@/types';
 
-const conditions: Condition[] = ['Gut', 'Brain', 'Metabolic', 'Aging', 'Women’s Health', 'Cancer Support'];
+const conditions: Condition[] = ['Gut Health', 'Brain Health', 'Metabolic Health', 'Aging Health', 'Women’s Health', 'Cancer Support'];
 
 
 const HARDCODED_STUDIES = [
@@ -169,7 +169,7 @@ export default function ClinicalStudyFinder() {
                                     <div className="space-y-3 mb-6 flex-grow">
                                         <div className="flex items-center gap-3 text-slate-600">
                                             <div className="w-8 h-8 rounded-full bg-cyan-50 flex items-center justify-center shrink-0">
-                                                <Activity className="w-4 h-4 text-cyan-600" />
+                                                <Clock className="w-4 h-4 text-cyan-600" />
                                             </div>
                                             <span className="font-medium text-sm">{study.duration}</span>
                                         </div>

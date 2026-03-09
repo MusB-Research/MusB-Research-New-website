@@ -126,6 +126,23 @@ h4 {
   background: var(--primary);
 }
 
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 182, 212, 0.4);
+}
+
 /* Smooth Scroll */
 html {
   scroll-behavior: smooth;
@@ -192,19 +209,19 @@ html {
 }
 
 .animate-marquee {
-  animation: marquee 60s linear infinite;
+  animation: marquee 120s linear infinite;
 }
 
 .animate-marquee2 {
-  animation: marquee2 60s linear infinite;
+  animation: marquee2 120s linear infinite;
 }
 
 .animate-marquee-reverse {
-  animation: marquee-reverse 60s linear infinite;
+  animation: marquee-reverse 120s linear infinite;
 }
 
 .animate-marquee2-reverse {
-  animation: marquee2-reverse 60s linear infinite;
+  animation: marquee2-reverse 120s linear infinite;
 }
 
 /* -------------------------------------------------------------------------- */
