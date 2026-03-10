@@ -91,7 +91,7 @@ export default function StudyFilterSection() {
                 <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-12 mb-16">
                     <div className="space-y-6 max-w-2xl">
                         <h2 className="text-5xl md:text-6xl font-black text-white tracking-tight leading-tight">
-                            Find a Clinical Study <br />Near You
+                            Ongoing Clinical Study
                         </h2>
                         <p className="text-xl text-slate-400 font-medium">
                             Explore ongoing clinical research studies and see if you qualify to participate.

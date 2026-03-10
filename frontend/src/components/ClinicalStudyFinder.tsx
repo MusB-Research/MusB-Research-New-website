@@ -106,7 +106,7 @@ export default function ClinicalStudyFinder() {
                     <div className="flex flex-col lg:flex-row justify-between items-end lg:items-center gap-8 mb-12">
                         <div className="shrink-0 max-w-xl">
                             <h2 className="text-3xl md:text-4xl font-black text-slate-900 mb-3 tracking-tight">
-                                Find a Clinical Study Near You
+                                Ongoing Clinical Study
                             </h2>
                             <p className="text-slate-600 text-lg">
                                 Participate in groundbreaking research and access advanced health insights.
