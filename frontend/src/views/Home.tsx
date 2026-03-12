@@ -1109,7 +1109,7 @@ export default function Home() {
                                     <p className="text-lg md:text-xl text-slate-400 font-medium leading-relaxed">Get paid. Get tested. Contribute to science.</p>
                                 </div>
                                 <div className="flex flex-wrap gap-4 pt-4 animate-fade-in-up stagger-2">
-                                    <Link to="/trials" className="bg-cyan-500 text-slate-900 px-8 py-4 rounded-xl font-black text-xs uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-2 transition-all shadow-xl">Join Research</Link>
+                                    <Link to="/trials" className="bg-cyan-500 text-slate-900 px-14 py-6 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-2 transition-all shadow-xl">Join Research</Link>
                                 </div>
                             </div>
 
@@ -1120,7 +1120,7 @@ export default function Home() {
                                     <h3 className="text-3xl md:text-4xl font-black text-white leading-[1.1] tracking-tighter">Need high-quality research, <br />testing, or biorepository support?</h3>
                                 </div>
                                 <div className="pt-6 animate-fade-in-up stagger-2">
-                                    <Link to="/contact" className="bg-white text-slate-900 px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-cyan-500 hover:-translate-y-2 transition-all shadow-xl inline-block">Start a Project</Link>
+                                    <Link to="/contact" className="bg-white text-slate-900 px-14 py-6 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-cyan-500 hover:-translate-y-2 transition-all shadow-xl inline-block">Start a Project</Link>
                                 </div>
                             </div>
                         </div>
