@@ -80,17 +80,23 @@ export default function Contact() {
 
     const [searchParams] = useSearchParams();
 
+    const handleCardClick = (id: string) => {
+        setInquiryType(id);
+        if (formRef.current) {
+            formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
     useEffect(() => {
         const type = searchParams.get('type');
         if (type) {
-            handleCardClick(type);
+            // Small delay to ensure global layout scroll-to-top has finished
+            const timer = setTimeout(() => {
+                handleCardClick(type);
+            }, 300);
+            return () => clearTimeout(timer);
         }
     }, [searchParams]);
-
-    const handleCardClick = (id: string) => {
-        setInquiryType(id);
-        if (formRef.current) { window.scrollTo({ top: formRef.current.getBoundingClientRect().top + window.scrollY, behavior: 'smooth' }); }
-    };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();

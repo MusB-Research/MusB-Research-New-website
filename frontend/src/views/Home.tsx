@@ -1381,7 +1381,7 @@ export default function Home() {
                         <div className="p-8 md:p-12 pt-4 md:pt-6 flex-shrink-0 relative z-10 border-t border-white/5 bg-slate-900">
                             <div className="flex flex-col sm:flex-row gap-4">
                                 <Link
-                                    to="/contact"
+                                    to="/contact?type=research"
                                     onClick={() => setSelectedExpertise(null)}
                                     className="flex-1 bg-cyan-500 text-slate-900 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all text-center shadow-lg shadow-cyan-500/20"
                                 >
