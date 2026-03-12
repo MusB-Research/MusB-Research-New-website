@@ -164,7 +164,7 @@ export default function Careers() {
                             Work alongside world-class scientists in an environment built on integrity, innovation, and collaboration.
                         </p>
                         <div className="flex flex-col gap-4 pt-4 w-full sm:w-max">
-                            <a href="#open-positions" className="bg-white text-slate-950 px-8 py-4 rounded-2xl font-black uppercase tracking-wider hover:bg-cyan-500 hover:scale-105 transition-all shadow-xl shadow-cyan-500/10 text-center">
+                            <a href="#open-positions" className="bg-white text-slate-950 px-8 py-4 rounded-2xl font-black uppercase tracking-wider hover:bg-cyan-500 hover:scale-105 transition-all shadow-xl shadow-cyan-500/10 text-center whitespace-nowrap">
                                 View Open Positions
                             </a>
                             <a href="#why-musb" className="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-wider hover:bg-white/10 transition-all text-center">
@@ -330,7 +330,7 @@ export default function Careers() {
                                     </div>
                                     <Link
                                         to={`/careers/${job.id}`}
-                                        className="w-full lg:w-auto px-10 py-5 rounded-2xl bg-white text-slate-950 font-black uppercase tracking-widest text-sm hover:bg-cyan-500 transition-all text-center shadow-xl shadow-white/5"
+                                        className="w-full lg:w-auto px-10 py-5 rounded-2xl bg-white text-slate-950 font-black uppercase tracking-widest text-sm hover:bg-cyan-500 transition-all text-center shadow-xl shadow-white/5 whitespace-nowrap"
                                     >
                                         Details & Apply
                                     </Link>
@@ -343,7 +343,7 @@ export default function Careers() {
                                     <h3 className="text-3xl font-black text-white italic uppercase">No openings right now</h3>
                                     <p className="text-xl text-slate-500 font-medium max-w-lg">We don’t have any openings in this category, but we’re always interested in meeting talented people.</p>
                                 </div>
-                                <button className="bg-cyan-500 text-slate-950 px-12 py-5 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-cyan-500/20">
+                                <button className="bg-cyan-500 text-slate-950 px-12 py-5 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-cyan-500/20 whitespace-nowrap">
                                     Submit Your Resume
                                 </button>
                             </div>

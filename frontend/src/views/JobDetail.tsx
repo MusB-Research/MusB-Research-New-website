@@ -145,7 +145,7 @@ export default function JobDetail() {
                         </div>
                         <a
                             href="#apply-now"
-                            className="bg-white text-slate-950 px-12 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-cyan-500 hover:scale-105 transition-all shadow-xl shadow-cyan-500/10 text-center"
+                            className="bg-white text-slate-950 px-12 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-cyan-500 hover:scale-105 transition-all shadow-xl shadow-cyan-500/10 text-center whitespace-nowrap"
                         >
                             Apply Now
                         </a>
