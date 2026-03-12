@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ChevronLeft, ChevronRight, ChevronDown, Brain, FlaskConical, Activity, TestTube, Microscope, Leaf, Flower, ShieldCheck, Zap, Beaker, BarChart, FileText, Stethoscope, Database, Smartphone, Box, CheckCircle2, Building2, Globe, HeartPulse, X } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, ChevronDown, Brain, FlaskConical, Activity, TestTube, Microscope, Leaf, Flower, Flower2, ShieldCheck, Zap, Beaker, BarChart, FileText, Stethoscope, Database, Smartphone, Box, CheckCircle2, Building2, Globe, HeartPulse, X } from 'lucide-react';
 import StudyFilterSection from '@/components/StudyFilterSection';
 
 const slides = [
@@ -432,35 +432,300 @@ const EXPERTISE_DATA = [
         icon: Activity,
         color: 'text-cyan-400',
         glow: 'shadow-[0_0_15px_rgba(34,211,238,0.4)]',
-        description: 'Translational research on glycemic control, insulin sensitivity, and weight management interventions.'
+        description: 'Translational research on glycemic control, insulin sensitivity, and weight management interventions.',
+        content: [
+            { type: 'paragraph', text: "At MusB Research, we offer cutting-edge research services to help you substantiate your products' claims in the fight against obesity and diabetes. Our advanced assays and expertise provide you with the insights needed to develop evidence-based products." },
+            {
+                type: 'dropdown',
+                items: [
+                    {
+                        heading: "SCREENING FOR GLP-I PRODUCTION",
+                        text: "Unlock the Potential of Your Products with GLP-1 Promoting Properties",
+                        content: "Glucagon-like protein-1 (GLP-1) is a crucial gut hormone that regulates hunger, satiety, weight, glucose levels, and more. It's currently one of the hottest targets for weight loss, diabetes management, cognitive decline reduction, and cardioprotection",
+                        question: "Want to know if your product or ingredient has GLP-1-promoting properties?",
+                        bullets: [
+                            "Large Scale Screening: Utilize our optimized system to screen a wide range of ingredients and compounds, including drugs, natural compounds, probiotics, prebiotics, synbiotics, postbiotics, and more, for their potential GLP-1 promoting effects.",
+                            "Detailed Reporting: Obtain comprehensive reports on the GLP-1 promoting effects of your products, aiding in substantiating your claims with robust scientific data.",
+                            "Future Recommendations and Consulting: Get expert advice on further studies in animal models and humans to maximize your product’s market potential."
+                        ],
+                        cta: "Contact us today to get started on your project!"
+                    },
+                    {
+                        heading: "FAT ACCUMULATION IN ADIPOCYTES IN CELL CULTURE",
+                        text: "Unlock the Potential of Your Products for Reducing Fat Accumulation",
+                        content: "Our body accumulates fat in adipose tissues, leading to obesity, which drives many health conditions, including diabetes. White adipocytes are the primary cells responsible for fat storage in the body. In contrast, brown adipocytes burn fat and produce heat, offering a unique approach to weight management.",
+                        question: "Want to know if your product or ingredient impacts adipocyte properties?",
+                        bullets: [
+                            "Large Scale Screening: Our optimized adipocyte differentiation assay measures your product's ability to suppress fat accumulation in adipocytes. We assess multiple doses, treatment times, and stages of adipocyte differentiation.",
+                            "Comprehensive Analysis: We determine if your products suppress white adipocytes from accumulating fat or promote brown adipocytes to burn fat. Additionally, we evaluate their effects on fat accumulation, glucose uptake, and adipokine secretions.",
+                            "Detailed Reporting: Obtain comprehensive reports on the fat-reducing effects of your products, substantiating your claims with robust scientific data.",
+                            "Future Recommendations and Consulting: Get expert advice on further studies in animal models and humans to maximize your product’s market potential."
+                        ],
+                        cta: "Contact us today to get started on your project!"
+                    },
+                    {
+                        heading: "INSULIN SECRETION IN CELL CULTURE",
+                        text: "Unlock the Potential of Your Products for Improving Diabetes Management",
+                        content: "Insulin is the key hormone regulating blood glucose levels. Reduced insulin production from pancreatic beta cells or decreased action on its target cells to dispose of glucose are the key hallmarks of diabetes.",
+                        question: "Want to know if your products or ingredients impact insulin secretion or action?",
+                        bullets: [
+                            "Large Scale Screening: Our cell culture assays evaluate whether your compounds, products, or ingredients enhance insulin secretion from pancreatic cells. We also test if your compounds promote insulin action to increase glucose disposal for better diabetes management.",
+                            "Dose, Time Scales, and Toxicity Profiles: Our assays test various doses, treatment times, and other measures, including toxicity profiles, to better understand the effects of your compounds.",
+                            "Detailed Reporting: Obtain comprehensive reports on the anti-diabetic effects of your products, substantiating your claims with robust scientific data.",
+                            "Future Recommendations and Consulting: Get expert advice on further studies in animal models and humans to maximize your product’s market potential."
+                        ],
+                        cta: "Contact us today to get started on your project!"
+                    },
+                    {
+                        heading: "MUSCLE HEALTH SOLUTIONS",
+                        content: "Muscle health is vital for metabolic and physical well-being, playing a key role in joint function, glucose management, body weight control, and overall stamina. Using cell culture and Caenorhabditis elegans (C. elegans), we offer large-scale screening to assess the effects of your components on muscle health.",
+                        question: "Is your product the next innovation in muscle health?",
+                        bullets: [
+                            "C. elegans Muscle Screening: Utilize our established assays to evaluate the impact of your products on muscle functions such as proliferation, muscle wasting, and insulin sensitivity in C. elegans.",
+                            "Cell Culture Analysis: Assess your components' effects on muscle cells, providing detailed insights into muscle proliferation, differentiation, and function.",
+                            "High-Throughput Screening: Benefit from our efficient platform for rapid, large-scale assessment of your product's impact on muscle health, including various doses and treatment times.",
+                            "Comprehensive Muscle Function Testing: Evaluate key aspects of muscle health, including insulin sensitivity, muscle wasting prevention, and overall muscle function, to support your product's efficacy.",
+                            "Detailed Reporting: Obtain comprehensive reports on the muscle health effects of your products, aiding in substantiating your claims with robust scientific data."
+                        ]
+                    },
+                    {
+                        heading: "LIPID ACCUMULATION SCREENING IN C. ELEGANS",
+                        text: "Unlock Insights into Fat Accumulation",
+                        content: "Obesity, characterized by excessive lipid accumulation, presents significant health challenges worldwide. Caenorhabditis elegans (C. elegans) offers a valuable model for studying lipid accumulation, facilitating the exploration of compounds and genetic factors involved in lipid metabolism regulation.",
+                        question: "Curious about the protective effects of your products/ingredients against fat accumulation or obesity?",
+                        bullets: [
+                            "C. elegans Screening: Utilize our optimized protocols to assess the protective effects of your products against fat accumulation and obesity development.",
+                            "Visualization and Quantification: Leverage C. elegans' transparent body for visualization and quantification of lipid droplets, enabling accurate screening of compounds."
+                        ]
+                    },
+                    {
+                        heading: "TESTING METABOLIC BENEFITS IN SMALL ANIMALS, PETS AND LIVESTOCK TRIALS",
+                        text: "Mitigate Fat Accumulation to Enhance Health in Pets and Livestock",
+                        content: "Excessive fat accumulation poses significant health risks, including an increased likelihood of developing type 2 diabetes, cardiovascular diseases, and other conditions in pets and animals, leading to higher medical care costs. In livestock, increased fat accumulation can suppress muscle formation, which, while beneficial for meat production, is detrimental to overall health. Therefore, it is crucial to focus on products that effectively suppress fat accumulation in both adipose tissue and the liver, preventing issues such as hepatic steatosis.",
+                        question: "Targeted Solutions for Fat Management:",
+                        bullets: [
+                            "Address Health Risks: Excessive fat accumulation can lead to severe health complications. Determine whether your products/ingredients are designed to mitigate fat accumulation and address associated risks, including type 2 diabetes and cardiovascular diseases.",
+                            "Enhance Livestock Efficiency: Managing fat accumulation in livestock is essential for optimizing muscle formation and improving overall health. Test whether your products/ ingredients effectively suppress fat accumulation and can enhance the quality and performance of meat-producing animals.",
+                            "Innovative Testing for Fat Management: We utilize specialized assays to assess the effectiveness of your products in reducing fat accumulation. Our comprehensive testing platforms provide insights into how different ingredients, such as probiotics, prebiotics, and nutraceuticals, affect fat levels in both adipose tissue and the liver.",
+                            "Detailed Reporting for Validation: We prepare thorough reports documenting the efficacy of your products in controlling fat accumulation. These reports offer robust scientific evidence to support your product claims."
+                        ],
+                        closing: "Unlock new opportunities by validating your products’ potential to manage fat accumulation in pets and livestock through our expert clinical trials.",
+                        cta: "Contact us today to get started on your project!"
+                    },
+                    {
+                        heading: "TEST METABOLIC BENEFITS IN HUMAN CLINICAL TRIALS",
+                        text: "Establish Metabolic Benefits of Your Products in Human Clinical Trials",
+                        content: "Showcase your products as market leaders in metabolic health. Whether your goal is weight loss, muscle preservation, GLP-1 or insulin secretion, or improving blood glucose control, we help you prove their efficacy. Our clinical trials ensure your products excel in weight management, diabetes control, cardiovascular risk reduction, and overall quality of life.",
+                        bullets: [
+                            "Test Weight Loss and Metabolic Effects: Discover if your products promote weight loss, support muscle preservation, and enhance GLP-1 activity to reduce hunger.",
+                            "Evaluate Diabetes and Weight Management: Assess if your ingredients improve blood glucose control, prevent weight regain, and promote insulin secretion.",
+                            "Utilize Targeted Metabolic Markers: Leverage our specialized assays to evaluate a range of ingredients, including probiotics, prebiotics, and nutraceuticals, for their impact on metabolic health.",
+                            "Receive Detailed Reporting: Get comprehensive reports detailing the metabolic benefits of your products, providing strong support for your marketing and regulatory needs."
+                        ],
+                        closing: "Validate your products' metabolic benefits through our expert clinical trials",
+                        cta: "Contact us today to get started on your project!"
+                    }
+                ]
+            },
+            { type: 'paragraph', text: "At MusB Research, we are dedicated to providing you with the scientific evidence needed to substantiate your product claims. Let us help you drive innovation and success in obesity and diabetes management. Contact us today to get started on your project!" }
+        ]
     },
     {
         label: 'Skin Health',
-        icon: Flower,
-        color: 'text-indigo-400',
-        glow: 'shadow-[0_0_15px_rgba(129,140,248,0.4)]',
-        description: 'Clinical evaluation of dermatological health, including barrier function, hydration, and anti-aging efficacy.'
+        icon: Flower2,
+        color: 'text-pink-400',
+        glow: 'shadow-[0_0_15px_rgba(244,114,182,0.4)]',
+        description: 'Clinical evaluation of dermatological health, including barrier function, hydration, and anti-aging efficacy.',
+        content: [
+            { type: 'paragraph', text: "At MusB Research, we provide cutting-edge research services to validate your products' claims in skin health, whether addressing aging, wound healing, radiation injury, or other conditions. Our advanced assays and expertise offer the insights necessary to develop evidence-based, effective products." },
+            {
+                type: 'dropdown',
+                items: [
+                    {
+                        heading: "SCREEN SKIN HEALTH BENEFITS USING CELL CULTURE SYSTEM",
+                        sections: [
+                            { type: 'title', text: "Wound Healing" },
+                            { type: 'paragraph', text: "Skin wounds can arise from various sources, and the rate of healing and potential scarring are crucial factors in skin health." },
+                            { type: 'question', text: "Interested in accelerating wound healing and reducing scar formation with your product or ingredient?" },
+                            {
+                                type: 'list', items: [
+                                    "Advanced Wound Healing Assays: Our well-established wound healing assays using skin cells can assess the speed at which your products or ingredients promote wound closure.",
+                                    "Collagen Formation Analysis: Measure collagen formation, a major component of scar tissue, to evaluate scar reduction potential."
+                                ]
+                            },
+                            { type: 'title', text: "UV Exposure" },
+                            { type: 'paragraph', text: "UV exposure can lead to significant skin damage, including photoaging, hyperpigmentation, scarring, skin cancer, chronic wounds, and infections." },
+                            { type: 'question', text: "Curious if your product or ingredient can protect against UV-induced skin damage?" },
+                            {
+                                type: 'list', items: [
+                                    "Cutting-Edge Technology: Our validated cell culture systems allow us to assess the protective effects of your products against UV-induced skin cell damage.",
+                                    "Dose and Treatment Effects: Determine the optimal dosing and treatment time effects for maximum protection against UV exposure."
+                                ]
+                            },
+                            { type: 'cta', text: "Contact us today to get started on your project!" }
+                        ]
+                    },
+                    {
+                        heading: "TEST PRODUCTS FOR SKIN HEALTH BENEFITS IN HUMAN CLINICAL TRIALS",
+                        text: "Establish Skin Health Benefits of Your Products in Human Clinical Trials",
+                        content: "Position your products as leaders in skin health, whether it is related to aging or any other skin damage. Whether your goal is to enhance skin hydration, reduce wrinkles, improve elasticity, or promote overall skin radiance, we provide the evidence you need. Our clinical trials demonstrate your products' efficacy in delivering visible and measurable skin benefits.",
+                        bullets: [
+                            "Test Skin Health Benefits: Evaluate if your products enhance skin hydration, reduce fine lines and wrinkles, and improve skin elasticity and radiance.",
+                            "Assess Anti-Aging and Skin Repair: Determine if your ingredients support skin repair, protect against environmental damage, and combat signs of aging.",
+                            "Utilize Specialized Skin Health Markers: Employ our targeted assays to assess a variety of ingredients, including nutraceuticals, botanicals, and peptides, for their impact on skin health.",
+                            "Receive Comprehensive Reporting: Obtain detailed reports outlining the skin health benefits of your products, providing robust support for your marketing and regulatory requirements. Validate your products' skin health benefits through our expert clinical trials."
+                        ],
+                        cta: "Contact us today to get started on your project!"
+                    }
+                ]
+            },
+            { type: 'paragraph', text: "At MusB Research, we are dedicated to providing you with the scientific evidence needed to substantiate your product claims for brain health. Let us help you drive innovation and success in the competitive market. Contact us today to get started on your project!" }
+        ]
     },
     {
         label: 'Brain Health',
         icon: Brain,
         color: 'text-blue-400',
         glow: 'shadow-[0_0_15px_rgba(96,165,250,0.4)]',
-        description: 'Holistic assessment of neurological wellness, mental clarity, and neurotransmitter balance.'
+        description: 'Holistic assessment of neurological wellness, mental clarity, and neurotransmitter balance.',
+        content: [
+            { type: 'paragraph', text: "Maintaining brain health is crucial for overall well-being, and innovative solutions are essential to combat neurodegenerative diseases and cognitive decline. At MusB Research, we offer cutting-edge research services to substantiate your products' claims in improving brain health. Our advanced models and assays provide the insights needed to develop evidence-based products and achieve market dominance." },
+            {
+                type: 'dropdown',
+                items: [
+                    {
+                        heading: "LEAKY BLOOD BRAIN BARRIERS",
+                        text: "Establish the Potential of Your Products for Impacting Permeability to BBB",
+                        content: "The blood-brain barrier (BBB) is essential for protecting the brain from harmful substances, but a leaky BBB can increase the risk of many brain-related diseases. Conversely, temporarily increasing BBB permeability can be beneficial for drug delivery to the brain, enabling treatments that would otherwise not cross the BBB.",
+                        question: "Want to know if your products or ingredients impact BBB permeability?",
+                        bullets: [
+                            "Large Scale Screening: Our BBB endothelial cell assays can determine how your products or ingredients affect BBB permeability. This data is crucial for developing indications related to brain health and drug delivery systems.",
+                            "Dose, Time Scales, and Toxicity Profiles: Our assays test various doses, treatment times, and other measures, including toxicity profiles, to better understand the effects of your compounds.",
+                            "Detailed Reporting: Obtain comprehensive reports on the effects of your products on BBB permeability, substantiating your claims with robust scientific data.",
+                            "Future Recommendations and Consulting: Get expert advice on further studies in animal models and humans to maximize your product’s market potential."
+                        ],
+                        cta: "Contact us today to get started on your project!"
+                    },
+                    {
+                        heading: "NEURODEGENERATION USING CELL CULTURE SYSTEM",
+                        text: "Establish the Potential of Your Products for Neuroprotective and Neuromodulator Effects in Mammalian Cells",
+                        content: "Neurodegenerative diseases such as Alzheimer’s, Parkinson’s, ALS, and others significantly impact human health. Understanding how your products or ingredients can prevent, or slow neurodegeneration is vital for developing effective treatments.",
+                        question: "Want to know if your products or ingredients impact Neurodegeneration and Neuromodulation?",
+                        bullets: [
+                            "Large Scale Screening: Our neuronal cell assays can determine how your products or ingredients affect neurodegeneration process. This data can be crucial for developing indications related to brain health related Alzheimer’s disease, Parkinson, ALS and other neurodegenerative conditions.",
+                            "Dose, Time Scales, and Toxicity Profiles: Our assays test various doses, treatment times, and other measures, including toxicity profiles, to better understand the effects of your compounds.",
+                            "Neurotransmitter Production: Determine whether your products influence neurotransmitter production, which is essential for brain function and health.",
+                            "Detailed Reporting: Obtain comprehensive reports on the protective effects of your products on neurodegeneration, substantiating your claims with robust scientific data.",
+                            "Future Recommendations and Consulting: Get expert advice on further studies in animal models and humans to maximize your product’s market potential."
+                        ],
+                        cta: "Contact us today to get started on your project!"
+                    },
+                    {
+                        heading: "NEURODEGENERATION USING CELL CULTURE SYSTEM",
+                        text: "Unlock the Potential of Your Compounds in Neuroprotection and Neuromodulation Using C. elegans",
+                        content: "C. elegans is an excellent model for studying neurodegenerative diseases such as Alzheimer’s, Parkinson’s, ALS, and other neuronal health conditions. Understanding how your products or ingredients can prevent or slow neurodegeneration and modulate neuronal health, including neurotransmitter secretion and behavioral changes, is vital for developing effective treatments. C. elegans offers an economical and efficient way to conduct these studies.",
+                        question: "Curious if your product impacts Neurodegeneration, Neuromodulation and Neuronal Behaviors?",
+                        bullets: [
+                            "Large Scale Screening: Our established C. elegans assays can evaluate how your products or ingredients affect neurodegeneration. This data is crucial for developing indications related to Alzheimer’s disease, Parkinson’s, ALS, and other neurodegenerative conditions.",
+                            "Dose, Time Scales, and Toxicity Profiles: We test various doses, treatment times, and toxicity profiles to understand the full effects of your compounds.",
+                            "Neurotransmitter Production: Assess whether your products influence neurotransmitter production, essential for brain function and health.",
+                            "Behavioral Analyses: Determine how your products impact neuronal behaviors, including learning, memory, movement, smelling, and feeding.",
+                            "Detailed Reporting: Receive comprehensive reports on the protective effects of your products on neurodegeneration, neuromodulation, and behavioral phenotypes, substantiating your claims with robust scientific data.",
+                            "Future Recommendations and Consulting: Get expert advice on further studies in animal models and humans to maximize your product’s market potential."
+                        ],
+                        cta: "Contact us today to get started on your project!"
+                    },
+                    {
+                        heading: "TEST PRODUCTS FOR SKIN HEALTH BENEFITS IN HUMAN CLINICAL TRIALS",
+                        text: "Establish Brain Health Benefits of Your Products in Human Clinical Trials",
+                        content: "Position your products as leaders in brain health. Whether your focus is on neurotransmitter support, neural hormone regulation, stress reduction, anxiety management, or combating neurodegenerative disorders, we provide the scientific evidence you need. Our clinical trials demonstrate your products' efficacy in enhancing cognitive function, emotional well-being, and overall mental health.",
+                        bullets: [
+                            "Test Brain Health Benefits: Evaluate if your products support neurotransmitter levels, regulate neural hormones, and improve cognitive function.",
+                            "Assess Stress and Anxiety Management: Determine if your ingredients help reduce stress, manage anxiety, and enhance emotional resilience.",
+                            "Explore Neurodegenerative Disorder Support: Investigate if your products offer protective benefits against neurodegenerative disorders such as Alzheimer’s and Parkinson’s.",
+                            "Utilize Specialized Brain Health Markers: Use our targeted assays to assess a range of ingredients, including nutraceuticals, botanicals, and neuropeptides, for their impact on brain health.",
+                            "Receive Comprehensive Reporting: Obtain detailed reports outlining the cognitive and emotional benefits of your products, providing robust support for your marketing and regulatory needs. Validate your products' brain health benefits through our expert clinical trials."
+                        ],
+                        cta: "Contact us today to get started on your project!"
+                    }
+                ]
+            },
+            { type: 'paragraph', text: "At MusB Research, we are dedicated to providing you with the scientific evidence needed to substantiate your product claims for brain health. Let us help you drive innovation and success in the competitive market. Contact us today to get started on your project!" }
+        ]
     },
     {
         label: 'Vascular Health',
         icon: HeartPulse,
         color: 'text-cyan-400',
         glow: 'shadow-[0_0_15px_rgba(34,211,238,0.4)]',
-        description: 'Studying endothelial function, blood flow dynamics, and cardiovascular wellness markers.'
+        description: 'Studying endothelial function, blood flow dynamics, and cardiovascular wellness markers.',
+        content: [
+            { type: 'paragraph', text: "At MusB Research, we offer state-of-the-art research services to validate your products' claims in improving vascular health, whether addressing leaky blood vessels, hypertension, high cholesterol, triglycerides, or the risk of cardiac dysfunctions. Our advanced assays and expertise provide the critical insights needed to develop scientifically-backed, effective solutions." },
+            {
+                type: 'dropdown',
+                items: [
+                    {
+                        heading: "TEST BENEFITS FOR LEAKY AND INFLAMMED VASCULAR",
+                        text: "Unlock the Potential of Your Compounds In Impacting Vascular Health",
+                        content: "Leaky blood vessels, caused by inflammation, infections, trauma, chronic diseases, cancer, medications, and nutritional deficiencies, can lead to a range of serious health issues including edema, tissue hypoxia, increased infection risk, organ dysfunction, systemic inflammation, poor wound healing, and fluid accumulation in body cavities. Maintaining vascular integrity is crucial to preventing these complications.Are you interested in discovering how your products can impact blood vessel permeability and, consequently, vascular health, including cardiovascular and brain functions?",
+                        question: "Want to establish if your products benefit vascular health?",
+                        bullets: [
+                            "Large Scale Screening: Utilizing our sophisticated transwell assays with endothelial cell systems, we can determine how your products affect vascular permeability. This will provide valuable evidence on the impact of your products for cardiovascular health, stroke prevention, and various vasculature-related diseases.",
+                            "Dose, Time Scales, and Toxicity Profiles: We test various doses, treatment times, and toxicity profiles to understand the full effects of your compounds.",
+                            "Detailed Reporting: Receive comprehensive reports on the protective effects of your products on neurodegeneration, neuromodulation, and behavioral phenotypes, substantiating your claims with robust scientific data.",
+                            "Future Recommendations and Consulting: Get expert advice on further studies in animal models and humans to maximize your product’s market potential."
+                        ],
+                        cta: "Contact us today to get started on your project!"
+                    },
+                    {
+                        heading: "CARDIOVASCULAR BENEFITS IN HUMAN CLINICAL TRIALS",
+                        text: "Test Vascular Health Benefits of Your Products in Human Clinical Trials",
+                        content: "Position your products as leaders in vascular health. Whether your focus is on managing cholesterol levels, lowering triglycerides, or improving overall vascular function, we provide the scientific evidence you need. Our clinical trials demonstrate your products' efficacy in promoting cardiovascular wellness and supporting healthy blood vessels.",
+                        question: "Want to know if your products or ingredients impact Neurodegeneration and Neuromodulation?",
+                        bullets: [
+                            "Test Vascular Health Benefits: Evaluate if your products effectively manage cholesterol levels, reduce triglycerides, and enhance overall vascular health.",
+                            "Assess Cardiovascular Support: Determine if your ingredients improve blood vessel function, support healthy circulation, and contribute to overall cardiovascular well-being.",
+                            "Utilize Specialized Vascular Health Markers: Employ our targeted assays to assess a range of ingredients, including nutraceuticals and botanicals, for their impact on vascular health.",
+                            "Receive Comprehensive Reporting: Obtain detailed reports outlining the vascular health benefits of your products, providing robust support for your marketing and regulatory needs. Validate your products' vascular health benefits through our expert clinical trials."
+                        ],
+                        cta: "Contact us today to get started on your project!"
+                    }
+                ]
+            },
+            { type: 'paragraph', text: "At MusB Research, we are dedicated to providing you with the scientific evidence needed to substantiate your product claims for brain health. Let us help you drive innovation and success in the competitive market. Contact us today to get started on your project!" }
+        ]
     },
     {
         label: 'Toxicology',
         icon: Beaker,
         color: 'text-indigo-400',
         glow: 'shadow-[0_0_15px_rgba(129,140,248,0.4)]',
-        description: 'Rigorous safety assessments and toxicity profiling of ingredients and final formulations.'
+        description: 'Rigorous safety assessments and toxicity profiling of ingredients and final formulations.',
+        content: [
+            { type: 'paragraph', text: "Develop Toxicological Profiles of Your Compounds to Support Regulatory, Safety and Efficacy" },
+            { type: 'paragraph', text: "Toxicological studies are crucial for ensuring the safety of pharmacological and non-pharmacological products, including natural and dietary ingredients. At MusB, we provide comprehensive toxicological and safety assessments using simple, cost-effective, and rapid models such as cell culture and C. elegans. Our expertise helps you develop accurate doses, time points, and efficacy data to support your product claims." },
+            { type: 'title', text: "Our Testing Services:" },
+            { type: 'question', text: "Toxicology Screening Using Cell Culture" },
+            {
+                type: 'list', items: [
+                    "Mammalian Cell Assays: Utilize our advanced cell culture systems with mammalian cells from various organs to evaluate the cellular toxicity of your products.",
+                    "Assess Dose-Response Relationships: Determine the optimal dose for beneficial effects while minimizing cellular toxicity.",
+                    "Organ-Specific Toxicity: Gain insights into how your products affect different organ cells, ensuring comprehensive safety evaluation."
+                ]
+            },
+            { type: 'question', text: "Toxicology Screening Using C. elegans" },
+            {
+                type: 'list', items: [
+                    "Whole-Organism Analysis: Benefit from using C. elegans as a model organism to evaluate the systemic toxicity of your products.",
+                    "High-Throughput Screening: Rapidly assess the toxicity of various doses and treatment times in a whole-organism context.",
+                    "Behavioral and Physiological Assessments: Evaluate the effects on behavior and physiology to understand the broader implications of toxicity.",
+                    "Comprehensive Reporting: Obtain detailed reports on the toxicological effects of your products, aiding in substantiating your safety claims with robust scientific data.",
+                    "Detailed Reporting: Receive comprehensive reports on the protective effects of your products on toxicity and efficacy doses and time points, substantiating your claims with robust scientific data.",
+                    "Future Recommendations and Consulting: Get expert advice on further studies in animal models and humans to maximize your product’s market potential."
+                ]
+            },
+            { type: 'cta', text: "Contact us today to get started on your project!" }
+        ]
     },
     {
         label: 'Bioavailability',
