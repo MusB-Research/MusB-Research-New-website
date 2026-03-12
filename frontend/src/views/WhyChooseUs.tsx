@@ -34,21 +34,21 @@ const defaultThreeWays = [
         tagline: 'From ideas to evidence.',
         description: 'We design and execute rigorous preclinical and clinical research programs to scientifically substantiate your products. Our expertise spans discovery, mechanistic validation, efficacy, safety, and translational studies.',
         deliverables: ['In vitro and in vivo research', 'Human clinical trials', 'Microbiome, biotics, aging, and metabolic health research', 'Biomarkers, functional outcomes, and data interpretation'],
-        cta_text: 'Discuss a Research Project', cta_link: '/contact'
+        cta_text: 'Discuss a Research Project', cta_link: '/contact?type=research'
     },
     {
         icon: 'microscope', title: 'Central Laboratory Services', color: 'indigo',
         tagline: 'Data you can trust.',
         description: 'Our central laboratory services deliver accurate, reproducible, and compliant testing to support research, clinical studies, and product validation.',
         deliverables: ['ELISA, proteomics, and real-time PCR', 'Microbiome and molecular analysis', 'SOP-driven workflows and sponsor-ready reporting'],
-        cta_text: 'Request Laboratory Support', cta_link: '/contact'
+        cta_text: 'Request Laboratory Support', cta_link: '/contact?type=lab'
     },
     {
         icon: 'database', title: 'Biorepository', color: 'blue',
         tagline: 'Protecting the long-term value of your samples.',
         description: 'We provide secure biospecimen processing, tracking, and storage to support longitudinal research, multi-omics analysis, and future regulatory needs.',
         deliverables: ['Sample processing and standardized storage', 'Chain-of-custody and retrieval', 'Support for multi-site and long-term studies'],
-        cta_text: 'Explore Biorepository Services', cta_link: '/contact'
+        cta_text: 'Explore Biorepository Services', cta_link: '/contact?type=biorepository'
     }
 ];
 

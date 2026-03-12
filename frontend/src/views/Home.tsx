@@ -768,7 +768,7 @@ export default function Home() {
                                         'Biomarkers, microbiome, and functional outcomes'
                                     ]}
                                     footerText="We turn scientific concepts into credible evidence that informs product development, claims, and commercialization."
-                                    linkTo="/contact"
+                                    linkTo="/contact?type=research"
                                     linkText="Discuss a Research Project"
                                     accentColor="cyan"
                                 />
@@ -785,7 +785,7 @@ export default function Home() {
                                         'SOP-driven workflows with sponsor-ready reporting'
                                     ]}
                                     footerText="Our central lab services ensure accuracy, reproducibility, and data integrity across preclinical and clinical programs."
-                                    linkTo="/contact"
+                                    linkTo="/contact?type=lab"
                                     linkText="Request Laboratory Services"
                                     accentColor="indigo"
                                 />
@@ -802,7 +802,7 @@ export default function Home() {
                                         'Retrieval and chain-of-custody documentation'
                                     ]}
                                     footerText="Our biorepository protects the long-term value of your samples and supports future discovery and regulatory needs."
-                                    linkTo="/contact"
+                                    linkTo="/contact?type=biorepository"
                                     linkText="Explore Biorepository Support"
                                     accentColor="blue"
                                 />

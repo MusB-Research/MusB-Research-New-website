@@ -115,7 +115,7 @@ const Support: React.FC = () => {
                             {routerOptions.map((opt, i) => (
                                 <Link
                                     key={i}
-                                    to={`/contact?interest=${encodeURIComponent(opt.label)}`}
+                                    to={`/contact?type=${i === 0 ? 'research' : i === 1 ? 'lab' : i === 2 ? 'biorepository' : 'general'}`}
                                     className="group flex items-center gap-6 p-6 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-cyan-500/30 transition-all text-left"
                                 >
                                     <div className="w-14 h-14 rounded-xl bg-cyan-400/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-slate-900 transition-all">
@@ -236,10 +236,10 @@ const Support: React.FC = () => {
                                             ))}
                                         </ul>
                                     </div>
-                                    <button onClick={() => setShowRouter(true)} className="mt-12 w-full bg-cyan-500 text-slate-900 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2 group/btn relative z-10">
+                                    <Link to="/contact?type=research" className="mt-12 w-full bg-cyan-500 text-slate-900 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2 group/btn relative z-10">
                                         Discuss a Research Project
                                         <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                                    </button>
+                                    </Link>
                                 </div>
 
                                 {/* Card 2: Central Laboratory Services */}
@@ -266,10 +266,10 @@ const Support: React.FC = () => {
                                             ))}
                                         </ul>
                                     </div>
-                                    <button onClick={() => setShowRouter(true)} className="mt-12 w-full bg-cyan-500 text-slate-900 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2 group/btn relative z-10">
+                                    <Link to="/contact?type=lab" className="mt-12 w-full bg-cyan-500 text-slate-900 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2 group/btn relative z-10">
                                         Inquire About Lab Services
                                         <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                                    </button>
+                                    </Link>
                                 </div>
 
                                 {/* Card 3: Biorepository */}
@@ -296,10 +296,10 @@ const Support: React.FC = () => {
                                             ))}
                                         </ul>
                                     </div>
-                                    <button onClick={() => setShowRouter(true)} className="mt-12 w-full bg-cyan-500 text-slate-900 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2 group/btn relative z-10">
+                                    <Link to="/contact?type=biorepository" className="mt-12 w-full bg-cyan-500 text-slate-900 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2 group/btn relative z-10">
                                         Request Biorepository Support
                                         <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                                    </button>
+                                    </Link>
                                 </div>
                             </div>
                         </div>

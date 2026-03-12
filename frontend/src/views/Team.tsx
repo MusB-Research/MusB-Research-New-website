@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Linkedin, ChevronDown, ChevronUp, Building2, Users, Stethoscope, Briefcase, Handshake, Activity, FileText } from 'lucide-react';
+import { Linkedin, ChevronDown, ChevronUp, Building2, Users, Stethoscope, Briefcase, Activity, FileText, ShieldCheck } from 'lucide-react';
 
 const LEADERSHIP_DATA = [
     {
@@ -77,8 +77,8 @@ const ADVISORS_DATA = [
         advisory_role: "Business Development Advisory Board Member",
         expertise_area: "Nutritional Science & Business Development",
         organization: "Strategic Advisor",
-        bio: "Biography pending.",
-        image: "",
+        bio: "Sean Garvey, PhD, is an R&D and innovation leader with more than 25 years of experience spanning academia, medical nutrition, therapeutics, and B2B probiotics and enzymes, with a strong focus on microbiome and gut health. He brings deep expertise in clinical and preclinical research, scientific affairs, and strategic partnerships, with a track record that includes 34 peer‑reviewed publications, multiple patents, and successful leadership of enzyme and probiotic clinical trials supporting commercial product launches. As President and Founder of SAPIOME LLC, Dr. Garvey now advises nutraceutical and “-biotics” companies on pipeline strategy, external innovation, and evidence generation, experience he applies in his role on the Business Development Advisory Board of MusB Research to help sponsors design rigorous studies and unlock the commercial value of microbiome, gut health, and longevity innovations.",
+        image: "/images/team/sean_m_garvey.webp",
         linkedin_url: "https://www.linkedin.com/in/sean-garvey-phd-638a253/"
     },
     {
@@ -114,25 +114,16 @@ const STAFF_DATA = [
     { name: "Mr. Brijesh Kumar", role: "Junior Software Engineer", dept: "Software Development" }
 ];
 
-const PARTNERS_DATA = [
-    { id: 1, name: "University of South Florida", category: "Academic", logo: "" },
-    { id: 2, name: "Tampa General Hospital", category: "Academic", logo: "" },
-    { id: 3, name: "Global Pharma Solutions", category: "Industry", logo: "" },
-    { id: 4, name: "BioTech Innovations Inc.", category: "Industry", logo: "" },
-    { id: 5, name: "Clinical Research Alliance", category: "CRO", logo: "" },
-    { id: 6, name: "MedTrials Network", category: "CRO", logo: "" },
-    { id: 7, name: "Tampa Bay Health Foundation", category: "Community", logo: "" }
-];
 
 const TeamMemberCard = ({ member }: { member: any }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
         <div className="group bg-white/5 backdrop-blur-xl rounded-[2.5rem] border-2 border-white/10 overflow-hidden hover:border-cyan-400/50 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col">
-            <div className="p-8 md:p-10 flex flex-col md:flex-row gap-8 items-center md:items-start text-center md:text-left flex-1 min-h-[460px]">
+            <div className="p-4 md:p-6 flex flex-col md:flex-row gap-4 items-center md:items-start text-center md:text-left flex-1 min-h-[320px]">
                 {/* Headshot */}
                 <div className="flex-shrink-0 relative md:ml-4">
-                    <div className="w-40 h-40 md:w-48 md:h-48 rounded-[2.5rem] bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 border-2 border-white/10 flex items-center justify-center overflow-hidden shadow-2xl group-hover:scale-105 transition-transform duration-500">
+                    <div className="w-40 h-52 md:w-48 md:h-64 rounded-[2.5rem] bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 border-2 border-white/10 flex items-center justify-center overflow-hidden shadow-2xl group-hover:scale-105 transition-transform duration-500">
                         {member.image ? (
                             <img
                                 src={member.image}
@@ -149,7 +140,7 @@ const TeamMemberCard = ({ member }: { member: any }) => {
                 </div>
 
                 {/* Content */}
-                <div className="w-full space-y-4">
+                <div className="w-full space-y-3">
                     <div className="space-y-1">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
                             <h3 className="text-3xl md:text-4xl font-black text-white leading-tight tracking-tight">{member.name}</h3>
@@ -283,7 +274,7 @@ const AdvisorCard = ({ advisor }: { advisor: any }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <div className="group bg-white/5 backdrop-blur-xl rounded-[2.5rem] border-2 border-white/10 overflow-hidden hover:border-indigo-400/50 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col h-full">
+        <div className="group bg-white/5 backdrop-blur-xl rounded-[2.5rem] border-2 border-white/10 overflow-hidden hover:border-indigo-400/50 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col">
             <div className="p-6 md:p-8 flex flex-col md:flex-row gap-6 items-center md:items-start flex-1">
                 {/* Left Side: Portrait Image */}
                 <div className="flex-shrink-0 relative md:ml-4">
@@ -411,7 +402,7 @@ export default function Team() {
                                     Multidisciplinary
                                 </div>
                                 <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/10 text-sm font-bold text-slate-400">
-                                    <Activity className="w-4 h-4 text-cyan-400" />
+                                    <ShieldCheck className="w-4 h-4 text-cyan-400" />
                                     Evidence-Driven
                                 </div>
                             </div>
@@ -599,54 +590,6 @@ export default function Team() {
                 </div>
             </section>
 
-            {/* SECTION 5: Sponsors */}
-            <section className="relative z-10 py-20 px-6">
-                <div className="max-w-7xl mx-auto">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 border-b border-white/10 pb-12">
-                        <div className="space-y-4">
-                            <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight">
-                                Strategic <span className="text-indigo-400">Sponsors</span>
-                            </h2>
-                            <p className="text-slate-400 text-xl max-w-2xl font-medium">
-                                Our research is made possible through the support of visionary organizations committed to advancing clinical excellence.
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-4 text-slate-500 font-bold uppercase tracking-widest text-xs h-fit bg-white/5 px-6 py-3 rounded-full border border-white/10">
-                            <div className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></div>
-                            Ecosystem Partners
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                        {PARTNERS_DATA.map((partner) => (
-                            <div
-                                key={partner.id}
-                                className="group bg-white/5 backdrop-blur-xl rounded-[2rem] p-8 border-2 border-white/10 hover:border-indigo-400/50 hover:bg-white/10 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] flex flex-col items-center justify-center text-center relative overflow-hidden"
-                            >
-                                {/* Logo Placeholder */}
-                                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-2 border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 overflow-hidden relative shadow-2xl">
-                                    {partner.logo ? (
-                                        <img src={partner.logo} alt={partner.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <Handshake className="w-10 h-10 text-indigo-400" />
-                                    )}
-                                    <div className="absolute inset-0 bg-indigo-400/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                </div>
-
-                                {/* Partner Name */}
-                                <h3 className="text-lg font-black text-white leading-tight mb-4 group-hover:text-indigo-400 transition-colors">{partner.name}</h3>
-
-                                {/* Category Tag */}
-                                {partner.category && (
-                                    <span className="px-3 py-1 text-[10px] font-black bg-indigo-400/10 text-indigo-400 rounded-full border border-indigo-400/20 uppercase tracking-widest">
-                                        {partner.category}
-                                    </span>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
         </div>
     );
 }

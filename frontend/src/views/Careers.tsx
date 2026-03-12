@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     Users,
     Target,
@@ -6,8 +6,6 @@ import {
     ShieldCheck,
     Star,
     RefreshCcw,
-    ArrowRight,
-    Search,
     Briefcase,
     MapPin,
     Clock,
@@ -165,11 +163,11 @@ export default function Careers() {
                             Join a mission-driven research organization advancing microbiome, aging, metabolic, and clinical science.
                             Work alongside world-class scientists in an environment built on integrity, innovation, and collaboration.
                         </p>
-                        <div className="flex flex-wrap gap-6 pt-4">
-                            <a href="#open-positions" className="bg-white text-slate-950 px-10 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-cyan-500 hover:scale-105 transition-all shadow-xl shadow-cyan-500/10">
+                        <div className="flex flex-col gap-4 pt-4 w-full sm:w-max">
+                            <a href="#open-positions" className="bg-white text-slate-950 px-8 py-4 rounded-2xl font-black uppercase tracking-wider hover:bg-cyan-500 hover:scale-105 transition-all shadow-xl shadow-cyan-500/10 text-center">
                                 View Open Positions
                             </a>
-                            <a href="#why-musb" className="bg-white/5 border border-white/10 text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-white/10 transition-all">
+                            <a href="#why-musb" className="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-wider hover:bg-white/10 transition-all text-center">
                                 Why MusB™ Research
                             </a>
                         </div>
@@ -410,11 +408,11 @@ export default function Careers() {
                             <h2 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-none italic uppercase">Ready to make an impact?</h2>
                             <p className="text-xl font-bold text-slate-400">Your journey in clinical breakthroughs starts here.</p>
                         </div>
-                        <div className="flex flex-col sm:flex-row gap-6 w-full lg:w-auto">
-                            <button className="flex-1 lg:flex-none px-12 py-6 rounded-2xl bg-cyan-500 text-slate-950 font-black uppercase tracking-widest hover:bg-white transition-all shadow-xl shadow-cyan-500/10">
+                        <div className="flex flex-col gap-4 w-full lg:w-72">
+                            <button className="w-full px-8 py-5 rounded-2xl bg-cyan-500 text-slate-950 font-black uppercase tracking-wider hover:bg-white transition-all shadow-xl shadow-cyan-500/10">
                                 View Open Positions
                             </button>
-                            <button className="flex-1 lg:flex-none px-12 py-6 rounded-2xl bg-white/10 text-white font-black uppercase tracking-widest hover:bg-white/20 transition-all shadow-lg border border-white/10">
+                            <button className="w-full px-8 py-5 rounded-2xl bg-white/10 text-white font-black uppercase tracking-wider hover:bg-white/20 transition-all shadow-lg border border-white/10">
                                 Submit Your Resume
                             </button>
                         </div>

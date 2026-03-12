@@ -47,8 +47,7 @@ export default function Layout({ children }: LayoutProps) {
                 { path: '/why-choose-us', label: 'Why Choose MusB Research' },
                 { path: '/capabilities', label: 'Capabilities' },
                 { path: '/facilities', label: 'Facilities' },
-                { path: '/team', label: 'Our Team' },
-                { path: '/trials', label: 'Find a Study' },
+                { path: '/team', label: 'Our Team' }
             ]
         },
         { path: '/innovations', label: 'Innovation' },

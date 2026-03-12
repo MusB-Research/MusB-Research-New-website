@@ -16,7 +16,7 @@ import {
     Check,
     MessageCircle
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { submitContactForm } from '../api';
 
 const defaultInquiryTypes = [
@@ -77,6 +77,15 @@ export default function Contact() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [inquiryTypes, setInquiryTypes] = useState(defaultInquiryTypes);
     const formRef = useRef<HTMLDivElement>(null);
+
+    const [searchParams] = useSearchParams();
+
+    useEffect(() => {
+        const type = searchParams.get('type');
+        if (type) {
+            handleCardClick(type);
+        }
+    }, [searchParams]);
 
     const handleCardClick = (id: string) => {
         setInquiryType(id);

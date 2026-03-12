@@ -241,7 +241,7 @@ export default function Innovations() {
                         {/* Text Left */}
                         <div className="space-y-10">
                             <div className="space-y-6 md:space-y-8">
-                                <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] uppercase">
+                                <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-[1.1] uppercase">
                                     <span className="block text-white">Where Innovation</span>
                                     <span className="block text-cyan-400">Meets Scientific Proof</span>
                                 </h1>
@@ -299,7 +299,7 @@ export default function Innovations() {
                         <div className="relative z-10 space-y-16">
                             <div className="text-center space-y-4 md:space-y-6 max-w-4xl mx-auto">
                                 <span className="text-cyan-400 font-black text-[10px] md:text-sm uppercase tracking-[0.4em]">INNOVATE WITH US – INDUSTRY-SPONSORED RESEARCH</span>
-                                <h2 className="text-3xl md:text-5xl lg:text-7xl font-black text-white tracking-tight leading-tight uppercase">
+                                <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight uppercase">
                                     Bring Your Product. <span className="text-cyan-400">We Bring the Science.</span>
                                 </h2>
                                 <p className="text-xl text-slate-300 font-medium leading-relaxed">
@@ -365,8 +365,9 @@ export default function Innovations() {
                         <div className="relative z-10 space-y-16">
                             <div className="text-center space-y-4 md:space-y-6 max-w-4xl mx-auto">
                                 <span className="text-cyan-400 font-black text-[10px] md:text-sm uppercase tracking-[0.4em]">FROM CONCEPT TO PRODUCT – SCIENCE-DRIVEN DEVELOPMENT</span>
-                                <h2 className="text-3xl md:text-5xl lg:text-7xl font-black text-white tracking-tight leading-tight uppercase">
-                                    You Bring the Idea. <span className="text-cyan-400">We Build the Evidence.</span>
+                                <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight uppercase">
+                                    You Bring the Idea. <br />
+                                    <span className="text-cyan-400">We Build the Evidence.</span>
                                 </h2>
                                 <p className="text-xl text-slate-300 font-medium leading-relaxed">
                                     Have an innovative concept but need scientific validation? <br />
@@ -426,7 +427,7 @@ export default function Innovations() {
 
                         <div className="relative z-10 space-y-10 max-w-4xl mx-auto">
                             <div className="space-y-4 md:space-y-6">
-                                <h2 className="text-3xl md:text-6xl lg:text-8xl font-black text-white tracking-tight leading-tight uppercase">
+                                <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight uppercase">
                                     Science <span className="text-cyan-400">You Can Build On.</span>
                                 </h2>
                                 <div className="space-y-6">
@@ -446,7 +447,7 @@ export default function Innovations() {
                 <section ref={showcaseRef} className="max-w-[1700px] mx-auto px-4 md:px-12 space-y-16 scroll-mt-32">
                     <div className="text-center space-y-4">
                         <span className="text-cyan-400 font-black text-sm uppercase tracking-[0.4em]">OUR INNOVATION PIPELINE</span>
-                        <h2 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tight">Technology Showcase</h2>
+                        <h2 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tight">Technology Showcase</h2>
                     </div>
 
 
@@ -840,7 +841,7 @@ export default function Innovations() {
                         <div className="relative z-10 space-y-12 max-w-5xl mx-auto">
                             <div className="space-y-6">
                                 <span className="text-cyan-400 font-black text-[10px] md:text-sm uppercase tracking-[0.4em]">Final Call to Action</span>
-                                <h2 className="text-3xl md:text-6xl lg:text-8xl font-black text-white tracking-tight leading-[1.1] uppercase">
+                                <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.1] uppercase">
                                     Innovation <span className="text-cyan-400">Without Evidence</span> is Speculation.
                                 </h2>
                                 <p className="text-2xl text-slate-300 font-medium leading-relaxed">

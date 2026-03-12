@@ -24,13 +24,6 @@ export default function About() {
             icon: Users,
             path: '/team',
             color: 'violet'
-        },
-        {
-            title: 'Find a Study',
-            description: 'Join a clinical research study and contribute to advancing health science.',
-            icon: Search,
-            path: '/trials',
-            color: 'purple'
         }
     ];
 
@@ -54,12 +47,12 @@ export default function About() {
                             Learn More <span className="text-purple-400">About Us</span>
                         </h1>
                         <p className="text-lg md:text-xl text-slate-400 font-medium max-w-3xl mx-auto">
-                            Explore our research capabilities, facilities, team, and opportunities to participate in clinical studies.
+                            Explore our research capabilities, facilities, and the team of experts leading our clinical excellence.
                         </p>
                     </div>
 
                     {/* Options Grid */}
-                    <div className="grid md:grid-cols-2 gap-8">
+                    <div className="grid md:grid-cols-3 gap-8">
                         {aboutOptions.map((option, index) => {
                             const Icon = option.icon;
                             return (

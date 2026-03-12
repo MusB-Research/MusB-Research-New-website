@@ -42,7 +42,7 @@ const Capabilities: React.FC = () => {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.03)_0%,transparent_100%)]"></div>
       </div>
 
-      <div className="relative z-10 space-y-32 pt-40 pb-24 animate-in fade-in duration-1000">
+      <div className="relative z-10 space-y-8 pt-40 pb-24 animate-in fade-in duration-1000">
         {/* Header */}
         <section className="relative text-center max-w-4xl mx-auto space-y-8 px-6 overflow-hidden">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.12)_0%,transparent_70%)] pointer-events-none"></div>
@@ -59,7 +59,7 @@ const Capabilities: React.FC = () => {
 
         {/* Grid Section with Outline */}
         <section className="max-w-[1700px] mx-auto px-6 md:px-12">
-          <div className="p-6 md:p-16 rounded-[4.5rem] bg-slate-900/40 border border-white/5 backdrop-blur-3xl relative overflow-hidden group/container">
+          <div className="p-6 md:p-6 rounded-[4.5rem] bg-slate-900/40 border border-white/5 backdrop-blur-3xl relative overflow-hidden group/container">
             <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-cyan-500/5 blur-[120px] rounded-full"></div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 relative z-10">
