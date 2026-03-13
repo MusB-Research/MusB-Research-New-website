@@ -557,7 +557,6 @@ export default function Layout({ children }: LayoutProps) {
                     </div>
                 </div>
             </footer>
-</footer>
         </div>
     );
 }
