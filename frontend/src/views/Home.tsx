@@ -35,10 +35,504 @@ const slides = [
 
 
 
+const LeakyGutIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        {...props}
+    >
+        {/* Intestine squiggle path */}
+        <path d="M12 2v2c-3 0-4 1-4 3s1 3 4 3 4 1 4 3-1 3-4 3-4 1-4 3 1 3 4 3v2" />
+        {/* Badge circle */}
+        <circle cx="18" cy="7" r="4.5" fill="currentColor" fillOpacity="0.2" stroke="none" />
+        {/* Checkmark */}
+        <path d="M16 7l1.5 1.5 3-3" strokeWidth="1.5" />
+    </svg>
+);
+
+const InflammationIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        {...props}
+    >
+        {/* Hand */}
+        <path d="M18 11V6a2 2 0 0 0-4 0v5" />
+        <path d="M14 10V4a2 2 0 0 0-4 0v6" />
+        <path d="M10 10V5a2 2 0 0 0-4 0v7" />
+        <path d="M6 12v-1a2 2 0 0 0-4 0v7a5 5 0 0 0 5 5h7a5 5 0 0 0 5-5v-6" />
+        {/* Bandage */}
+        <rect x="2" y="14" width="20" height="4" rx="1" transform="rotate(-15 12 16)" fill="currentColor" fillOpacity="0.1" />
+        <path d="M3 17l18-5" strokeWidth="1.5" opacity="0.5" />
+        <path d="M4 19l18-5" strokeWidth="1.5" opacity="0.5" />
+    </svg>
+);
+
+const MicrobiomeIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        {...props}
+    >
+        {/* DNA Helix */}
+        <path d="M3 12c0 2 1.5 4 4 4s4-2 4-4-1.5-4-4-4-4 2-4 4z" opacity="0.2" fill="currentColor" />
+        <path d="M3 12c0 3 3 6 6 6" />
+        <path d="M3 12c0-3 3-6 6-6" />
+        <path d="M7 6.5l2 11" opacity="0.5" />
+        <path d="M3.5 10l5 4" opacity="0.5" />
+        <path d="M3.5 14l5-4" opacity="0.5" />
+        
+        {/* Hexagons (Microbes/Probiotics) */}
+        <path d="M15 5l3-1.5 3 1.5v3.5l-3 1.5-3-1.5z" fill="currentColor" fillOpacity="0.2" />
+        <path d="M15 5l3-1.5 3 1.5v3.5l-3 1.5-3-1.5z" />
+        <circle cx="18" cy="3.5" r="1" fill="currentColor" />
+        <circle cx="21" cy="5" r="1" fill="currentColor" />
+        <circle cx="15" cy="5" r="1" fill="currentColor" />
+
+        <path d="M18 15l2.5-1.25 2.5 1.25v2.5l-2.5 1.25L18 17.5z" fill="currentColor" fillOpacity="0.1" />
+        <path d="M18 15l2.5-1.25 2.5 1.25v2.5l-2.5 1.25L18 17.5z" />
+        <circle cx="20.5" cy="13.75" r="0.75" fill="currentColor" />
+        
+        {/* Arrows/Connections */}
+        <path d="M16 11l-1.5 1.5M17.5 12.5l-1.5 1.5" strokeWidth="1" />
+        <path d="M14 13l2 2" strokeWidth="1" />
+    </svg>
+);
+
+const BioticsIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        {...props}
+    >
+        {/* Test Tube */}
+        <path d="M9 3h6M10 3v14a2 2 0 0 0 4 0V3m-4 5h4" />
+        <rect x="10" y="10" width="4" height="7" rx="1" fill="currentColor" fillOpacity="0.2" stroke="none" />
+        
+        {/* Magnifying Glass */}
+        <circle cx="17" cy="11" r="4" fill="white" fillOpacity="0.1" />
+        <circle cx="17" cy="11" r="4" />
+        <path d="M20 14l2 2" />
+        
+        {/* Drop inside Glass */}
+        <path d="M17 9.5a1.5 1.5 0 0 1 1.5 1.5c0 .828-.672 1.5-1.5 1.5s-1.5-.672-1.5-1.5 1-2.5 1.5-3z" fill="currentColor" stroke="none" />
+    </svg>
+);
+
+const AgingIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        {...props}
+    >
+        {/* Background Adults (Lighter/Atmospheric) */}
+        <g opacity="0.4">
+            <circle cx="6.5" cy="6" r="2.5" />
+            <path d="M3 21v-6a3 3 0 0 1 3-3h1a3 3 0 0 1 3 3v6" />
+            
+            <circle cx="17.5" cy="6" r="2.5" />
+            <path d="M14 21v-6a3 3 0 0 1 3-3h1a3 3 0 0 1 3 3v6" />
+        </g>
+
+        {/* Featured Child/Youth - Represents Longevity & Future Generations */}
+        <g className="text-cyan-400">
+            <circle cx="12" cy="11" r="2" fill="currentColor" fillOpacity="0.2" />
+            {/* V-Arms for energy/growth */}
+            <path d="M8.5 11.5l3.5 3 3.5-3" strokeWidth="2.2" />
+            {/* Stable Torso & Legs */}
+            <path d="M12 14.5v6.5" strokeWidth="2.2" />
+            <path d="M10 21h4" strokeWidth="2" />
+        </g>
+    </svg>
+);
+
+const NeurodegenerationIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        {...props}
+    >
+        {/* Central Molecular Node */}
+        <circle cx="12" cy="12" r="2.5" fill="currentColor" fillOpacity="0.3" />
+        
+        {/* Connection Arms & Smaller Nodes */}
+        {/* Right branch */}
+        <path d="M14.5 12h2.5" />
+        <circle cx="19" cy="12" r="1.5" />
+        <path d="M20.5 12h1.5" />
+        <circle cx="22.5" cy="12" r="0.5" />
+        
+        {/* Top branch */}
+        <path d="M12 9.5V7" />
+        <circle cx="12" cy="5.5" r="1.5" />
+        <path d="M10.5 4.5l-1.5-1" />
+        <circle cx="8.5" cy="3" r="0.5" />
+        <path d="M13.5 4.5l1.5-1" />
+        <circle cx="15.5" cy="3" r="0.5" />
+
+        {/* Bottom Left branch */}
+        <path d="M10.2 13.8l-1.7 1.7" />
+        <circle cx="7" cy="17" r="1.5" strokeWidth="1.2" />
+        <circle cx="7" cy="17" r="0.8" fill="currentColor" />
+        
+        {/* Top Left branch */}
+        <path d="M10.2 10.2l-1.7-1.7" />
+        <circle cx="7" cy="7" r="1.5" />
+        <path d="M5.5 7h-1.5" />
+        <circle cx="3.5" cy="7" r="0.5" />
+
+        {/* Bottom Right branch */}
+        <path d="M13.8 13.8l1.7 1.7" />
+        <circle cx="17" cy="17" r="1.5" />
+        <path d="M17 18.5v1.5" />
+        <circle cx="17" cy="20.5" r="0.5" />
+    </svg>
+);
+
+const MuscleHealthIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        {...props}
+    >
+        {/* Battery/Container */}
+        <rect x="4" y="6" width="8" height="12" rx="1.5" strokeWidth="2" />
+        <path d="M6 6V4.5a0.5 0 0 1 0.5-0.5h3a0.5 0 0 1 0.5 0.5V6" strokeWidth="2" />
+        <rect x="5.5" y="7.5" width="5" height="9" rx="0.5" fill="currentColor" fillOpacity="0.1" stroke="none" />
+        
+        {/* Lightning Bolt */}
+        <path d="M8 9l-1 3h2l-1 3" strokeWidth="1.8" fill="white" fillOpacity="0.1" />
+        
+        {/* Muscular Arm */}
+        <path 
+            d="M13 13c1-1 2.5-1.5 4-1 .5-1.5 1.5-2.5 3-2 .5.1.8.5.7 1-.1.5-.5.8-1 .7-1-.2-1.8.5-2.1 1.5-.5.2-1 .5-1.5 1-.5.5-.8 1.1-1 1.8 0 .5-.3 1-.7 1.4-.4.4-.9.6-1.4.6h-1" 
+            fill="currentColor" 
+            fillOpacity="0.2" 
+        />
+        <path d="M13 13c1-1 2.5-1.5 4-1 .5-1.5 1.5-2.5 3-2" strokeWidth="2" />
+        <path d="M20 10.7c.3.5.2 1.2-.3 1.5-.5.3-1.2.2-1.5-.3" strokeWidth="1.5" />
+        <path d="M17 12c-.5 1-1.5 2.5-3.5 2.5h-1.5" strokeWidth="2" />
+        <path d="M15.5 13.5c.5.5.8 1.2.8 2s-.3 1.5-.8 2" opacity="0.4" />
+    </svg>
+);
+
+const GutHealthIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        {...props}
+    >
+        {/* Intestinal Structures (Top) */}
+        <path d="M14 2c0 .5-.4 1-1 1H9c-.6 0-1 .4-1 1s.4 1 1 1h4c1.1 0 2 .9 2 2" strokeOpacity="0.6" />
+        <path d="M10 2v1c0 .6.4 1 1 1h2" strokeOpacity="0.4" />
+
+        {/* Circular Badge with Checkmark (Middle) */}
+        <circle cx="16" cy="9" r="4.5" fill="currentColor" fillOpacity="0.2" strokeWidth="1.5" />
+        <circle cx="16" cy="9" r="4.5" strokeWidth="1.5" strokeDasharray="2 2" />
+        <path d="M14.5 9l1 1 2-2" strokeWidth="2" />
+
+        {/* Supporting Hand (Bottom) */}
+        <path 
+            d="M5 16l-2 1v3.5a1 1 0 0 0 1 1h16l2-2.5v-1l-3-1.5H13l-4 3-4-3z" 
+            fill="currentColor" 
+            fillOpacity="0.1" 
+            stroke="none"
+        />
+        <path d="M6 15l-3 1.5v4a1 1 0 0 0 1 1h15l3-3.5v-1" />
+        <path d="M3 16.5l2 2" strokeWidth="1" />
+        <path d="M13 15.5H19" strokeWidth="1.5" />
+        <path d="M8.5 18l3.5-3" />
+    </svg>
+);
+
+const DiabetesObesityIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        {...props}
+    >
+        {/* Glucometer Body */}
+        <rect x="5" y="3" width="14" height="15" rx="3" strokeWidth="2" />
+        <rect x="5" y="3" width="14" height="15" rx="3" fill="currentColor" fillOpacity="0.05" stroke="none" />
+        
+        {/* Screen */}
+        <rect x="7.5" y="5.5" width="9" height="7" rx="1" fill="currentColor" fillOpacity="0.1" />
+        
+        {/* Drop Symbol on Screen */}
+        <path 
+            d="M12 7.5c-0.8 1.2-1.5 2-1.5 2.8s0.7 1.2 1.5 1.2 1.5-0.5 1.5-1.2-0.7-1.6-1.5-2.8z" 
+            fill="currentColor" 
+            stroke="none" 
+        />
+        
+        {/* Test Strip Slot & Strip */}
+        <path d="M9 18v4h6v-4" strokeWidth="2" />
+        <line x1="12" y1="20" x2="12" y2="21" strokeWidth="2" stroke="currentColor" />
+        <circle cx="12" cy="20.5" r="0.5" fill="red" stroke="none" />
+    </svg>
+);
+
+const SkinHealthIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        {...props}
+    >
+        {/* Hair Bun */}
+        <path d="M12 5c-1.5 0-3-.5-3-2s1.5-1 3-1 3 .5 3 2-1.5 2-3 2z" fill="currentColor" fillOpacity="0.1" />
+        <path d="M9 3c0 1.5 1.5 2 3 2s3-.5 3-2" />
+
+        {/* Head/Face Shape */}
+        <path d="M12 5c-4 0-6 3-6 7 0 4 2.5 7 6 7s6-3 6-7c0-4-2-7-6-7z" fill="currentColor" fillOpacity="0.2" />
+        <path d="M6 12c0 4 2.5 7 6 7s6-3 6-7c0-4-2-7-6-7s-6 3-6 7z" />
+        
+        {/* Ears */}
+        <path d="M6 11c-1 0-1.5 1-1.5 2s.5 2 1.5 2" />
+        <path d="M18 11c1 0 1.5 1 1.5 2s-.5 2-1.5 2" />
+
+        {/* Face Features */}
+        <path d="M9 12c.5 .5 1.5 .5 2 0" />
+        <path d="M13 12c.5 .5 1.5 .5 2 0" />
+        <path d="M11 15c.5 .5 1.5 .5 2 0" />
+        
+        {/* Skin Markers/Dots */}
+        <circle cx="9" cy="10" r="0.4" fill="currentColor" stroke="none" />
+        <circle cx="15" cy="10" r="0.4" fill="currentColor" stroke="none" />
+        <circle cx="12" cy="11" r="0.3" fill="currentColor" stroke="none" />
+        <circle cx="10" cy="14" r="0.3" fill="currentColor" stroke="none" />
+        <circle cx="14" cy="14" r="0.3" fill="currentColor" stroke="none" />
+        <circle cx="12" cy="17" r="0.3" fill="currentColor" stroke="none" />
+        <circle cx="8" cy="13" r="0.2" fill="currentColor" stroke="none" />
+        <circle cx="16" cy="13" r="0.2" fill="currentColor" stroke="none" />
+    </svg>
+);
+
+const BrainHealthIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        {...props}
+    >
+        {/* Head Profile */}
+        <path 
+            d="M9 21v-2c0-2 0-3-1-4-2-2-4-4-4-7s3-7 8-7 8 4 8 7-2 6-2 9v4" 
+            strokeWidth="2"
+        />
+        <path d="M4 11c0-2 .5-3.5 1.5-4.5" strokeWidth="1.5" opacity="0.5" />
+        
+        {/* Brain Shape */}
+        <g className="text-blue-400">
+            <path 
+                d="M12 6c-2 0-3.5 1-3.5 2.5s1 2.5 3.5 2.5 3.5-1 3.5-2.5S14 6 12 6z" 
+                fill="currentColor" 
+                fillOpacity="0.1" 
+            />
+            <path d="M12 6c-1.5 0-2.5 .5-2.5 1.5s.5 1.5 1.5 1.5l1-1h2l1 1c1 0 1.5-.5 1.5-1.5s-1-1.5-2.5-1.5" />
+            <path d="M9.5 9c-.5 1-.5 2 0 3 .5 1 1.5 1.5 2.5 1.5s2-.5 2.5-1.5 0-2-.5-3" />
+            <path d="M12 11v2.5" strokeWidth="1.2" />
+        </g>
+    </svg>
+);
+
+const VascularHealthIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        {...props}
+    >
+        {/* Anatomical Heart Body */}
+        <path 
+            d="M12 21.5c-1-1-6-5-6-9.5 0-2.5 1.5-4 4-4 .5 0 1 0 1.5.2.2-.5.5-1 1-1.2.2-.1.5-.2.8-.2.2 0 .5.1.7.2.5.2.8.7 1 1.2.5-.2 1-.2 1.5-.2 2.5 0 4 1.5 4 4 0 4.5-5 8.5-6 9.5z" 
+            fill="currentColor" 
+            fillOpacity="0.1" 
+        />
+        <path d="M12 21.5c-1-1-6-5-6-9.5 0-2.5 1.5-4 4-4 .5 0 1 0 1.5.2" />
+        <path d="M12.5 8c.5-.2 1-.2 1.5-.2 2.5 0 4 1.5 4 4 0 4.5-5 8.5-6 9.5" />
+        
+        {/* Main Vessels (Aorta/Pulmonary) */}
+        <path d="M12 8c.2-1.5.5-3 1-4.5" strokeWidth="2" />
+        <path d="M12.5 3.5c1.5 0 2 .5 2 1.5" strokeWidth="1.5" />
+        <path d="M10.5 8.5c-.2-1-.5-2-1-3" strokeWidth="2" />
+        <path d="M9.5 5.5c-1.5 0-2 .5-2 1.5" strokeWidth="1.5" />
+        
+        {/* Branching Vessels */}
+        <g strokeWidth="1.2" opacity="0.6">
+            <path d="M17.5 11l2-1" />
+            <path d="M19.5 10l1.5-1.5" />
+            <path d="M19.5 10l1 2" />
+            
+            <path d="M6.5 11l-2-1" />
+            <path d="M4.5 10l-1.5-1.5" />
+            <path d="M4.5 10l-1 2" />
+            
+            <path d="M6.5 15l-1.5 1" />
+            <path d="M5 16l-.5 2" />
+            
+            <path d="M17.5 15l1.5 1" />
+            <path d="M19 16l.5 2" />
+        </g>
+        
+        {/* Detail on heart surface */}
+        <path d="M12 11c-1 1-2 2.5-1.5 4s2 2.5 2 2.5" strokeWidth="1" opacity="0.4" />
+        <path d="M13 12c1 1 2 2.5 1.5 4" strokeWidth="1" opacity="0.4" />
+    </svg>
+);
+
+const ToxicologyIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        {...props}
+    >
+        {/* Scientist Profile (Left) */}
+        <g opacity="0.8">
+            <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+            <path d="M8 5c1 0 1.5-.5 1.5-1.5s-.5-1.5-1.5-1.5l-1 1h2l1 1" opacity="0.4" fill="currentColor" />
+            
+            <path d="M2 18v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
+            <path d="M6 12l2 3 2-3" strokeWidth="1.2" />
+            
+            {/* Hair/Bun Detail */}
+            <path d="M11 4c0-1.5-1-2.5-2.5-2.5s-2.5 1-2.5 2.5" />
+            <path d="M11 6c1.5 0 2-1 2-2s-.5-2-2-2" />
+        </g>
+
+        {/* Flask (Right) */}
+        <g className="text-indigo-400">
+            <path 
+                d="M17 12c-2.5 0-4.5 1.8-4.5 4s2 4 4.5 4 4.5-1.8 4.5-4-2-4-4.5-4z" 
+                fill="currentColor" 
+                fillOpacity="0.1" 
+            />
+            <path d="M17 12c-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4z" />
+            <path d="M17 12V9.5h-2V12" strokeWidth="2" />
+            <path d="M14 9.5h4" strokeWidth="2" />
+            <rect x="15" y="7.5" width="2" height="2" rx="0.5" fill="currentColor" stroke="none" />
+            
+            {/* Bone Symbol inside Flask */}
+            <path 
+                d="M15.5 15.5 c-.3-.3-.8-.3-1.1 0s-.3.8 0 1.1l2.5 2.5 c.3.3.8.3 1.1 0s.3-.8 0-1.1 l-2.5-2.5" 
+                strokeWidth="1.2" 
+            />
+            <circle cx="14.2" cy="15.8" r="0.6" fill="currentColor" />
+            <circle cx="14.8" cy="15.2" r="0.6" fill="currentColor" />
+            <circle cx="17.2" cy="18.8" r="0.6" fill="currentColor" />
+            <circle cx="17.8" cy="18.2" r="0.6" fill="currentColor" />
+        </g>
+    </svg>
+);
+
+const BioavailabilityIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        {...props}
+    >
+        {/* Central Hexagon */}
+        <g className="text-blue-400">
+            <path 
+                d="M12 9l3.5 2v4L12 17l-3.5-2v-4z" 
+                fill="currentColor" 
+                fillOpacity="0.1" 
+                strokeWidth="2"
+            />
+            <path d="M12 9l3.5 2v4L12 17l-3.5-2v-4L12 9z" strokeWidth="2" />
+            
+            {/* Checkmark inside */}
+            <path d="M10.5 13l1 1 2-2" strokeWidth="2" />
+            
+            {/* Nodes on central hexagon */}
+            <circle cx="12" cy="9" r="0.5" fill="currentColor" />
+            <circle cx="15.5" cy="11" r="0.5" fill="currentColor" />
+            <circle cx="15.5" cy="15" r="0.5" fill="currentColor" />
+            <circle cx="12" cy="17" r="0.5" fill="currentColor" />
+            <circle cx="8.5" cy="15" r="0.5" fill="currentColor" />
+            <circle cx="8.5" cy="11" r="0.5" fill="currentColor" />
+        </g>
+
+        {/* Small Hexagons and Connections */}
+        <g opacity="0.8">
+            {/* Top Right */}
+            <line x1="13.5" y1="9.5" x2="15" y2="7.5" strokeWidth="1.5" />
+            <path d="M15 4l1.5 1v2L15 8l-1.5-1V5z" fill="currentColor" fillOpacity="0.05" />
+            <path d="M15 4l1.5 1v2L15 8l-1.5-1V5L15 4z" />
+            <path d="M14.5 5.5l.5 .5 1-1" strokeWidth="1" opacity="0.6" />
+
+            {/* Left */}
+            <line x1="8.5" y1="13" x2="6.5" y2="12" strokeWidth="1.5" />
+            <path d="M5 8l1.5 1v2L5 12l-1.5-1V9z" fill="currentColor" fillOpacity="0.05" />
+            <path d="M5 8l1.5 1v2L5 12l-1.5-1V9L5 8z" />
+            <path d="M4.5 9.5l.5 .5 1-1" strokeWidth="1" opacity="0.6" />
+
+            {/* Bottom Left */}
+            <line x1="10.5" y1="16.5" x2="9" y2="18.5" strokeWidth="1.5" />
+            <path d="M8 17l1.5 1v2L8 21l-1.5-1v-2z" fill="currentColor" fillOpacity="0.05" />
+            <path d="M8 17l1.5 1v2L8 21l-1.5-1v-2L8 17z" />
+            <path d="M7.5 18.5l.5 .5 1-1" strokeWidth="1" opacity="0.6" />
+        </g>
+    </svg>
+);
+
 const EXPERTISE_DATA = [
     {
         label: 'Leaky Gut',
-        icon: Flower,
+        icon: LeakyGutIcon,
         color: 'text-cyan-400',
         glow: 'shadow-[0_0_15px_rgba(34,211,238,0.4)]',
         description: 'Investigating intestinal permeability and its impact on systemic inflammation and chronic disease markers.',
@@ -60,7 +554,7 @@ const EXPERTISE_DATA = [
     },
     {
         label: 'Inflammation',
-        icon: Activity,
+        icon: InflammationIcon,
         color: 'text-indigo-400',
         glow: 'shadow-[0_0_15px_rgba(129,140,248,0.4)]',
         description: 'Studying acute and chronic inflammatory responses through advanced biomarker analysis and cytokine profiling.',
@@ -83,7 +577,7 @@ const EXPERTISE_DATA = [
     },
     {
         label: 'Microbiome',
-        icon: Microscope,
+        icon: MicrobiomeIcon,
         color: 'text-blue-400',
         glow: 'shadow-[0_0_15px_rgba(96,165,250,0.4)]',
         description: 'Exploring the complex ecosystem of gut flora and its profound influence on metabolic and immune health.',
@@ -121,7 +615,7 @@ const EXPERTISE_DATA = [
     },
     {
         label: 'Biotics',
-        icon: FlaskConical,
+        icon: BioticsIcon,
         color: 'text-cyan-400',
         glow: 'shadow-[0_0_15px_rgba(34,211,238,0.4)]',
         description: 'Scientific validation of prebiotics, probiotics, and postbiotics in enhancing host-microbe interactions.',
@@ -164,7 +658,7 @@ const EXPERTISE_DATA = [
     },
     {
         label: 'Aging',
-        icon: Leaf,
+        icon: AgingIcon,
         color: 'text-indigo-400',
         glow: 'shadow-[0_0_15px_rgba(129,140,248,0.4)]',
         description: 'Researching cellular senescence and longevity markers to promote healthy biological aging and cellular rejuvenation.',
@@ -265,14 +759,14 @@ const EXPERTISE_DATA = [
     },
     {
         label: 'Neurodegeneration',
-        icon: Brain,
+        icon: NeurodegenerationIcon,
         color: 'text-cyan-400',
         glow: 'shadow-[0_0_15px_rgba(34,211,238,0.4)]',
         description: 'In-depth studies on neuroprotective pathways and strategies to mitigate age-related cognitive decline.'
     },
     {
         label: 'Muscle Health',
-        icon: Zap,
+        icon: MuscleHealthIcon,
         color: 'text-indigo-400',
         glow: 'shadow-[0_0_15px_rgba(129,140,248,0.4)]',
         description: 'Evaluating protein synthesis, muscle mass maintenance, and musculoskeletal integrity across life stages.',
@@ -325,7 +819,7 @@ const EXPERTISE_DATA = [
     },
     {
         label: 'Gut Health',
-        icon: Activity,
+        icon: GutHealthIcon,
         color: 'text-blue-400',
         glow: 'shadow-[0_0_15px_rgba(96,165,250,0.4)]',
         description: 'Comprehensive analysis of digestive function, nutrient absorption, and gastrointestinal wellness.',
@@ -429,7 +923,7 @@ const EXPERTISE_DATA = [
     },
     {
         label: 'Diabetes & Obesity',
-        icon: Activity,
+        icon: DiabetesObesityIcon,
         color: 'text-cyan-400',
         glow: 'shadow-[0_0_15px_rgba(34,211,238,0.4)]',
         description: 'Translational research on glycemic control, insulin sensitivity, and weight management interventions.',
@@ -532,7 +1026,7 @@ const EXPERTISE_DATA = [
     },
     {
         label: 'Skin Health',
-        icon: Flower2,
+        icon: SkinHealthIcon,
         color: 'text-pink-400',
         glow: 'shadow-[0_0_15px_rgba(244,114,182,0.4)]',
         description: 'Clinical evaluation of dermatological health, including barrier function, hydration, and anti-aging efficacy.',
@@ -584,7 +1078,7 @@ const EXPERTISE_DATA = [
     },
     {
         label: 'Brain Health',
-        icon: Brain,
+        icon: BrainHealthIcon,
         color: 'text-blue-400',
         glow: 'shadow-[0_0_15px_rgba(96,165,250,0.4)]',
         description: 'Holistic assessment of neurological wellness, mental clarity, and neurotransmitter balance.',
@@ -655,7 +1149,7 @@ const EXPERTISE_DATA = [
     },
     {
         label: 'Vascular Health',
-        icon: HeartPulse,
+        icon: VascularHealthIcon,
         color: 'text-cyan-400',
         glow: 'shadow-[0_0_15px_rgba(34,211,238,0.4)]',
         description: 'Studying endothelial function, blood flow dynamics, and cardiovascular wellness markers.',
@@ -697,7 +1191,7 @@ const EXPERTISE_DATA = [
     },
     {
         label: 'Toxicology',
-        icon: Beaker,
+        icon: ToxicologyIcon,
         color: 'text-indigo-400',
         glow: 'shadow-[0_0_15px_rgba(129,140,248,0.4)]',
         description: 'Rigorous safety assessments and toxicity profiling of ingredients and final formulations.',
@@ -729,7 +1223,7 @@ const EXPERTISE_DATA = [
     },
     {
         label: 'Bioavailability',
-        icon: BarChart,
+        icon: BioavailabilityIcon,
         color: 'text-blue-400',
         glow: 'shadow-[0_0_15px_rgba(96,165,250,0.4)]',
         description: 'Measuring nutrient absorption, pharmacokinetics, and delivery efficiency of bioactive compounds.',

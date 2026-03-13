@@ -306,56 +306,6 @@ const Support: React.FC = () => {
                     </div>
                 </section>
 
-                {/* Section 3: Expertise */}
-                <section className="pt-8 pb-24 relative z-10 overflow-hidden">
-                    <div className="max-w-[1700px] mx-auto px-4 md:px-12">
-                        <div className="text-center space-y-6 mb-24">
-                            <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight leading-tight uppercase italic">Our Expertise Lies In</h2>
-                            <p className="text-xl text-slate-400 font-medium max-w-2xl mx-auto">
-                                Our team includes leading experts across multiple health disciplines to deliver rigorous, innovative, and decision-driving research.
-                            </p>
-                        </div>
-
-                        {/* Enhanced Grid Container with Section Outline */}
-                        <div className="p-6 md:p-16 rounded-[4.5rem] bg-slate-900/40 border border-white/5 backdrop-blur-3xl relative overflow-hidden group/container">
-                            <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-cyan-500/5 blur-[120px] rounded-full"></div>
-
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 relative z-10">
-                                {[
-                                    { name: "Leaky Gut", icon: IntestineIcon },
-                                    { name: "Inflammation", icon: Flame },
-                                    { name: "Microbiome", icon: Microscope },
-                                    { name: "Biotics", icon: Pill },
-                                    { name: "Aging", icon: Hourglass },
-                                    { name: "Cognitive Health", icon: Lightbulb },
-                                    { name: "Neurodegeneration", icon: BrainCircuit },
-                                    { name: "Muscle Health", icon: Zap },
-                                    { name: "Gut Health", icon: IntestineIcon },
-                                    { name: "Diabetes & Obesity", icon: Scale },
-                                    { name: "Skin Health", icon: Sparkles },
-                                    { name: "Brain Health", icon: Brain },
-                                    { name: "Vascular Health", icon: HeartPulse },
-                                    { name: "Toxicology", icon: FlaskConical },
-                                    { name: "Bioavailability", icon: Layers }
-                                ].map((domain, i) => (
-                                    <div key={i} className="group p-6 md:p-10 rounded-[2.5rem] bg-slate-950/50 border border-white/5 hover:bg-slate-900 hover:border-cyan-500/30 transition-all duration-500 text-center flex flex-col items-center gap-6 shadow-2xl relative overflow-hidden">
-                                        <div className="absolute -inset-1 bg-gradient-to-tr from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                        <div className="w-14 h-14 rounded-2xl bg-cyan-400 flex items-center justify-center text-slate-900 shadow-[0_0_20px_rgba(6,182,212,0.4)] group-hover:scale-110 transition-transform duration-500 relative z-10">
-                                            <domain.icon className="w-7 h-7" />
-                                        </div>
-                                        <span className="text-white font-black text-[11px] uppercase tracking-[0.2em] group-hover:text-cyan-400 transition-colors leading-tight relative z-10">{domain.name}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="flex justify-center mt-16">
-                            <button onClick={() => setShowRouter(true)} className="bg-white/5 text-white px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-cyan-500 hover:text-slate-900 transition-all border border-white/10 focus:outline-none">
-                                Start the Conversation
-                            </button>
-                        </div>
-                    </div>
-                </section>
 
                 {/* Section 4: Success Stories */}
                 <section className="py-24 relative z-10 bg-slate-900/20">
