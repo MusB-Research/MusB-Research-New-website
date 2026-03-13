@@ -81,8 +81,8 @@ const AnimatedBackground = () => {
 
                 if (distance < mouseRadius) {
                     const force = (mouseRadius - distance) / mouseRadius;
-                    particle.x -= dx / 50 * force;
-                    particle.y -= dy / 50 * force;
+                    particle.x += dx / 50 * force;
+                    particle.y += dy / 50 * force;
                 }
 
                 if (particle.x < 0) particle.x = canvas.width;
