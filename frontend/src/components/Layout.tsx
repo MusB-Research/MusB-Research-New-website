@@ -414,7 +414,7 @@ export default function Layout({ children }: LayoutProps) {
                         {/* Solutions & Socials */}
                         <div className="flex flex-col gap-16">
                             <div className="space-y-8">
-                                <h4 className="text-white font-black uppercase tracking-[0.25em] text-[12px]">Solutions</h4>
+                                <h4 className="text-white font-black uppercase tracking-[0.25em] text-[14px]">Solutions</h4>
                                 <ul className="space-y-4">
                                     {[
                                         { label: 'For Businesses', path: '/support' },
@@ -423,7 +423,7 @@ export default function Layout({ children }: LayoutProps) {
                                         { label: 'Join a Study!', path: '/trials' }
                                     ].map((item) => (
                                         <li key={item.label}>
-                                            <Link to={item.path} className="text-slate-500 hover:text-cyan-400 text-[13px] transition-colors font-bold flex items-center gap-2 group/link">
+                                            <Link to={item.path} className="text-slate-500 hover:text-cyan-400 text-[15px] transition-colors font-bold flex items-center gap-2 group/link">
                                                 {item.label}
                                             </Link>
                                         </li>
@@ -467,7 +467,7 @@ export default function Layout({ children }: LayoutProps) {
 
                         {/* MusB Group */}
                         <div className="space-y-8">
-                            <h4 className="text-white font-black uppercase tracking-[0.25em] text-[12px]">MusB Group</h4>
+                            <h4 className="text-white font-black uppercase tracking-[0.25em] text-[14px]">MusB Group</h4>
                             <ul className="space-y-4">
                                 {[
                                     { label: 'About Us', path: '/about' },
@@ -476,7 +476,7 @@ export default function Layout({ children }: LayoutProps) {
                                     { label: 'Contact Us', path: '/contact' }
                                 ].map((item) => (
                                     <li key={item.label}>
-                                        <Link to={item.path} className="text-slate-500 hover:text-cyan-400 text-[13px] transition-colors font-bold flex items-center gap-2">
+                                        <Link to={item.path} className="text-slate-500 hover:text-cyan-400 text-[15px] transition-colors font-bold flex items-center gap-2">
                                             {item.label}
                                         </Link>
                                     </li>
