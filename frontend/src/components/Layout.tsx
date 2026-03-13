@@ -374,86 +374,66 @@ export default function Layout({ children }: LayoutProps) {
             <main className="flex-grow w-full">
                 {children}
             </main>
-
             {/* Footer Section */}
-            <footer className="pt-20 bg-slate-950/80 border-t border-white/5 relative overflow-hidden">
+            <footer className="pt-20 pb-10 bg-[#020617] border-t border-white/5 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
                 
-                <div className="max-w-[1700px] mx-auto px-6 md:px-12 pb-12">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16 md:mb-24">
+                <div className="max-w-[1500px] mx-auto px-6 md:px-12">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-12 gap-y-16 mb-20">
                         {/* Branding & Contact */}
-                        <div className="space-y-8">
+                        <div className="space-y-10">
                             <Link to="/" className="inline-block group">
-                                <div className="h-16 bg-white/5 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 group-hover:border-cyan-500/30 transition-all duration-300 flex items-center justify-center shadow-2xl">
+                                <div className="h-20 bg-white/5 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 group-hover:border-cyan-500/30 transition-all duration-500 flex items-center justify-center shadow-2xl">
                                     <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain brightness-110 contrast-125" />
                                 </div>
                             </Link>
-                            <div className="space-y-5">
+                            <div className="space-y-6">
                                 <div className="flex items-start gap-4 group/item">
-                                    <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 group-hover/item:border-cyan-500/50 transition-all">
-                                        <MapPin className="w-4 h-4" />
+                                    <div className="w-10 h-10 min-w-[40px] rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 group-hover/item:bg-cyan-500/10 group-hover/item:border-cyan-500/50 transition-all duration-300">
+                                        <MapPin className="w-5 h-5" />
                                     </div>
-                                    <p className="text-slate-400 text-sm font-medium leading-relaxed">
+                                    <p className="text-slate-400 text-[13px] font-medium leading-relaxed pt-1">
                                         6331 State Road 54<br />New Port Richey, FL 34653
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-4 group/item">
-                                    <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 group-hover/item:border-cyan-500/50 transition-all">
-                                        <Phone className="w-4 h-4" />
+                                    <div className="w-10 h-10 min-w-[40px] rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 group-hover/item:bg-cyan-500/10 group-hover/item:border-cyan-500/50 transition-all duration-300">
+                                        <Phone className="w-5 h-5" />
                                     </div>
-                                    <p className="text-slate-400 text-sm font-bold">+1-813-419-0781</p>
+                                    <p className="text-slate-400 text-[13px] font-bold">+1-813-419-0781</p>
                                 </div>
                                 <div className="flex items-center gap-4 group/item">
-                                    <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 group-hover/item:border-cyan-500/50 transition-all">
-                                        <Mail className="w-4 h-4" />
+                                    <div className="w-10 h-10 min-w-[40px] rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 group-hover/item:bg-cyan-500/10 group-hover/item:border-cyan-500/50 transition-all duration-300">
+                                        <Mail className="w-5 h-5" />
                                     </div>
-                                    <p className="text-slate-400 text-sm font-bold">info@musbresearch.com</p>
+                                    <p className="text-slate-400 text-[13px] font-bold">info@musbresearch.com</p>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Solutions */}
-                        <div className="space-y-8">
-                            <h4 className="text-white font-black uppercase tracking-[0.2em] text-[13px]">Solutions</h4>
-                            <ul className="space-y-4">
-                                {[
-                                    { label: 'For Businesses', path: '/support' },
-                                    { label: 'For Patients', path: '/trials' },
-                                    { label: 'Innovation', path: '/innovations' },
-                                    { label: 'Join a Study!', path: '/trials' }
-                                ].map((item) => (
-                                    <li key={item.label}>
-                                        <Link to={item.path} className="text-slate-500 hover:text-cyan-400 text-sm transition-colors font-bold flex items-center gap-2 group/link">
-                                            {item.label}
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        {/* MusB Group & Community */}
-                        <div className="space-y-12">
+                        {/* Solutions & Socials */}
+                        <div className="flex flex-col gap-16">
                             <div className="space-y-8">
-                                <h4 className="text-white font-black uppercase tracking-[0.2em] text-[13px]">MusB Group</h4>
+                                <h4 className="text-white font-black uppercase tracking-[0.25em] text-[12px]">Solutions</h4>
                                 <ul className="space-y-4">
                                     {[
-                                        { label: 'About Us', path: '/about' },
-                                        { label: 'News & Events', path: '/news' },
-                                        { label: 'Careers', path: '/careers' },
-                                        { label: 'Contact Us', path: '/contact' }
+                                        { label: 'For Businesses', path: '/support' },
+                                        { label: 'For Patients', path: '/trials' },
+                                        { label: 'Innovation', path: '/innovations' },
+                                        { label: 'Join a Study!', path: '/trials' }
                                     ].map((item) => (
                                         <li key={item.label}>
-                                            <Link to={item.path} className="text-slate-500 hover:text-cyan-400 text-sm transition-colors font-bold flex items-center gap-2">
+                                            <Link to={item.path} className="text-slate-500 hover:text-cyan-400 text-[13px] transition-colors font-bold flex items-center gap-2 group/link">
                                                 {item.label}
                                             </Link>
                                         </li>
                                     ))}
                                 </ul>
                             </div>
-                            
-                            <div className="space-y-6 pt-4">
-                                <h4 className="text-white font-black uppercase tracking-[0.2em] text-[11px] opacity-50">Join the Community</h4>
-                                <div className="flex gap-4">
+
+                            <div className="space-y-8">
+                                <h4 className="text-white font-black uppercase tracking-[0.25em] text-[12px]">Join The Community</h4>
+                                <div className="flex flex-wrap gap-3">
                                     {[
                                         { icon: Youtube, url: 'https://youtube.com/@MusB-v5n' },
                                         { icon: Facebook, url: 'https://www.facebook.com/profile.php?id=61579407750169' },
@@ -473,11 +453,11 @@ export default function Layout({ children }: LayoutProps) {
                                             href={social.url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 hover:bg-cyan-500 hover:text-slate-900 transition-all duration-300"
+                                            className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 hover:bg-cyan-500 hover:text-slate-900 transition-all duration-300 group"
                                         >
                                             {(() => {
                                                 const Icon = social.icon;
-                                                return <Icon className="w-4 h-4" />;
+                                                return <Icon className="w-5 h-5 group-hover:scale-110 transition-transform" />;
                                             })()}
                                         </a>
                                     ))}
@@ -485,24 +465,45 @@ export default function Layout({ children }: LayoutProps) {
                             </div>
                         </div>
 
-                        {/* Newsletter */}
-                        <div className="space-y-6">
-                            <div className="p-8 rounded-[2rem] bg-white/5 border border-white/10 relative overflow-hidden ring-1 ring-white/5">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-3xl rounded-full"></div>
-                                <h4 className="text-white font-black uppercase tracking-[0.2em] text-[13px] mb-6">Get Our Newsletters</h4>
-                                <div className="space-y-6">
+                        {/* MusB Group */}
+                        <div className="space-y-8">
+                            <h4 className="text-white font-black uppercase tracking-[0.25em] text-[12px]">MusB Group</h4>
+                            <ul className="space-y-4">
+                                {[
+                                    { label: 'About Us', path: '/about' },
+                                    { label: 'News & Events', path: '/news' },
+                                    { label: 'Careers', path: '/careers' },
+                                    { label: 'Contact Us', path: '/contact' }
+                                ].map((item) => (
+                                    <li key={item.label}>
+                                        <Link to={item.path} className="text-slate-500 hover:text-cyan-400 text-[13px] transition-colors font-bold flex items-center gap-2">
+                                            {item.label}
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        {/* Newsletter Card */}
+                        <div className="lg:pl-4">
+                            <div className="p-8 rounded-[2.5rem] bg-[#0c1221]/80 backdrop-blur-xl border border-white/10 relative overflow-hidden group/card shadow-2xl">
+                                <div className="absolute -top-20 -right-20 w-40 h-40 bg-cyan-500/10 blur-[80px] rounded-full group-hover/card:bg-cyan-500/20 transition-all duration-700"></div>
+                                
+                                <h4 className="text-white font-black uppercase tracking-[0.2em] text-[12px] mb-8">Get Our Newsletters</h4>
+                                
+                                <div className="space-y-8">
                                     <div className="space-y-4">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 pl-1">Which Best Describes You?</p>
-                                        <div className="flex bg-slate-950/50 p-1 rounded-xl gap-1 border border-white/5">
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 pl-1">Which Best Describes You?</p>
+                                        <div className="flex bg-[#020617] p-1.5 rounded-2xl gap-2 border border-white/5">
                                             <button
                                                 onClick={() => setUserType('Business')}
-                                                className={`flex-1 px-4 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${userType === 'Business' ? 'bg-cyan-500 text-slate-950' : 'text-slate-500 hover:text-slate-300'}`}
+                                                className={`flex-1 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 border ${userType === 'Business' ? 'bg-[#1e293b]/50 border-cyan-500/30 text-white shadow-lg' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
                                             >
                                                 Business
                                             </button>
                                             <button
                                                 onClick={() => setUserType('Individual')}
-                                                className={`flex-1 px-4 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${userType === 'Individual' ? 'bg-cyan-500 text-slate-950' : 'text-slate-500 hover:text-slate-300'}`}
+                                                className={`flex-1 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 border ${userType === 'Individual' ? 'bg-[#1e293b]/50 border-cyan-500/30 text-white shadow-lg shadow-cyan-500/10' : 'border-transparent text-slate-500 hover:text-slate-300 font-black'}`}
                                             >
                                                 Individual
                                             </button>
@@ -510,22 +511,35 @@ export default function Layout({ children }: LayoutProps) {
                                     </div>
                                     
                                     <div className="relative group/input">
-                                        <input
-                                            type="email"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            placeholder="Your Email"
-                                            className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3.5 pr-14 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/50 transition-all font-medium"
-                                        />
-                                        <button
-                                            onClick={handleSubscribe}
-                                            disabled={newsletterStatus === 'loading' || newsletterStatus === 'success'}
-                                            className="absolute right-1 top-1 bottom-1 w-11 rounded-lg bg-cyan-500 flex items-center justify-center text-slate-950 hover:bg-white transition-all disabled:opacity-50"
-                                        >
-                                            <Send className="w-4 h-4" />
-                                        </button>
+                                        <div className="absolute inset-0 bg-cyan-500/5 blur-xl group-focus-within/input:bg-cyan-500/10 transition-all duration-500"></div>
+                                        <div className="relative flex items-center bg-[#020617] border border-white/10 rounded-2xl overflow-hidden focus-within:border-cyan-500/40 transition-all duration-300">
+                                            <input
+                                                type="email"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                placeholder="Your Email"
+                                                className="flex-grow bg-transparent px-5 py-4 text-[13px] text-white placeholder:text-slate-600 focus:outline-none font-medium"
+                                            />
+                                            <button
+                                                onClick={handleSubscribe}
+                                                disabled={newsletterStatus === 'loading' || newsletterStatus === 'success'}
+                                                className="group/btn h-12 w-12 mr-1 rounded-xl bg-cyan-500 flex items-center justify-center text-slate-950 hover:bg-white transition-all duration-300 disabled:opacity-50 shadow-lg shadow-cyan-500/20"
+                                            >
+                                                {newsletterStatus === 'loading' ? (
+                                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                                ) : newsletterStatus === 'success' ? (
+                                                    <CheckCircle2 className="w-5 h-5" />
+                                                ) : (
+                                                    <Send className="w-5 h-5 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
+                                                )}
+                                            </button>
+                                        </div>
                                     </div>
-                                    {newsletterStatus === 'success' && <p className="text-green-400 text-[10px] font-bold uppercase tracking-widest animate-pulse pl-1">Subscribed Successfully</p>}
+                                    {newsletterStatus === 'success' && (
+                                        <p className="text-cyan-400 text-[10px] font-black uppercase tracking-[0.2em] animate-pulse text-center">
+                                            Successfully Subscribed
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -533,16 +547,17 @@ export default function Layout({ children }: LayoutProps) {
 
                     <div className="pt-12 border-t border-white/5 flex flex-col lg:flex-row justify-between items-center gap-8">
                         <div className="space-y-2 text-center lg:text-left">
-                            <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-500">© 2026 MusB™ Research. All Rights Reserved.</p>
-                            <p className="text-[11px] text-slate-600 font-medium">Information can change without notice. MusB™ Research – Integrated Research & Clinical Solutions.</p>
+                            <p className="text-[12px] font-black uppercase tracking-[0.3em] text-slate-600">© 2026 MusB™ Research. All Rights Reserved.</p>
+                            <p className="text-[11px] text-slate-700 font-medium">Information can change without notice. MusB™ Research – Integrated Research & Clinical Solutions.</p>
                         </div>
-                        <div className="flex gap-10 text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">
+                        <div className="flex gap-10 text-[11px] font-black uppercase tracking-[0.2em] text-slate-600">
                             <Link to="#" className="hover:text-cyan-400 transition-colors">Privacy Policy</Link>
                             <Link to="#" className="hover:text-cyan-400 transition-colors">Terms of Use</Link>
                         </div>
                     </div>
                 </div>
             </footer>
+</footer>
         </div>
     );
 }
