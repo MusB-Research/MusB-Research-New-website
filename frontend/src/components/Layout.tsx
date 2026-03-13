@@ -378,10 +378,10 @@ export default function Layout({ children }: LayoutProps) {
             <footer className="pt-20 pb-10 bg-[#020617] border-t border-white/5 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
                 
-                <div className="max-w-[1500px] mx-auto px-6 md:px-12">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-12 gap-y-16 mb-20">
+                <div className="max-w-[1600px] mx-auto px-6 md:px-12">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-x-12 gap-y-16 mb-20">
                         {/* Branding & Contact */}
-                        <div className="space-y-10">
+                        <div className="lg:col-span-3 space-y-10">
                             <Link to="/" className="inline-block group">
                                 <div className="h-20 bg-white/5 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 group-hover:border-cyan-500/30 transition-all duration-500 flex items-center justify-center shadow-2xl">
                                     <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain brightness-110 contrast-125" />
@@ -412,7 +412,7 @@ export default function Layout({ children }: LayoutProps) {
                         </div>
 
                         {/* Solutions & Socials */}
-                        <div className="flex flex-col gap-16">
+                        <div className="lg:col-span-3 flex flex-col gap-16">
                             <div className="space-y-8">
                                 <h4 className="text-white font-black uppercase tracking-[0.25em] text-[14px]">Solutions</h4>
                                 <ul className="space-y-4">
@@ -466,7 +466,7 @@ export default function Layout({ children }: LayoutProps) {
                         </div>
 
                         {/* MusB Group */}
-                        <div className="space-y-8">
+                        <div className="lg:col-span-2 space-y-8">
                             <h4 className="text-white font-black uppercase tracking-[0.25em] text-[14px]">MusB Group</h4>
                             <ul className="space-y-4">
                                 {[
@@ -485,7 +485,7 @@ export default function Layout({ children }: LayoutProps) {
                         </div>
 
                         {/* Newsletter Card */}
-                        <div className="lg:pl-4">
+                        <div className="lg:col-span-4">
                             <div className="p-8 rounded-[2.5rem] bg-[#0c1221]/80 backdrop-blur-xl border border-white/10 relative overflow-hidden group/card shadow-2xl">
                                 <div className="absolute -top-20 -right-20 w-40 h-40 bg-cyan-500/10 blur-[80px] rounded-full group-hover/card:bg-cyan-500/20 transition-all duration-700"></div>
                                 
