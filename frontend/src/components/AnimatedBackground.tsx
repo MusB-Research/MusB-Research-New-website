@@ -26,7 +26,7 @@ const AnimatedBackground = () => {
         let mouseY = 0;
 
         // Configuration
-        const particleCount = 50; 
+        const particleCount = 30; 
         const connectionDistance = 180;
         const mouseRadius = 250;
 
@@ -52,8 +52,8 @@ const AnimatedBackground = () => {
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height,
                     size: size,
-                    speedX: (Math.random() - 0.5) * 0.4,
-                    speedY: (Math.random() - 0.5) * 0.4,
+                    speedX: (Math.random() - 0.5) * 0.2,
+                    speedY: (Math.random() - 0.5) * 0.2,
                     color: colorBase,
                     glow: Math.random() * 25 + 15 
                 });
