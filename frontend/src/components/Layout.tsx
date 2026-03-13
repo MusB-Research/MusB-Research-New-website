@@ -2,6 +2,7 @@ import React, { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ArrowRight, Linkedin, Mail, MapPin, Phone, ChevronDown, Youtube, Facebook, Instagram, Send, Loader2, CheckCircle2, LogIn, LogOut, LayoutDashboard } from 'lucide-react';
 import { redirectToLogin, clearToken, isLoggedIn, getRole } from '../utils/auth';
+import CookieConsent from './CookieConsent';
 
 
 interface LayoutProps {
@@ -384,7 +385,7 @@ export default function Layout({ children }: LayoutProps) {
                         <div className="lg:col-span-3 space-y-10">
                             <Link to="/" className="inline-block group">
                                 <div className="h-20 bg-white/5 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 group-hover:border-cyan-500/30 transition-all duration-500 flex items-center justify-center shadow-2xl">
-                                    <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain brightness-110 contrast-125" />
+                                    <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain brightness-110 contrast-125" loading="lazy" />
                                 </div>
                             </Link>
                             <div className="space-y-6">
@@ -557,6 +558,7 @@ export default function Layout({ children }: LayoutProps) {
                     </div>
                 </div>
             </footer>
+            <CookieConsent />
         </div>
     );
 }

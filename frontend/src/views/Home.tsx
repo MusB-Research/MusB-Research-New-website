@@ -1412,6 +1412,7 @@ export default function Home() {
                                         <img
                                             src={slide.image}
                                             alt=""
+                                            loading="lazy"
                                             className={`w-full h-full object-cover transition-transform duration-[10000ms] ease-linear ${isActive ? 'scale-110' : 'scale-100'}`}
                                         />
                                         <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]"></div>
@@ -1620,6 +1621,7 @@ export default function Home() {
                                         <img
                                             src="/mission_innovation.png"
                                             alt="Clinical Research"
+                                            loading="lazy"
                                             className="w-full h-[500px] object-cover rounded-[3.5rem] brightness-90 group-hover:scale-105 transition-all duration-700"
                                         />
                                         <div className="absolute inset-x-8 bottom-8 p-10 rounded-3xl bg-slate-950/80 backdrop-blur-md border border-white/10 space-y-3">
@@ -1740,6 +1742,7 @@ export default function Home() {
                                     <img
                                         src="/images/home-facilities.webp"
                                         alt="MusB Research Facilities"
+                                        loading="lazy"
                                         className="absolute inset-0 w-full h-full object-cover brightness-75 group-hover:scale-110 group-hover:brightness-90 transition-all duration-1000"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60"></div>

@@ -180,6 +180,7 @@ export default function Careers() {
                                 src="/careers-hero.png"
                                 alt="Diverse clinical research team"
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                                loading="lazy"
                             />
                             <div className="absolute bottom-8 left-8 right-8 bg-slate-950/80 backdrop-blur-xl p-8 rounded-3xl border border-white/10 flex items-center justify-between">
                                 <div className="space-y-1">

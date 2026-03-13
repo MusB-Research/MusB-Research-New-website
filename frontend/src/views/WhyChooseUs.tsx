@@ -145,6 +145,7 @@ export default function WhyChooseUs() {
                                     src="/mission_innovation.png"
                                     alt="Clinical Research"
                                     className="w-full h-[500px] object-cover rounded-[3.5rem] brightness-90 group-hover:scale-105 transition-all duration-700"
+                                    loading="lazy"
                                 />
                                 <div className="absolute inset-x-8 bottom-8 p-10 rounded-3xl bg-slate-950/80 backdrop-blur-md border border-white/10 space-y-3">
                                     <h4 className="text-white font-black text-xl uppercase tracking-wider">Mission-Driven Innovation</h4>
@@ -237,6 +238,7 @@ export default function WhyChooseUs() {
                                                 src="/images/our-story.webp"
                                                 alt="Our Story - MusB Research Laboratory"
                                                 className="absolute inset-0 w-full h-full object-cover brightness-75 group-hover:scale-110 group-hover:brightness-90 transition-all duration-1000"
+                                                loading="lazy"
                                             />
                                             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent"></div>
                                             <div className="absolute bottom-8 left-8 right-8">

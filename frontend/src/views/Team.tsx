@@ -128,6 +128,7 @@ const TeamMemberCard = ({ member }: { member: any }) => {
                             <img
                                 src={member.image}
                                 alt={member.name}
+                                loading="lazy"
                                 className={`w-full h-full object-cover ${member.name.includes('Shalini') ? 'object-[50%_35%]' : member.name.includes('Hariom') ? 'object-[50%_25%]' : ''}`}
                             />
                         ) : (
@@ -280,7 +281,7 @@ const AdvisorCard = ({ advisor }: { advisor: any }) => {
                 <div className="flex-shrink-0 relative md:ml-4">
                     <div className="w-40 h-52 md:w-44 md:h-56 rounded-[2rem] bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-2 border-white/10 flex items-center justify-center overflow-hidden shadow-2xl group-hover:scale-105 transition-transform duration-500">
                         {advisor.image ? (
-                            <img src={advisor.image} alt={advisor.name} className="w-full h-full object-cover" />
+                            <img src={advisor.image} alt={advisor.name} loading="lazy" className="w-full h-full object-cover" />
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
                                 <Users className="w-10 h-10 text-slate-700 mb-2" />
@@ -416,6 +417,7 @@ export default function Team() {
                                 <img
                                     src="/api/placeholder/800/800"
                                     alt="Scientific Team Visual"
+                                    loading="lazy"
                                     className="w-full h-full object-cover mix-blend-overlay opacity-60 group-hover:scale-105 transition-transform duration-1000"
                                 />
                                 <div className="absolute inset-0 flex items-center justify-center">
@@ -521,7 +523,7 @@ export default function Team() {
                                 {/* Logo Placeholder */}
                                 <div className="w-20 h-20 mx-auto rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-2 border-white/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500 overflow-hidden">
                                     {collaborator.logo ? (
-                                        <img src={collaborator.logo} alt={collaborator.name} className="w-full h-full object-cover" />
+                                        <img src={collaborator.logo} alt={collaborator.name} loading="lazy" className="w-full h-full object-cover" />
                                     ) : (
                                         <Building2 className="w-10 h-10 text-purple-400" />
                                     )}

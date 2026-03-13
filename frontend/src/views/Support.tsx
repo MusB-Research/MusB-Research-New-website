@@ -179,6 +179,7 @@ const Support: React.FC = () => {
                                         src="/business_hero.png"
                                         alt="Clinical Research Excellence"
                                         className="w-full aspect-[4/5] object-cover brightness-90 transition-all duration-700"
+                                        loading="lazy"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60"></div>
                                     <div className="absolute bottom-12 left-12 right-12 space-y-2">
@@ -350,6 +351,7 @@ const Support: React.FC = () => {
                                             src={story.img}
                                             alt={story.title}
                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 brightness-75 group-hover:brightness-100"
+                                            loading="lazy"
                                         />
                                     </div>
                                     <div className="p-6 md:p-10 space-y-6 flex-grow">

@@ -186,12 +186,12 @@ export default function Trials() {
                             <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/20 to-indigo-500/20 rounded-[4rem] blur-3xl"></div>
                             <div className="relative grid grid-cols-2 gap-4">
                                 <div className="space-y-4 pt-12">
-                                    <img src="/trials-hero-1.png" className="rounded-[3rem] w-full h-[300px] object-cover shadow-2xl border border-white/10" alt="Researcher" />
-                                    <img src="/trials-hero-2.png" className="rounded-[3rem] w-full h-[200px] object-cover shadow-2xl border border-white/10" alt="Volunteer" />
+                                    <img src="/trials-hero-1.png" className="rounded-[3rem] w-full h-[300px] object-cover shadow-2xl border border-white/10" alt="Researcher" loading="lazy" />
+                                    <img src="/trials-hero-2.png" className="rounded-[3rem] w-full h-[200px] object-cover shadow-2xl border border-white/10" alt="Volunteer" loading="lazy" />
                                 </div>
                                 <div className="space-y-4">
-                                    <img src="/trials-hero-3.png" className="rounded-[3rem] w-full h-[200px] object-cover shadow-2xl border border-white/10" alt="Clinical Setting" />
-                                    <img src="/trials-hero-4.png" className="rounded-[3rem] w-full h-[300px] object-cover shadow-2xl border border-white/10" alt="Lab Testing" />
+                                    <img src="/trials-hero-3.png" className="rounded-[3rem] w-full h-[200px] object-cover shadow-2xl border border-white/10" alt="Clinical Setting" loading="lazy" />
+                                    <img src="/trials-hero-4.png" className="rounded-[3rem] w-full h-[300px] object-cover shadow-2xl border border-white/10" alt="Lab Testing" loading="lazy" />
                                 </div>
                             </div>
                         </div>
