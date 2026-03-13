@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
 import AnimatedBackground from './components/AnimatedBackground';
 import Home from './views/Home';
@@ -24,9 +24,9 @@ import ParticipantDashboard from './views/ParticipantDashboard';
 import PIDashboard from './views/PIDashboard';
 import SponsorDashboard from './views/SponsorDashboard';
 
-function App() {
+function AppContent() {
     return (
-        <Router>
+        <>
             <AnimatedBackground />
             <Layout>
                 <Routes>
@@ -56,6 +56,14 @@ function App() {
                     <Route path="/dashboard/sponsor" element={<SponsorDashboard />} />
                 </Routes>
             </Layout>
+        </>
+    );
+}
+
+function App() {
+    return (
+        <Router>
+            <AppContent />
         </Router>
     );
 }

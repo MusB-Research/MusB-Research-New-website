@@ -67,6 +67,7 @@ export default function Layout({ children }: LayoutProps) {
     ];
 
     const isTrialsPage = location.pathname === '/trials';
+    const isDashboard = location.pathname.startsWith('/dashboard');
     const navItems = isTrialsPage ? trialsNavItems : globalNavItems;
 
     // Handle hash scrolling
@@ -90,7 +91,8 @@ export default function Layout({ children }: LayoutProps) {
 
 
             {/* Sticky Header */}
-            <header className="fixed top-0 left-0 right-0 z-50 glass-nav h-20 md:h-24 transition-all duration-500">
+            {!isDashboard && (
+                <header className="fixed top-0 left-0 right-0 z-50 glass-nav h-20 md:h-24 transition-all duration-500">
                 <div className="max-w-[1800px] mx-auto px-4 md:px-6 2xl:px-12 h-full flex items-center justify-between gap-4 xl:gap-8">
                     {/* Logo - Acts as Home button opening in new tab */}
                     <a
@@ -369,14 +371,16 @@ export default function Layout({ children }: LayoutProps) {
                         </div>
                     </div>
                 )}
-            </header>
+                </header>
+            )}
 
             {/* Main Content */}
             <main className="flex-grow w-full">
                 {children}
             </main>
             {/* Footer Section */}
-            <footer className="pt-20 pb-10 bg-[#020617] border-t border-white/5 relative overflow-hidden">
+            {!isDashboard && (
+                <footer className="pt-20 pb-10 bg-[#020617] border-t border-white/5 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
                 
                 <div className="max-w-[1600px] mx-auto px-6 md:px-12">
@@ -557,7 +561,8 @@ export default function Layout({ children }: LayoutProps) {
                         </div>
                     </div>
                 </div>
-            </footer>
+                </footer>
+            )}
             <CookieConsent />
         </div>
     );

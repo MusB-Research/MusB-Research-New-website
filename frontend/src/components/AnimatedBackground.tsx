@@ -41,10 +41,9 @@ const AnimatedBackground = () => {
             for (let i = 0; i < particleCount; i++) {
                 const size = Math.random() * 2.5 + 1;
                 const colors = [
-                    'rgba(168, 85, 247, ', // Purple
-                    'rgba(236, 72, 153, ', // Magenta
-                    'rgba(6, 182, 212, ',  // Cyan
-                    'rgba(20, 184, 166, '  // Teal
+                    'rgba(0, 229, 255, ', // Cyan #00e5ff
+                    'rgba(168, 85, 247, ', // Purple #a855f7
+                    'rgba(0, 255, 136, ',  // Green #00ff88
                 ];
                 const colorBase = colors[Math.floor(Math.random() * colors.length)];
 
@@ -63,12 +62,6 @@ const AnimatedBackground = () => {
         const drawParticles = () => {
              ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            gradient.addColorStop(0, '#020617');
-            gradient.addColorStop(1, '#050b1a');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
             const time = Date.now() * 0.001;
 
             particles.forEach((particle, index) => {
@@ -116,7 +109,7 @@ const AnimatedBackground = () => {
                     const dist = Math.sqrt(Math.pow(particle.x - p2.x, 2) + Math.pow(particle.y - p2.y, 2));
 
                     if (dist < connectionDistance) {
-                        const lineOpacity = (1 - dist / connectionDistance) * 0.15;
+                        const lineOpacity = (1 - dist / connectionDistance) * 0.08;
                         ctx.strokeStyle = `rgba(255, 255, 255, ${lineOpacity})`;
                         ctx.lineWidth = 0.5;
                         ctx.beginPath();

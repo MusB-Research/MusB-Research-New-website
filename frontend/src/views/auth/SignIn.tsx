@@ -199,11 +199,23 @@ export default function SignIn() {
                     client_id: client_id,
                     callback: handleCredentialResponse,
                     auto_select: false,
-                    cancel_on_tap_outside: false,
+                    ux_mode: 'popup', // Popup mode is safer for local dev
+                    cancel_on_tap_outside: true,
                 });
-                console.log("Google GSI Client Initialized");
+                
+                // Render the official Google button
+                const btnDiv = document.getElementById('google-signin-btn');
+                if (btnDiv) {
+                    window.google.accounts.id.renderButton(btnDiv, {
+                        theme: 'outline',
+                        size: 'large',
+                        width: 400, // Fixed width for stability
+                        shape: 'pill'
+                    });
+                }
+                
+                console.log("Google GSI Client Initialized (Manual Popup Mode)");
             } else {
-                // Retry if script not loaded yet
                 setTimeout(initGoogle, 500);
             }
         };
@@ -211,18 +223,9 @@ export default function SignIn() {
     }, []);
 
     const handleGoogleLogin = () => {
-        if (!window.google) {
-            setError('Google Security Service is still loading. Please wait 2 seconds.');
-            return;
-        }
-        
-        // Show the prompt
-        window.google.accounts.id.prompt((notification: any) => {
-            if (notification.isNotDisplayed()) {
-                console.warn("One Tap not displayed:", notification.getNotDisplayedReason());
-                setError(`Google prompt blocked: ${notification.getNotDisplayedReason()}. Please check if you are logged into Google or disabled popups.`);
-            }
-        });
+        // We are no longer calling id.prompt() here.
+        // Google's renderButton handles its own click automatically.
+        console.log("Google Button Clicked");
     };
 
     const handleGoogleBtnClick = (e: React.MouseEvent) => {
@@ -835,20 +838,10 @@ export default function SignIn() {
                                 </span>
                             </div>
 
-                            <motion.button 
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={handleGoogleBtnClick}
-                                className="w-full py-5 bg-slate-950/50 border border-white/10 rounded-[1.5rem] flex items-center justify-center gap-4 hover:bg-white/5 hover:border-white/20 transition-all group overflow-hidden relative"
-                            >
-                                <svg className="w-5 h-5 relative z-10" viewBox="0 0 24 24">
-                                    <path fill="#EA4335" d="M12 5.04c1.88 0 3.33.72 4.05 1.4L19.1 3.4C17.16 1.63 14.77 1 12 1 7.27 1 3.23 4.1 1.6 8.4l3.18 2.47C5.55 7.6 8.5 5.04 12 5.04z" />
-                                    <path fill="#34A853" d="M23.5 12.25c0-.82-.07-1.61-.2-2.38H12v4.5h6.43c-.28 1.44-1.1 2.66-2.33 3.48l3.6 2.8c2.1-1.95 3.3-4.8 3.3-8.4z" />
-                                    <path fill="#4285F4" d="M5.6 14.86a6.83 6.83 0 0 1 0-4.32L2.42 8.07a11.96 11.96 0 0 0 0 10.86l3.18-3.07z" />
-                                    <path fill="#FBBC05" d="M12 23c3.24 0 5.96-1.07 7.93-2.9l-3.6-2.8c-1.1.75-2.5 1.2-4.33 1.2-3.5 0-6.45-2.56-7.52-6.03l-3.18 3.07C3.23 19.9 7.27 23 12 23z" />
-                                </svg>
-                                <span className="text-[10px] font-black text-white group-hover:text-cyan-400 transition-colors uppercase tracking-[0.2em] relative z-10">Continue with Google</span>
-                            </motion.button>
+                            <div 
+                                id="google-signin-btn"
+                                className="w-full flex justify-center py-2"
+                            ></div>
                         </motion.div>
                     )}
 
