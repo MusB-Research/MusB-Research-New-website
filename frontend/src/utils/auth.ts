@@ -1,5 +1,3 @@
-const VCT_URL = "https://musb-research-vct.vercel.app";
-const MAIN_URL = "https://musbresearchnewwebsite.vercel.app";
 
 export const getToken = () => localStorage.getItem("token");
 export const getRole = () => localStorage.getItem("role");
@@ -19,11 +17,7 @@ export const clearToken = () => {
 export const isLoggedIn = () => !!getToken();
 
 export const redirectToLogin = () => {
-    const callbackUrl = encodeURIComponent(
-        window.location.href
-    );
-    window.location.href =
-        `${VCT_URL}/signin?callbackUrl=${MAIN_URL}/auth/callback&source=MAIN`;
+    window.location.href = "/signin";
 };
 
 export const authFetch = async (url: string, options: RequestInit = {}) => {

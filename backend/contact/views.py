@@ -42,30 +42,52 @@ class SubmissionCreateView(generics.CreateAPIView):
         
         # HTML Email Content
         html_content = f"""
-        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #06b6d4; text-transform: uppercase;">New Inquiry Received</h2>
-            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-            <p><strong>Name:</strong> {submission.name}</p>
-            <p><strong>Email:</strong> {submission.email}</p>
-            <p><strong>Phone:</strong> {submission.phone or 'N/A'}</p>
-            <p><strong>Company:</strong> {submission.company or 'N/A'}</p>
-            <p><strong>Inquiry Type:</strong> {submission.inquiry_type.label if submission.inquiry_type else 'General'}</p>
-            <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; margin-top: 20px;">
-                <p><strong>Message:</strong></p>
-                <p style="white-space: pre-wrap;">{submission.message}</p>
+        <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: auto; padding: 40px; border: 1px solid #e2e8f0; border-radius: 24px; background-color: #ffffff;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="color: #0ea5e9; margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; font-weight: 900;">MusB Research</h1>
+                <p style="color: #64748b; font-size: 12px; margin-top: 5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Clinical Discovery Portal</p>
             </div>
-            <p style="font-size: 12px; color: #999; margin-top: 30px;">Submitted on {submission.submitted_at.strftime('%Y-%m-%d %H:%M:%S')} UTC</p>
+            
+            <div style="background: #f8fafc; padding: 30px; border-radius: 16px; border: 1px solid #f1f5f9;">
+                <h2 style="color: #1e293b; margin-top: 0; font-size: 18px; font-weight: 800; text-transform: uppercase;">{submission.inquiry_type.label if submission.inquiry_type else 'New Submission'}</h2>
+                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b; font-size: 13px; font-weight: 600; width: 120px;">NAME</td>
+                        <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 700;">{submission.name}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b; font-size: 13px; font-weight: 600;">EMAIL</td>
+                        <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 700;">{submission.email}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b; font-size: 13px; font-weight: 600;">PHONE</td>
+                        <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 700;">{submission.phone or 'N/A'}</td>
+                    </tr>
+                </table>
+
+                <div style="margin-top: 25px; background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <p style="color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px;">Message / Data</p>
+                    <p style="color: #334155; font-size: 14px; line-height: 1.6; margin: 0; white-space: pre-wrap;">{submission.message}</p>
+                </div>
+            </div>
+            
+            <p style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 30px; font-weight: 500;">
+                This is an automated notification from the MusB Research Platform.<br>
+                Submitted on {submission.submitted_at.strftime('%m/%d/%Y at %H:%M:%S')} UTC
+            </p>
         </div>
         """
         
         try:
             resend.api_key = os.getenv("RESEND_API_KEY")
             params = {
-                "from": "MusB Website <onboarding@resend.dev>",
+                "from": "MusB Research Clinical Team <onboarding@resend.dev>",
                 "to": [recipient],
-                "subject": subject,
+                "subject": f"MusB Research: {subject}",
                 "html": html_content,
-                "reply_to": submission.email
+                "reply_to": "info@musbresearch.com"
             }
             
             # If domain is verified, you can use info@musbresearch.com in "from"

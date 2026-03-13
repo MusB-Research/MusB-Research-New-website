@@ -19,70 +19,15 @@ import {
     HeartPulse,
     SearchCheck,
     CalendarCheck,
-    Stethoscope
+    Stethoscope,
+    AlertCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
 
 
-const HARDCODED_STUDIES = [
-    {
-        id: '1',
-        title: 'Beat The Bloat Study',
-        condition: 'Gut Health',
-        type: 'On-site',
-        status: 'Recruiting',
-        description: 'Bloating reducing natural formula',
-        benefit: 'Free supply of study product & personalized health report.',
-        duration: '12 Weeks (2-3 visits)',
-        tags: ['Gut Health', 'Natural Formula', 'Bloating'],
-        compensation: 'Get PAID',
-        location: 'Tampa, FL',
-        timeCommitment: '2-3 clinic visits'
-    },
-    {
-        id: '2',
-        title: 'VITAL-Age Study',
-        condition: 'Aging',
-        type: 'On-site',
-        status: 'Recruiting',
-        description: 'Anti-aging probiotics',
-        benefit: 'Free supply of anti-aging probiotics & health assessments.',
-        duration: '5 Months (3-4 visits)',
-        tags: ['Aging', 'Probiotics', 'Vitality'],
-        compensation: 'Get PAID',
-        location: 'Tampa, FL',
-        timeCommitment: '3-4 clinic visits'
-    },
-    {
-        id: '3',
-        title: 'SAM Study',
-        condition: 'Women’s Health',
-        type: 'On-site',
-        status: 'Recruiting',
-        description: 'Herbal formula for women health',
-        benefit: 'Free clinical supply of herbal formula & hormone tracking.',
-        duration: '12 weeks (4 visits)',
-        tags: ['Women\'s Health', 'Herbal', 'Hormonal'],
-        compensation: 'Get PAID',
-        location: 'Tampa, FL',
-        timeCommitment: '4 clinic visits'
-    },
-    {
-        id: '4',
-        title: 'SHINE Study',
-        condition: 'Women’s Health',
-        type: 'On-site',
-        status: 'Recruiting',
-        description: 'Bioenhancer formula for women health',
-        benefit: 'Free bioenhancer formula & expert health consultations.',
-        duration: '8 weeks (3-4 visits)',
-        tags: ['Women\'s Health', 'Bioenhancer', 'Wellness'],
-        compensation: 'Get PAID',
-        location: 'Tampa, FL',
-        timeCommitment: '3-4 clinic visits'
-    }
-];
+import { HARDCODED_STUDIES } from '../data/studies';
 
 export default function Trials() {
     const [selectedCondition, setSelectedCondition] = useState('All');
@@ -195,14 +140,7 @@ export default function Trials() {
     };
 
     return (
-        <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden">
-            {/* Atmospheric Background Layers */}
-            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-blue-600/10 blur-[120px] rounded-full"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] bg-indigo-600/10 blur-[150px] rounded-full"></div>
-                <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] bg-cyan-600/10 blur-[100px] rounded-full"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.03)_0%,transparent_100%)]"></div>
-            </div>
+        <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden bg-transparent">
 
             <div className="relative z-10 pb-24 animate-in fade-in duration-1000">
                 {/* HERO SECTION */}
@@ -427,14 +365,12 @@ export default function Trials() {
                                         </div>
                                     </div>
                                     {study.status === 'Recruiting' ? (
-                                        <a
-                                            href={`https://musb-research-vct.vercel.app/studies/${study.slug || study.id || study._id}/screener?study=${study.id || study._id}&name=${encodeURIComponent(study.title || study.name)}&duration=${encodeURIComponent(study.duration || '')}&compensation=${encodeURIComponent(study.compensation || '')}&location=${encodeURIComponent(study.location || '')}&commitment=${encodeURIComponent(study.timeCommitment || '')}&category=${encodeURIComponent(study.condition || study.category || '')}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
+                                        <Link
+                                            to={`/studies/${study.id}`}
                                             className="block w-full text-center py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all bg-cyan-500 text-slate-900 hover:bg-white"
                                         >
                                             Join Study
-                                        </a>
+                                        </Link>
                                     ) : (
                                         <button
                                             disabled
@@ -599,8 +535,26 @@ export default function Trials() {
                                 >
                                     {formStatus === 'submitting' ? 'Submitting...' : 'Get Matched'}
                                 </button>
-                                {formStatus === 'success' && <p className="text-green-400 font-bold text-center mt-4">Successfully submitted!</p>}
-                                {formStatus === 'error' && <p className="text-red-400 font-bold text-center mt-4">Failed to submit. Please try again.</p>}
+                                {formStatus === 'success' && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        className="mt-8 p-6 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-4 text-emerald-400 text-xs font-black uppercase tracking-widest"
+                                    >
+                                        <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+                                        Successfully submitted! We will be in touch shortly.
+                                    </motion.div>
+                                )}
+                                {formStatus === 'error' && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        className="mt-8 p-6 rounded-3xl bg-red-500/10 border border-red-500/20 flex items-center gap-4 text-red-500 text-xs font-black uppercase tracking-widest animate-pulse"
+                                    >
+                                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                                        Failed to submit. Please try again or contact support.
+                                    </motion.div>
+                                )}
                             </form>
                         </div>
                     </div>

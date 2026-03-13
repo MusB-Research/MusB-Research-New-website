@@ -1389,14 +1389,7 @@ export default function Home() {
     }, [activeSlides.length]); // Reset timer if slides count changes
 
     return (
-        <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden">
-            {/* Atmospheric Background Layers */}
-            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-blue-600/10 blur-[120px] rounded-full"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] bg-indigo-600/10 blur-[150px] rounded-full"></div>
-                <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] bg-cyan-600/10 blur-[100px] rounded-full"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.03)_0%,transparent_100%)]"></div>
-            </div>
+        <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden bg-transparent">
 
             {/* Slider Container */}
             <div className="relative h-auto md:h-[95vh] min-h-[450px] md:min-h-[800px] w-full flex items-center overflow-hidden bg-transparent z-10">

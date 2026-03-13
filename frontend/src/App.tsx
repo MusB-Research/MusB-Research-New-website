@@ -14,9 +14,15 @@ import Support from './views/Support';
 import JobDetail from './views/JobDetail';
 import WhyChooseUs from './views/WhyChooseUs';
 import Capabilities from './views/Capabilities';
-import AuthCallback from './views/auth/Callback';
+import SignIn from './views/auth/SignIn';
+import SuperAdminSignIn from './views/auth/SuperAdminSignIn';
+import StudyDetail from './views/StudyDetail';
+import StudyScreener from './views/StudyScreener';
 import SuperAdminDashboard from './views/SuperAdminDashboard';
 import AdminDashboard from './views/AdminDashboard';
+import ParticipantDashboard from './views/ParticipantDashboard';
+import PIDashboard from './views/PIDashboard';
+import SponsorDashboard from './views/SponsorDashboard';
 
 function App() {
     return (
@@ -37,9 +43,17 @@ function App() {
                     <Route path="/trials" element={<Trials />} />
                     <Route path="/capabilities" element={<Capabilities />} />
                     <Route path="/support" element={<Support />} />
-                    <Route path="/auth/callback" element={<AuthCallback />} />
+                    <Route path="/signin" element={<SignIn />} />
+                    <Route path="/super/gate" element={<SuperAdminSignIn />} />
+                    <Route path="/studies/:id" element={<StudyDetail />} />
+                    <Route path="/studies/:id/screener" element={<StudyScreener />} />
+                    
+                    {/* Dashboard Routes (RBAC) */}
+                    <Route path="/dashboard/participant" element={<ParticipantDashboard />} />
                     <Route path="/dashboard/super-admin" element={<SuperAdminDashboard />} />
                     <Route path="/dashboard/admin" element={<AdminDashboard />} />
+                    <Route path="/dashboard/pi" element={<PIDashboard />} />
+                    <Route path="/dashboard/sponsor" element={<SponsorDashboard />} />
                 </Routes>
             </Layout>
         </Router>
