@@ -379,7 +379,7 @@ export default function Layout({ children }: LayoutProps) {
                 <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
                 
                 <div className="max-w-[1600px] mx-auto px-6 md:px-12">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-x-12 gap-y-16 mb-20">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-x-6 gap-y-16 mb-20">
                         {/* Branding & Contact */}
                         <div className="lg:col-span-3 space-y-10">
                             <Link to="/" className="inline-block group">
