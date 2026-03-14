@@ -52,15 +52,38 @@ export default function SponsorDashboard() {
                     <EyeOff className="w-3.5 h-3.5 text-emerald-400" />
                     <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Privacy Guard Active</span>
                 </div>
-                <div className="flex items-center gap-4 pl-6 border-l border-white/10">
-                    <div className="text-right hidden sm:block">
-                        <p className="text-xs font-black text-white uppercase italic leading-none">Global Biotech Corp</p>
-                        <p className="text-[9px] text-emerald-500 font-bold uppercase tracking-widest mt-1">Sponsor Account</p>
-                    </div>
-                    <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
-                        <div className="w-full h-full bg-gradient-to-br from-emerald-500/20 to-indigo-500/20 flex items-center justify-center font-black text-xs text-white">GBC</div>
-                    </div>
-                </div>
+                {(() => {
+                    const userStr = localStorage.getItem('user');
+                    let userName = 'Sponsor';
+                    let userPicture = '';
+                    try {
+                        if (userStr) {
+                            const u = JSON.parse(userStr);
+                            userName = u.organization || (u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'Sponsor')));
+                            userPicture = u.picture || u.avatar || u.avatar_url || '';
+                        }
+                    } catch(e) {}
+
+                    return (
+                        <div className="flex items-center gap-4 pl-6 border-l border-white/10">
+                            <div className="text-right hidden sm:block">
+                                <p className="text-xs font-black text-white uppercase italic leading-none">{userName}</p>
+                                <p className="text-[9px] text-emerald-500 font-bold uppercase tracking-widest mt-1">Sponsor Account</p>
+                            </div>
+                            <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
+                                <img 
+                                    src={userPicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=emerald&color=fff`} 
+                                    alt="Sponsor" 
+                                    className="w-full h-full object-cover" 
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=emerald&color=fff`;
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    );
+                })()}
             </div>
         </header>
     );

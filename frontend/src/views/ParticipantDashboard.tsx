@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Link, useNavigate } from 'react-router-dom';
+import { clearToken } from '../utils/auth';
 import { 
     LayoutDashboard, 
     ClipboardList, 
@@ -19,7 +21,8 @@ import {
     ChevronRight,
     Circle,
     PlusCircle,
-    ArrowRight
+    ArrowRight,
+    Globe
 } from 'lucide-react';
 
 // --- Types ---
@@ -89,6 +92,25 @@ const SupplementToggle = ({ name, time, isActive }: SupplementItemProps) => (
 
 export default function ParticipantDashboard() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const profileRef = useRef<HTMLDivElement>(null);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+                setIsProfileOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleSignOut = () => {
+        clearToken();
+        localStorage.removeItem('user');
+        navigate('/');
+    };
 
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, active: true },
@@ -102,30 +124,52 @@ export default function ParticipantDashboard() {
     ];
 
     return (
-        <div className="min-h-screen bg-[#0a0e1a] text-slate-200 flex overflow-hidden font-sans">
+        <div className="min-h-screen bg-[#0a0e1a]/70 text-slate-200 flex overflow-hidden font-sans relative backdrop-blur-[2px]">
             <BackgroundDots />
 
             {/* --- Sidebar --- */}
             <aside className={`fixed lg:relative z-40 h-full bg-[#080c18] border-r border-white/5 transition-all duration-300 flex flex-col ${isSidebarOpen ? 'w-72' : 'w-20'} overflow-hidden`}>
                 <div className="p-8">
-                    <div className="bg-white rounded-[1.5rem] px-5 py-3 shadow-xl flex items-center gap-3">
+                    <Link to="/" className="bg-white rounded-[1.5rem] px-5 py-3 shadow-xl flex items-center justify-center gap-3 hover:scale-105 transition-transform group/logo">
                         <img src="/logo.jpg" alt="MusB Research" className="h-10 w-auto object-contain brightness-110" />
-                    </div>
+                    </Link>
                 </div>
 
-                {/* User Profile Hookup */}
                 <div className="px-6 mb-8">
-                    <div className="bg-[#0f172a] rounded-[2rem] p-5 flex items-center gap-4 border border-white/5">
-                        <div className="w-12 h-12 rounded-2xl overflow-hidden bg-gradient-to-br from-cyan-400 to-indigo-600 p-0.5">
-                            <img src="https://ui-avatars.com/api/?name=Bijesh+Kumar&background=000&color=fff" alt="User" className="w-full h-full rounded-[1.1rem]" />
-                        </div>
-                        {isSidebarOpen && (
-                            <div className="overflow-hidden">
-                                <h3 className="text-sm font-black text-white truncate">BIJESH KUMAR</h3>
-                                <span className="text-[9px] font-black text-[#00e5ff] uppercase tracking-widest bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20 mt-1 inline-block">Participant</span>
+                    {(() => {
+                        const userStr = localStorage.getItem('user');
+                        let userName = 'User';
+                        let userPicture = '';
+                        try {
+                            if (userStr) {
+                                const u = JSON.parse(userStr);
+                                userName = u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'User'));
+                                userPicture = u.picture || u.avatar || u.avatar_url || '';
+                            }
+                        } catch(e) {}
+
+                        return (
+                            <div className="bg-[#0f172a] rounded-[2rem] p-5 flex items-center gap-4 border border-white/5">
+                                <div className="w-12 h-12 rounded-2xl overflow-hidden bg-gradient-to-br from-cyan-400 to-indigo-600 p-0.5">
+                                    <img 
+                                        src={userPicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=000&color=fff`} 
+                                        alt="User" 
+                                        className="w-full h-full rounded-[1.1rem] object-cover" 
+                                        onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=000&color=fff`;
+                                        }}
+                                    />
+                                </div>
+                                {isSidebarOpen && (
+                                    <div className="overflow-hidden">
+                                        <h3 className="text-sm font-black text-white truncate uppercase">{userName}</h3>
+                                        <span className="text-[9px] font-black text-[#00e5ff] uppercase tracking-widest bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20 mt-1 inline-block">Participant</span>
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
+                        );
+                    })()}
                 </div>
 
                 <nav className="flex-1 px-4 space-y-1">
@@ -144,8 +188,12 @@ export default function ParticipantDashboard() {
                     ))}
                 </nav>
 
-                <div className="p-4 border-t border-white/5">
-                    <button className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-slate-500 hover:text-white transition-all">
+                <div className="p-4 border-t border-white/5 space-y-2">
+                    <Link to="/" className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-slate-500 hover:text-[#00e5ff] hover:bg-[#00e5ff]/5 transition-all">
+                        <Globe className="w-5 h-5" />
+                        {isSidebarOpen && <span className="text-[11px] font-black uppercase tracking-[0.15em]">View Website</span>}
+                    </Link>
+                    <button onClick={handleSignOut} className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-slate-500 hover:text-red-400 hover:bg-red-500/5 transition-all">
                         <LogOut className="w-5 h-5" />
                         {isSidebarOpen && <span className="text-[11px] font-black uppercase tracking-[0.15em]">Sign Out</span>}
                     </button>
@@ -162,32 +210,78 @@ export default function ParticipantDashboard() {
                     </div>
 
                     <div className="flex items-center gap-6">
-                        <div className="hidden md:flex flex-col items-end">
-                            <span className="text-xs font-black text-white uppercase">Bijesh Kumar</span>
-                            <span className="text-[10px] font-bold text-slate-500">b.k.lpuinsta@gmail.com</span>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <button className="relative p-2.5 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 transition-all group">
-                                <Bell className="w-5 h-5 text-slate-400 group-hover:text-[#00e5ff]" />
-                                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0a0e1a]"></span>
-                            </button>
-                            <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 shadow-lg">
-                                <img src="https://ui-avatars.com/api/?name=BK&background=random" alt="Avatar" className="w-full h-full object-cover" />
-                            </div>
-                        </div>
+                        {(() => {
+                            const userStr = localStorage.getItem('user');
+                            let userName = 'User';
+                            let userEmail = '';
+                            let userPicture = '';
+                            try {
+                                if (userStr) {
+                                    const u = JSON.parse(userStr);
+                                    userName = u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'User'));
+                                    userEmail = u.email || '';
+                                    userPicture = u.picture || u.avatar || u.avatar_url || '';
+                                }
+                            } catch(e) {}
+
+                            return (
+                                <>
+                                    <div className="hidden md:flex flex-col items-end">
+                                        <span className="text-xs font-black text-white uppercase">{userName}</span>
+                                        <span className="text-[10px] font-bold text-slate-500">{userEmail}</span>
+                                    </div>
+                                    <div className="flex items-center gap-4" ref={profileRef}>
+                                        <button className="relative p-2.5 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 transition-all group">
+                                            <Bell className="w-5 h-5 text-slate-400 group-hover:text-[#00e5ff]" />
+                                            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0a0e1a]"></span>
+                                        </button>
+                                        <div className="relative">
+                                            <button 
+                                                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                                                className="w-11 h-11 rounded-xl overflow-hidden border border-white/10 hover:border-[#00e5ff]/50 transition-all active:scale-95"
+                                            >
+                                                <img 
+                                                    src={userPicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=00e5ff&color=0a0e1a`} 
+                                                    alt="User" 
+                                                    className="w-full h-full object-cover" 
+                                                    onError={(e) => {
+                                                        const target = e.target as HTMLImageElement;
+                                                        target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=00e5ff&color=0a0e1a`;
+                                                    }}
+                                                />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </>
+                            );
+                        })()}
                     </div>
                 </header>
 
                 <main className="p-8 space-y-12">
                     {/* Welcome Text */}
-                    <div className="space-y-4">
-                        <p className="text-slate-500 text-[11px] font-black uppercase tracking-[0.4em] ml-1">Friday, March 13</p>
-                        <h2 className="text-5xl md:text-7xl font-black italic text-white tracking-[-0.02em] leading-tight">Welcome back, <span className="text-white opacity-80">Bijesh</span></h2>
-                        <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-cyan-400/10 border border-cyan-400/20 rounded-full text-[10px] font-black text-cyan-400 uppercase tracking-widest mt-4 group">
-                            <span className="w-2 h-2 rounded-full bg-[#00ff88] animate-pulse shadow-[0_0_10px_#00ff88]" />
-                            Live Study Status
-                        </div>
-                    </div>
+                    {(() => {
+                        const userStr = localStorage.getItem('user');
+                        let firstName = 'User';
+                        let today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+                        try {
+                            if (userStr) {
+                                const u = JSON.parse(userStr);
+                                firstName = u.first_name || (u.name ? u.name.split(' ')[0] : 'User');
+                            }
+                        } catch(e) {}
+
+                        return (
+                            <div className="space-y-4">
+                                <p className="text-slate-500 text-[11px] font-black uppercase tracking-[0.4em] ml-1">{today}</p>
+                                <h2 className="text-5xl md:text-7xl font-black italic text-white tracking-[-0.02em] leading-tight">Welcome back, <span className="text-white opacity-80 uppercase">{firstName}</span></h2>
+                                <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-cyan-400/10 border border-cyan-400/20 rounded-full text-[10px] font-black text-cyan-400 uppercase tracking-widest mt-4 group">
+                                    <span className="w-2 h-2 rounded-full bg-[#00ff88] animate-pulse shadow-[0_0_10px_#00ff88]" />
+                                    Live Study Status
+                                </div>
+                            </div>
+                        );
+                    })()}
 
                     {/* Stats Row */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

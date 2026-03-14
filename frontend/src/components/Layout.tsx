@@ -198,42 +198,48 @@ export default function Layout({ children }: LayoutProps) {
                                     Sign In
                                 </button>
                             ) : (
-                                <>
-                                    {getRole() === "SUPER_ADMIN" && (
+                                (() => {
+                                    const userStr = localStorage.getItem('user');
+                                    let userName = 'User';
+                                    let userPicture = '';
+                                    try {
+                                        if (userStr) {
+                                            const u = JSON.parse(userStr);
+                                            userName = u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'User'));
+                                            userPicture = u.picture || u.avatar || u.avatar_url || '';
+                                        }
+                                    } catch(e) {}
+                                    
+                                    const role = getRole();
+                                    let dashPath = "/dashboard/participant";
+                                    if(role === "SUPER_ADMIN") dashPath = "/dashboard/super-admin";
+                                    if(role === "ADMIN") dashPath = "/dashboard/admin";
+                                    if(role === "PI") dashPath = "/dashboard/pi";
+                                    if(role === "SPONSOR") dashPath = "/dashboard/sponsor";
+
+                                    return (
                                         <Link
-                                            to="/dashboard/super-admin"
-                                            className="bg-cyan-500 text-slate-900 px-4 2xl:px-6 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-white transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
+                                            to={dashPath}
+                                            className="flex items-center gap-2 2xl:gap-3 hover:opacity-80 transition-opacity ml-2"
                                         >
-                                            <LayoutDashboard className="w-4 h-4" />
-                                            Dashboard
+                                            <div className="hidden md:flex flex-col items-end">
+                                                <span className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">Dashboard</span>
+                                                <span className="text-sm font-black text-slate-800">{userName}</span>
+                                            </div>
+                                            <div className="w-10 h-10 rounded-full border-2 border-slate-100 overflow-hidden shadow-sm bg-white">
+                                                <img 
+                                                    src={userPicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName || 'User')}&background=ebf4ff&color=0f172a`} 
+                                                    alt="Avatar" 
+                                                    className="w-full h-full object-cover" 
+                                                    onError={(e) => {
+                                                        const target = e.target as HTMLImageElement;
+                                                        target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName || 'User')}&background=ebf4ff&color=0f172a`;
+                                                    }}
+                                                />
+                                            </div>
                                         </Link>
-                                    )}
-                                    {getRole() === "ADMIN" && (
-                                        <Link
-                                            to="/dashboard/admin"
-                                            className="bg-cyan-500 text-slate-900 px-4 2xl:px-6 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-white transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
-                                        >
-                                            <LayoutDashboard className="w-4 h-4" />
-                                            Admin Portal
-                                        </Link>
-                                    )}
-                                    {getRole() === "PARTICIPANT" && (
-                                        <Link
-                                            to="/dashboard/participant"
-                                            className="bg-cyan-500 text-slate-900 px-4 2xl:px-6 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-white transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
-                                        >
-                                            <LayoutDashboard className="w-4 h-4" />
-                                            Dashboard
-                                        </Link>
-                                    )}
-                                    <button
-                                        onClick={() => { clearToken(); window.location.href = "/"; }}
-                                        className="border-2 border-slate-900 text-slate-900 px-4 2xl:px-6 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-slate-950 hover:text-white transition-all backdrop-blur-md flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
-                                    >
-                                        <LogOut className="w-4 h-4" />
-                                        Logout
-                                    </button>
-                                </>
+                                    );
+                                })()
                             )}
                         </div>
                     </div>

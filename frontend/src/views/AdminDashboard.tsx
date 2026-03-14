@@ -80,15 +80,40 @@ export default function AdminDashboard() {
                     <Bell className="w-5 h-5 text-slate-300" />
                     <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0B101B]"></span>
                 </button>
-                <div className="flex items-center gap-4 pl-6 border-l border-white/10">
-                    <div className="text-right hidden sm:block">
-                        <p className="text-xs font-black text-white uppercase italic leading-none">Cdr. Sarah Sterling</p>
-                        <p className="text-[9px] text-cyan-500 font-bold uppercase tracking-widest mt-1">Lead Coordinator</p>
-                    </div>
-                    <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 overflow-hidden">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah" alt="Admin" className="w-full h-full object-cover" />
-                    </div>
-                </div>
+                {(() => {
+                    const userStr = localStorage.getItem('user');
+                    let userName = 'Admin';
+                    let userEmail = '';
+                    let userPicture = '';
+                    try {
+                        if (userStr) {
+                            const u = JSON.parse(userStr);
+                            userName = u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'Admin'));
+                            userEmail = u.email || '';
+                            userPicture = u.picture || u.avatar || u.avatar_url || '';
+                        }
+                    } catch(e) {}
+                    
+                    return (
+                        <div className="flex items-center gap-4 pl-6 border-l border-white/10">
+                            <div className="text-right hidden sm:block">
+                                <p className="text-xs font-black text-white uppercase italic leading-none">{userName}</p>
+                                <p className="text-[9px] text-cyan-500 font-bold uppercase tracking-widest mt-1">Administrator</p>
+                            </div>
+                            <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 overflow-hidden">
+                                <img 
+                                    src={userPicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random`} 
+                                    alt="Admin" 
+                                    className="w-full h-full object-cover" 
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random`;
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    );
+                })()}
             </div>
         </header>
     );

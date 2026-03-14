@@ -1,7 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --primary: #00e5ff;
+  /* Original Variables */
+  --primary: #06b6d4;
+  --primary-light: #22d3ee;
+  --primary-foreground: #ffffff;
+  --surface: rgba(15, 23, 42, 0.8);
+  --surface-foreground: #f1f5f9;
+  --border: rgba(255, 255, 255, 0.1);
+  --text-muted: #94a3b8;
+  --background: #020617;
+  --foreground: #f8fafc;
+
+  /* Dashboard Variables */
   --primary-glow: rgba(0, 229, 255, 0.4);
   --background-navy: #0a101f;
   --sidebar-navy: #080c18;

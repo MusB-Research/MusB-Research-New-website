@@ -53,15 +53,38 @@ export default function PIDashboard() {
                     <button className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all">
                         <Bell className="w-5 h-5 text-slate-300" />
                     </button>
-                    <div className="flex items-center gap-4 pl-6 border-l border-white/10">
-                        <div className="text-right">
-                            <p className="text-xs font-black text-white uppercase italic leading-none">Dr. Alexander Vance</p>
-                            <p className="text-[9px] text-indigo-400 font-bold uppercase tracking-widest mt-1">Principal Investigator</p>
-                        </div>
-                        <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 overflow-hidden">
-                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Alex" alt="PI" className="w-full h-full object-cover" />
-                        </div>
-                    </div>
+                    {(() => {
+                        const userStr = localStorage.getItem('user');
+                        let userName = 'PI';
+                        let userPicture = '';
+                        try {
+                            if (userStr) {
+                                const u = JSON.parse(userStr);
+                                userName = u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'PI'));
+                                userPicture = u.picture || u.avatar || u.avatar_url || '';
+                            }
+                        } catch(e) {}
+
+                        return (
+                            <div className="flex items-center gap-4 pl-6 border-l border-white/10">
+                                <div className="text-right">
+                                    <p className="text-xs font-black text-white uppercase italic leading-none">{userName}</p>
+                                    <p className="text-[9px] text-indigo-400 font-bold uppercase tracking-widest mt-1">Principal Investigator</p>
+                                </div>
+                                <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 overflow-hidden">
+                                    <img 
+                                        src={userPicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=indigo&color=fff`} 
+                                        alt="PI" 
+                                        className="w-full h-full object-cover" 
+                                        onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=indigo&color=fff`;
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        );
+                    })()}
                 </div>
             </header>
 

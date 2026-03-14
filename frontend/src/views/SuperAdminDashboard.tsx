@@ -60,6 +60,39 @@ export default function SuperAdminDashboard() {
                     <h2 className="text-xl font-black text-white italic uppercase tracking-tighter">System <span className="text-indigo-400">Main</span></h2>
                 </div>
 
+                {(() => {
+                    const userStr = localStorage.getItem('user');
+                    let userName = 'Super Admin';
+                    let userPicture = '';
+                    try {
+                        if (userStr) {
+                            const u = JSON.parse(userStr);
+                            userName = u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'Super Admin'));
+                            userPicture = u.picture || u.avatar || u.avatar_url || '';
+                        }
+                    } catch(e) {}
+
+                    return (
+                        <div className="mb-10 p-5 bg-white/5 border border-white/5 rounded-3xl flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl overflow-hidden border border-white/10">
+                                <img 
+                                    src={userPicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=4f46e5&color=fff`} 
+                                    alt="Super Admin" 
+                                    className="w-full h-full object-cover" 
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=4f46e5&color=fff`;
+                                    }}
+                                />
+                            </div>
+                            <div className="overflow-hidden">
+                                <p className="text-xs font-black text-white uppercase italic truncate">{userName}</p>
+                                <p className="text-[9px] text-indigo-400 font-bold uppercase tracking-widest mt-0.5">Global Admin</p>
+                            </div>
+                        </div>
+                    );
+                })()}
+
                 <nav className="space-y-1.5">
                     {navItems.map((item) => (
                         <button
