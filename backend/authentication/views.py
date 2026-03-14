@@ -13,6 +13,7 @@ import requests
 
 
 from .utils import verify_recaptcha, send_resend_email, generate_token
+from .security import decrypt_data, encrypt_data
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +75,7 @@ def register(request):
     password = request.data.get('password')
     timezone = request.data.get('timezone', 'UTC')
     country = request.data.get('country')
+    organization = request.data.get('organization')
     phone_number = request.data.get('phone_number')
 
     if not all([email, full_name, password]):
@@ -96,6 +98,7 @@ def register(request):
     user = User.objects.create_user(
         email=email, 
         full_name=full_name, 
+        organization=organization,
         password=password,
         timezone=timezone,
         country=country,
@@ -123,7 +126,8 @@ def login_view(request):
             'message': 'Login successful',
             'user': {
                 'email': user.email,
-                'full_name': user.full_name,
+                'full_name': user.decrypted_name,
+                'organization': user.decrypted_organization,
                 'role': user.role
             }
         })
@@ -152,13 +156,19 @@ def google_login(request):
             email=email,
             defaults={'full_name': full_name, 'role': 'PARTICIPANT'}
         )
+        
+        # If user existed but name is generic/missing, update with Google name
+        if not created and (not user.full_name or user.full_name == 'Google User' or '@' in user.full_name):
+            user.full_name = full_name
+            user.save()
 
         return Response({
             'message': 'Login successful',
             'access': 'google-verified-token', # Placeholder
             'user': {
                 'email': user.email,
-                'full_name': user.full_name,
+                'full_name': user.decrypted_name,
+                'organization': user.decrypted_organization,
                 'role': user.role
             }
         })
@@ -235,3 +245,92 @@ def reset_password(request):
     magic_link.save()
 
     return Response({'message': 'Password reset successful'})
+
+import uuid
+from datetime import timedelta
+from django.utils.timezone import now
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def invite_team_member(request):
+    invited_by_email = request.data.get('admin_email')
+    target_email = request.data.get('email')
+    role = request.data.get('role', 'SPONSOR_MANAGER')
+    organization = request.data.get('organization')
+    
+    if not all([target_email, organization]):
+        return Response({'error': 'Email and organization are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    admin = User.objects.filter(email=invited_by_email).first()
+    if not admin:
+         return Response({'error': 'Admin user not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    token = str(uuid.uuid4())
+    expires_at = now() + timedelta(days=7)
+    
+    from .models import Invitation
+    invitation = Invitation.objects.create(
+        email=target_email,
+        role=role,
+        invited_by=admin,
+        organization=organization,
+        token=token,
+        expires_at=expires_at
+    )
+    
+    # Send Invitation Email
+    setup_link = f"{settings.CORS_ALLOWED_ORIGINS[0]}/setup-credentials?token={token}"
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #1e293b; border-radius: 10px; background-color: #0B101B; color: white;">
+        <h2 style="color: #f59e0b;">MusB Research - Team Invitation</h2>
+        <p>You have been invited to join <strong>{organization}</strong> as a <strong>{role}</strong> on the MusB Research Platform.</p>
+        <p>Click the button below to set up your secure login credentials and access your dashboard.</p>
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{setup_link}" style="background-color: #f59e0b; color: #0B101B; padding: 12px 24px; border-radius: 5px; text-decoration: none; font-weight: bold;">Set Up Credentials</a>
+        </div>
+        <p style="color: #64748b; font-size: 11px;">This invitation expires on {expires_at.strftime('%Y-%m-%d')}.</p>
+    </div>
+    """
+    
+    if send_resend_email(target_email, f"Invitation to join {organization} - MusB Research", html_content):
+        return Response({'message': 'Invitation sent successfully', 'token': token})
+    else:
+        logger.warning(f"Failed to send invitation email to {target_email}. Link: {setup_link}")
+        return Response({'message': 'Invitation recorded but email failed to send', 'setup_link': setup_link}, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def setup_credentials(request):
+    token = request.data.get('token')
+    password = request.data.get('password')
+    full_name = request.data.get('full_name')
+    
+    if not all([token, password, full_name]):
+        return Response({'error': 'All fields are required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    from .models import Invitation
+    invitation = Invitation.objects.filter(token=token, is_accepted=False).first()
+    if not invitation:
+        return Response({'error': 'Invalid or already used invitation'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    if invitation.is_expired():
+        return Response({'error': 'Invitation has expired'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    try:
+        validate_password(password)
+    except ValidationError as e:
+        return Response({'error': list(e.messages)}, status=status.HTTP_400_BAD_REQUEST)
+        
+    user = User.objects.create_user(
+        email=invitation.email,
+        full_name=full_name,
+        password=password,
+        organization=invitation.organization,
+        role=invitation.role,
+        parent_sponsor=invitation.invited_by
+    )
+    
+    invitation.is_accepted = True
+    invitation.save()
+    
+    return Response({'message': 'Account set up successfully. You can now log in.'}, status=status.HTTP_201_CREATED)

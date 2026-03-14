@@ -44,13 +44,13 @@ function AppContent() {
                     <Route path="/capabilities" element={<Capabilities />} />
                     <Route path="/support" element={<Support />} />
                     <Route path="/signin" element={<SignIn />} />
-                    <Route path="/super/gate" element={<SuperAdminSignIn />} />
+                    <Route path="/mainframe/restricted-auth" element={<SuperAdminSignIn />} />
                     <Route path="/studies/:id" element={<StudyDetail />} />
                     <Route path="/studies/:id/screener" element={<StudyScreener />} />
                     
                     {/* Dashboard Routes (RBAC) */}
                     <Route path="/dashboard/participant" element={<ParticipantDashboard />} />
-                    <Route path="/dashboard/super-admin" element={<SuperAdminDashboard />} />
+                    <Route path="/sys/core-oversight" element={<SuperAdminDashboard />} />
                     <Route path="/dashboard/admin" element={<AdminDashboard />} />
                     <Route path="/dashboard/pi" element={<PIDashboard />} />
                     <Route path="/dashboard/sponsor" element={<SponsorDashboard />} />

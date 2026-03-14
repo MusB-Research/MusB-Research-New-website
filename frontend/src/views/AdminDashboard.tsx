@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     LayoutDashboard, 
@@ -53,14 +54,14 @@ export default function AdminDashboard() {
     ];
 
     const renderHeader = () => (
-        <header className="fixed top-0 left-0 right-0 h-24 z-50 bg-[#0B101B]/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between px-8">
+        <header className="fixed top-0 left-0 right-0 h-28 z-50 bg-[#0B101B]/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between px-10">
             <div className="flex items-center gap-12">
-                <div className="flex items-center gap-4">
+                <Link to="/" className="flex items-center gap-4 group">
                     <div className="w-10 h-10 rounded-xl bg-cyan-500 flex items-center justify-center text-slate-950 font-black italic shadow-lg shadow-cyan-500/20">
                         M
                     </div>
                     <h2 className="text-white font-black uppercase italic tracking-tighter text-xl">Command <span className="text-cyan-400">Center</span></h2>
-                </div>
+                </Link>
                 <div className="relative hidden md:block">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input 
@@ -88,7 +89,7 @@ export default function AdminDashboard() {
                     try {
                         if (userStr) {
                             const u = JSON.parse(userStr);
-                            userName = u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'Admin'));
+                            userName = u.full_name || (u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'Admin')));
                             userEmail = u.email || '';
                             userPicture = u.picture || u.avatar || u.avatar_url || '';
                         }
@@ -119,19 +120,21 @@ export default function AdminDashboard() {
     );
 
     const renderSidebar = () => (
-        <aside className="fixed left-0 top-24 bottom-0 w-72 bg-[#0B101B]/40 backdrop-blur-3xl border-r border-white/5 p-6 z-40 overflow-y-auto custom-scrollbar">
+        <aside className="fixed left-0 top-28 bottom-0 w-80 bg-[#0B101B]/40 backdrop-blur-3xl border-r border-white/5 p-6 z-40 overflow-y-auto custom-scrollbar">
             <nav className="space-y-1.5">
                 {navItems.map((item) => (
                     <button
                         key={item.id}
                         onClick={() => setActiveModule(item.id as AdminModule)}
-                        className={`w-full flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all group ${
+                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group ${
                             activeModule === item.id 
                             ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]' 
                             : 'text-slate-500 hover:bg-white/5 hover:text-white'
                         }`}
                     >
-                        <item.icon className={`w-4 h-4 ${activeModule === item.id ? 'text-cyan-400' : 'text-slate-600 group-hover:text-cyan-400'}`} />
+                        <div className="w-10 flex items-center justify-center flex-shrink-0">
+                            <item.icon className={`w-4 h-4 ${activeModule === item.id ? 'text-cyan-400' : 'text-slate-600 group-hover:text-cyan-400'}`} />
+                        </div>
                         <span className="text-[11px] font-black uppercase tracking-[0.15em]">{item.label}</span>
                         {activeModule === item.id && (
                             <motion.div layoutId="activeInd" className="ml-auto w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,1)]" />
@@ -146,7 +149,7 @@ export default function AdminDashboard() {
         <div className="min-h-screen bg-transparent">
             {renderHeader()}
             {renderSidebar()}
-            <main className="ml-72 pt-32 pb-24 px-10">
+            <main className="ml-80 pt-36 pb-24 px-10">
                 <AnimatePresence mode="wait">
                     {activeModule === 'DASHBOARD' && <DashboardModule />}
                     {activeModule === 'STUDIES' && <StudiesModule onAdd={() => setShowCreateModal(true)} />}

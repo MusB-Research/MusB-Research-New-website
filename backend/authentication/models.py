@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.utils.timezone import now
 import random
 import datetime
+from .security import encrypt_data, decrypt_data
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -25,12 +26,19 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('PI', 'Principal Investigator'),
         ('COORDINATOR', 'Coordinator'),
         ('SPONSOR', 'Sponsor Admin'),
+        ('SPONSOR_MANAGER', 'Study Manager'),
+        ('SPONSOR_VIEWER', 'Sponsor Viewer'),
         ('ADMIN', 'Admin'),
         ('SUPER_ADMIN', 'Super Admin'),
     ]
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=255)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='PARTICIPANT')
+    organization = models.CharField(max_length=255, blank=True, null=True)
+    role = models.CharField(max_length=30, choices=ROLE_CHOICES, default='PARTICIPANT')
+    
+    # Hierarchy
+    parent_sponsor = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='team_members')
+    
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     
     # Regional & Global Config
@@ -52,8 +60,51 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name']
 
+    def save(self, *args, **kwargs):
+        # Encrypt name if not already encrypted
+        if self.full_name and not self.full_name.startswith('gAAAA'):
+            self.full_name = encrypt_data(self.full_name)
+        
+        # Encrypt organization if not already encrypted
+        if self.organization and not self.organization.startswith('gAAAA'):
+            self.organization = encrypt_data(self.organization)
+
+        # Encrypt phone if not already encrypted
+        if self.phone_number and not self.phone_number.startswith('gAAAA'):
+            self.phone_number = encrypt_data(self.phone_number)
+            
+        super().save(*args, **kwargs)
+
+    @property
+    def decrypted_name(self):
+        return decrypt_data(self.full_name)
+
+    @property
+    def decrypted_organization(self):
+        return decrypt_data(self.organization)
+
+    @property
+    def decrypted_phone(self):
+        return decrypt_data(self.phone_number)
+
     def __str__(self):
         return self.email
+
+class Invitation(models.Model):
+    email = models.EmailField()
+    role = models.CharField(max_length=30, choices=User.ROLE_CHOICES)
+    invited_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_invitations')
+    organization = models.CharField(max_length=255)
+    token = models.CharField(max_length=100, unique=True)
+    is_accepted = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    def is_expired(self):
+        return now() > self.expires_at
+
+    def __str__(self):
+        return f"Invite for {self.email} to join {self.organization}"
 
 class OTP(models.Model):
     email = models.EmailField()

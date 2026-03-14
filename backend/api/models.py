@@ -77,11 +77,12 @@ class StudyAssignment(models.Model):
     """Links Users to Studies with specific hierarchy/access roles"""
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='assignments')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='study_assignments')
-    role = models.CharField(max_length=20, choices=[
+    role = models.CharField(max_length=30, choices=[
         ('PI', 'Principal Investigator'),
         ('COORDINATOR', 'Clinical Coordinator'),
-        ('SPONSOR', 'Sponsor Representative'),
-        ('VIEWER', 'Sponsor Viewer'),
+        ('SPONSOR_ADMIN', 'Sponsor Admin'),
+        ('SPONSOR_MANAGER', 'Study Manager'),
+        ('SPONSOR_VIEWER', 'Sponsor Viewer'),
     ])
     date_assigned = models.DateTimeField(auto_now_add=True)
 

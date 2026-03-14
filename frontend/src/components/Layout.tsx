@@ -95,10 +95,8 @@ export default function Layout({ children }: LayoutProps) {
                 <header className="fixed top-0 left-0 right-0 z-50 glass-nav h-20 md:h-24 transition-all duration-500">
                 <div className="max-w-[1800px] mx-auto px-4 md:px-6 2xl:px-12 h-full flex items-center justify-between gap-4 xl:gap-8">
                     {/* Logo - Acts as Home button opening in new tab */}
-                    <a
-                        href="/"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                    <a 
+                        href="/" 
                         className="flex-shrink-0 flex items-center gap-4 group"
                     >
                         <div className="h-12 md:h-16 bg-white/10 backdrop-blur-md px-4 md:px-5 py-2 md:py-2.5 rounded-2xl shadow-2xl border border-white/20 group-hover:scale-105 transition-all duration-300 flex items-center justify-center">

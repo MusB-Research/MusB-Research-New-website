@@ -22,7 +22,10 @@ import {
     Circle,
     PlusCircle,
     ArrowRight,
-    Globe
+    Globe,
+    Menu,
+    X as CloseIcon,
+    Settings
 } from 'lucide-react';
 
 // --- Types ---
@@ -127,15 +130,31 @@ export default function ParticipantDashboard() {
         <div className="min-h-screen bg-[#0a0e1a]/70 text-slate-200 flex overflow-hidden font-sans relative backdrop-blur-[2px]">
             <BackgroundDots />
 
+            {/* Mobile Backdrop */}
+            <AnimatePresence>
+                {isSidebarOpen && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-30 lg:hidden"
+                    />
+                )}
+            </AnimatePresence>
+
             {/* --- Sidebar --- */}
-            <aside className={`fixed lg:relative z-40 h-full bg-[#080c18] border-r border-white/5 transition-all duration-300 flex flex-col ${isSidebarOpen ? 'w-72' : 'w-20'} overflow-hidden`}>
-                <div className="p-8">
-                    <Link to="/" className="bg-white rounded-[1.5rem] px-5 py-3 shadow-xl flex items-center justify-center gap-3 hover:scale-105 transition-transform group/logo">
+            <aside className={`fixed top-0 bottom-0 left-0 z-40 bg-[#080c18] border-r border-white/5 transition-all duration-500 flex flex-col ${isSidebarOpen ? 'translate-x-0 w-80' : '-translate-x-full lg:translate-x-0 w-80 lg:w-24'} overflow-hidden shadow-2xl lg:shadow-none`}>
+                <div className="p-8 pb-4 flex items-center justify-between">
+                    <Link to="/" className="bg-white rounded-[1.5rem] px-5 py-3.5 shadow-xl flex items-center justify-center gap-3 hover:scale-105 transition-transform group/logo">
                         <img src="/logo.jpg" alt="MusB Research" className="h-10 w-auto object-contain brightness-110" />
                     </Link>
+                    <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-slate-500 hover:text-white">
+                        <CloseIcon className="w-6 h-6" />
+                    </button>
                 </div>
 
-                <div className="px-6 mb-8">
+                <div className="px-6 py-8">
                     {(() => {
                         const userStr = localStorage.getItem('user');
                         let userName = 'User';
@@ -143,14 +162,14 @@ export default function ParticipantDashboard() {
                         try {
                             if (userStr) {
                                 const u = JSON.parse(userStr);
-                                userName = u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'User'));
+                                userName = u.full_name || (u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'User')));
                                 userPicture = u.picture || u.avatar || u.avatar_url || '';
                             }
                         } catch(e) {}
 
                         return (
-                            <div className="bg-[#0f172a] rounded-[2rem] p-5 flex items-center gap-4 border border-white/5">
-                                <div className="w-12 h-12 rounded-2xl overflow-hidden bg-gradient-to-br from-cyan-400 to-indigo-600 p-0.5">
+                            <div className="bg-[#0f172a] rounded-[2.5rem] p-4 flex items-center gap-4 border border-white/5 hover:border-white/10 transition-all group">
+                                <div className="w-12 h-12 rounded-2xl overflow-hidden bg-gradient-to-br from-cyan-400 to-indigo-600 p-0.5 shadow-lg shadow-cyan-500/10 flex-shrink-0">
                                     <img 
                                         src={userPicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=000&color=fff`} 
                                         alt="User" 
@@ -162,9 +181,9 @@ export default function ParticipantDashboard() {
                                     />
                                 </div>
                                 {isSidebarOpen && (
-                                    <div className="overflow-hidden">
-                                        <h3 className="text-sm font-black text-white truncate uppercase">{userName}</h3>
-                                        <span className="text-[9px] font-black text-[#00e5ff] uppercase tracking-widest bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20 mt-1 inline-block">Participant</span>
+                                    <div className="overflow-hidden flex flex-col">
+                                        <h3 className="text-[13px] font-black text-white truncate uppercase tracking-tight leading-none">{userName}</h3>
+                                        <span className="text-[8px] font-black text-cyan-400/80 uppercase tracking-[0.2em] mt-1.5 opacity-60">Participant</span>
                                     </div>
                                 )}
                             </div>
@@ -172,41 +191,53 @@ export default function ParticipantDashboard() {
                     })()}
                 </div>
 
-                <nav className="flex-1 px-4 space-y-1">
+                <nav className="flex-1 px-6 space-y-1.5 py-4 overflow-y-auto custom-scrollbar">
                     {navItems.map((item) => (
                         <button
                             key={item.id}
-                            className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all group ${
+                            className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all group ${
                                 item.active 
-                                ? 'sidebar-active-gradient text-[#00e5ff]' 
+                                ? 'sidebar-active-gradient text-[#00e5ff] shadow-lg shadow-cyan-500/10' 
                                 : 'text-slate-500 hover:text-white hover:bg-white/5'
                             }`}
                         >
-                            <item.icon className="w-5 h-5" />
-                            {isSidebarOpen && <span className="text-[11px] font-black uppercase tracking-[0.15em]">{item.label}</span>}
+                            <div className="w-12 flex items-center justify-center flex-shrink-0">
+                                <item.icon className={`w-5 h-5 ${item.active ? 'text-[#00e5ff]' : 'text-slate-600 group-hover:text-cyan-400'}`} />
+                            </div>
+                            {isSidebarOpen && <span className="text-[11px] font-black uppercase tracking-[0.2em]">{item.label}</span>}
                         </button>
                     ))}
                 </nav>
 
-                <div className="p-4 border-t border-white/5 space-y-2">
-                    <Link to="/" className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-slate-500 hover:text-[#00e5ff] hover:bg-[#00e5ff]/5 transition-all">
-                        <Globe className="w-5 h-5" />
-                        {isSidebarOpen && <span className="text-[11px] font-black uppercase tracking-[0.15em]">View Website</span>}
+                <div className="p-6 pt-4 border-t border-white/5 space-y-2">
+                    <Link to="/" className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-slate-500 hover:text-[#00e5ff] hover:bg-[#00e5ff]/5 transition-all group">
+                        <div className="w-12 flex items-center justify-center flex-shrink-0">
+                            <Globe className="w-5 h-5 text-slate-600 group-hover:text-cyan-400" />
+                        </div>
+                        {isSidebarOpen && <span className="text-[11px] font-black uppercase tracking-[0.2em]">View Website</span>}
                     </Link>
-                    <button onClick={handleSignOut} className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-slate-500 hover:text-red-400 hover:bg-red-500/5 transition-all">
-                        <LogOut className="w-5 h-5" />
-                        {isSidebarOpen && <span className="text-[11px] font-black uppercase tracking-[0.15em]">Sign Out</span>}
+                    <button onClick={handleSignOut} className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-slate-500 hover:text-red-400 hover:bg-red-500/5 transition-all group">
+                        <div className="w-12 flex items-center justify-center flex-shrink-0">
+                            <LogOut className="w-5 h-5 text-slate-600 group-hover:text-red-400" />
+                        </div>
+                        {isSidebarOpen && <span className="text-[11px] font-black uppercase tracking-[0.2em]">Sign Out</span>}
                     </button>
                 </div>
             </aside>
 
             {/* --- Main Area --- */}
-            <div className="flex-1 overflow-y-auto relative z-10 custom-scrollbar">
+            <div className={`flex-1 transition-all duration-500 ${isSidebarOpen ? 'lg:ml-80' : 'lg:ml-24'} overflow-y-auto relative z-10 custom-scrollbar`}>
                 {/* Header */}
-                <header className="sticky top-0 z-30 bg-[#0a0e1a]/80 backdrop-blur-3xl px-8 py-6 flex items-center justify-between border-b border-white/5">
-                    <div className="flex items-center gap-3">
-                        <TrendingUp className="w-5 h-5 text-[#00e5ff]" />
-                        <h1 className="text-xl font-black text-white uppercase tracking-wider">Dashboard</h1>
+                <header className="sticky top-0 z-20 bg-[#0a0e1a]/80 backdrop-blur-3xl px-6 lg:px-10 py-6 lg:py-8 flex items-center justify-between border-b border-white/5">
+                    <div className="flex items-center gap-4">
+                        <button 
+                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                            className="lg:hidden p-2 -ml-2 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 transition-all flex items-center justify-center text-slate-400"
+                        >
+                            <Menu className="w-5 h-5" />
+                        </button>
+                        <TrendingUp className="hidden lg:block w-6 h-6 text-[#00e5ff]" />
+                        <h1 className="text-xl lg:text-3xl font-black text-white uppercase tracking-tighter italic">Dashboard</h1>
                     </div>
 
                     <div className="flex items-center gap-6">
@@ -218,7 +249,7 @@ export default function ParticipantDashboard() {
                             try {
                                 if (userStr) {
                                     const u = JSON.parse(userStr);
-                                    userName = u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'User'));
+                                    userName = u.full_name || (u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'User')));
                                     userEmail = u.email || '';
                                     userPicture = u.picture || u.avatar || u.avatar_url || '';
                                 }
@@ -227,8 +258,8 @@ export default function ParticipantDashboard() {
                             return (
                                 <>
                                     <div className="hidden md:flex flex-col items-end">
-                                        <span className="text-xs font-black text-white uppercase">{userName}</span>
-                                        <span className="text-[10px] font-bold text-slate-500">{userEmail}</span>
+                                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest leading-none mb-1">Welcome back,</p>
+                                        <h2 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none">{userName}</h2>
                                     </div>
                                     <div className="flex items-center gap-4" ref={profileRef}>
                                         <button className="relative p-2.5 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 transition-all group">
@@ -250,6 +281,37 @@ export default function ParticipantDashboard() {
                                                     }}
                                                 />
                                             </button>
+                                            
+                                            {/* Profile Dropdown */}
+                                            <AnimatePresence>
+                                                {isProfileOpen && (
+                                                    <motion.div 
+                                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                        className="absolute right-0 mt-3 w-64 bg-[#0f172a] border border-white/10 rounded-3xl shadow-2xl p-4 z-50 overflow-hidden"
+                                                    >
+                                                        <div className="p-3 border-b border-white/5 mb-2">
+                                                            <p className="text-sm font-black text-white truncate">{userName}</p>
+                                                            <p className="text-[10px] text-slate-500 truncate">{userEmail}</p>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-xs font-bold">
+                                                                <User className="w-4 h-4" /> Account Settings
+                                                            </button>
+                                                            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-xs font-bold">
+                                                                <Settings className="w-4 h-4" /> Preferences
+                                                            </button>
+                                                            <button 
+                                                                onClick={handleSignOut}
+                                                                className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-red-400/80 hover:text-red-400 hover:bg-red-500/5 transition-all text-xs font-black uppercase tracking-widest mt-2"
+                                                            >
+                                                                <LogOut className="w-4 h-4" /> Sign Out
+                                                            </button>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
                                         </div>
                                     </div>
                                 </>
@@ -258,7 +320,7 @@ export default function ParticipantDashboard() {
                     </div>
                 </header>
 
-                <main className="p-8 space-y-12">
+                <main className="p-10 space-y-16 max-w-[1600px] mx-auto w-full">
                     {/* Welcome Text */}
                     {(() => {
                         const userStr = localStorage.getItem('user');
@@ -267,14 +329,16 @@ export default function ParticipantDashboard() {
                         try {
                             if (userStr) {
                                 const u = JSON.parse(userStr);
-                                firstName = u.first_name || (u.name ? u.name.split(' ')[0] : 'User');
+                                firstName = u.full_name ? u.full_name.split(' ')[0] : (u.first_name || (u.name ? u.name.split(' ')[0] : 'User'));
                             }
                         } catch(e) {}
 
                         return (
                             <div className="space-y-4">
                                 <p className="text-slate-500 text-[11px] font-black uppercase tracking-[0.4em] ml-1">{today}</p>
-                                <h2 className="text-5xl md:text-7xl font-black italic text-white tracking-[-0.02em] leading-tight">Welcome back, <span className="text-white opacity-80 uppercase">{firstName}</span></h2>
+                                <h2 className="text-5xl md:text-7xl font-black italic text-white tracking-[-0.02em] leading-tight">
+                                    Welcome back, <span className="text-cyan-400 uppercase">{firstName}</span>
+                                </h2>
                                 <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-cyan-400/10 border border-cyan-400/20 rounded-full text-[10px] font-black text-cyan-400 uppercase tracking-widest mt-4 group">
                                     <span className="w-2 h-2 rounded-full bg-[#00ff88] animate-pulse shadow-[0_0_10px_#00ff88]" />
                                     Live Study Status

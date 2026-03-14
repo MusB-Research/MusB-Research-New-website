@@ -54,7 +54,7 @@ export default function SuperAdminSignIn() {
             
             // Success "Hack" effect
             setTerminalLines(prev => [...prev, '> VERIFICATION_SUCCESS', '> REDIRECTING_TO_CORE...']);
-            setTimeout(() => navigate('/dashboard/super-admin'), 800);
+            setTimeout(() => navigate('/sys/core-oversight'), 800);
             
         } catch (err: any) {
             setError(err.message);

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     LayoutDashboard, 
@@ -39,14 +40,14 @@ export default function PIDashboard() {
 
     return (
         <div className="min-h-screen bg-transparent">
-             <header className="fixed top-0 left-0 right-0 h-24 z-50 bg-[#0B101B]/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between px-12">
+             <header className="fixed top-0 left-0 right-0 h-28 z-50 bg-[#0B101B]/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between px-10">
                 <div className="flex items-center gap-12">
-                    <div className="flex items-center gap-4">
+                    <Link to="/" className="flex items-center gap-4 group">
                         <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black italic shadow-lg shadow-indigo-600/20">
                             PI
                         </div>
                         <h2 className="text-white font-black uppercase italic tracking-tighter text-xl">PI <span className="text-indigo-400">Portal</span></h2>
-                    </div>
+                    </Link>
                 </div>
 
                 <div className="flex items-center gap-6">
@@ -60,7 +61,7 @@ export default function PIDashboard() {
                         try {
                             if (userStr) {
                                 const u = JSON.parse(userStr);
-                                userName = u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'PI'));
+                                userName = u.full_name || (u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'PI')));
                                 userPicture = u.picture || u.avatar || u.avatar_url || '';
                             }
                         } catch(e) {}
@@ -88,26 +89,28 @@ export default function PIDashboard() {
                 </div>
             </header>
 
-            <aside className="fixed left-0 top-24 bottom-0 w-72 bg-[#0B101B]/40 backdrop-blur-3xl border-r border-white/5 p-8 z-40">
-                <nav className="space-y-2">
+            <aside className="fixed left-0 top-28 bottom-0 w-80 bg-[#0B101B]/40 backdrop-blur-3xl border-r border-white/5 p-6 z-40">
+                <nav className="space-y-1.5">
                     {navItems.map((item) => (
                         <button
                             key={item.id}
                             onClick={() => setActiveModule(item.id as PIModule)}
-                            className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all group ${
+                            className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all group ${
                                 activeModule === item.id 
                                 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' 
                                 : 'text-slate-500 hover:bg-white/5 hover:text-white'
                             }`}
                         >
-                            <item.icon className={`w-4 h-4 ${activeModule === item.id ? 'text-white' : 'text-slate-600 group-hover:text-indigo-400'}`} />
+                            <div className="w-10 flex items-center justify-center flex-shrink-0">
+                                <item.icon className={`w-4 h-4 ${activeModule === item.id ? 'text-white' : 'text-slate-600 group-hover:text-indigo-400'}`} />
+                            </div>
                             <span className="text-[10px] font-black uppercase tracking-[0.2em]">{item.label}</span>
                         </button>
                     ))}
                 </nav>
             </aside>
 
-            <main className="ml-72 pt-32 pb-24 px-12">
+            <main className="ml-80 pt-36 pb-24 px-10">
                 <AnimatePresence mode="wait">
                     {activeModule === 'OVERSIGHT' && <OversightModule />}
                     {activeModule === 'STUDIES' && <StudyOverviewModule onAdd={() => setShowCreateModal(true)} />}

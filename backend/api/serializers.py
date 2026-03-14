@@ -1,11 +1,21 @@
 from rest_framework import serializers
 from .models import Study, StudyAssignment, Participant, Visit, Kit, Form, FormResponse
 from authentication.models import User
+from authentication.security import decrypt_data
 
 class UserSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField()
+    phone_number = serializers.SerializerMethodField()
+    
     class Meta:
         model = User
         fields = ['id', 'email', 'full_name', 'role', 'phone_number']
+
+    def get_full_name(self, obj):
+        return obj.decrypted_name
+
+    def get_phone_number(self, obj):
+        return obj.decrypted_phone
 
 class StudySerializer(serializers.ModelSerializer):
     class Meta:

@@ -388,12 +388,14 @@ export default function SignIn() {
 
                     {/* Branding Section */}
                     <div className="flex flex-col items-center mb-12 relative z-10">
-                        <motion.div 
-                            whileHover={{ scale: 1.05 }}
-                            className="bg-white px-8 py-4 rounded-3xl shadow-2xl border border-white/20 mb-8 flex items-center justify-center"
-                        >
-                            <img src="/logo.jpg" alt="MusB™ Research" className="h-10 w-auto object-contain" />
-                        </motion.div>
+                        <Link to="/">
+                            <motion.div 
+                                whileHover={{ scale: 1.05 }}
+                                className="bg-white px-8 py-4 rounded-3xl shadow-2xl border border-white/20 mb-8 flex items-center justify-center"
+                            >
+                                <img src="/logo.jpg" alt="MusB™ Research" className="h-10 w-auto object-contain" />
+                            </motion.div>
+                        </Link>
                         
                         <div className="text-center space-y-2">
                             <AnimatePresence mode="wait">

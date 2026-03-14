@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     ShieldCheck, 
@@ -53,12 +54,12 @@ export default function SuperAdminDashboard() {
         <div className="min-h-screen bg-transparent text-slate-200">
             {/* Sidebar Overlay */}
             <aside className="fixed left-0 top-0 bottom-0 w-72 bg-[#0B101B]/80 backdrop-blur-3xl border-r border-white/5 p-8 z-50 overflow-y-auto">
-                <div className="flex items-center gap-3 mb-12">
+                <Link to="/" className="flex items-center gap-3 mb-12 group">
                     <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
                         <Lock className="w-5 h-5" />
                     </div>
                     <h2 className="text-xl font-black text-white italic uppercase tracking-tighter">System <span className="text-indigo-400">Main</span></h2>
-                </div>
+                </Link>
 
                 {(() => {
                     const userStr = localStorage.getItem('user');
@@ -67,7 +68,7 @@ export default function SuperAdminDashboard() {
                     try {
                         if (userStr) {
                             const u = JSON.parse(userStr);
-                            userName = u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'Super Admin'));
+                            userName = u.full_name || (u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'Super Admin')));
                             userPicture = u.picture || u.avatar || u.avatar_url || '';
                         }
                     } catch(e) {}
