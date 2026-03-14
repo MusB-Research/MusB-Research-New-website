@@ -856,8 +856,14 @@ export default function SignIn() {
 
                             <div 
                                 id="google-signin-btn"
-                                className="w-full flex justify-center py-2"
-                            ></div>
+                                className="w-full flex justify-center py-2 min-h-[50px]"
+                            >
+                                {!import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+                                    <div className="text-[10px] text-red-500/50 font-black uppercase tracking-widest text-center py-2 border border-red-500/20 rounded-xl px-4">
+                                        Configuration Error: Missing Google Client ID in Environment
+                                    </div>
+                                )}
+                            </div>
                         </motion.div>
                     )}
 
