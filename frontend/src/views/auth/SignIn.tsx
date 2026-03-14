@@ -188,47 +188,55 @@ export default function SignIn() {
     // Initialize Google on mount
     useEffect(() => {
         let retryCount = 0;
-        const maxRetries = 20;
+        const maxRetries = 30;
 
         const initGoogle = () => {
-            if (window.google) {
-                // Ensure the Google Identity Services are initialized
+            if (window.google?.accounts?.id) {
                 const client_id = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+                
                 if (!client_id) {
-                    console.error("VITE_GOOGLE_CLIENT_ID is missing in .env");
+                    console.error("❌ GOOGLE AUTH ERROR: VITE_GOOGLE_CLIENT_ID is missing from environment variables.");
                     return;
                 }
                 
-                window.google.accounts.id.initialize({
-                    client_id: client_id,
-                    callback: handleCredentialResponse,
-                    auto_select: false,
-                    ux_mode: 'popup',
-                    cancel_on_tap_outside: true,
-                });
-                
-                // Now try to render the button
-                const btnDiv = document.getElementById('google-signin-btn');
-                if (btnDiv) {
-                    window.google.accounts.id.renderButton(btnDiv, {
-                        theme: 'outline',
-                        size: 'large',
-                        width: 400,
-                        shape: 'pill'
+                try {
+                    window.google.accounts.id.initialize({
+                        client_id: client_id,
+                        callback: handleCredentialResponse,
+                        auto_select: false,
+                        ux_mode: 'popup',
+                        cancel_on_tap_outside: true,
+                        // Senior Tip: Adding log_level helps debug production origin issues
+                        log_level: 'info'
                     });
-                    console.log("Google GSI Button Rendered");
-                } else if (retryCount < maxRetries) {
-                    retryCount++;
-                    setTimeout(initGoogle, 300);
-                } else {
-                    console.error("Failed to find google-signin-btn container after max retries");
+                    
+                    const btnDiv = document.getElementById('google-signin-btn');
+                    if (btnDiv) {
+                        window.google.accounts.id.renderButton(btnDiv, {
+                            theme: 'outline',
+                            size: 'large',
+                            width: btnDiv.offsetWidth || 400,
+                            shape: 'pill',
+                            text: 'continue_with'
+                        });
+                        console.log("✅ Google Sign-In Button successfully rendered.");
+                    } else if (retryCount < maxRetries) {
+                        retryCount++;
+                        setTimeout(initGoogle, 200);
+                    }
+                } catch (err) {
+                    console.error("❌ Google Initialization Failed:", err);
                 }
             } else {
-                setTimeout(initGoogle, 500);
+                // If the script isn't loaded yet, wait longer
+                if (retryCount < maxRetries) {
+                    retryCount++;
+                    setTimeout(initGoogle, 500);
+                }
             }
         };
         initGoogle();
-    }, [mode, step]); // Re-run when mode or step changes to ensure button renders if div is remounted
+    }, [mode, step]);
 
     const handleGoogleLogin = () => {
         // We are no longer calling id.prompt() here.
