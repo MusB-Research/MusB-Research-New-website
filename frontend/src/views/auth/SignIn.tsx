@@ -30,6 +30,7 @@ export default function SignIn() {
 
     const navigate = useNavigate();
     const recaptchaRef = useRef<ReCAPTCHA>(null);
+    const googleButtonRef = useRef<HTMLDivElement>(null);
 
     const validatePasswordComplexity = (pass: string) => {
         const checks = {
@@ -188,14 +189,19 @@ export default function SignIn() {
     // Initialize Google on mount
     useEffect(() => {
         let retryCount = 0;
-        const maxRetries = 30;
+        const maxRetries = 40;
 
         const initGoogle = () => {
+            // Diagnostic: Log current origin to help user with whitelisting
+            if (retryCount === 0) {
+                console.log("🛠️ Auth Diagnostic: Current Origin is", window.location.origin);
+            }
+
             if (window.google?.accounts?.id) {
                 const client_id = import.meta.env.VITE_GOOGLE_CLIENT_ID;
                 
                 if (!client_id) {
-                    console.error("❌ GOOGLE AUTH ERROR: VITE_GOOGLE_CLIENT_ID is missing from environment variables.");
+                    console.error("❌ GOOGLE AUTH ERROR: VITE_GOOGLE_CLIENT_ID is missing.");
                     return;
                 }
                 
@@ -203,32 +209,26 @@ export default function SignIn() {
                     window.google.accounts.id.initialize({
                         client_id: client_id,
                         callback: handleCredentialResponse,
-                        auto_select: false,
                         ux_mode: 'popup',
-                        cancel_on_tap_outside: true,
-                        // Senior Tip: Adding log_level helps debug production origin issues
-                        log_level: 'info'
                     });
                     
-                    const btnDiv = document.getElementById('google-signin-btn');
-                    if (btnDiv) {
-                        window.google.accounts.id.renderButton(btnDiv, {
+                    if (googleButtonRef.current) {
+                        window.google.accounts.id.renderButton(googleButtonRef.current, {
                             theme: 'outline',
                             size: 'large',
-                            width: btnDiv.offsetWidth || 400,
+                            width: 320,
                             shape: 'pill',
                             text: 'continue_with'
                         });
-                        console.log("✅ Google Sign-In Button successfully rendered.");
+                        console.log("✅ Google Button Rendered via Ref");
                     } else if (retryCount < maxRetries) {
                         retryCount++;
-                        setTimeout(initGoogle, 200);
+                        setTimeout(initGoogle, 250);
                     }
                 } catch (err) {
-                    console.error("❌ Google Initialization Failed:", err);
+                    console.error("❌ Google Error:", err);
                 }
             } else {
-                // If the script isn't loaded yet, wait longer
                 if (retryCount < maxRetries) {
                     retryCount++;
                     setTimeout(initGoogle, 500);
@@ -855,7 +855,7 @@ export default function SignIn() {
                             </div>
 
                             <div 
-                                id="google-signin-btn"
+                                ref={googleButtonRef}
                                 className="w-full flex justify-center py-2 min-h-[50px]"
                             >
                                 {!import.meta.env.VITE_GOOGLE_CLIENT_ID && (
