@@ -187,8 +187,12 @@ export default function SignIn() {
 
     // Initialize Google on mount
     useEffect(() => {
+        let retryCount = 0;
+        const maxRetries = 20;
+
         const initGoogle = () => {
             if (window.google) {
+                // Ensure the Google Identity Services are initialized
                 const client_id = import.meta.env.VITE_GOOGLE_CLIENT_ID;
                 if (!client_id) {
                     console.error("VITE_GOOGLE_CLIENT_ID is missing in .env");
@@ -199,28 +203,32 @@ export default function SignIn() {
                     client_id: client_id,
                     callback: handleCredentialResponse,
                     auto_select: false,
-                    ux_mode: 'popup', // Popup mode is safer for local dev
+                    ux_mode: 'popup',
                     cancel_on_tap_outside: true,
                 });
                 
-                // Render the official Google button
+                // Now try to render the button
                 const btnDiv = document.getElementById('google-signin-btn');
                 if (btnDiv) {
                     window.google.accounts.id.renderButton(btnDiv, {
                         theme: 'outline',
                         size: 'large',
-                        width: 400, // Fixed width for stability
+                        width: 400,
                         shape: 'pill'
                     });
+                    console.log("Google GSI Button Rendered");
+                } else if (retryCount < maxRetries) {
+                    retryCount++;
+                    setTimeout(initGoogle, 300);
+                } else {
+                    console.error("Failed to find google-signin-btn container after max retries");
                 }
-                
-                console.log("Google GSI Client Initialized (Manual Popup Mode)");
             } else {
                 setTimeout(initGoogle, 500);
             }
         };
         initGoogle();
-    }, []);
+    }, [mode, step]); // Re-run when mode or step changes to ensure button renders if div is remounted
 
     const handleGoogleLogin = () => {
         // We are no longer calling id.prompt() here.
