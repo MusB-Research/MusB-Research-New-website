@@ -44,7 +44,7 @@ export const fetchStudies = async (): Promise<Study[]> => {
             id: d.protocol_id || d.id,
             title: d.title,
             condition: d.condition || 'Other',
-            type: d.study_type === 'VIRTUAL' ? 'Remote' : 'On-site',
+            type: d.study_type === 'VIRTUAL' ? 'Virtual' : 'On-site',
             trialFormat: d.trial_format,
             status: statusMap[d.status] || 'Upcoming',
             description: d.description,

@@ -47,35 +47,20 @@ export default function Trials() {
     const [formStatus, setFormStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
     useEffect(() => {
-        const fetchStudies = async () => {
+        const getStudies = async () => {
+            setLoading(true);
             try {
-                const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/studies/`);
-                if (!response.ok) throw new Error('Failed to fetch studies');
-                const data = await response.json();
-
-                // Map API data to UI structure if needed, or use directly
-                const mappedStudies = data.map((s: any) => ({
-                    id: s.protocol_id || s.id,
-                    title: s.title,
-                    description: s.primary_indication || "Standard research protocol",
-                    condition: s.primary_indication || "Other",
-                    type: s.study_type === 'VIRTUAL' ? 'Virtual' : (s.study_type === 'IN_PERSON' ? 'On-site' : 'Hybrid'),
-                    status: s.status === 'RECRUITING' ? 'Recruiting' : 'Closed',
-                    benefit: s.trial_model === 'RCT' ? 'Placebo-Controlled' : 'Standard Product',
-                    duration: "4-12 Weeks", // Simulated field
-                    tags: [s.trial_model, s.study_type]
-                }));
-
-                setStudies(mappedStudies);
+                const data = await fetchStudies();
+                setStudies(data);
             } catch (err) {
                 console.error("Error fetching studies:", err);
-                setStudies([]); // Fallback to empty on error
+                setStudies([]);
             } finally {
                 setLoading(false);
             }
-        }
+        };
 
-        fetchStudies();
+        getStudies();
     }, []);
 
     const conditions = ["All", "Gut Health", "Metabolic Health", "Aging", "Women’s Health", "Brain Health", "Skin", "Other"];
