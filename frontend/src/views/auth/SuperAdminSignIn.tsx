@@ -117,6 +117,14 @@ export default function SuperAdminSignIn() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: email.toLowerCase(), password })
             });
+            
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                const text = await response.text();
+                console.error("Non-JSON response received:", text);
+                throw new Error(`Server returned an invalid response format (HTTP ${response.status}). The backend might be down or misconfigured.`);
+            }
+
             const data = await response.json();
             
             if (!response.ok) throw new Error(data.error || 'Identity verification failed');
