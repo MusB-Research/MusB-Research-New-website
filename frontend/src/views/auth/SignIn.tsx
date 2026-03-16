@@ -29,6 +29,7 @@ export default function SignIn() {
     const [error, setError] = useState<string | null>(null);
     const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: 'Weak', color: 'bg-red-500' });
     const [isAttemptingSubmit, setIsAttemptingSubmit] = useState(false);
+    const googleInitRef = useRef(false);
 
     const navigate = useNavigate();
     const recaptchaRef = useRef<ReCAPTCHA>(null);
@@ -249,12 +250,12 @@ export default function SignIn() {
                     console.error("❌ GOOGLE AUTH ERROR: VITE_GOOGLE_CLIENT_ID is missing.");
                     return;
                 }
-
                 try {
                     window.google.accounts.id.initialize({
                         client_id: client_id,
                         callback: handleCredentialResponse,
                         ux_mode: 'popup',
+                        use_fedcm: true,
                     });
 
                     if (googleButtonRef.current) {
@@ -441,14 +442,13 @@ export default function SignIn() {
                     {/* Branding Section */}
                     <div className="flex flex-col items-center mb-12 relative z-10">
                         <Link to="/">
-                            <motion.div
+                            <motion.div 
                                 whileHover={{ scale: 1.05 }}
-                                className="h-14 px-8 rounded-full bg-white flex items-center justify-center shadow-2xl transition-transform group-hover:scale-105"
+                                className="bg-white rounded-3xl shadow-2xl border border-white/20 mb-8 flex items-center justify-center overflow-hidden h-16 md:h-20"
                             >
-                                <img src="/logo.jpg" alt="MusB™ Research" className="h-7 w-auto" />
+                                <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain" />
                             </motion.div>
                         </Link>
-
                         <div className="text-center space-y-2">
                             <AnimatePresence mode="wait">
                                 <motion.h1

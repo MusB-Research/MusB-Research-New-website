@@ -1,61 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ChevronDown, ArrowRight, Clock, ShieldCheck, DollarSign } from 'lucide-react';
-import { Condition, Study } from '@/types';
+import { fetchStudies, Study } from '../data/studies';
+import { Condition } from '../types';
 
 const conditions: Condition[] = ['Gut Health', 'Brain Health', 'Metabolic Health', 'Aging', 'Women’s Health', 'Cancer Support'];
 
-
-const HARDCODED_STUDIES = [
-    {
-        id: '1',
-        title: 'Beat The Bloat Study',
-        condition: 'Gut Health',
-        type: 'On-site',
-        status: 'Recruiting',
-        description: 'Bloating reducing natural formula',
-        duration: '12 Weeks (2-3 visits)',
-        compensation_range: 'Get PAID',
-        is_paid: true,
-        is_free_testing: false
-    },
-    {
-        id: '2',
-        title: 'VITAL-Age Study',
-        condition: 'Aging',
-        type: 'On-site',
-        status: 'Recruiting',
-        description: 'Anti-aging probiotics',
-        duration: '5 Months (3-4 visits)',
-        compensation_range: 'Get PAID',
-        is_paid: true,
-        is_free_testing: false
-    },
-    {
-        id: '3',
-        title: 'SAM Study',
-        condition: 'Women’s Health',
-        type: 'On-site',
-        status: 'Recruiting',
-        description: 'Herbal formula for women health',
-        duration: '12 weeks (4 visits)',
-        compensation_range: 'Get PAID',
-        is_paid: true,
-        is_free_testing: false
-    },
-    {
-        id: '4',
-        title: 'SHINE Study',
-        condition: 'Women’s Health',
-        type: 'On-site',
-        status: 'Recruiting',
-        description: 'Bioenhancer formula for women health',
-        duration: '8 weeks (3-4 visits)',
-        compensation_range: 'Get PAID',
-        is_paid: true,
-        is_free_testing: false
-    }
-];
 export default function StudyFilterSection() {
     const [selectedCondition, setSelectedCondition] = useState<Condition | 'All'>('All');
     const [selectedType, setSelectedType] = useState<'All' | 'Paid Studies' | 'Free Testing'>('All');
@@ -63,9 +13,8 @@ export default function StudyFilterSection() {
     const [isLoading, setIsLoading] = useState(true);
     useEffect(() => {
         setIsLoading(true);
-        // Mock loading 
-        setTimeout(() => {
-            let filtered: any[] = HARDCODED_STUDIES;
+        fetchStudies().then((data) => {
+            let filtered: any[] = data;
             if (selectedCondition !== 'All') {
                 filtered = filtered.filter(s => s.condition === selectedCondition);
             }
@@ -76,7 +25,7 @@ export default function StudyFilterSection() {
             }
             setStudies(filtered as any[]);
             setIsLoading(false);
-        }, 400);
+        });
     }, [selectedCondition, selectedType]);
 
 

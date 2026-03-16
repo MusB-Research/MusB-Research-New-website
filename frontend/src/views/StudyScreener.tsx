@@ -18,7 +18,7 @@ import {
     Loader2,
     X
 } from 'lucide-react';
-import { HARDCODED_STUDIES, Study } from '../data/studies';
+import { fetchStudies, Study } from '../data/studies';
 import { authFetch } from '../utils/auth';
 
 type ScreenerStep = 'STEP1' | 'STEP2' | 'STEP3' | 'STEP4' | 'OUTCOME';
@@ -49,6 +49,7 @@ export default function StudyScreener() {
 
     useEffect(() => {
         const fetchStudyAndForm = async () => {
+            setIsLoading(true);
             const apiUrl = import.meta.env.VITE_API_URL;
             try {
                 // Try fetching real study from API first
@@ -70,17 +71,24 @@ export default function StudyScreener() {
                         }
                     }
                 } else {
-                    const foundStudy = HARDCODED_STUDIES.find(s => s.id === id);
+                    // Fallback to public fetch if auth fetch fails
+                    const studies = await fetchStudies();
+                    const foundStudy = studies.find(s => s.id === id);
                     if (foundStudy) setStudy(foundStudy);
                     else navigate('/trials');
                 }
             } catch (e) {
                 console.error("Error fetching study for screener:", e);
-                const foundStudy = HARDCODED_STUDIES.find(s => s.id === id);
+                // Last ditch effort: public fetch
+                const studies = await fetchStudies();
+                const foundStudy = studies.find(s => s.id === id);
                 if (foundStudy) setStudy(foundStudy);
                 else navigate('/trials');
+            } finally {
+                setIsLoading(false);
             }
         };
+
         fetchStudyAndForm();
     }, [id, navigate]);
 

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, FileText, CheckCircle2, FileSignature, AlertCircle, Eye, Download } from 'lucide-react';
-import { HARDCODED_STUDIES } from '../data/studies';
 import { authFetch } from '../utils/auth';
 
 export default function StudyConsent() {
@@ -36,9 +35,7 @@ export default function StudyConsent() {
                     duration: "4-12 Weeks"
                 });
             } catch (err) {
-                const foundStudy = HARDCODED_STUDIES.find(s => s.id === id);
-                if (foundStudy) setStudy(foundStudy);
-                else navigate('/trials');
+                navigate('/trials');
             }
         };
         fetchStudy();

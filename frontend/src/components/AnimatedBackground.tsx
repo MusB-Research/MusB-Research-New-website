@@ -62,6 +62,11 @@ const AnimatedBackground = () => {
         const drawParticles = () => {
              ctx.clearRect(0, 0, canvas.width, canvas.height);
             
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#020617');
+            gradient.addColorStop(1, '#0b1121');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             const time = Date.now() * 0.001;
 
             particles.forEach((particle, index) => {

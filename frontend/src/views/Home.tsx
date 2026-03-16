@@ -1274,7 +1274,7 @@ const FACILITIES_DATA = [
     { id: 3, name: 'Central Laboratory & Biorepository', description: 'Secure on-site storage and advanced sample processing capabilities.', features: ['-80°C Freezers', 'Centrifuges', 'Cryogenic Storage'] },
     { id: 4, name: 'Sample Processing & Secure IT Systems', description: 'HIPAA-compliant, high-security infrastructure for data management.', features: ['Encrypted Servers', '24/7 Monitoring', 'Redundant Backups'] },
     { id: 5, name: 'Mobile Clinic & Phlebotomy Services', description: 'Bringing research to the community with mobile phlebotomy units.', features: ['On-site Collection', 'Remote Monitoring', 'Outreach Kits'] },
-    { id: 6, name: 'Metabolic Chambers', description: 'Precision measurement of energy expenditure and metabolic rates.', features: ['Gas Analysis', 'Controlled Environment', 'Real-time Tracking'] }
+    { id: 6, name: 'Anaerobic Chambers', description: 'Precision measurement of energy expenditure and metabolic rates.', features: ['Gas Analysis', 'Controlled Environment', 'Real-time Tracking'] }
 ];
 
 const CERTIFICATIONS_DATA = [
@@ -1555,7 +1555,7 @@ export default function Home() {
                                         'Retrieval and chain-of-custody documentation'
                                     ]}
                                     footerText="Our biorepository protects the long-term value of your samples and supports future discovery and regulatory needs."
-                                    linkTo="/contact?type=biorepository"
+                                    linkTo="/facilities#lead-capture"
                                     linkText="Explore Biorepository Support"
                                     accentColor="blue"
                                 />
@@ -1601,15 +1601,15 @@ export default function Home() {
                                     </div>
                                     <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 md:gap-6 pt-4">
                                         <Link
-                                            to="/contact"
-                                            className="w-full sm:w-auto bg-cyan-500 text-slate-900 px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/20 flex items-center justify-center gap-2"
+                                            to="/facilities#lead-capture"
+                                            className="bg-cyan-500 text-slate-900 px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/20 flex items-center justify-center gap-2"
                                         >
                                             Start the Conversation
                                             <ArrowRight className="w-5 h-5" />
                                         </Link>
                                         <Link
                                             to="/capabilities"
-                                            className="w-full sm:w-auto bg-white/5 text-white border border-white/10 px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-white/10 hover:-translate-y-1 transition-all flex items-center justify-center gap-2"
+                                            className="bg-white/5 text-white border border-white/10 px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-white/10 hover:-translate-y-1 transition-all flex items-center justify-center gap-2"
                                         >
                                             Explore Our Capabilities
                                         </Link>
@@ -1618,12 +1618,7 @@ export default function Home() {
                                 <div className="relative animate-fade-in-up stagger-1">
                                     <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/30 to-indigo-500/30 rounded-[4rem] blur-[80px]"></div>
                                     <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-[4rem] p-4 overflow-hidden shadow-2xl group">
-                                        <img
-                                            src="/mission_innovation.png"
-                                            alt="Clinical Research"
-                                            loading="lazy"
-                                            className="w-full h-[500px] object-cover rounded-[3.5rem] brightness-90 group-hover:scale-105 transition-all duration-700"
-                                        />
+                                        <div className="w-full h-[500px] rounded-[3.5rem] bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 group-hover:scale-105 transition-transform duration-700"></div>
                                         <div className="absolute inset-x-8 bottom-8 p-10 rounded-3xl bg-slate-950/80 backdrop-blur-md border border-white/10 space-y-3">
                                             <h4 className="text-white font-black text-xl uppercase tracking-wider">Mission-Driven Innovation</h4>
                                             <p className="text-slate-400 text-lg font-medium">Empowering brands with credible scientific substantiation.</p>
@@ -1685,7 +1680,7 @@ export default function Home() {
 
                             <div className="flex justify-center mt-20 animate-fade-in-up stagger-3">
                                 <Link
-                                    to="/contact"
+                                    to="/facilities#lead-capture"
                                     className="px-12 py-5 bg-cyan-500 text-slate-900 rounded-2xl font-black text-sm uppercase tracking-[0.3em] hover:bg-white hover:-translate-y-2 transition-all shadow-[0_20px_50px_-10px_rgba(6,182,212,0.5)] flex items-center gap-3 group"
                                 >
                                     Start the Conversation
@@ -1732,19 +1727,14 @@ export default function Home() {
 
                                 <div className="flex gap-4 pt-4">
                                     <Link to="/facilities" className="bg-white/5 text-white px-8 py-5 rounded-xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-white/10 transition-all border border-white/10">View Our Facilities</Link>
-                                    <Link to="/contact" className="bg-cyan-400 text-slate-900 px-8 py-5 rounded-xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-white transition-all">Start the Conversation</Link>
+                                    <Link to="/facilities#lead-capture" className="bg-cyan-400 text-slate-900 px-8 py-5 rounded-xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-white transition-all">Start the Conversation</Link>
                                 </div>
                             </div>
 
                             <div className="relative group">
                                 <div className="absolute -inset-4 bg-gradient-to-tr from-cyan-500/20 to-indigo-500/20 blur-3xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
                                 <div className="relative aspect-square rounded-[4rem] bg-indigo-500/5 border border-white/10 overflow-hidden flex items-center justify-center">
-                                    <img
-                                        src="/images/home-facilities.webp"
-                                        alt="MusB Research Facilities"
-                                        loading="lazy"
-                                        className="absolute inset-0 w-full h-full object-cover brightness-75 group-hover:scale-110 group-hover:brightness-90 transition-all duration-1000"
-                                    />
+                                    <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 group-hover:scale-110 transition-transform duration-1000"></div>
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60"></div>
                                     <div className="absolute bottom-12 left-12 right-12 p-8 glass-dark rounded-3xl border border-white/10 backdrop-blur-md">
                                         <p className="text-slate-300 italic text-sm">"Our facility is more than just a lab; it's a hub of clinical innovation designed with participant care at its core."</p>
@@ -1861,7 +1851,7 @@ export default function Home() {
                                 <span className="text-cyan-400 font-black text-sm uppercase tracking-[0.6em] block animate-fade-in-up">Participants</span>
                                 <div className="space-y-4 animate-fade-in-up stagger-1">
                                     <h3 className="text-3xl md:text-4xl font-black text-white leading-[1.1] tracking-tighter">Interested in a study?</h3>
-                                    <p className="text-lg md:text-xl text-slate-400 font-medium leading-relaxed">Get paid. Get tested. Contribute to science.</p>
+                                    <p className="text-lg md:text-xl text-slate-400 font-medium leading-relaxed">Get paid. Get tested. <br />Contribute to science.</p>
                                 </div>
                                 <div className="flex flex-wrap gap-4 pt-4 animate-fade-in-up stagger-2">
                                     <Link to="/trials" className="bg-cyan-500 text-slate-900 px-14 py-6 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-2 transition-all shadow-xl">Join Research</Link>
@@ -1887,7 +1877,7 @@ export default function Home() {
             {/* Section 09: Closing Statement */}
             <div className="pt-20 pb-10 relative z-10 overflow-hidden" id="closing">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-7xl h-full bg-cyan-500/5 blur-[180px] rounded-full pointer-events-none"></div>
-                <div className="max-w-7xl mx-auto px-6 text-center space-y-16 relative">
+                <div className="max-w-[1400px] mx-auto px-6 text-center space-y-16 relative">
                     <div className="space-y-8 animate-fade-in-up">
                         <p className="text-3xl md:text-5xl font-black text-white leading-[1.1] tracking-tighter">
                             Choosing MusB™ Research means partnering with a leader <br />

@@ -15,6 +15,7 @@ from .serializers import (
     NewsSerializer, EventSerializer
 )
 from authentication.models import User
+
 from django.db.models import Q
 
 class IsAdminOrCoordinator(permissions.BasePermission):
@@ -121,12 +122,27 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
             role = 'PI' if user.role == 'PI' else 'COORDINATOR' if user.role == 'COORDINATOR' else 'PI'
             StudyAssignment.objects.create(study=study, user=user, role=role)
 
-    def perform_update(self, serializer):
-        user = self.request.user
-        if user.role not in ['SUPER_ADMIN', 'ADMIN']:
-            serializer.save(approval_status='pending')
-        else:
-            serializer.save()
+class PublicStudyViewSet(viewsets.ReadOnlyModelViewSet):
+    """Public read-only view for the frontend website"""
+    queryset = Study.objects.all()
+    serializer_class = StudySerializer
+    permission_classes = [permissions.AllowAny]
+
+class SponsorViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = User.objects.filter(role='SPONSOR')
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=True, methods=['get'])
+    def team(self, request, pk=None):
+        sponsor = self.get_object()
+        # In a real app, 'teams' might be the same company users
+        # For simplicity, we filter by company/country or a specific team model
+        # Let's assume sponsors share a "company" or specific filter
+        team_members = User.objects.filter(role='SPONSOR') # Placeholder for team logic
+        serializer = UserSerializer(team_members, many=True)
+        return Response(serializer.data)
+
 
 class ParticipantViewSet(viewsets.ModelViewSet):
     queryset = Participant.objects.all()

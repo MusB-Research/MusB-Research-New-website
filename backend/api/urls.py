@@ -4,6 +4,8 @@ from . import views
 
 router = DefaultRouter()
 router.register(r'studies', views.StudyViewSet)
+router.register(r'public-studies', views.PublicStudyViewSet, basename='public-study')
+router.register(r'sponsors', views.SponsorViewSet, basename='sponsor')
 router.register(r'users', views.UserViewSet)
 router.register(r'forms', views.FormViewSet)
 router.register(r'form-responses', views.FormResponseViewSet)

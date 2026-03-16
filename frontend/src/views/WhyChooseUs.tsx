@@ -130,7 +130,7 @@ export default function WhyChooseUs() {
                                 {heroDesc}
                             </p>
                             <div className="flex flex-wrap gap-6 pt-4">
-                                <Link to="/contact" className="grow-0 bg-cyan-500 text-slate-900 px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-2">
+                                <Link to="/facilities#lead-capture" className="grow-0 bg-cyan-500 text-slate-900 px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-2">
                                     Start the Conversation <ArrowRight className="w-5 h-5" />
                                 </Link>
                                 <Link to="/capabilities" className="grow-0 bg-white/5 text-white border border-white/10 px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white/10 hover:-translate-y-1 transition-all flex items-center gap-2">
@@ -141,12 +141,7 @@ export default function WhyChooseUs() {
                         <div className="relative animate-fade-in-up stagger-1">
                             <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/30 to-indigo-500/30 rounded-[4rem] blur-[80px]"></div>
                             <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-[4rem] p-4 overflow-hidden shadow-2xl group">
-                                <img
-                                    src="/mission_innovation.png"
-                                    alt="Clinical Research"
-                                    className="w-full h-[500px] object-cover rounded-[3.5rem] brightness-90 group-hover:scale-105 transition-all duration-700"
-                                    loading="lazy"
-                                />
+                                <div className="w-full h-[500px] rounded-[3.5rem] bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 group-hover:scale-105 transition-all duration-700"></div>
                                 <div className="absolute inset-x-8 bottom-8 p-10 rounded-3xl bg-slate-950/80 backdrop-blur-md border border-white/10 space-y-3">
                                     <h4 className="text-white font-black text-xl uppercase tracking-wider">Mission-Driven Innovation</h4>
                                     <p className="text-slate-400 text-lg font-medium">Empowering brands with credible scientific substantiation.</p>
@@ -187,7 +182,7 @@ export default function WhyChooseUs() {
                                                     <p className="text-slate-300 font-bold leading-relaxed">{card.description}</p>
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3">Includes:</h4>
+                                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">Includes:</h4>
                                                     <ul className="space-y-4">
                                                         {card.deliverables?.map((item: string, i: number) => (
                                                             <li key={i} className="flex items-start gap-3">
@@ -234,12 +229,7 @@ export default function WhyChooseUs() {
                                     <div className="absolute -inset-4 bg-gradient-to-tr from-indigo-500/20 to-cyan-500/20 blur-3xl opacity-50 rounded-[4rem]"></div>
                                     <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-[4rem] p-6 overflow-hidden shadow-2xl group">
                                         <div className="aspect-[4/3] rounded-[3rem] bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 flex items-center justify-center relative overflow-hidden">
-                                            <img
-                                                src="/images/our-story.webp"
-                                                alt="Our Story - MusB Research Laboratory"
-                                                className="absolute inset-0 w-full h-full object-cover brightness-75 group-hover:scale-110 group-hover:brightness-90 transition-all duration-1000"
-                                                loading="lazy"
-                                            />
+                                            <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 group-hover:scale-110 transition-all duration-1000"></div>
                                             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent"></div>
                                             <div className="absolute bottom-8 left-8 right-8">
                                                 <div className="flex items-center gap-4">
@@ -392,7 +382,8 @@ export default function WhyChooseUs() {
                     <section className="max-w-[1700px] mx-auto px-4 md:px-12 text-center space-y-12 py-32">
                         <div className="space-y-6">
                             <p className="text-3xl md:text-4xl font-black text-white leading-[1.1] tracking-tighter">
-                                Choosing MusB™ Research means partnering with a leader in <span className="text-cyan-400">scientific innovation</span>, flexibility, and execution excellence.
+                                Choosing MusB™ Research means partnering with a leader <br className="hidden md:block" />
+                                in scientific innovation, flexibility, and <span className="text-cyan-400">execution excellence.</span>
                             </p>
                             <p className="text-xl text-slate-400 font-medium max-w-3xl mx-auto leading-relaxed">
                                 We deliver tailored, responsive, and cost-effective solutions—without compromising scientific rigor.
