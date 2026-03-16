@@ -1,0 +1,15 @@
+{
+    "include": ["."],
+    "exclude": ["**/__pycache__"],
+    "pythonVersion": "3.11",
+    "reportMissingImports": true,
+    "reportMissingTypeStubs": false,
+    "executionEnvironments": [
+        {
+            "root": ".",
+            "extraPaths": [
+                "C:\\Users\\brije\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages"
+            ]
+        }
+    ]
+}

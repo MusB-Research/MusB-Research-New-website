@@ -1,6 +1,7 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
 import AnimatedBackground from './components/AnimatedBackground';
+import MeshBackground from './components/MeshBackground';
 import Home from './views/Home';
 import About from './views/About';
 import Team from './views/Team';
@@ -23,10 +24,15 @@ import AdminDashboard from './views/AdminDashboard';
 import ParticipantDashboard from './views/ParticipantDashboard';
 import PIDashboard from './views/PIDashboard';
 import SponsorDashboard from './views/SponsorDashboard';
+import StudyConsent from './views/StudyConsent';
 
-function App() {
+function AppContent() {
+    const location = useLocation();
+    const isDashboard = location.pathname.startsWith('/dashboard');
+
     return (
-        <Router>
+        <>
+            <MeshBackground />
             <AnimatedBackground />
             <Layout>
                 <Routes>
@@ -44,9 +50,10 @@ function App() {
                     <Route path="/capabilities" element={<Capabilities />} />
                     <Route path="/support" element={<Support />} />
                     <Route path="/signin" element={<SignIn />} />
-                    <Route path="/super/gate" element={<SuperAdminSignIn />} />
+                    <Route path="/mainframe/restricted-auth" element={<SuperAdminSignIn />} />
                     <Route path="/studies/:id" element={<StudyDetail />} />
                     <Route path="/studies/:id/screener" element={<StudyScreener />} />
+                    <Route path="/studies/:id/consent" element={<StudyConsent />} />
                     
                     {/* Dashboard Routes (RBAC) */}
                     <Route path="/dashboard/participant" element={<ParticipantDashboard />} />
@@ -56,6 +63,14 @@ function App() {
                     <Route path="/dashboard/sponsor" element={<SponsorDashboard />} />
                 </Routes>
             </Layout>
+        </>
+    );
+}
+
+function App() {
+    return (
+        <Router>
+            <AppContent />
         </Router>
     );
 }

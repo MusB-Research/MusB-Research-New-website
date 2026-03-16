@@ -1,4 +1,4 @@
-from rest_framework import generics, status
+from rest_framework import generics, status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.core.mail import send_mail
@@ -32,72 +32,87 @@ import os
 
 class SubmissionCreateView(generics.CreateAPIView):
     serializer_class = SubmissionSerializer
+    permission_classes = [permissions.AllowAny]
     
     def perform_create(self, serializer):
         submission = serializer.save()
         
-        # Send Email Notification
-        recipient = submission.routed_to or "info@musbresearch.com"
-        subject = f"New Website Inquiry: {submission.inquiry_type.label if submission.inquiry_type else 'General'}"
+        # 1. ADMIN NOTIFICATION: Send all details to info@musbresearch.com
+        admin_recipient = "info@musbresearch.com"
+        admin_subject = f"Alert: New Screening Submission - {submission.name}"
         
-        # HTML Email Content
-        html_content = f"""
+        admin_html = f"""
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #0ea5e9;">MusB Research: New Screening Submission</h2>
+            <p>A participant has completed a screening form. Below are the full details:</p>
+            <div style="background: #f9fafb; padding: 15px; border-radius: 8px;">
+                <p><strong>Name:</strong> {submission.name}</p>
+                <p><strong>Email:</strong> {submission.email}</p>
+                <p><strong>Phone:</strong> {submission.phone or 'N/A'}</p>
+                <div style="margin-top: 15px; border-top: 1px solid #ddd; pt-10px;">
+                    <p><strong>Screening Data:</strong></p>
+                    <pre style="white-space: pre-wrap; font-size: 13px; color: #374151;">{submission.message}</pre>
+                </div>
+            </div>
+            <p style="font-size: 11px; color: #94a3b8; margin-top: 20px;">Submitted on {submission.submitted_at.strftime('%Y-%m-%d %H:%M:%S')} UTC</p>
+        </div>
+        """
+        
+        # 2. PARTICIPANT CONFIRMATION: Send a "revert" message to the participant
+        participant_subject = "We've Received Your Research Screening Results - MusB Research"
+        participant_html = f"""
         <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: auto; padding: 40px; border: 1px solid #e2e8f0; border-radius: 24px; background-color: #ffffff;">
             <div style="text-align: center; margin-bottom: 30px;">
                 <h1 style="color: #0ea5e9; margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; font-weight: 900;">MusB Research</h1>
-                <p style="color: #64748b; font-size: 12px; margin-top: 5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Clinical Discovery Portal</p>
+                <p style="color: #64748b; font-size: 12px; margin-top: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Thank you for your interest</p>
             </div>
             
-            <div style="background: #f8fafc; padding: 30px; border-radius: 16px; border: 1px solid #f1f5f9;">
-                <h2 style="color: #1e293b; margin-top: 0; font-size: 18px; font-weight: 800; text-transform: uppercase;">{submission.inquiry_type.label if submission.inquiry_type else 'New Submission'}</h2>
-                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+            <div style="background: #f8fafc; padding: 30px; border-radius: 16px; border: 1px solid #f1f5f9; color: #1e293b;">
+                <h2 style="font-size: 18px; font-weight: 800; margin-top: 0;">Submission Confirmed</h2>
+                <p style="font-size: 15px; line-height: 1.6;">Hello {submission.name},</p>
+                <p style="font-size: 15px; line-height: 1.6;">Thank you for completing the clinical trial screening for MusB Research. This message is to confirm that we have successfully received your information.</p>
+                <p style="font-size: 15px; line-height: 1.6;">Our clinical coordination team will review your responses. If your profile matches the study requirements, one of our coordinators will reach out to you within 24-48 business hours via the phone or email address you provided.</p>
                 
-                <table style="width: 100%; border-collapse: collapse;">
-                    <tr>
-                        <td style="padding: 8px 0; color: #64748b; font-size: 13px; font-weight: 600; width: 120px;">NAME</td>
-                        <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 700;">{submission.name}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 8px 0; color: #64748b; font-size: 13px; font-weight: 600;">EMAIL</td>
-                        <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 700;">{submission.email}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 8px 0; color: #64748b; font-size: 13px; font-weight: 600;">PHONE</td>
-                        <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 700;">{submission.phone or 'N/A'}</td>
-                    </tr>
-                </table>
-
-                <div style="margin-top: 25px; background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
-                    <p style="color: #64748b; font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px;">Message / Data</p>
-                    <p style="color: #334155; font-size: 14px; line-height: 1.6; margin: 0; white-space: pre-wrap;">{submission.message}</p>
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                    <p style="font-size: 13px; font-weight: 701; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">What's next?</p>
+                    <ul style="font-size: 14px; margin: 0; padding-left: 20px; color: #475569;">
+                        <li>Team Review: 24-48 Hours</li>
+                        <li>Follow-up: Eligibility Interview</li>
+                        <li>Next Phase: Clinical Visit Scheduling</li>
+                    </ul>
                 </div>
             </div>
             
             <p style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 30px; font-weight: 500;">
-                This is an automated notification from the MusB Research Platform.<br>
-                Submitted on {submission.submitted_at.strftime('%m/%d/%Y at %H:%M:%S')} UTC
+                If you have any questions, please reply directly to this email or contact us at info@musbresearch.com.
             </p>
         </div>
         """
         
         try:
             resend.api_key = os.getenv("RESEND_API_KEY")
-            params = {
+            
+            # Send to Admin
+            resend.Emails.send({
+                "from": "MusB Research System <onboarding@resend.dev>",
+                "to": [admin_recipient],
+                "subject": admin_subject,
+                "html": admin_html
+            })
+            
+            # Send to Participant
+            resend.Emails.send({
                 "from": "MusB Research Clinical Team <onboarding@resend.dev>",
-                "to": [recipient],
-                "subject": f"MusB Research: {subject}",
-                "html": html_content,
+                "to": [submission.email],
+                "subject": participant_subject,
+                "html": participant_html,
                 "reply_to": "info@musbresearch.com"
-            }
-            
-            # If domain is verified, you can use info@musbresearch.com in "from"
-            # For now, using onboarding@resend.dev as default for tested integration
-            
-            resend.Emails.send(params)
+            })
             
             submission.is_processed = True
             submission.save()
-            print(f"Email sent successfully via Resend to {recipient}")
+            print(f"Both notification and confirmation emails sent for {submission.email}")
+            
         except Exception as e:
-            print(f"Error sending email via Resend: {e}")
+            print(f"Error sending emails via Resend: {e}")
 

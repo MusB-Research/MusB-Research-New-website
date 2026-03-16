@@ -87,7 +87,7 @@ export default function StudyFilterSection() {
                     ) : displayedStudies.length > 0 ? (
                         displayedStudies.map((study) => (
                             <div key={study.id} className="group relative bg-white/5 backdrop-blur-xl rounded-[3rem] p-10 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.7)] hover:shadow-[0_50px_100px_-20px_rgba(6,182,212,0.25)] hover:bg-white/10 border border-white/5 transition-all duration-500 flex flex-col items-start gap-8">
-                                <div className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${study.condition === 'Gut Health' ? 'bg-green-500/10 text-green-400' :
+                                <div className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest ${study.condition === 'Gut Health' ? 'bg-green-500/10 text-green-400' :
                                     study.condition === 'Brain Health' ? 'bg-purple-500/10 text-purple-400' :
                                         study.condition === 'Metabolic Health' ? 'bg-orange-500/10 text-orange-400' :
                                             study.condition === 'Aging' ? 'bg-blue-500/10 text-blue-400' :
@@ -108,7 +108,7 @@ export default function StudyFilterSection() {
                                                 <Clock className="w-5 h-5" />
                                             </div>
                                             <div>
-                                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Duration</div>
+                                                <div className="text-xs font-black uppercase tracking-widest text-slate-500">Duration</div>
                                                 <div className="font-bold text-slate-200">{study.duration}</div>
                                             </div>
                                         </div>
@@ -118,7 +118,7 @@ export default function StudyFilterSection() {
                                                     <DollarSign className="w-5 h-5" />
                                                 </div>
                                                 <div>
-                                                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Compensation</div>
+                                                    <div className="text-xs font-black uppercase tracking-widest text-slate-500">Compensation</div>
                                                     <div className="font-bold text-slate-200">{study.compensation_range}</div>
                                                 </div>
                                             </div>
@@ -128,7 +128,7 @@ export default function StudyFilterSection() {
 
                                 <Link
                                     to={`/trials?id=${study.id}#current-studies`}
-                                    className="mt-4 w-full bg-cyan-500 text-slate-900 text-center py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-3 overflow-hidden transition-all group/btn shadow-cyan-500/20"
+                                    className="mt-4 w-full bg-cyan-500 text-slate-900 text-center py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-3 overflow-hidden transition-all group/btn shadow-cyan-500/20"
                                 >
                                     <span>Check Eligibility</span>
                                     <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
@@ -149,7 +149,7 @@ export default function StudyFilterSection() {
                 <div className="text-center">
                     <Link
                         to="/trials"
-                        className="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/10 hover:-translate-y-1 transition-all inline-flex items-center gap-3 shadow-lg"
+                        className="bg-white/5 border border-white/10 text-white px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white/10 hover:-translate-y-1 transition-all inline-flex items-center gap-3 shadow-lg"
                     >
                         View All Clinical Trials
                         <ArrowRight className="w-4 h-4" />

@@ -24,8 +24,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-
-
+import { authFetch } from '../utils/auth';
 
 import { fetchStudies } from '../data/studies';
 
@@ -49,14 +48,33 @@ export default function Trials() {
     const [formStatus, setFormStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
     useEffect(() => {
-        if (window.location.hash) {
-            const id = window.location.hash.replace('#', '');
-            const element = document.getElementById(id);
-            if (element) {
-                setTimeout(() => {
-                    window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY, behavior: 'smooth' });
-                }, 100);
+        const fetchStudies = async () => {
+            try {
+                const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/studies/`);
+                if (!response.ok) throw new Error('Failed to fetch studies');
+                const data = await response.json();
+                
+                // Map API data to UI structure if needed, or use directly
+                const mappedStudies = data.map((s: any) => ({
+                    id: s.protocol_id || s.id,
+                    title: s.title,
+                    description: s.primary_indication || "Standard research protocol",
+                    condition: s.primary_indication || "Other",
+                    type: s.study_type === 'VIRTUAL' ? 'Virtual' : (s.study_type === 'IN_PERSON' ? 'On-site' : 'Hybrid'),
+                    status: s.status === 'RECRUITING' ? 'Recruiting' : 'Closed',
+                    benefit: s.trial_model === 'RCT' ? 'Placebo-Controlled' : 'Standard Product',
+                    duration: "4-12 Weeks", // Simulated field
+                    tags: [s.trial_model, s.study_type]
+                }));
+                
+                setStudies(mappedStudies);
+            } catch (err) {
+                console.error("Error fetching studies:", err);
+                setStudies(HARDCODED_STUDIES); // Fallback to hardcoded on error
+            } finally {
+                setLoading(false);
             }
+<<<<<<< HEAD
         }
     }, []);
     useEffect(() => {
@@ -66,9 +84,12 @@ export default function Trials() {
             setLoading(false);
         });
     }, []);
+=======
+        };
+>>>>>>> 15c58e062d8783ea67dc5542204f8f29c6edbc1d
 
-
-    // Hardcoded studies removed in favor of API data
+        fetchStudies();
+    }, []);
 
     const conditions = ["All", "Gut Health", "Metabolic Health", "Aging", "Women’s Health", "Brain Health", "Skin", "Other"];
     const types = ["All", "Virtual", "On-site", "Hybrid"];
@@ -76,7 +97,8 @@ export default function Trials() {
     const filteredStudies = studies.filter((study: any) => {
         const matchesCondition = selectedCondition === 'All' || study.condition === selectedCondition;
         const matchesType = selectedType === 'All' || study.type === selectedType;
-        const matchesSearch = study.title.toLowerCase().includes(searchQuery.toLowerCase()) || study.description.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesSearch = (study.title || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            (study.description || '').toLowerCase().includes(searchQuery.toLowerCase());
         return matchesCondition && matchesType && matchesSearch;
     });
 
@@ -189,12 +211,21 @@ export default function Trials() {
                             <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/20 to-indigo-500/20 rounded-[4rem] blur-3xl"></div>
                             <div className="relative grid grid-cols-2 gap-4">
                                 <div className="space-y-4 pt-12">
+<<<<<<< HEAD
                                     <div className="rounded-[3rem] w-full h-[300px] shadow-2xl border border-white/10 bg-gradient-to-br from-cyan-500/20 to-indigo-500/20"></div>
                                     <div className="rounded-[3rem] w-full h-[200px] shadow-2xl border border-white/10 bg-gradient-to-tr from-indigo-500/20 to-cyan-500/20"></div>
                                 </div>
                                 <div className="space-y-4">
                                     <div className="rounded-[3rem] w-full h-[200px] shadow-2xl border border-white/10 bg-gradient-to-br from-indigo-500/20 to-cyan-500/20"></div>
                                     <div className="rounded-[3rem] w-full h-[300px] shadow-2xl border border-white/10 bg-gradient-to-tr from-cyan-500/20 to-indigo-500/20"></div>
+=======
+                                    <img src="/trials-hero-1.png" className="rounded-[3rem] w-full h-[300px] object-cover shadow-2xl border border-white/10" alt="Researcher" loading="lazy" />
+                                    <img src="/trials-hero-2.png" className="rounded-[3rem] w-full h-[200px] object-cover shadow-2xl border border-white/10" alt="Volunteer" loading="lazy" />
+                                </div>
+                                <div className="space-y-4">
+                                    <img src="/trials-hero-3.png" className="rounded-[3rem] w-full h-[200px] object-cover shadow-2xl border border-white/10" alt="Clinical Setting" loading="lazy" />
+                                    <img src="/trials-hero-4.png" className="rounded-[3rem] w-full h-[300px] object-cover shadow-2xl border border-white/10" alt="Lab Testing" loading="lazy" />
+>>>>>>> 15c58e062d8783ea67dc5542204f8f29c6edbc1d
                                 </div>
                             </div>
                         </div>

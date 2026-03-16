@@ -29,3 +29,8 @@ logs/
 
 # Data dumps
 data/
+
+# Security Keys
+private_key.pem
+public_key.pem
+*.pem

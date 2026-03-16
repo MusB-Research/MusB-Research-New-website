@@ -175,7 +175,16 @@ const Support: React.FC = () => {
                             {/* Right Visual */}
                             <div className="relative group hidden lg:block">
                                 <div className="relative z-10 rounded-[3rem] overflow-hidden border border-white/10 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] transform transition-transform duration-700">
+<<<<<<< HEAD
                                     <div className="w-full aspect-[4/5] bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 transition-all duration-700"></div>
+=======
+                                    <img
+                                        src="/business_hero.png"
+                                        alt="Clinical Research Excellence"
+                                        className="w-full aspect-[4/5] object-cover brightness-90 transition-all duration-700"
+                                        loading="lazy"
+                                    />
+>>>>>>> 15c58e062d8783ea67dc5542204f8f29c6edbc1d
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60"></div>
                                     <div className="absolute bottom-12 left-12 right-12 space-y-2">
                                         <p className="text-cyan-400 font-black text-[10px] uppercase tracking-[0.4em]">Integrated Research</p>
@@ -342,7 +351,16 @@ const Support: React.FC = () => {
                             ].map((story, i) => (
                                 <div key={i} className="group relative bg-white/5 backdrop-blur-xl rounded-[3rem] overflow-hidden border border-white/5 hover:border-cyan-500/30 transition-all duration-500 flex flex-col">
                                     <div className="aspect-video bg-slate-800/50 overflow-hidden">
+<<<<<<< HEAD
                                         <div className="w-full h-full bg-gradient-to-br from-cyan-500/10 to-indigo-500/10 group-hover:scale-110 transition-transform duration-700"></div>
+=======
+                                        <img
+                                            src={story.img}
+                                            alt={story.title}
+                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 brightness-75 group-hover:brightness-100"
+                                            loading="lazy"
+                                        />
+>>>>>>> 15c58e062d8783ea67dc5542204f8f29c6edbc1d
                                     </div>
                                     <div className="p-6 md:p-10 space-y-6 flex-grow">
                                         <span className="px-4 py-2 rounded-xl bg-cyan-500/10 text-cyan-400 text-[10px] font-black uppercase tracking-widest">{story.tag}</span>

@@ -1,10 +1,20 @@
 from django.db import models
 from django.conf import settings
+from authentication.security import encrypt_data, decrypt_data
 
 class Study(models.Model):
     STUDY_TYPES = [
         ('IN_PERSON', 'In-Person Clinical Trial'),
         ('VIRTUAL', 'Virtual Clinical Trial'),
+        ('DECENTRALIZED', 'Decentralized Trial (Hybrid)'),
+    ]
+
+    TRIAL_MODEL_CHOICES = [
+        ('RCT', 'Randomized Controlled Trial'),
+        ('OPEN_LABEL', 'Open Label Study'),
+        ('IHUT', 'In-Home Use Test'),
+        ('REGISTRY', 'Patient Registry'),
+        ('OBSERVATIONAL', 'Observational Study'),
     ]
 
     STATUS_CHOICES = [
@@ -28,13 +38,28 @@ class Study(models.Model):
     ]
 
     title = models.CharField(max_length=255)
-    protocol_id = models.CharField(max_length=100, unique=True, verbose_name="Protocol ID / Internal ID")
+    protocol_id = models.CharField(max_length=100, unique=True, null=True, blank=True, verbose_name="Protocol ID / Internal ID")
     sponsor_name = models.CharField(max_length=255)
     study_type = models.CharField(max_length=20, choices=STUDY_TYPES, default='IN_PERSON')
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='DRAFT')
     
     primary_indication = models.CharField(max_length=255, blank=True)
-    design_type = models.CharField(max_length=255, blank=True)
+    design_type = models.CharField(max_length=255, blank=True) # Legacy
+    
+    trial_model = models.CharField(max_length=30, choices=TRIAL_MODEL_CHOICES, default='RCT')
+    is_double_blind = models.BooleanField(default=False)
+    has_placebo_control = models.BooleanField(default=False)
+    has_screening_log = models.BooleanField(default=True)
+    
+    shipment_mode = models.CharField(max_length=30, choices=[
+        ('CLINIC', 'Clinic Delivery'),
+        ('DTP', 'Direct-to-Patient (DTP)'),
+    ], default='CLINIC')
+    
+    consent_mode = models.CharField(max_length=30, choices=[
+        ('PAPER', 'Paper Consent'),
+        ('ECONSENT', 'Electronic Consent (eConsent)'),
+    ], default='ECONSENT')
     
     # Frontend Data Fields
     condition = models.CharField(max_length=255, blank=True)
@@ -94,11 +119,12 @@ class StudyAssignment(models.Model):
     """Links Users to Studies with specific hierarchy/access roles"""
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='assignments')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='study_assignments')
-    role = models.CharField(max_length=20, choices=[
+    role = models.CharField(max_length=30, choices=[
         ('PI', 'Principal Investigator'),
         ('COORDINATOR', 'Clinical Coordinator'),
-        ('SPONSOR', 'Sponsor Representative'),
-        ('VIEWER', 'Sponsor Viewer'),
+        ('SPONSOR_ADMIN', 'Sponsor Admin'),
+        ('SPONSOR_MANAGER', 'Study Manager'),
+        ('SPONSOR_VIEWER', 'Sponsor Viewer'),
     ])
     date_assigned = models.DateTimeField(auto_now_add=True)
 
@@ -150,6 +176,15 @@ class Participant(models.Model):
     completion_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def save(self, *args, **kwargs):
+        if self.gender and not self.gender.startswith('gAAAA'):
+            self.gender = encrypt_data(self.gender)
+        super().save(*args, **kwargs)
+
+    @property
+    def decrypted_gender(self):
+        return decrypt_data(self.gender)
+
     def __str__(self):
         return f"{self.participant_sid} ({self.study.protocol_id})"
 
@@ -186,6 +221,15 @@ class Visit(models.Model):
     # Clinical Measures
     notes = models.TextField(blank=True)
     measurements = models.JSONField(default=dict, blank=True) # Anthropometrics, vitals, etc.
+
+    def save(self, *args, **kwargs):
+        if self.notes and not self.notes.startswith('gAAAA'):
+            self.notes = encrypt_data(self.notes)
+        super().save(*args, **kwargs)
+
+    @property
+    def decrypted_notes(self):
+        return decrypt_data(self.notes)
 
     def __str__(self):
         return f"{self.participant.participant_sid} - {self.visit_type}"
@@ -240,3 +284,168 @@ class FormResponse(models.Model):
 
     class Meta:
         ordering = ['-submitted_at']
+
+class Task(models.Model):
+    """Protocol-defined activities (Surveys, Logs, Sensors)"""
+    TASK_TYPES = [
+        ('SURVEY', 'Questionnaire / Survey'),
+        ('LOG', 'Daily Log (Symptoms/Meds)'),
+        ('SENSOR', 'Device / Sensor Data'),
+        ('UPLOAD', 'File Upload / Photo'),
+    ]
+    
+    study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='tasks')
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    task_type = models.CharField(max_length=20, choices=TASK_TYPES)
+    frequency = models.CharField(max_length=20, choices=[
+        ('DAILY', 'Daily'),
+        ('WEEKLY', 'Weekly'),
+        ('BIWEEKLY', 'Bi-Weekly'),
+        ('MONTHLY', 'Monthly'),
+        ('ONCE', 'One-time'),
+    ])
+    
+    # Optional link to a dynamic form
+    form = models.ForeignKey(Form, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.title} ({self.frequency})"
+
+class ParticipantTask(models.Model):
+    """Instance of a task assigned to a participant with a specific window"""
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='assigned_tasks')
+    task = models.ForeignKey(Task, on_delete=models.CASCADE)
+    
+    due_date = models.DateTimeField()
+    completed_at = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=20, default='PENDING', choices=[
+        ('PENDING', 'Pending'),
+        ('COMPLETED', 'Completed'),
+        ('MISSED', 'Missed'),
+        ('IN_PROGRESS', 'In Progress'),
+    ])
+    
+    # Store dynamic state for multi-step tasks if needed
+    current_data = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ['due_date']
+
+    def __str__(self):
+        return f"{self.participant.participant_sid} - {self.task.title}"
+
+class Consent(models.Model):
+    """Immutable record of electronic informed consent (eConsent)"""
+    study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='consent_records')
+    # Link to participant if they exist, or keep anonymous until signup
+    participant = models.ForeignKey(Participant, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    full_name = models.CharField(max_length=255, verbose_name="Electronic Signature")
+    email = models.EmailField()
+    
+    device_hash = models.CharField(max_length=255, blank=True, help_text="Anonymous browser fingerprint")
+    timezone_detected = models.CharField(max_length=100, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    
+    agreed_at = models.DateTimeField(auto_now_add=True)
+    is_valid = models.BooleanField(default=True)
+    
+    def __str__(self):
+        return f"Consent: {self.full_name} ({self.study.protocol_id})"
+
+# ─────────────────────────────────────────────────────────
+# NEW MODELS FOR FULL BUILD PROMPT
+# ─────────────────────────────────────────────────────────
+
+class Lead(models.Model):
+    """Recruitment tracking for potential participants"""
+    LEAD_STATUS = [
+        ('NEW', 'New'),
+        ('ATTEMPTED', 'Contact Attempted'),
+        ('NO_ANSWER', 'No Answer'),
+        ('NOT_INTERESTED', 'Not Interested'),
+        ('INTERESTED', 'Interested'),
+        ('NEEDS_INFO', 'Needs More Info'),
+        ('PRESCREENING', 'Prescreening in Progress'),
+        ('ELIGIBLE', 'Eligible'),
+        ('INELIGIBLE', 'Ineligible'),
+        ('SCHEDULED', 'Scheduled'),
+        ('CONSENTED', 'Consented'),
+        ('RANDOMIZED', 'Randomized'),
+        ('ACTIVE', 'Active'),
+        ('COMPLETED', 'Completed'),
+    ]
+    
+    study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='leads')
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    email = models.EmailField()
+    phone = models.CharField(max_length=20, blank=True)
+    source = models.CharField(max_length=100, default='ONLINE_INTAKE') # ONLINE, OFFLINE, REFERRAL, etc.
+    status = models.CharField(max_length=30, choices=LEAD_STATUS, default='NEW')
+    assigned_coordinator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} ({self.status})"
+
+class CommunicationLog(models.Model):
+    """Log of all outreach attempts (Calls, Texts, Emails)"""
+    COM_TYPES = [('CALL', 'Call'), ('SMS', 'Text Message'), ('EMAIL', 'Email')]
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, null=True, blank=True)
+    lead = models.ForeignKey(Lead, on_delete=models.CASCADE, null=True, blank=True)
+    coordinator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    
+    type = models.CharField(max_length=10, choices=COM_TYPES)
+    direction = models.CharField(max_length=10, choices=[('OUTBOUND', 'Outbound'), ('INBOUND', 'Inbound')], default='OUTBOUND')
+    outcome = models.CharField(max_length=255) # Spoke, Left Message, Busy, No Answer, etc.
+    timestamp = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(blank=True)
+
+class Compensation(models.Model):
+    """Visit-based participant payments"""
+    PAY_METHODS = [('BANK_TRANSFER', 'Bank Transfer'), ('STIPEND_CARD', 'Stipend Card'), ('CASH', 'Cash'), ('CHECK', 'Check')]
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='compensation')
+    visit = models.ForeignKey(Visit, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=20, default='PENDING', choices=[('PENDING', 'Pending'), ('PAID', 'Paid'), ('CANCELLED', 'Cancelled')])
+    payment_method = models.CharField(max_length=30, choices=PAY_METHODS, blank=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+
+class LabResult(models.Model):
+    """Clinical test data uploads"""
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='lab_results')
+    test_name = models.CharField(max_length=255)
+    value = models.CharField(max_length=100)
+    units = models.CharField(max_length=50, blank=True)
+    lab_date = models.DateField()
+    document = models.FileField(upload_to='lab_reports/', null=True, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+class DataAuditLog(models.Model):
+    """Field-level audit trail for every data point modification"""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    action = models.CharField(max_length=10, choices=[('CREATE', 'Created'), ('UPDATE', 'Updated'), ('DELETE', 'Deleted')])
+    model_name = models.CharField(max_length=100)
+    record_id = models.CharField(max_length=100)
+    
+    # Store changes as JSON: {"field": {"old": val, "new": val}}
+    changes = models.JSONField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+class PermissionMatrix(models.Model):
+    """Dynamic RBAC control configurable by Super Admin"""
+    role = models.CharField(max_length=30, choices=settings.ROLE_CHOICES if hasattr(settings, 'ROLE_CHOICES') else [])
+    capability = models.CharField(max_length=100) # e.g., 'EDIT_STUDY_STATUS', 'CREATE_FORM'
+    is_allowed = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('role', 'capability')
