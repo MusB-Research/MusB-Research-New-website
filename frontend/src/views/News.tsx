@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { NewsItem, NewsType } from '@/types';
 import { authFetch } from '../utils/auth';
+import { Link } from 'react-router-dom';
 
 const categories: (NewsType | 'All')[] = [
     'All',
