@@ -8,6 +8,8 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'email', 'full_name', 'role', 'phone_number']
 
 class StudySerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True)
+    
     class Meta:
         model = Study
         fields = '__all__'

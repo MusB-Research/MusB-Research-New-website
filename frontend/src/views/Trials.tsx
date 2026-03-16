@@ -27,7 +27,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 
 
-import { HARDCODED_STUDIES } from '../data/studies';
+import { fetchStudies } from '../data/studies';
 
 export default function Trials() {
     const [selectedCondition, setSelectedCondition] = useState('All');
@@ -60,8 +60,11 @@ export default function Trials() {
         }
     }, []);
     useEffect(() => {
-        setStudies(HARDCODED_STUDIES);
-        setLoading(false);
+        setLoading(true);
+        fetchStudies().then((data) => {
+            setStudies(data);
+            setLoading(false);
+        });
     }, []);
 
 
@@ -174,10 +177,10 @@ export default function Trials() {
                                 </Link>
                             </div>
                             <div className="flex items-center gap-8 pt-6">
-                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
                                     <ShieldCheck className="w-4 h-4 text-cyan-400" /> Confidential and secure
                                 </div>
-                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
                                     <Zap className="w-4 h-4 text-cyan-400" /> Lab-tested products
                                 </div>
                             </div>
@@ -186,12 +189,12 @@ export default function Trials() {
                             <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/20 to-indigo-500/20 rounded-[4rem] blur-3xl"></div>
                             <div className="relative grid grid-cols-2 gap-4">
                                 <div className="space-y-4 pt-12">
-                                    <img src="/trials-hero-1.png" className="rounded-[3rem] w-full h-[300px] object-cover shadow-2xl border border-white/10" alt="Researcher" />
-                                    <img src="/trials-hero-2.png" className="rounded-[3rem] w-full h-[200px] object-cover shadow-2xl border border-white/10" alt="Volunteer" />
+                                    <div className="rounded-[3rem] w-full h-[300px] shadow-2xl border border-white/10 bg-gradient-to-br from-cyan-500/20 to-indigo-500/20"></div>
+                                    <div className="rounded-[3rem] w-full h-[200px] shadow-2xl border border-white/10 bg-gradient-to-tr from-indigo-500/20 to-cyan-500/20"></div>
                                 </div>
                                 <div className="space-y-4">
-                                    <img src="/trials-hero-3.png" className="rounded-[3rem] w-full h-[200px] object-cover shadow-2xl border border-white/10" alt="Clinical Setting" />
-                                    <img src="/trials-hero-4.png" className="rounded-[3rem] w-full h-[300px] object-cover shadow-2xl border border-white/10" alt="Lab Testing" />
+                                    <div className="rounded-[3rem] w-full h-[200px] shadow-2xl border border-white/10 bg-gradient-to-br from-indigo-500/20 to-cyan-500/20"></div>
+                                    <div className="rounded-[3rem] w-full h-[300px] shadow-2xl border border-white/10 bg-gradient-to-tr from-cyan-500/20 to-indigo-500/20"></div>
                                 </div>
                             </div>
                         </div>
@@ -204,11 +207,11 @@ export default function Trials() {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-12 items-center text-center">
                             <div className="space-y-2">
                                 <div className="text-4xl font-black text-cyan-400">20+</div>
-                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Products Studied</div>
+                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Products Studied</div>
                             </div>
                             <div className="space-y-2">
-                                <div className="text-4xl font-black text-indigo-400">7,000+</div>
-                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-500">Volunteers</div>
+                                <div className="text-4xl font-black text-indigo-400">5,000+</div>
+                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Volunteers</div>
                             </div>
                             <div className="col-span-2 flex items-center justify-center gap-12 opacity-50 grayscale hover:grayscale-0 transition-all cursor-default">
                                 <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 hidden lg:block">As Featured In:</div>
@@ -401,7 +404,7 @@ export default function Trials() {
                                     className="w-full px-8 py-6 flex items-center justify-between text-left group"
                                 >
                                     <span className="text-lg font-bold text-white group-hover:text-cyan-400 transition-colors">{faq.q}</span>
-                                    <ChevronDown className={`w-5 h-5 text-slate-500 transition-transform ${openFaq === idx ? 'rotate-180 text-cyan-400' : ''}`} />
+                                    <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${openFaq === idx ? 'rotate-180 text-cyan-400' : ''}`} />
                                 </button>
                                 {openFaq === idx && (
                                     <div className="px-8 pb-8 animate-in slide-in-from-top-4 duration-300">
@@ -427,13 +430,13 @@ export default function Trials() {
                                     <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
                                         <ShieldCheck className="w-5 h-5" />
                                     </div>
-                                    <span className="text-xs font-black uppercase tracking-widest text-slate-500 transition-colors group-hover:text-white">Confidential. Secure.</span>
+                                    <span className="text-xs font-black uppercase tracking-widest text-slate-400 transition-colors group-hover:text-white">Confidential. Secure.</span>
                                 </div>
                                 <div className="flex items-center gap-4 group">
                                     <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
                                         <HeartPulse className="w-5 h-5" />
                                     </div>
-                                    <span className="text-xs font-black uppercase tracking-widest text-slate-500 transition-colors group-hover:text-white">Participant-first approach.</span>
+                                    <span className="text-xs font-black uppercase tracking-widest text-slate-400 transition-colors group-hover:text-white">Participant-first approach.</span>
                                 </div>
                             </div>
                         </div>
@@ -442,7 +445,7 @@ export default function Trials() {
                             <form className="space-y-6" onSubmit={handleFormSubmit}>
                                 <div className="grid md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Full Name</label>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Full Name</label>
                                         <input
                                             type="text"
                                             required
@@ -452,7 +455,7 @@ export default function Trials() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Email Address</label>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Email Address</label>
                                         <input
                                             type="email"
                                             required
@@ -464,7 +467,7 @@ export default function Trials() {
                                 </div>
                                 <div className="grid md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Phone Number</label>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Phone Number</label>
                                         <input
                                             type="tel"
                                             value={formData.phone}
@@ -473,7 +476,7 @@ export default function Trials() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Age Range</label>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Age Range</label>
                                         <select
                                             value={formData.ageRange}
                                             onChange={e => setFormData({ ...formData, ageRange: e.target.value })}
@@ -490,7 +493,7 @@ export default function Trials() {
                                     </div>
                                 </div>
                                 <div className="space-y-4">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Health Interests (Check all that apply)</label>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Health Interests (Check all that apply)</label>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 p-6 bg-slate-950/30 rounded-3xl border border-white/5">
                                         {["Gut Health", "Aging", "Metabolic", "Cognition", "Women's Health", "Skin"].map(interest => (
                                             <label key={interest} className="flex items-center gap-3 cursor-pointer group">
@@ -511,7 +514,7 @@ export default function Trials() {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Preferred Participation</label>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Preferred Participation</label>
                                     <div className="flex gap-4">
                                         {["Virtual", "On-site", "Either"].map(mode => (
                                             <label key={mode} className="flex-1">

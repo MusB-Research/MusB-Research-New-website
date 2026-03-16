@@ -13,7 +13,7 @@ import {
     Search,
     Stethoscope
 } from 'lucide-react';
-import { HARDCODED_STUDIES, Study } from '../data/studies';
+import { fetchStudies, Study } from '../data/studies';
 import { motion } from 'framer-motion';
 
 export default function StudyDetail() {
@@ -22,12 +22,14 @@ export default function StudyDetail() {
     const [study, setStudy] = useState<Study | null>(null);
 
     useEffect(() => {
-        const foundStudy = HARDCODED_STUDIES.find(s => s.id === id);
-        if (foundStudy) {
-            setStudy(foundStudy);
-        } else {
-            navigate('/trials');
-        }
+        fetchStudies().then((studies) => {
+            const foundStudy = studies.find(s => s.id === id);
+            if (foundStudy) {
+                setStudy(foundStudy);
+            } else {
+                navigate('/trials');
+            }
+        });
         window.scrollTo(0, 0);
     }, [id, navigate]);
 

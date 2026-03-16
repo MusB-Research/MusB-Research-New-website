@@ -131,13 +131,7 @@ export default function Contact() {
 
 
     return (
-        <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden">
-            {/* Atmospheric Background Layers */}
-            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-blue-600/10 blur-[120px] rounded-full"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[80%] bg-indigo-600/10 blur-[150px] rounded-full"></div>
-                <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] bg-cyan-600/10 blur-[100px] rounded-full"></div>
-            </div>
+        <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden bg-transparent">
 
             {/* SECTION 1: PAGE HEADER */}
             <section className="relative pt-40 pb-20 overflow-hidden px-6">
@@ -288,7 +282,7 @@ export default function Contact() {
                                         <MapPin className="w-6 h-6" />
                                     </div>
                                     <div className="space-y-2">
-                                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Address</h4>
+                                        <h4 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">Address</h4>
                                         <a
                                             href="https://www.google.com/maps/search/?api=1&query=6331+State+Road+54,+New+Port+Richey,+FL+34653"
                                             target="_blank"
@@ -306,9 +300,8 @@ export default function Contact() {
                                         <Phone className="w-6 h-6" />
                                     </div>
                                     <div className="space-y-2">
-                                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Phone</h4>
-                                        <a href="tel:+18134190781" className="text-slate-300 font-bold text-lg leading-none hover:text-indigo-400 transition-colors block">CALL: +1-813-419-0781</a>
-                                        <a href="sms:+17275050452" className="text-slate-500 font-bold text-sm uppercase tracking-tight hover:text-indigo-400 transition-colors block">OR TEXT: (727) 505-0452</a>
+                                        <h4 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">Phone</h4>
+                                        <a href="tel:+18134190781" className="text-slate-300 font-bold text-xl leading-none hover:text-indigo-400 transition-colors block">+1 (813) 419-0781</a>
                                     </div>
                                 </div>
 
@@ -317,12 +310,12 @@ export default function Contact() {
                                         <MessageCircle className="w-6 h-6" />
                                     </div>
                                     <div className="space-y-2">
-                                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">WhatsApp</h4>
+                                        <h4 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">WhatsApp</h4>
                                         <a
                                             href="https://wa.me/17275050452"
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="text-green-400 font-black text-lg hover:text-green-300 transition-colors block"
+                                            className="text-green-400 font-black text-xl hover:text-green-300 transition-colors block"
                                         >
                                             (727) 505-0452
                                         </a>
@@ -334,8 +327,8 @@ export default function Contact() {
                                         <Mail className="w-6 h-6" />
                                     </div>
                                     <div className="space-y-2">
-                                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Email</h4>
-                                        <a href="mailto:info@musbresearch.com" className="text-blue-400 font-black text-lg break-all hover:text-blue-300 transition-colors">info@musbresearch.com</a>
+                                        <h4 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">Email</h4>
+                                        <a href="mailto:info@musbresearch.com" className="text-blue-400 font-black text-xl break-all hover:text-blue-300 transition-colors block">info@musbresearch.com</a>
                                     </div>
                                 </div>
                             </div>

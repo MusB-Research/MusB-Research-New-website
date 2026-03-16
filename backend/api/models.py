@@ -36,6 +36,23 @@ class Study(models.Model):
     primary_indication = models.CharField(max_length=255, blank=True)
     design_type = models.CharField(max_length=255, blank=True)
     
+    # Frontend Data Fields
+    condition = models.CharField(max_length=255, blank=True)
+    trial_format = models.CharField(max_length=50, blank=True)
+    description = models.TextField(blank=True)
+    benefit = models.TextField(blank=True)
+    duration = models.CharField(max_length=100, blank=True)
+    tags = models.JSONField(default=list, blank=True)
+    compensation = models.CharField(max_length=255, blank=True)
+    location = models.CharField(max_length=255, blank=True)
+    time_commitment = models.CharField(max_length=255, blank=True)
+    overview = models.TextField(blank=True)
+    timeline = models.JSONField(default=list, blank=True)
+    kits_info = models.TextField(blank=True)
+    safety_info = models.TextField(blank=True)
+    privacy_standards = models.JSONField(default=list, blank=True)
+    remote_participation = models.BooleanField(default=False)
+    
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     launch_date = models.DateField(null=True, blank=True)

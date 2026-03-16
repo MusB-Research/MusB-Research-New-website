@@ -15,7 +15,7 @@ import {
     Mail,
     Phone
 } from 'lucide-react';
-import { HARDCODED_STUDIES, Study } from '../data/studies';
+import { fetchStudies, Study } from '../data/studies';
 
 type ScreenerStep = 'STEP1' | 'STEP2' | 'STEP3' | 'STEP4' | 'OUTCOME';
 type OutcomeType = 'ELIGIBLE' | 'MAYBE' | 'NOT_ELIGIBLE';
@@ -43,12 +43,16 @@ export default function StudyScreener() {
     });
 
     useEffect(() => {
-        const foundStudy = HARDCODED_STUDIES.find(s => s.id === id);
-        if (foundStudy) {
-            setStudy(foundStudy);
-        } else {
-            navigate('/trials');
-        }
+        setIsLoading(true);
+        fetchStudies().then((studies) => {
+            const foundStudy = studies.find(s => s.id === id);
+            if (foundStudy) {
+                setStudy(foundStudy);
+            } else {
+                navigate('/trials');
+            }
+            setIsLoading(false);
+        });
     }, [id, navigate]);
 
     const [error, setError] = useState<string | null>(null);

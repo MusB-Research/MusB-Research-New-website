@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from .models import Study, StudyAssignment, Participant
 from .serializers import StudySerializer, StudyAssignmentSerializer, ParticipantSerializer, UserSerializer
 from authentication.models import User
+
 from django.db.models import Q
 
 class IsAdminOrCoordinator(permissions.BasePermission):
@@ -37,6 +38,14 @@ class StudyViewSet(viewsets.ModelViewSet):
             )
         else:
             raise permissions.PermissionDenied("Not authorized to create studies")
+
+class PublicStudyViewSet(viewsets.ReadOnlyModelViewSet):
+    """Public read-only view for the frontend website"""
+    queryset = Study.objects.filter(status='RECRUITING') # Only show recruiting studies or all? Let's show all and filter on frontend or allow query params. Actually, let's just return all for now or order by created.
+    # We will just return all and let the frontend filter.
+    queryset = Study.objects.all()
+    serializer_class = StudySerializer
+    permission_classes = [permissions.AllowAny]
 
 class SponsorViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.filter(role='SPONSOR')

@@ -61,8 +61,6 @@ export default function Layout({ children }: LayoutProps) {
         { path: '/trials#how-it-works', label: 'How It Works' },
         { path: '/trials#current-studies', label: 'Current Studies' },
         { path: '/trials#faq', label: 'FAQ' },
-        { path: '/team', label: 'Our Team' },
-        { path: '/contact', label: 'Contact' },
     ];
 
     const isTrialsPage = location.pathname === '/trials';
@@ -72,12 +70,17 @@ export default function Layout({ children }: LayoutProps) {
     useEffect(() => {
         if (location.hash) {
             const id = location.hash.replace('#', '');
-            const element = document.getElementById(id);
-            if (element) {
-                setTimeout(() => {
-                    window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY, behavior: 'smooth' });
-                }, 100);
-            }
+            const scrollToElement = () => {
+                const element = document.getElementById(id);
+                if (element) {
+                    const navbarOffset = 100; // Account for fixed navbar height
+                    window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - navbarOffset, behavior: 'smooth' });
+                }
+            };
+            // Initial attempt after short delay
+            setTimeout(scrollToElement, 100);
+            // Retry for cross-page navigations where DOM may not be ready
+            setTimeout(scrollToElement, 500);
         } else {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -98,8 +101,8 @@ export default function Layout({ children }: LayoutProps) {
                         rel="noopener noreferrer"
                         className="flex-shrink-0 flex items-center gap-4 group"
                     >
-                        <div className="h-12 md:h-16 bg-white/10 backdrop-blur-md px-4 md:px-5 py-2 md:py-2.5 rounded-2xl shadow-2xl border border-white/20 group-hover:scale-105 transition-all duration-300 flex items-center justify-center">
-                            <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain brightness-110 contrast-125 rounded-lg" />
+                        <div className="h-16 md:h-[4.5rem] bg-black backdrop-blur-md rounded-2xl shadow-xl border border-black group-hover:scale-105 transition-all duration-300 flex items-center justify-center overflow-hidden">
+                            <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain brightness-100" />
                         </div>
                     </a>
 
@@ -116,7 +119,7 @@ export default function Layout({ children }: LayoutProps) {
                                 >
                                     {item.path === '#' ? (
                                         <div
-                                            className="text-[11px] font-black tracking-[0.12em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 cursor-pointer text-slate-800 whitespace-nowrap"
+                                            className="text-[11px] font-black tracking-[0.12em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 cursor-pointer text-slate-900 whitespace-nowrap"
                                         >
                                             {item.label}
                                             <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${openDropdown === item.label ? 'rotate-180' : ''}`} />
@@ -125,7 +128,7 @@ export default function Layout({ children }: LayoutProps) {
                                     ) : (
                                         <Link
                                             to={item.path}
-                                            className={`text-[11px] font-black tracking-[0.12em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 whitespace-nowrap ${location.pathname === item.path ? 'text-cyan-600' : 'text-slate-800'
+                                            className={`text-[11px] font-black tracking-[0.12em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 whitespace-nowrap ${location.pathname === item.path ? 'text-cyan-600' : 'text-slate-900'
                                                 }`}
                                         >
                                             {item.label}
@@ -144,7 +147,7 @@ export default function Layout({ children }: LayoutProps) {
                                                         key={child.path + child.label}
                                                         to={child.path}
                                                         onClick={() => setOpenDropdown(null)}
-                                                        className="block px-5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-100 hover:text-cyan-600 transition-all"
+                                                        className="block px-5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-cyan-600 transition-all"
                                                     >
                                                         {child.label}
                                                     </Link>
@@ -169,7 +172,7 @@ export default function Layout({ children }: LayoutProps) {
                                     </Link>
                                     <a
                                         href="tel:+18134190781"
-                                        className="border-2 border-slate-900 text-slate-900 px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-slate-950 hover:text-white transition-all backdrop-blur-md whitespace-nowrap"
+                                        className="border-2 border-slate-200 text-slate-900 px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-slate-900 hover:text-white transition-all backdrop-blur-md whitespace-nowrap"
                                     >
                                         Call / Text Us
                                     </a>
@@ -225,7 +228,7 @@ export default function Layout({ children }: LayoutProps) {
                                     )}
                                     <button
                                         onClick={() => { clearToken(); window.location.href = "/"; }}
-                                        className="border-2 border-slate-900 text-slate-900 px-4 2xl:px-6 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-slate-950 hover:text-white transition-all backdrop-blur-md flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
+                                        className="border-2 border-slate-200 text-slate-900 px-4 2xl:px-6 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-slate-900 hover:text-white transition-all backdrop-blur-md flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
                                     >
                                         <LogOut className="w-4 h-4" />
                                         Logout
@@ -237,7 +240,7 @@ export default function Layout({ children }: LayoutProps) {
 
                     {/* Mobile Menu Toggle */}
                     <button
-                        className="xl:hidden p-2 md:p-3 text-slate-800 hover:text-cyan-600 bg-slate-900/5 rounded-lg border border-slate-900/10"
+                        className="xl:hidden p-2 md:p-3 text-slate-900 hover:text-cyan-600 bg-slate-100 rounded-lg border border-slate-200"
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
                     >
                         {isMenuOpen ? <X className="w-5 h-5 md:w-6 md:h-6" /> : <Menu className="w-5 h-5 md:w-6 md:h-6" />}
@@ -252,7 +255,7 @@ export default function Layout({ children }: LayoutProps) {
                                 <div key={item.label}>
                                     {item.children ? (
                                         <div className="space-y-1">
-                                            <div className="px-4 py-3 text-xs font-black uppercase tracking-[0.2em] text-slate-500 mt-4 first:mt-0">
+                                            <div className="px-4 py-3 text-xs font-black uppercase tracking-[0.2em] text-cyan-600/60 mt-4 first:mt-0">
                                                 {item.label}
                                             </div>
                                             {item.children.map((child) => (
@@ -275,7 +278,7 @@ export default function Layout({ children }: LayoutProps) {
                                             onClick={() => setIsMenuOpen(false)}
                                             className={`block p-4 rounded-xl text-base font-bold uppercase tracking-widest border border-transparent ${location.pathname === item.path
                                                 ? 'bg-slate-100 text-cyan-600 border-slate-200'
-                                                : 'text-slate-600 hover:bg-slate-50'
+                                                : 'text-slate-700 hover:bg-slate-50'
                                                 }`}
                                         >
                                             {item.label}
@@ -289,7 +292,7 @@ export default function Layout({ children }: LayoutProps) {
                                         <a
                                             href="tel:+18134190781"
                                             onClick={() => setIsMenuOpen(false)}
-                                            className="block w-full text-center border-2 border-slate-900 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-950 hover:text-white transition-all"
+                                            className="block w-full text-center border-2 border-slate-200 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all"
                                         >
                                             Call / Text Us
                                         </a>
@@ -357,7 +360,7 @@ export default function Layout({ children }: LayoutProps) {
                                         )}
                                         <button
                                             onClick={() => { clearToken(); window.location.href = "/"; }}
-                                            className="w-full text-center border-2 border-slate-900 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-950 hover:text-white transition-all flex items-center justify-center gap-2"
+                                            className="w-full text-center border-2 border-slate-200 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all flex items-center justify-center gap-2"
                                         >
                                             <LogOut className="w-5 h-5" />
                                             Logout
@@ -383,7 +386,7 @@ export default function Layout({ children }: LayoutProps) {
                         {/* Branding & Contact */}
                         <div className="lg:col-span-3 space-y-10">
                             <Link to="/" className="inline-block group">
-                                <div className="h-20 bg-white/5 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 group-hover:border-cyan-500/30 transition-all duration-500 flex items-center justify-center shadow-2xl">
+                                <div className="h-24 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 group-hover:border-cyan-500/30 transition-all duration-500 flex items-center justify-center shadow-2xl overflow-hidden">
                                     <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain brightness-110 contrast-125" />
                                 </div>
                             </Link>
@@ -400,7 +403,7 @@ export default function Layout({ children }: LayoutProps) {
                                     <div className="w-10 h-10 min-w-[40px] rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 group-hover/item:bg-cyan-500/10 group-hover/item:border-cyan-500/50 transition-all duration-300">
                                         <Phone className="w-5 h-5" />
                                     </div>
-                                    <p className="text-slate-400 text-[13px] font-bold">+1-813-419-0781</p>
+                                    <p className="text-slate-400 text-[13px] font-bold">+1 (813) 419-0781</p>
                                 </div>
                                 <div className="flex items-center gap-4 group/item">
                                     <div className="w-10 h-10 min-w-[40px] rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 group-hover/item:bg-cyan-500/10 group-hover/item:border-cyan-500/50 transition-all duration-300">

@@ -93,12 +93,17 @@ const ADVISORS_DATA = [
 ];
 
 const COLLABORATORS_DATA = [
-    { id: 1, name: 'Tampa General Hospital', specialty: 'Multi-Specialty Research', location: 'Tampa, FL', logo: '' },
-    { id: 2, name: 'Moffitt Cancer Center', specialty: 'Oncology', location: 'Tampa, FL', logo: '' },
-    { id: 3, name: 'USF Health', specialty: 'Academic Research', location: 'Tampa, FL', logo: '' },
-    { id: 4, name: 'Bay Area Gastroenterology', specialty: 'Gastroenterology', location: 'St. Petersburg, FL', logo: '' },
-    { id: 5, name: 'Florida Neurology Associates', specialty: 'Neurology', location: 'Tampa Bay Area', logo: '' },
-    { id: 6, name: "Women's Health Specialists", specialty: "Women's Health", location: 'Clearwater, FL', logo: '' },
+    { id: 1, name: 'Unilever', logo: '' },
+    { id: 2, name: 'Synbiotic Health', logo: '' },
+    { id: 3, name: 'Vidya Herbs', logo: '' },
+    { id: 4, name: 'Biova', logo: '' },
+    { id: 5, name: 'India Glycol Ltd', logo: '' },
+    { id: 6, name: 'APT Testing and Research Pvt. Ltd.', logo: '' },
+    { id: 7, name: 'Croissance Clinical Research', logo: '' },
+    { id: 8, name: 'Clintek', logo: '' },
+    { id: 9, name: 'Zeda AI', logo: '' },
+    { id: 10, name: 'Excel Imaging Center', logo: '' },
+    { id: 11, name: 'Bay Area Gastroenterology Associates LLC', logo: '' },
 ];
 
 const STAFF_DATA = [
@@ -132,7 +137,7 @@ const TeamMemberCard = ({ member }: { member: any }) => {
                             />
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
-                                <Users className="w-12 h-12 text-slate-700 mb-2" />
+                                <Users className="w-12 h-12 text-slate-400 mb-2" />
                                 <span className="text-slate-400 font-black text-4xl">{member.name.charAt(0)}</span>
                             </div>
                         )}
@@ -185,7 +190,7 @@ const TeamMemberCard = ({ member }: { member: any }) => {
                 className="w-full flex items-center justify-between p-6 bg-white/5 hover:bg-white/10 transition-colors border-t border-white/10 group cursor-pointer"
             >
                 <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isOpen ? 'bg-cyan-400/20 text-cyan-400' : 'bg-white/5 text-slate-500 group-hover:text-cyan-400'}`}>
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isOpen ? 'bg-cyan-400/20 text-cyan-400' : 'bg-white/5 text-slate-400 group-hover:text-cyan-400'}`}>
                         <Users className="w-4 h-4" />
                     </div>
                     <span className="font-bold text-slate-300 group-hover:text-white transition-colors">
@@ -195,7 +200,7 @@ const TeamMemberCard = ({ member }: { member: any }) => {
                 {isOpen ? (
                     <ChevronUp className="w-5 h-5 text-cyan-400" />
                 ) : (
-                    <ChevronDown className="w-5 h-5 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+                    <ChevronDown className="w-5 h-5 text-slate-400 group-hover:text-cyan-400 transition-colors" />
                 )}
             </button>
 
@@ -283,7 +288,7 @@ const AdvisorCard = ({ advisor }: { advisor: any }) => {
                             <img src={advisor.image} alt={advisor.name} className="w-full h-full object-cover" />
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
-                                <Users className="w-10 h-10 text-slate-700 mb-2" />
+                                <Users className="w-10 h-10 text-slate-400 mb-2" />
                                 <span className="text-slate-400 font-black text-3xl">{advisor.name.charAt(0)}</span>
                             </div>
                         )}
@@ -323,7 +328,7 @@ const AdvisorCard = ({ advisor }: { advisor: any }) => {
                 className="w-full flex items-center justify-between p-5 bg-white/5 hover:bg-white/10 transition-colors border-t border-white/10 group cursor-pointer"
             >
                 <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isOpen ? 'bg-indigo-400/20 text-indigo-400' : 'bg-white/5 text-slate-500 group-hover:text-indigo-400'}`}>
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isOpen ? 'bg-indigo-400/20 text-indigo-400' : 'bg-white/5 text-slate-400 group-hover:text-indigo-400'}`}>
                         <Users className="w-4 h-4" />
                     </div>
                     <span className="font-bold text-slate-300 group-hover:text-white transition-colors text-sm">
@@ -333,7 +338,7 @@ const AdvisorCard = ({ advisor }: { advisor: any }) => {
                 {isOpen ? (
                     <ChevronUp className="w-5 h-5 text-indigo-400" />
                 ) : (
-                    <ChevronDown className="w-5 h-5 text-slate-500 group-hover:text-indigo-400 transition-colors" />
+                    <ChevronDown className="w-5 h-5 text-slate-400 group-hover:text-indigo-400 transition-colors" />
                 )}
             </button>
 
@@ -454,7 +459,7 @@ export default function Team() {
                                 Expert authority established through decades of clinical rigor and scientific innovation. Ideal for sponsors, CROs, and regulators.
                             </p>
                         </div>
-                        <div className="flex items-center gap-4 text-slate-500 font-bold uppercase tracking-widest text-xs h-fit bg-white/5 px-6 py-3 rounded-full border border-white/10">
+                        <div className="flex items-center gap-4 text-slate-400 font-bold uppercase tracking-widest text-xs h-fit bg-white/5 px-6 py-3 rounded-full border border-white/10">
                             <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
                             Featured Profiles
                         </div>
@@ -480,7 +485,7 @@ export default function Team() {
                                 Industry leaders and domain experts providing strategic guidance for global research excellence.
                             </p>
                         </div>
-                        <div className="flex items-center gap-4 text-slate-500 font-bold uppercase tracking-widest text-xs h-fit bg-white/5 px-6 py-3 rounded-full border border-white/10">
+                        <div className="flex items-center gap-4 text-slate-400 font-bold uppercase tracking-widest text-xs h-fit bg-white/5 px-6 py-3 rounded-full border border-white/10">
                             <div className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></div>
                             Strategic Counsel
                         </div>
@@ -506,19 +511,19 @@ export default function Team() {
                                 A scalable network of specialized institutions and clinics highlighting our translational research strength and sponsor-ready infrastructure.
                             </p>
                         </div>
-                        <div className="flex items-center gap-4 text-slate-500 font-bold uppercase tracking-widest text-xs h-fit bg-white/5 px-6 py-3 rounded-full border border-white/10">
+                        <div className="flex items-center gap-4 text-slate-400 font-bold uppercase tracking-widest text-xs h-fit bg-white/5 px-6 py-3 rounded-full border border-white/10">
                             <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></div>
                             Network Strength
                         </div>
                     </div>
 
-                    <div className="grid md:grid-cols-3 lg:grid-cols-3 gap-6">
-                        {COLLABORATORS_DATA.map((collaborator) => (
+                    {/* Row 1: 4 cards */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        {COLLABORATORS_DATA.slice(0, 4).map((collaborator) => (
                             <div
                                 key={collaborator.id}
                                 className="group bg-white/5 backdrop-blur-xl rounded-[2rem] p-6 border-2 border-white/10 hover:border-purple-400/50 hover:bg-white/10 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] text-center"
                             >
-                                {/* Logo Placeholder */}
                                 <div className="w-20 h-20 mx-auto rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-2 border-white/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500 overflow-hidden">
                                     {collaborator.logo ? (
                                         <img src={collaborator.logo} alt={collaborator.name} className="w-full h-full object-cover" />
@@ -526,15 +531,49 @@ export default function Team() {
                                         <Building2 className="w-10 h-10 text-purple-400" />
                                     )}
                                 </div>
-
-                                {/* Name & Specialty */}
-                                <h3 className="text-lg font-black text-white leading-tight mb-2">{collaborator.name}</h3>
-                                <p className="text-xs font-bold uppercase tracking-wider text-purple-400 mb-1">{collaborator.specialty}</p>
-                                {collaborator.location && (
-                                    <p className="text-xs text-slate-400 font-medium">{collaborator.location}</p>
-                                )}
+                                <h3 className="text-lg font-black text-white leading-tight">{collaborator.name}</h3>
                             </div>
                         ))}
+                    </div>
+
+                    {/* Row 2: 4 cards */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-6">
+                        {COLLABORATORS_DATA.slice(4, 8).map((collaborator) => (
+                            <div
+                                key={collaborator.id}
+                                className="group bg-white/5 backdrop-blur-xl rounded-[2rem] p-6 border-2 border-white/10 hover:border-purple-400/50 hover:bg-white/10 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] text-center"
+                            >
+                                <div className="w-20 h-20 mx-auto rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-2 border-white/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500 overflow-hidden">
+                                    {collaborator.logo ? (
+                                        <img src={collaborator.logo} alt={collaborator.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <Building2 className="w-10 h-10 text-purple-400" />
+                                    )}
+                                </div>
+                                <h3 className="text-lg font-black text-white leading-tight">{collaborator.name}</h3>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Row 3: 3 cards centered */}
+                    <div className="flex justify-center mt-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-[75%]">
+                            {COLLABORATORS_DATA.slice(8, 11).map((collaborator) => (
+                                <div
+                                    key={collaborator.id}
+                                    className="group bg-white/5 backdrop-blur-xl rounded-[2rem] p-6 border-2 border-white/10 hover:border-purple-400/50 hover:bg-white/10 transition-all duration-500 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] text-center"
+                                >
+                                    <div className="w-20 h-20 mx-auto rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-2 border-white/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500 overflow-hidden">
+                                        {collaborator.logo ? (
+                                            <img src={collaborator.logo} alt={collaborator.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Building2 className="w-10 h-10 text-purple-400" />
+                                        )}
+                                    </div>
+                                    <h3 className="text-lg font-black text-white leading-tight">{collaborator.name}</h3>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </section>
@@ -551,7 +590,7 @@ export default function Team() {
                                 The dedicated professionals ensuring operational excellence, regulatory compliance, and seamless execution in every study.
                             </p>
                         </div>
-                        <div className="flex items-center gap-4 text-slate-500 font-bold uppercase tracking-widest text-xs h-fit bg-white/5 px-6 py-3 rounded-full border border-white/10">
+                        <div className="flex items-center gap-4 text-slate-400 font-bold uppercase tracking-widest text-xs h-fit bg-white/5 px-6 py-3 rounded-full border border-white/10">
                             <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
                             Execution Excellence
                         </div>

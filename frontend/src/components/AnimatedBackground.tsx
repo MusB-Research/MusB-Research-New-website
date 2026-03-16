@@ -65,7 +65,7 @@ const AnimatedBackground = () => {
             
             const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
             gradient.addColorStop(0, '#020617');
-            gradient.addColorStop(1, '#050b1a');
+            gradient.addColorStop(1, '#0b1121');
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 

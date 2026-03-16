@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Microscope, Beaker, Archive, ArrowRight, ShieldCheck, Star,
-    ChevronDown, ChevronUp, FileText, Activity, Layers, Database,
+    FileText, Activity, Layers, Database,
     ClipboardCheck, Users, Lock, Zap, Handshake
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -12,7 +12,7 @@ const HARDCODED_DATA = {
         hero_title: "Purpose-Built for Innovation",
         hero_subtext_1: "State-of-the-art infrastructure for clinical trials, and laboratory analysis.",
         hero_subtext_2: "Designed for regulatory compliance, participant comfort, and scientific rigor.",
-        hero_image: "/images/facilities-hero.webp",
+        hero_image: "",
         research_pillar_title: "Research & Innovation",
         research_pillar_desc: "Comprehensive facilities supporting Phase I-IV trials and translational research models.",
         lab_pillar_title: "Central Laboratory Services",
@@ -58,7 +58,6 @@ const HARDCODED_DATA = {
 
 export default function Facilities() {
     const data = HARDCODED_DATA;
-    const [activeAccordion, setActiveAccordion] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
 
     // Form State
@@ -72,9 +71,6 @@ export default function Facilities() {
         setLoading(false);
     }, []);
 
-    const toggleAccordion = (id: number) => {
-        setActiveAccordion(activeAccordion === id ? null : id);
-    };
 
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -154,7 +150,7 @@ export default function Facilities() {
                                 <ShieldCheck className="w-8 h-8" />
                             </div>
                             <div>
-                                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Compliance</div>
+                                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Compliance</div>
                                 <div className="text-white font-bold">GLP & GCP Ready</div>
                             </div>
                         </div>
@@ -178,7 +174,7 @@ export default function Facilities() {
                     </Link>
 
                     {/* Card 2 */}
-                    <Link to="#lab" onClick={(e) => { e.preventDefault(); const el = document.getElementById('lab'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: 'smooth' }); }} className="group bg-slate-900/80 backdrop-blur-md border border-slate-800 hover:border-indigo-500/50 p-8 rounded-3xl transition-all hover:-translate-y-2 hover:shadow-2xl hover:shadow-indigo-900/20">
+                    <Link to="#lead-capture" onClick={(e) => { e.preventDefault(); const el = document.getElementById('lead-capture'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: 'smooth' }); }} className="group bg-slate-900/80 backdrop-blur-md border border-slate-800 hover:border-indigo-500/50 p-8 rounded-3xl transition-all hover:-translate-y-2 hover:shadow-2xl hover:shadow-indigo-900/20">
                         <div className="w-14 h-14 bg-indigo-900/30 rounded-2xl flex items-center justify-center text-indigo-400 mb-6 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
                             <Beaker className="w-7 h-7" />
                         </div>
@@ -211,10 +207,6 @@ export default function Facilities() {
 
                         <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white">{settings.research_pillar_title || 'Research & Innovation'}</h2>
                         <p className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto">{settings.research_pillar_desc}</p>
-                        <div className="flex justify-center gap-4 flex-wrap">
-                            <Link to="/contact" className="bg-white text-slate-900 px-6 py-3 rounded-lg font-bold hover:bg-slate-200 transition-colors">Discuss a Research Plan</Link>
-                            <button className="text-slate-400 font-bold hover:text-white transition-colors">See Example Study Designs</button>
-                        </div>
                     </div>
 
                     {/* Modules (Accordion + Split) */}
@@ -229,34 +221,29 @@ export default function Facilities() {
                                                 {/* Fallback Icon logic could be enhanced if icon_name was in model */}
                                                 <Microscope className="w-5 h-5" />
                                             </div>
-                                            {module.badge_label && <span className="text-xs font-bold uppercase tracking-wider text-slate-500 border border-slate-800 px-2 py-1 rounded">{module.badge_label}</span>}
+                                            {module.badge_label && <span className="text-xs font-bold uppercase tracking-wider text-slate-400 border border-slate-800 px-2 py-1 rounded">{module.badge_label}</span>}
                                         </div>
                                         <h3 className="text-3xl font-bold text-white">{module.title}</h3>
                                         <p className="text-xl text-slate-400">{module.one_line_summary}</p>
                                     </div>
 
-                                    {/* Accordion */}
-                                    <div className="border border-slate-800 rounded-2xl bg-slate-900/50 overflow-hidden">
+                                    {/* Details */}
+                                    <div className="border border-slate-800 rounded-2xl bg-slate-900/50 p-6 space-y-4">
+                                        <p className="text-slate-400 leading-relaxed">{module.description}</p>
+                                        <ul className="grid sm:grid-cols-2 gap-2">
+                                            {module.micro_bullets.map((bullet: string, i: number) => (
+                                                <li key={i} className="flex items-center gap-2 text-sm text-slate-400">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>
+                                                    {bullet}
+                                                </li>
+                                            ))}
+                                        </ul>
                                         <button
-                                            onClick={() => toggleAccordion(module.id)}
-                                            className="w-full flex items-center justify-between p-6 text-left hover:bg-slate-800/50 transition-colors"
+                                            onClick={() => { const el = document.getElementById('lead-capture'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' }); }}
+                                            className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-6 py-3 rounded-xl font-bold uppercase tracking-wide transition-all shadow-lg shadow-cyan-500/20 flex items-center gap-2 mt-2"
                                         >
-                                            <span className="font-bold text-slate-300">View Details</span>
-                                            {activeAccordion === module.id ? <ChevronUp className="w-5 h-5 text-cyan-400" /> : <ChevronDown className="w-5 h-5 text-slate-500" />}
+                                            Discuss a Research Plan <ArrowRight className="w-4 h-4" />
                                         </button>
-                                        {activeAccordion === module.id && (
-                                            <div className="p-6 pt-0 text-slate-400 leading-relaxed border-t border-slate-800/50">
-                                                <p className="mb-4">{module.description}</p>
-                                                <ul className="grid sm:grid-cols-2 gap-2">
-                                                    {module.micro_bullets.map((bullet: string, i: number) => (
-                                                        <li key={i} className="flex items-center gap-2 text-sm">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>
-                                                            {bullet}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
 
@@ -295,10 +282,6 @@ export default function Facilities() {
 
                         <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white">{settings.lab_pillar_title || 'Central Laboratory Services'}</h2>
                         <p className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto">{settings.lab_pillar_desc}</p>
-                        <div className="flex justify-center gap-4 flex-wrap">
-                            <Link to="/contact" className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-lg font-bold transition-colors">Request Lab Services</Link>
-                            <button className="text-slate-400 font-bold hover:text-white transition-colors">Get a Sample Handling Guide</button>
-                        </div>
                     </div>
 
                     <div className="space-y-16">
@@ -313,29 +296,27 @@ export default function Facilities() {
                                                 </div>
                                                 <h3 className="text-3xl font-bold text-white">{module.title}</h3>
                                             </div>
-                                            {module.badge_label && <span className="text-xs font-bold uppercase tracking-wider text-slate-500 border border-slate-800 px-3 py-1.5 rounded-full shrink-0 hidden sm:inline-block">{module.badge_label}</span>}
+                                            {module.badge_label && <span className="text-xs font-bold uppercase tracking-wider text-slate-400 border border-slate-800 px-3 py-1.5 rounded-full shrink-0 hidden sm:inline-block">{module.badge_label}</span>}
                                         </div>
                                         <p className="text-xl text-slate-400">{module.one_line_summary}</p>
-                                        {module.badge_label && <span className="text-xs font-bold uppercase tracking-wider text-slate-500 border border-slate-800 px-3 py-1.5 rounded-full inline-block sm:hidden">{module.badge_label}</span>}
+                                        {module.badge_label && <span className="text-xs font-bold uppercase tracking-wider text-slate-400 border border-slate-800 px-3 py-1.5 rounded-full inline-block sm:hidden">{module.badge_label}</span>}
                                     </div>
-                                    <div className="border border-slate-800 rounded-2xl bg-slate-900/50 overflow-hidden">
-                                        <button onClick={() => toggleAccordion(module.id)} className="w-full flex items-center justify-between p-6 text-left hover:bg-slate-800/50 transition-colors">
-                                            <span className="font-bold text-slate-300">View Capabilities</span>
-                                            {activeAccordion === module.id ? <ChevronUp className="w-5 h-5 text-indigo-400" /> : <ChevronDown className="w-5 h-5 text-slate-500" />}
+                                    <div className="border border-slate-800 rounded-2xl bg-slate-900/50 p-6 space-y-4">
+                                        <p className="text-slate-400 leading-relaxed">{module.description}</p>
+                                        <ul className="grid sm:grid-cols-2 gap-2">
+                                            {module.micro_bullets.map((bullet: string, i: number) => (
+                                                <li key={i} className="flex items-center gap-2 text-sm text-slate-400">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+                                                    {bullet}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        <button
+                                            onClick={() => { const el = document.getElementById('lead-capture'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' }); }}
+                                            className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold uppercase tracking-wide transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2 mt-2"
+                                        >
+                                            Request a Lab Service <ArrowRight className="w-4 h-4" />
                                         </button>
-                                        {activeAccordion === module.id && ( // Reusing logic but could customize per pillar
-                                            <div className="p-6 pt-0 text-slate-400 leading-relaxed border-t border-slate-800/50">
-                                                <p className="mb-4">{module.description}</p>
-                                                <ul className="grid sm:grid-cols-2 gap-2">
-                                                    {module.micro_bullets.map((bullet: string, i: number) => (
-                                                        <li key={i} className="flex items-center gap-2 text-sm">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
-                                                            {bullet}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                                 <div className="flex-1 w-full">
@@ -366,10 +347,6 @@ export default function Facilities() {
 
                         <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white">{settings.bio_pillar_title || 'Biorepository'}</h2>
                         <p className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto">{settings.bio_pillar_desc}</p>
-                        <div className="flex justify-center gap-4 flex-wrap">
-                            <Link to="/contact" className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-lg font-bold transition-colors">Explore Biorepository Support</Link>
-                            <button className="text-slate-400 font-bold hover:text-white transition-colors">Request Storage Pricing</button>
-                        </div>
                     </div>
 
                     <div className="space-y-16">
@@ -385,25 +362,22 @@ export default function Facilities() {
                                         </div>
                                         <p className="text-xl text-slate-400">{module.one_line_summary}</p>
                                     </div>
-                                    {/* Accordion Logic (Shared) */}
-                                    <div className="border border-slate-800 rounded-2xl bg-slate-900/50 overflow-hidden">
-                                        <button onClick={() => toggleAccordion(module.id)} className="w-full flex items-center justify-between p-6 text-left hover:bg-slate-800/50 transition-colors">
-                                            <span className="font-bold text-slate-300">View Storage specs</span>
-                                            {activeAccordion === module.id ? <ChevronUp className="w-5 h-5 text-purple-400" /> : <ChevronDown className="w-5 h-5 text-slate-500" />}
+                                    <div className="border border-slate-800 rounded-2xl bg-slate-900/50 p-6 space-y-4">
+                                        <p className="text-slate-400 leading-relaxed">{module.description}</p>
+                                        <ul className="grid sm:grid-cols-2 gap-2">
+                                            {module.micro_bullets.map((bullet: string, i: number) => (
+                                                <li key={i} className="flex items-center gap-2 text-sm text-slate-400">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+                                                    {bullet}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        <button
+                                            onClick={() => { const el = document.getElementById('lead-capture'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' }); }}
+                                            className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-xl font-bold uppercase tracking-wide transition-all shadow-lg shadow-purple-500/20 flex items-center gap-2 mt-2"
+                                        >
+                                            Explore Repository Support <ArrowRight className="w-4 h-4" />
                                         </button>
-                                        {activeAccordion === module.id && (
-                                            <div className="p-6 pt-0 text-slate-400 leading-relaxed border-t border-slate-800/50">
-                                                <p className="mb-4">{module.description}</p>
-                                                <ul className="grid sm:grid-cols-2 gap-2">
-                                                    {module.micro_bullets.map((bullet: string, i: number) => (
-                                                        <li key={i} className="flex items-center gap-2 text-sm">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
-                                                            {bullet}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                                 <div className="flex-1 w-full">
@@ -420,9 +394,6 @@ export default function Facilities() {
                         <Link to="/contact" className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-xl font-bold uppercase tracking-wide transition-all shadow-lg shadow-purple-500/20">
                             Schedule a Storage Consult
                         </Link>
-                        <button className="flex items-center gap-2 px-8 py-4 rounded-xl border border-slate-700 hover:border-purple-500/50 hover:bg-purple-500/10 transition-all font-bold text-purple-400 uppercase tracking-wide">
-                            Download Sample Submission SOP
-                        </button>
                     </div>
                 </div>
             </section >
@@ -442,7 +413,7 @@ export default function Facilities() {
                         })}
                     </div>
                     <div>
-                        <Link to="/contact" className="inline-flex items-center justify-center px-8 py-4 text-sm font-bold tracking-widest text-slate-900 uppercase transition-all bg-cyan-400 rounded-xl hover:bg-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.3)]">
+                        <Link to="#lead-capture" onClick={(e) => { e.preventDefault(); const el = document.getElementById('lead-capture'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: 'smooth' }); }} className="inline-flex items-center justify-center px-8 py-4 text-sm font-bold tracking-widest text-slate-900 uppercase transition-all bg-cyan-400 rounded-xl hover:bg-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.3)]">
                             Talk to a Scientist
                         </Link>
                     </div>
@@ -467,7 +438,7 @@ export default function Facilities() {
                     })}
                 </div>
                 <div className="text-center mt-6">
-                    <Link to="/contact" className="inline-flex items-center justify-center px-8 py-4 text-sm font-bold tracking-widest text-white uppercase transition-all bg-indigo-600 rounded-xl hover:bg-indigo-500 shadow-lg shadow-indigo-500/25">
+                    <Link to="#lead-capture" onClick={(e) => { e.preventDefault(); const el = document.getElementById('lead-capture'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: 'smooth' }); }} className="inline-flex items-center justify-center px-8 py-4 text-sm font-bold tracking-widest text-white uppercase transition-all bg-indigo-600 rounded-xl hover:bg-indigo-500 shadow-lg shadow-indigo-500/25">
                         Start the Conversation
                     </Link>
                 </div>
@@ -506,7 +477,7 @@ export default function Facilities() {
                             <form onSubmit={handleFormSubmit} className="space-y-6 relative z-10">
                                 <div className="grid md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">I'm Interested In</label>
+                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">I'm Interested In</label>
                                         <select
                                             value={formState.interest}
                                             onChange={e => setFormState({ ...formState, interest: e.target.value })}
@@ -519,7 +490,7 @@ export default function Facilities() {
                                         </select>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Project Stage</label>
+                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Project Stage</label>
                                         <select
                                             value={formState.stage}
                                             onChange={e => setFormState({ ...formState, stage: e.target.value })}
@@ -534,7 +505,7 @@ export default function Facilities() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Name</label>
+                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Name</label>
                                     <input
                                         type="text" required
                                         value={formState.name} onChange={e => setFormState({ ...formState, name: e.target.value })}
@@ -545,7 +516,7 @@ export default function Facilities() {
 
                                 <div className="grid md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Email</label>
+                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Email</label>
                                         <input
                                             type="email" required
                                             value={formState.email} onChange={e => setFormState({ ...formState, email: e.target.value })}
@@ -554,7 +525,7 @@ export default function Facilities() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Company</label>
+                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Company</label>
                                         <input
                                             type="text"
                                             value={formState.company} onChange={e => setFormState({ ...formState, company: e.target.value })}
@@ -569,7 +540,7 @@ export default function Facilities() {
                                     disabled={formStatus === 'submitting'}
                                     className="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black uppercase tracking-widest py-4 rounded-xl transition-all shadow-lg shadow-cyan-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    {formStatus === 'submitting' ? 'Sending...' : 'Request a Consultation'}
+                                    {formStatus === 'submitting' ? 'Sending...' : 'Submit Request'}
                                 </button>
                             </form>
                         )}

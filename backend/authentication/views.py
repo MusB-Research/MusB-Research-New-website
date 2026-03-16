@@ -9,6 +9,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from .models import User, OTP, MagicLink
 import logging
+import requests
 
 from .utils import verify_recaptcha, send_resend_email, generate_token
 

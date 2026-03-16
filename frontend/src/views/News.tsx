@@ -288,12 +288,8 @@ export default function News() {
                             <section className="relative group">
                                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-indigo-500/20 rounded-[3rem] blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
                                 <div className="relative bg-white/5 border border-white/10 rounded-[3rem] overflow-hidden grid lg:grid-cols-2 shadow-2xl">
-                                    <div className="aspect-[16/9] lg:aspect-auto overflow-hidden">
-                                        <img
-                                            src={featuredItem.imageUrl}
-                                            alt={featuredItem.title}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
-                                        />
+                                    <div className="aspect-[16/9] lg:aspect-auto overflow-hidden bg-slate-900 border-r border-slate-800">
+                                        <div className="w-full h-[400px] bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 group-hover:scale-105 transition-transform duration-1000"></div>
                                     </div>
                                     <div className="p-8 md:p-12 flex flex-col justify-center space-y-6">
                                         <div className="flex items-center gap-3">
@@ -349,11 +345,7 @@ export default function News() {
                                                 return (
                                                     <div key={item.id} className={`group bg-white/5 border border-white/5 rounded-[2.5rem] overflow-hidden flex flex-col hover:bg-white/10 hover:border-white/10 ${accent.border} transition-all duration-300 shadow-xl`}>
                                                         <div className="aspect-[16/10] overflow-hidden relative">
-                                                            <img
-                                                                src={item.imageUrl}
-                                                                alt={item.title}
-                                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                                            />
+                                                            <div className="w-full h-full bg-gradient-to-br from-cyan-500/10 to-indigo-500/10 group-hover:scale-110 transition-transform duration-700"></div>
                                                             <div className="absolute top-4 left-4">
                                                                 <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-950/80 backdrop-blur-md text-[10px] font-black uppercase tracking-widest border border-white/10 ${accent.badge}`}>
                                                                     <Icon className="w-3 h-3" />

@@ -27,6 +27,7 @@ export default function SignIn() {
     const [error, setError] = useState<string | null>(null);
     const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: 'Weak', color: 'bg-red-500' });
     const [isAttemptingSubmit, setIsAttemptingSubmit] = useState(false);
+    const googleInitRef = useRef(false);
 
     const navigate = useNavigate();
     const recaptchaRef = useRef<ReCAPTCHA>(null);
@@ -195,12 +196,16 @@ export default function SignIn() {
                     return;
                 }
                 
+                if (googleInitRef.current) return;
+
                 window.google.accounts.id.initialize({
                     client_id: client_id,
                     callback: handleCredentialResponse,
                     auto_select: false,
                     cancel_on_tap_outside: false,
+                    use_fedcm: true,
                 });
+                googleInitRef.current = true;
                 console.log("Google GSI Client Initialized");
             } else {
                 // Retry if script not loaded yet
@@ -371,9 +376,9 @@ export default function SignIn() {
                     <div className="flex flex-col items-center mb-12 relative z-10">
                         <motion.div 
                             whileHover={{ scale: 1.05 }}
-                            className="bg-white px-8 py-4 rounded-3xl shadow-2xl border border-white/20 mb-8 flex items-center justify-center"
+                            className="bg-white rounded-3xl shadow-2xl border border-white/20 mb-8 flex items-center justify-center overflow-hidden h-16 md:h-20"
                         >
-                            <img src="/logo.jpg" alt="MusB™ Research" className="h-10 w-auto object-contain" />
+                            <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain" />
                         </motion.div>
                         
                         <div className="text-center space-y-2">

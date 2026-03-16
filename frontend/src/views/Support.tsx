@@ -104,7 +104,7 @@ const Support: React.FC = () => {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
                     <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl" onClick={() => setShowRouter(false)}></div>
                     <div className="relative w-full max-w-2xl bg-white/5 border border-white/10 rounded-[3rem] p-12 shadow-[0_50px_100px_-20px_rgba(0,0,0,1)] animate-in zoom-in-95 duration-300">
-                        <button onClick={() => setShowRouter(false)} className="absolute top-8 right-8 text-slate-500 hover:text-white transition-colors">
+                        <button onClick={() => setShowRouter(false)} className="absolute top-8 right-8 text-slate-400 hover:text-white transition-colors">
                             <X className="w-8 h-8" />
                         </button>
                         <div className="text-center space-y-4 mb-12">
@@ -123,9 +123,9 @@ const Support: React.FC = () => {
                                     </div>
                                     <div>
                                         <div className="text-lg font-black text-white group-hover:text-cyan-400 transition-colors uppercase tracking-tight">{opt.label}</div>
-                                        <div className="text-slate-500 font-medium text-sm">{opt.desc}</div>
+                                        <div className="text-slate-400 font-medium text-sm">{opt.desc}</div>
                                     </div>
-                                    <ArrowRight className="w-5 h-5 ml-auto text-slate-700 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
+                                    <ArrowRight className="w-5 h-5 ml-auto text-slate-400 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
                                 </Link>
                             ))}
                         </div>
@@ -159,13 +159,13 @@ const Support: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex flex-col sm:flex-row items-center justify-start gap-8 pt-6">
-                                    <button
-                                        onClick={() => setShowRouter(true)}
+                                    <Link
+                                        to="/facilities#lead-capture"
                                         className="w-full sm:w-auto bg-cyan-500 text-slate-900 px-12 py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-1 transition-all shadow-2xl shadow-cyan-500/30 flex items-center justify-center gap-4 group"
                                     >
                                         Start the Conversation
                                         <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                    </button>
+                                    </Link>
                                     <Link to="/capabilities" className="text-white hover:text-cyan-400 font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-2 transition-colors group">
                                         Explore Our Capabilities <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                     </Link>
@@ -175,11 +175,7 @@ const Support: React.FC = () => {
                             {/* Right Visual */}
                             <div className="relative group hidden lg:block">
                                 <div className="relative z-10 rounded-[3rem] overflow-hidden border border-white/10 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] transform transition-transform duration-700">
-                                    <img
-                                        src="/business_hero.png"
-                                        alt="Clinical Research Excellence"
-                                        className="w-full aspect-[4/5] object-cover brightness-90 transition-all duration-700"
-                                    />
+                                    <div className="w-full aspect-[4/5] bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 transition-all duration-700"></div>
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60"></div>
                                     <div className="absolute bottom-12 left-12 right-12 space-y-2">
                                         <p className="text-cyan-400 font-black text-[10px] uppercase tracking-[0.4em]">Integrated Research</p>
@@ -319,7 +315,7 @@ const Support: React.FC = () => {
                             </div>
                             <div className="flex gap-4">
                                 <Link to="/news" className="bg-white/5 text-white px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all border border-white/10">See All Success Stories</Link>
-                                <button onClick={() => setShowRouter(true)} className="bg-cyan-500 text-slate-900 px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg">Start the Conversation</button>
+                                <Link to="/facilities#lead-capture" className="bg-cyan-500 text-slate-900 px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg">Start the Conversation</Link>
                             </div>
                         </div>
 
@@ -346,11 +342,7 @@ const Support: React.FC = () => {
                             ].map((story, i) => (
                                 <div key={i} className="group relative bg-white/5 backdrop-blur-xl rounded-[3rem] overflow-hidden border border-white/5 hover:border-cyan-500/30 transition-all duration-500 flex flex-col">
                                     <div className="aspect-video bg-slate-800/50 overflow-hidden">
-                                        <img
-                                            src={story.img}
-                                            alt={story.title}
-                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 brightness-75 group-hover:brightness-100"
-                                        />
+                                        <div className="w-full h-full bg-gradient-to-br from-cyan-500/10 to-indigo-500/10 group-hover:scale-110 transition-transform duration-700"></div>
                                     </div>
                                     <div className="p-6 md:p-10 space-y-6 flex-grow">
                                         <span className="px-4 py-2 rounded-xl bg-cyan-500/10 text-cyan-400 text-[10px] font-black uppercase tracking-widest">{story.tag}</span>
@@ -387,10 +379,10 @@ const Support: React.FC = () => {
                                 </div>
                             ))}
                         </div>
-                        <button onClick={() => setShowRouter(true)} className="bg-cyan-500 text-slate-900 px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-1 transition-all shadow-2xl flex items-center justify-center gap-4 mx-auto group">
+                        <Link to="/facilities#lead-capture" className="bg-cyan-500 text-slate-900 px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-1 transition-all shadow-2xl flex items-center justify-center gap-4 mx-auto group">
                             Start the Conversation
                             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                        </button>
+                        </Link>
                     </div>
                 </section>
 
@@ -438,8 +430,8 @@ const Support: React.FC = () => {
                     <div className="max-w-7xl mx-auto px-4 md:px-12 text-center space-y-16">
                         <div className="space-y-8 animate-fade-in-up">
                             <h2 className="text-3xl md:text-5xl font-black text-white leading-[1.1] tracking-tighter">
-                                Choosing MusB™ Research means partnering with a leader <br />
-                                in scientific innovation, flexibility, and <span className="text-cyan-400">efficiency.</span>
+                                Choosing MusB™ Research means partnering with a leader <br className="hidden md:block" />
+                                in scientific innovation, flexibility, and <span className="text-cyan-400">execution excellence.</span>
                             </h2>
                             <p className="text-xl md:text-2xl text-slate-400 font-medium max-w-3xl mx-auto leading-relaxed">
                                 We help you achieve your research objectives through tailored, responsive, and cost-effective solutions—without compromising scientific rigor.
@@ -449,7 +441,7 @@ const Support: React.FC = () => {
                             <Link to="/contact" className="bg-cyan-500 text-slate-900 px-12 py-6 rounded-3xl font-black text-lg uppercase tracking-widest hover:bg-white hover:scale-105 transition-all shadow-xl">
                                 Request a Consultation
                             </Link>
-                            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">
+                            <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">
                                 Typical response time: 1–2 business days. <br />Confidential discussions welcomed.
                             </p>
                         </div>
