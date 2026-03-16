@@ -17,6 +17,8 @@ router.register(r'communications', views.CommunicationLogViewSet)
 router.register(r'compensations', views.CompensationViewSet)
 router.register(r'lab-results', views.LabResultViewSet)
 router.register(r'audit-logs', views.DataAuditLogViewSet)
+router.register(r'news', views.NewsViewSet)
+router.register(r'events', views.EventViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

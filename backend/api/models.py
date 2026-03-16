@@ -38,10 +38,19 @@ class Study(models.Model):
     ]
 
     title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
     protocol_id = models.CharField(max_length=100, unique=True, null=True, blank=True, verbose_name="Protocol ID / Internal ID")
     sponsor_name = models.CharField(max_length=255)
     study_type = models.CharField(max_length=20, choices=STUDY_TYPES, default='IN_PERSON')
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='DRAFT')
+    
+    # Workflow approval status
+    approval_status = models.CharField(max_length=20, choices=[
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected')
+    ], default='pending')
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='created_studies')
     
     primary_indication = models.CharField(max_length=255, blank=True)
     design_type = models.CharField(max_length=255, blank=True) # Legacy
@@ -432,3 +441,36 @@ class PermissionMatrix(models.Model):
 
     class Meta:
         unique_together = ('role', 'capability')
+
+class News(models.Model):
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    image = models.URLField(max_length=1024, blank=True, null=True)
+    is_success_story = models.BooleanField(default=False)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='authored_news')
+    status = models.CharField(max_length=20, choices=[
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected')
+    ], default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.title} ({self.status})"
+
+class Event(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    event_date = models.DateTimeField()
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='authored_events')
+    status = models.CharField(max_length=20, choices=[
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected')
+    ], default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.event_date.strftime('%Y-%m-%d')}"

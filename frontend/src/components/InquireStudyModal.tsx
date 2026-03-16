@@ -4,6 +4,7 @@ import {
     X, ChevronRight, ChevronLeft, Lock, CheckCircle2, Beaker,
     Building2, FileText, Upload, Phone, AlertCircle, Loader2, Calendar
 } from 'lucide-react';
+import { authFetch } from '../utils/auth';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -106,13 +107,9 @@ export default function InquireStudyModal({ isOpen, onClose }: Props) {
                 trial_model: step2.studyType.includes('Randomized Controlled Trial') ? 'RCT' : 'OBSERVATIONAL',
             };
 
-            const response = await fetch(`${API_URL}/api/studies/`, {
+            const response = await authFetch(`${API_URL}/api/studies/`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify(studyData),
-                credentials: 'include'
             });
 
             if (response.ok) {

@@ -16,9 +16,8 @@ import {
     BookOpen,
     GraduationCap
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-
 import { NewsItem, NewsType } from '@/types';
+import { authFetch } from '../utils/auth';
 
 const categories: (NewsType | 'All')[] = [
     'All',
@@ -126,7 +125,48 @@ export default function News() {
         }
     };
     useEffect(() => {
-        setNewsItems(HARDCODED_NEWS);
+        const fetchData = async () => {
+            try {
+                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                
+                // Fetch News & Events from our new API
+                const [newsRes, eventsRes] = await Promise.all([
+                    authFetch(`${apiUrl}/api/news/`),
+                    authFetch(`${apiUrl}/api/events/`)
+                ]);
+
+                let combined: any[] = [];
+                
+                if (newsRes.ok) {
+                    const newsData = await newsRes.json();
+                    combined = [...combined, ...newsData.map((n: any) => ({
+                        ...n,
+                        type: n.is_success_story ? 'Success Story' : 'News',
+                        date: new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    }))];
+                }
+
+                if (eventsRes.ok) {
+                    const eventsData = await eventsRes.json();
+                    combined = [...combined, ...eventsData.map((e: any) => ({
+                        ...e,
+                        type: 'Event',
+                        date: new Date(e.event_date || e.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    }))];
+                }
+
+                // If we got real data, use it; otherwise fallback to hardcoded
+                if (combined.length > 0) {
+                    setNewsItems(combined);
+                } else {
+                    setNewsItems(HARDCODED_NEWS);
+                }
+            } catch (e) {
+                console.error("Failed to fetch news", e);
+                setNewsItems(HARDCODED_NEWS);
+            }
+        };
+        fetchData();
     }, []);
 
 

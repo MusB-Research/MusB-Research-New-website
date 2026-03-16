@@ -38,11 +38,21 @@ def decrypt_data(encrypted_data: str) -> str:
 # ─────────────────────────────────────────────────────────
 
 def get_private_key() -> bytes:
+    # Fallback to Env Var for deployed environments (Heroku/Vercel/Docker)
+    env_key = os.getenv('JWT_PRIVATE_KEY')
+    if env_key:
+        return env_key.replace('\\n', '\n').encode()
+    
     with open(os.path.join(settings.BASE_DIR, 'private_key.pem'), 'rb') as f:
         return f.read()
 
 
 def get_public_key() -> bytes:
+    # Fallback to Env Var for deployed environments
+    env_key = os.getenv('JWT_PUBLIC_KEY')
+    if env_key:
+        return env_key.replace('\\n', '\n').encode()
+
     with open(os.path.join(settings.BASE_DIR, 'public_key.pem'), 'rb') as f:
         return f.read()
 

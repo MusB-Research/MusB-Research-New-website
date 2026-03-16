@@ -145,97 +145,43 @@ export default function StudyDetail() {
                                 </p>
                             </div>
                         </motion.section>
-
-                        {/* Participation Timeline */}
-                        <motion.section 
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.3 }}
-                            className="space-y-12 pl-4"
-                        >
-                            <h2 className="text-3xl font-black text-white uppercase italic tracking-tight flex items-center gap-4">
-                                <Calendar className="w-8 h-8 text-cyan-400" />
-                                Participation Timeline
-                            </h2>
-                            
-                            <div className="space-y-10 relative">
-                                <div className="absolute left-6 top-0 bottom-0 w-[1px] bg-gradient-to-b from-cyan-500/50 via-white/5 to-transparent"></div>
-                                
-                                {study.timeline.map((step, idx) => (
-                                    <div key={idx} className="flex gap-10 items-start group">
-                                        <div className="relative z-10">
-                                            <div className="w-12 h-12 rounded-full bg-slate-950 border border-white/10 flex items-center justify-center text-cyan-400 font-black text-sm group-hover:bg-cyan-500 group-hover:text-slate-950 group-hover:border-cyan-500 transition-all duration-500 shadow-xl">
-                                                {idx + 1}
-                                            </div>
-                                        </div>
-                                        <div className="pt-2">
-                                            <div className="text-xs font-black uppercase tracking-[0.3em] text-cyan-500 mb-2">{step.step}</div>
-                                            <div className="text-2xl font-black text-white uppercase italic">{step.label}</div>
-                                            <div className="text-slate-500 text-base mt-2 max-w-md font-bold">Estimated duration: {idx === 0 ? '1-2 Days' : 'Weekly check-ins'}</div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </motion.section>
-
                     </div>
 
                     {/* Right Column: CTA Sidebar */}
-                    <div className="lg:col-span-4 space-y-8 lg:sticky lg:top-40">
-                        
-                        {/* Compensation Card */}
+                    <div className="lg:col-span-4 lg:sticky lg:top-40">
                         <motion.div 
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.3 }}
-                            className="bg-cyan-400 rounded-[3.5rem] p-12 text-slate-950 space-y-12 shadow-[0_40px_80px_-20px_rgba(34,211,238,0.3)] relative overflow-hidden group"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.5 }}
+                            className="bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] p-8 space-y-8 flex flex-col items-center text-center shadow-2xl overflow-hidden relative"
                         >
-                            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/20 to-transparent pointer-events-none"></div>
+                            {/* Decorative background glow */}
+                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-cyan-500/10 blur-3xl rounded-full"></div>
                             
-                            <div className="space-y-4 text-center relative z-10">
-                                <div className="text-xs font-black uppercase tracking-[0.4em] opacity-60">Study Compensation</div>
-                                <div className="text-4xl lg:text-5xl font-black uppercase tracking-tighter italic leading-none">
-                                    {study.compensation.split('for')[0]}
-                                    <span className="block text-3xl mt-2 opacity-80 non-italic font-black">FOR TRAVEL AND TIME</span>
+                            <div className="space-y-3 relative z-10">
+                                <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500">Ready to participate?</h3>
+                                <div className="text-2xl font-black text-white italic uppercase tracking-tight">
+                                    Check your eligibility
                                 </div>
                             </div>
-                            
+
                             <Link 
                                 to={`/studies/${study.id}/screener`}
-                                className="block w-full py-6 bg-slate-950 text-cyan-400 rounded-3xl font-black text-sm uppercase tracking-[0.3em] hover:bg-white hover:text-slate-950 hover:-translate-y-1 transition-all shadow-2xl relative z-10 text-center"
+                                className="inline-flex items-center justify-center px-10 py-4 bg-cyan-500 text-slate-950 rounded-full font-black text-[13px] uppercase tracking-[0.2em] hover:bg-white hover:shadow-[0_0_30px_rgba(34,211,238,0.4)] hover:-translate-y-0.5 transition-all duration-300 relative z-10"
                             >
                                 See If You Qualify
                             </Link>
 
-                            <div className="space-y-6 pt-6 border-t border-slate-950/10 relative z-10">
-                                <div className="flex items-center gap-4 text-xs font-black uppercase tracking-widest">
-                                    <Clock className="w-5 h-5" /> {study.duration.split('(')[0].trim()}
+                            <div className="flex items-center justify-center gap-6 pt-6 border-t border-white/5 w-full relative z-10">
+                                <div className="flex flex-col items-center gap-1">
+                                    <Clock className="w-4 h-4 text-cyan-400/60" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500">{study.duration.split('(')[0].trim()}</span>
                                 </div>
-                                <div className="flex items-center gap-4 text-xs font-black uppercase tracking-widest">
-                                    <Lock className="w-5 h-5 text-slate-950/60" /> Privacy Protected
+                                <div className="w-[1px] h-6 bg-white/5"></div>
+                                <div className="flex flex-col items-center gap-1">
+                                    <Lock className="w-4 h-4 text-emerald-400/60" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500">Privacy Protected</span>
                                 </div>
-                            </div>
-                        </motion.div>
-
-                        {/* Safety & Compliance Card */}
-                        <motion.div 
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.4 }}
-                            className="bg-[#0f172a]/60 backdrop-blur-3xl rounded-[3rem] p-10 border border-white/10 space-y-8"
-                        >
-                            <h3 className="text-sm font-black text-white uppercase italic tracking-[0.2em] flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
-                                    <ShieldCheck className="w-5 h-5 text-cyan-400" />
-                                </div>
-                                Safety & Privacy
-                            </h3>
-                            <p className="text-sm text-slate-400 font-bold leading-relaxed">
-                                {study.safetyInfo || "All natural ingredients. Product is manufactured in GMP-certified facilities and has been safety-validated in clinical lab settings. Your privacy is protected under HIPAA guidelines."}
-                            </p>
-                            <div className="pt-6 border-t border-white/5 flex items-center gap-3">
-                                <CheckCircle2 className="w-4 h-4 text-cyan-400" />
-                                <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">HIPAA Compliant</span>
                             </div>
                         </motion.div>
                     </div>

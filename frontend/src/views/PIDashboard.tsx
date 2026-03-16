@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clearToken, authFetch } from '../utils/auth';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
+import SubmitContentForms from '../components/admin/SubmitContentForms';
 import {
     LayoutDashboard,
     Beaker,
@@ -28,7 +29,7 @@ import {
     Globe
 } from 'lucide-react';
 
-type PIModule = 'OVERSIGHT' | 'STUDIES' | 'PARTICIPANTS' | 'MESSAGES' | 'REPORTS';
+type PIModule = 'OVERSIGHT' | 'STUDIES' | 'PARTICIPANTS' | 'MESSAGES' | 'REPORTS' | 'SUBMIT';
 
 export default function PIDashboard() {
     const [activeModule, setActiveModule] = useState<PIModule>('OVERSIGHT');
@@ -106,6 +107,7 @@ export default function PIDashboard() {
         { id: 'PARTICIPANTS', label: 'Subject Review', icon: UsersRound },
         { id: 'MESSAGES', label: 'Messages', icon: MessageSquare },
         { id: 'REPORTS', label: 'Analytics', icon: TrendingUp },
+        { id: 'SUBMIT', label: 'Submit Content', icon: Plus },
     ];
 
     const renderHeader = () => {
@@ -219,7 +221,8 @@ export default function PIDashboard() {
             <main className="ml-80 pt-36 pb-24 px-10">
                 <AnimatePresence mode="wait">
                     {activeModule === 'OVERSIGHT' && <OversightModule studyCount={studies.length} />}
-                    {activeModule === 'STUDIES' && <StudyOverviewModule studies={studies} onAdd={() => setShowCreateModal(true)} />}
+                    {activeModule === 'STUDIES' && <StudyOverviewModule studies={studies} onAdd={() => setActiveModule('SUBMIT')} />}
+                    {activeModule === 'SUBMIT' && <SubmitContentForms userRole="PI" />}
                 </AnimatePresence>
             </main>
 

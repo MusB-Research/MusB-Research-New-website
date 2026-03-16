@@ -153,11 +153,11 @@ if DEBUG:
 else:
     CORS_ALLOWED_ORIGINS = os.getenv(
         'CORS_ALLOWED_ORIGINS',
-        'http://localhost:3000,https://musbresearchnewwebsite.vercel.app,https://musbhealth.com,https://www.musbhealth.com'
+        'http://localhost:3000,https://musbresearchnewwebsite.vercel.app,https://musbhealth.com,https://www.musbhealth.com,https://musb-research-new-website.onrender.com,https://musb-backend.onrender.com'
     ).split(',')
     CSRF_TRUSTED_ORIGINS = os.getenv(
         'CSRF_TRUSTED_ORIGINS',
-        'https://musbresearchnewwebsite.vercel.app,https://musbhealth.com,https://www.musbhealth.com'
+        'https://musbresearchnewwebsite.vercel.app,https://musbhealth.com,https://www.musbhealth.com,https://musb-research-new-website.onrender.com,https://musb-backend.onrender.com'
     ).split(',')
 
 CORS_ALLOW_HEADERS = [

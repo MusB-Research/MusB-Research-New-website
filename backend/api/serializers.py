@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import (
     Study, StudyAssignment, Participant, Visit, Kit, Form, FormResponse, 
     Task, ParticipantTask, Consent, Lead, CommunicationLog, 
-    Compensation, LabResult, DataAuditLog, InterventionArm
+    Compensation, LabResult, DataAuditLog, InterventionArm, News, Event
 )
 from authentication.models import User
 from authentication.security import decrypt_data
@@ -168,3 +168,13 @@ class ConsentSerializer(SanitizedModelSerializer):
         model = Consent
         fields = '__all__'
         read_only_fields = ['agreed_at', 'ip_address']
+
+class NewsSerializer(SanitizedModelSerializer):
+    class Meta:
+        model = News
+        fields = '__all__'
+
+class EventSerializer(SanitizedModelSerializer):
+    class Meta:
+        model = Event
+        fields = '__all__'

@@ -15,6 +15,7 @@ import DataModule from '../components/admin/DataModule';
 import ReportsModule from '../components/admin/ReportsModule';
 import TeamModule from '../components/admin/TeamModule';
 import SettingsModule from '../components/admin/SettingsModule';
+import SubmitContentForms from '../components/admin/SubmitContentForms';
 
 import {
     LayoutDashboard,
@@ -63,7 +64,8 @@ type AdminModule =
     | 'DATA' 
     | 'REPORTS' 
     | 'TEAM' 
-    | 'SETTINGS';
+    | 'SETTINGS'
+    | 'SUBMIT';
 
 export default function AdminDashboard() {
     const [activeModule, setActiveModule] = useState<AdminModule>('DASHBOARD');
@@ -160,6 +162,7 @@ export default function AdminDashboard() {
         { id: 'REPORTS', label: 'Reports', icon: FileBarChart },
         { id: 'TEAM', label: 'Team & Roles', icon: UsersRound },
         { id: 'SETTINGS', label: 'Settings', icon: Settings },
+        { id: 'SUBMIT', label: 'Submit Content', icon: Plus },
     ];
 
     const renderHeader = () => {
@@ -306,6 +309,7 @@ export default function AdminDashboard() {
                     {activeModule === 'DATA' && <DataModule />}
                     {activeModule === 'REPORTS' && <ReportsModule />}
                     {activeModule === 'TEAM' && <TeamModule />}
+                    {activeModule === 'SUBMIT' && <SubmitContentForms userRole="COORDINATOR" />}
                     {activeModule === 'SETTINGS' && <SettingsModule />}
                 </AnimatePresence>
             </main>

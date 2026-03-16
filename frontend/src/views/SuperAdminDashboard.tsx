@@ -20,6 +20,8 @@ import ParticipantsManagement from '../components/admin/ParticipantsManagement';
 import LiveActiveUsers from '../components/admin/LiveActiveUsers';
 import AnalyticsDashboard from '../components/admin/AnalyticsDashboard';
 import AuditLogs from '../components/admin/AuditLogs';
+import WorkflowModerationPanel from '../components/admin/WorkflowModerationPanel';
+import SubmitContentForms from '../components/admin/SubmitContentForms';
 
 // ═══════════════════════════════════════════
 // TYPES & MOCK DATA
@@ -30,7 +32,7 @@ type Page =
   | 'SPONSOR_LEADS' | 'METRICS' | 'TEAM' | 'INQUIRIES'
   | 'ANNOUNCEMENTS' | 'AUDIT_LOGS' | 'SETTINGS'
   | 'LAUNCH_STUDY' | 'SCREENER_BUILDER' | 'PIS' 
-  | 'COORDINATORS' | 'PARTICIPANTS' | 'LIVE_USERS';
+  | 'COORDINATORS' | 'PARTICIPANTS' | 'LIVE_USERS' | 'WORKFLOW' | 'SUBMIT_CONTENT';
 
 interface User {
   id: string;
@@ -803,6 +805,12 @@ export default function SuperAdminDashboard() {
         { id: 'AUDIT_LOGS', label: 'Login Audit Logs', icon: FileText },
         { id: 'SETTINGS', label: 'System Settings', icon: Settings },
       ]
+    },
+    {
+      group: 'CONTENT WORKFLOW', items: [
+        { id: 'WORKFLOW', label: 'Moderation Queue', icon: ShieldCheck },
+        { id: 'SUBMIT_CONTENT', label: 'Create Content', icon: Plus },
+      ]
     }
   ];
 
@@ -1158,6 +1166,8 @@ export default function SuperAdminDashboard() {
             {currentPage === 'LIVE_USERS' && <LiveActiveUsers />}
             {currentPage === 'METRICS' && <AnalyticsDashboard />}
             {currentPage === 'AUDIT_LOGS' && <AuditLogs />}
+            { currentPage === 'WORKFLOW' && <WorkflowModerationPanel /> }
+            { currentPage === 'SUBMIT_CONTENT' && <SubmitContentForms userRole="SUPER_ADMIN" /> }
             {currentPage === 'SETTINGS' && <SettingsPage />}
 
             {/* Stub for other pages */}
