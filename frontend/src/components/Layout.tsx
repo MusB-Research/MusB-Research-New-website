@@ -86,6 +86,11 @@ export default function Layout({ children }: LayoutProps) {
         }
     }, [location]);
 
+    const isDashboard = location.pathname.startsWith('/dashboard');
+    if (isDashboard) {
+        return <>{children}</>;
+    }
+
     return (
         <div className="min-h-screen flex flex-col font-sans text-slate-100 relative">
             {/* Animated Mesh Background */}
