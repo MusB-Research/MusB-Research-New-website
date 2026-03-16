@@ -22,6 +22,7 @@ async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> 
 
     const res = await fetch(url, {
         headers,
+        credentials: 'include',
         ...options,
     });
     if (!res.ok) {

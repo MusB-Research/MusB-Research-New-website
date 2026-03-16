@@ -5,6 +5,8 @@ import {
     Building2, FileText, Upload, Phone, AlertCircle, Loader2, Calendar
 } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 interface Props {
     isOpen: boolean;
     onClose: () => void;
@@ -89,6 +91,42 @@ export default function InquireStudyModal({ isOpen, onClose }: Props) {
     const simulateDelay = (cb: () => void) => {
         setIsLoading(true);
         setTimeout(() => { setIsLoading(false); cb(); }, 1200);
+    };
+
+    const handleSubmit = async () => {
+        setIsLoading(true);
+        try {
+            const studyData = {
+                title: step1.productName || 'New Study Inquiry',
+                sponsor_name: 'Sponsor Identity', // Backend will link to authenticated user
+                study_type: step2.studyType.includes('Randomized Controlled Trial') ? 'IN_PERSON' : 'VIRTUAL',
+                primary_indication: step1.healthFocus,
+                status: 'PROPOSAL_SUBMITTED',
+                protocol_id: `INQ-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+                trial_model: step2.studyType.includes('Randomized Controlled Trial') ? 'RCT' : 'OBSERVATIONAL',
+            };
+
+            const response = await fetch(`${API_URL}/api/studies/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(studyData),
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                setStep('SUCCESS');
+            } else {
+                const err = await response.json();
+                console.error('Submission failed:', err);
+                // Handle error
+            }
+        } catch (error) {
+            console.error('Error submitting inquiry:', error);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleClose = () => {
@@ -475,7 +513,7 @@ export default function InquireStudyModal({ isOpen, onClose }: Props) {
                                         } else if (step === 'NDA_CONFIRM') {
                                             simulateDelay(() => setStep('NDA_SENT'));
                                         } else if (step === 'STEP2') {
-                                            simulateDelay(() => setStep('SUCCESS'));
+                                            handleSubmit();
                                         }
                                     }}
                                     className="flex items-center gap-2 px-8 py-3.5 bg-amber-500 text-slate-950 rounded-2xl text-sm font-black shadow-lg shadow-amber-500/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-60 disabled:scale-100"

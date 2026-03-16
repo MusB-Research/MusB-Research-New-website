@@ -138,30 +138,32 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Media files (User uploads)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# ─────────────────────────────────────────────────────────
+#  CORS & CSRF Configuration (HttpOnly Cookies)
+# ─────────────────────────────────────────────────────────
+CORS_ALLOW_CREDENTIALS = True
 
-# CORS Configuration
+# Base allowed origins for local development
+BASE_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
+
 if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOWED_ORIGINS = BASE_ORIGINS
+    CSRF_TRUSTED_ORIGINS = BASE_ORIGINS
 else:
     CORS_ALLOWED_ORIGINS = os.getenv(
         'CORS_ALLOWED_ORIGINS',
         'http://localhost:3000,https://musbresearchnewwebsite.vercel.app,https://musbhealth.com,https://www.musbhealth.com'
     ).split(',')
-CSRF_TRUSTED_ORIGINS = [
-    'https://musbresearchnewwebsite.vercel.app',
-    'https://musbhealth.com',
-    'https://www.musbhealth.com',
-]
+    CSRF_TRUSTED_ORIGINS = os.getenv(
+        'CSRF_TRUSTED_ORIGINS',
+        'https://musbresearchnewwebsite.vercel.app,https://musbhealth.com,https://www.musbhealth.com'
+    ).split(',')
 
 CORS_ALLOW_HEADERS = [
     "authorization",
     "content-type",
+    "x-csrftoken",
 ]
 
 # Default primary key field type (MongoDB ObjectId)
@@ -186,7 +188,29 @@ if not DEBUG:
     X_FRAME_OPTIONS = 'DENY'
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_HTTPONLY = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'True').lower() in ('true', '1', 'yes')
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+else:
+    # Development security
+    CSRF_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_HTTPONLY = True
+
+# Django REST Framework settings
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'authentication.authenticate.CookieJWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
+# Essential for HttpOnly cookies
+CORS_ALLOW_CREDENTIALS = True

@@ -158,7 +158,7 @@ export default function ClinicalStudyFinder() {
                             filteredStudies.map(study => (
                                 <div key={study.id} className="group relative bg-white rounded-2xl border border-slate-100 p-6 shadow-sm hover:shadow-xl hover:border-cyan-200 transition-all duration-300 flex flex-col h-full">
                                     <div className="mb-4">
-                                        <span className="inline-block px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold uppercase tracking-wider rounded-full mb-3 group-hover:bg-cyan-100 group-hover:text-cyan-700 transition-colors">
+                                        <span className="inline-block px-4 py-1.5 bg-slate-100 text-slate-600 text-sm font-bold uppercase tracking-wider rounded-full mb-3 group-hover:bg-cyan-100 group-hover:text-cyan-700 transition-colors">
                                             {study.condition}
                                         </span>
                                         <h3 className="text-xl font-bold text-slate-900 leading-tight mb-2 group-hover:text-cyan-700 transition-colors">
@@ -171,11 +171,11 @@ export default function ClinicalStudyFinder() {
                                             <div className="w-8 h-8 rounded-full bg-cyan-50 flex items-center justify-center shrink-0">
                                                 <Clock className="w-4 h-4 text-cyan-600" />
                                             </div>
-                                            <span className="font-medium text-sm">{study.duration}</span>
+                                            <span className="font-bold text-base">{study.duration}</span>
                                         </div>
                                     </div>
 
-                                    <Link to={`/trials?id=${study.id}#current-studies`} className="w-full py-3 rounded-xl bg-slate-900 text-white font-bold text-sm uppercase tracking-wider hover:bg-cyan-600 transition-colors shadow-lg shadow-slate-200 flex items-center justify-center gap-2 group-hover:shadow-cyan-200/50">
+                                    <Link to={`/trials?id=${study.id}#current-studies`} className="w-full py-4 rounded-xl bg-slate-900 text-white font-bold text-base uppercase tracking-wider hover:bg-cyan-600 transition-colors shadow-lg shadow-slate-200 flex items-center justify-center gap-2 group-hover:shadow-cyan-200/50">
                                         Check Eligibility
                                     </Link>
                                 </div>
@@ -194,7 +194,7 @@ export default function ClinicalStudyFinder() {
                     </div>
 
                     <div className="mt-10 text-center">
-                        <Link to="/trials" className="inline-flex items-center gap-2 text-slate-500 font-bold hover:text-cyan-600 transition-colors group">
+                        <Link to="/trials" className="inline-flex items-center gap-3 text-slate-500 font-black uppercase tracking-widest text-sm hover:text-cyan-600 transition-all group">
                             View All Clinical Trials
                             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </Link>

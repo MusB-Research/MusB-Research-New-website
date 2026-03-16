@@ -1,14 +1,30 @@
 from django.urls import path
-from . import views
+from .views import auth, otp, registration, password, admin_users
 
 urlpatterns = [
-    path('send-otp/', views.send_otp, name='send_otp'),
-    path('verify-otp/', views.verify_otp, name='verify_otp'),
-    path('register/', views.register, name='register'),
-    path('login/', views.login_view, name='login'),
-    path('google-login/', views.google_login, name='google_login'),
-    path('forgot-password/', views.forgot_password, name='forgot_password'),
-    path('reset-password/', views.reset_password, name='reset_password'),
-    path('invite-team-member/', views.invite_team_member, name='invite_team_member'),
-    path('setup-credentials/', views.setup_credentials, name='setup_credentials'),
+    # OTP
+    path('send-otp/', otp.send_otp, name='send_otp'),
+    path('verify-otp/', otp.verify_otp, name='verify_otp'),
+    path('send-phone-otp/', otp.send_phone_otp, name='send_phone_otp'),
+    path('verify-phone-otp/', otp.verify_phone_otp, name='verify_phone_otp'),
+    
+    # Auth
+    path('login/', auth.login_view, name='login'),
+    path('logout/', auth.logout_view, name='logout'),
+    path('refresh/', auth.refresh_token_view, name='refresh'),
+    path('verify/', auth.verify_token, name='verify_token'),
+    path('google-login/', auth.google_login, name='google_login'),
+    
+    # Registration & Invitations
+    path('register/', registration.register, name='register'),
+    path('invite-team-member/', registration.invite_team_member, name='invite_team_member'),
+    path('setup-credentials/', registration.setup_credentials, name='setup_credentials'),
+    
+    # Password Management
+    path('forgot-password/', password.forgot_password, name='forgot_password'),
+    path('reset-password/', password.reset_password, name='reset_password'),
+
+    # Super Admin Direct User Creation (no email verification required)
+    path('admin/create-user/', admin_users.admin_create_user, name='admin_create_user'),
 ]
+

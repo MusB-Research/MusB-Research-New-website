@@ -431,6 +431,25 @@ html {
   border-left: 3px solid #00e5ff;
 }
 
+.sidebar-active-amber {
+  background: rgba(245, 158, 11, 0.08);
+  border-left: 3px solid #f59e0b;
+}
+
+.active-pill-amber {
+  position: absolute;
+  left: 0;
+  width: 5px;
+  height: 32px;
+  background: #f59e0b;
+  border-radius: 0 6px 6px 0;
+  box-shadow: 2px 0 15px rgba(245, 158, 11, 0.6);
+}
+
+.glow-amber {
+  box-shadow: 0 0 30px -5px rgba(245, 158, 11, 0.3);
+}
+
 .task-timeline-line {
   position: absolute;
   left: 20px;

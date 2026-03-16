@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { HARDCODED_STUDIES, Study } from '../data/studies';
 import { motion } from 'framer-motion';
+import { authFetch } from '../utils/auth';
 
 export default function StudyDetail() {
     const { id } = useParams();
@@ -22,12 +23,43 @@ export default function StudyDetail() {
     const [study, setStudy] = useState<Study | null>(null);
 
     useEffect(() => {
-        const foundStudy = HARDCODED_STUDIES.find(s => s.id === id);
-        if (foundStudy) {
-            setStudy(foundStudy);
-        } else {
-            navigate('/trials');
-        }
+        const fetchStudy = async () => {
+            try {
+                const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/studies/${id}/`);
+                if (!response.ok) throw new Error('Failed to fetch study');
+                const s = await response.json();
+                
+                // Map API data to UI structure
+                setStudy({
+                    id: s.protocol_id || s.id,
+                    title: s.title,
+                    description: s.primary_indication || "Standard research protocol",
+                    condition: s.primary_indication || "Health Research",
+                    trialFormat: s.study_type === 'VIRTUAL' ? 'Virtual' : (s.study_type === 'IN_PERSON' ? 'On-site' : 'Hybrid'),
+                    status: s.status,
+                    trialModel: s.trial_model,
+                    benefit: s.trial_model === 'RCT' ? 'Placebo-Controlled' : 'Standard Product',
+                    duration: "4-12 Weeks", 
+                    overview: `This ${s.trial_model} protocol (${s.protocol_id}) investigates ${s.primary_indication || 'clinically relevant biomarkers'}. Designed as a ${s.study_type} trial with ${s.consent_mode} oversight.`,
+                    privacyStandards: ["HIPAA", "GDPR"],
+                    compensation: "$150-$500 depending on milestones",
+                    safetyInfo: "All natural ingredients. Product is manufactured in GMP-certified facilities and has been safety-validated in clinical lab settings.",
+                    timeline: [
+                        { step: "Screening", label: "Eligibility Inquiry" },
+                        { step: "Consent", label: "Protocol Enrollment" },
+                        { step: "Active", label: "Duration Observation" },
+                        { step: "Completion", label: "Final Report Delivery" }
+                    ]
+                } as any);
+            } catch (err) {
+                console.error("Error fetching study:", err);
+                const foundStudy = HARDCODED_STUDIES.find(st => st.id === id);
+                if (foundStudy) setStudy(foundStudy);
+                else navigate('/trials');
+            }
+        };
+
+        fetchStudy();
         window.scrollTo(0, 0);
     }, [id, navigate]);
 
@@ -43,7 +75,7 @@ export default function StudyDetail() {
                     animate={{ opacity: 1, x: 0 }}
                     className="flex items-center gap-4"
                 >
-                    <Link to="/trials" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 hover:text-cyan-400 transition-all group">
+                    <Link to="/trials" className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.4em] text-slate-500 hover:text-cyan-400 transition-all group">
                         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                         BACK TO ALL STUDIES
                     </Link>
@@ -61,17 +93,17 @@ export default function StudyDetail() {
                                 animate={{ opacity: 1, y: 0 }}
                                 className="flex flex-wrap gap-3"
                             >
-                                <span className="px-4 py-1.5 bg-cyan-500/10 text-cyan-400 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border border-cyan-500/30 backdrop-blur-md">
+                                <span className="px-4 py-1.5 bg-cyan-500/10 text-cyan-400 rounded-full text-xs font-black uppercase tracking-[0.2em] border border-cyan-500/30 backdrop-blur-md">
                                     {study.status || 'RECRUITING'}
                                 </span>
-                                <span className="px-4 py-1.5 bg-slate-900/50 text-slate-400 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border border-white/5 backdrop-blur-md">
+                                <span className="px-4 py-1.5 bg-slate-900/50 text-slate-400 rounded-full text-xs font-black uppercase tracking-[0.2em] border border-white/5 backdrop-blur-md">
                                     {study.condition}
                                 </span>
-                                <span className="px-4 py-1.5 bg-indigo-500/10 text-indigo-400 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border border-indigo-500/30 backdrop-blur-md">
+                                <span className="px-4 py-1.5 bg-indigo-500/10 text-indigo-400 rounded-full text-xs font-black uppercase tracking-[0.2em] border border-indigo-500/30 backdrop-blur-md">
                                     {study.trialFormat}
                                 </span>
                                 {study.privacyStandards.map(std => (
-                                    <span key={std} className="px-4 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border border-emerald-500/30 backdrop-blur-md">
+                                    <span key={std} className="px-4 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-full text-xs font-black uppercase tracking-[0.2em] border border-emerald-500/30 backdrop-blur-md">
                                         {std}
                                     </span>
                                 ))}
@@ -83,10 +115,10 @@ export default function StudyDetail() {
                                 transition={{ delay: 0.1 }}
                                 className="space-y-4"
                             >
-                                <h1 className="text-6xl md:text-7xl lg:text-8xl font-black text-white uppercase italic tracking-tighter leading-[0.85]">
+                                <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white uppercase tracking-tight leading-none mb-3">
                                     {study.title}
                                 </h1>
-                                <p className="text-xl md:text-2xl text-slate-400 font-bold leading-tight max-w-2xl">
+                                <p className="text-lg md:text-xl text-slate-400 font-bold leading-snug max-w-2xl">
                                     {study.description}
                                 </p>
                             </motion.div>
@@ -137,47 +169,15 @@ export default function StudyDetail() {
                                             </div>
                                         </div>
                                         <div className="pt-2">
-                                            <div className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-500 mb-2">{step.step}</div>
+                                            <div className="text-xs font-black uppercase tracking-[0.3em] text-cyan-500 mb-2">{step.step}</div>
                                             <div className="text-2xl font-black text-white uppercase italic">{step.label}</div>
-                                            <div className="text-slate-500 text-sm mt-1 max-w-md">Estimated duration: {idx === 0 ? '1-2 Days' : 'Weekly check-ins'}</div>
+                                            <div className="text-slate-500 text-base mt-2 max-w-md font-bold">Estimated duration: {idx === 0 ? '1-2 Days' : 'Weekly check-ins'}</div>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </motion.section>
 
-                        {/* Detailed Grid */}
-                        <div className="grid md:grid-cols-2 gap-8 pr-12">
-                            <motion.div 
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: 0.4 }}
-                                className="bg-slate-900/30 backdrop-blur-2xl rounded-[3rem] p-10 border border-white/5 space-y-6"
-                            >
-                                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-                                    <Box className="w-6 h-6 text-indigo-400" />
-                                </div>
-                                <h3 className="text-xl font-black text-white uppercase italic tracking-tight">At-Home Kits</h3>
-                                <p className="text-slate-400 leading-relaxed font-medium">
-                                    {study.kitsInfo}
-                                </p>
-                            </motion.div>
-
-                            <motion.div 
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: 0.5 }}
-                                className="bg-slate-900/30 backdrop-blur-2xl rounded-[3rem] p-10 border border-white/5 space-y-6"
-                            >
-                                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-                                    <Microscope className="w-6 h-6 text-emerald-400" />
-                                </div>
-                                <h3 className="text-xl font-black text-white uppercase italic tracking-tight">Lab Assessments</h3>
-                                <p className="text-slate-400 leading-relaxed font-medium">
-                                    Requires {study.timeCommitment} at our {study.location} facility for specialized clinical assessments.
-                                </p>
-                            </motion.div>
-                        </div>
                     </div>
 
                     {/* Right Column: CTA Sidebar */}
@@ -193,25 +193,25 @@ export default function StudyDetail() {
                             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/20 to-transparent pointer-events-none"></div>
                             
                             <div className="space-y-4 text-center relative z-10">
-                                <div className="text-[10px] font-black uppercase tracking-[0.4em] opacity-60">Study Compensation</div>
+                                <div className="text-xs font-black uppercase tracking-[0.4em] opacity-60">Study Compensation</div>
                                 <div className="text-4xl lg:text-5xl font-black uppercase tracking-tighter italic leading-none">
                                     {study.compensation.split('for')[0]}
-                                    <span className="block text-2xl mt-2 opacity-80 non-italic font-black">FOR TRAVEL AND TIME</span>
+                                    <span className="block text-3xl mt-2 opacity-80 non-italic font-black">FOR TRAVEL AND TIME</span>
                                 </div>
                             </div>
                             
                             <Link 
                                 to={`/studies/${study.id}/screener`}
-                                className="block w-full py-6 bg-slate-950 text-cyan-400 rounded-3xl font-black text-xs uppercase tracking-[0.3em] hover:bg-white hover:text-slate-950 hover:-translate-y-1 transition-all shadow-2xl relative z-10 text-center"
+                                className="block w-full py-6 bg-slate-950 text-cyan-400 rounded-3xl font-black text-sm uppercase tracking-[0.3em] hover:bg-white hover:text-slate-950 hover:-translate-y-1 transition-all shadow-2xl relative z-10 text-center"
                             >
                                 See If You Qualify
                             </Link>
 
                             <div className="space-y-6 pt-6 border-t border-slate-950/10 relative z-10">
-                                <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest">
-                                    <Clock className="w-5 h-5" /> {study.duration} (2-3 VISITS)
+                                <div className="flex items-center gap-4 text-xs font-black uppercase tracking-widest">
+                                    <Clock className="w-5 h-5" /> {study.duration.split('(')[0].trim()}
                                 </div>
-                                <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest">
+                                <div className="flex items-center gap-4 text-xs font-black uppercase tracking-widest">
                                     <Lock className="w-5 h-5 text-slate-950/60" /> Privacy Protected
                                 </div>
                             </div>
@@ -230,23 +230,14 @@ export default function StudyDetail() {
                                 </div>
                                 Safety & Privacy
                             </h3>
-                            <p className="text-xs text-slate-400 font-bold leading-relaxed">
+                            <p className="text-sm text-slate-400 font-bold leading-relaxed">
                                 {study.safetyInfo || "All natural ingredients. Product is manufactured in GMP-certified facilities and has been safety-validated in clinical lab settings. Your privacy is protected under HIPAA guidelines."}
                             </p>
                             <div className="pt-6 border-t border-white/5 flex items-center gap-3">
                                 <CheckCircle2 className="w-4 h-4 text-cyan-400" />
-                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">HIPAA Compliant</span>
+                                <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">HIPAA Compliant</span>
                             </div>
                         </motion.div>
-
-                        <div className="flex justify-center gap-8 text-[9px] font-black uppercase tracking-[0.3em] text-slate-700">
-                             <div className="flex items-center gap-2 italic hover:text-cyan-600 transition-colors cursor-pointer">
-                                <Search className="w-3 h-3" /> Search ID: {study.id}
-                             </div>
-                             <div className="flex items-center gap-2 italic hover:text-cyan-600 transition-colors cursor-pointer">
-                                <Stethoscope className="w-3 h-3" /> IRB Validated
-                             </div>
-                        </div>
                     </div>
                 </div>
             </div>

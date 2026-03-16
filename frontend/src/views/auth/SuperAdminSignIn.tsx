@@ -1,8 +1,101 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldAlert, Terminal, Lock, ArrowRight, Eye, EyeOff, Cpu, Globe, Database, Network } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Shield, Lock, ArrowRight, Eye, EyeOff, Mail, Globe } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
 import { saveToken } from '../../utils/auth';
+
+const ParticlesBackground = () => {
+    useEffect(() => {
+        const canvas = document.getElementById('particles-canvas') as HTMLCanvasElement;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+
+        const particles: any[] = [];
+        const colors = ['#00ffff', '#7c3aed', '#4f46e5'];
+        const particleCount = typeof window !== 'undefined' && window.innerWidth < 768 ? 40 : 80;
+
+        for (let i = 0; i < particleCount; i++) {
+            particles.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                r: Math.random() * 2 + 1,
+                dx: (Math.random() - 0.5) * 0.5,
+                dy: (Math.random() - 0.5) * 0.5,
+                color: colors[Math.floor(Math.random() * colors.length)]
+            });
+        }
+
+        let animationFrameId: number;
+
+        const animate = () => {
+            animationFrameId = requestAnimationFrame(animate);
+            ctx.clearRect(0, 0, width, height);
+
+            particles.forEach(p => {
+                p.x += p.dx;
+                p.y += p.dy;
+
+                if (p.x < 0 || p.x > width) p.dx *= -1;
+                if (p.y < 0 || p.y > height) p.dy *= -1;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                
+                // Glowing effect for dots
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = p.color;
+                ctx.fill();
+                
+                // Reset shadow for lines
+                ctx.shadowBlur = 0;
+            });
+
+            // Draw connecting lines
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < 150) {
+                        const opacity = 0.15 - (dist / 1000);
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(124, 58, 237, ${opacity})`; 
+                        ctx.lineWidth = 1;
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        };
+
+        animate();
+
+        const handleResize = () => {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        };
+
+        window.addEventListener('resize', handleResize);
+        
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            cancelAnimationFrame(animationFrameId);
+        };
+    }, []);
+
+    return <canvas id="particles-canvas" className="absolute inset-0 z-0 pointer-events-none opacity-80"></canvas>;
+};
 
 export default function SuperAdminSignIn() {
     const [email, setEmail] = useState('');
@@ -10,25 +103,8 @@ export default function SuperAdminSignIn() {
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [terminalLines, setTerminalLines] = useState<string[]>([]);
     
     const navigate = useNavigate();
-
-    useEffect(() => {
-        const lines = [
-            '> MUSB_SECURITY_SYSTEM: [BETA-92]',
-            '> INITIALIZING_HANDSHAKE...',
-            '> ENCRYPTION_LAYER: AES-256-GCM',
-            '> STATUS: RESTRICTED_ACCESS',
-            '> WARNING: AUTHORIZED_PERSONNEL_ONLY'
-        ];
-        
-        lines.forEach((line, i) => {
-            setTimeout(() => {
-                setTerminalLines(prev => [...prev, line]);
-            }, i * 400);
-        });
-    }, []);
 
     const handleAdminLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -39,166 +115,155 @@ export default function SuperAdminSignIn() {
             const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email: email.toLowerCase(), password })
             });
             const data = await response.json();
             
             if (!response.ok) throw new Error(data.error || 'Identity verification failed');
             
             if (data.user.role !== 'SUPER_ADMIN') {
-                throw new Error('UNAUTHORIZED_ACCESS_DETECTED: This terminal is for Super Admins only.');
+                throw new Error('UNAUTHORIZED_ACCESS: Restricted to Super Admin personnel.');
             }
 
             saveToken(data.access, data.user.role);
             localStorage.setItem('user', JSON.stringify(data.user));
             
-            // Success "Hack" effect
-            setTerminalLines(prev => [...prev, '> VERIFICATION_SUCCESS', '> REDIRECTING_TO_CORE...']);
-            setTimeout(() => navigate('/sys/core-oversight'), 800);
-            
+            navigate('/dashboard/super-admin');
         } catch (err: any) {
             setError(err.message);
-            setTerminalLines(prev => [...prev, `> ERROR: ${err.message.toUpperCase()}`]);
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-[#05080A] flex items-center justify-center p-6 relative overflow-hidden font-mono">
-            {/* Cyber Grid Background */}
-            <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(#00ffff 1px, transparent 1px), linear-gradient(90deg, #00ffff 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
-            
-            {/* Animated Glows */}
-            <div className="absolute top-1/4 -left-1/4 w-1/2 h-1/2 bg-indigo-500/10 blur-[120px] rounded-full"></div>
-            <div className="absolute bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-cyan-500/10 blur-[120px] rounded-full"></div>
-
-            <div className="max-w-[1200px] w-full grid lg:grid-cols-2 gap-12 items-center relative z-10">
+        <div className="min-h-screen bg-[#050614] flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
+            {/* Constellation / Grid Background */}
+            <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+                <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(#4f46e5 1px, transparent 1px), linear-gradient(90deg, #4f46e5 1px, transparent 1px)', backgroundSize: '60px 60px' }}></div>
                 
-                {/* Visual Side: Terminal & Identity */}
-                <div className="space-y-12">
-                    <div className="space-y-4">
-                        <div className="inline-flex items-center gap-3 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full">
-                            <ShieldAlert className="w-4 h-4 text-indigo-400 animate-pulse" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-300">Classified Node: 0x92</span>
+                {/* Advanced Canvas Constellation */}
+                <ParticlesBackground />
+            </div>
+
+            {/* Top Badge */}
+            <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-8 z-10"
+            >
+                <div className="inline-flex items-center gap-3 px-5 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full backdrop-blur-md">
+                    <Globe className="w-4 h-4 text-indigo-400" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300">Super Administrator Access</span>
+                </div>
+            </motion.div>
+
+            {/* Main Portal Card */}
+            <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="max-w-[500px] w-full bg-[#0B0D1B]/80 backdrop-blur-2xl border border-white/10 p-10 lg:p-14 rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] z-10 relative overflow-hidden group"
+            >
+                {/* Branding */}
+                <div className="text-center space-y-8 mb-12">
+                    <div className="flex justify-center">
+                        <div className="bg-white p-2 rounded-xl">
+                            <img src="/logo.jpg" alt="MusB Research" className="h-8 w-auto object-contain" />
                         </div>
-                        <h1 className="text-6xl font-black text-white italic uppercase tracking-tighter leading-none">
-                            System <span className="text-indigo-400 block">Mainframe</span>
-                        </h1>
-                        <p className="text-slate-500 text-sm max-w-md uppercase tracking-widest leading-relaxed">
-                            Universal oversight terminal for MusB Research global operations. Unauthorized entry is strictly prohibited.
+                    </div>
+                    
+                    <div className="space-y-4">
+                        <div className="w-14 h-14 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center mx-auto text-indigo-400">
+                            <Shield className="w-7 h-7" />
+                        </div>
+                        <h1 className="text-3xl font-black text-white tracking-tight">Super Admin Portal</h1>
+                        <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest leading-relaxed max-w-[280px] mx-auto">
+                            Highest-privilege system access. All actions are logged.
                         </p>
-                    </div>
-
-                    <div className="bg-black/40 backdrop-blur-3xl border border-white/5 rounded-[2rem] p-8 space-y-4 font-mono text-[10px] text-indigo-400 min-h-[160px]">
-                        {terminalLines.map((line, i) => (
-                            <motion.div 
-                                initial={{ opacity: 0, x: -5 }} 
-                                animate={{ opacity: 1, x: 0 }} 
-                                key={i}
-                            >
-                                {line}
-                            </motion.div>
-                        ))}
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-6 opacity-40">
-                         {[
-                             { icon: Globe, val: 'VA_NODE_01' },
-                             { icon: Network, val: 'IP_WHITELIST' },
-                             { icon: Database, val: 'AES_SYNC' }
-                         ].map((item, i) => (
-                             <div key={i} className="flex items-center gap-3">
-                                 <item.icon className="w-4 h-4 text-indigo-500" />
-                                 <span className="text-[9px] font-bold text-slate-400">{item.val}</span>
-                             </div>
-                         ))}
                     </div>
                 </div>
 
-                {/* Form Side: Restricted Gate */}
-                <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="bg-[#0A0F14] border border-white/10 p-12 lg:p-16 rounded-[3.5rem] shadow-2xl space-y-10 relative overflow-hidden group"
-                >
-                    {/* Scanner Effect */}
-                    <div className="absolute top-0 left-0 w-full h-[2px] bg-indigo-500/50 -translate-y-full hover:animate-scanner pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"></div>
-
-                    <div className="text-center space-y-2">
-                        <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-indigo-400">
-                            <Lock className="w-7 h-7" />
+                <form onSubmit={handleAdminLogin} className="space-y-6">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-4">Email Address</label>
+                        <div className="relative group/input">
+                            <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within/input:text-indigo-400 transition-colors" />
+                            <input
+                                type="email"
+                                required
+                                placeholder="superadmin@musbresearch.com"
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
+                                className="w-full bg-[#050614] border border-white/5 rounded-2xl pl-16 pr-6 py-5 text-white placeholder:text-slate-800 outline-none focus:border-indigo-500/50 transition-all font-bold text-sm tracking-tight"
+                            />
                         </div>
-                        <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">Identity <span className="text-indigo-400">Verification</span></h2>
                     </div>
 
-                    <form onSubmit={handleAdminLogin} className="space-y-6">
-                        <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 ml-6 italic">Personnel_Email</label>
-                            <div className="relative group/input">
-                                <Terminal className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within/input:text-indigo-400 transition-colors" />
-                                <input
-                                    type="email"
-                                    required
-                                    placeholder="ADMIN_V92@MUSB.COM"
-                                    value={email}
-                                    onChange={e => setEmail(e.target.value.toUpperCase())}
-                                    className="w-full bg-black/50 border border-white/10 rounded-2xl pl-16 pr-6 py-5 text-white placeholder:text-slate-800 outline-none focus:border-indigo-500/50 transition-all font-bold text-xs tracking-widest"
-                                />
-                            </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-4">Password</label>
+                        <div className="relative group/input">
+                            <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within/input:text-indigo-400 transition-colors" />
+                            <input
+                                type={showPassword ? 'text' : 'password'}
+                                required
+                                placeholder="••••••••••••"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                className="w-full bg-[#050614] border border-white/5 rounded-2xl pl-16 pr-6 py-5 text-white placeholder:text-slate-800 outline-none focus:border-indigo-500/50 transition-all font-bold text-sm tracking-tight"
+                            />
+                            <button 
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors"
+                            >
+                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
                         </div>
-
-                        <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500 ml-6 italic">Security_Key</label>
-                            <div className="relative group/input">
-                                <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within/input:text-indigo-400 transition-colors" />
-                                <input
-                                    type={showPassword ? 'text' : 'password'}
-                                    required
-                                    placeholder="••••••••••••"
-                                    value={password}
-                                    onChange={e => setPassword(e.target.value)}
-                                    className="w-full bg-black/50 border border-white/10 rounded-2xl pl-16 pr-6 py-5 text-white placeholder:text-slate-800 outline-none focus:border-indigo-500/50 transition-all font-bold text-xs tracking-widest"
-                                />
-                                <button 
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors"
-                                >
-                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                </button>
-                            </div>
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="w-full py-6 bg-indigo-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] hover:bg-white hover:text-[#05080A] transition-all shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-3 group/btn disabled:opacity-50"
-                        >
-                            {isLoading ? 'VERIFYING...' : 'INITIATE LOGIN'}
-                            <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
-                        </button>
-                    </form>
+                    </div>
 
                     <AnimatePresence>
                         {error && (
                             <motion.div 
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-[9px] font-black text-red-400 uppercase tracking-widest italic flex items-center gap-4"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-[10px] font-black text-red-400 uppercase tracking-widest text-center"
                             >
-                                <ShieldAlert className="w-4 h-4 flex-shrink-0" />
                                 {error}
                             </motion.div>
                         )}
                     </AnimatePresence>
 
-                    <p className="text-center text-[8px] font-black text-slate-700 uppercase tracking-[0.5em] italic">
-                        Secured by MusB Quantum Encryption Layer
+                    <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full py-5 bg-[#7c3aed] text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] hover:bg-white hover:text-[#050614] transition-all shadow-xl shadow-indigo-600/10 flex items-center justify-center gap-3 group/btn disabled:opacity-50"
+                    >
+                        {isLoading ? 'Processing...' : 'Access Super Admin Portal'}
+                        <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
+                    </button>
+                </form>
+
+                <div className="mt-12 text-center space-y-6">
+                    <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest leading-relaxed">
+                        All access attempts are encrypted, logged, and monitored 24/7.
                     </p>
-                </motion.div>
-            </div>
+                </div>
+            </motion.div>
+
+            {/* Footer Link */}
+            <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="mt-8 z-10"
+            >
+                <p className="text-slate-600 text-[10px] uppercase font-black tracking-widest flex items-center gap-2">
+                    Looking for the Admin Console? 
+                    <Link to="/signin" className="text-indigo-400 hover:text-white transition-colors">Admin Login &rarr;</Link>
+                </p>
+            </motion.div>
         </div>
     );
 }
+

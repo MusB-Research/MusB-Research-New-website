@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
 import AnimatedBackground from './components/AnimatedBackground';
+import MeshBackground from './components/MeshBackground';
 import Home from './views/Home';
 import About from './views/About';
 import Team from './views/Team';
@@ -23,10 +24,15 @@ import AdminDashboard from './views/AdminDashboard';
 import ParticipantDashboard from './views/ParticipantDashboard';
 import PIDashboard from './views/PIDashboard';
 import SponsorDashboard from './views/SponsorDashboard';
+import StudyConsent from './views/StudyConsent';
 
 function AppContent() {
+    const location = useLocation();
+    const isDashboard = location.pathname.startsWith('/dashboard');
+
     return (
         <>
+            <MeshBackground />
             <AnimatedBackground />
             <Layout>
                 <Routes>
@@ -47,10 +53,11 @@ function AppContent() {
                     <Route path="/mainframe/restricted-auth" element={<SuperAdminSignIn />} />
                     <Route path="/studies/:id" element={<StudyDetail />} />
                     <Route path="/studies/:id/screener" element={<StudyScreener />} />
+                    <Route path="/studies/:id/consent" element={<StudyConsent />} />
                     
                     {/* Dashboard Routes (RBAC) */}
                     <Route path="/dashboard/participant" element={<ParticipantDashboard />} />
-                    <Route path="/sys/core-oversight" element={<SuperAdminDashboard />} />
+                    <Route path="/dashboard/super-admin" element={<SuperAdminDashboard />} />
                     <Route path="/dashboard/admin" element={<AdminDashboard />} />
                     <Route path="/dashboard/pi" element={<PIDashboard />} />
                     <Route path="/dashboard/sponsor" element={<SponsorDashboard />} />

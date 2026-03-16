@@ -24,8 +24,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-
-
+import { authFetch } from '../utils/auth';
 
 import { HARDCODED_STUDIES } from '../data/studies';
 
@@ -49,23 +48,36 @@ export default function Trials() {
     const [formStatus, setFormStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
     useEffect(() => {
-        if (window.location.hash) {
-            const id = window.location.hash.replace('#', '');
-            const element = document.getElementById(id);
-            if (element) {
-                setTimeout(() => {
-                    window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY, behavior: 'smooth' });
-                }, 100);
+        const fetchStudies = async () => {
+            try {
+                const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/studies/`);
+                if (!response.ok) throw new Error('Failed to fetch studies');
+                const data = await response.json();
+                
+                // Map API data to UI structure if needed, or use directly
+                const mappedStudies = data.map((s: any) => ({
+                    id: s.protocol_id || s.id,
+                    title: s.title,
+                    description: s.primary_indication || "Standard research protocol",
+                    condition: s.primary_indication || "Other",
+                    type: s.study_type === 'VIRTUAL' ? 'Virtual' : (s.study_type === 'IN_PERSON' ? 'On-site' : 'Hybrid'),
+                    status: s.status === 'RECRUITING' ? 'Recruiting' : 'Closed',
+                    benefit: s.trial_model === 'RCT' ? 'Placebo-Controlled' : 'Standard Product',
+                    duration: "4-12 Weeks", // Simulated field
+                    tags: [s.trial_model, s.study_type]
+                }));
+                
+                setStudies(mappedStudies);
+            } catch (err) {
+                console.error("Error fetching studies:", err);
+                setStudies(HARDCODED_STUDIES); // Fallback to hardcoded on error
+            } finally {
+                setLoading(false);
             }
-        }
-    }, []);
-    useEffect(() => {
-        setStudies(HARDCODED_STUDIES);
-        setLoading(false);
-    }, []);
+        };
 
-
-    // Hardcoded studies removed in favor of API data
+        fetchStudies();
+    }, []);
 
     const conditions = ["All", "Gut Health", "Metabolic Health", "Aging", "Women’s Health", "Brain Health", "Skin", "Other"];
     const types = ["All", "Virtual", "On-site", "Hybrid"];
@@ -73,7 +85,8 @@ export default function Trials() {
     const filteredStudies = studies.filter((study: any) => {
         const matchesCondition = selectedCondition === 'All' || study.condition === selectedCondition;
         const matchesType = selectedType === 'All' || study.type === selectedType;
-        const matchesSearch = study.title.toLowerCase().includes(searchQuery.toLowerCase()) || study.description.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesSearch = (study.title || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            (study.description || '').toLowerCase().includes(searchQuery.toLowerCase());
         return matchesCondition && matchesType && matchesSearch;
     });
 
