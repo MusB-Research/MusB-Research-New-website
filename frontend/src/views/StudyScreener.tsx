@@ -16,12 +16,8 @@ import {
     Phone,
     Plus
 } from 'lucide-react';
-<<<<<<< HEAD
 import { fetchStudies, Study } from '../data/studies';
-=======
-import { HARDCODED_STUDIES, Study } from '../data/studies';
 import { authFetch } from '../utils/auth';
->>>>>>> 15c58e062d8783ea67dc5542204f8f29c6edbc1d
 
 type ScreenerStep = 'STEP1' | 'STEP2' | 'STEP3' | 'STEP4' | 'OUTCOME';
 type OutcomeType = 'ELIGIBLE' | 'MAYBE' | 'NOT_ELIGIBLE';
@@ -50,7 +46,6 @@ export default function StudyScreener() {
     });
 
     useEffect(() => {
-<<<<<<< HEAD
         setIsLoading(true);
         fetchStudies().then((studies) => {
             const foundStudy = studies.find(s => s.id === id);
@@ -61,42 +56,6 @@ export default function StudyScreener() {
             }
             setIsLoading(false);
         });
-=======
-        const fetchStudyAndForm = async () => {
-            const apiUrl = import.meta.env.VITE_API_URL;
-            try {
-                // Try fetching real study from API first
-                const res = await authFetch(`${apiUrl}/api/studies/${id}/`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setStudy({
-                        ...data,
-                        id: data.protocol_id || data.id,
-                        duration: "4-12 Weeks" // Placeholder until model includes it
-                    });
-                    
-                    // Try to fetch dynamic form for this study
-                    const formRes = await authFetch(`${apiUrl}/api/forms/?study_id=${data.id}`);
-                    if (formRes.ok) {
-                        const forms = await formRes.json();
-                        if (forms.length > 0) {
-                            setDynamicForm(forms[0]);
-                        }
-                    }
-                } else {
-                    const foundStudy = HARDCODED_STUDIES.find(s => s.id === id);
-                    if (foundStudy) setStudy(foundStudy);
-                    else navigate('/trials');
-                }
-            } catch (e) {
-                console.error("Error fetching study for screener:", e);
-                const foundStudy = HARDCODED_STUDIES.find(s => s.id === id);
-                if (foundStudy) setStudy(foundStudy);
-                else navigate('/trials');
-            }
-        };
-        fetchStudyAndForm();
->>>>>>> 15c58e062d8783ea67dc5542204f8f29c6edbc1d
     }, [id, navigate]);
 
     const [error, setError] = useState<string | null>(null);

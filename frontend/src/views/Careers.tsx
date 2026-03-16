@@ -176,16 +176,7 @@ export default function Careers() {
                     <div className="relative group">
                         <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/30 to-indigo-500/30 rounded-[4rem] blur-[120px] opacity-20 group-hover:opacity-40 transition-opacity"></div>
                         <div className="relative rounded-[4rem] overflow-hidden border border-white/10 aspect-[4/3] shadow-2xl">
-<<<<<<< HEAD
                             <div className="w-full h-full bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 group-hover:scale-105 transition-transform duration-1000"></div>
-=======
-                            <img
-                                src="/careers-hero.png"
-                                alt="Diverse clinical research team"
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
-                                loading="lazy"
-                            />
->>>>>>> 15c58e062d8783ea67dc5542204f8f29c6edbc1d
                             <div className="absolute bottom-8 left-8 right-8 bg-slate-950/80 backdrop-blur-xl p-8 rounded-3xl border border-white/10 flex items-center justify-between">
                                 <div className="space-y-1">
                                     <div className="text-white font-black text-lg uppercase tracking-widest">Science. Integrity. Impact.</div>

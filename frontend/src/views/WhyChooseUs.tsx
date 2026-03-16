@@ -141,16 +141,7 @@ export default function WhyChooseUs() {
                         <div className="relative animate-fade-in-up stagger-1">
                             <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/30 to-indigo-500/30 rounded-[4rem] blur-[80px]"></div>
                             <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-[4rem] p-4 overflow-hidden shadow-2xl group">
-<<<<<<< HEAD
                                 <div className="w-full h-[500px] rounded-[3.5rem] bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 group-hover:scale-105 transition-all duration-700"></div>
-=======
-                                <img
-                                    src="/mission_innovation.png"
-                                    alt="Clinical Research"
-                                    className="w-full h-[500px] object-cover rounded-[3.5rem] brightness-90 group-hover:scale-105 transition-all duration-700"
-                                    loading="lazy"
-                                />
->>>>>>> 15c58e062d8783ea67dc5542204f8f29c6edbc1d
                                 <div className="absolute inset-x-8 bottom-8 p-10 rounded-3xl bg-slate-950/80 backdrop-blur-md border border-white/10 space-y-3">
                                     <h4 className="text-white font-black text-xl uppercase tracking-wider">Mission-Driven Innovation</h4>
                                     <p className="text-slate-400 text-lg font-medium">Empowering brands with credible scientific substantiation.</p>
@@ -238,16 +229,7 @@ export default function WhyChooseUs() {
                                     <div className="absolute -inset-4 bg-gradient-to-tr from-indigo-500/20 to-cyan-500/20 blur-3xl opacity-50 rounded-[4rem]"></div>
                                     <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-[4rem] p-6 overflow-hidden shadow-2xl group">
                                         <div className="aspect-[4/3] rounded-[3rem] bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 flex items-center justify-center relative overflow-hidden">
-<<<<<<< HEAD
                                             <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 group-hover:scale-110 transition-all duration-1000"></div>
-=======
-                                            <img
-                                                src="/images/our-story.webp"
-                                                alt="Our Story - MusB Research Laboratory"
-                                                className="absolute inset-0 w-full h-full object-cover brightness-75 group-hover:scale-110 group-hover:brightness-90 transition-all duration-1000"
-                                                loading="lazy"
-                                            />
->>>>>>> 15c58e062d8783ea67dc5542204f8f29c6edbc1d
                                             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent"></div>
                                             <div className="absolute bottom-8 left-8 right-8">
                                                 <div className="flex items-center gap-4">

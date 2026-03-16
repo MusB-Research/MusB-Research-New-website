@@ -23,7 +23,6 @@ export default function StudyDetail() {
     const [study, setStudy] = useState<Study | null>(null);
 
     useEffect(() => {
-<<<<<<< HEAD
         fetchStudies().then((studies) => {
             const foundStudy = studies.find(s => s.id === id);
             if (foundStudy) {
@@ -32,45 +31,6 @@ export default function StudyDetail() {
                 navigate('/trials');
             }
         });
-=======
-        const fetchStudy = async () => {
-            try {
-                const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/studies/${id}/`);
-                if (!response.ok) throw new Error('Failed to fetch study');
-                const s = await response.json();
-                
-                // Map API data to UI structure
-                setStudy({
-                    id: s.protocol_id || s.id,
-                    title: s.title,
-                    description: s.primary_indication || "Standard research protocol",
-                    condition: s.primary_indication || "Health Research",
-                    trialFormat: s.study_type === 'VIRTUAL' ? 'Virtual' : (s.study_type === 'IN_PERSON' ? 'On-site' : 'Hybrid'),
-                    status: s.status,
-                    trialModel: s.trial_model,
-                    benefit: s.trial_model === 'RCT' ? 'Placebo-Controlled' : 'Standard Product',
-                    duration: "4-12 Weeks", 
-                    overview: `This ${s.trial_model} protocol (${s.protocol_id}) investigates ${s.primary_indication || 'clinically relevant biomarkers'}. Designed as a ${s.study_type} trial with ${s.consent_mode} oversight.`,
-                    privacyStandards: ["HIPAA", "GDPR"],
-                    compensation: "$150-$500 depending on milestones",
-                    safetyInfo: "All natural ingredients. Product is manufactured in GMP-certified facilities and has been safety-validated in clinical lab settings.",
-                    timeline: [
-                        { step: "Screening", label: "Eligibility Inquiry" },
-                        { step: "Consent", label: "Protocol Enrollment" },
-                        { step: "Active", label: "Duration Observation" },
-                        { step: "Completion", label: "Final Report Delivery" }
-                    ]
-                } as any);
-            } catch (err) {
-                console.error("Error fetching study:", err);
-                const foundStudy = HARDCODED_STUDIES.find(st => st.id === id);
-                if (foundStudy) setStudy(foundStudy);
-                else navigate('/trials');
-            }
-        };
-
-        fetchStudy();
->>>>>>> 15c58e062d8783ea67dc5542204f8f29c6edbc1d
         window.scrollTo(0, 0);
     }, [id, navigate]);
 
