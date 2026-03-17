@@ -1,76 +1,201 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from ..models import User, AuditLog
+from django.utils.timezone import now
+from django.utils.crypto import get_random_string
+from django.conf import settings
+import random
+import string
+import secrets
 import logging
+from ..models import User, AuditLog
+from ..utils import send_resend_email
 
 logger = logging.getLogger(__name__)
 
-ALLOWED_ROLES = ['PARTICIPANT', 'PI', 'COORDINATOR', 'SPONSOR', 'SPONSOR_MANAGER', 'SPONSOR_VIEWER', 'ADMIN', 'SUPER_ADMIN']
+ALLOWED_ROLES = ['PI', 'COORDINATOR', 'SPONSOR', 'SUPER_ADMIN'] # Participants excluded as per rule
 
+def generate_secure_password(length=12):
+    """Generates a cryptographically random temporary password."""
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
+
+def generate_unique_username(first_name, last_name):
+    """Generates a username: first.last.4digits"""
+    base = f"{first_name.lower().strip()}.{last_name.lower().strip()}"
+    # Replace spaces/special chars if any
+    base = "".join(c if c.isalnum() or c == "." else "" for c in base)
+    
+    for _ in range(10): # Try a few times
+        rand_suffix = str(random.randint(1000, 9999))
+        candidate = f"{base}.{rand_suffix}"
+        if not User.objects.filter(username=candidate).exists():
+            return candidate
+    return f"{base}.{get_random_string(6)}"
 
 @api_view(['POST'])
 def admin_create_user(request):
     """
-    Super Admin only endpoint to directly create a user with a hashed password
-    in the database. No email verification required — user can login immediately.
+    Enhanced Super Admin onboarding flow.
+    Role-specific credentials delivery and mandatory reset flags.
     """
-    # ── 1. Authenticate via cookie or bearer token ──────────────────────────
-    requesting_user = request.user
-    if not requesting_user or not requesting_user.is_authenticated:
-        return Response({'error': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+    admin_user = request.user
+    if not admin_user or not admin_user.is_authenticated or admin_user.role not in ['SUPER_ADMIN', 'ADMIN']:
+        return Response({'error': 'Unauthorized access.'}, status=status.HTTP_403_FORBIDDEN)
 
-    # ── 2. Restrict to SUPER_ADMIN and ADMIN only ──────────────────────────
-    if requesting_user.role not in ['SUPER_ADMIN', 'ADMIN']:
-        return Response({'error': 'Only Super Admins can create users directly.'}, status=status.HTTP_403_FORBIDDEN)
-
-    # ── 3. Validate required fields ────────────────────────────────────────
-    email    = request.data.get('email', '').strip().lower()
-    password = request.data.get('password', '').strip()
-    full_name = request.data.get('full_name', '').strip()
-    role     = request.data.get('role', 'PARTICIPANT').strip()
-
-    if not email:
-        return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
-    if not password:
-        return Response({'error': 'Password is required.'}, status=status.HTTP_400_BAD_REQUEST)
-    if not full_name:
-        return Response({'error': 'Full name is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    # 1. Extraction
+    email       = request.data.get('email', '').strip().lower()
+    first_name  = request.data.get('first_name', '').strip()
+    middle_name = request.data.get('middle_name', '').strip() or None
+    last_name   = request.data.get('last_name', '').strip()
+    role        = request.data.get('role', '').strip().upper()
+    
+    # 2. Validation
+    if not all([email, first_name, last_name, role]):
+        return Response({'error': 'First Name, Last Name, Email, and Role are mandatory.'}, status=status.HTTP_400_BAD_REQUEST)
+    
     if role not in ALLOWED_ROLES:
-        return Response({'error': f'Invalid role. Choose from: {", ".join(ALLOWED_ROLES)}'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': f'Invalid role. Allowed: {", ".join(ALLOWED_ROLES)}'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # ── 4. Check email uniqueness ──────────────────────────────────────────
     if User.objects.filter(email=email).exists():
-        return Response({'error': f'A user with email "{email}" already exists.'}, status=status.HTTP_409_CONFLICT)
+        return Response({'error': 'An account with this email already exists.'}, status=status.HTTP_409_CONFLICT)
 
-    # ── 5. Create user directly in DB with hashed password ────────────────
+    # 3. Generation
+    username = generate_unique_username(first_name, last_name)
+    temp_password = generate_secure_password(14)
+    
+    # 4. Atomic Creation
     try:
         new_user = User.objects.create_user(
             email=email,
-            password=password,      # create_user() calls set_password() → properly hashed
-            full_name=full_name,
+            password=temp_password,
+            first_name=first_name,
+            middle_name=middle_name,
+            last_name=last_name,
             role=role,
-            is_active=True,          # Active immediately — no verification needed
+            username=username,
+            must_change_password=True,
+            profile_completed=False,
+            created_by=admin_user
         )
-        logger.info(f'Admin ({requesting_user.email}) created user: {new_user.email} ({new_user.role})')
-        AuditLog.log(
-            action='USER_CREATED',
-            user_email=requesting_user.email,
-            request=request,
-            detail=f'Created user {new_user.email} with role {new_user.role}'
-        )
-    except Exception as e:
-        logger.error(f'Error creating user: {e}')
-        return Response({'error': f'Failed to create user: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    # ── 6. Return success ──────────────────────────────────────────────────
-    return Response({
-        'message': f'User "{email}" created successfully. They can now log in immediately with the provided credentials.',
-        'user': {
-            'id': str(new_user.id),
-            'email': new_user.email,
-            'full_name': new_user.decrypted_name,
-            'role': new_user.role,
-            'is_active': new_user.is_active,
+        
+        # 5. Email Delivery Logic
+        subject_map = {
+            'PI': 'Your PI Coordinator Account Has Been Created',
+            'COORDINATOR': 'Your PI Coordinator Account Has Been Created',
+            'SPONSOR': 'Welcome — Your Sponsor Account Is Ready',
+            'SUPER_ADMIN': 'Super Admin Access Granted — Action Required',
         }
-    }, status=status.HTTP_201_CREATED)
+        
+        subject = subject_map.get(role, 'Account Created — MusB Research')
+        login_url = f"{settings.CORS_ALLOWED_ORIGINS[0]}/signin" if settings.CORS_ALLOWED_ORIGINS else "https://musbhealth.com/signin"
+        
+        html_content = f"""
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #4f46e5;">Welcome to MusB Research</h2>
+            <p>Hello <strong>{first_name} {last_name}</strong>,</p>
+            <p>Your professional account has been provisioned on the MusB Research Platform.</p>
+            
+            <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0; color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Credentials</p>
+                <p style="font-size: 18px; margin: 10px 0;"><strong>Username:</strong> {username}</p>
+                <p style="font-size: 18px; margin: 10px 0;"><strong>Temporary Password:</strong> <span style="font-family: monospace; background: #eee; padding: 2px 6px;">{temp_password}</span></p>
+            </div>
+            
+            <p style="color: #ef4444; font-weight: bold;">SECURITY NOTICE:</p>
+            <ul>
+                <li>This password is temporary. You <strong>must</strong> reset it immediately on your first login.</li>
+                <li>This temporary access expires in 48 hours.</li>
+                <li>Do not share these credentials with anyone.</li>
+            </ul>
+            
+            <a href="{login_url}" style="display: inline-block; background: #4f46e5; color: white; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 20px;">Access Secure Terminal</a>
+            
+            <p style="margin-top: 30px; font-size: 12px; color: #9ca3af;">If you did not expect this email, please ignore or contact support.</p>
+        </div>
+        """
+        
+        email_sent = send_resend_email(email, subject, html_content)
+        
+        if email_sent:
+            new_user.temp_password_sent = True
+            new_user.save(update_fields=['temp_password_sent'])
+            logger.info(f"Onboarding email sent to {email}")
+        else:
+            logger.warning(f"Email delivery failed for {email} (User ID: {new_user.id})")
+            # We keep the account as per rule 1 (rollback is secondary option), 
+            # so the admin can "Resend" from dashboard.
+            
+        AuditLog.log(
+            action='ACCOUNT_CREATED',
+            user_email=admin_user.email,
+            request=request,
+            detail=f'Created {role} account for {email}. Email sent: {email_sent}'
+        )
+        
+        return Response({
+            'message': 'User created successfully.',
+            'username': username,
+            'email_sent': email_sent,
+            'user_id': str(new_user.id)
+        }, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        logger.error(f"Failed to onboarding user {email}: {str(e)}")
+        return Response({'error': f'Finalization failed: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+def admin_resend_credentials(request, user_id):
+    """Endpoint to manual trigger credential resend/regeneration."""
+    admin_user = request.user
+    if not admin_user or not admin_user.is_authenticated or admin_user.role not in ['SUPER_ADMIN', 'ADMIN']:
+        return Response({'error': 'Unauthorized.'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        target_user = User.objects.get(id=user_id)
+        
+        # Only allow resend if they haven't changed password yet
+        if not target_user.must_change_password:
+            return Response({'error': 'User has already secured their account. Password cannot be reset this way.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        new_temp_password = generate_secure_password(14)
+        target_user.set_password(new_temp_password)
+        target_user.save()
+        
+        # Reuse email logic
+        subject = "Updated Credentials — MusB Research"
+        login_url = f"{settings.CORS_ALLOWED_ORIGINS[0]}/signin" if settings.CORS_ALLOWED_ORIGINS else "https://musbhealth.com/signin"
+        
+        html_content = f"""
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #4f46e5; border-radius: 10px;">
+            <h2 style="color: #4f46e5;">Access Reset - MusB Research</h2>
+            <p>Hello <strong>{target_user.first_name}</strong>,</p>
+            <p>An administrator has re-issued your temporary credentials.</p>
+            
+            <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p style="font-size: 18px; margin: 10px 0;"><strong>Username:</strong> {target_user.username}</p>
+                <p style="font-size: 18px; margin: 10px 0;"><strong>New Temporary Password:</strong> <span style="font-family: monospace; background: #eee; padding: 2px 6px;">{new_temp_password}</span></p>
+            </div>
+            
+            <a href="{login_url}" style="display: inline-block; background: #4f46e5; color: white; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: bold;">Access Terminal</a>
+        </div>
+        """
+        
+        email_sent = send_resend_email(target_user.email, subject, html_content)
+        
+        AuditLog.log(
+            action='CREDENTIALS_REISSUED',
+            user_email=admin_user.email,
+            request=request,
+            detail=f'Reissued credentials for {target_user.email}'
+        )
+        
+        return Response({
+            'message': 'Credentials reissued and dispatched.',
+            'email_sent': email_sent
+        })
+        
+    except User.DoesNotExist:
+        return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

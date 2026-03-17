@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { getToken, clearToken, authFetch } from '../utils/auth';
+import { getToken, clearToken, authFetch, getRole } from '../utils/auth';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal'; // Added import
 import AnimatedBackground from '../components/AnimatedBackground';
 import {
@@ -975,6 +975,20 @@ export default function ParticipantDashboard() {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
+
+    // Role Enforcement: If not PARTICIPANT, bounce them back to their respective dashboards
+    useEffect(() => {
+        const role = getRole();
+        if (role && role !== 'PARTICIPANT') {
+            const dashboardLink =
+                role === 'SUPER_ADMIN' ? '/dashboard/super-admin'
+                    : role === 'ADMIN' ? '/dashboard/admin'
+                        : role === 'PI' ? '/dashboard/pi'
+                            : role === 'SPONSOR' ? '/dashboard/sponsor'
+                                : '/';
+            navigate(dashboardLink, { replace: true });
+        }
+    }, [navigate]);
 
     // Read user from localStorage
     const getUserData = () => {

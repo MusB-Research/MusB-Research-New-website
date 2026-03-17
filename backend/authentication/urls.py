@@ -19,12 +19,15 @@ urlpatterns = [
     path('register/', registration.register, name='register'),
     path('invite-team-member/', registration.invite_team_member, name='invite_team_member'),
     path('setup-credentials/', registration.setup_credentials, name='setup_credentials'),
+    path('complete-profile/', registration.complete_profile, name='complete_profile'),
     
     # Password Management
     path('forgot-password/', password.forgot_password, name='forgot_password'),
     path('reset-password/', password.reset_password, name='reset_password'),
+    path('reset-forced/', password.reset_forced, name='reset_forced'),
 
     # Super Admin Direct User Creation (no email verification required)
     path('admin/create-user/', admin_users.admin_create_user, name='admin_create_user'),
+    path('admin/resend-credentials/<str:user_id>/', admin_users.admin_resend_credentials, name='admin_resend_credentials'),
 ]
 

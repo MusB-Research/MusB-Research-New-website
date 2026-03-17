@@ -16,6 +16,7 @@ import ReportsModule from '../components/admin/ReportsModule';
 import TeamModule from '../components/admin/TeamModule';
 import SettingsModule from '../components/admin/SettingsModule';
 import SubmitContentForms from '../components/admin/SubmitContentForms';
+import ScreenerBuilder from '../components/admin/ScreenerBuilder';
 
 import {
     LayoutDashboard,
@@ -65,7 +66,8 @@ type AdminModule =
     | 'REPORTS' 
     | 'TEAM' 
     | 'SETTINGS'
-    | 'SUBMIT';
+    | 'SUBMIT'
+    | 'SCREENER_BUILDER';
 
 export default function AdminDashboard() {
     const [activeModule, setActiveModule] = useState<AdminModule>('DASHBOARD');
@@ -163,6 +165,7 @@ export default function AdminDashboard() {
         { id: 'TEAM', label: 'Team & Roles', icon: UsersRound },
         { id: 'SETTINGS', label: 'Settings', icon: Settings },
         { id: 'SUBMIT', label: 'Submit Content', icon: Plus },
+        { id: 'SCREENER_BUILDER', label: 'Screener Builder', icon: Filter },
     ];
 
     const renderHeader = () => {
@@ -310,6 +313,7 @@ export default function AdminDashboard() {
                     {activeModule === 'REPORTS' && <ReportsModule />}
                     {activeModule === 'TEAM' && <TeamModule />}
                     {activeModule === 'SUBMIT' && <SubmitContentForms userRole="COORDINATOR" />}
+                    {activeModule === 'SCREENER_BUILDER' && <ScreenerBuilder />}
                     {activeModule === 'SETTINGS' && <SettingsModule />}
                 </AnimatePresence>
             </main>

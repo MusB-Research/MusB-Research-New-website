@@ -1,0 +1,225 @@
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { User, MapPin, Globe, CheckCircle2, ArrowRight, ArrowLeft, ShieldCheck, Heart } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { authFetch } from '../../utils/auth';
+
+export default function ProfileSetup() {
+    const [step, setStep] = useState(1);
+    const [formData, setFormData] = useState({
+        first_name: '',
+        middle_name: '',
+        last_name: '',
+        gender: '',
+        full_address: '',
+        city: '',
+        state: '',
+        place_of_origin: ''
+    });
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const navigate = useNavigate();
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleNext = () => setStep(step + 1);
+    const handleBack = () => setStep(step - 1);
+
+    const handleSubmit = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const res = await authFetch(`${apiUrl}/api/auth/complete-profile/`, {
+                method: 'POST',
+                body: JSON.stringify(formData)
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Setup failed');
+
+            // Update local user info
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            user.profile_incomplete = false;
+            user.full_name = data.user.full_name;
+            localStorage.setItem('user', JSON.stringify(user));
+
+            setStep(3); // Success step
+            setTimeout(() => {
+                const role = user.role;
+                switch (role) {
+                    case 'ADMIN':
+                    case 'COORDINATOR': navigate('/dashboard/admin'); break;
+                    case 'PI': navigate('/dashboard/pi'); break;
+                    case 'SPONSOR': navigate('/dashboard/sponsor'); break;
+                    default: navigate('/dashboard/participant');
+                }
+            }, 2000);
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-[#07091e] flex items-center justify-center p-6 relative overflow-hidden font-sans">
+             <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-cyan-600/10 blur-[120px] rounded-full" />
+             <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-purple-600/10 blur-[120px] rounded-full" />
+
+             <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="w-full max-w-2xl bg-[#0f1133]/60 backdrop-blur-3xl border border-white/10 rounded-[4rem] p-12 md:p-16 shadow-2xl relative z-10 overflow-hidden"
+             >
+                {/* Progress Header */}
+                <div className="flex items-center justify-between mb-16 px-4">
+                    {[1, 2, 3].map((s) => (
+                        <div key={s} className="flex items-center gap-4 group">
+                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black transition-all ${step === s ? 'bg-cyan-500 text-slate-900 shadow-[0_0_20px_rgba(6,182,212,0.4)] scale-110' : 
+                                step > s ? 'bg-cyan-500/20 text-cyan-500 border border-cyan-500/30' : 'bg-white/5 text-slate-600 border border-white/5'}`}>
+                                {s === 3 && step === 3 ? <CheckCircle2 className="w-5 h-5" /> : s}
+                            </div>
+                            <div className="hidden sm:block">
+                                <p className={`text-[9px] font-black uppercase tracking-widest ${step >= s ? 'text-white' : 'text-slate-700'}`}>
+                                    {s === 1 ? 'Identity' : s === 2 ? 'Demographics' : 'Ready'}
+                                </p>
+                            </div>
+                            {s < 3 && <div className={`w-8 h-[1px] mx-2 ${step > s ? 'bg-cyan-500/30' : 'bg-white/5'}`} />}
+                        </div>
+                    ))}
+                </div>
+
+                <AnimatePresence mode="wait">
+                    {step === 1 && (
+                        <motion.div
+                            key="step1"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="space-y-10"
+                        >
+                            <div className="space-y-4">
+                                <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Identity <span className="text-cyan-400">Handshake</span></h2>
+                                <p className="text-[10px] text-[#555a7a] font-black uppercase tracking-[0.3em]">Verify and finalize your legal identity metrics</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-3 px-2">
+                                    <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">First Name</label>
+                                    <input name="first_name" value={formData.first_name} onChange={handleChange} placeholder="John" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-cyan-500/40 transition-all font-bold" />
+                                </div>
+                                <div className="space-y-3 px-2">
+                                    <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Middle Name</label>
+                                    <input name="middle_name" value={formData.middle_name} onChange={handleChange} placeholder="Optional" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-cyan-500/40 transition-all font-bold" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-3 px-2">
+                                    <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Last Name</label>
+                                    <input name="last_name" value={formData.last_name} onChange={handleChange} placeholder="Doe" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-cyan-500/40 transition-all font-bold" />
+                                </div>
+                                <div className="space-y-3 px-2">
+                                    <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Gender Identity</label>
+                                    <select name="gender" value={formData.gender} onChange={handleChange} className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white outline-none focus:border-cyan-500/40 transition-all font-bold appearance-none">
+                                        <option value="">Select Protocol</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Non-binary">Non-binary</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button onClick={handleNext} className="w-full py-6 bg-cyan-500 text-slate-950 rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] italic hover:bg-white hover:-translate-y-1 transition-all flex items-center justify-center gap-4">
+                                Initialize Next Phase <ArrowRight className="w-5 h-5" />
+                            </button>
+                        </motion.div>
+                    )}
+
+                    {step === 2 && (
+                        <motion.div
+                            key="step2"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="space-y-10"
+                        >
+                            <div className="space-y-4">
+                                <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Locality <span className="text-purple-400">Metrics</span></h2>
+                                <p className="text-[10px] text-[#555a7a] font-black uppercase tracking-[0.3em]">Geospatial and demographic synchronization</p>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="space-y-3 px-2">
+                                    <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Full Residential Address</label>
+                                    <input name="full_address" value={formData.full_address} onChange={handleChange} placeholder="123 Research Way, Lab 4" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-8">
+                                    <div className="space-y-3 px-2">
+                                        <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">City</label>
+                                        <input name="city" value={formData.city} onChange={handleChange} placeholder="Metro" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
+                                    </div>
+                                    <div className="space-y-3 px-2">
+                                        <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">State / Province</label>
+                                        <input name="state" value={formData.state} onChange={handleChange} placeholder="Zone A" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 px-2">
+                                    <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Place of Origin / Birth</label>
+                                    <div className="relative">
+                                        <Globe className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-700" />
+                                        <input name="place_of_origin" value={formData.place_of_origin} onChange={handleChange} placeholder="Country / Major City" className="w-full bg-black/40 border border-white/5 rounded-[1.5rem] pl-16 pr-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {error && (
+                                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-xs font-black uppercase tracking-widest flex items-center gap-3">
+                                    <Heart className="w-4 h-4" /> {error}
+                                </div>
+                            )}
+
+                            <div className="flex gap-4">
+                                <button onClick={handleBack} className="flex-1 py-6 bg-white/5 border border-white/5 text-[#555a7a] rounded-[2rem] font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2">
+                                    <ArrowLeft className="w-4 h-4" /> Finalize Setup
+                                </button>
+                                <button onClick={handleSubmit} disabled={isLoading} className="flex-[2] py-6 bg-purple-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] italic shadow-xl shadow-purple-900/40 hover:scale-[1.02] transition-all flex items-center justify-center gap-4 disabled:opacity-50">
+                                    {isLoading ? 'Synchronizing...' : 'Authorize Profile'} <ShieldCheck className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {step === 3 && (
+                        <motion.div
+                            key="step3"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="text-center py-16 space-y-10"
+                        >
+                            <div className="relative inline-block">
+                                <div className="absolute inset-0 bg-cyan-500 blur-[80px] opacity-20 animate-pulse" />
+                                <div className="w-32 h-32 bg-cyan-500/10 border border-cyan-500/20 rounded-[3rem] flex items-center justify-center mx-auto text-cyan-400 relative z-10">
+                                    <CheckCircle2 className="w-16 h-16" />
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">Onboarding <span className="text-cyan-400">Complete</span></h3>
+                                <p className="text-[10px] text-[#555a7a] font-black uppercase tracking-[0.3em] leading-relaxed">
+                                    Identity synchronized. Security clearance granted.<br />
+                                    Redirecting to secure terminal...
+                                </p>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+             </motion.div>
+        </div>
+    );
+}

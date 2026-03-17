@@ -32,7 +32,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('SUPER_ADMIN', 'Super Admin'),
     ]
     email = models.EmailField(unique=True)
+    username = models.CharField(max_length=150, unique=True, null=True, blank=True)
+    first_name = models.CharField(max_length=100, blank=True)
+    middle_name = models.CharField(max_length=100, blank=True, null=True)
+    last_name = models.CharField(max_length=100, blank=True)
     full_name = models.CharField(max_length=255)
+    
     organization = models.CharField(max_length=255, blank=True, null=True)
     role = models.CharField(max_length=30, choices=ROLE_CHOICES, default='PARTICIPANT')
     
@@ -41,6 +46,20 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     profile_picture = models.URLField(max_length=1024, blank=True, null=True)
+    
+    # Onboarding Flags
+    must_change_password = models.BooleanField(default=False)
+    profile_completed = models.BooleanField(default=False)
+    google_auth = models.BooleanField(default=False)
+    temp_password_sent = models.BooleanField(default=False)
+    temp_token_expiry = models.DateTimeField(null=True, blank=True)
+    
+    # Mandatory Profile Data
+    gender = models.CharField(max_length=20, blank=True, null=True)
+    full_address = models.TextField(blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    state = models.CharField(max_length=100, blank=True, null=True)
+    place_of_origin = models.CharField(max_length=255, blank=True, null=True)
     
     # Regional & Global Config
     timezone = models.CharField(max_length=50, default='UTC')
@@ -52,30 +71,43 @@ class User(AbstractBaseUser, PermissionsMixin):
     data_deletion_requested = models.BooleanField(default=False)
     withdrawal_date = models.DateTimeField(null=True, blank=True)
 
-    # Fix #5 — explicit default prevents is_active=None for new users
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=now)
+    created_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='users_created')
 
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name']
 
+    def __hash__(self):
+        # Fix for Django 5.x + MongoDB crash during migration construction
+        if self.pk is None:
+            return id(self)
+        try:
+            return hash(str(self.pk))
+        except TypeError:
+            return id(self)
+
     def save(self, *args, **kwargs):
-        # Encrypt name if not already encrypted
-        if self.full_name and not self.full_name.startswith('gAAAA'):
-            self.full_name = encrypt_data(self.full_name)
+        # Update full_name from components if they exist
+        if self.first_name and self.last_name:
+            self.full_name = f"{self.first_name} {self.last_name}"
+
+        # Encrypt personal fields if not already encrypted
+        fields_to_encrypt = [
+            'full_name', 'first_name', 'last_name', 'middle_name', 
+            'organization', 'phone_number', 'full_address', 
+            'city', 'state', 'place_of_origin'
+        ]
         
-        # Encrypt organization if not already encrypted
-        if self.organization and not self.organization.startswith('gAAAA'):
-            self.organization = encrypt_data(self.organization)
-
-        # Encrypt phone if not already encrypted
-        if self.phone_number and not self.phone_number.startswith('gAAAA'):
-            self.phone_number = encrypt_data(self.phone_number)
-
-        # Fix #5 — normalize None → True for legacy accounts on every save
+        for field in fields_to_encrypt:
+            val = getattr(self, field)
+            if val and isinstance(val, str) and not val.startswith('gAAAA'):
+                setattr(self, field, encrypt_data(val))
+        
+        # Normalize active status
         if self.is_active is None:
             self.is_active = True
             

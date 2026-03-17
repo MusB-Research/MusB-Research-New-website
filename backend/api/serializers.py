@@ -63,6 +63,13 @@ class UserSerializer(SanitizedModelSerializer):
 
 class StudySerializer(SanitizedModelSerializer):
     id = serializers.CharField(read_only=True)
+    pi_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), source='pi', required=False, allow_null=True
+    )
+    coordinator_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), source='coordinator', required=False, allow_null=True
+    )
+
     class Meta:
         model = Study
         fields = '__all__'

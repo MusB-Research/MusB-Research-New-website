@@ -21,7 +21,7 @@ import {
 import { fetchStudies, Study } from '../data/studies';
 import { authFetch } from '../utils/auth';
 
-type ScreenerStep = 'STEP1' | 'STEP2' | 'STEP3' | 'STEP4' | 'OUTCOME';
+type ScreenerStep = 'STEP1' | 'STEP2' | 'STEP3' | 'OUTCOME';
 type OutcomeType = 'ELIGIBLE' | 'MAYBE' | 'NOT_ELIGIBLE';
 
 export default function StudyScreener() {
@@ -36,10 +36,10 @@ export default function StudyScreener() {
     // Form Data
     const [formData, setFormData] = useState<any>({
         age: '',
+        zipCode: '',
         location: '',
         trialsInLast30Days: '',
         healthConditions: [] as string[],
-        medicationsSupplements: '',
         cvConsent: false,
         fullName: '',
         email: '',
@@ -98,61 +98,59 @@ export default function StudyScreener() {
     // ── Condition Details (per selected disease) ────────────────────────
     const [conditionDetails, setConditionDetails] = useState<Record<string, { severity: string; managed: string }>>({});
 
-    // ── Medicine Search ─────────────────────────────────────────────────
-    const [medicineSearch, setMedicineSearch] = useState('');
-    const [medicineSuggestions, setMedicineSuggestions] = useState<string[]>([]);
-    const [selectedMedicines, setSelectedMedicines] = useState<string[]>([]);
-    const [isSearching, setIsSearching] = useState(false);
-    const [showSuggestions, setShowSuggestions] = useState(false);
-    const [medicinesNone, setMedicinesNone] = useState(false);
-    const searchRef = useRef<HTMLDivElement>(null);
-    const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // ── Location Lookup ───────────────────────────────────────────────────
+    const [isLocating, setIsLocating] = useState(false);
+    const locationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Close dropdown on outside click
-    useEffect(() => {
-        const handler = (e: MouseEvent) => {
-            if (searchRef.current && !searchRef.current.contains(e.target as Node))
-                setShowSuggestions(false);
-        };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, []);
+    const handleZipChange = (val: string) => {
+        setFormData((prev: any) => ({ ...prev, zipCode: val }));
 
-    // NLM ClinicalTables drug lookup (free, no key needed)
-    const searchMedicines = (query: string) => {
-        if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-        if (query.length < 2) { setMedicineSuggestions([]); setShowSuggestions(false); setIsSearching(false); return; }
-        setIsSearching(true);
-        searchTimerRef.current = setTimeout(async () => {
-            try {
-                const res = await fetch(`https://clinicaltables.nlm.nih.gov/api/rxterms/v3/search?terms=${encodeURIComponent(query)}&ef=RXCUI,DISPLAY_NAME&maxList=8`);
-                const data = await res.json();
-                setMedicineSuggestions(data[1] || []);
-                setShowSuggestions(true);
-            } catch { setMedicineSuggestions([]); }
-            finally { setIsSearching(false); }
-        }, 350);
+        if (locationTimerRef.current) clearTimeout(locationTimerRef.current);
+
+        if (val.length >= 4) {
+            setIsLocating(true);
+            locationTimerRef.current = setTimeout(async () => {
+                try {
+                    // Use openstreetmap nominatim for global postal code lookup
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(val)}&format=jsonv2&addressdetails=1`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.length > 0) {
+                            const address = data[0].address;
+                            // Format: City/Town, State, Country
+                            const city = address.city || address.town || address.village || address.county || '';
+                            const state = address.state || '';
+                            const country = address.country || '';
+
+                            const parts = [city, state, country].filter(Boolean);
+                            if (parts.length > 0) {
+                                setFormData((prev: any) => ({ ...prev, location: parts.join(', ') }));
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error("Location lookup failed", e);
+                } finally {
+                    setIsLocating(false);
+                }
+            }, 600);
+        } else {
+            setIsLocating(false);
+        }
     };
-
-    const addMedicine = (med: string) => {
-        if (med && !selectedMedicines.includes(med)) setSelectedMedicines(p => [...p, med]);
-        setMedicineSearch(''); setShowSuggestions(false); setMedicineSuggestions([]);
-    };
-
-    const removeMedicine = (i: number) => setSelectedMedicines(p => p.filter((_, idx) => idx !== i));
 
     const validateCurrentStep = () => {
-        if (dynamicForm) return true; // Dynamic form validation simplified
         if (step === 'STEP1') {
-            return formData.age && formData.location && formData.trialsInLast30Days;
+            return formData.age && formData.location;
         }
         if (step === 'STEP2') {
-            return formData.healthConditions.length > 0;
+            if (dynamicForm) {
+                return dynamicForm.schema.questions?.every((q: any) => !!formData[q.key]) ?? true;
+            } else {
+                return formData.trialsInLast30Days && formData.healthConditions.length > 0;
+            }
         }
         if (step === 'STEP3') {
-            return selectedMedicines.length > 0 || medicinesNone;
-        }
-        if (step === 'STEP4') {
             return formData.fullName && formData.email && formData.phone && formData.availability && formData.cvConsent;
         }
         return true;
@@ -168,8 +166,7 @@ export default function StudyScreener() {
         setIsAttemptingSubmit(false);
         if (step === 'STEP1') setStep('STEP2');
         else if (step === 'STEP2') setStep('STEP3');
-        else if (step === 'STEP3') setStep('STEP4');
-        else if (step === 'STEP4' || dynamicForm) handleSubmit();
+        else if (step === 'STEP3') handleSubmit();
     };
 
     const isFieldMissing = (field: string) => {
@@ -177,15 +174,16 @@ export default function StudyScreener() {
         if (step === 'STEP1') {
             if (field === 'age') return !formData.age;
             if (field === 'location') return !formData.location;
-            if (field === 'trialsInLast30Days') return !formData.trialsInLast30Days;
         }
         if (step === 'STEP2') {
-            if (field === 'healthConditions') return formData.healthConditions.length === 0;
+            if (dynamicForm) {
+                return !formData[field];
+            } else {
+                if (field === 'trialsInLast30Days') return !formData.trialsInLast30Days;
+                if (field === 'healthConditions') return formData.healthConditions.length === 0;
+            }
         }
         if (step === 'STEP3') {
-            if (field === 'medicationsSupplements') return selectedMedicines.length === 0 && !medicinesNone;
-        }
-        if (step === 'STEP4') {
             if (field === 'fullName') return !formData.fullName;
             if (field === 'email') return !formData.email;
             if (field === 'phone') return !formData.phone;
@@ -198,7 +196,6 @@ export default function StudyScreener() {
     const handleBack = () => {
         if (step === 'STEP2') setStep('STEP1');
         else if (step === 'STEP3') setStep('STEP2');
-        else if (step === 'STEP4') setStep('STEP3');
     };
 
     const handleSubmit = async () => {
@@ -206,15 +203,16 @@ export default function StudyScreener() {
 
         let finalOutcome: OutcomeType = 'ELIGIBLE';
 
-        if (dynamicForm) {
-            // Basic dynamic logic: if any text field is empty, fail (simulated)
-            const values = Object.values(formData);
-            if (values.some(v => v === '')) finalOutcome = 'MAYBE';
+        const ageNum = parseInt(formData.age || '0');
+        if (ageNum < 18 || !formData.location) {
+            finalOutcome = 'NOT_ELIGIBLE';
+        } else if (dynamicForm) {
+            const questions = dynamicForm.schema.questions || [];
+            if (questions.some((q: any) => formData[q.key] === '')) {
+                finalOutcome = 'MAYBE';
+            }
         } else {
-            const ageNum = parseInt(formData.age);
-            if (ageNum < 18 || !formData.location) {
-                finalOutcome = 'NOT_ELIGIBLE';
-            } else if (formData.healthConditions.includes('None of the above')) {
+            if (formData.healthConditions.includes('None of the above')) {
                 finalOutcome = 'ELIGIBLE';
             } else if (formData.healthConditions.length > 0) {
                 finalOutcome = 'MAYBE';
@@ -240,9 +238,6 @@ export default function StudyScreener() {
                         
                         CONDITION DETAILS:
                         ${JSON.stringify(conditionDetails, null, 2)}
-                        
-                        MEDICATIONS:
-                        ${medicinesNone ? 'None' : selectedMedicines.join(', ')}
                     `,
                     inquiry_type: 1
                 })
@@ -258,7 +253,7 @@ export default function StudyScreener() {
     if (!study) return null;
 
     const renderProgress = () => {
-        const stepMap: Record<ScreenerStep, number> = { 'STEP1': 25, 'STEP2': 50, 'STEP3': 75, 'STEP4': 100, 'OUTCOME': 100 };
+        const stepMap: Record<ScreenerStep, number> = { 'STEP1': 33, 'STEP2': 66, 'STEP3': 100, 'OUTCOME': 100 };
         const progress = stepMap[step] || 0;
 
         return (
@@ -287,11 +282,9 @@ export default function StudyScreener() {
                             {/* Header */}
                             <div className="mb-8 space-y-2">
                                 <h1 className="text-3xl font-black text-white uppercase italic tracking-tight">{
-                                    dynamicForm ? `Screening: ${study.title}` :
-                                        step === 'STEP1' ? 'Step 1: Basics & Location' :
-                                            step === 'STEP2' ? 'Step 2: Health History' :
-                                                step === 'STEP3' ? 'Step 3: Medications / Supplements' :
-                                                    'Step 4: Contact & Availability'
+                                    step === 'STEP1' ? 'Step 1: Basics & Location' :
+                                        step === 'STEP2' ? (dynamicForm ? 'Step 2: Custom Questionnaire' : 'Step 2: ELIGIBILITY CRITERIA') :
+                                            'Step 3: Contact & Availability'
                                 }</h1>
                             </div>
 
@@ -299,37 +292,6 @@ export default function StudyScreener() {
 
                             {/* Form Steps */}
                             <div className="min-h-[300px]">
-                                {dynamicForm ? (
-                                    <div className="space-y-6">
-                                        <p className="text-sm text-slate-400 font-medium leading-relaxed italic border-l-2 border-cyan-500 pl-4 bg-cyan-500/5 py-4 rounded-r-xl mb-8">
-                                            This study uses a custom research protocol questionnaire.
-                                        </p>
-                                        <div className="space-y-6">
-                                            {dynamicForm.schema.questions?.map((q: any, i: number) => (
-                                                <div key={i} className="space-y-3">
-                                                    <label className="text-sm font-black uppercase tracking-widest text-slate-300">{q.label}</label>
-                                                    {q.type === 'text' && (
-                                                        <input
-                                                            type="text"
-                                                            className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 text-white text-lg outline-none"
-                                                            onChange={(e) => setFormData({ ...formData, [q.key]: e.target.value })}
-                                                        />
-                                                    )}
-                                                    {q.type === 'select' && (
-                                                        <select
-                                                            className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 text-white text-lg outline-none appearance-none"
-                                                            onChange={(e) => setFormData({ ...formData, [q.key]: e.target.value })}
-                                                        >
-                                                            <option value="">Select...</option>
-                                                            {q.options?.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                                        </select>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <>
                                         {step === 'STEP1' && (
                                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
                                                 <div className="space-y-6">
@@ -344,39 +306,89 @@ export default function StudyScreener() {
                                                         />
                                                     </div>
                                                     <div className="space-y-3">
-                                                        <label className={`text-sm font-black uppercase tracking-widest transition-colors ${isFieldMissing('location') ? 'text-red-500' : 'text-slate-300'}`}>What is your current country/state of residence?</label>
+                                                        <label className="text-sm font-black uppercase tracking-widest text-slate-300">Zip / Postal Code</label>
+                                                        <div className="relative">
+                                                            <input
+                                                                type="text"
+                                                                placeholder="e.g. 90210"
+                                                                value={formData.zipCode}
+                                                                onChange={(e) => handleZipChange(e.target.value)}
+                                                                className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 text-white text-lg outline-none focus:border-cyan-500/50 transition-all font-bold"
+                                                            />
+                                                            {isLocating && (
+                                                                <div className="absolute right-6 top-1/2 -translate-y-1/2">
+                                                                    <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-3">
+                                                        <label className={`text-sm font-black uppercase tracking-widest transition-colors ${isFieldMissing('location') ? 'text-red-500' : 'text-slate-300'}`}>Current City, State, Country</label>
                                                         <input
                                                             type="text"
-                                                            placeholder="e.g. Florida, USA"
+                                                            placeholder="Auto-filled from Zip Code or enter manually"
                                                             value={formData.location}
                                                             onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                                                             className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isFieldMissing('location') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
                                                         />
-                                                    </div>
-                                                    <div className="space-y-4 pt-4 border-t border-white/5">
-                                                        <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 italic">Major Exclusion Check</h4>
-                                                        <div className="space-y-4">
-                                                            <p className={`text-sm font-bold transition-colors ${isFieldMissing('trialsInLast30Days') ? 'text-red-500' : 'text-slate-400'}`}>Have you participated in any other clinical trial in the last 30 days?</p>
-                                                            <div className="flex gap-4">
-                                                                {['Yes', 'No'].map(opt => (
-                                                                    <button
-                                                                        key={opt}
-                                                                        onClick={() => setFormData({ ...formData, trialsInLast30Days: opt })}
-                                                                        className={`flex-1 py-5 rounded-xl border text-xs font-black uppercase tracking-widest transition-all ${formData.trialsInLast30Days === opt ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-white/5 border-white/10 text-slate-500 hover:bg-white/10'}`}
-                                                                    >
-                                                                        {opt}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </div>
                                                     </div>
                                                 </div>
                                             </motion.div>
                                         )}
 
                                         {step === 'STEP2' && (
-                                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-                                                <div className="space-y-4">
+                                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+                                                {dynamicForm ? (
+                                                    <div className="space-y-6">
+                                                        <p className="text-sm text-slate-400 font-medium leading-relaxed italic border-l-2 border-cyan-500 pl-4 bg-cyan-500/5 py-4 rounded-r-xl mb-8">
+                                                            This study uses a custom research protocol questionnaire.
+                                                        </p>
+                                                        <div className="space-y-6">
+                                                            {dynamicForm.schema.questions?.map((q: any, i: number) => (
+                                                                <div key={i} className="space-y-3">
+                                                                    <label className={`text-sm font-black uppercase tracking-widest transition-colors ${isFieldMissing(q.key) ? 'text-red-500' : 'text-slate-300'}`}>{q.label}</label>
+                                                                    {q.type === 'text' && (
+                                                                        <input
+                                                                            type="text"
+                                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isFieldMissing(q.key) ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
+                                                                            value={formData[q.key] || ''}
+                                                                            onChange={(e) => setFormData({ ...formData, [q.key]: e.target.value })}
+                                                                        />
+                                                                    )}
+                                                                    {q.type === 'select' && (
+                                                                        <select
+                                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none appearance-none transition-all ${isFieldMissing(q.key) ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
+                                                                            value={formData[q.key] || ''}
+                                                                            onChange={(e) => setFormData({ ...formData, [q.key]: e.target.value })}
+                                                                        >
+                                                                            <option value="">Select...</option>
+                                                                            {q.options?.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                                                        </select>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="space-y-4">
+                                                            <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 italic">Major Exclusion Check</h4>
+                                                    <div className="space-y-4">
+                                                        <p className={`text-sm font-bold transition-colors ${isFieldMissing('trialsInLast30Days') ? 'text-red-500' : 'text-slate-400'}`}>Have you participated in any other clinical trial in the last 30 days?</p>
+                                                        <div className="flex gap-4">
+                                                            {['Yes', 'No'].map(opt => (
+                                                                <button
+                                                                    key={opt}
+                                                                    onClick={() => setFormData({ ...formData, trialsInLast30Days: opt })}
+                                                                    className={`flex-1 py-5 rounded-xl border text-xs font-black uppercase tracking-widest transition-all ${formData.trialsInLast30Days === opt ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-white/5 border-white/10 text-slate-500 hover:bg-white/10'}`}
+                                                                >
+                                                                    {opt}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-4 pt-4 border-t border-white/5">
                                                     <p className={`text-sm font-bold transition-colors ${isFieldMissing('healthConditions') ? 'text-red-500' : 'text-slate-400'}`}>Please select any of the following conditions you have been diagnosed with (Global Use):</p>
                                                     <div className="space-y-4">
                                                         {[
@@ -461,121 +473,12 @@ export default function StudyScreener() {
                                                         })}
                                                     </div>
                                                 </div>
+                                                </>
+                                                )}
                                             </motion.div>
                                         )}
 
                                         {step === 'STEP3' && (
-                                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-                                                <div className="space-y-4">
-                                                    <div className="flex justify-between items-end">
-                                                        <p className={`text-sm font-bold transition-colors ${isFieldMissing('medicationsSupplements') ? 'text-red-500' : 'text-slate-400'}`}>Are you currently taking any prescription medications or recurring supplements?</p>
-                                                        <label className="flex items-center gap-3 cursor-pointer group">
-                                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 group-hover:text-slate-300 transition-colors">I take none</span>
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={medicinesNone}
-                                                                onChange={e => {
-                                                                    setMedicinesNone(e.target.checked);
-                                                                    if (e.target.checked) setSelectedMedicines([]);
-                                                                }}
-                                                                className="w-5 h-5 rounded border-white/10 bg-white/5 checked:bg-cyan-500 transition-all cursor-pointer"
-                                                            />
-                                                        </label>
-                                                    </div>
-
-                                                    {!medicinesNone && (
-                                                        <div className="space-y-6">
-                                                            {/* Search Box */}
-                                                            <div className="relative" ref={searchRef}>
-                                                                <div className={`relative flex items-center bg-slate-950/50 border rounded-2xl transition-all ${isSearching ? 'border-cyan-500/30' : 'border-white/10 focus-within:border-cyan-500/50'}`}>
-                                                                    <Search className={`absolute left-6 w-5 h-5 transition-colors ${isSearching ? 'text-cyan-400/50' : 'text-slate-600'}`} />
-                                                                    <input
-                                                                        type="text"
-                                                                        placeholder="Search medication name..."
-                                                                        value={medicineSearch}
-                                                                        onChange={e => {
-                                                                            setMedicineSearch(e.target.value);
-                                                                            searchMedicines(e.target.value);
-                                                                        }}
-                                                                        onFocus={() => { if (medicineSuggestions.length > 0) setShowSuggestions(true); }}
-                                                                        className="w-full bg-transparent px-16 py-5 text-white text-lg outline-none placeholder:text-slate-700 font-bold"
-                                                                    />
-                                                                    {isSearching && (
-                                                                        <div className="absolute right-6">
-                                                                            <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-
-                                                                {/* Suggestions Dropdown */}
-                                                                <AnimatePresence>
-                                                                    {showSuggestions && medicineSuggestions.length > 0 && (
-                                                                        <motion.div
-                                                                            initial={{ opacity: 0, y: 10 }}
-                                                                            animate={{ opacity: 1, y: 0 }}
-                                                                            exit={{ opacity: 0, y: 10 }}
-                                                                            className="absolute left-0 right-0 top-full mt-2 bg-slate-900/90 backdrop-blur-3xl border border-white/10 rounded-2xl overflow-hidden z-[100] shadow-2xl"
-                                                                        >
-                                                                            {medicineSuggestions.map((med, i) => (
-                                                                                <button
-                                                                                    key={i}
-                                                                                    onClick={() => addMedicine(med)}
-                                                                                    className="w-full text-left px-6 py-4 text-slate-300 hover:bg-cyan-500/10 hover:text-cyan-400 border-b border-white/5 last:border-0 transition-colors flex items-center justify-between group"
-                                                                                >
-                                                                                    <span className="font-bold text-sm tracking-tight">{med}</span>
-                                                                                    <Plus className="w-4 h-4 text-slate-600 group-hover:text-cyan-500 transition-all opacity-0 group-hover:opacity-100" />
-                                                                                </button>
-                                                                            ))}
-                                                                        </motion.div>
-                                                                    )}
-                                                                </AnimatePresence>
-                                                            </div>
-
-                                                            {/* Selected Pills */}
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {selectedMedicines.map((med, i) => (
-                                                                    <motion.div
-                                                                        key={i}
-                                                                        initial={{ scale: 0.8, opacity: 0 }}
-                                                                        animate={{ scale: 1, opacity: 1 }}
-                                                                        className="flex items-center gap-3 bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 px-4 py-2.5 rounded-xl group hover:border-cyan-500/60 transition-all"
-                                                                    >
-                                                                        <span className="text-xs font-black uppercase tracking-widest">{med}</span>
-                                                                        <button
-                                                                            onClick={() => removeMedicine(i)}
-                                                                            className="w-5 h-5 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 hover:bg-cyan-500 hover:text-slate-900 transition-all"
-                                                                        >
-                                                                            <X className="w-3 h-3" />
-                                                                        </button>
-                                                                    </motion.div>
-                                                                ))}
-                                                                {selectedMedicines.length === 0 && !medicineSearch && (
-                                                                    <div className="text-slate-600 text-[10px] font-black uppercase tracking-widest italic ml-2 mt-2 opacity-50">
-                                                                        No medicines added yet
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {medicinesNone && (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, y: 10 }}
-                                                            animate={{ opacity: 1, y: 0 }}
-                                                            className="p-8 bg-emerald-500/5 border border-emerald-500/20 rounded-[2rem] text-center space-y-3"
-                                                        >
-                                                            <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
-                                                            <div>
-                                                                <p className="text-sm font-black text-emerald-400 uppercase tracking-widest">Marked as None</p>
-                                                                <p className="text-[10px] text-slate-500 font-bold tracking-wider mt-1">You have confirmed you take no recurring medications/supplements.</p>
-                                                            </div>
-                                                        </motion.div>
-                                                    )}
-                                                </div>
-                                            </motion.div>
-                                        )}
-
-                                        {step === 'STEP4' && (
                                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                                                 <div className="space-y-6">
                                                     <div className="space-y-4">
@@ -640,8 +543,6 @@ export default function StudyScreener() {
                                                 </div>
                                             </motion.div>
                                         )}
-                                    </>
-                                )}
                             </div>
 
                             {/* Error Message */}
@@ -665,7 +566,7 @@ export default function StudyScreener() {
                             <div className="flex items-center justify-between pt-8 border-t border-white/5">
                                 <button
                                     onClick={() => { setError(null); handleBack(); }}
-                                    className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${step === 'STEP1' || dynamicForm ? 'opacity-0 pointer-events-none' : 'text-slate-500 hover:text-white'}`}
+                                    className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${step === 'STEP1' ? 'opacity-0 pointer-events-none' : 'text-slate-500 hover:text-white'}`}
                                 >
                                     <ChevronLeft className="w-4 h-4" /> BACK
                                 </button>
@@ -674,7 +575,7 @@ export default function StudyScreener() {
                                     disabled={isLoading}
                                     className="px-10 py-4 bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-300 rounded-xl font-black text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 shadow-2xl group active:scale-95"
                                 >
-                                    {isLoading ? 'PROCESSING...' : (step === 'STEP4' || dynamicForm ? 'CHECK RESULT' : 'NEXT')}
+                                    {isLoading ? 'PROCESSING...' : (step === 'STEP3' ? 'CHECK RESULT' : 'NEXT')}
                                     {!isLoading && <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
                                 </button>
                             </div>

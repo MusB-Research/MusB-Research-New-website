@@ -25,6 +25,8 @@ import ParticipantDashboard from './views/ParticipantDashboard';
 import PIDashboard from './views/PIDashboard';
 import SponsorDashboard from './views/SponsorDashboard';
 import StudyConsent from './views/StudyConsent';
+import ResetForced from './views/auth/ResetForced';
+import ProfileSetup from './views/auth/ProfileSetup';
 
 function AppContent() {
     const location = useLocation();
@@ -60,7 +62,8 @@ function AppContent() {
                     <Route path="/dashboard/super-admin" element={<SuperAdminDashboard />} />
                     <Route path="/dashboard/admin" element={<AdminDashboard />} />
                     <Route path="/dashboard/pi" element={<PIDashboard />} />
-                    <Route path="/dashboard/sponsor" element={<SponsorDashboard />} />
+                    <Route path="/auth/reset-forced" element={<ResetForced />} />
+                    <Route path="/auth/profile-setup" element={<ProfileSetup />} />
                 </Routes>
             </Layout>
         </>

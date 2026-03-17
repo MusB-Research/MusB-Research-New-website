@@ -59,7 +59,7 @@ class SubmissionCreateView(generics.CreateAPIView):
         """
         
         # 2. PARTICIPANT CONFIRMATION: Send a "revert" message to the participant
-        participant_subject = "We've Received Your Research Screening Results - MusB Research"
+        participant_subject = f"Screening Confirmation for {submission.name} - MusB Research"
         participant_html = f"""
         <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: auto; padding: 40px; border: 1px solid #e2e8f0; border-radius: 24px; background-color: #ffffff;">
             <div style="text-align: center; margin-bottom: 30px;">
@@ -70,15 +70,14 @@ class SubmissionCreateView(generics.CreateAPIView):
             <div style="background: #f8fafc; padding: 30px; border-radius: 16px; border: 1px solid #f1f5f9; color: #1e293b;">
                 <h2 style="font-size: 18px; font-weight: 800; margin-top: 0;">Submission Confirmed</h2>
                 <p style="font-size: 15px; line-height: 1.6;">Hello {submission.name},</p>
-                <p style="font-size: 15px; line-height: 1.6;">Thank you for completing the clinical trial screening for MusB Research. This message is to confirm that we have successfully received your information.</p>
-                <p style="font-size: 15px; line-height: 1.6;">Our clinical coordination team will review your responses. If your profile matches the study requirements, one of our coordinators will reach out to you within 24-48 business hours via the phone or email address you provided.</p>
+                <p style="font-size: 15px; line-height: 1.6;">Thank you for filling out the eligibility form.</p>
+                <p style="font-size: 15px; line-height: 1.6;">Our clinical tracking team has received your information securely. Our team member will connect with you shortly regarding your next steps.</p>
                 
                 <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
                     <p style="font-size: 13px; font-weight: 701; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">What's next?</p>
                     <ul style="font-size: 14px; margin: 0; padding-left: 20px; color: #475569;">
                         <li>Team Review: 24-48 Hours</li>
-                        <li>Follow-up: Eligibility Interview</li>
-                        <li>Next Phase: Clinical Visit Scheduling</li>
+                        <li>Follow-up: Eligibility Discussion</li>
                     </ul>
                 </div>
             </div>

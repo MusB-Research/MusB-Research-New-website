@@ -207,22 +207,22 @@ export default function SignIn() {
             saveToken(data.access, data.user.role);
             localStorage.setItem('user', JSON.stringify(data.user));
 
+            if (data.user.must_reset) {
+                navigate('/auth/reset-forced');
+                return;
+            }
+            if (data.user.profile_incomplete) {
+                navigate('/auth/profile-setup');
+                return;
+            }
+
             const role = data.user.role;
             switch (role) {
                 case 'ADMIN':
-                case 'COORDINATOR':
-                    navigate('/dashboard/admin');
-                    break;
-                case 'SPONSOR':
-                    navigate('/dashboard/sponsor');
-                    break;
-                case 'PI':
-                    navigate('/dashboard/pi');
-                    break;
-                case 'PARTICIPANT':
-                default:
-                    navigate('/dashboard/participant');
-                    break;
+                case 'COORDINATOR': navigate('/dashboard/admin'); break;
+                case 'SPONSOR': navigate('/dashboard/sponsor'); break;
+                case 'PI': navigate('/dashboard/pi'); break;
+                default: navigate('/dashboard/participant');
             }
         } catch (err: any) {
             console.error("Google Auth Error:", err);
@@ -354,23 +354,23 @@ export default function SignIn() {
 
 
             saveToken(data.access, userRole);
-            localStorage.setItem('user', JSON.stringify(data.user)); // Persist user info
+            localStorage.setItem('user', JSON.stringify(data.user));
+
+            if (data.user.must_reset) {
+                navigate('/auth/reset-forced');
+                return;
+            }
+            if (data.user.profile_incomplete) {
+                navigate('/auth/profile-setup');
+                return;
+            }
 
             switch (userRole) {
                 case 'ADMIN':
-                case 'COORDINATOR':
-                    navigate('/dashboard/admin');
-                    break;
-                case 'SPONSOR':
-                    navigate('/dashboard/sponsor');
-                    break;
-                case 'PI':
-                    navigate('/dashboard/pi');
-                    break;
-                case 'PARTICIPANT':
-                default:
-                    navigate('/dashboard/participant');
-                    break;
+                case 'COORDINATOR': navigate('/dashboard/admin'); break;
+                case 'SPONSOR': navigate('/dashboard/sponsor'); break;
+                case 'PI': navigate('/dashboard/pi'); break;
+                default: navigate('/dashboard/participant');
             }
         } catch (err: any) {
             setError(err.message);

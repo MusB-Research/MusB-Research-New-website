@@ -8,6 +8,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'musb_backend.settings')
 django.setup()
 
 from api.models import Study
+from authentication.models import User
 
 HARDCODED_STUDIES = [
     {
@@ -125,6 +126,10 @@ def map_type(type_str):
     return 'VIRTUAL' if type_str == 'Remote' else 'IN_PERSON'
 
 def populate():
+    # Lookup real users for assignment
+    pi = User.objects.filter(role='PI').first()
+    coordinator = User.objects.filter(role='COORDINATOR').first()
+
     for data in HARDCODED_STUDIES:
         defaults = {
             'title': data['title'],
@@ -145,8 +150,10 @@ def populate():
             'safety_info': data['safetyInfo'],
             'privacy_standards': data['privacyStandards'],
             'remote_participation': data['remoteParticipation'],
-            'sponsor_name': 'MusB Research', # Default value
-            'approval_status': 'approved'
+            'sponsor_name': 'MusB Research',
+            'approval_status': 'approved',
+            'pi_id': str(pi.id) if pi else None,
+            'coordinator_id': str(coordinator.id) if coordinator else None
         }
         
         study, created = Study.objects.update_or_create(

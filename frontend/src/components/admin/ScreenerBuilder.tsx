@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, GripVertical, Settings, Trash2, Eye, Save } from 'lucide-react';
+import { authFetch } from '../../utils/auth';
 
 interface FormField {
   id: string;
@@ -17,7 +18,27 @@ export default function ScreenerBuilder() {
     { id: '3', type: 'yesno', label: 'Have you participated in a clinical trial in the last 30 days?', required: true },
   ]);
 
-  const [studyContext, setStudyContext] = useState('beat-the-bloat');
+  const [studyContext, setStudyContext] = useState('');
+  const [studies, setStudies] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchStudies = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const res = await authFetch(`${apiUrl}/api/studies/`);
+        if (res.ok) {
+          const data = await res.json();
+          setStudies(data);
+          if (data.length > 0) {
+            setStudyContext(data[0].id.toString());
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch studies:', error);
+      }
+    };
+    fetchStudies();
+  }, []);
 
   const addField = (type: FormField['type']) => {
     setFields([...fields, { 
@@ -44,29 +65,30 @@ export default function ScreenerBuilder() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-8">
         <div>
-          <h1 className="text-2xl sm:text-4xl font-black text-white italic uppercase tracking-tighter">Screener <span className="text-[#ec4899]">Builder</span></h1>
-          <p className="text-[10px] sm:text-xs text-[#8b8fa8] uppercase tracking-widest mt-2">Design custom qualification forms for specific studies</p>
+          <h1 className="text-3xl sm:text-5xl font-black text-white italic uppercase tracking-tighter leading-tight">Screener <span className="text-[#ec4899]">Builder</span></h1>
+          <p className="text-sm sm:text-base text-[#8b8fa8] uppercase tracking-[0.2em] font-black mt-4">Design custom qualification forms for specific studies</p>
         </div>
-        <div className="flex gap-4">
-          <select value={studyContext} onChange={e => setStudyContext(e.target.value)} className="bg-[#0f1133] border border-white/10 rounded-xl px-4 py-3 text-xs text-white font-bold outline-none uppercase tracking-widest">
-            <option value="beat-the-bloat">Beat The Bloat Study</option>
-            <option value="vital-age">VITAL-Age Study</option>
-            <option value="new-study">Unassigned Draft</option>
+        <div className="flex flex-col sm:flex-row gap-6">
+          <select value={studyContext} onChange={e => setStudyContext(e.target.value)} className="bg-[#0f1133] border border-white/10 rounded-2xl px-8 py-5 text-sm text-white font-black outline-none uppercase tracking-widest focus:border-pink-500/50 transition-all max-w-sm truncate">
+            {studies.length === 0 && <option value="">No studies available</option>}
+            {studies.map(study => (
+              <option key={study.id} value={study.id.toString()}>{study.title}</option>
+            ))}
           </select>
-          <button className="px-6 py-3 bg-[#ec4899] text-white rounded-xl font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-pink-500/20 hover:bg-pink-500 transition-all">
-            <Save className="w-4 h-4" /> Save Form
+          <button className="px-10 py-5 bg-[#ec4899] text-white rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-4 shadow-2xl shadow-pink-500/30 hover:bg-pink-500 hover:scale-105 transition-all">
+            <Save className="w-6 h-6" /> Save Form
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <div className="lg:col-span-1 space-y-4">
-          <div className="bg-[#0f1133] border border-white/5 rounded-3xl p-6">
-            <h3 className="text-sm font-black text-white uppercase italic tracking-widest mb-6 border-b border-white/5 pb-4">Field Types</h3>
-            <div className="space-y-3">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
+        <div className="lg:col-span-1 space-y-8">
+          <div className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-10 shadow-xl">
+            <h3 className="text-base font-black text-white uppercase italic tracking-[0.2em] mb-10 border-b border-white/5 pb-6">Field Syntax Nodes</h3>
+            <div className="space-y-5">
               {[
                 { type: 'text', label: 'Short/Long Text' },
                 { type: 'choice', label: 'Multiple Choice' },
@@ -78,42 +100,42 @@ export default function ScreenerBuilder() {
                 <button 
                   key={ft.type} 
                   onClick={() => addField(ft.type as any)}
-                  className="w-full flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-pink-500/10 hover:border-pink-500/30 transition-all group"
+                  className="w-full flex items-center justify-between p-6 bg-white/[0.02] border border-white/5 rounded-[1.5rem] hover:bg-pink-500/10 hover:border-pink-500/30 transition-all group"
                 >
-                  <span className="text-xs font-bold text-slate-300 uppercase tracking-widest group-hover:text-pink-400">{ft.label}</span>
-                  <Plus className="w-4 h-4 text-slate-600 group-hover:text-pink-400" />
+                  <span className="text-xs font-black text-slate-300 uppercase tracking-[0.2em] group-hover:text-pink-400 transition-colors">{ft.label}</span>
+                  <Plus className="w-5 h-5 text-slate-600 group-hover:text-pink-400 transform group-hover:rotate-90 transition-all" />
                 </button>
               ))}
             </div>
           </div>
         </div>
 
-        <div className="lg:col-span-3 space-y-4">
-          <div className="bg-[#0f1133] border border-white/5 rounded-3xl p-8 min-h-[60vh]">
-            <div className="flex justify-between items-center mb-8 border-b border-white/5 pb-4">
-              <h3 className="text-lg font-black text-white uppercase italic tracking-widest">Form Structure</h3>
-              <button className="text-[10px] font-black uppercase text-pink-500 tracking-widest flex items-center gap-2 hover:text-white transition-colors">
-                <Eye className="w-4 h-4" /> Preview View
+        <div className="lg:col-span-3 space-y-8">
+          <div className="bg-[#0f1133] border border-white/5 rounded-[3rem] p-12 min-h-[60vh] shadow-2xl">
+            <div className="flex justify-between items-center mb-12 border-b border-white/5 pb-8">
+              <h3 className="text-2xl font-black text-white uppercase italic tracking-[0.2em]">Form Architecture</h3>
+              <button className="text-sm font-black uppercase text-pink-500 tracking-[0.2em] flex items-center gap-4 hover:text-white transition-all transform hover:scale-105 active:scale-95">
+                <Eye className="w-6 h-6" /> Preview Mode
               </button>
             </div>
             
-            <div className="space-y-4">
+            <div className="space-y-8">
               {fields.map((field, idx) => (
                 <motion.div 
                   layout
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   key={field.id} 
-                  className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 flex gap-6 group hover:border-white/10 transition-colors"
+                  className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-10 flex gap-10 group hover:border-white/10 transition-all"
                 >
-                  <div className="flex flex-col gap-2 items-center justify-center text-slate-600">
-                    <button onClick={() => moveField(idx, 'up')} disabled={idx === 0} className="hover:text-white disabled:opacity-20">▲</button>
-                    <GripVertical className="w-5 h-5 opacity-40 group-hover:opacity-100 cursor-grab" />
-                    <button onClick={() => moveField(idx, 'down')} disabled={idx === fields.length - 1} className="hover:text-white disabled:opacity-20">▼</button>
+                  <div className="flex flex-col gap-6 items-center justify-center text-slate-600">
+                    <button onClick={() => moveField(idx, 'up')} disabled={idx === 0} className="hover:text-white disabled:opacity-20 text-2xl transition-all">▲</button>
+                    <GripVertical className="w-8 h-8 opacity-40 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity" />
+                    <button onClick={() => moveField(idx, 'down')} disabled={idx === fields.length - 1} className="hover:text-white disabled:opacity-20 text-2xl transition-all">▼</button>
                   </div>
                   
-                  <div className="flex-1 space-y-4">
-                    <div className="flex gap-4">
+                  <div className="flex-1 space-y-8">
+                    <div className="flex flex-col xl:flex-row gap-8">
                       <input 
                         type="text" 
                         value={field.label}
@@ -122,11 +144,11 @@ export default function ScreenerBuilder() {
                           nf[idx].label = e.target.value;
                           setFields(nf);
                         }}
-                        className="flex-1 bg-transparent border-b border-dashed border-white/20 text-white font-bold text-lg outline-none focus:border-pink-500 px-2 py-1 placeholder:text-slate-700"
+                        className="flex-1 bg-transparent border-b-2 border-dashed border-white/10 text-white font-black text-2xl outline-none focus:border-pink-500 px-4 py-3 placeholder:text-slate-800 transition-all"
                         placeholder="Enter your question prompt here..."
                       />
-                      <div className="flex items-center gap-4 bg-[#0a0b1a] px-4 py-2 rounded-xl border border-white/5">
-                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2 cursor-pointer">
+                      <div className="flex items-center gap-6 bg-[#0a0b1a] px-8 py-4 rounded-2xl border border-white/5 self-start shadow-inner">
+                        <label className="text-sm font-black uppercase text-slate-400 tracking-[0.2em] flex items-center gap-4 cursor-pointer hover:text-white transition-colors">
                           <input 
                             type="checkbox" 
                             checked={field.required} 
@@ -135,23 +157,23 @@ export default function ScreenerBuilder() {
                               nf[idx].required = e.target.checked;
                               setFields(nf);
                             }}
-                            className="accent-pink-500" 
-                          /> Required
+                            className="w-5 h-5 accent-pink-500 rounded-md" 
+                          /> Mandatory
                         </label>
                       </div>
                     </div>
 
-                    <div className="p-4 bg-black/40 rounded-xl border border-white/5 text-sm text-slate-500 italic">
-                      {field.type === 'text' && "User will see a text input field here."}
-                      {field.type === 'yesno' && "User will select Yes or No radios."}
-                      {field.type === 'date' && "User will select a date from a calendar interface."}
-                      {field.type === 'file' && "User will be prompted to upload a document or image."}
+                    <div className="p-8 bg-black/40 rounded-3xl border border-white/5 text-base sm:text-lg text-slate-500 italic font-medium leading-relaxed shadow-inner">
+                      {field.type === 'text' && "Visual Output: Single or multi-line cryptographic text input field."}
+                      {field.type === 'yesno' && "Visual Output: Dual-state Boolean selection radios."}
+                      {field.type === 'date' && "Visual Output: Temporal synchronization calendar interface."}
+                      {field.type === 'file' && "Visual Output: Encrypted multi-format document upload portal."}
                       {(field.type === 'choice' || field.type === 'dropdown') && (
-                        <div className="not-italic space-y-2">
-                          <p className="text-[10px] uppercase tracking-widest font-bold mb-3">Response Options:</p>
+                        <div className="not-italic space-y-6">
+                          <p className="text-xs uppercase tracking-[0.3em] font-black text-[#ec4899] mb-6">Response Logic Array:</p>
                           {field.options?.map((opt, oIdx) => (
-                            <div key={oIdx} className="flex gap-2 items-center">
-                              <span className="w-4 h-4 rounded-full border border-white/20"></span>
+                            <div key={oIdx} className="flex gap-6 items-center">
+                              <span className="w-6 h-6 rounded-lg border-2 border-white/10 group-hover:border-pink-500/30 transition-colors"></span>
                               <input 
                                 type="text"
                                 value={opt}
@@ -162,7 +184,7 @@ export default function ScreenerBuilder() {
                                   }
                                   setFields(nf);
                                 }}
-                                className="bg-transparent border-b border-white/10 text-slate-300 outline-none focus:border-pink-500 w-64 px-2 py-1 text-sm font-medium"
+                                className="bg-transparent border-b border-white/10 text-slate-200 outline-none focus:border-pink-500 w-full xl:w-[600px] px-4 py-3 text-lg font-bold transition-all"
                               />
                             </div>
                           ))}
@@ -172,25 +194,25 @@ export default function ScreenerBuilder() {
                               nf[idx].options?.push(`Option ${nf[idx].options?.length + 1}`);
                               setFields(nf);
                             }}
-                            className="text-[10px] font-bold text-pink-500 uppercase tracking-widest mt-2 hover:text-white"
+                            className="text-xs font-black text-pink-500 uppercase tracking-[0.3em] mt-6 hover:text-white flex items-center gap-3 transition-colors"
                           >
-                            + Add Option
+                            <Plus className="w-5 h-5" /> Append Response Option
                           </button>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-3 border-l border-white/5 pl-6">
-                    <button className="p-2 text-slate-600 hover:text-white bg-white/5 rounded-lg transition-colors"><Settings className="w-4 h-4" /></button>
-                    <button onClick={() => removeField(field.id)} className="p-2 text-slate-600 hover:text-red-500 bg-white/5 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                  <div className="flex flex-col gap-6 border-l border-white/5 pl-10 justify-center">
+                    <button className="p-4 text-slate-600 hover:text-white bg-white/5 rounded-2xl transition-all hover:scale-110 shadow-lg"><Settings className="w-6 h-6" /></button>
+                    <button onClick={() => removeField(field.id)} className="p-4 text-slate-600 hover:text-red-500 bg-white/5 rounded-2xl transition-all hover:scale-110 shadow-lg"><Trash2 className="w-6 h-6" /></button>
                   </div>
                 </motion.div>
               ))}
               
               {fields.length === 0 && (
-                <div className="py-20 text-center text-slate-500 uppercase tracking-widest font-black text-xs border-2 border-dashed border-white/10 rounded-2xl">
-                  Drag or click field types to begin building the screener
+                <div className="py-32 text-center text-slate-500 uppercase tracking-[0.4em] font-black text-sm sm:text-base border-4 border-dashed border-white/5 rounded-[3rem] bg-white/[0.01]">
+                  Inject or click field nodes to begin form synthesis
                 </div>
               )}
             </div>

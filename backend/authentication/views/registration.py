@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.utils.timezone import now
@@ -137,3 +137,35 @@ def setup_credentials(request):
     invitation.save()
     
     return Response({'message': 'Account set up successfully. You can now log in.'}, status=status.HTTP_201_CREATED)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def complete_profile(request):
+    """Finalizes user profile setup for first-time or Google users."""
+    user = request.user
+    data = request.data
+    
+    # Core Identity Update
+    if not user.first_name:
+        user.first_name = data.get('first_name', '')
+    if not user.last_name:
+        user.last_name = data.get('last_name', '')
+    user.middle_name = data.get('middle_name', user.middle_name)
+    
+    # Extended Demographics
+    user.gender = data.get('gender', user.gender)
+    user.full_address = data.get('full_address', user.full_address)
+    user.city = data.get('city', user.city)
+    user.state = data.get('state', user.state)
+    user.place_of_origin = data.get('place_of_origin', user.place_of_origin)
+    
+    user.profile_completed = True
+    user.save()
+    
+    return Response({
+        'message': 'Profile synchronized and secured.',
+        'user': {
+            'full_name': user.decrypted_name,
+            'profile_completed': True
+        }
+    })

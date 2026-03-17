@@ -119,8 +119,16 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
             StudyAssignment.objects.create(study=study, user=user, role='SPONSOR_ADMIN')
         else:
             study = serializer.save(created_by=user, approval_status=approval_status)
-            role = 'PI' if user.role == 'PI' else 'COORDINATOR' if user.role == 'COORDINATOR' else 'PI'
-            StudyAssignment.objects.create(study=study, user=user, role=role)
+            
+            # Create assignments for medical team if provided
+            if study.pi:
+                StudyAssignment.objects.get_or_create(study=study, user=study.pi, role='PI')
+            if study.coordinator:
+                StudyAssignment.objects.get_or_create(study=study, user=study.coordinator, role='COORDINATOR')
+            
+            # Ensure the creator from the staff also has an assignment if they are PI/Coordinator
+            if user.role in ['PI', 'COORDINATOR']:
+                StudyAssignment.objects.get_or_create(study=study, user=user, role=user.role)
 
 class PublicStudyViewSet(viewsets.ReadOnlyModelViewSet):
     """Public read-only view for the frontend website"""

@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 import logging
@@ -77,3 +77,31 @@ def reset_password(request):
     magic_link.save()
 
     return Response({'message': 'Password reset successful'})
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def reset_forced(request):
+    """Handles first-time login password change requirement."""
+    user = request.user
+    old_password = request.data.get('old_password')
+    new_password = request.data.get('password')
+
+    if not old_password or not new_password:
+        return Response({'error': 'Original and new password required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not user.check_password(old_password):
+         return Response({'error': 'Current security key is invalid'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if old_password == new_password:
+        return Response({'error': 'New password must be different from current one'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        validate_password(new_password, user)
+    except ValidationError as e:
+        return Response({'error': list(e.messages)}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.set_password(new_password)
+    user.must_change_password = False
+    user.save()
+
+    return Response({'message': 'Identity secured. Password updated successfully.'})

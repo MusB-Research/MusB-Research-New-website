@@ -85,11 +85,11 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
         headers: authHeaders,
     });
 
-    // Fix #2 — If 401, attempt token refresh then retry once
-    if (response.status === 401) {
+    // Fix #2 — If 401 or 403, attempt token refresh then retry once
+    if (response.status === 401 || response.status === 403) {
         const refreshed = await attemptTokenRefresh();
         if (refreshed) {
-            const newToken = localStorage.getItem('access');
+            const newToken = localStorage.getItem('access') || sessionStorage.getItem('access');
             if (newToken) authHeaders['Authorization'] = `Bearer ${newToken}`;
             
             return fetch(url, {
@@ -98,8 +98,8 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
                 headers: authHeaders,
             });
         }
-        // Refresh failed — redirect to login
-        clearToken();
+        // Refresh failed — clear and redirect to login
+        await clearToken();
         redirectToLogin();
     }
 

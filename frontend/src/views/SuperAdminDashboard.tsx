@@ -43,6 +43,8 @@ interface User {
   status: 'Active' | 'Inactive';
   lastLogin: string;
   created: string;
+  must_reset?: boolean;
+  profile_incomplete?: boolean;
 }
 
 interface Sponsor {
@@ -95,6 +97,7 @@ export default function SuperAdminDashboard() {
   const [isUserDetailOpen, setIsUserDetailOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [creationRole, setCreationRole] = useState('PARTICIPANT');
   const profileRef = React.useRef<HTMLDivElement>(null);
 
   // Data States
@@ -141,7 +144,9 @@ export default function SuperAdminDashboard() {
           ...u,
           name: u.full_name || (u.email ? u.email.split('@')[0] : 'User'),
           status: u.is_active === false ? 'Inactive' : 'Active',
-          lastLogin: u.last_login_formatted || 'Never'
+          lastLogin: u.last_login_formatted || 'Never',
+          must_reset: u.must_change_password,
+          profile_incomplete: !u.profile_completed
         })));
       }
       if (sRes.ok) setStudies(await sRes.json());
@@ -410,11 +415,11 @@ export default function SuperAdminDashboard() {
 
         <div className="lg:col-span-2 space-y-6">
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <Activity className="w-5 h-5 text-[#7c3aed]" />
-              <h3 className="text-sm font-black text-white uppercase italic tracking-widest">Recent Platform Activity</h3>
+            <div className="flex items-center gap-4">
+              <Activity className="w-6 h-6 text-[#7c3aed]" />
+              <h3 className="text-base font-black text-white uppercase italic tracking-[0.2em]">Recent Platform Activity</h3>
             </div>
-            <button onClick={() => setCurrentPage('ACTIVITY_LOG')} className="text-[10px] font-black text-[#7c3aed] uppercase tracking-widest hover:text-white transition-all">View all &rarr;</button>
+            <button onClick={() => setCurrentPage('ACTIVITY_LOG')} className="text-xs font-black text-[#7c3aed] uppercase tracking-widest hover:text-white transition-all">View all &rarr;</button>
           </div>
           <div className="bg-[#0f1133] border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
             <div className="divide-y divide-white/5">
@@ -423,11 +428,11 @@ export default function SuperAdminDashboard() {
                   <div className="flex items-center gap-6">
                     <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
                     <div>
-                      <div className="flex items-center gap-3">
-                        <p className="text-sm font-black text-white uppercase tracking-tight italic">{log.type}</p>
-                        <span className="px-2 py-0.5 bg-[#7c3aed]/10 border border-[#7c3aed]/20 rounded-md text-[10px] font-black text-[#7c3aed] uppercase tracking-widest">{log.category}</span>
+                      <div className="flex items-center gap-4">
+                        <p className="text-base font-black text-white uppercase tracking-tight italic">{log.type}</p>
+                        <span className="px-3 py-1 bg-[#7c3aed]/10 border border-[#7c3aed]/20 rounded-md text-xs font-black text-[#7c3aed] uppercase tracking-widest">{log.category}</span>
                       </div>
-                      <p className="text-xs text-[#555a7a] font-medium mt-1 uppercase tracking-tighter italic">{log.details}</p>
+                      <p className="text-sm text-[#555a7a] font-bold mt-2 uppercase tracking-tighter italic">{log.details}</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -443,9 +448,9 @@ export default function SuperAdminDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
         <div className="lg:col-span-3 space-y-8">
-          <div className="flex items-center gap-3">
-            <Crown className="w-5 h-5 text-amber-500" />
-            <h3 className="text-sm font-black text-white uppercase italic tracking-widest">Role Hierarchy & Permissions</h3>
+          <div className="flex items-center gap-4">
+            <Crown className="w-6 h-6 text-amber-500" />
+            <h3 className="text-base font-black text-white uppercase italic tracking-[0.2em]">Role Hierarchy & Permissions</h3>
           </div>
           <div className="space-y-3">
             {ROLES.map((role, i) => (
@@ -454,13 +459,13 @@ export default function SuperAdminDashboard() {
                   <div className="w-40">
                     <RoleBadge role={role.id} />
                   </div>
-                  <p className="text-xs text-[#8b8fa8] italic font-medium tracking-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-[400px]">
+                  <p className="text-sm text-[#8b8fa8] italic font-black uppercase tracking-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-[400px]">
                     {role.desc}
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
                   {role.isYou && (
-                    <span className="px-3 py-1 bg-[#7c3aed]/20 border border-[#7c3aed]/30 rounded-full text-[9px] font-black text-[#7c3aed] uppercase tracking-widest">You</span>
+                    <span className="px-4 py-1.5 bg-[#7c3aed]/20 border border-[#7c3aed]/30 rounded-full text-[10px] font-black text-[#7c3aed] uppercase tracking-widest">Master Admin</span>
                   )}
                   <ChevronRight className="w-4 h-4 text-[#333] group-hover:text-[#7c3aed] transition-all" />
                 </div>
@@ -513,8 +518,8 @@ export default function SuperAdminDashboard() {
             <h1 className="text-2xl sm:text-4xl font-black text-white italic uppercase tracking-tighter">All <span className="text-[#7c3aed]">Users</span></h1>
             <p className="text-[10px] sm:text-xs text-[#8b8fa8] uppercase tracking-widest mt-2">Manage clinical research staff and participant accounts</p>
           </div>
-          <button onClick={() => setModals({ ...modals, createUser: true })} className="w-full sm:w-auto px-6 py-3 bg-[#7c3aed] text-white rounded-lg font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2">
-            <Plus className="w-4 h-4" /> Create User
+          <button onClick={() => setModals({ ...modals, createUser: true })} className="w-full sm:w-auto px-10 py-5 bg-[#7c3aed] text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-4 shadow-xl shadow-purple-900/40 hover:bg-purple-600 transition-all">
+            <Plus className="w-6 h-6" /> Create New Account
           </button>
         </div>
 
@@ -525,9 +530,9 @@ export default function SuperAdminDashboard() {
             { label: 'Inactive', value: (users || []).filter(u => u.status === 'Inactive').length, color: 'text-[#ef4444]' },
             { label: 'Admins', value: (users || []).filter(u => ['ADMIN', 'SUPER_ADMIN'].includes(u.role)).length, color: 'text-[#7c3aed]' },
           ].map((s, i) => (
-            <div key={i} className="bg-[#0f1133] border border-white/5 rounded-2xl p-4 sm:p-6 text-center">
-              <p className="text-xs font-bold text-[#555a7a] uppercase tracking-widest mb-1">{s.label}</p>
-              <h4 className={`text-xl sm:text-3xl font-black italic tracking-tighter ${s.color}`}>{s.value}</h4>
+            <div key={i} className="bg-[#0f1133] border border-white/5 rounded-3xl p-6 sm:p-8 text-center bg-gradient-to-br from-[#0f1133] to-[#0a0b1a] hover:border-purple-500/30 transition-colors">
+              <p className="text-xs font-black text-[#555a7a] uppercase tracking-[0.2em] mb-3">{s.label}</p>
+              <h4 className={`text-2xl sm:text-5xl font-black italic tracking-tighter ${s.color}`}>{s.value}</h4>
             </div>
           ))}
         </div>
@@ -538,8 +543,8 @@ export default function SuperAdminDashboard() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
               <input
                 type="text"
-                placeholder="Search by name or email..."
-                className="w-full bg-white/5 border border-white/5 rounded-xl pl-12 pr-6 py-2.5 text-xs text-white outline-none focus:border-indigo-500/30 font-medium"
+                placeholder="Search Personnel Database..."
+                className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl pl-16 pr-6 py-5 text-sm text-white outline-none focus:border-indigo-500/30 font-black uppercase italic tracking-widest"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
               />
@@ -548,12 +553,12 @@ export default function SuperAdminDashboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-white/[0.02] text-xs font-black text-[#555a7a] uppercase tracking-widest italic border-b border-white/5">
-                  <th className="px-8 py-5">Name & Email</th>
-                  <th className="px-8 py-5">Role</th>
-                  <th className="px-8 py-5">Status</th>
-                  <th className="px-8 py-5">Last Login</th>
-                  <th className="px-8 py-5 text-right">Actions</th>
+                <tr className="bg-white/[0.02] text-xs font-black text-[#555a7a] uppercase tracking-[0.3em] italic border-b border-white/5">
+                  <th className="px-10 py-6">Name & Node Access</th>
+                  <th className="px-10 py-6">Privilege Level</th>
+                  <th className="px-10 py-6">Node Status</th>
+                  <th className="px-10 py-6">Last Interface Login</th>
+                  <th className="px-10 py-6 text-right">System Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -587,15 +592,43 @@ export default function SuperAdminDashboard() {
                           user.status === 'Active' 
                             ? 'bg-green-500/10 text-green-500 border-green-500/20' 
                             : 'bg-red-500/10 text-red-500 border-red-500/20'
-                        }`}
+                         }`}
                       >
                         <option value="Active" className="bg-[#0a0b1a]">Active</option>
                         <option value="Inactive" className="bg-[#0a0b1a]">Inactive</option>
                       </select>
+                      <div className="mt-2 flex flex-col gap-1">
+                        {user.must_reset && (
+                            <span className="px-2 py-0.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-full text-[8px] font-black uppercase tracking-tighter w-fit flex items-center gap-1">
+                                <ShieldAlert className="w-2 h-2" /> Reset Required
+                            </span>
+                        )}
+                        {user.profile_incomplete && (
+                            <span className="px-2 py-0.5 bg-purple-500/10 text-purple-500 border border-purple-500/20 rounded-full text-[8px] font-black uppercase tracking-tighter w-fit flex items-center gap-1">
+                                <UserIcon className="w-2 h-2" /> Profile Draft
+                            </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-8 py-5 text-xs font-bold text-[#8b8fa8] uppercase tracking-widest">{user.lastLogin || 'Never'}</td>
                     <td className="px-8 py-5 text-right space-x-2">
-                      <button onClick={() => viewDetails(user)} className="p-2 text-[#555a7a] hover:text-white transition-colors bg-white/5 rounded-lg border border-white/5 hover:border-white/10"><Eye className="w-4 h-4" /></button>
+                      <button onClick={() => viewDetails(user)} className="p-2 text-[#555a7a] hover:text-white transition-all bg-white/5 rounded-lg border border-white/5 hover:border-white/10"><Eye className="w-4 h-4" /></button>
+                      {user.must_reset && (
+                         <button 
+                            onClick={async () => {
+                                if (confirm(`Resend secure credentials to ${user.email}?`)) {
+                                    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                                    const res = await authFetch(`${apiUrl}/api/auth/admin/resend-credentials/${user.id}/`, { method: 'POST' });
+                                    if (res.ok) alert("Dispatch Synchronized");
+                                    else alert("Dispatch Failure");
+                                }
+                            }}
+                            className="p-2 text-amber-500 hover:text-white transition-all bg-amber-500/5 rounded-lg border border-amber-500/10 hover:bg-amber-500"
+                            title="Resend Credentials"
+                         >
+                            <RefreshCw className="w-4 h-4" />
+                         </button>
+                      )}
                       <button onClick={() => confirmDelete(user)} className="p-2 text-[#555a7a] hover:text-[#ef4444] transition-colors bg-white/5 rounded-lg border border-white/5 hover:border-red-500/20"><Trash2 className="w-4 h-4" /></button>
                     </td>
                   </tr>
@@ -701,12 +734,13 @@ export default function SuperAdminDashboard() {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-white/[0.02] text-xs font-black text-[#555a7a] uppercase tracking-widest italic border-b border-white/5">
-                  <th className="px-8 py-5">Study Details</th>
-                  <th className="px-8 py-5">Sponsor</th>
-                  <th className="px-8 py-5">Phase / Type</th>
-                  <th className="px-8 py-5">Participants</th>
-                  <th className="px-8 py-5">Status</th>
-                  <th className="px-8 py-5 text-right">Master Control</th>
+                   <th className="px-8 py-5">Study Details</th>
+                   <th className="px-8 py-5">Sponsor</th>
+                   <th className="px-8 py-5">Medical Team</th>
+                   <th className="px-8 py-5">Phase / Type</th>
+                   <th className="px-8 py-5">Participants</th>
+                   <th className="px-8 py-5">Status</th>
+                   <th className="px-8 py-5 text-right">Master Control</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -718,12 +752,60 @@ export default function SuperAdminDashboard() {
                           <Briefcase className="w-4 h-4" />
                         </div>
                         <div>
-                          <p className="text-xs font-black text-white italic group-hover:text-blue-400 transition-colors uppercase tracking-tight">{study.title}</p>
-                          <p className="text-[10px] text-[#555a7a] font-medium tracking-tight mt-0.5">Protocol: {study.protocol_id}</p>
+                          <p className="text-sm font-black text-white italic group-hover:text-blue-400 transition-colors uppercase tracking-tight">{study.title}</p>
+                          <p className="text-[10px] text-[#555a7a] font-black uppercase tracking-widest mt-0.5">Protocol: {study.protocol_id}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">{study.sponsor_name || 'MUSB Internal'}</td>
+                    <td className="px-8 py-5 text-sm font-black text-slate-400 uppercase tracking-widest">{study.sponsor_name || 'MUSB Internal'}</td>
+                    <td className="px-8 py-5">
+                      <div className="flex flex-col gap-2">
+                        <select
+                          value={study.pi_id || ''}
+                          onChange={async (e) => {
+                            const newId = e.target.value;
+                            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                            try {
+                              const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id}/`, {
+                                method: 'PATCH',
+                                body: JSON.stringify({ pi_id: newId })
+                              });
+                              if (res.ok) fetchData();
+                            } catch (err) {
+                              alert("PI update failed");
+                            }
+                          }}
+                          className="bg-transparent text-[10px] font-black uppercase tracking-widest text-blue-400 outline-none cursor-pointer hover:text-white transition-all border-none"
+                        >
+                          <option value="" className="bg-[#0a0b1a]">-- Select PI --</option>
+                          {users.filter(u => u.role === 'PI').map(pi => (
+                            <option key={pi.id} value={pi.id} className="bg-[#0a0b1a]">{pi.name}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={study.coordinator_id || ''}
+                          onChange={async (e) => {
+                            const newId = e.target.value;
+                            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                            try {
+                              const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id}/`, {
+                                method: 'PATCH',
+                                body: JSON.stringify({ coordinator_id: newId })
+                              });
+                              if (res.ok) fetchData();
+                            } catch (err) {
+                              alert("Coordinator update failed");
+                            }
+                          }}
+                          className="bg-transparent text-[10px] font-black uppercase tracking-widest text-indigo-400 outline-none cursor-pointer hover:text-white transition-all border-none"
+                        >
+                          <option value="" className="bg-[#0a0b1a]">-- Select Coord --</option>
+                          {users.filter(u => u.role === 'COORDINATOR').map(c => (
+                            <option key={c.id} value={c.id} className="bg-[#0a0b1a]">{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </td>
                     <td className="px-8 py-5">
                       <select
                         value={study.study_type}
@@ -740,7 +822,7 @@ export default function SuperAdminDashboard() {
                             alert("Format update failed");
                           }
                         }}
-                        className="bg-transparent text-[10px] font-black uppercase tracking-widest text-slate-400 outline-none cursor-pointer hover:text-white transition-all border-none"
+                        className="bg-transparent text-xs font-black uppercase tracking-widest text-slate-400 outline-none cursor-pointer hover:text-white transition-all border-none"
                       >
                         <option value="IN_PERSON" className="bg-[#0a0b1a]">In-Person</option>
                         <option value="VIRTUAL" className="bg-[#0a0b1a]">Virtual</option>
@@ -749,11 +831,11 @@ export default function SuperAdminDashboard() {
                     </td>
                     <td className="px-8 py-5">
                       <div className="flex flex-col gap-1.5 min-w-[120px]">
-                        <div className="flex justify-between text-[8px] font-black uppercase text-slate-600">
+                        <div className="flex justify-between text-xs font-black uppercase text-slate-600">
                           <span>Target Met</span>
                           <span>{Math.round((study.actual_screened || 0) / (study.target_screened || 100) * 100)}%</span>
                         </div>
-                        <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                           <div className="h-full bg-blue-500" style={{ width: `${Math.min(100, (study.actual_screened || 0) / (study.target_screened || 100) * 100)}%` }}></div>
                         </div>
                       </div>
@@ -774,7 +856,7 @@ export default function SuperAdminDashboard() {
                             alert("Status update failed");
                           }
                         }}
-                        className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border outline-none cursor-pointer transition-all ${
+                        className={`text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border outline-none cursor-pointer transition-all ${
                           study.status === 'RECRUITING' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 
                           study.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                           study.status === 'PAUSED' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
@@ -811,9 +893,29 @@ export default function SuperAdminDashboard() {
   // --- Page: Sponsors ---
   const SponsorsPage = () => {
     const sponsors = (users || []).filter(u => u.role === 'SPONSOR');
+    
+    // Calculate real study counts per sponsor name
+    const getStudyCount = (sponsorName: string) => {
+      if (!sponsorName) return 0;
+      return (studies || []).filter(s => 
+        s.sponsor_name?.toLowerCase() === sponsorName.toLowerCase()
+      ).length;
+    };
+
     return (
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Active <span className="text-pink-500">Sponsors</span></h1>
+        <div className="flex justify-between items-center">
+          <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Active <span className="text-pink-500">Sponsors</span></h1>
+          <button 
+            onClick={() => {
+              setCreationRole('SPONSOR');
+              setModals({ ...modals, createUser: true });
+            }}
+            className="px-8 py-4 bg-pink-500 text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] flex items-center gap-3 shadow-xl shadow-pink-500/20 hover:bg-pink-600 transition-all"
+          >
+            <UserPlus className="w-5 h-5" /> Register New Sponsor
+          </button>
+        </div>
         <div className="bg-[#0f1133] border border-white/5 rounded-3xl overflow-hidden p-8 text-center bg-gradient-to-br from-[#0f1133] to-[#0a0b1a]">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {sponsors.length === 0 ? (
@@ -824,14 +926,22 @@ export default function SuperAdminDashboard() {
                   <div className="w-16 h-16 rounded-2xl bg-pink-500/10 flex items-center justify-center mx-auto mb-6 text-pink-500">
                     <Building className="w-8 h-8" />
                   </div>
-                  <h4 className="text-lg font-black text-white uppercase italic group-hover:text-pink-400 transition-colors">{s.name}</h4>
-                  <p className="text-[10px] text-slate-500 font-bold mt-2 uppercase tracking-widest">{s.email}</p>
-                  <div className="mt-8 pt-8 border-t border-white/5 flex justify-between items-center px-4">
+                  <h4 className="text-xl font-black text-white uppercase italic group-hover:text-pink-400 transition-colors">{s.name}</h4>
+                  <p className="text-xs text-slate-500 font-black mt-3 uppercase tracking-widest">{s.email}</p>
+                  <div className="mt-10 pt-10 border-t border-white/5 flex justify-between items-center px-6">
                     <div className="text-left">
-                      <p className="text-[8px] font-black text-slate-600 uppercase">Studies</p>
-                      <p className="text-xl font-black text-white italic">03</p>
+                      <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest pb-1">Studies</p>
+                      <p className="text-2xl font-black text-white italic">{getStudyCount(s.name).toString().padStart(2, '0')}</p>
                     </div>
-                    <button className="px-5 py-2.5 bg-white/5 text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-white hover:text-slate-900 transition-all">Configure</button>
+                    <button 
+                      onClick={() => {
+                        setSearchTerm(s.name);
+                        setCurrentPage('STUDIES');
+                      }}
+                      className="px-6 py-3 bg-white/5 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white hover:text-slate-900 transition-all"
+                    >
+                      Configure
+                    </button>
                   </div>
                 </div>
               ))
@@ -844,17 +954,102 @@ export default function SuperAdminDashboard() {
 
   // --- Page: Sponsor Leads ---
   const SponsorLeadsPage = () => {
+    const [leads, setLeads] = useState<any[]>([]);
+    
     return (
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Sponsor <span className="text-amber-500">Leads & Inquiries</span></h1>
-        <div className="h-[60vh] flex flex-col items-center justify-center border border-dashed border-white/10 rounded-[3rem] bg-white/[0.01] space-y-6">
-          <div className="w-20 h-20 bg-amber-500/10 border border-amber-500/20 rounded-[2rem] flex items-center justify-center text-amber-500">
-            <BarChart2 className="w-10 h-10" />
-          </div>
+        <div className="flex justify-between items-end">
           <div>
-            <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">No Active Leads</h2>
-            <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] mt-2">Synchronization with external CRM pending initialization</p>
+            <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Sponsor <span className="text-amber-500">Leads & Inquiries</span></h1>
+            <p className="text-xs text-slate-500 font-black uppercase tracking-[0.2em] mt-3">Prospecting data filtered from global inquiry endpoints</p>
           </div>
+          <button className="px-6 py-3 bg-white/5 border border-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-500/10 hover:text-amber-500 transition-all">Export CRM Data</button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+                { name: 'AstraNova Biopharm', focus: 'Pulmonary Trials', type: 'Clinical Partnership', date: '2h ago', priority: 'High' },
+                { name: 'GeneStream Labs', focus: 'Oncology Phase II', type: 'Facility Inquiry', date: '5h ago', priority: 'Medium' },
+                { name: 'Vanguard Health', focus: 'Decentralized Trials', type: 'Software Demo', date: '1d ago', priority: 'Low' }
+            ].map((lead, i) => (
+                <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-8 space-y-6 hover:border-amber-500/30 transition-all group">
+                    <div className="flex justify-between items-start">
+                        <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500">
+                            <Building className="w-6 h-6" />
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest italic ${
+                            lead.priority === 'High' ? 'bg-red-500/10 text-red-400' : 'bg-slate-500/10 text-slate-400'
+                        }`}>
+                            {lead.priority} Priority
+                        </span>
+                    </div>
+                    <div>
+                        <h4 className="text-lg font-black text-white uppercase italic group-hover:text-amber-400 transition-colors">{lead.name}</h4>
+                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-2">{lead.type}</p>
+                    </div>
+                    <div className="pt-6 border-t border-white/5 flex flex-col gap-3">
+                        <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-[#555a7a]">
+                            <span>Inquiry Focus</span>
+                            <span className="text-white italic">{lead.focus}</span>
+                        </div>
+                        <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-[#555a7a]">
+                            <span>Detected</span>
+                            <span className="text-amber-500/50 italic">{lead.date}</span>
+                        </div>
+                    </div>
+                    <button className="w-full py-4 bg-white/5 border border-white/5 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-amber-500 hover:text-slate-950 transition-all">Initialize Dialogue</button>
+                </div>
+            ))}
+        </div>
+      </div>
+    );
+  };
+
+  const AnnouncementsPage = () => {
+    return (
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Global <span className="text-emerald-500">Announcements</span></h1>
+            <p className="text-xs text-slate-500 font-black uppercase tracking-[0.3em] mt-3">Broadcast emergency protocols and platform updates</p>
+          </div>
+          <button 
+            onClick={() => setModals({ ...modals, createAnnouncement: true })}
+            className="px-8 py-4 bg-emerald-500 text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] flex items-center gap-3 shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all"
+          >
+            <Plus className="w-5 h-5" /> Cascade Broadcast
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6">
+            {[
+                { title: 'Platform Maintenance Protocol 0xAF', status: 'Live', date: 'March 18, 2026', author: 'Root Admin' },
+                { title: 'New SOC2 Compliance Directives', status: 'Draft', date: 'March 15, 2026', author: 'Compliance Bot' }
+            ].map((a, i) => (
+                <div key={i} className="bg-[#0f1133] border border-white/5 rounded-3xl p-8 flex items-center justify-between group hover:bg-white/[0.02] transition-colors">
+                    <div className="flex items-center gap-6">
+                        <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 border border-emerald-500/20">
+                            <Megaphone className="w-7 h-7" />
+                        </div>
+                        <div>
+                            <h4 className="text-xl font-black text-white uppercase italic group-hover:text-emerald-400 transition-all">{a.title}</h4>
+                            <div className="flex items-center gap-4 mt-2">
+                                <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{a.date}</span>
+                                <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">•</span>
+                                <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">BY {a.author}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                        <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest italic ${
+                            a.status === 'Live' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-500/10 text-slate-400'
+                        }`}>
+                            {a.status}
+                        </span>
+                        <button className="p-3 bg-white/5 border border-white/5 text-[#555a7a] hover:text-white rounded-xl transition-all"><MoreVertical className="w-5 h-5" /></button>
+                    </div>
+                </div>
+            ))}
         </div>
       </div>
     );
@@ -914,9 +1109,69 @@ export default function SuperAdminDashboard() {
   // ═══════════════════════════════════════════
 
   // --- Modal: Create User ---
+  const CreateAnnouncementModal = () => {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-3xl bg-black/60">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-[#0f1133] border border-white/10 w-full max-w-xl rounded-[3rem] p-12 shadow-2xl">
+          <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mb-8 italic">Broadcast <span className="text-emerald-500">Signal</span></h2>
+          <div className="space-y-6">
+            <input placeholder="Subject / Transmission Header" className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-white font-bold outline-none focus:border-emerald-500/40 transition-all font-mono" />
+            <textarea placeholder="Message content..." className="w-full h-40 bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-white font-bold resize-none outline-none focus:border-emerald-500/40 transition-all" />
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setModals({...modals, createAnnouncement: false})}
+                className="flex-1 py-4 bg-white/5 border border-white/5 text-[#555a7a] hover:text-white rounded-2xl font-black uppercase tracking-widest transition-all"
+              >Abort</button>
+              <button className="flex-[2] py-4 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest italic shadow-xl shadow-emerald-900/40 hover:scale-[1.02] transition-all">Transmit Global</button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  };
+
+  const TeamPage = () => (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">MUSB <span className="text-[#818cf8]">Internal Team</span></h1>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {['Brijesh Raj', 'Alice Johnson', 'Bob Smith', 'Carol White'].map((name, i) => (
+              <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-8 text-center hover:border-indigo-500/30 transition-all group">
+                  <div className="w-20 h-20 bg-indigo-500/10 rounded-[2rem] flex items-center justify-center text-indigo-400 mx-auto mb-6 font-black text-2xl group-hover:scale-110 transition-transform">{name[0]}</div>
+                  <h4 className="text-xl font-black text-white uppercase italic tracking-tighter">{name}</h4>
+                  <p className="text-[10px] text-[#555a7a] mt-3 font-black uppercase tracking-widest leading-relaxed">
+                    {i === 0 ? 'Master Admin / Root' : 'Node Controller'}
+                  </p>
+                  <button className="mt-8 w-full py-3 bg-white/5 text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-white hover:text-slate-900 transition-all">Direct Link</button>
+              </div>
+          ))}
+      </div>
+    </div>
+  );
+
+  const InquiriesPage = () => (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Platform <span className="text-[#f472b6]">Inquiries</span></h1>
+      <div className="min-h-[50vh] flex flex-col items-center justify-center bg-[#0f1133] border border-white/5 rounded-[3rem] p-20 text-center">
+        <Server className="w-16 h-16 text-[#555a7a] mb-8 animate-pulse" />
+        <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-4">Secure Buffer Empty</h3>
+        <p className="max-w-md mx-auto text-[10px] text-[#555a7a] font-black uppercase tracking-[0.3em] leading-relaxed">No pending inquiry packets detected in the cross-region encrypted buffer at this synchronization cycle.</p>
+      </div>
+    </div>
+  );
+
+  // --- Modal: Create User ---
   const CreateUserModal = () => {
-    const [newUser, setNewUser] = useState({ name: '', email: '', role: 'PARTICIPANT', password: '' });
+    const [newUser, setNewUser] = useState({ 
+      firstName: '', 
+      middleName: '', 
+      lastName: '', 
+      email: '', 
+      role: creationRole || 'PI' 
+    });
     const [isCreating, setIsCreating] = useState(false);
+
+    // Filter out PARTICIPANT role
+    const filteredRoles = ROLES.filter(r => r.id !== 'PARTICIPANT');
 
     const handleCreateUser = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -927,24 +1182,25 @@ export default function SuperAdminDashboard() {
           method: 'POST',
           body: JSON.stringify({
             email: newUser.email,
-            password: newUser.password,
-            full_name: newUser.name,
+            first_name: newUser.firstName,
+            middle_name: newUser.middleName,
+            last_name: newUser.lastName,
             role: newUser.role
           })
         });
 
         if (res.ok) {
           const data = await res.json();
-          alert(`✅ ${data.message}`);
+          alert(`✅ INITIALIZATION COMPLETE\n\nGenerated Username: ${data.username}\nCredentials sent to ${newUser.email}`);
           setModals({ ...modals, createUser: false });
-          setNewUser({ name: '', email: '', role: 'PARTICIPANT', password: '' });
-          fetchData(); // Refresh list
+          setNewUser({ firstName: '', middleName: '', lastName: '', email: '', role: 'PI' });
+          fetchData(); 
         } else {
           const err = await res.json();
-          alert(`❌ Authorization Failed: ${err.error || err.detail || 'Unknown error'}`);
+          alert(`❌ PROTOCOL ERROR: ${err.error || err.detail || 'Unknown failure'}`);
         }
       } catch (err) {
-        alert('❌ Critical error during user initialization. Check console.');
+        alert('❌ CRITICAL SYSTEM FAILURE: Authorization stack trace in console.');
         console.error(err);
       } finally {
         setIsCreating(false);
@@ -968,8 +1224,8 @@ export default function SuperAdminDashboard() {
               <div className="w-12 h-12 bg-purple-500/10 border border-purple-500/20 rounded-2xl flex items-center justify-center text-[#7c3aed]">
                 <UserPlus className="w-6 h-6" />
               </div>
-              <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Initialize <span className="text-[#7c3aed]">New User</span></h2>
-              <p className="text-[10px] text-[#555a7a] font-black uppercase tracking-widest">Personnel and RBAC gatekeeper system</p>
+              <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Initialize <span className="text-[#7c3aed]">Personnel</span></h2>
+              <p className="text-[10px] text-[#555a7a] font-black uppercase tracking-widest">Secure credential provisioning and onboarding module</p>
             </div>
             <button
               onClick={() => setModals({ ...modals, createUser: false })}
@@ -981,53 +1237,77 @@ export default function SuperAdminDashboard() {
           </div>
 
           <form onSubmit={handleCreateUser} className="space-y-8 relative z-10">
-              <div className="grid grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">
-                  <label className="text-xs font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Display Name</label>
+                  <label className="text-sm font-black text-[#555a7a] uppercase tracking-widest px-4 italic">First Name <span className="text-red-500">*</span></label>
                   <input
                     type="text"
-                    placeholder="John Doe"
+                    placeholder="John"
                     required
-                    value={newUser.name}
-                    onChange={e => setNewUser({ ...newUser, name: e.target.value })}
-                    className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-4 text-sm text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono"
+                    value={newUser.firstName}
+                    onChange={e => setNewUser({ ...newUser, firstName: e.target.value })}
+                    className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono"
                   />
                 </div>
                 <div className="space-y-4">
-                  <label className="text-xs font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Personnel Email</label>
+                  <label className="text-sm font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Middle Name (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="Quincy"
+                    value={newUser.middleName}
+                    onChange={e => setNewUser({ ...newUser, middleName: e.target.value })}
+                    className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <label className="text-sm font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Last Name <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    placeholder="Doe"
+                    required
+                    value={newUser.lastName}
+                    onChange={e => setNewUser({ ...newUser, lastName: e.target.value })}
+                    className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono"
+                  />
+                </div>
+                <div className="space-y-4">
+                  <label className="text-sm font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Personal Gmail <span className="text-red-500">*</span></label>
                   <input
                     type="email"
-                    placeholder="john@musb.com"
+                    placeholder="john.doe@gmail.com"
                     required
                     value={newUser.email}
                     onChange={e => setNewUser({ ...newUser, email: e.target.value })}
-                    className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-4 text-sm text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono"
+                    className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono"
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-8">
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">
-                  <label className="text-xs font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Assign RBAC Role</label>
+                  <label className="text-sm font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Access Tier (Role)</label>
                   <select
-                    className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-4 text-sm text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono"
+                    className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono"
                     value={newUser.role}
                     onChange={e => setNewUser({ ...newUser, role: e.target.value })}
                   >
-                    {ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+                    {filteredRoles.map(r => <option key={r.id} value={r.id} className="bg-[#0a0b1a]">{r.label}</option>)}
                   </select>
                 </div>
-                <div className="space-y-4">
-                  <label className="text-xs font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Node Security Key (Password)</label>
-                  <input
-                    type="password"
-                    placeholder="••••••••••••"
-                    required
-                    value={newUser.password}
-                    onChange={e => setNewUser({ ...newUser, password: e.target.value })}
-                    className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-4 text-sm text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono"
-                  />
+                <div className="flex items-center pt-8">
+                   <div className="p-6 bg-purple-500/5 rounded-[2rem] border border-purple-500/10 flex items-center gap-4 w-full">
+                      <ShieldAlert className="w-8 h-8 text-purple-500 opacity-50" />
+                      <div>
+                        <p className="text-[10px] text-white font-black uppercase tracking-widest leading-relaxed">System Rule:</p>
+                        <p className="text-[9px] text-[#555a7a] font-medium leading-relaxed">Username & Temp Password will be auto-generated and encrypted.</p>
+                      </div>
+                   </div>
                 </div>
               </div>
+
               <div className="pt-10 flex gap-4">
                 <button
                   type="button"
@@ -1035,14 +1315,14 @@ export default function SuperAdminDashboard() {
                   className="flex-1 py-5 bg-white/5 border border-white/5 text-[#555a7a] rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 transition-all"
                   disabled={isCreating}
                 >
-                  Abort Process
+                  Abort
                 </button>
                 <button
                   type="submit"
                   disabled={isCreating}
                   className="flex-[2] py-5 bg-[#7c3aed] text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] italic shadow-xl shadow-purple-900/40 hover:scale-[1.02] transition-all disabled:opacity-50"
                 >
-                  {isCreating ? 'Synchronizing Node...' : 'Authorize & Create Account'}
+                  {isCreating ? 'Synchronizing Node...' : 'Authorize & Dispatch Credentials'}
                 </button>
               </div>
             </form>
@@ -1084,7 +1364,7 @@ export default function SuperAdminDashboard() {
           <nav className="flex-1 overflow-y-auto px-4 space-y-10 py-4 custom-scrollbar">
             {sidebarItems.map((group, i) => (
               <div key={i} className="space-y-4">
-                <p className="px-4 text-[11px] xl:text-xs font-black text-[#555a7a] uppercase tracking-[0.3em] font-mono">{group.group}</p>
+                <p className="px-4 text-xs xl:text-sm font-black text-[#555a7a] uppercase tracking-[0.3em] font-mono">{group.group}</p>
                 <div className="space-y-1.5">
                   {group.items.map((item, j) => (
                     <button
@@ -1103,8 +1383,8 @@ export default function SuperAdminDashboard() {
                         }`}
                     >
                       <div className="flex items-center gap-4">
-                        <item.icon className={`w-4 h-4 ${currentPage === item.id && !(item as any).isExternal ? 'text-[#7c3aed]' : 'text-slate-700 group-hover:text-purple-400'}`} />
-                        <span className="text-xs xl:text-sm font-bold uppercase tracking-widest">{item.label}</span>
+                        <item.icon className={`w-5 h-5 ${currentPage === item.id && !(item as any).isExternal ? 'text-[#7c3aed]' : 'text-slate-700 group-hover:text-purple-400'}`} />
+                        <span className="text-sm xl:text-base font-black uppercase tracking-[0.1em]">{item.label}</span>
                       </div>
                       {(item as any).isExternal && <ExternalLink className="w-3 h-3 opacity-40 group-hover:opacity-100" />}
                       {(item as any).hasNotify && <div className="w-2 h-2 bg-pink-500 rounded-full shadow-[0_0_8px_rgba(236,72,153,0.5)]" />}
@@ -1122,8 +1402,8 @@ export default function SuperAdminDashboard() {
                   {currentUserName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  <p className="text-xs font-black text-white uppercase italic truncate tracking-tight">{currentUserName}</p>
-                  <p className="text-xs text-purple-400 font-black uppercase tracking-widest mt-0.5 opacity-70">Super Admin</p>
+                  <p className="text-sm font-black text-white uppercase italic truncate tracking-tight">{currentUserName}</p>
+                  <p className="text-xs text-purple-400 font-black uppercase tracking-widest mt-1 opacity-70">Super Admin Portal</p>
                 </div>
               </div>
               
@@ -1183,14 +1463,14 @@ export default function SuperAdminDashboard() {
                   {showNotifications && (
                     <div className="absolute top-full mt-4 right-0 w-80 bg-[#0f1133] border border-white/5 rounded-3xl shadow-2xl p-6 space-y-6 animate-in fade-in slide-in-from-top-4">
                       <div className="flex justify-between items-center px-2">
-                        <p className="text-[10px] font-black text-white uppercase italic tracking-widest">Global Pings</p>
-                        <span className="text-[8px] font-black text-[#7c3aed] uppercase tracking-widest cursor-pointer">Mark all read</span>
+                        <p className="text-xs font-black text-white uppercase italic tracking-widest">Global Pings</p>
+                        <span className="text-[10px] font-black text-[#7c3aed] uppercase tracking-widest cursor-pointer hover:text-white">Mark all read</span>
                       </div>
                       <div className="space-y-4">
                         {notifications.map(n => (
-                          <div key={n.id} className={`p-4 rounded-2xl border ${n.unread ? 'bg-[#7c3aed]/10 border-[#7c3aed]/20' : 'bg-white/[0.02] border-white/5 opacity-50'}`}>
-                            <p className="text-[11px] font-bold text-white tracking-tight leading-tight">{n.text}</p>
-                            <p className="text-[9px] text-[#555a7a] mt-2 font-black uppercase tracking-widest italic">{n.time}</p>
+                          <div key={n.id} className={`p-5 rounded-2xl border ${n.unread ? 'bg-[#7c3aed]/10 border-[#7c3aed]/20' : 'bg-white/[0.02] border-white/5 opacity-50'}`}>
+                            <p className="text-xs font-bold text-white tracking-tight leading-relaxed">{n.text}</p>
+                            <p className="text-[10px] text-[#555a7a] mt-3 font-black uppercase tracking-widest italic">{n.time}</p>
                           </div>
                         ))}
                       </div>
@@ -1219,15 +1499,15 @@ export default function SuperAdminDashboard() {
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
                       className="absolute right-0 top-full mt-4 w-56 bg-[#0f1133] border border-white/10 rounded-3xl shadow-2xl p-2 z-[100] overflow-hidden"
                     >
-                      <div className="p-4 border-b border-white/5 mb-2">
-                        <p className="text-xs font-black text-white uppercase italic truncate">{currentUserName}</p>
-                        <p className="text-[10px] text-purple-400 font-black uppercase tracking-widest mt-1">Master Access</p>
+                      <div className="p-5 border-b border-white/5 mb-2">
+                        <p className="text-sm font-black text-white uppercase italic truncate tracking-tight">{currentUserName}</p>
+                        <p className="text-xs text-purple-400 font-black uppercase tracking-widest mt-2">Master Access Node</p>
                       </div>
                       <button 
                         onClick={handleSignOut} 
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-red-400 hover:text-white hover:bg-red-500 transition-all text-xs font-black uppercase tracking-widest"
+                        className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-red-400 hover:text-white hover:bg-red-500 transition-all text-sm font-black uppercase tracking-widest"
                       >
-                        <LogOut className="w-4 h-4" /> Sign Out Interface
+                        <LogOut className="w-5 h-5" /> Sign Out Interface
                       </button>
                     </motion.div>
                   )}
@@ -1244,6 +1524,8 @@ export default function SuperAdminDashboard() {
             {currentPage === 'LAUNCH_STUDY' && (
               <LaunchStudyForm 
                 initialData={selectedStudy} 
+                availablePIs={users.filter(u => u.role === 'PI')}
+                availableCoordinators={users.filter(u => u.role === 'COORDINATOR')}
                 onSave={async (data) => {
                   await handleCreateStudy(data);
                   setSelectedStudy(null);
@@ -1255,18 +1537,55 @@ export default function SuperAdminDashboard() {
               />
             )}
             {currentPage === 'SCREENER_BUILDER' && <ScreenerBuilder />}
-            {currentPage === 'PIS' && <PIsManagement />}
-            {currentPage === 'COORDINATORS' && <CoordinatorsManagement />}
-            {currentPage === 'PARTICIPANTS' && <ParticipantsManagement />}
+            {currentPage === 'PIS' && (
+              <PIsManagement 
+                allUsers={users} 
+                allStudies={studies} 
+                onRefresh={fetchData} 
+                onViewUser={viewDetails}
+                onRegister={() => {
+                   setCreationRole('PI');
+                   setModals({ ...modals, createUser: true });
+                }}
+              />
+            )}
+            {currentPage === 'COORDINATORS' && (
+              <CoordinatorsManagement 
+                allUsers={users} 
+                allStudies={studies} 
+                onRefresh={fetchData} 
+                onViewUser={viewDetails}
+                onRegister={() => {
+                    setCreationRole('COORDINATOR');
+                    setModals({ ...modals, createUser: true });
+                }}
+              />
+            )}
+            {currentPage === 'PARTICIPANTS' && (
+              <ParticipantsManagement 
+                allParticipants={participants} 
+                allStudies={studies} 
+                onRefresh={fetchData} 
+                onViewUser={(p) => viewDetails({ ...p.user_details, id: p.id, role: 'PARTICIPANT' })}
+                onRegister={() => {
+                    setCreationRole('PARTICIPANT');
+                    setModals({ ...modals, createUser: true });
+                }}
+              />
+            )}
             {currentPage === 'LIVE_USERS' && <LiveActiveUsers allUsers={users} />}
             {currentPage === 'METRICS' && <AnalyticsDashboard />}
             {currentPage === 'AUDIT_LOGS' && <AuditLogs />}
             { currentPage === 'WORKFLOW' && <WorkflowModerationPanel /> }
             { currentPage === 'SUBMIT_CONTENT' && <SubmitContentForms userRole="SUPER_ADMIN" /> }
             {currentPage === 'SETTINGS' && <SettingsPage />}
+            {currentPage === 'ANNOUNCEMENTS' && <AnnouncementsPage />}
+            {currentPage === 'SPONSOR_LEADS' && <SponsorLeadsPage />}
+            {currentPage === 'TEAM' && <TeamPage />}
+            {currentPage === 'INQUIRIES' && <InquiriesPage />}
 
             {/* Stub for other pages */}
-            {!['DASHBOARD', 'ALL_USERS', 'STUDIES', 'SPONSORS', 'LAUNCH_STUDY', 'SCREENER_BUILDER', 'PIS', 'COORDINATORS', 'PARTICIPANTS', 'LIVE_USERS', 'METRICS', 'AUDIT_LOGS', 'SETTINGS'].includes(currentPage) && (
+            {!['DASHBOARD', 'ALL_USERS', 'STUDIES', 'SPONSORS', 'LAUNCH_STUDY', 'SCREENER_BUILDER', 'PIS', 'COORDINATORS', 'PARTICIPANTS', 'LIVE_USERS', 'METRICS', 'AUDIT_LOGS', 'SETTINGS', 'ANNOUNCEMENTS', 'SPONSOR_LEADS', 'TEAM', 'INQUIRIES'].includes(currentPage) && (
               <div className="h-[70vh] flex flex-col items-center justify-center text-center space-y-6">
                 <div className="w-24 h-24 bg-white/5 border border-white/10 rounded-[2.5rem] flex items-center justify-center">
                   <LayoutDashboard className="w-12 h-12 text-[#555a7a] animate-pulse" />
@@ -1286,11 +1605,16 @@ export default function SuperAdminDashboard() {
         {modals.createUser && (
           <CreateUserModal />
         )}
+        {modals.createAnnouncement && (
+          <CreateAnnouncementModal />
+        )}
       </AnimatePresence>
 
       <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden fixed top-8 left-8 p-3 bg-white/5 rounded-2xl border border-white/10 text-[#555a7a] z-[45]">
         <Menu className="w-5 h-5" />
       </button>
+
+      {/* NEW PAGES & MODALS */}
 
         {/* User Detail Modal */}
         <AnimatePresence>
@@ -1325,6 +1649,12 @@ export default function SuperAdminDashboard() {
                         <span className={`px-2 py-0.5 rounded-full text-xs font-black uppercase tracking-widest ${selectedUser.status === 'Active' ? 'text-green-500 bg-green-500/10' : 'text-red-500 bg-red-500/10'}`}>
                           {selectedUser.status}
                         </span>
+                        {selectedUser.must_reset && (
+                            <span className="px-2 py-0.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-full text-[9px] font-black uppercase tracking-widest">Reset Pending</span>
+                        )}
+                        {selectedUser.profile_incomplete && (
+                            <span className="px-2 py-0.5 bg-purple-500/10 text-purple-500 border border-purple-500/20 rounded-full text-[9px] font-black uppercase tracking-widest">Profile Draft</span>
+                        )}
                       </div>
                     </div>
                   </div>

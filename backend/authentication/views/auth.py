@@ -106,13 +106,15 @@ def login_view(request):
 
     response = Response({
         'message': 'Login successful',
-        'access': access_token,  # Also returned in body for Authorization header fallback
+        'access': access_token, 
         'user': {
             'email':        user.email,
             'full_name':    user.decrypted_name,
             'organization': user.decrypted_organization,
             'role':         user.role,
             'picture':      user.profile_picture or '',
+            'must_reset':   user.must_change_password,
+            'profile_incomplete': not user.profile_completed,
         }
     })
     return _set_auth_cookies(response, access_token, refresh_token)
@@ -269,6 +271,8 @@ def google_login(request):
                 'organization': user.decrypted_organization,
                 'role':         user.role,
                 'picture':      user.profile_picture or '',
+                'must_reset':   user.must_change_password,
+                'profile_incomplete': not user.profile_completed,
             }
         })
         return _set_auth_cookies(response, access_token, refresh_token)

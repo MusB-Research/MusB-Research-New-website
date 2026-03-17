@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { clearToken, authFetch } from '../utils/auth';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
 import SubmitContentForms from '../components/admin/SubmitContentForms';
+import ScreenerBuilder from '../components/admin/ScreenerBuilder';
 import {
     LayoutDashboard,
     Beaker,
@@ -29,7 +30,7 @@ import {
     Globe
 } from 'lucide-react';
 
-type PIModule = 'OVERSIGHT' | 'STUDIES' | 'PARTICIPANTS' | 'MESSAGES' | 'REPORTS' | 'SUBMIT';
+type PIModule = 'OVERSIGHT' | 'STUDIES' | 'PARTICIPANTS' | 'MESSAGES' | 'REPORTS' | 'SUBMIT' | 'SCREENER_BUILDER';
 
 export default function PIDashboard() {
     const [activeModule, setActiveModule] = useState<PIModule>('OVERSIGHT');
@@ -108,6 +109,7 @@ export default function PIDashboard() {
         { id: 'MESSAGES', label: 'Messages', icon: MessageSquare },
         { id: 'REPORTS', label: 'Analytics', icon: TrendingUp },
         { id: 'SUBMIT', label: 'Submit Content', icon: Plus },
+        { id: 'SCREENER_BUILDER', label: 'Screener Builder', icon: Filter },
     ];
 
     const renderHeader = () => {
@@ -223,6 +225,7 @@ export default function PIDashboard() {
                     {activeModule === 'OVERSIGHT' && <OversightModule studyCount={studies.length} />}
                     {activeModule === 'STUDIES' && <StudyOverviewModule studies={studies} onAdd={() => setActiveModule('SUBMIT')} />}
                     {activeModule === 'SUBMIT' && <SubmitContentForms userRole="PI" />}
+                    {activeModule === 'SCREENER_BUILDER' && <ScreenerBuilder />}
                 </AnimatePresence>
             </main>
 

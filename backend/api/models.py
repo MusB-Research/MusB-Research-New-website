@@ -31,6 +31,10 @@ class Study(models.Model):
     study_type = models.CharField(max_length=20, choices=STUDY_TYPES, default='IN_PERSON')
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='RECRUITING')
     
+    # Core Medical Team (direct fields for easier dashboard access)
+    pi = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='pi_studies')
+    coordinator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='coordinator_studies')
+    
     # Workflow approval status
     approval_status = models.CharField(max_length=20, choices=[
         ('pending', 'Pending'),
@@ -438,7 +442,7 @@ class DataAuditLog(models.Model):
 
 class PermissionMatrix(models.Model):
     """Dynamic RBAC control configurable by Super Admin"""
-    role = models.CharField(max_length=30, choices=settings.ROLE_CHOICES if hasattr(settings, 'ROLE_CHOICES') else [])
+    role = models.CharField(max_length=30)
     capability = models.CharField(max_length=100) # e.g., 'EDIT_STUDY_STATUS', 'CREATE_FORM'
     is_allowed = models.BooleanField(default=False)
 
