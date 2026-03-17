@@ -4,7 +4,7 @@ export interface Study {
     condition: string;
     type: 'On-site' | 'Remote' | 'Hybrid';
     trialFormat: 'RCT' | 'Open-label' | 'Pre-post' | 'IHUT' | 'Observational';
-    status: 'Recruiting' | 'Active' | 'Closed' | 'Upcoming';
+    status: 'Recruiting' | 'Active' | 'Paused' | 'Completed';
     description: string;
     benefit: string;
     duration: string;
@@ -35,9 +35,8 @@ export const fetchStudies = async (): Promise<Study[]> => {
         const statusMap: Record<string, any> = {
             'RECRUITING': 'Recruiting',
             'ACTIVE': 'Active',
-            'CLOSED': 'Closed',
-            'PREPARING_LAUNCH': 'Upcoming',
-            'DRAFT': 'Upcoming'
+            'PAUSED': 'Paused',
+            'COMPLETED': 'Completed'
         };
 
         return data.map((d: any) => ({

@@ -18,23 +18,10 @@ class Study(models.Model):
     ]
 
     STATUS_CHOICES = [
-        ('DRAFT', 'Draft'),
-        ('PROPOSAL_SUBMITTED', 'Proposal Submitted'),
-        ('PROPOSAL_NEGOTIATION', 'Proposal Under Negotiation'),
-        ('AGREEMENT_SIGNED', 'Agreement Signed'),
-        ('IRB_INITIATED', 'IRB Protocol Initiated'),
-        ('IRB_SUBMISSION', 'Under IRB Submission / Development'),
-        ('IRB_APPROVED', 'IRB Approved'),
-        ('PREPARING_LAUNCH', 'Preparing to Launch'),
-        ('ACTIVE', 'Active'),
         ('RECRUITING', 'Recruiting'),
-        ('RECRUITMENT_COMPLETED', 'Recruitment Completed'),
-        ('ANALYSIS', 'Analysis Underway'),
-        ('PROGRESS_REPORT', 'Progress Report Draft Created'),
-        ('FINAL_REPORT', 'Project Report Sent to Sponsor'),
-        ('COMPLETED', 'Completed'),
+        ('ACTIVE', 'Active'),
         ('PAUSED', 'Paused'),
-        ('CLOSED', 'Closed / Archived'),
+        ('COMPLETED', 'Completed'),
     ]
 
     title = models.CharField(max_length=255)
@@ -42,7 +29,7 @@ class Study(models.Model):
     protocol_id = models.CharField(max_length=100, unique=True, null=True, blank=True, verbose_name="Protocol ID / Internal ID")
     sponsor_name = models.CharField(max_length=255)
     study_type = models.CharField(max_length=20, choices=STUDY_TYPES, default='IN_PERSON')
-    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='DRAFT')
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='RECRUITING')
     
     # Workflow approval status
     approval_status = models.CharField(max_length=20, choices=[
@@ -73,7 +60,6 @@ class Study(models.Model):
     # Frontend Data Fields
     condition = models.CharField(max_length=255, blank=True)
     trial_format = models.CharField(max_length=50, blank=True)
-    description = models.TextField(blank=True)
     benefit = models.TextField(blank=True)
     duration = models.CharField(max_length=100, blank=True)
     tags = models.JSONField(default=list, blank=True)

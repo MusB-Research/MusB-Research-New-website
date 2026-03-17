@@ -56,13 +56,20 @@ export default function Trials() {
                 const data = await response.json();
 
                 // Map API data to UI structure if needed, or use directly
+                const statusMap: Record<string, string> = {
+                    'RECRUITING': 'Recruiting',
+                    'ACTIVE': 'Active',
+                    'PAUSED': 'Paused',
+                    'COMPLETED': 'Completed'
+                };
+
                 const mappedStudies = data.map((s: any) => ({
                     id: s.protocol_id || s.id,
                     title: s.title,
                     description: s.primary_indication || "Standard research protocol",
                     condition: s.primary_indication || "Other",
                     type: s.study_type === 'VIRTUAL' ? 'Virtual' : (s.study_type === 'IN_PERSON' ? 'On-site' : 'Hybrid'),
-                    status: s.status === 'RECRUITING' ? 'Recruiting' : 'Closed',
+                    status: statusMap[s.status] || 'Paused',
                     benefit: s.trial_model === 'RCT' ? 'Placebo-Controlled' : 'Standard Product',
                     duration: "4-12 Weeks", // Simulated field
                     tags: [s.trial_model, s.study_type]
@@ -356,7 +363,12 @@ export default function Trials() {
                                     <div className="absolute -inset-1 bg-gradient-to-tr from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                                     <div className="flex justify-between items-start mb-8">
                                         <div className="space-y-4">
-                                            <div className={`inline-block px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${study.status === 'Recruiting' ? 'bg-cyan-500/10 text-cyan-400' : 'bg-slate-500/10 text-slate-400 opacity-50'}`}>
+                                            <div className={`inline-block px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                                study.status === 'Recruiting' ? 'bg-cyan-500/10 text-cyan-400' : 
+                                                study.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400' :
+                                                study.status === 'Paused' ? 'bg-amber-500/10 text-amber-400' :
+                                                'bg-slate-500/10 text-slate-400 opacity-50'
+                                            }`}>
                                                 {study.status}
                                             </div>
                                             <h3 className="text-3xl font-black text-white group-hover:text-cyan-400 transition-colors uppercase">{study.title}</h3>
@@ -388,9 +400,9 @@ export default function Trials() {
                                     ) : (
                                         <button
                                             disabled
-                                            className="w-full py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all bg-white/5 text-slate-600 cursor-not-allowed"
+                                            className="w-full py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all bg-white/5 text-slate-600 cursor-not-allowed uppercase italic tracking-[0.2em]"
                                         >
-                                            Study Full
+                                            {study.status === 'Completed' ? 'Participation Ended' : 'Study Unavailable'}
                                         </button>
                                     )}
                                 </div>

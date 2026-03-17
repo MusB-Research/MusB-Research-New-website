@@ -9,7 +9,7 @@ import {
     User, Bell, LogOut, TrendingUp, Trophy, Target, ListTodo, ArrowRight,
     Zap, PlusCircle, Calendar, Clock, Download, PlayCircle, Send, Upload,
     AlertTriangle, CheckCircle2, Smile, Frown, Truck, Camera, Check, PhoneCall,
-    MessageCircle, FileCheck, Lock, HelpCircle, Package, Link2, Paperclip, ClipboardCheck, X, ShieldCheck, Eye, Edit, Mail, Phone, MapPin, Globe
+    MessageCircle, FileCheck, Lock, HelpCircle, Package, Link2, Paperclip, ClipboardCheck, X, ShieldCheck, Eye, Edit, Mail, Phone, MapPin, Globe, Menu
 } from 'lucide-react';
 
 /* ─────────────────────────────────────────────────────────────────
@@ -38,29 +38,29 @@ const Badge = ({ children, color = "cyan" }: { children: React.ReactNode; color?
 const ActionModal = ({ isOpen, title, desc, action, onClose }: any) => (
     <AnimatePresence>
         {isOpen && (
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0a0e1a]/80 backdrop-blur-sm p-4"
                 onClick={onClose}
             >
-                <motion.div 
+                <motion.div
                     initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
                     className="bg-[#0f172a] border border-white/[0.1] rounded-3xl p-8 max-w-sm w-full shadow-2xl relative"
                     onClick={(e) => e.stopPropagation()}
                 >
                     <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors">
-                        <X className="w-5 h-5"/>
+                        <X className="w-5 h-5" />
                     </button>
                     <div className="w-12 h-12 bg-cyan-500/10 text-cyan-400 rounded-2xl flex items-center justify-center mb-6 border border-cyan-500/20">
                         <CheckCircle2 className="w-6 h-6" />
                     </div>
                     <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
                     <p className="text-[13px] text-slate-400 mb-8 leading-relaxed">{desc}</p>
-                    <button 
+                    <button
                         onClick={() => {
                             onClose();
                             // Here you'd trigger actual route changes or API calls
-                        }} 
+                        }}
                         className="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-900 py-3.5 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)]"
                     >
                         {action}
@@ -81,13 +81,13 @@ interface StatCardProps {
     iconBg: string;
 }
 const StatCard = ({ icon, value, label, iconBg }: StatCardProps) => (
-    <div className="flex items-center gap-4 bg-[#0d1525]/60 border border-white/[0.06] rounded-2xl px-5 py-4 flex-1 min-w-0">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
+    <div className="flex items-center gap-4 bg-[#0d1525]/60 border border-white/[0.06] rounded-2xl p-4 sm:p-5 hover:border-cyan-500/20 transition-all group w-full">
+        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg} group-hover:scale-110 transition-transform shadow-lg`}>
             {icon}
         </div>
-        <div className="min-w-0">
-            <div className="text-2xl font-black text-white leading-none tracking-tight">{value}</div>
-            <div className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mt-1 truncate">{label}</div>
+        <div className="min-w-0 flex-1">
+            <div className="text-xl sm:text-3xl font-black text-white leading-none tracking-tight truncate">{value}</div>
+            <div className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-slate-500 mt-1 truncate group-hover:text-cyan-400 transition-colors">{label}</div>
         </div>
     </div>
 );
@@ -98,19 +98,19 @@ interface TaskItemProps {
     isLast?: boolean;
 }
 const TaskItem = ({ title, duration, isLast }: TaskItemProps) => (
-    <div className="relative flex items-stretch gap-5">
+    <div className="relative flex items-stretch gap-3 sm:gap-5 group cursor-pointer hover:-translate-y-0.5 transition-all duration-300">
         <div className="flex flex-col items-center flex-shrink-0 pt-1">
-            <div className="w-3 h-3 rounded-full bg-[#1a2540] border-2 border-slate-600 flex-shrink-0" />
-            {!isLast && <div className="w-px flex-1 bg-slate-700/50 mt-1 mb-1" />}
+            <div className="w-3 h-3 rounded-full bg-[#1a2540] border-2 border-cyan-500 group-hover:shadow-[0_0_10px_rgba(6,182,212,0.5)] transition-all flex-shrink-0" />
+            {!isLast && <div className="w-px flex-1 bg-gradient-to-b from-cyan-500/50 to-slate-700/50 mt-1 mb-1" />}
         </div>
-        <div className={`flex items-center justify-between bg-[#0d1525]/50 border border-white/[0.05] rounded-2xl px-6 py-5 flex-1 ${!isLast ? 'mb-3' : ''} hover:border-cyan-500/20 transition-all`}>
-            <div>
-                <h4 className="text-sm font-bold text-white tracking-tight">{title}</h4>
-                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#0d1525]/50 border border-white/[0.05] rounded-2xl p-4 sm:px-6 sm:py-5 flex-1 ${!isLast ? 'mb-4' : ''} group-hover:border-cyan-500/40 transition-all`}>
+            <div className="min-w-0">
+                <h4 className="text-sm sm:text-base font-bold text-white tracking-tight truncate group-hover:text-cyan-400 transition-colors">{title}</h4>
+                <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
                     NAD+ LONGEVITY TRIAL | {duration}
                 </p>
             </div>
-            <button className="bg-[#00c9e0] hover:bg-[#00b8ce] text-slate-900 px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(0,229,255,0.4)] flex-shrink-0 ml-4">
+            <button className="bg-[#00c9e0] hover:bg-[#00b8ce] text-slate-900 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(0,229,255,0.4)] flex-shrink-0 self-start sm:self-auto w-full sm:w-auto text-center">
                 Start Task
             </button>
         </div>
@@ -125,11 +125,11 @@ interface SupplementItemProps {
 const SupplementItem = ({ name, time, isActive }: SupplementItemProps) => (
     <div className="flex items-center justify-between py-3 border-b border-white/[0.04] last:border-0">
         <div>
-            <p className="text-[12px] font-bold text-white">{name}</p>
-            <p className="text-[10px] text-slate-500 mt-0.5">{time}</p>
+            <p className="text-sm font-bold text-white">{name}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{time}</p>
         </div>
-        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isActive ? 'bg-[#00e676] border-[#00e676]' : 'border-slate-600 bg-transparent'}`}>
-            {isActive && <Check className="w-3 h-3 text-slate-900 font-black" />}
+        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isActive ? 'bg-[#00e676] border-[#00e676]' : 'border-slate-600 bg-transparent'}`}>
+            {isActive && <Check className="w-4 h-4 text-slate-900 font-black" />}
         </div>
     </div>
 );
@@ -144,26 +144,26 @@ import { CheckSquare as CheckSquareIcon } from 'lucide-react';
 const DashboardView = ({ firstName, today, onAction, tasks, study }: any) => (
     <div className="space-y-6">
         {/* Welcome Header */}
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
             <div>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.25em]">{today}</p>
-                <h1 className="text-4xl font-black italic text-white mt-1 tracking-tight">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.25em]">{today}</p>
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black italic text-white mt-1 tracking-tight leading-[1.1]">
                     Welcome back, <span className="text-white">{firstName}</span>
                 </h1>
                 {study && (
-                    <p className="text-[10px] font-bold text-cyan-500 uppercase tracking-widest mt-1">
+                    <p className="text-xs font-bold text-cyan-500 uppercase tracking-widest mt-1">
                         Active in: <span className="text-white">{study.title}</span>
                     </p>
                 )}
             </div>
-            <div className="flex items-center gap-2 mt-1 bg-[#0d1525]/80 border border-[#00e676]/20 rounded-full px-4 py-2 shadow-[0_0_15px_rgba(0,230,118,0.1)] flex-shrink-0 cursor-pointer hover:bg-[#00e676]/10 transition-colors" onClick={() => onAction('Study Details')}>
-                <span className="w-2 h-2 rounded-full bg-[#00e676] shadow-[0_0_8px_#00e676] animate-pulse" />
-                <span className="text-[10px] font-black text-[#00e676] uppercase tracking-widest">Live Study Status</span>
+            <div className="flex items-center gap-2 mt-1 bg-[#0d1525]/80 border border-[#00e676]/20 rounded-full px-5 py-2.5 shadow-[0_0_15px_rgba(0,230,118,0.1)] flex-shrink-0 cursor-pointer hover:bg-[#00e676]/10 transition-colors" onClick={() => onAction('Study Details')}>
+                <span className="w-2.5 h-2.5 rounded-full bg-[#00e676] shadow-[0_0_8px_#00e676] animate-pulse" />
+                <span className="text-xs font-black text-[#00e676] uppercase tracking-widest">Live Study Status</span>
             </div>
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
             <StatCard icon={<TrendingUp className="w-5 h-5 text-[#00e676]" />} value="94%" label="Medication Adherence" iconBg="bg-[#00e676]/10" />
             <StatCard icon={<Trophy className="w-5 h-5 text-amber-500" />} value="$120" label="Protocol Earnings" iconBg="bg-amber-500/10" />
             <StatCard icon={<Target className="w-5 h-5 text-indigo-400" />} value="18" label="Days in Study" iconBg="bg-indigo-500/10" />
@@ -174,18 +174,18 @@ const DashboardView = ({ firstName, today, onAction, tasks, study }: any) => (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
             <div className="lg:col-span-2 space-y-4">
                 <div className="flex items-center gap-2 mb-4">
-                    <Bell className="w-4 h-4 text-cyan-400" />
-                    <h3 className="text-[11px] font-black uppercase tracking-widest text-white">Today's Tasks</h3>
+                    <Bell className="w-5 h-5 text-cyan-400" />
+                    <h3 className="text-sm font-black uppercase tracking-widest text-white">Today's Tasks</h3>
                 </div>
-                
+
                 <div className="pl-2">
                     {tasks && tasks.length > 0 ? (
                         tasks.slice(0, 3).map((task: any, idx: number) => (
                             <div key={task.id} onClick={() => onAction(task.task_details.title)} className="cursor-pointer">
-                                <TaskItem 
-                                    title={task.task_details.title} 
-                                    duration={task.task_details.frequency} 
-                                    isLast={idx === (tasks.length > 3 ? 2 : tasks.length - 1)} 
+                                <TaskItem
+                                    title={task.task_details.title}
+                                    duration={task.task_details.frequency}
+                                    isLast={idx === (tasks.length > 3 ? 2 : tasks.length - 1)}
                                 />
                             </div>
                         ))
@@ -194,12 +194,12 @@ const DashboardView = ({ firstName, today, onAction, tasks, study }: any) => (
                     )}
                 </div>
             </div>
-            
+
             <div className="space-y-6">
                 <Card className="p-6">
                     <div className="flex items-center gap-2 mb-5">
-                        <Box className="w-4 h-4 text-cyan-400" />
-                        <h3 className="text-[11px] font-black uppercase tracking-widest text-white">Supplements</h3>
+                        <Box className="w-5 h-5 text-cyan-400" />
+                        <h3 className="text-sm font-black uppercase tracking-widest text-white">Supplements</h3>
                     </div>
                     <div>
                         <SupplementItem name="NAD+ Supplement (Capsule)" time="08:00 AM" isActive={true} />
@@ -211,12 +211,12 @@ const DashboardView = ({ firstName, today, onAction, tasks, study }: any) => (
 
                 <Card className="p-6 relative overflow-hidden">
                     <div className="flex items-center gap-2 mb-4">
-                        <Activity className="w-4 h-4 text-cyan-400" />
-                        <h3 className="text-[11px] font-black uppercase tracking-widest text-white">Study Insights</h3>
+                        <Activity className="w-5 h-5 text-cyan-400" />
+                        <h3 className="text-sm font-black uppercase tracking-widest text-white">Study Insights</h3>
                     </div>
                     <div className="flex items-end justify-between mt-4">
-                        <div className="text-5xl font-black text-white italic tracking-tighter">84<span className="text-2xl">%</span></div>
-                        <div className="text-[10px] font-bold text-[#00e676] uppercase tracking-widest mb-2">Compliance</div>
+                        <div className="text-6xl font-black text-white italic tracking-tighter">84<span className="text-3xl">%</span></div>
+                        <div className="text-xs font-bold text-[#00e676] uppercase tracking-widest mb-2">Compliance</div>
                     </div>
                     <div className="w-full h-1.5 bg-slate-800 rounded-full mt-4 overflow-hidden">
                         <div className="h-full bg-gradient-to-r from-cyan-400 to-[#00e676] w-[84%] rounded-full relative">
@@ -236,7 +236,7 @@ const TasksView = ({ onAction, tasks }: any) => (
             <h2 className="text-2xl font-black text-white italic tracking-tight">My Task Timeline</h2>
             <p className="text-[12px] text-slate-400 mt-1">All scheduled tasks for your active study will appear here.</p>
         </div>
-        
+
         <div className="flex-1 space-y-4 mt-6">
             {tasks && tasks.length > 0 ? (
                 tasks.map((task: any) => (
@@ -284,7 +284,7 @@ const StudyKitView = ({ onAction }: { onAction: (t: string) => void }) => (
         <div>
             <h2 className="text-3xl font-black text-white italic tracking-tight">Study Kit Status</h2>
         </div>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative z-10 w-full">
             {/* Outbound Shipment */}
             <Card className="flex flex-col bg-[#0a101f] border-white/[0.05] p-6 shadow-xl relative overflow-hidden">
@@ -297,7 +297,7 @@ const StudyKitView = ({ onAction }: { onAction: (t: string) => void }) => (
                         <p className="text-[12px] text-slate-400 mt-0.5">Kit #SK-8291</p>
                     </div>
                 </div>
-                
+
                 <div className="space-y-4">
                     <div className="flex items-center justify-between bg-white/[0.02] border border-white/[0.05] rounded-xl px-5 py-4">
                         <span className="text-[12px] text-slate-400 font-bold">Status</span>
@@ -305,7 +305,7 @@ const StudyKitView = ({ onAction }: { onAction: (t: string) => void }) => (
                             Delivered
                         </div>
                     </div>
-                    
+
                     <div className="flex items-center justify-between bg-white/[0.02] border border-white/[0.05] rounded-xl px-5 py-4">
                         <span className="text-[12px] text-slate-400 font-bold">Date</span>
                         <span className="text-[13px] text-white font-bold">Jan 15, 2026</span>
@@ -345,7 +345,7 @@ const StudyKitView = ({ onAction }: { onAction: (t: string) => void }) => (
                 <CheckSquareIcon className="w-5 h-5 text-cyan-400" />
                 <h3 className="text-lg font-black text-white px-1">Actions Required</h3>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Action 1 */}
                 <div onClick={() => onAction('Confirm Kit Receipt')} className="bg-[#0a101f] border border-white/[0.05] rounded-2xl p-6 hover:border-cyan-500/30 transition-all cursor-pointer group">
@@ -382,11 +382,11 @@ const StudyKitView = ({ onAction }: { onAction: (t: string) => void }) => (
 const LogsView = ({ onAction }: { onAction: (t: string) => void }) => (
     <div className="space-y-6 max-w-5xl">
         <h2 className="text-3xl font-black text-white italic tracking-tight mb-8">Daily Logs & Reporting</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Supplement Log */}
-            <Card className="bg-[#0a101f] border-white/[0.05] p-6 !pt-8 shadow-xl flex flex-col group hover:border-cyan-500/30 transition-all cursor-pointer" 
-                  onClick={() => onAction('Supplement Log')}>
+            <Card className="bg-[#0a101f] border-white/[0.05] p-6 !pt-8 shadow-xl flex flex-col group hover:border-cyan-500/30 transition-all cursor-pointer"
+                onClick={() => onAction('Supplement Log')}>
                 <div className="w-12 h-12 bg-cyan-500/10 rounded-2xl flex items-center justify-center text-cyan-400 mb-6 flex-shrink-0 border border-cyan-500/20 group-hover:bg-cyan-500/20 transition-all">
                     <Box className="w-6 h-6" />
                 </div>
@@ -399,7 +399,7 @@ const LogsView = ({ onAction }: { onAction: (t: string) => void }) => (
 
             {/* Daily Wellness */}
             <Card className="bg-[#0a101f] border-white/[0.05] p-6 !pt-8 shadow-xl flex flex-col group hover:border-[#00e676]/30 transition-all cursor-pointer"
-                  onClick={() => onAction('Daily Wellness Logging')}>
+                onClick={() => onAction('Daily Wellness Logging')}>
                 <div className="w-12 h-12 bg-[#00e676]/10 rounded-2xl flex items-center justify-center text-[#00e676] mb-6 flex-shrink-0 border border-[#00e676]/20 group-hover:bg-[#00e676]/20 transition-all">
                     <Smile className="w-6 h-6" />
                 </div>
@@ -412,7 +412,7 @@ const LogsView = ({ onAction }: { onAction: (t: string) => void }) => (
 
             {/* Adverse Event */}
             <Card className="bg-[#0a101f] border-white/[0.05] p-6 !pt-8 shadow-xl flex flex-col group hover:border-red-500/30 transition-all cursor-pointer"
-                  onClick={() => onAction('Adverse Event Reporting')}>
+                onClick={() => onAction('Adverse Event Reporting')}>
                 <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 mb-6 flex-shrink-0 border border-red-500/20 group-hover:bg-red-500/20 transition-all">
                     <AlertTriangle className="w-6 h-6" />
                 </div>
@@ -438,13 +438,13 @@ const LogsView = ({ onAction }: { onAction: (t: string) => void }) => (
                 <tbody className="text-xs text-white">
                     <tr className="border-b border-white/[0.04]">
                         <td className="py-4 text-slate-300">Today, 08:15 AM</td>
-                        <td className="py-4"><span className="flex items-center gap-2"><Box className="w-3.5 h-3.5 text-cyan-400"/> Supplement Log</span></td>
+                        <td className="py-4"><span className="flex items-center gap-2"><Box className="w-3.5 h-3.5 text-cyan-400" /> Supplement Log</span></td>
                         <td className="py-4 text-slate-400">NAD+, Multivitamin (Taken)</td>
                         <td className="py-4"><Badge color="green">Recorded</Badge></td>
                     </tr>
                     <tr className="border-b border-white/[0.04]">
                         <td className="py-4 text-slate-300">Yesterday, 09:00 PM</td>
-                        <td className="py-4"><span className="flex items-center gap-2"><Smile className="w-3.5 h-3.5 text-green-400"/> Wellness Scale</span></td>
+                        <td className="py-4"><span className="flex items-center gap-2"><Smile className="w-3.5 h-3.5 text-green-400" /> Wellness Scale</span></td>
                         <td className="py-4 text-slate-400">Energy: 4/5, Mood: 5/5</td>
                         <td className="py-4"><Badge color="green">Recorded</Badge></td>
                     </tr>
@@ -476,7 +476,7 @@ const MessagesView = () => (
                     <h3 className="text-xs font-black text-white uppercase tracking-widest mb-6 flex items-center gap-2">
                         <Bell className="w-4 h-4 text-cyan-400" /> STUDY ALERTS
                     </h3>
-                    
+
                     <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-5 relative">
                         <div className="absolute top-4 right-4 w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse" />
                         <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">Direct From Sponsor</p>
@@ -508,7 +508,7 @@ const MessagesView = () => (
                         <p className="text-[12px] font-bold text-cyan-400">Unassigned</p>
                     </div>
                 </div>
-                
+
                 {/* Chat Body */}
                 <div className="flex-1 flex flex-col items-center justify-center relative bg-gradient-to-b from-transparent to-[#0a0e1a]/50 p-8">
                     <div className="w-20 h-20 rounded-2xl flex items-center justify-center opacity-10 mb-6 relative">
@@ -532,7 +532,7 @@ const MessagesView = () => (
 const DocumentsView = () => (
     <div className="space-y-6 max-w-[1400px]">
         <h2 className="text-4xl font-black italic mt-1 tracking-tight text-white mb-8">My Documents</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
                 { title: "Informed Consent Form", date: "Jan 10, 2026", type: "LEGAL" },
@@ -553,7 +553,7 @@ const DocumentsView = () => (
                         <h3 className="text-[15px] font-bold text-white mb-2 leading-snug">{doc.title}</h3>
                         <p className="text-[12px] text-slate-500 mb-6">Uploaded on {doc.date}</p>
                     </div>
-                    
+
                     <div className="flex items-center gap-4">
                         <button className="flex-1 py-3 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] transition-all rounded-xl text-[11px] font-black uppercase tracking-widest text-slate-300 flex justify-center items-center gap-2">
                             <Eye className="w-3.5 h-3.5" /> VIEW
@@ -587,7 +587,7 @@ const DocumentsView = () => (
 const ReportsView = ({ userName }: { userName: string }) => {
     const today = new Date();
     const dateStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
-    
+
     return (
         <div className="space-y-6 max-w-[1400px]">
             <div className="flex justify-between items-start mb-6">
@@ -614,7 +614,7 @@ const ReportsView = ({ userName }: { userName: string }) => {
                             <div className="text-[11px] font-black text-slate-500 uppercase tracking-widest mt-1">YOUR SCORE</div>
                         </div>
                     </div>
-                    
+
                     <div className="w-full h-3 bg-white/[0.03] rounded-full overflow-hidden mb-4 border border-white/[0.02]">
                         <div className="h-full bg-[#00e676] rounded-full w-0" />
                     </div>
@@ -657,12 +657,12 @@ const ReportsView = ({ userName }: { userName: string }) => {
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[11px] font-black uppercase tracking-widest mb-8 shadow-sm">
                         <ShieldCheck className="w-4 h-4" /> VERIFIED MULTI-CENTER STUDY
                     </div>
-                    
+
                     <h3 className="text-3xl font-black text-white mb-4">Not Enrolled</h3>
                     <p className="text-[14px] text-slate-500 italic mb-10 pb-8 border-b border-white/[0.05]">
                         "Thank you for your valuable contribution to clinical research."
                     </p>
-                    
+
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-12 sm:gap-40">
                         <div>
                             <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">GENERATED FOR</p>
@@ -674,11 +674,11 @@ const ReportsView = ({ userName }: { userName: string }) => {
                         </div>
                     </div>
                 </div>
-                
+
                 <div className="absolute top-1/2 right-12 -translate-y-1/2 opacity-[0.03] pointer-events-none hidden md:block">
                     <FileText className="w-80 h-80" />
                 </div>
-                
+
                 <div className="mt-8 mx-8 mb-8 relative z-10 px-0">
                     <div className="bg-[#0d1424]/60 border border-white/[0.04] rounded-2xl p-6 text-center shadow-inner">
                         <p className="text-[12px] text-slate-500 leading-relaxed max-w-4xl mx-auto">
@@ -789,7 +789,7 @@ const ProfileView = ({ userName, userEmail, userPicture, initials }: any) => {
                     <h3 className="text-[12px] font-black text-white uppercase tracking-[0.15em] flex items-center gap-2 mb-8">
                         <Bell className="w-4 h-4 text-cyan-400" /> NOTIFICATIONS
                     </h3>
-                    
+
                     <div className="space-y-8">
                         <div className="flex items-center justify-between">
                             <div>
@@ -826,7 +826,7 @@ const ProfileView = ({ userName, userEmail, userPicture, initials }: any) => {
                     <h3 className="text-[12px] font-black text-white uppercase tracking-[0.15em] flex items-center gap-2 mb-8">
                         <Lock className="w-4 h-4 text-cyan-400" /> PRIVACY & SECURITY
                     </h3>
-                    
+
                     <div className="space-y-2">
                         <div className="flex items-center justify-between py-4 border-b border-white/[0.05]">
                             <span className="text-[13px] font-bold text-slate-300 mt-1">Change Password</span>
@@ -865,7 +865,7 @@ const PrivacyDataView = ({ onAction }: { onAction: (t: string) => void }) => (
             <h3 className="text-[12px] font-black text-white uppercase tracking-[0.15em] flex items-center gap-2 mb-8 border-b border-white/5 pb-4">
                 <Lock className="w-4 h-4 text-cyan-400" /> PRIVACY CONTROLS
             </h3>
-            
+
             <div className="space-y-2">
                 <div className="flex items-center justify-between py-6 border-b border-white/[0.05]">
                     <div>
@@ -874,7 +874,7 @@ const PrivacyDataView = ({ onAction }: { onAction: (t: string) => void }) => (
                     </div>
                     <button onClick={() => onAction('Withdraw from Study')} className="text-[11px] font-black text-amber-500 hover:text-amber-400 transition-colors uppercase tracking-widest px-4 py-2 border border-amber-500/30 rounded-lg hover:bg-amber-500/10">Withdraw</button>
                 </div>
-                
+
                 <div className="flex items-center justify-between py-6 border-b border-white/[0.05]">
                     <div>
                         <span className="block text-[14px] font-bold text-slate-200">Request My Data (GDPR)</span>
@@ -918,19 +918,20 @@ export default function ParticipantDashboard() {
     const [activeNav, setActiveNav] = useState('Dashboard');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const [modalConfig, setModalConfig] = useState<{isOpen: boolean, title: string, desc: string, primaryAction: string} | null>(null);
-    
+    const [modalConfig, setModalConfig] = useState<{ isOpen: boolean, title: string, desc: string, primaryAction: string } | null>(null);
+
     // New Engagement Data State
     const [tasks, setTasks] = useState<any[]>([]);
     const [activeStudy, setActiveStudy] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
                 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-                
+
                 // 1. Fetch Participant's Study
                 const pRes = await authFetch(`${apiUrl}/api/participants/`);
                 const pData = await pRes.json();
@@ -1025,15 +1026,26 @@ export default function ParticipantDashboard() {
             <div className="absolute inset-0 z-0 opacity-50 pointer-events-none">
                 <AnimatedBackground />
             </div>
-            
+
             {/* ──────────────── SIDEBAR ──────────────── */}
-            <aside className="w-[260px] flex-shrink-0 flex flex-col border-r border-white/[0.05] relative z-10" style={{ background: '#0d1525' }}>
-                <div className="px-6 pt-8 pb-6 flex justify-center">
+            {/* Mobile Sidebar Overlay */}
+            {isMobileMenuOpen && (
+                <div
+                    className="fixed inset-0 bg-black/60 z-30 lg:hidden backdrop-blur-sm"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                />
+            )}
+
+            <aside className={`w-[260px] flex-shrink-0 flex flex-col border-r border-white/[0.05] relative z-40 transition-transform duration-300 lg:translate-x-0 ${isMobileMenuOpen ? 'fixed inset-y-0 left-0 bg-[#0d1525] translate-x-0' : 'fixed lg:relative inset-y-0 left-0 bg-[#0d1525] -translate-x-full'}`} style={{ background: '#0d1525' }}>
+                <div className="px-6 pt-8 pb-6 flex justify-between items-center lg:justify-center">
                     <Link to="/">
                         <div className="inline-flex items-center bg-white rounded-full px-5 py-2.5 shadow-lg">
                             <img src="/logo.jpg" alt="MusB" className="h-6 w-auto object-contain" style={{ filter: 'contrast(1.2)' }} />
                         </div>
                     </Link>
+                    <button className="lg:hidden text-white hover:text-cyan-400" onClick={() => setIsMobileMenuOpen(false)}>
+                        <X className="w-6 h-6" />
+                    </button>
                 </div>
 
                 <div className="mx-5 mt-2 mb-6 bg-[#141e35]/60 border border-white/5 rounded-2xl p-4 flex items-center gap-4">
@@ -1041,8 +1053,8 @@ export default function ParticipantDashboard() {
                         {userPicture ? <img src={userPicture} alt={userName} className="w-full h-full object-cover" /> : initials}
                     </div>
                     <div className="flex flex-col min-w-0">
-                        <p className="text-sm font-black text-white uppercase tracking-tight leading-tight truncate">{userName}</p>
-                        <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest mt-1">Participant</p>
+                        <p className="text-base font-black text-white uppercase tracking-tight leading-tight truncate">{userName}</p>
+                        <p className="text-xs font-black text-cyan-400 uppercase tracking-widest mt-1">Participant</p>
                     </div>
                 </div>
 
@@ -1056,12 +1068,11 @@ export default function ParticipantDashboard() {
                                     if (item.label === 'Main Website') navigate('/home');
                                     else setActiveNav(item.label);
                                 }}
-                                className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left group ${
-                                    isActive ? 'bg-[#0a1525] text-cyan-400 border border-cyan-500/30 shadow-[0_4px_20px_rgba(0,0,0,0.2)]' : 'text-slate-400 hover:text-white hover:bg-white/[0.04] border border-transparent'
-                                }`}
+                                className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left group ${isActive ? 'bg-[#0a1525] text-cyan-400 border border-cyan-500/30 shadow-[0_4px_20px_rgba(0,0,0,0.2)]' : 'text-slate-400 hover:text-white hover:bg-white/[0.04] border border-transparent'
+                                    }`}
                             >
                                 <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-cyan-400' : 'text-slate-500 group-hover:text-slate-300'}`} />
-                                <span className="text-sm font-bold">{item.label}</span>
+                                <span className="text-base font-bold">{item.label}</span>
                             </button>
                         );
                     })}
@@ -1076,27 +1087,34 @@ export default function ParticipantDashboard() {
             </aside>
 
             {/* ──────────────── MAIN AREA ──────────────── */}
-            <div className="flex-1 flex flex-col overflow-hidden relative z-10">
-                <header className="h-14 flex items-center justify-between px-6 border-b border-white/[0.04] flex-shrink-0" style={{ background: '#0a0e1a' }}>
-                    <div className="flex items-center gap-2 text-slate-200">
-                        <Zap className="w-4 h-4 text-cyan-400" />
-                        <span className="text-sm font-semibold">{activeNav}</span>
+            <div className="flex-1 flex flex-col overflow-hidden relative z-10 w-full">
+                <header className="h-14 flex items-center justify-between px-4 lg:px-6 border-b border-white/[0.04] flex-shrink-0" style={{ background: '#0a0e1a' }}>
+                    <div className="flex items-center gap-2 lg:gap-4 text-slate-200">
+                        <button
+                            className="p-1 lg:hidden text-slate-300 hover:text-white"
+                            onClick={() => setIsMobileMenuOpen(true)}
+                        >
+                            <Menu className="w-6 h-6" />
+                        </button>
+                        <div className="h-4 w-px bg-white/10 hidden sm:block lg:hidden"></div>
+                        <Zap className="w-5 h-5 text-cyan-400 hidden sm:block" />
+                        <span className="text-base font-semibold">{activeNav}</span>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 lg:gap-4">
                         <button className="relative p-1.5 text-slate-400 hover:text-white transition-colors">
                             <Bell className="w-5 h-5" />
                             <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-[#00e676] rounded-full shadow-[0_0_5px_#00e676]" />
                         </button>
-                        
+
                         {/* Profile Dropdown */}
                         <div className="relative" ref={dropdownRef}>
-                            <div 
-                                className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
+                            <div
+                                className="flex items-center gap-2 lg:gap-4 cursor-pointer hover:opacity-80 transition-opacity"
                                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                             >
-                                <div className="flex flex-col items-end">
-                                    <span className="text-[12px] font-bold text-white">{userName}</span>
-                                    {userEmail && <span className="text-[9px] uppercase tracking-wider text-slate-500">{userEmail}</span>}
+                                <div className="hidden sm:flex flex-col items-end">
+                                    <span className="text-sm font-bold text-white max-w-[150px] truncate">{userName}</span>
+                                    {userEmail && <span className="text-xs uppercase tracking-wider text-slate-500 max-w-[150px] truncate">{userEmail}</span>}
                                 </div>
                                 <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-white/10 overflow-hidden shadow-lg">
                                     {userPicture ? <img src={userPicture} alt={userName} className="w-full h-full object-cover" /> : initials}
@@ -1105,7 +1123,7 @@ export default function ParticipantDashboard() {
 
                             <AnimatePresence>
                                 {isDropdownOpen && (
-                                    <motion.div 
+                                    <motion.div
                                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -1113,37 +1131,37 @@ export default function ParticipantDashboard() {
                                         className="absolute right-0 mt-3 w-56 bg-[#0a0e1a] border border-white/10 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden z-50 p-2"
                                     >
                                         <div className="space-y-1">
-                                            <button 
+                                            <button
                                                 onClick={() => { setActiveNav('Profile'); setIsDropdownOpen(false); }}
                                                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.04] transition-colors text-left"
                                             >
                                                 <User className="w-4 h-4 text-slate-400" />
-                                                <span className="text-[11px] font-bold uppercase tracking-widest">My Account</span>
+                                                <span className="text-sm font-bold uppercase tracking-widest">My Account</span>
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => { setActiveNav('Messages'); setIsDropdownOpen(false); }}
                                                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.04] transition-colors text-left"
                                             >
                                                 <MessageSquare className="w-4 h-4 text-slate-400" />
-                                                <span className="text-[11px] font-bold uppercase tracking-widest">Messages</span>
+                                                <span className="text-sm font-bold uppercase tracking-widest">Messages</span>
                                             </button>
-                                            
+
                                             <div className="h-px bg-white/10 my-1 mx-2"></div>
-                                            
-                                            <button 
+
+                                            <button
                                                 onClick={() => navigate('/')}
                                                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.04] transition-colors text-left"
                                             >
                                                 <LayoutDashboard className="w-4 h-4 text-slate-400" />
-                                                <span className="text-[11px] font-bold uppercase tracking-widest">Main Website</span>
+                                                <span className="text-sm font-bold uppercase tracking-widest">Main Website</span>
                                             </button>
 
-                                            <button 
+                                            <button
                                                 onClick={handleSignOut}
                                                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-500/10 transition-colors text-left group"
                                             >
                                                 <LogOut className="w-4 h-4 text-red-500 group-hover:text-red-400" />
-                                                <span className="text-[11px] font-bold uppercase tracking-widest text-red-500 group-hover:text-red-400">Sign Out</span>
+                                                <span className="text-sm font-bold uppercase tracking-widest text-red-500 group-hover:text-red-400">Sign Out</span>
                                             </button>
                                         </div>
                                     </motion.div>
@@ -1153,7 +1171,7 @@ export default function ParticipantDashboard() {
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-y-auto px-6 py-8" style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e2a42 transparent' }}>
+                <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8" style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e2a42 transparent' }}>
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeNav}
@@ -1163,15 +1181,15 @@ export default function ParticipantDashboard() {
                             transition={{ duration: 0.2 }}
                         >
                             {activeNav === 'Dashboard' && (
-                            <DashboardView 
-                                firstName={firstName} 
-                                today={today} 
-                                onAction={openActionModal} 
-                                tasks={tasks}
-                                study={activeStudy}
-                            />
-                        )}
-                        {activeNav === 'Tasks' && <TasksView onAction={openActionModal} tasks={tasks} />}
+                                <DashboardView
+                                    firstName={firstName}
+                                    today={today}
+                                    onAction={openActionModal}
+                                    tasks={tasks}
+                                    study={activeStudy}
+                                />
+                            )}
+                            {activeNav === 'Tasks' && <TasksView onAction={openActionModal} tasks={tasks} />}
                             {activeNav === 'Study Kit' && <StudyKitView onAction={openActionModal} />}
                             {activeNav === 'Logs' && <LogsView onAction={openActionModal} />}
                             {activeNav === 'Messages' && <MessagesView />}
@@ -1184,14 +1202,14 @@ export default function ParticipantDashboard() {
                 </main>
             </div>
             {/* Added the Action Modal to the highest overlay layer */}
-            <ActionModal 
+            <ActionModal
                 isOpen={modalConfig?.isOpen}
                 title={modalConfig?.title}
                 desc={modalConfig?.desc}
                 action={modalConfig?.primaryAction}
                 onClose={() => setModalConfig(null)}
             />
-            <LogoutConfirmationModal 
+            <LogoutConfirmationModal
                 isOpen={isLogoutModalOpen}
                 onClose={() => setIsLogoutModalOpen(false)}
                 onConfirm={confirmSignOut}

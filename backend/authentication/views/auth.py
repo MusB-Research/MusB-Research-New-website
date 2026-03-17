@@ -99,6 +99,9 @@ def login_view(request):
         ip_address=ip.split(',')[0].strip() if ip and ',' in ip else ip,
     )
 
+    user.last_login = now()
+    user.save(update_fields=['last_login'])
+
     AuditLog.log('LOGIN_SUCCESS', user_email=user.email, request=request)
 
     response = Response({
@@ -252,6 +255,9 @@ def google_login(request):
             user_agent=request.META.get('HTTP_USER_AGENT', '')[:512],
             ip_address=ip.split(',')[0].strip() if ip and ',' in ip else ip,
         )
+
+        user.last_login = now()
+        user.save(update_fields=['last_login'])
 
         AuditLog.log('GOOGLE_LOGIN', user_email=user.email, request=request)
 

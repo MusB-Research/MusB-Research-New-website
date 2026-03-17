@@ -116,10 +116,10 @@ def map_status(status_str):
     mapping = {
         'Recruiting': 'RECRUITING',
         'Active': 'ACTIVE',
-        'Closed': 'CLOSED',
-        'Upcoming': 'PREPARING_LAUNCH'
+        'Closed': 'COMPLETED',
+        'Upcoming': 'PAUSED'
     }
-    return mapping.get(status_str, 'DRAFT')
+    return mapping.get(status_str, 'PAUSED')
 
 def map_type(type_str):
     return 'VIRTUAL' if type_str == 'Remote' else 'IN_PERSON'
@@ -145,7 +145,8 @@ def populate():
             'safety_info': data['safetyInfo'],
             'privacy_standards': data['privacyStandards'],
             'remote_participation': data['remoteParticipation'],
-            'sponsor_name': 'MusB Research' # Default value
+            'sponsor_name': 'MusB Research', # Default value
+            'approval_status': 'approved'
         }
         
         study, created = Study.objects.update_or_create(

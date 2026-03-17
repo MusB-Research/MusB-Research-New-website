@@ -21,11 +21,12 @@ class UserSerializer(SanitizedModelSerializer):
     id = serializers.CharField(read_only=True)
     full_name = serializers.CharField()
     phone_number = serializers.SerializerMethodField()
+    last_login_formatted = serializers.SerializerMethodField()
     password = serializers.CharField(write_only=True, required=False)
     
     class Meta:
         model = User
-        fields = ['id', 'email', 'full_name', 'role', 'phone_number', 'profile_picture', 'password']
+        fields = ['id', 'email', 'full_name', 'role', 'phone_number', 'profile_picture', 'password', 'last_login_formatted']
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
@@ -35,6 +36,22 @@ class UserSerializer(SanitizedModelSerializer):
 
     def get_phone_number(self, obj):
         return obj.decrypted_phone
+
+    def get_last_login_formatted(self, obj):
+        if not obj.last_login:
+            return "Never"
+        
+        from django.utils.timezone import now
+        diff = now() - obj.last_login
+        
+        if diff.days > 0:
+            return f"{diff.days}d ago"
+        seconds = diff.seconds
+        if seconds < 60:
+            return "Just Now"
+        if seconds < 3600:
+            return f"{seconds // 60}m ago"
+        return f"{seconds // 3600}h ago"
 
     def create(self, validated_data):
         password = validated_data.pop('password', None)

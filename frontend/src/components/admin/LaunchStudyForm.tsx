@@ -33,7 +33,7 @@ export default function LaunchStudyForm({ onClose, onSave, initialData }: TrialC
         startDate: initialData?.startDate || '',
         endDate: initialData?.endDate || '',
         participantLimit: initialData?.participantLimit || 100,
-        status: initialData?.status || 'DRAFT',
+        status: initialData?.status || 'PAUSED',
         study_type: initialData?.study_type || 'IN_PERSON',
         trial_model: initialData?.trial_model || 'RCT',
         is_double_blind: initialData?.is_double_blind || false,
@@ -51,7 +51,7 @@ export default function LaunchStudyForm({ onClose, onSave, initialData }: TrialC
     };
 
     const handleAction = (isPublish: boolean) => {
-        if (onSave) onSave({ ...formData, status: isPublish ? 'ACTIVE' : 'DRAFT' });
+        if (onSave) onSave({ ...formData, status: isPublish ? 'RECRUITING' : 'PAUSED' });
     };
 
     return (

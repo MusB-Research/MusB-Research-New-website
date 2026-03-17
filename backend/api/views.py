@@ -115,7 +115,7 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         
         # If user is a sponsor, set initial status to PROPOSAL_SUBMITTED
         if user.role == 'SPONSOR':
-            study = serializer.save(status='PROPOSAL_SUBMITTED', created_by=user, approval_status=approval_status)
+            study = serializer.save(status='PAUSED', created_by=user, approval_status=approval_status)
             StudyAssignment.objects.create(study=study, user=user, role='SPONSOR_ADMIN')
         else:
             study = serializer.save(created_by=user, approval_status=approval_status)
@@ -127,6 +127,10 @@ class PublicStudyViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Study.objects.all()
     serializer_class = StudySerializer
     permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        # Public only sees approved studies that are recruiting or active
+        return Study.objects.filter(approval_status='approved', status__in=['RECRUITING', 'ACTIVE'])
 
 class SponsorViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.filter(role='SPONSOR')

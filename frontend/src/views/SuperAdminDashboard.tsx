@@ -8,7 +8,8 @@ import {
   Megaphone, FileText, UserCheck, AlertTriangle, Zap, X, ExternalLink,
   ChevronDown, Filter, Mail, Phone, Calendar, ArrowRight, ShieldCheck,
   LayoutDashboard, Server, Network, Terminal, CheckCircle2, MoreVertical,
-  ShieldAlert, RefreshCw, UserPlus, Layout, Rocket, ClipboardList, TrendingUp, Clock, MousePointer2, User as UserIcon, Menu
+  MapPin, Clock, MousePointer2, User as UserIcon, Menu, RefreshCw,
+  UserPlus, ShieldAlert, Rocket, ClipboardList
 } from 'lucide-react';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
 
@@ -90,6 +91,9 @@ export default function SuperAdminDashboard() {
   const [selectedStudy, setSelectedStudy] = useState<any>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [isUserDetailOpen, setIsUserDetailOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const profileRef = React.useRef<HTMLDivElement>(null);
 
@@ -133,12 +137,11 @@ export default function SuperAdminDashboard() {
 
       if (uRes.ok) {
         const data = await uRes.json();
-        // Backend returns encrypted names, but serializer should have full_name
-        setUsers(data.map((u: any) => ({
+        setUsers((data || []).map((u: any) => ({
           ...u,
-          name: u.full_name || u.email.split('@')[0],
-          status: 'Active',
-          lastLogin: 'Today'
+          name: u.full_name || (u.email ? u.email.split('@')[0] : 'User'),
+          status: u.is_active === false ? 'Inactive' : 'Active',
+          lastLogin: u.last_login_formatted || 'Never'
         })));
       }
       if (sRes.ok) setStudies(await sRes.json());
@@ -225,6 +228,49 @@ export default function SuperAdminDashboard() {
     }
   };
 
+  const handleRoleUpdate = async (userId: string, newRole: string) => {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    try {
+      const res = await authFetch(`${apiUrl}/api/users/${userId}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role: newRole })
+      });
+      if (res.ok) fetchData();
+    } catch (err) {
+      alert("Update failed");
+    }
+  };
+
+  const handleStatusToggle = async (user: any) => {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const newStatus = user.status === 'Active' ? false : true;
+    try {
+      const res = await authFetch(`${apiUrl}/api/users/${user.id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({ is_active: newStatus })
+      });
+      if (res.ok) {
+        fetchData();
+        // If updating the selected user in modal, update the local state too
+        if (selectedUser && selectedUser.id === user.id) {
+            setSelectedUser({...user, status: newStatus ? 'Active' : 'Inactive'});
+        }
+      }
+    } catch (err) {
+      alert("Status update failed");
+    }
+  };
+
+  const confirmDelete = (user: any) => {
+    setSelectedUser(user);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const viewDetails = (user: any) => {
+    setSelectedUser(user);
+    setIsUserDetailOpen(true);
+  };
+
   // ═══════════════════════════════════════════
   // COMPONENT PARTS (SUB-PAGES)
   // ═══════════════════════════════════════════
@@ -268,27 +314,27 @@ export default function SuperAdminDashboard() {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Crown className="w-4 h-4 text-[#7c3aed]" />
-                <span className="text-[10px] font-black text-[#7c3aed] uppercase tracking-[0.3em]">Super Administrator</span>
+                <span className="text-xs font-black text-[#7c3aed] uppercase tracking-[0.3em]">Super Administrator</span>
               </div>
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-black text-white tracking-tight leading-none">
                 Platform Control Center
               </h1>
-              <p className="text-sm sm:text-base text-[#8b8fa8] font-medium tracking-tight max-w-2xl">
+              <p className="text-base sm:text-lg text-[#8b8fa8] font-medium tracking-tight max-w-2xl">
                 Welcome, {currentUserName}. You have complete platform visibility and control.
               </p>
             </div>
             <div className="flex flex-wrap gap-3 sm:gap-4">
               <button
                 onClick={refreshDashboard}
-                className="flex-1 sm:flex-none justify-center px-4 sm:px-6 py-3 bg-[#0d0f2b] border border-white/10 text-white rounded-xl font-bold text-[10px] sm:text-xs uppercase tracking-widest hover:bg-white/5 transition-all flex items-center gap-2"
+                className="flex-1 sm:flex-none justify-center px-4 sm:px-6 py-3 bg-[#0d0f2b] border border-white/10 text-white rounded-xl font-bold text-xs sm:text-sm uppercase tracking-widest hover:bg-white/5 transition-all flex items-center gap-2"
               >
-                <RefreshCw className="w-4 h-4" /> Refresh
+                <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" /> Refresh
               </button>
               <button
                 onClick={() => setModals({ ...modals, createUser: true })}
-                className="flex-1 sm:flex-none justify-center px-4 sm:px-6 py-3 bg-[#7c3aed] text-white rounded-xl font-bold text-[10px] sm:text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-[#6d28d9] transition-all shadow-xl shadow-purple-900/40"
+                className="flex-1 sm:flex-none justify-center px-4 sm:px-6 py-3 bg-[#7c3aed] text-white rounded-xl font-bold text-xs sm:text-sm uppercase tracking-widest flex items-center gap-2 hover:bg-[#6d28d9] transition-all shadow-xl shadow-purple-900/40"
               >
-                <UserPlus className="w-4 h-4" /> Create User
+                <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" /> Create User
               </button>
             </div>
           </div>
@@ -298,13 +344,13 @@ export default function SuperAdminDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
         {[
-          { label: 'Total Users', value: users.length, icon: Users, color: '#14b8a6', badge: 'Live', onClick: () => setCurrentPage('ALL_USERS') },
-          { label: 'Total Studies', value: studies.length, icon: Briefcase, color: '#3b82f6', onClick: () => setCurrentPage('STUDIES') },
-          { label: 'Active Participants', value: participants.length, icon: UserCheck, color: '#14b8a6', onClick: () => { } },
-          { label: 'Admins & Staff', value: users.filter(u => ['ADMIN', 'SUPER_ADMIN', 'PI', 'COORDINATOR'].includes(u.role)).length, icon: Crown, color: '#f59e0b', onClick: () => { } },
-          { label: 'Sponsors', value: users.filter(u => u.role === 'SPONSOR').length, icon: Building, color: '#ec4899', onClick: () => setCurrentPage('SPONSORS') },
+          { label: 'Total Users', value: (users || []).length, icon: Users, color: '#14b8a6', badge: 'Live', onClick: () => setCurrentPage('ALL_USERS') },
+          { label: 'Total Studies', value: (studies || []).length, icon: Briefcase, color: '#3b82f6', onClick: () => setCurrentPage('STUDIES') },
+          { label: 'Active Participants', value: (participants || []).length, icon: UserCheck, color: '#14b8a6', onClick: () => { } },
+          { label: 'Admins & Staff', value: (users || []).filter(u => ['ADMIN', 'SUPER_ADMIN', 'PI', 'COORDINATOR'].includes(u.role)).length, icon: Crown, color: '#f59e0b', onClick: () => { } },
+          { label: 'Sponsors', value: (users || []).filter(u => u.role === 'SPONSOR').length, icon: Building, color: '#ec4899', onClick: () => setCurrentPage('SPONSORS') },
           { label: 'Sponsor Teams', value: 0, icon: Users, color: '#ec4899', onClick: () => { } },
-          { label: 'Active Studies', value: studies.filter(s => s.status === 'ACTIVE' || s.status === 'RECRUITING').length, icon: Activity, color: '#14b8a6', onClick: () => setCurrentPage('STUDIES') },
+          { label: 'Active Studies', value: (studies || []).filter(s => s.status === 'ACTIVE' || s.status === 'RECRUITING').length, icon: Activity, color: '#14b8a6', onClick: () => setCurrentPage('STUDIES') },
           { label: 'Open Adverse Events', value: 2, icon: ShieldAlert, color: '#ef4444', onClick: () => { } },
           { label: 'Audit Events Today', value: 5, icon: FileText, color: '#7c3aed', onClick: () => setCurrentPage('AUDIT_LOGS') },
         ].map((stat, i) => (
@@ -320,12 +366,12 @@ export default function SuperAdminDashboard() {
               {stat.badge && (
                 <div className="flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 bg-green-500/10 rounded-full">
                   <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-[8px] sm:text-[9px] font-black text-green-500 uppercase tracking-widest">{stat.badge}</span>
+                  <span className="text-[10px] sm:text-[11px] font-black text-green-500 uppercase tracking-widest">{stat.badge}</span>
                 </div>
               )}
             </div>
-            <p className="text-[8px] sm:text-[10px] font-bold text-[#555a7a] uppercase tracking-widest mb-1">{stat.label}</p>
-            <h4 className="text-2xl sm:text-4xl font-black text-white italic tracking-tighter">{stat.value}</h4>
+            <p className="text-xs sm:text-sm font-bold text-[#555a7a] uppercase tracking-widest mb-1">{stat.label}</p>
+            <h4 className="text-3xl sm:text-4xl xl:text-5xl font-black text-white italic tracking-tighter">{stat.value}</h4>
             <ChevronRight className="absolute bottom-6 right-6 w-4 h-4 sm:w-5 sm:h-5 text-[#333] group-hover:text-white transition-all transform group-hover:translate-x-1" />
             <div className={`absolute bottom-0 left-0 h-1 w-0 group-hover:w-full transition-all duration-300`} style={{ backgroundColor: stat.color }}></div>
           </div>
@@ -356,7 +402,7 @@ export default function SuperAdminDashboard() {
                 <div className="p-3 bg-white/5 rounded-xl text-white group-hover:bg-white/20 transition-all">
                   <action.icon style={{ color: action.color }} className="w-6 h-6 group-hover:text-white" />
                 </div>
-                <span className="text-[9px] font-black uppercase text-[#8b8fa8] group-hover:text-white tracking-widest text-center">{action.label}</span>
+                <span className="text-xs font-black uppercase text-[#8b8fa8] group-hover:text-white tracking-widest text-center">{action.label}</span>
               </button>
             ))}
           </div>
@@ -378,10 +424,10 @@ export default function SuperAdminDashboard() {
                     <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
                     <div>
                       <div className="flex items-center gap-3">
-                        <p className="text-[11px] font-black text-white uppercase tracking-tight italic">{log.type}</p>
-                        <span className="px-2 py-0.5 bg-[#7c3aed]/10 border border-[#7c3aed]/20 rounded-md text-[8px] font-black text-[#7c3aed] uppercase tracking-widest">{log.category}</span>
+                        <p className="text-sm font-black text-white uppercase tracking-tight italic">{log.type}</p>
+                        <span className="px-2 py-0.5 bg-[#7c3aed]/10 border border-[#7c3aed]/20 rounded-md text-[10px] font-black text-[#7c3aed] uppercase tracking-widest">{log.category}</span>
                       </div>
-                      <p className="text-[10px] text-[#555a7a] font-medium mt-1 uppercase tracking-tighter italic">{log.details}</p>
+                      <p className="text-xs text-[#555a7a] font-medium mt-1 uppercase tracking-tighter italic">{log.details}</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -453,21 +499,12 @@ export default function SuperAdminDashboard() {
   // --- Page: All Users ---
   const UsersPage = () => {
     const filteredUsers = useMemo(() => {
-      return users.filter(u => u.name.toLowerCase().includes(searchTerm.toLowerCase()) || u.email.toLowerCase().includes(searchTerm.toLowerCase()));
+      return (users || []).filter(u => 
+        (u.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+        (u.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+      );
     }, [users, searchTerm]);
 
-    const handleRoleUpdate = async (userId: string, newRole: string) => {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      try {
-        const res = await authFetch(`${apiUrl}/api/users/${userId}/`, {
-          method: 'PATCH',
-          body: JSON.stringify({ role: newRole })
-        });
-        if (res.ok) fetchData();
-      } catch (err) {
-        alert("Update failed");
-      }
-    };
 
     return (
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -483,13 +520,13 @@ export default function SuperAdminDashboard() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
           {[
-            { label: 'Total Users', value: users.length, color: 'text-white' },
-            { label: 'Active', value: users.filter(u => u.status !== 'Inactive').length, color: 'text-green-500' },
-            { label: 'Inactive', value: users.filter(u => u.status === 'Inactive').length, color: 'text-[#ef4444]' },
-            { label: 'Admins', value: users.filter(u => ['ADMIN', 'SUPER_ADMIN'].includes(u.role)).length, color: 'text-[#7c3aed]' },
+            { label: 'Total Users', value: (users || []).length, color: 'text-white' },
+            { label: 'Active', value: (users || []).filter(u => u.status !== 'Inactive').length, color: 'text-green-500' },
+            { label: 'Inactive', value: (users || []).filter(u => u.status === 'Inactive').length, color: 'text-[#ef4444]' },
+            { label: 'Admins', value: (users || []).filter(u => ['ADMIN', 'SUPER_ADMIN'].includes(u.role)).length, color: 'text-[#7c3aed]' },
           ].map((s, i) => (
             <div key={i} className="bg-[#0f1133] border border-white/5 rounded-2xl p-4 sm:p-6 text-center">
-              <p className="text-[8px] sm:text-[9px] font-bold text-[#555a7a] uppercase tracking-widest mb-1">{s.label}</p>
+              <p className="text-xs font-bold text-[#555a7a] uppercase tracking-widest mb-1">{s.label}</p>
               <h4 className={`text-xl sm:text-3xl font-black italic tracking-tighter ${s.color}`}>{s.value}</h4>
             </div>
           ))}
@@ -511,7 +548,7 @@ export default function SuperAdminDashboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-white/[0.02] text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic border-b border-white/5">
+                <tr className="bg-white/[0.02] text-xs font-black text-[#555a7a] uppercase tracking-widest italic border-b border-white/5">
                   <th className="px-8 py-5">Name & Email</th>
                   <th className="px-8 py-5">Role</th>
                   <th className="px-8 py-5">Status</th>
@@ -523,13 +560,13 @@ export default function SuperAdminDashboard() {
                 {filteredUsers.map((user, i) => (
                   <tr key={user.id || i} className="hover:bg-white/[0.01] transition-colors group">
                     <td className="px-8 py-5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black text-white italic border border-white/5 bg-gradient-to-br from-indigo-500/20 to-purple-500/20">
+                      <div className="flex items-center gap-3 cursor-pointer group/name" onClick={() => viewDetails(user)}>
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black text-white italic border border-white/5 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 group-hover/name:scale-110 transition-transform">
                           {user.name?.[0] || 'U'}
                         </div>
                         <div>
-                          <p className="text-xs font-black text-white italic group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{user.name}</p>
-                          <p className="text-[10px] text-[#555a7a] font-medium tracking-tight mt-0.5">{user.email}</p>
+                          <p className="text-sm font-black text-white italic group-hover/name:text-indigo-400 transition-colors uppercase tracking-tight">{user.name}</p>
+                          <p className="text-xs text-[#555a7a] font-medium tracking-tight mt-0.5">{user.email}</p>
                         </div>
                       </div>
                     </td>
@@ -537,16 +574,29 @@ export default function SuperAdminDashboard() {
                       <select
                         value={user.role}
                         onChange={(e) => handleRoleUpdate(user.id, e.target.value)}
-                        className="bg-[#0a0b1a] text-[10px] font-black uppercase tracking-widest text-[#7c3aed] border border-white/5 rounded-lg px-2 py-1 outline-none cursor-pointer"
+                        className="bg-[#0a0b1a] text-xs font-black uppercase tracking-widest text-[#7c3aed] border border-white/5 rounded-lg px-2 py-1 outline-none cursor-pointer"
                       >
                         {ROLES.map(r => <option key={r.id} value={r.id} className="bg-slate-900">{r.label}</option>)}
                       </select>
                     </td>
-                    <td className="px-8 py-5"><StatusBadge status={user.status || 'Active'} /></td>
-                    <td className="px-8 py-5 text-[10px] font-bold text-[#8b8fa8] uppercase tracking-widest">{user.lastLogin || 'Never'}</td>
+                    <td className="px-8 py-5">
+                      <select
+                        value={user.status}
+                        onChange={(e) => handleStatusToggle(user)}
+                        className={`text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border outline-none cursor-pointer transition-all ${
+                          user.status === 'Active' 
+                            ? 'bg-green-500/10 text-green-500 border-green-500/20' 
+                            : 'bg-red-500/10 text-red-500 border-red-500/20'
+                        }`}
+                      >
+                        <option value="Active" className="bg-[#0a0b1a]">Active</option>
+                        <option value="Inactive" className="bg-[#0a0b1a]">Inactive</option>
+                      </select>
+                    </td>
+                    <td className="px-8 py-5 text-xs font-bold text-[#8b8fa8] uppercase tracking-widest">{user.lastLogin || 'Never'}</td>
                     <td className="px-8 py-5 text-right space-x-2">
-                      <button className="p-2 text-[#555a7a] hover:text-white transition-colors"><Eye className="w-4 h-4" /></button>
-                      <button className="p-2 text-[#555a7a] hover:text-[#ef4444] transition-colors"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => viewDetails(user)} className="p-2 text-[#555a7a] hover:text-white transition-colors bg-white/5 rounded-lg border border-white/5 hover:border-white/10"><Eye className="w-4 h-4" /></button>
+                      <button onClick={() => confirmDelete(user)} className="p-2 text-[#555a7a] hover:text-[#ef4444] transition-colors bg-white/5 rounded-lg border border-white/5 hover:border-red-500/20"><Trash2 className="w-4 h-4" /></button>
                     </td>
                   </tr>
                 ))}
@@ -640,7 +690,7 @@ export default function SuperAdminDashboard() {
             <p className="text-[10px] sm:text-xs text-[#8b8fa8] uppercase tracking-widest mt-2">Global clinical trial inventory and lifecycle management</p>
           </div>
           <div className="flex gap-4 w-full sm:w-auto">
-            <button onClick={handleStudiesLink} className="flex-1 sm:flex-none justify-center px-4 sm:px-6 py-3 bg-white/5 border border-white/10 text-white rounded-lg font-bold text-[10px] sm:text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-white/10 transition-all">
+            <button onClick={handleStudiesLink} className="flex-1 sm:flex-none justify-center px-4 sm:px-6 py-3 bg-white/5 border border-white/10 text-white rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-white/10 transition-all">
               <ExternalLink className="w-4 h-4" /> Public Portal
             </button>
           </div>
@@ -650,7 +700,7 @@ export default function SuperAdminDashboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-white/[0.02] text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic border-b border-white/5">
+                <tr className="bg-white/[0.02] text-xs font-black text-[#555a7a] uppercase tracking-widest italic border-b border-white/5">
                   <th className="px-8 py-5">Study Details</th>
                   <th className="px-8 py-5">Sponsor</th>
                   <th className="px-8 py-5">Phase / Type</th>
@@ -660,7 +710,7 @@ export default function SuperAdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {studies.map((study, i) => (
+                {(studies || []).map((study, i) => (
                   <tr key={study.id || i} className="hover:bg-white/[0.01] transition-colors group">
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-3">
@@ -673,8 +723,30 @@ export default function SuperAdminDashboard() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">{study.sponsor_name || 'MUSB Internal'}</td>
-                    <td className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">{study.study_type || 'Clinical'}</td>
+                    <td className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">{study.sponsor_name || 'MUSB Internal'}</td>
+                    <td className="px-8 py-5">
+                      <select
+                        value={study.study_type}
+                        onChange={async (e) => {
+                          const newType = e.target.value;
+                          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                          try {
+                            const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id}/`, {
+                              method: 'PATCH',
+                              body: JSON.stringify({ study_type: newType })
+                            });
+                            if (res.ok) fetchData();
+                          } catch (err) {
+                            alert("Format update failed");
+                          }
+                        }}
+                        className="bg-transparent text-[10px] font-black uppercase tracking-widest text-slate-400 outline-none cursor-pointer hover:text-white transition-all border-none"
+                      >
+                        <option value="IN_PERSON" className="bg-[#0a0b1a]">In-Person</option>
+                        <option value="VIRTUAL" className="bg-[#0a0b1a]">Virtual</option>
+                        <option value="DECENTRALIZED" className="bg-[#0a0b1a]">Hybrid</option>
+                      </select>
+                    </td>
                     <td className="px-8 py-5">
                       <div className="flex flex-col gap-1.5 min-w-[120px]">
                         <div className="flex justify-between text-[8px] font-black uppercase text-slate-600">
@@ -687,10 +759,33 @@ export default function SuperAdminDashboard() {
                       </div>
                     </td>
                     <td className="px-8 py-5">
-                      <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${['ACTIVE', 'RECRUITING'].includes(study.status) ? 'bg-green-500/10 text-green-500' : 'bg-amber-500/10 text-amber-500'
-                        }`}>
-                        {study.status}
-                      </span>
+                      <select
+                        value={study.status}
+                        onChange={async (e) => {
+                          const newStatus = e.target.value;
+                          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                          try {
+                            const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id}/`, {
+                              method: 'PATCH',
+                              body: JSON.stringify({ status: newStatus })
+                            });
+                            if (res.ok) fetchData();
+                          } catch (err) {
+                            alert("Status update failed");
+                          }
+                        }}
+                        className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border outline-none cursor-pointer transition-all ${
+                          study.status === 'RECRUITING' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 
+                          study.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                          study.status === 'PAUSED' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                          'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                        }`}
+                      >
+                        <option value="RECRUITING" className="bg-[#0a0b1a]">Recruiting</option>
+                        <option value="ACTIVE" className="bg-[#0a0b1a]">Active</option>
+                        <option value="PAUSED" className="bg-[#0a0b1a]">Paused</option>
+                        <option value="COMPLETED" className="bg-[#0a0b1a]">Completed</option>
+                      </select>
                     </td>
                     <td className="px-8 py-5 text-right">
                       <button 
@@ -715,7 +810,7 @@ export default function SuperAdminDashboard() {
 
   // --- Page: Sponsors ---
   const SponsorsPage = () => {
-    const sponsors = users.filter(u => u.role === 'SPONSOR');
+    const sponsors = (users || []).filter(u => u.role === 'SPONSOR');
     return (
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Active <span className="text-pink-500">Sponsors</span></h1>
@@ -888,33 +983,33 @@ export default function SuperAdminDashboard() {
           <form onSubmit={handleCreateUser} className="space-y-8 relative z-10">
               <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-4">
-                  <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Display Name</label>
+                  <label className="text-xs font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Display Name</label>
                   <input
                     type="text"
                     placeholder="John Doe"
                     required
                     value={newUser.name}
                     onChange={e => setNewUser({ ...newUser, name: e.target.value })}
-                    className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-4 text-xs text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono"
+                    className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-4 text-sm text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono"
                   />
                 </div>
                 <div className="space-y-4">
-                  <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Personnel Email</label>
+                  <label className="text-xs font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Personnel Email</label>
                   <input
                     type="email"
                     placeholder="john@musb.com"
                     required
                     value={newUser.email}
                     onChange={e => setNewUser({ ...newUser, email: e.target.value })}
-                    className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-4 text-xs text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono"
+                    className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-4 text-sm text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-4">
-                  <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Assign RBAC Role</label>
+                  <label className="text-xs font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Assign RBAC Role</label>
                   <select
-                    className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-4 text-xs text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono"
+                    className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-4 text-sm text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono"
                     value={newUser.role}
                     onChange={e => setNewUser({ ...newUser, role: e.target.value })}
                   >
@@ -922,14 +1017,14 @@ export default function SuperAdminDashboard() {
                   </select>
                 </div>
                 <div className="space-y-4">
-                  <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Node Security Key (Password)</label>
+                  <label className="text-xs font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Node Security Key (Password)</label>
                   <input
                     type="password"
                     placeholder="••••••••••••"
                     required
                     value={newUser.password}
                     onChange={e => setNewUser({ ...newUser, password: e.target.value })}
-                    className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-4 text-xs text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono"
+                    className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-4 text-sm text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono"
                   />
                 </div>
               </div>
@@ -937,7 +1032,7 @@ export default function SuperAdminDashboard() {
                 <button
                   type="button"
                   onClick={() => setModals({ ...modals, createUser: false })}
-                  className="flex-1 py-5 bg-white/5 border border-white/5 text-[#555a7a] rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 transition-all"
+                  className="flex-1 py-5 bg-white/5 border border-white/5 text-[#555a7a] rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 transition-all"
                   disabled={isCreating}
                 >
                   Abort Process
@@ -945,7 +1040,7 @@ export default function SuperAdminDashboard() {
                 <button
                   type="submit"
                   disabled={isCreating}
-                  className="flex-[2] py-5 bg-[#7c3aed] text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] italic shadow-xl shadow-purple-900/40 hover:scale-[1.02] transition-all disabled:opacity-50"
+                  className="flex-[2] py-5 bg-[#7c3aed] text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] italic shadow-xl shadow-purple-900/40 hover:scale-[1.02] transition-all disabled:opacity-50"
                 >
                   {isCreating ? 'Synchronizing Node...' : 'Authorize & Create Account'}
                 </button>
@@ -989,7 +1084,7 @@ export default function SuperAdminDashboard() {
           <nav className="flex-1 overflow-y-auto px-4 space-y-10 py-4 custom-scrollbar">
             {sidebarItems.map((group, i) => (
               <div key={i} className="space-y-4">
-                <p className="px-4 text-[9px] font-black text-[#555a7a] uppercase tracking-[0.3em] font-mono">{group.group}</p>
+                <p className="px-4 text-[11px] xl:text-xs font-black text-[#555a7a] uppercase tracking-[0.3em] font-mono">{group.group}</p>
                 <div className="space-y-1.5">
                   {group.items.map((item, j) => (
                     <button
@@ -1009,7 +1104,7 @@ export default function SuperAdminDashboard() {
                     >
                       <div className="flex items-center gap-4">
                         <item.icon className={`w-4 h-4 ${currentPage === item.id && !(item as any).isExternal ? 'text-[#7c3aed]' : 'text-slate-700 group-hover:text-purple-400'}`} />
-                        <span className="text-[10px] font-bold uppercase tracking-[0.1em]">{item.label}</span>
+                        <span className="text-xs xl:text-sm font-bold uppercase tracking-widest">{item.label}</span>
                       </div>
                       {(item as any).isExternal && <ExternalLink className="w-3 h-3 opacity-40 group-hover:opacity-100" />}
                       {(item as any).hasNotify && <div className="w-2 h-2 bg-pink-500 rounded-full shadow-[0_0_8px_rgba(236,72,153,0.5)]" />}
@@ -1023,12 +1118,12 @@ export default function SuperAdminDashboard() {
           <div className="p-6 border-t border-white/5 mt-auto bg-[#0a0b1a]/40 backdrop-blur-md">
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-4 bg-white/[0.02] p-4 rounded-3xl border border-white/5 group hover:border-purple-500/30 transition-all duration-500">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center font-black text-white shadow-lg shadow-purple-900/40 italic text-xs">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center font-black text-white shadow-lg shadow-purple-900/40 italic text-sm">
                   {currentUserName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  <p className="text-[10px] font-black text-white uppercase italic truncate tracking-tight">{currentUserName}</p>
-                  <p className="text-[8px] text-purple-400 font-black uppercase tracking-widest mt-0.5 opacity-70">Super Admin</p>
+                  <p className="text-xs font-black text-white uppercase italic truncate tracking-tight">{currentUserName}</p>
+                  <p className="text-xs text-purple-400 font-black uppercase tracking-widest mt-0.5 opacity-70">Super Admin</p>
                 </div>
               </div>
               
@@ -1036,8 +1131,8 @@ export default function SuperAdminDashboard() {
                 onClick={handleSignOut}
                 className="w-full group flex items-center justify-center gap-3 py-4 bg-red-500/5 hover:bg-red-500 border border-red-500/10 hover:border-red-500 rounded-[2rem] transition-all duration-500 shadow-lg hover:shadow-red-500/20"
               >
-                <LogOut className="w-4 h-4 text-red-500 group-hover:text-white transition-colors" />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500 group-hover:text-white transition-colors">Sign Out Interface</span>
+                <LogOut className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 group-hover:text-white transition-colors" />
+                <span className="text-xs sm:text-sm font-black uppercase tracking-[0.2em] text-red-500 group-hover:text-white transition-colors">Sign Out Interface</span>
               </button>
             </div>
           </div>
@@ -1074,8 +1169,8 @@ export default function SuperAdminDashboard() {
               <div className="relative hidden md:block">
                 <div className="absolute -top-1 -right-1 px-3 py-1 bg-[#7c3aed] rounded-full blur-xl opacity-20 animate-pulse"></div>
                 <div className="px-5 py-2.5 bg-[#7c3aed]/10 border border-[#7c3aed]/30 rounded-full flex items-center gap-3 relative animate-in fade-in zoom-in duration-1000">
-                  <div className="w-2 h-2 bg-[#7c3aed] rounded-full animate-pulse shadow-[0_0_10px_#7c3aed]" />
-                  <span className="text-[10px] font-black text-[#7c3aed] uppercase tracking-[0.2em] italic">Master Access</span>
+                  <div className="w-2.5 h-2.5 bg-[#7c3aed] rounded-full animate-pulse shadow-[0_0_10px_#7c3aed]" />
+                  <span className="text-xs font-black text-[#7c3aed] uppercase tracking-[0.2em] italic">Master Access</span>
                 </div>
               </div>
 
@@ -1106,8 +1201,8 @@ export default function SuperAdminDashboard() {
 
               <div className="flex items-center gap-4 border-l border-white/5 pl-8 relative" ref={profileRef}>
                 <div className="text-right hidden sm:block">
-                  <p className="text-[9px] font-black text-white uppercase italic tracking-tighter">{currentUserName}</p>
-                  <p className="text-[8px] text-[#555a7a] font-black uppercase tracking-widest mt-1">Super Admin</p>
+                  <p className="text-xs font-black text-white uppercase italic tracking-tighter">{currentUserName}</p>
+                  <p className="text-[10px] text-[#555a7a] font-black uppercase tracking-widest mt-1">Super Admin</p>
                 </div>
                 <button 
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -1125,12 +1220,12 @@ export default function SuperAdminDashboard() {
                       className="absolute right-0 top-full mt-4 w-56 bg-[#0f1133] border border-white/10 rounded-3xl shadow-2xl p-2 z-[100] overflow-hidden"
                     >
                       <div className="p-4 border-b border-white/5 mb-2">
-                        <p className="text-[10px] font-black text-white uppercase italic truncate">{currentUserName}</p>
-                        <p className="text-[8px] text-purple-400 font-black uppercase tracking-widest mt-1">Master Access</p>
+                        <p className="text-xs font-black text-white uppercase italic truncate">{currentUserName}</p>
+                        <p className="text-[10px] text-purple-400 font-black uppercase tracking-widest mt-1">Master Access</p>
                       </div>
                       <button 
                         onClick={handleSignOut} 
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-red-400 hover:text-white hover:bg-red-500 transition-all text-[9px] font-black uppercase tracking-widest"
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-red-400 hover:text-white hover:bg-red-500 transition-all text-xs font-black uppercase tracking-widest"
                       >
                         <LogOut className="w-4 h-4" /> Sign Out Interface
                       </button>
@@ -1163,7 +1258,7 @@ export default function SuperAdminDashboard() {
             {currentPage === 'PIS' && <PIsManagement />}
             {currentPage === 'COORDINATORS' && <CoordinatorsManagement />}
             {currentPage === 'PARTICIPANTS' && <ParticipantsManagement />}
-            {currentPage === 'LIVE_USERS' && <LiveActiveUsers />}
+            {currentPage === 'LIVE_USERS' && <LiveActiveUsers allUsers={users} />}
             {currentPage === 'METRICS' && <AnalyticsDashboard />}
             {currentPage === 'AUDIT_LOGS' && <AuditLogs />}
             { currentPage === 'WORKFLOW' && <WorkflowModerationPanel /> }
@@ -1197,10 +1292,127 @@ export default function SuperAdminDashboard() {
         <Menu className="w-5 h-5" />
       </button>
 
+        {/* User Detail Modal */}
+        <AnimatePresence>
+          {isUserDetailOpen && selectedUser && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-[#0a0b1e]/90 backdrop-blur-xl"
+                onClick={() => setIsUserDetailOpen(false)}
+              />
+              <motion.div 
+                initial={{ scale: 0.95, opacity: 0, y: 30 }} 
+                animate={{ scale: 1, opacity: 1, y: 0 }} 
+                exit={{ scale: 0.95, opacity: 0, y: 30 }}
+                className="relative w-full max-w-2xl bg-[#0d0e2b] border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden"
+              >
+                <div className="h-32 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border-b border-white/5 relative">
+                  <button onClick={() => setIsUserDetailOpen(false)} className="absolute top-6 right-6 p-3 bg-black/20 hover:bg-black/40 rounded-full text-white/50 hover:text-white transition-all">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                <div className="px-12 pb-12">
+                  <div className="relative -mt-12 mb-8 flex items-end gap-6">
+                    <div className="w-24 h-24 rounded-3xl bg-indigo-600 border-4 border-[#0d0e2b] flex items-center justify-center text-3xl font-black text-white italic shadow-2xl">
+                      {selectedUser.name?.[0] || 'U'}
+                    </div>
+                    <div className="pb-2">
+                      <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none">{selectedUser.name}</h3>
+                      <div className="flex items-center gap-3 mt-2">
+                        <RoleBadge role={selectedUser.role} />
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-black uppercase tracking-widest ${selectedUser.status === 'Active' ? 'text-green-500 bg-green-500/10' : 'text-red-500 bg-red-500/10'}`}>
+                          {selectedUser.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-8">
+                    <div className="space-y-6">
+                      <div className="space-y-1">
+                        <label className="text-xs font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic"><Mail className="w-3 h-3" /> Email Address</label>
+                        <p className="text-base font-bold text-white selection:bg-indigo-500/30">{selectedUser.email}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic"><Phone className="w-3 h-3" /> Mobile Number</label>
+                        <p className="text-base font-bold text-white">+1 (813) 419-0781</p>
+                      </div>
+                    </div>
+                    <div className="space-y-6">
+                      <div className="space-y-1">
+                        <label className="text-xs font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic"><Calendar className="w-3 h-3" /> Account Created</label>
+                        <p className="text-base font-bold text-white">{selectedUser.created || 'Jan 15, 2026'}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic"><MapPin className="w-3 h-3" /> Location / Address</label>
+                        <p className="text-base font-bold text-white italic leading-relaxed">Tampa, Florida, USA</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-12 pt-8 border-t border-white/5 flex gap-4">
+                    <button onClick={() => setIsUserDetailOpen(false)} className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-xs font-black text-white uppercase tracking-[0.2em] transition-all">Close Entry</button>
+                    <button 
+                      onClick={() => handleStatusToggle(selectedUser)}
+                      className="px-8 py-3 bg-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-indigo-500/20 hover:-translate-y-0.5 transition-all"
+                    >
+                      {selectedUser.status === 'Active' ? 'Deactivate User' : 'Activate User'}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Delete Confirmation Modal */}
+        <AnimatePresence>
+          {isDeleteConfirmOpen && selectedUser && (
+            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/80 backdrop-blur-md"
+                onClick={() => setIsDeleteConfirmOpen(false)}
+              />
+              <motion.div 
+                initial={{ scale: 0.95, opacity:0 }} 
+                animate={{ scale: 1, opacity: 1 }} 
+                exit={{ scale: 0.95, opacity:0 }}
+                className="relative w-full max-w-sm bg-[#121432] border border-red-500/20 rounded-[2rem] p-10 text-center shadow-2xl"
+              >
+                <div className="w-20 h-20 bg-red-500/10 rounded-[2rem] flex items-center justify-center text-red-500 mx-auto mb-8 border border-red-500/20">
+                  <Trash2 className="w-10 h-10" />
+                </div>
+                <h3 className="text-xl font-black text-white italic uppercase tracking-tighter mb-4">Delete User?</h3>
+                <p className="text-xs text-[#8b8fa8] leading-relaxed mb-10">
+                  Are you sure you want to delete <span className="text-white font-bold">{selectedUser.name}</span>? This action is <span className="text-red-500 font-black italic">permanent</span> and cannot be undone.
+                </p>
+                <div className="flex flex-col gap-3">
+                  <button 
+                    onClick={() => {
+                        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                        authFetch(`${apiUrl}/api/users/${selectedUser.id}/`, { method: 'DELETE' }).then(() => {
+                           fetchData();
+                           setIsDeleteConfirmOpen(false);
+                        });
+                    }}
+                    className="w-full py-4 bg-red-500 text-white rounded-xl font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl shadow-red-500/20 hover:bg-red-600 transition-all"
+                  >
+                    Confirm Deletion
+                  </button>
+                  <button onClick={() => setIsDeleteConfirmOpen(false)} className="w-full py-4 text-[#555a7a] hover:text-white font-black text-[11px] uppercase tracking-[0.2em] transition-all">Cancel</button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
       <LogoutConfirmationModal 
         isOpen={isLogoutModalOpen}
         onClose={() => setIsLogoutModalOpen(false)}
-        onConfirm={confirmSignOut}
+        onConfirm={() => { clearToken(); window.location.href = "/"; }}
       />
 
       <style>{`

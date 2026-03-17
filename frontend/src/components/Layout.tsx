@@ -1,8 +1,8 @@
 import React, { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, ArrowRight, Linkedin, Mail, MapPin, Phone, ChevronDown, Youtube, Facebook, Instagram, Send, Loader2, CheckCircle2, LogIn, LogOut, LayoutDashboard } from 'lucide-react';
-import { redirectToLogin, clearToken, isLoggedIn, getRole } from '../utils/auth';
-
+import { Menu, X, ArrowRight, Linkedin, Mail, MapPin, Phone, ChevronDown, Youtube, Facebook, Instagram, Send, Loader2, CheckCircle2, LogIn, LogOut, LayoutDashboard, User } from 'lucide-react';
+import { redirectToLogin, clearToken, isLoggedIn, getRole, getUser } from '../utils/auth';
+import AnimatedBackground from './AnimatedBackground';
 
 interface LayoutProps {
     children: ReactNode;
@@ -23,6 +23,21 @@ export default function Layout({ children }: LayoutProps) {
     const [email, setEmail] = useState('');
     const [userType, setUserType] = useState<'Business' | 'Individual'>('Individual');
     const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+    // Authenticated User State
+    const userRole = getRole();
+    const userObj = getUser();
+    const userName = userObj?.first_name
+        ? userObj.first_name.trim().split(' ')[0]
+        : (userObj?.name ? userObj.name.split(' ')[0] : (userObj?.email ? userObj.email.split('@')[0] : 'User'));
+
+    const dashboardLink =
+        userRole === 'SUPER_ADMIN' ? '/dashboard/super-admin'
+            : userRole === 'ADMIN' ? '/dashboard/admin'
+                : userRole === 'PARTICIPANT' ? '/dashboard/participant'
+                    : userRole === 'PI' ? '/dashboard/pi'
+                        : userRole === 'SPONSOR' ? '/dashboard/sponsor'
+                            : '/dashboard';
 
     const handleSubscribe = async () => {
         if (!email) return;
@@ -94,7 +109,7 @@ export default function Layout({ children }: LayoutProps) {
     return (
         <div className="min-h-screen flex flex-col font-sans text-slate-100 relative">
             {/* Animated Mesh Background */}
-
+            <AnimatedBackground />
 
             {/* Sticky Header */}
             <header className="fixed top-0 left-0 right-0 z-50 glass-nav h-20 md:h-24 transition-all duration-500">
@@ -204,39 +219,28 @@ export default function Layout({ children }: LayoutProps) {
                                 </button>
                             ) : (
                                 <>
-                                    {getRole() === "SUPER_ADMIN" && (
-                                        <Link
-                                            to="/dashboard/super-admin"
-                                            className="bg-cyan-500 text-slate-900 px-4 2xl:px-6 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-white transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
-                                        >
-                                            <LayoutDashboard className="w-4 h-4" />
-                                            Dashboard
-                                        </Link>
-                                    )}
-                                    {getRole() === "ADMIN" && (
-                                        <Link
-                                            to="/dashboard/admin"
-                                            className="bg-cyan-500 text-slate-900 px-4 2xl:px-6 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-white transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
-                                        >
-                                            <LayoutDashboard className="w-4 h-4" />
-                                            Admin Portal
-                                        </Link>
-                                    )}
-                                    {getRole() === "PARTICIPANT" && (
-                                        <Link
-                                            to="/dashboard/participant"
-                                            className="bg-cyan-500 text-slate-900 px-4 2xl:px-6 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-white transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
-                                        >
-                                            <LayoutDashboard className="w-4 h-4" />
-                                            Dashboard
-                                        </Link>
-                                    )}
+                                    <Link
+                                        to={dashboardLink}
+                                        className="flex items-center gap-2 group ml-2 md:ml-4"
+                                    >
+                                        <div className="text-right hidden sm:flex flex-col justify-center">
+                                            <div className="text-[11px] font-black uppercase tracking-[0.05em] text-slate-800 leading-tight">DASHBOARD</div>
+                                            <div className="text-[#00d8ff] text-[18px] font-black leading-tight tracking-tight group-hover:text-[#00c4e8] transition-colors">{userName}</div>
+                                        </div>
+                                        <div className="w-[42px] h-[42px] rounded-[14px] border-[2px] border-[#00d8ff] overflow-hidden flex items-center justify-center bg-white shadow-sm group-hover:scale-105 transition-transform shrink-0">
+                                            {userObj?.profile_image ? (
+                                                <img src={userObj.profile_image} alt={userName} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <User className="w-[22px] h-[22px] text-[#00d8ff]" strokeWidth={2.5} />
+                                            )}
+                                        </div>
+                                    </Link>
                                     <button
                                         onClick={() => { clearToken(); window.location.href = "/"; }}
-                                        className="border-2 border-slate-200 text-slate-900 px-4 2xl:px-6 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-slate-900 hover:text-white transition-all backdrop-blur-md flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
+                                        className="w-[42px] h-[42px] rounded-full border-[1.5px] border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50 transition-all shrink-0 ml-1 md:ml-3"
+                                        title="Logout"
                                     >
-                                        <LogOut className="w-4 h-4" />
-                                        Logout
+                                        <LogOut className="w-[20px] h-[20px] translate-x-[1.5px]" strokeWidth={2} />
                                     </button>
                                 </>
                             )}
@@ -333,41 +337,31 @@ export default function Layout({ children }: LayoutProps) {
                                     </button>
                                 ) : (
                                     <div className="space-y-3">
-                                        {getRole() === "SUPER_ADMIN" && (
-                                            <Link
-                                                to="/dashboard/super-admin"
-                                                onClick={() => setIsMenuOpen(false)}
-                                                className="block w-full text-center bg-cyan-500 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2"
-                                            >
-                                                <LayoutDashboard className="w-5 h-5" />
-                                                Dashboard
-                                            </Link>
-                                        )}
-                                        {getRole() === "ADMIN" && (
-                                            <Link
-                                                to="/dashboard/admin"
-                                                onClick={() => setIsMenuOpen(false)}
-                                                className="block w-full text-center bg-cyan-500 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2"
-                                            >
-                                                <LayoutDashboard className="w-5 h-5" />
-                                                Admin Portal
-                                            </Link>
-                                        )}
-                                        {getRole() === "PARTICIPANT" && (
-                                            <Link
-                                                to="/dashboard/participant"
-                                                onClick={() => setIsMenuOpen(false)}
-                                                className="block w-full text-center bg-cyan-500 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2"
-                                            >
-                                                <LayoutDashboard className="w-5 h-5" />
-                                                Dashboard
-                                            </Link>
-                                        )}
+                                        <Link
+                                            to={dashboardLink}
+                                            onClick={() => setIsMenuOpen(false)}
+                                            className="w-full flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-200 transition-all hover:bg-slate-100"
+                                        >
+                                            <div className="w-12 h-12 rounded-2xl border-2 border-cyan-400 overflow-hidden flex items-center justify-center bg-white shrink-0 shadow-sm">
+                                                {userObj?.profile_image ? (
+                                                    <img src={userObj.profile_image} alt={userName} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <User className="w-6 h-6 text-cyan-500" />
+                                                )}
+                                            </div>
+                                            <div className="flex-1 text-left">
+                                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 leading-none mb-1">DASHBOARD</div>
+                                                <div className="text-cyan-500 text-base font-black capitalize leading-none">{userName}</div>
+                                            </div>
+                                            <div className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
+                                                <ArrowRight className="w-4 h-4" />
+                                            </div>
+                                        </Link>
                                         <button
                                             onClick={() => { clearToken(); window.location.href = "/"; }}
-                                            className="w-full text-center border-2 border-slate-200 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all flex items-center justify-center gap-2"
+                                            className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl border-2 border-slate-200 text-slate-600 font-black text-sm uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all shadow-sm group"
                                         >
-                                            <LogOut className="w-5 h-5" />
+                                            <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                             Logout
                                         </button>
                                     </div>
@@ -385,7 +379,7 @@ export default function Layout({ children }: LayoutProps) {
             {/* Footer Section */}
             <footer className="pt-20 pb-10 bg-[#020617] border-t border-white/5 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
-                
+
                 <div className="max-w-[1600px] mx-auto px-6 md:px-12">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-x-6 gap-y-16 mb-20">
                         {/* Branding & Contact */}
@@ -496,9 +490,9 @@ export default function Layout({ children }: LayoutProps) {
                         <div className="lg:col-span-4">
                             <div className="p-8 rounded-[2.5rem] bg-[#0c1221]/80 backdrop-blur-xl border border-white/10 relative overflow-hidden group/card shadow-2xl">
                                 <div className="absolute -top-20 -right-20 w-40 h-40 bg-cyan-500/10 blur-[80px] rounded-full group-hover/card:bg-cyan-500/20 transition-all duration-700"></div>
-                                
+
                                 <h4 className="text-white font-black uppercase tracking-[0.2em] text-[12px] mb-8">Get Our Newsletters</h4>
-                                
+
                                 <div className="space-y-8">
                                     <div className="space-y-4">
                                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 pl-1">Which Best Describes You?</p>
@@ -517,7 +511,7 @@ export default function Layout({ children }: LayoutProps) {
                                             </button>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="relative group/input">
                                         <div className="absolute inset-0 bg-cyan-500/5 blur-xl group-focus-within/input:bg-cyan-500/10 transition-all duration-500"></div>
                                         <div className="relative flex items-center bg-[#020617] border border-white/10 rounded-2xl overflow-hidden focus-within:border-cyan-500/40 transition-all duration-300">

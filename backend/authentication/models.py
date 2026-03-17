@@ -170,7 +170,7 @@ class AuditLog(models.Model):
         ordering = ['-timestamp']
 
     @classmethod
-    def log(cls, action: str, user_email: str = None, request=None, detail: str = None):
+    def log(cls, action: str, user_email: str | None = None, request=None, detail: str | None = None):
         """Convenience factory — call from anywhere without try/except."""
         try:
             ip = None

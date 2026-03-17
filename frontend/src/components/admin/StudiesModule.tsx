@@ -78,7 +78,7 @@ export default function StudiesModule({ studies, onAdd, onEdit, onLaunch }: Stud
                     />
                 </div>
                 <div className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/10 rounded-2xl">
-                    {['ALL', 'ACTIVE', 'RECRUITING', 'DRAFT'].map(status => (
+                    {['ALL', 'RECRUITING', 'ACTIVE', 'PAUSED', 'COMPLETED'].map(status => (
                         <button
                             key={status}
                             onClick={() => setStatusFilter(status)}
@@ -124,6 +124,8 @@ export default function StudiesModule({ studies, onAdd, onEdit, onLaunch }: Stud
                                     <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
                                         study.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                                         study.status === 'RECRUITING' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
+                                        study.status === 'PAUSED' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                        study.status === 'COMPLETED' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
                                         'bg-white/5 text-slate-500 border-white/10'
                                     }`}>
                                         {study.status}
@@ -164,7 +166,7 @@ export default function StudiesModule({ studies, onAdd, onEdit, onLaunch }: Stud
 
                             {/* Action Area */}
                             <div className="pt-2 flex flex-col gap-3">
-                                {['DRAFT', 'PENDING'].includes(study.status) ? (
+                                {['PAUSED'].includes(study.status) ? (
                                     <button 
                                         onClick={() => onLaunch(study.id)}
                                         className="w-full py-4 bg-cyan-500 text-slate-950 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-cyan-500/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-3"
