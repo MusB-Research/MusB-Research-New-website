@@ -178,18 +178,19 @@ class TokenBlacklist(models.Model):
 class AuditLog(models.Model):
     """Immutable audit trail for all auth and role events."""
     ACTION_CHOICES = [
-        ('LOGIN_SUCCESS',    'Login Success'),
-        ('LOGIN_FAILED',     'Login Failed'),
-        ('LOGOUT',           'Logout'),
-        ('TOKEN_REFRESHED',  'Token Refreshed'),
-        ('TOKEN_REVOKED',    'Token Revoked'),
-        ('PASSWORD_CHANGED', 'Password Changed'),
-        ('PASSWORD_RESET',   'Password Reset'),
-        ('ROLE_CHANGED',     'Role Changed'),
-        ('ACCOUNT_CREATED',  'Account Created'),
-        ('ACCOUNT_DISABLED', 'Account Disabled'),
-        ('GOOGLE_LOGIN',     'Google Login'),
-        ('RATE_LIMITED',     'Rate Limited'),
+        ('LOGIN_SUCCESS',          'Login Success'),
+        ('LOGIN_FAILED',           'Login Failed'),
+        ('LOGOUT',                 'Logout'),
+        ('TOKEN_REFRESHED',        'Token Refreshed'),
+        ('TOKEN_REVOKED',          'Token Revoked'),
+        ('PASSWORD_CHANGED',       'Password Changed'),
+        ('PASSWORD_RESET',         'Password Reset'),
+        ('ROLE_CHANGED',           'Role Changed'),
+        ('ACCOUNT_CREATED',        'Account Created'),
+        ('ACCOUNT_DISABLED',       'Account Disabled'),
+        ('GOOGLE_LOGIN',           'Google Login'),
+        ('RATE_LIMITED',           'Rate Limited'),
+        ('CREDENTIALS_REISSUED',   'Credentials Reissued'),
     ]
     user_email = models.EmailField(null=True, blank=True)   # nullable for failed unknown logins
     action = models.CharField(max_length=30, choices=ACTION_CHOICES)

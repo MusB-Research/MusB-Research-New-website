@@ -1,21 +1,22 @@
+
 from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
+uri = os.getenv('MONGO_URI')
+client = MongoClient(uri)
+db = client.get_database() # This often takes from the URI part itself if defined
 
-def check_mongo():
-    uri = os.getenv('MONGO_URI', 'mongodb://localhost:27017/musb_research')
-    client = MongoClient(uri)
-    db = client.musb_research
-    collection = db.api_aboutpagesettings
-    
-    print(f"Total documents in api_aboutpagesettings: {collection.count_documents({})}")
-    for doc in collection.find():
-        print(f"ID: {doc.get('_id')}")
-        print(f"Partner Title: {doc.get('partner_title')}")
-        print(f"Partner Content: {doc.get('partner_content')}")
-        print("-" * 20)
+print(f"Database: {db.name}")
+collections = db.list_collection_names()
+print(f"Collections: {collections}")
 
-if __name__ == "__main__":
-    check_mongo()
+for coll_name in collections:
+    if 'user' in coll_name.lower() or 'auth' in coll_name.lower():
+        print(f"\nScanning collection: {coll_name}")
+        coll = db[coll_name]
+        items = list(coll.find({}))
+        for item in items:
+            if 'email' in item:
+                print(f"  - Email: {item['email']}")

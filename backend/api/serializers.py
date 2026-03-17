@@ -143,7 +143,13 @@ class LabResultSerializer(SanitizedModelSerializer):
         fields = '__all__'
 
 class DataAuditLogSerializer(serializers.ModelSerializer):
-    user_email = serializers.EmailField(source='user.email', read_only=True)
+    user_email = serializers.SerializerMethodField()
+
+    def get_user_email(self, obj):
+        if obj.user:
+            return obj.user.email
+        return None
+
     class Meta:
         model = DataAuditLog
         fields = '__all__'
