@@ -991,12 +991,32 @@ export default function ParticipantDashboard() {
     }, [navigate]);
 
     // Read user from localStorage
-    const getUserData = () => {
+    interface UserData {
+        userName: string;
+        userEmail: string;
+        userPicture: string;
+        firstName: string;
+        userPhone: string;
+        userLocation: string;
+        userTimezone: string;
+    }
+
+    const getUserData = (): UserData => {
+        const defaultData: UserData = { 
+            userName: 'Participant', 
+            userEmail: '', 
+            userPicture: '', 
+            firstName: 'there', 
+            userPhone: '', 
+            userLocation: '', 
+            userTimezone: 'UTC' 
+        };
         try {
             const userStr = localStorage.getItem('user');
-            if (!userStr) return { userName: 'Participant', userEmail: '', userPicture: '', firstName: 'there' };
+            if (!userStr) return defaultData;
             const u = JSON.parse(userStr);
             const rawName = u.full_name || (u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || ''));
+            const fName = u.first_name || (rawName.split(' ')[0]) || 'there';
             const rawEmail = u.email || '';
             const isEncrypted = (s: string) => s && s.startsWith('gAAAA') && s.length > 40;
             const userName = isEncrypted(rawName)
@@ -1006,12 +1026,14 @@ export default function ParticipantDashboard() {
                 userName,
                 userEmail: rawEmail,
                 userPicture: u.picture || u.avatar || '',
-                firstName,
+                firstName: fName,
                 userPhone: u.mobile_number || u.phone_number || '',
                 userLocation: u.full_address ? `${u.full_address}, ${u.city || ''}, ${u.state || ''} ${u.zip_code || ''}, ${u.country || ''}`.replace(/,\s*,/g, ',').replace(/(^,\s*)|(\s*,\s*$)/g, '') : '',
                 userTimezone: u.timezone || 'UTC'
             };
-        } catch { return { userName: 'Participant', userEmail: '', userPicture: '', firstName: 'there', userPhone: '', userLocation: '', userTimezone: 'UTC' }; }
+        } catch { 
+            return defaultData; 
+        }
     };
 
     const { userName, userEmail, userPicture, firstName, userPhone, userLocation, userTimezone } = getUserData();
@@ -1215,7 +1237,7 @@ export default function ParticipantDashboard() {
                             {activeNav === 'Messages' && <MessagesView />}
                             {activeNav === 'Documents' && <DocumentsView />}
                             {activeNav === 'Reports' && <ReportsView userName={userName} />}
-                            {activeNav === 'Profile' && <ProfileView userName={userName} userEmail={userEmail} userPicture={userPicture} initials={userName[0]} userPhone={userPhone} userLocation={userLocation} userTimezone={userTimezone} />}
+                            {activeNav === 'Profile' && <ProfileView userName={userName} userEmail={userEmail} userPicture={userPicture} initials={initials} userPhone={userPhone} userLocation={userLocation} userTimezone={userTimezone} />}
                             {activeNav === 'Privacy & Data' && <PrivacyDataView onAction={openActionModal} />}
                         </motion.div>
                     </AnimatePresence>

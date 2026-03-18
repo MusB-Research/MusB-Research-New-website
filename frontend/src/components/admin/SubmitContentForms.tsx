@@ -7,15 +7,13 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export default function SubmitContentForms({ userRole }: { userRole: string }) {
     const [submitting, setSubmitting] = useState(false);
-    const [activeForm, setActiveForm] = useState<'study' | 'news' | 'event'>('news');
+    const [activeForm, setActiveForm] = useState<'news' | 'event'>('news');
     const [formData, setFormData] = useState({
         title: '',
         description: '', // or content
-        image: '',
+        image: null as File | null,
         is_success_story: false,
         event_date: '',
-        sponsor_name: '',
-        protocol_id: ''
     });
 
     const isSuperAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(userRole);
@@ -25,44 +23,46 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
         setSubmitting(true);
         
         try {
-            const payload: any = {
-                title: formData.title,
-                status: isSuperAdmin ? 'approved' : 'pending'
-            };
+            const body = new FormData();
+            body.append('title', formData.title);
+            body.append('status', isSuperAdmin ? 'approved' : 'pending');
 
-            if (activeForm === 'study') {
-                payload.description = formData.description;
-                payload.sponsor_name = formData.sponsor_name;
-                payload.protocol_id = formData.protocol_id;
-            } else if (activeForm === 'news') {
-                payload.content = formData.description;
-                payload.image = formData.image;
-                payload.is_success_story = formData.is_success_story;
+            if (activeForm === 'news') {
+                body.append('content', formData.description);
+                if (formData.image) {
+                    body.append('image', formData.image);
+                }
+                body.append('is_success_story', String(formData.is_success_story));
             } else if (activeForm === 'event') {
-                payload.description = formData.description;
-                payload.event_date = new Date(formData.event_date).toISOString();
+                body.append('description', formData.description);
+                body.append('event_date', new Date(formData.event_date).toISOString());
             }
 
             const endpointMap: Record<string, string> = {
-                'study': 'studies',
                 'news': 'news',
                 'event': 'events'
             };
 
             const res = await authFetch(`${API_URL}/api/${endpointMap[activeForm]}/`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: body
             });
 
             if (res.ok) {
                 alert(`System synchronized! ${isSuperAdmin ? 'Content is now live in global clusters.' : 'Submission buffered for moderator review.'}`);
                 setFormData({
-                    title: '', description: '', image: '', is_success_story: false, event_date: '', sponsor_name: '', protocol_id: ''
+                    title: '', description: '', image: null, is_success_story: false, event_date: ''
                 });
             } else {
-                const error = await res.json();
-                alert(`Sequence Error: ${error.detail || 'Access Denied'}`);
+                let errMsg = `Server returned status ${res.status}`;
+                try {
+                    const errJson = await res.json();
+                    errMsg = JSON.stringify(errJson);
+                } catch {
+                    const errText = await res.text().catch(() => '');
+                    errMsg = errText.slice(0, 300) || errMsg;
+                }
+                alert(`Sequence Error: ${errMsg}`);
             }
         } catch (error) {
             console.error('Submission failed', error);
@@ -113,12 +113,12 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
             <div className="bg-[#0f1133] border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl bg-gradient-to-br from-[#0f1133] to-[#0a0b1a]">
                 {/* Form Tabs */}
                 <div className="p-2 border-b border-white/5 bg-white/[0.02] flex flex-wrap gap-2">
-                    {['news', 'event', 'study'].map((type) => (
+                    {['news', 'event'].map((type) => (
                         <button
                             key={type}
                             type="button"
                             onClick={() => setActiveForm(type as any)}
-                            className={`flex items-center gap-3 px-8 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all relative overflow-hidden group ${
+                            className={`flex items-center gap-4 px-10 py-6 rounded-2xl font-black text-sm uppercase tracking-[0.2em] transition-all relative overflow-hidden group ${
                                 activeForm === type 
                                 ? 'text-white' 
                                 : 'text-[#555a7a] hover:text-white hover:bg-white/5'
@@ -149,90 +149,70 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
                         <div className="space-y-8">
                             {/* Title Field */}
                             <div className="space-y-4">
-                                <label className="text-xs font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic">
-                                    <Sparkles className="w-3.5 h-3.5 text-purple-400" /> Essential Identification
+                                <label className="text-sm font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic mb-2">
+                                    <Sparkles className="w-5 h-5 text-purple-400" /> Essential Identification
                                 </label>
                                 <input
                                     required
                                     type="text"
                                     value={formData.title}
                                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-8 py-6 text-lg text-white font-black italic uppercase tracking-tight outline-none focus:border-purple-500/50 transition-all placeholder:text-slate-800"
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-8 py-8 text-2xl text-white font-black italic uppercase tracking-tight outline-none focus:border-purple-500/50 transition-all placeholder:text-slate-800"
                                     placeholder={`Enter ${activeForm} title...`}
                                 />
                             </div>
 
                             {/* Dynamic Fields Grid */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {activeForm === 'study' && (
-                                    <>
-                                        <div className="space-y-4">
-                                            <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic">Protocol Registry ID</label>
-                                            <input
-                                                required
-                                                type="text"
-                                                value={formData.protocol_id}
-                                                onChange={(e) => setFormData({ ...formData, protocol_id: e.target.value })}
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm text-white font-mono outline-none focus:border-purple-500/50"
-                                                placeholder="MB-2026-XP"
-                                            />
-                                        </div>
-                                        <div className="space-y-4">
-                                            <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic">Sponsor Node Name</label>
-                                            <input
-                                                required
-                                                type="text"
-                                                value={formData.sponsor_name}
-                                                onChange={(e) => setFormData({ ...formData, sponsor_name: e.target.value })}
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm text-white font-black uppercase tracking-widest outline-none focus:border-purple-500/50"
-                                                placeholder="Global Health Org"
-                                            />
-                                        </div>
-                                    </>
-                                )}
-
                                 {activeForm === 'event' && (
                                     <div className="col-span-1 space-y-4">
-                                        <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic text-amber-400">Temporal Coordinates</label>
+                                        <label className="text-xs font-black text-amber-400 uppercase tracking-widest italic">Temporal Coordinates</label>
                                         <input
                                             required
                                             type="datetime-local"
                                             value={formData.event_date}
                                             onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm text-white font-mono outline-none focus:border-amber-500/50"
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-8 py-6 text-lg text-white font-black outline-none focus:border-amber-500/50"
                                         />
                                     </div>
                                 )}
 
                                 {activeForm === 'news' && (
                                     <div className="col-span-1 space-y-4">
-                                        <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic text-indigo-400">Visual Meta Tag (URL)</label>
-                                        <div className="relative">
-                                            <ImageIcon className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
-                                            <input
-                                                type="url"
-                                                value={formData.image}
-                                                onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                                                className="w-full pl-16 pr-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-sm text-white font-medium outline-none focus:border-indigo-500/50"
-                                                placeholder="https://cloud.musbresearch.com/static/hero.png"
+                                        <label className="text-xs font-black text-indigo-400 uppercase tracking-widest italic">Visual Media Asset (Upload)</label>
+                                        <label className="relative flex flex-col items-center justify-center w-full h-40 bg-white/5 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-indigo-500/50 transition-all group">
+                                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                <ImageIcon className="w-10 h-10 mb-3 text-slate-500 group-hover:text-indigo-400 transition-colors" />
+                                                <p className="text-xs font-black text-slate-500 uppercase tracking-widest group-hover:text-white transition-colors">
+                                                    {formData.image ? formData.image.name : 'Click to upload from local storage'}
+                                                </p>
+                                            </div>
+                                            <input 
+                                                type="file" 
+                                                className="hidden" 
+                                                accept="image/*"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) setFormData({ ...formData, image: file });
+                                                }}
                                             />
-                                        </div>
+                                        </label>
                                     </div>
                                 )}
                             </div>
 
                             {/* Description / Content Textarea */}
                             <div className="space-y-4">
-                                <label className="text-xs font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic">
-                                    <ShieldCheck className="w-3.5 h-3.5 text-purple-400" /> 
-                                    {activeForm === 'news' ? 'Article Intelligence' : 'Technical Specifications'}
+                                <label className="text-sm font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic">
+                                    <ShieldCheck className="w-5 h-5 text-purple-400" /> 
+                                    {activeForm === 'news' ? 'Article Intelligence' : 'Event Narrative Specification'}
                                 </label>
                                 <textarea
                                     required
-                                    rows={6}
+                                    rows={8}
                                     value={formData.description}
                                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    className="w-full bg-white/5 border border-white/10 rounded-[2rem] px-8 py-8 text-base text-slate-300 font-medium leading-relaxed outline-none focus:border-purple-500/50 transition-all placeholder:text-slate-800"
+                                    className="w-full bg-white/5 border border-white/10 rounded-[2rem] px-8 py-8 text-xl text-slate-300 font-bold leading-relaxed outline-none focus:border-purple-500/50 transition-all placeholder:text-slate-800"
                                     placeholder={`Enter detailed information packet for the ${activeForm}...`}
                                 />
                             </div>

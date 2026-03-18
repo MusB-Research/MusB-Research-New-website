@@ -7,18 +7,56 @@ from .models import (
 from authentication.models import User
 from authentication.security import decrypt_data
 from .utils.sanitizers import sanitize_html
+import bson
+
+class ObjectIdField(serializers.Field):
+    """Custom field to handle MongoDB ObjectId serialization."""
+    def to_representation(self, value):
+        if value is None:
+            return None
+        return str(value)
+
+    def to_internal_value(self, data):
+        if not data:
+            return None
+        try:
+            return bson.ObjectId(data)
+        except Exception:
+            raise serializers.ValidationError(f"Invalid ObjectId: {data}")
 
 class SanitizedModelSerializer(serializers.ModelSerializer):
+    def to_representation(self, instance):
+        """Handle MongoDB ObjectId serialization and user fields."""
+        ret = super().to_representation(instance)
+        
+        # Ensure we don't leak raw ObjectIds in JSON responses
+        for key, value in ret.items():
+            if isinstance(value, bson.ObjectId):
+                ret[key] = str(value)
+        
+        # If created_by is present and is a User instance, show its ID or email
+        if 'created_by' in ret and hasattr(instance, 'created_by') and instance.created_by:
+            ret['created_by'] = str(instance.created_by.id)
+            
+        return ret
+
     def to_internal_value(self, data):
-        # Sanitize all incoming string data
-        if isinstance(data, dict):
-            for key, value in data.items():
+        # Sanitize all incoming string data.
+        # data may be an immutable QueryDict (multipart upload) – copy it first.
+        try:
+            mutable_data = data.dict() if hasattr(data, 'dict') else dict(data)
+        except Exception:
+            mutable_data = data
+
+        if isinstance(mutable_data, dict):
+            for key, value in list(mutable_data.items()):
                 if isinstance(value, str):
-                    data[key] = sanitize_html(value)
-        return super().to_internal_value(data)
+                    mutable_data[key] = sanitize_html(value)
+
+        return super().to_internal_value(mutable_data)
 
 class UserSerializer(SanitizedModelSerializer):
-    id = serializers.CharField(read_only=True)
+    id = ObjectIdField(read_only=True)
     full_name = serializers.CharField()
     phone_number = serializers.SerializerMethodField()
     last_login_formatted = serializers.SerializerMethodField()
@@ -88,7 +126,7 @@ class UserSerializer(SanitizedModelSerializer):
         return user
 
 class StudySerializer(SanitizedModelSerializer):
-    id = serializers.CharField(read_only=True)
+    id = ObjectIdField(read_only=True)
     pi_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), source='pi', required=False, allow_null=True
     )
@@ -226,11 +264,23 @@ class ConsentSerializer(SanitizedModelSerializer):
         read_only_fields = ['agreed_at', 'ip_address']
 
 class NewsSerializer(SanitizedModelSerializer):
+    id = ObjectIdField(read_only=True)
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = News
         fields = '__all__'
 
+    def get_image_url(self, obj):
+        if not obj.image:
+            return None
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
+
 class EventSerializer(SanitizedModelSerializer):
+    id = ObjectIdField(read_only=True)
     class Meta:
         model = Event
         fields = '__all__'

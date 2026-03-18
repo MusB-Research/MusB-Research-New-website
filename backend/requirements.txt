@@ -1,6 +1,6 @@
 asgiref==3.11.0
-Django==5.1.7
-django-mongodb-backend==5.1.0b4
+Django==5.2.12
+django-mongodb-backend==5.2.3
 pymongo==4.16.0
 dnspython==2.8.0
 django-cors-headers==4.9.0
@@ -21,4 +21,4 @@ PyJWT==2.8.0
 cryptography==41.0.0
 requests==2.31.0
 resend==2.4.0
-django-ratelimit==5.0.0
+django-ratelimit==4.1.0

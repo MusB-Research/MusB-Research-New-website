@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, parsers
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import (
@@ -52,10 +52,14 @@ class WorkflowContentMixin:
 
     def perform_create(self, serializer):
         user = self.request.user
-        is_study = hasattr(serializer.Meta.model, 'approval_status')
+        model_class = serializer.Meta.model
+        is_study = hasattr(model_class, 'approval_status')
         status_field = 'approval_status' if is_study else 'status'
         
+        # Determine status based on role
         status_val = 'approved' if user.role in ['SUPER_ADMIN', 'ADMIN'] else 'pending'
+        
+        # Save with user and status
         serializer.save(created_by=user, **{status_field: status_val})
 
     def perform_update(self, serializer):
@@ -285,6 +289,7 @@ class NewsViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
     queryset = News.objects.all().order_by('-created_at')
     serializer_class = NewsSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
     def success_stories(self, request):

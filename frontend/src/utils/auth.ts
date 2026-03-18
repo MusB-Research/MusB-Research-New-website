@@ -71,9 +71,12 @@ export const redirectToLogin = () => {
 export const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
     const token = sessionStorage.getItem('access') || localStorage.getItem('access');
     const authHeaders: Record<string, string> = {
-        'Content-Type': 'application/json',
         ...options.headers as Record<string, string>,
     };
+    
+    if (!(options.body instanceof FormData) && !authHeaders['Content-Type']) {
+        authHeaders['Content-Type'] = 'application/json';
+    }
     
     if (token && !authHeaders['Authorization']) {
         authHeaders['Authorization'] = `Bearer ${token}`;

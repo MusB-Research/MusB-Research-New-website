@@ -452,7 +452,7 @@ class PermissionMatrix(models.Model):
 class News(models.Model):
     title = models.CharField(max_length=255)
     content = models.TextField()
-    image = models.URLField(max_length=1024, blank=True, null=True)
+    image = models.ImageField(upload_to='news_images/', max_length=1024, blank=True, null=True)
     is_success_story = models.BooleanField(default=False)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='authored_news')
     status = models.CharField(max_length=20, choices=[
