@@ -13,14 +13,20 @@ interface AuditLog {
   location: string;
 }
 
-export default function AuditLogs() {
+export default function AuditLogs({ activities = [] }: { activities?: any[] }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [logs] = useState<AuditLog[]>([
-    { id: '1', user: 'Brijesh Raj', role: 'Super Admin', action: 'System Login', timestamp: 'Mar 15, 2026 18:42:10', status: 'Success', ip: '192.168.1.100', device: 'Chrome - Windows Desktop', location: 'Tampa, US' },
-    { id: '2', user: 'PI Michael Chen', role: 'PI', action: 'Update Study Protocol', timestamp: 'Mar 15, 2026 17:15:22', status: 'Success', ip: '192.168.1.105', device: 'Safari - MacBook Air', location: 'Miami, US' },
-    { id: '3', user: 'Unknown', role: 'Guest', action: 'Failed Login Attempt', timestamp: 'Mar 15, 2026 16:04:30', status: 'Failure', ip: '45.16.220.14', device: 'Edge - Windows', location: 'Moscow, RU' },
-    { id: '4', user: 'Sarah (PharmaCorp)', role: 'Sponsor', action: 'Data Export', timestamp: 'Mar 15, 2026 14:20:00', status: 'Success', ip: '172.16.0.42', device: 'Chrome - Windows', location: 'New York, US' },
-  ]);
+  
+  const logs = activities.map(a => ({
+    id: a.id,
+    user: a.user,
+    role: a.category,
+    action: a.type.replace(/_/g, ' '),
+    timestamp: a.timestamp,
+    status: (a.severity === 'danger' ? 'Failure' : 'Success') as 'Success' | 'Failure',
+    ip: a.ip,
+    device: 'System Node',
+    location: 'Remote Access'
+  }));
 
   const filteredLogs = logs.filter(l => 
     l.user.toLowerCase().includes(searchTerm.toLowerCase()) || 

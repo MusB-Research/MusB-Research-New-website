@@ -5,6 +5,8 @@ import { clearToken, authFetch } from '../utils/auth';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
 import SubmitContentForms from '../components/admin/SubmitContentForms';
 import ScreenerBuilder from '../components/admin/ScreenerBuilder';
+import LaunchStudyForm from '../components/admin/LaunchStudyForm';
+import SponsorsManagement from '../components/admin/SponsorsManagement';
 import {
     LayoutDashboard,
     Beaker,
@@ -27,16 +29,19 @@ import {
     Clock,
     ArrowUpRight,
     LogOut,
-    Globe
+    Globe,
+    Rocket,
+    Menu
 } from 'lucide-react';
 
-type PIModule = 'OVERSIGHT' | 'STUDIES' | 'PARTICIPANTS' | 'MESSAGES' | 'REPORTS' | 'SUBMIT' | 'SCREENER_BUILDER';
+type PIModule = 'OVERSIGHT' | 'STUDIES' | 'PARTICIPANTS' | 'MESSAGES' | 'REPORTS' | 'SUBMIT' | 'SCREENER_BUILDER' | 'LAUNCH_STUDY' | 'SPONSORS';
 
 export default function PIDashboard() {
     const [activeModule, setActiveModule] = useState<PIModule>('OVERSIGHT');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const profileRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
 
@@ -54,23 +59,27 @@ export default function PIDashboard() {
         setIsLogoutModalOpen(true);
     };
 
-    const confirmSignOut = () => {
-        clearToken();
-        localStorage.removeItem('user');
+    const confirmSignOut = async () => {
+        await clearToken();
         navigate('/');
+        window.location.reload(); // Force full state purge
     };
     const [studies, setStudies] = useState<any[]>([]);
+    const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [newStudy, setNewStudy] = useState({ title: '', protocol_id: '', study_type: 'RANDOMIZED' });
+    const [selectedStudy, setSelectedStudy] = useState<any>(null);
 
     const fetchPIContent = async () => {
         setLoading(true);
         try {
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-            const res = await authFetch(`${apiUrl}/api/studies/`);
-            if (res.ok) {
-                setStudies(await res.json());
-            }
+            const [studiesRes, usersRes] = await Promise.all([
+                authFetch(`${apiUrl}/api/studies/`),
+                authFetch(`${apiUrl}/api/users/`)
+            ]);
+            
+            if (studiesRes.ok) setStudies(await studiesRes.json());
+            if (usersRes.ok) setUsers(await usersRes.json());
         } catch (e) {
             console.error("PI Data Fetch Failed", e);
         } finally {
@@ -82,20 +91,26 @@ export default function PIDashboard() {
         fetchPIContent();
     }, []);
 
-    const handleCreateStudy = async () => {
+    const handleCreateStudy = async (data: any) => {
         try {
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-            const res = await authFetch(`${apiUrl}/api/studies/`, {
-                method: 'POST',
-                body: JSON.stringify(newStudy)
+            const method = selectedStudy ? 'PATCH' : 'POST';
+            const url = selectedStudy ? `${apiUrl}/api/studies/${selectedStudy.protocol_id || selectedStudy.id}/` : `${apiUrl}/api/studies/`;
+            
+            const res = await authFetch(url, {
+                method: method,
+                body: JSON.stringify(data)
             });
             if (res.ok) {
-                setShowCreateModal(false);
+                setActiveModule('STUDIES');
+                setSelectedStudy(null);
                 fetchPIContent();
-                setNewStudy({ title: '', protocol_id: '', study_type: 'RANDOMIZED' });
+            } else {
+                const err = await res.json();
+                alert(`Operation failed: ${JSON.stringify(err)}`);
             }
         } catch (e) {
-            alert("Creation failed");
+            alert("Operation failed due to network error");
         }
     };
 
@@ -105,11 +120,13 @@ export default function PIDashboard() {
         { id: 'WEBSITE', label: 'Main Website', icon: Globe },
         { id: 'OVERSIGHT', label: 'Scientific Oversight', icon: Activity },
         { id: 'STUDIES', label: 'My Studies', icon: Beaker },
+        { id: 'LAUNCH_STUDY', label: 'LAUNCH A STUDY', icon: Rocket },
         { id: 'PARTICIPANTS', label: 'Subject Review', icon: UsersRound },
         { id: 'MESSAGES', label: 'Messages', icon: MessageSquare },
         { id: 'REPORTS', label: 'Analytics', icon: TrendingUp },
         { id: 'SUBMIT', label: 'Submit Content', icon: Plus },
         { id: 'SCREENER_BUILDER', label: 'Screener Builder', icon: Filter },
+        { id: 'SPONSORS', label: 'Manage Sponsors', icon: Globe },
     ];
 
     const renderHeader = () => {
@@ -136,10 +153,16 @@ export default function PIDashboard() {
         } catch (e) { }
 
         return (
-            <header className="fixed top-0 left-0 right-0 h-28 z-50 bg-[#0B101B]/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between px-10">
-                <div className="flex items-center gap-12">
+            <header className="fixed top-0 left-0 right-0 h-28 z-[60] bg-[#0B101B]/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between px-6 lg:px-10">
+                <div className="flex items-center gap-6 lg:gap-12">
+                    <button 
+                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                        className="lg:hidden p-3 bg-white/5 border border-white/10 rounded-xl text-slate-300 active:scale-95 transition-all"
+                    >
+                        {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                    </button>
                     <Link to="/" className="flex items-center group">
-                        <div className="h-10 px-5 rounded-full bg-white flex items-center justify-center shadow-lg transition-transform group-hover:scale-105">
+                        <div className="h-10 px-4 lg:px-5 rounded-full bg-white flex items-center justify-center shadow-lg transition-transform group-hover:scale-105">
                             <img src="/logo.jpg" alt="MusB Research" className="h-6 w-auto object-contain" />
                         </div>
                     </Link>
@@ -197,14 +220,29 @@ export default function PIDashboard() {
         <div className="min-h-screen bg-transparent">
             {renderHeader()}
 
-            <aside className="fixed left-0 top-28 bottom-0 w-80 bg-[#0B101B]/40 backdrop-blur-3xl border-r border-white/5 p-6 z-40">
+            <AnimatePresence>
+                {isSidebarOpen && (
+                    <motion.div 
+                        initial={{ opacity: 0 }} 
+                        animate={{ opacity: 1 }} 
+                        exit={{ opacity: 0 }} 
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] lg:hidden"
+                    />
+                )}
+            </AnimatePresence>
+
+            <aside className={`fixed left-0 top-28 bottom-0 w-80 bg-[#0B101B]/40 backdrop-blur-3xl border-r border-white/5 p-6 z-[56] transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
                 <nav className="space-y-1.5">
                     {navItems.map((item) => (
                         <button
                             key={item.id}
                             onClick={() => {
                                 if (item.id === 'WEBSITE') navigate('/home');
-                                else setActiveModule(item.id as PIModule);
+                                else {
+                                    setActiveModule(item.id as PIModule);
+                                    setIsSidebarOpen(false);
+                                }
                             }}
                             className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all group ${activeModule === item.id
                                     ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
@@ -220,92 +258,45 @@ export default function PIDashboard() {
                 </nav>
             </aside>
 
-            <main className="ml-80 pt-36 pb-24 px-10">
+            <main className="lg:ml-80 pt-36 pb-24 px-4 lg:px-10 overflow-x-hidden">
                 <AnimatePresence mode="wait">
-                    {activeModule === 'OVERSIGHT' && <OversightModule studyCount={studies.length} />}
-                    {activeModule === 'STUDIES' && <StudyOverviewModule studies={studies} onAdd={() => setActiveModule('SUBMIT')} />}
+                    {activeModule === 'OVERSIGHT' && <OversightModule studyCount={studies.length} onLaunch={() => setActiveModule('LAUNCH_STUDY')} />}
+                    {activeModule === 'STUDIES' && (
+                        <StudyOverviewModule 
+                            studies={studies} 
+                            onAdd={() => setActiveModule('LAUNCH_STUDY')} 
+                            onEdit={(s) => {
+                                setSelectedStudy(s);
+                                setActiveModule('LAUNCH_STUDY');
+                            }}
+                        />
+                    )}
+                    {activeModule === 'LAUNCH_STUDY' && (
+                        <LaunchStudyForm 
+                            onClose={() => {
+                                setActiveModule('STUDIES');
+                                setSelectedStudy(null);
+                            }}
+                            initialData={selectedStudy}
+                            onSave={handleCreateStudy}
+                            availablePIs={users.filter(u => u.role === 'PI')}
+                            availableCoordinators={users.filter(u => u.role === 'COORDINATOR')}
+                            availableSponsors={users.filter(u => u.role === 'SPONSOR')}
+                        />
+                    )}
                     {activeModule === 'SUBMIT' && <SubmitContentForms userRole="PI" />}
                     {activeModule === 'SCREENER_BUILDER' && <ScreenerBuilder />}
+                    {activeModule === 'SPONSORS' && (
+                        <SponsorsManagement 
+                            allUsers={users} 
+                            allStudies={studies} 
+                            onRefresh={fetchPIContent} 
+                        />
+                    )}
                 </AnimatePresence>
             </main>
 
-            {/* Create Study Modal - Reused logic for consistency */}
-            <AnimatePresence>
-                {showCreateModal && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setShowCreateModal(false)}
-                            className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl"
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="relative w-full max-w-2xl bg-[#0B101B] border border-white/10 rounded-[3rem] p-12 overflow-hidden"
-                        >
-                            <div className="absolute top-8 right-8">
-                                <button onClick={() => setShowCreateModal(false)} className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-500 hover:text-white transition-all">
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
 
-                            <div className="space-y-8">
-                                <div>
-                                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Initialize <span className="text-indigo-400">Research Protocol</span></h2>
-                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-2 px-1">Define scientific parameters and investigator oversight</p>
-                                </div>
-
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-2 gap-6">
-                                        <div className="space-y-2">
-                                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-4">Protocol Title</label>
-                                            <input 
-                                                type="text" 
-                                                value={newStudy.title}
-                                                onChange={(e) => setNewStudy({...newStudy, title: e.target.value})}
-                                                placeholder="e.g. Oncology Phase I" 
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder:text-slate-700 outline-none focus:border-indigo-500/50 transition-all font-bold text-xs" 
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-4">Protocol Number</label>
-                                            <input 
-                                                type="text" 
-                                                value={newStudy.protocol_id}
-                                                onChange={(e) => setNewStudy({...newStudy, protocol_id: e.target.value})}
-                                                placeholder="PRT-2024-X1" 
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder:text-slate-700 outline-none focus:border-indigo-500/50 transition-all font-bold text-xs" 
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-4">Study Model</label>
-                                        <select 
-                                            value={newStudy.study_type}
-                                            onChange={(e) => setNewStudy({...newStudy, study_type: e.target.value})}
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white outline-none focus:border-indigo-500/50 transition-all font-black uppercase tracking-widest text-[9px] appearance-none"
-                                        >
-                                            <option value="RANDOMIZED">Randomized Controlled Trial (RCT)</option>
-                                            <option value="OBSERVATIONAL">Observational Study</option>
-                                            <option value="OPEN_LABEL">Open Label</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <button 
-                                    onClick={handleCreateStudy}
-                                    className="w-full py-6 bg-indigo-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-600/20 hover:scale-[1.02] transition-all mt-4"
-                                >
-                                    Generate Research Framework
-                                </button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
 
             <LogoutConfirmationModal 
                 isOpen={isLogoutModalOpen}
@@ -316,9 +307,26 @@ export default function PIDashboard() {
     );
 }
 
-function OversightModule({ studyCount }: { studyCount: number }) {
+function OversightModule({ studyCount, onLaunch }: { studyCount: number, onLaunch: () => void }) {
     return (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                    <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter line-clamp-2 leading-none">
+                        Scientific <span className="text-indigo-400">Oversight</span>
+                    </h2>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-3 italic">
+                        Portfolio Performance & clinical research velocity
+                    </p>
+                </div>
+                <button 
+                    onClick={onLaunch}
+                    className="px-10 py-5 bg-indigo-600 text-white rounded-[2rem] text-[10px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-2xl shadow-indigo-900/40 hover:scale-[1.05] active:scale-95 transition-all font-mono"
+                >
+                    <Rocket className="w-5 h-5" /> LAUNCH A STUDY
+                </button>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {[
                     { label: 'Active Protocols', val: studyCount.toString().padStart(2, '0'), icon: Beaker, color: 'indigo' },
@@ -340,13 +348,13 @@ function OversightModule({ studyCount }: { studyCount: number }) {
     );
 }
 
-function StudyOverviewModule({ studies, onAdd }: { studies: any[], onAdd: () => void }) {
+function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd: () => void, onEdit: (s: any) => void }) {
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10">
             <div className="flex justify-between items-center">
                 <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Research <span className="text-indigo-400">Portfolio</span></h2>
-                <button onClick={onAdd} className="px-8 py-4 bg-indigo-600 text-white rounded-[2rem] text-[10px] font-black uppercase tracking-widest italic flex items-center gap-3">
-                    <Plus className="w-4 h-4" /> Initialize Protocol
+                <button onClick={onAdd} className="px-8 py-4 bg-indigo-600 text-white rounded-[2rem] text-[10px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-xl shadow-indigo-500/20 hover:scale-[1.02] transition-all">
+                    <Rocket className="w-4 h-4" /> LAUNCH A STUDY
                 </button>
             </div>
 
@@ -379,6 +387,12 @@ function StudyOverviewModule({ studies, onAdd }: { studies: any[], onAdd: () => 
                                 <p className="text-lg font-black text-indigo-400 italic mt-1">{study.target_screened}</p>
                             </div>
                         </div>
+                        <button 
+                            onClick={() => onEdit(study)}
+                            className="w-full py-4 bg-white/5 border border-white/5 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-slate-950 transition-all"
+                        >
+                            Configure Protocol
+                        </button>
                     </div>
                 ))}
             </div>

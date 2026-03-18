@@ -193,6 +193,11 @@ class AuditLog(models.Model):
         ('GOOGLE_LOGIN',           'Google Login'),
         ('RATE_LIMITED',           'Rate Limited'),
         ('CREDENTIALS_REISSUED',   'Credentials Reissued'),
+        ('UPDATE_STUDY',           'Update Study'),
+        ('DELETE_RECORD',          'Delete Record'),
+        ('VIEW_DATA',              'View Data'),
+        ('EXPORT_DATA',            'Export Data'),
+        ('SYSTEM_CONFIG_CHANGE',   'System Config Change'),
     ]
     user_email = models.EmailField(null=True, blank=True)   # nullable for failed unknown logins
     action = models.CharField(max_length=30, choices=ACTION_CHOICES)

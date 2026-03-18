@@ -109,19 +109,17 @@ export default function Layout({ children }: LayoutProps) {
     return (
         <div className="min-h-screen flex flex-col font-sans text-slate-100 relative">
             {/* Sticky Header */}
-            <header className="fixed top-0 left-0 right-0 z-50 glass-nav h-20 md:h-24 transition-all duration-500">
+            <header className="fixed top-0 left-0 right-0 z-[100] h-20 md:h-24 transition-all duration-500 bg-white/80 backdrop-blur-2xl border-b border-white/10">
                 <div className="max-w-[1800px] mx-auto px-4 md:px-6 2xl:px-12 h-full flex items-center justify-between gap-4 xl:gap-8">
                     {/* Logo - Acts as Home button opening in new tab */}
-                    <a
-                        href="/"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                    <Link
+                        to="/"
                         className="flex-shrink-0 flex items-center gap-4 group"
                     >
-                        <div className="h-16 md:h-[4.5rem] bg-black backdrop-blur-md rounded-2xl shadow-xl border border-black group-hover:scale-105 transition-all duration-300 flex items-center justify-center overflow-hidden">
+                        <div className="h-16 md:h-[4.5rem] bg-white backdrop-blur-md rounded-2xl shadow-xl border border-white/10 group-hover:scale-105 transition-all duration-300 flex items-center justify-center overflow-hidden">
                             <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain brightness-100" />
                         </div>
-                    </a>
+                    </Link>
 
                     {/* Right-aligned Navigation Group */}
                     <div className="hidden xl:flex items-center gap-4 2xl:gap-12 ml-auto">
@@ -233,7 +231,7 @@ export default function Layout({ children }: LayoutProps) {
                                         </div>
                                     </Link>
                                     <button
-                                        onClick={() => { clearToken(); window.location.href = "/"; }}
+                                        onClick={async () => { await clearToken(); window.location.href = "/"; }}
                                         className="w-[42px] h-[42px] rounded-full border-[1.5px] border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50 transition-all shrink-0 ml-1 md:ml-3"
                                         title="Logout"
                                     >

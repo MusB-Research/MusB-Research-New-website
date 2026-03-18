@@ -9,7 +9,7 @@ import {
   ChevronDown, Filter, Mail, Phone, Calendar, ArrowRight, ShieldCheck,
   LayoutDashboard, Server, Network, Terminal, CheckCircle2, MoreVertical,
   MapPin, Clock, MousePointer2, User as UserIcon, Menu, RefreshCw,
-  UserPlus, ShieldAlert, Rocket, ClipboardList
+  UserPlus, ShieldAlert, Rocket, ClipboardList, Archive
 } from 'lucide-react';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
 
@@ -111,6 +111,7 @@ export default function SuperAdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
   const [studies, setStudies] = useState<any[]>([]);
   const [participants, setParticipants] = useState<any[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [notifications] = useState([
@@ -159,6 +160,14 @@ export default function SuperAdminDashboard() {
       if (sRes.ok) setStudies(await sRes.json());
       if (pRes.ok) setParticipants(await pRes.json());
 
+      // Fetch Live Audit Logs
+      try {
+        const aRes = await authFetch(`${apiUrl}/api/auth/admin/audit-logs/`);
+        if (aRes.ok) setActivities(await aRes.json());
+      } catch (e) {
+        console.warn("Audit logs fetch skipped or failed");
+      }
+
       setLastRefresh(new Date().toLocaleTimeString());
     } catch (err) {
       console.error("Failed to fetch platform data:", err);
@@ -185,16 +194,7 @@ export default function SuperAdminDashboard() {
     fetchData();
   }, [fetchData]);
 
-  const activities: Activity[] = useMemo(() => Array.from({ length: 25 }, (_, i) => ({
-    id: `a-${i}`,
-    timestamp: '14/3/2026 ' + (14 - Math.floor(i / 2)) + ':' + (10 + (i % 50)).toString().padStart(2, '0') + ':' + (i % 60).toString().padStart(2, '0'),
-    type: ['LOGIN_SUCCESS', 'LOGOUT', 'CREATE_USER', 'UPDATE_STUDY', 'DELETE_RECORD', 'VIEW_DATA', 'EXPORT_DATA', 'SYSTEM_CONFIG_CHANGE'][i % 8],
-    category: ['System:Auth', 'Project:Data', 'User:Mgmt', 'System:Config'][i % 4],
-    user: ['Brijesh Raj', 'System Admin', 'PI Michael Chen', 'Sarah (PharmaCorp)'][i % 4],
-    details: 'Instruction executed successfully via Terminal 0x92',
-    ip: '192.168.1.' + (100 + i),
-    severity: i % 5 === 0 ? 'danger' : i % 3 === 0 ? 'warning' : 'info'
-  })), []);
+
 
   // ═══════════════════════════════════════════
   // HELPERS
@@ -362,7 +362,7 @@ export default function SuperAdminDashboard() {
           { label: 'Admins & Staff', value: (users || []).filter(u => ['ADMIN', 'SUPER_ADMIN', 'PI', 'COORDINATOR'].includes(u.role)).length, icon: Crown, color: '#f59e0b', onClick: () => { } },
           { label: 'Sponsors', value: (users || []).filter(u => u.role === 'SPONSOR').length, icon: Building, color: '#ec4899', onClick: () => setCurrentPage('SPONSORS') },
           { label: 'Sponsor Teams', value: 0, icon: Users, color: '#ec4899', onClick: () => { } },
-          { label: 'Active Studies', value: (studies || []).filter(s => s.status === 'ACTIVE' || s.status === 'RECRUITING').length, icon: Activity, color: '#14b8a6', onClick: () => setCurrentPage('STUDIES') },
+          { label: 'Active Studies', value: (studies || []).filter(s => s.status === 'UPCOMING' || s.status === 'RECRUITING').length, icon: Activity, color: '#14b8a6', onClick: () => setCurrentPage('STUDIES') },
           { label: 'Open Adverse Events', value: 2, icon: ShieldAlert, color: '#ef4444', onClick: () => { } },
           { label: 'Audit Events Today', value: 5, icon: FileText, color: '#7c3aed', onClick: () => setCurrentPage('AUDIT_LOGS') },
         ].map((stat, i) => (
@@ -764,7 +764,30 @@ export default function SuperAdminDashboard() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-8 py-5 text-sm font-black text-slate-400 uppercase tracking-widest">{study.sponsor_name || 'MUSB Internal'}</td>
+                    <td className="px-8 py-5">
+                      <select
+                        value={study.sponsor_id || ''}
+                        onChange={async (e) => {
+                          const newId = e.target.value;
+                          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                          try {
+                            const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id}/`, {
+                              method: 'PATCH',
+                              body: JSON.stringify({ sponsor_id: newId })
+                            });
+                            if (res.ok) fetchData();
+                          } catch (err) {
+                            alert("Sponsor update failed");
+                          }
+                        }}
+                        className="bg-transparent text-[10px] font-black uppercase tracking-widest text-[#f472b6] outline-none cursor-pointer hover:text-white transition-all border-none"
+                      >
+                        <option value="" className="bg-[#0a0b1a]">-- Add Sponsor --</option>
+                        {users.filter(u => u.role === 'SPONSOR').map(s => (
+                          <option key={s.id} value={s.id} className="bg-[#0a0b1a]">{s.name}</option>
+                        ))}
+                      </select>
+                    </td>
                     <td className="px-8 py-5">
                       <div className="flex flex-col gap-2">
                         <select
@@ -838,17 +861,35 @@ export default function SuperAdminDashboard() {
                     </td>
                     <td className="px-8 py-5">
                       <div className="flex flex-col gap-1.5 min-w-[120px]">
-                        <div className="flex justify-between text-xs font-black uppercase text-slate-600">
-                          <span>Target Met</span>
-                          <span>{Math.round((study.actual_screened || 0) / (study.target_screened || 100) * 100)}%</span>
+                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-500">
+                          <div className="flex items-center gap-1">
+                            <span>Target:</span>
+                            <input 
+                              type="number"
+                              value={study.target_screened}
+                              onChange={async (e) => {
+                                const newTarget = parseInt(e.target.value) || 0;
+                                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                                try {
+                                  await authFetch(`${apiUrl}/api/studies/${study.protocol_id}/`, {
+                                    method: 'PATCH',
+                                    body: JSON.stringify({ target_screened: newTarget })
+                                  });
+                                  fetchData();
+                                } catch (err) {}
+                              }}
+                              className="w-12 bg-white/5 border-none outline-none text-blue-400 font-black italic focus:text-white"
+                            />
+                          </div>
+                          <span className="text-white">{Math.round((study.actual_screened || 0) / (study.target_screened || 1) * 100)}%</span>
                         </div>
                         <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                          <div className="h-full bg-blue-500" style={{ width: `${Math.min(100, (study.actual_screened || 0) / (study.target_screened || 100) * 100)}%` }}></div>
+                          <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${Math.min(100, (study.actual_screened || 0) / (study.target_screened || 1) * 100)}%` }}></div>
                         </div>
                       </div>
                     </td>
                     <td className="px-8 py-5">
-                      <select
+                        <select
                         value={study.status}
                         onChange={async (e) => {
                           const newStatus = e.target.value;
@@ -865,26 +906,72 @@ export default function SuperAdminDashboard() {
                         }}
                         className={`text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border outline-none cursor-pointer transition-all ${
                           study.status === 'RECRUITING' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 
-                          study.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                          study.status === 'UPCOMING' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                           study.status === 'PAUSED' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                          study.status === 'ARCHIVED' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
                           'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
                         }`}
                       >
                         <option value="RECRUITING" className="bg-[#0a0b1a]">Recruiting</option>
-                        <option value="ACTIVE" className="bg-[#0a0b1a]">Active</option>
+                        <option value="UPCOMING" className="bg-[#0a0b1a]">Upcoming</option>
                         <option value="PAUSED" className="bg-[#0a0b1a]">Paused</option>
                         <option value="COMPLETED" className="bg-[#0a0b1a]">Completed</option>
+                        <option value="ARCHIVED" className="bg-[#0a0b1a]">Archived</option>
                       </select>
                     </td>
-                    <td className="px-8 py-5 text-right">
+                    <td className="px-8 py-5 text-right flex items-center justify-end gap-2">
                       <button 
                         onClick={() => {
                           setSelectedStudy(study);
                           setCurrentPage('LAUNCH_STUDY');
                         }}
-                        className="p-2 text-slate-700 hover:text-white transition-all"
+                        className="p-2 text-slate-700 hover:text-white transition-all hover:bg-white/5 rounded-lg"
+                        title="Configure Protocol"
                       >
                         <Settings className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          const newStatus = study.status === 'ARCHIVED' ? 'RECRUITING' : 'ARCHIVED';
+                          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                          try {
+                            const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id || study.id}/`, {
+                              method: 'PATCH',
+                              body: JSON.stringify({ status: newStatus })
+                            });
+                            if (res.ok) fetchData();
+                          } catch (err) {
+                            alert("Archive state toggle failed");
+                          }
+                        }}
+                        className={`p-2 transition-all hover:bg-white/5 rounded-lg ${study.status === 'ARCHIVED' ? 'text-emerald-400' : 'text-amber-500/50 hover:text-amber-500'}`}
+                        title={study.status === 'ARCHIVED' ? 'Unarchive Study' : 'Archive Study'}
+                      >
+                        <Archive className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          const confirmMsg = `⚠️ IRREVERSIBLE ACTION DETECTED\n\nStudy: ${study.title.toUpperCase()}\n\nAre you sure you want to PERMANENTLY DELETE this clinical trial? This will purge all associated participant data and clinical records.`;
+                          if (window.confirm(confirmMsg)) {
+                            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                            try {
+                              const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id || study.id}/`, {
+                                method: 'DELETE'
+                              });
+                              if (res.ok) {
+                                fetchData();
+                              } else {
+                                alert("PROTECTION ACTIVE: Could not purge protocol.");
+                              }
+                            } catch (e) {
+                              alert("Network interference detected during purge command.");
+                            }
+                          }
+                        }}
+                        className="p-2 text-rose-500/40 hover:text-rose-500 transition-all hover:bg-rose-500/5 rounded-lg"
+                        title="Purge Study"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </td>
                   </tr>
@@ -1533,6 +1620,7 @@ export default function SuperAdminDashboard() {
                 initialData={selectedStudy} 
                 availablePIs={users.filter(u => u.role === 'PI')}
                 availableCoordinators={users.filter(u => u.role === 'COORDINATOR')}
+                availableSponsors={users.filter(u => u.role === 'SPONSOR')}
                 onSave={async (data) => {
                   await handleCreateStudy(data);
                   setSelectedStudy(null);
@@ -1582,7 +1670,7 @@ export default function SuperAdminDashboard() {
             )}
             {currentPage === 'LIVE_USERS' && <LiveActiveUsers allUsers={users} />}
             {currentPage === 'METRICS' && <AnalyticsDashboard />}
-            {currentPage === 'AUDIT_LOGS' && <AuditLogs />}
+            {currentPage === 'AUDIT_LOGS' && <AuditLogs activities={activities} />}
             { currentPage === 'WORKFLOW' && <WorkflowModerationPanel /> }
             { currentPage === 'SUBMIT_CONTENT' && <SubmitContentForms userRole="SUPER_ADMIN" /> }
             {currentPage === 'SETTINGS' && <SettingsPage />}

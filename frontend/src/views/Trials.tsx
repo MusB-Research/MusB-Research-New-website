@@ -51,14 +51,14 @@ export default function Trials() {
             setLoading(true);
             try {
                 const apiUrl = import.meta.env.VITE_API_URL || '';
-                const response = await authFetch(`${apiUrl}/api/studies/`);
+                const response = await authFetch(`${apiUrl}/api/public-studies/`);
                 if (!response.ok) throw new Error('Failed to fetch studies');
                 const data = await response.json();
 
                 // Map API data to UI structure if needed, or use directly
                 const statusMap: Record<string, string> = {
                     'RECRUITING': 'Recruiting',
-                    'ACTIVE': 'Active',
+                    'UPCOMING': 'Upcoming',
                     'PAUSED': 'Paused',
                     'COMPLETED': 'Completed'
                 };
@@ -69,7 +69,7 @@ export default function Trials() {
                     description: s.primary_indication || "Standard research protocol",
                     condition: s.primary_indication || "Other",
                     type: s.study_type === 'VIRTUAL' ? 'Virtual' : (s.study_type === 'IN_PERSON' ? 'On-site' : 'Hybrid'),
-                    status: statusMap[s.status] || 'Paused',
+                    status: statusMap[s.status] || 'Upcoming',
                     benefit: s.trial_model === 'RCT' ? 'Placebo-Controlled' : 'Standard Product',
                     duration: "4-12 Weeks", // Simulated field
                     tags: [s.trial_model, s.study_type]
@@ -170,7 +170,7 @@ export default function Trials() {
                     <div className="grid lg:grid-cols-2 gap-16 items-center relative z-10">
                         <div className="space-y-8">
                             <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 font-bold text-xs tracking-widest uppercase">
-                                <HeartPulse className="w-4 h-4" /> Active Clinical Trials
+                                <HeartPulse className="w-4 h-4" /> Upcoming & Recruiting Trials
                             </div>
                             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[0.85] uppercase italic">
                                 Join a Study. Help Advance <span className="text-cyan-400 italic font-black">Natural</span> Health Science.
@@ -365,7 +365,7 @@ export default function Trials() {
                                         <div className="space-y-4">
                                             <div className={`inline-block px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
                                                 study.status === 'Recruiting' ? 'bg-cyan-500/10 text-cyan-400' : 
-                                                study.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400' :
+                                                study.status === 'Upcoming' ? 'bg-emerald-500/10 text-emerald-400' :
                                                 study.status === 'Paused' ? 'bg-amber-500/10 text-amber-400' :
                                                 'bg-slate-500/10 text-slate-400 opacity-50'
                                             }`}>

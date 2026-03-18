@@ -1043,9 +1043,9 @@ export default function ParticipantDashboard() {
         setIsLogoutModalOpen(true);
     };
 
-    const confirmSignOut = () => {
-        clearToken();
-        navigate('/');
+    const confirmSignOut = async () => {
+        await clearToken();
+        window.location.href = "/";
     };
 
     // Updated Nav Items per Request

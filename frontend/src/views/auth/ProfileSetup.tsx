@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, MapPin, Globe, CheckCircle2, ArrowRight, ArrowLeft, ShieldCheck, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { authFetch, saveToken } from '../../utils/auth';
+import { authFetch, saveToken, saveUser, getUser } from '../../utils/auth';
 
 export default function ProfileSetup() {
     const [step, setStep] = useState(1);
@@ -44,27 +44,23 @@ export default function ProfileSetup() {
             if (!res.ok) throw new Error(data.error || 'Setup failed');
 
             // Update local user info and token
-            const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-            const updatedUser = { ...storedUser, ...data.user };
-            localStorage.setItem('user', JSON.stringify(updatedUser));
+            const storedUser = getUser() || {};
+            const updatedUser = { ...storedUser, ...data.user, profile_incomplete: false };
+            saveUser(updatedUser);
+            
             if (data.access) {
                 saveToken(data.access, updatedUser.role || 'PARTICIPANT');
-                // Dispatch event so other components know the token updated
                 window.dispatchEvent(new Event('auth-token-changed'));
             }
 
             setStep(3); // Success step
             setTimeout(() => {
                 const role = updatedUser.role || 'PARTICIPANT';
-                switch (role) {
-                    case 'ADMIN':
-                    case 'SUPER_ADMIN':
-                    case 'COORDINATOR': navigate('/dashboard/admin'); break;
-                    case 'PI': navigate('/dashboard/pi'); break;
-                    case 'SPONSOR': navigate('/dashboard/sponsor'); break;
-                    default: navigate('/dashboard/participant');
-                }
-            }, 2000);
+                window.location.href = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'COORDINATOR' ? '/dashboard/admin'
+                                    : role === 'PI' ? '/dashboard/pi'
+                                    : role === 'SPONSOR' ? '/dashboard/sponsor'
+                                    : '/dashboard/participant';
+            }, 1000);
         } catch (err: any) {
             setError(err.message);
         } finally {

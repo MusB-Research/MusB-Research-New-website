@@ -19,9 +19,10 @@ class Study(models.Model):
 
     STATUS_CHOICES = [
         ('RECRUITING', 'Recruiting'),
-        ('ACTIVE', 'Active'),
+        ('UPCOMING', 'Upcoming'),
         ('PAUSED', 'Paused'),
         ('COMPLETED', 'Completed'),
+        ('ARCHIVED', 'Archived'),
     ]
 
     title = models.CharField(max_length=255)
@@ -34,6 +35,7 @@ class Study(models.Model):
     # Core Medical Team (direct fields for easier dashboard access)
     pi = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='pi_studies')
     coordinator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='coordinator_studies')
+    sponsor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='sponsor_studies')
     
     # Workflow approval status
     approval_status = models.CharField(max_length=20, choices=[
@@ -54,11 +56,13 @@ class Study(models.Model):
     shipment_mode = models.CharField(max_length=30, choices=[
         ('CLINIC', 'Clinic Delivery'),
         ('DTP', 'Direct-to-Patient (DTP)'),
+        ('HYBRID', 'Hybrid (Both Modes)')
     ], default='CLINIC')
     
     consent_mode = models.CharField(max_length=30, choices=[
         ('PAPER', 'Paper Consent'),
         ('ECONSENT', 'Electronic Consent (eConsent)'),
+        ('HYBRID', 'Hybrid (Both Modes)')
     ], default='ECONSENT')
     
     # Frontend Data Fields
@@ -113,6 +117,14 @@ class Study(models.Model):
 
     def __str__(self):
         return f"{self.protocol_id} - {self.title}"
+
+    @property
+    def assigned_pis(self):
+        return [a.user for a in self.assignments.filter(role='PI')]
+
+    @property
+    def assigned_coordinators(self):
+        return [a.user for a in self.assignments.filter(role='COORDINATOR')]
 
 class StudyAssignment(models.Model):
     """Links Users to Studies with specific hierarchy/access roles"""

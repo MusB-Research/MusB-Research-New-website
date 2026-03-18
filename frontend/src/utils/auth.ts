@@ -35,26 +35,31 @@ export const saveToken = (token: string, role: string, modules?: string) => {
     if (modules) sessionStorage.setItem('modules', modules);
 };
 
-export const saveUser = (user: Record<string, unknown>) => {
-    sessionStorage.setItem('user', JSON.stringify(user));
+export const saveUser = (user: any) => {
+    const userStr = JSON.stringify(user);
+    sessionStorage.setItem('user', userStr);
+    localStorage.setItem('user', userStr);
+    // Trigger storage event for cross-component sync
+    window.dispatchEvent(new Event('storage'));
 };
 
 export const clearToken = async () => {
-    // Fix #4 — call /logout/ so backend blacklists the JTI
+    // 1. Inform backend to blacklist the current session
     try {
         await fetch(`${API}/api/auth/logout/`, {
             method: 'POST',
-            credentials: 'include',  // sends the HttpOnly cookie
+            credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
         });
-    } catch { /* ignore network errors on logout */ }
+    } catch (e) { console.warn("Logout ping failed", e); }
+
+    // 2. Clear all local/session storage to prevent "ghost" sessions
     sessionStorage.clear();
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    localStorage.removeItem('modules');
-    localStorage.removeItem('user');
-    localStorage.removeItem('access');
-    localStorage.removeItem('refresh');
+    localStorage.clear();
+
+    // 3. Clear critical cookies (Client-side attempt)
+    document.cookie = "access=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    document.cookie = "refresh=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 };
 
 /** True if the user has an active session (checks sessionStorage role as proxy). */

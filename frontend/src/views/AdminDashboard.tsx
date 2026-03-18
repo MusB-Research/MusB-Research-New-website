@@ -17,6 +17,7 @@ import TeamModule from '../components/admin/TeamModule';
 import SettingsModule from '../components/admin/SettingsModule';
 import SubmitContentForms from '../components/admin/SubmitContentForms';
 import ScreenerBuilder from '../components/admin/ScreenerBuilder';
+import SponsorsManagement from '../components/admin/SponsorsManagement';
 
 import {
     LayoutDashboard,
@@ -51,12 +52,15 @@ import {
     MessageSquare,
     Activity,
     X,
-    LogOut
+    LogOut,
+    Rocket,
+    Menu
 } from 'lucide-react';
 
 type AdminModule = 
     | 'DASHBOARD' 
     | 'STUDIES' 
+    | 'LAUNCH_STUDY'
     | 'PARTICIPANTS' 
     | 'SCHEDULING' 
     | 'INVENTORY' 
@@ -67,13 +71,14 @@ type AdminModule =
     | 'TEAM' 
     | 'SETTINGS'
     | 'SUBMIT'
-    | 'SCREENER_BUILDER';
+    | 'SCREENER_BUILDER'
+    | 'SPONSORS';
 
 export default function AdminDashboard() {
     const [activeModule, setActiveModule] = useState<AdminModule>('DASHBOARD');
-    const [showCreateModal, setShowCreateModal] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const profileRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
 
@@ -94,8 +99,10 @@ export default function AdminDashboard() {
     const confirmSignOut = async () => {
         await clearToken();
         navigate('/');
+        window.location.reload();
     };
     const [studies, setStudies] = useState<any[]>([]);
+    const [users, setUsers] = useState<any[]>([]);
     const [selectedStudy, setSelectedStudy] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -103,8 +110,13 @@ export default function AdminDashboard() {
         setLoading(true);
         try {
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-            const res = await authFetch(`${apiUrl}/api/studies/`);
-            if (res.ok) setStudies(await res.json());
+            const [studiesRes, usersRes] = await Promise.all([
+                authFetch(`${apiUrl}/api/studies/`),
+                authFetch(`${apiUrl}/api/users/`)
+            ]);
+            
+            if (studiesRes.ok) setStudies(await studiesRes.json());
+            if (usersRes.ok) setUsers(await usersRes.json());
         } catch (e) {
             console.error("Admin Data Fetch Failed", e);
         } finally {
@@ -140,7 +152,7 @@ export default function AdminDashboard() {
                 body: JSON.stringify(data)
             });
             if (res.ok) {
-                setShowCreateModal(false);
+                setActiveModule('STUDIES');
                 setSelectedStudy(null);
                 fetchContent();
             } else {
@@ -155,6 +167,7 @@ export default function AdminDashboard() {
     const navItems = [
         { id: 'DASHBOARD', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'STUDIES', label: 'Studies', icon: Beaker },
+        { id: 'LAUNCH_STUDY', label: 'LAUNCH A STUDY', icon: Rocket },
         { id: 'PARTICIPANTS', label: 'Participants', icon: Users },
         { id: 'SCHEDULING', label: 'Scheduling', icon: Calendar },
         { id: 'INVENTORY', label: 'Kits & Inventory', icon: Box },
@@ -166,6 +179,7 @@ export default function AdminDashboard() {
         { id: 'SETTINGS', label: 'Settings', icon: Settings },
         { id: 'SUBMIT', label: 'Submit Content', icon: Plus },
         { id: 'SCREENER_BUILDER', label: 'Screener Builder', icon: Filter },
+        { id: 'SPONSORS', label: 'Manage Sponsors', icon: Globe },
     ];
 
     const renderHeader = () => {
@@ -182,14 +196,20 @@ export default function AdminDashboard() {
         } catch (e) { }
 
         return (
-            <header className="fixed top-0 left-0 right-0 h-28 z-50 bg-[#0B101B]/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between px-10">
-                <div className="flex items-center gap-12">
+            <header className="fixed top-0 left-0 right-0 h-28 z-[60] bg-[#0B101B]/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between px-6 lg:px-10">
+                <div className="flex items-center gap-6 lg:gap-12">
+                    <button 
+                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                        className="lg:hidden p-3 bg-white/5 border border-white/10 rounded-xl text-slate-300 active:scale-95 transition-all"
+                    >
+                        {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                    </button>
                     <Link to="/" className="flex items-center group">
-                        <div className="h-10 px-5 rounded-full bg-white flex items-center justify-center shadow-lg transition-transform group-hover:scale-105">
+                        <div className="h-10 px-4 lg:px-5 rounded-full bg-white flex items-center justify-center shadow-lg transition-transform group-hover:scale-105">
                             <img src="/logo.jpg" alt="MusB Research" className="h-6 w-auto object-contain" />
                         </div>
                     </Link>
-                    <div className="relative hidden md:block">
+                    <div className="relative hidden xl:block">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                         <input
                             type="text"
@@ -256,52 +276,78 @@ export default function AdminDashboard() {
     };
 
     const renderSidebar = () => (
-        <aside className="fixed left-0 top-28 bottom-0 w-80 bg-[#0B101B]/40 backdrop-blur-3xl border-r border-white/5 p-6 z-40 overflow-y-auto custom-scrollbar">
-            <nav className="space-y-1.5">
-                {navItems.map((item) => (
-                    <button
-                        key={item.id}
-                        onClick={() => {
-                            if (item.id === 'WEBSITE') navigate('/home');
-                            else setActiveModule(item.id as AdminModule);
-                        }}
-                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group ${activeModule === item.id
-                                ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]'
-                                : 'text-slate-500 hover:bg-white/5 hover:text-white'
-                            }`}
-                    >
-                        <div className="w-10 flex items-center justify-center flex-shrink-0">
-                            <item.icon className={`w-4 h-4 ${activeModule === item.id ? 'text-cyan-400' : 'text-slate-600 group-hover:text-cyan-400'}`} />
-                        </div>
-                        <span className="text-[11px] font-black uppercase tracking-[0.15em]">{item.label}</span>
-                        {activeModule === item.id && (
-                            <motion.div layoutId="activeInd" className="ml-auto w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,1)]" />
-                        )}
-                    </button>
-                ))}
-            </nav>
-        </aside>
+        <>
+            <AnimatePresence>
+                {isSidebarOpen && (
+                    <motion.div 
+                        initial={{ opacity: 0 }} 
+                        animate={{ opacity: 1 }} 
+                        exit={{ opacity: 0 }} 
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] lg:hidden"
+                    />
+                )}
+            </AnimatePresence>
+            <aside className={`fixed left-0 top-28 bottom-0 w-80 bg-[#0B101B]/40 backdrop-blur-3xl border-r border-white/5 p-6 z-[56] overflow-y-auto custom-scrollbar transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+                <nav className="space-y-1.5">
+                    {navItems.map((item) => (
+                        <button
+                            key={item.id}
+                            onClick={() => {
+                                if (item.id === 'WEBSITE') navigate('/home');
+                                else {
+                                    setActiveModule(item.id as AdminModule);
+                                    setIsSidebarOpen(false);
+                                }
+                            }}
+                            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group ${activeModule === item.id
+                                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
+                                    : 'text-slate-500 hover:bg-white/5 hover:text-white'
+                                }`}
+                        >
+                            <div className="w-10 flex items-center justify-center flex-shrink-0">
+                                <item.icon className="w-4 h-4" />
+                            </div>
+                            <span className="text-[11px] font-black uppercase tracking-[0.15em]">{item.label}</span>
+                        </button>
+                    ))}
+                </nav>
+            </aside>
+        </>
     );
 
     return (
         <div className="min-h-screen bg-transparent">
             {renderHeader()}
             {renderSidebar()}
-            <main className="ml-80 pt-36 pb-24 px-10">
+            <main className="lg:ml-80 pt-36 pb-24 px-4 lg:px-10 overflow-x-hidden">
                 <AnimatePresence mode="wait">
                     {activeModule === 'DASHBOARD' && (
-                        <DashboardModule key="DASHBOARD" studyCount={studies.length} />
+                        <DashboardModule key="DASHBOARD" studyCount={studies.length} onLaunch={() => setActiveModule('LAUNCH_STUDY')} />
                     )}
                     
                     {activeModule === 'STUDIES' && (
                         <StudiesModule 
                             studies={studies} 
-                            onAdd={() => setShowCreateModal(true)} 
+                            onAdd={() => setActiveModule('LAUNCH_STUDY')} 
                             onEdit={(s) => {
                                 setSelectedStudy(s);
-                                setShowCreateModal(true);
+                                setActiveModule('LAUNCH_STUDY');
                             }}
                             onLaunch={handleLaunchStudy} 
+                        />
+                    )}
+                    {activeModule === 'LAUNCH_STUDY' && (
+                        <LaunchStudyForm 
+                            onClose={() => {
+                                setActiveModule('STUDIES');
+                                setSelectedStudy(null);
+                            }}
+                            initialData={selectedStudy}
+                            onSave={handleCreateStudy}
+                            availablePIs={users.filter(u => u.role === 'PI')}
+                            availableCoordinators={users.filter(u => u.role === 'COORDINATOR')}
+                            availableSponsors={users.filter(u => u.role === 'SPONSOR')}
                         />
                     )}
                     {activeModule === 'PARTICIPANTS' && <ParticipantsModule />}
@@ -311,41 +357,21 @@ export default function AdminDashboard() {
                     {activeModule === 'DOCUMENTS' && <DocumentsModule />}
                     {activeModule === 'DATA' && <DataModule />}
                     {activeModule === 'REPORTS' && <ReportsModule />}
-                    {activeModule === 'TEAM' && <TeamModule />}
+                    {activeModule === 'TEAM' && <TeamModule team={users} onRefresh={fetchContent} />}
                     {activeModule === 'SUBMIT' && <SubmitContentForms userRole="COORDINATOR" />}
                     {activeModule === 'SCREENER_BUILDER' && <ScreenerBuilder />}
+                    {activeModule === 'SPONSORS' && (
+                        <SponsorsManagement 
+                            allUsers={users} 
+                            allStudies={studies} 
+                            onRefresh={fetchContent} 
+                        />
+                    )}
                     {activeModule === 'SETTINGS' && <SettingsModule />}
                 </AnimatePresence>
             </main>
 
-            <AnimatePresence>
-                {showCreateModal && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setShowCreateModal(false)}
-                            className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl"
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.98, y: 10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.98, y: 10 }}
-                            className="relative w-full max-w-[90vw] h-[90vh] bg-[#0B101B] border border-white/10 rounded-[3rem] p-12 overflow-y-auto shadow-2xl custom-scrollbar"
-                        >
-                            <LaunchStudyForm 
-                                onClose={() => {
-                                    setShowCreateModal(false);
-                                    setSelectedStudy(null);
-                                }}
-                                initialData={selectedStudy}
-                                onSave={handleCreateStudy}
-                            />
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
+
             <LogoutConfirmationModal 
                 isOpen={isLogoutModalOpen}
                 onClose={() => setIsLogoutModalOpen(false)}

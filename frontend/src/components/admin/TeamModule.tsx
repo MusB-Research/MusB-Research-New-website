@@ -14,8 +14,27 @@ import {
     Lock
 } from 'lucide-react';
 
-export default function TeamModule() {
-    const team = [
+interface TeamMember {
+    name: string;
+    role: string;
+    email: string;
+    status: string;
+    lastLogin: string;
+}
+
+interface TeamModuleProps {
+    team?: any[];
+    onRefresh?: () => void;
+}
+
+export default function TeamModule({ team = [], onRefresh }: TeamModuleProps) {
+    const displayTeam: TeamMember[] = team.length > 0 ? team.map(u => ({
+        name: u.full_name || u.name || 'Personnel Instance',
+        role: u.role || 'Staff',
+        email: u.email,
+        status: u.is_active === false ? 'INACTIVE' : 'ACTIVE',
+        lastLogin: u.last_login_formatted || 'Recently'
+    })) : [
         { name: 'Dr. Emily Vance', role: 'Super Admin', email: 'e.vance@musbresearch.com', status: 'ACTIVE', lastLogin: '12m ago' },
         { name: 'Sarah Zhang', role: 'Study Coordinator', email: 's.zhang@clinical.org', status: 'ACTIVE', lastLogin: '2h ago' },
         { name: 'Mike Ross', role: 'CRA', email: 'm.ross@sponsor.com', status: 'INACTIVE', lastLogin: '3 days ago' },
@@ -39,8 +58,11 @@ export default function TeamModule() {
                     </p>
                 </div>
                 <div className="flex gap-4">
-                    <button className="px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center gap-2 italic">
-                         <Lock className="w-4 h-4" /> Permission Audit
+                    <button 
+                        onClick={onRefresh}
+                        className="px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center gap-2 italic"
+                    >
+                         <Clock className="w-4 h-4" /> Refresh Sync
                     </button>
                     <button className="px-8 py-4 bg-cyan-500 text-slate-950 rounded-[2rem] text-[10px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-xl shadow-cyan-500/20 hover:scale-[1.02] transition-all">
                         <UserPlus className="w-4 h-4" /> Provision Access
@@ -58,13 +80,13 @@ export default function TeamModule() {
                                 Personnel <span className="text-cyan-400">Directory</span>
                              </h3>
                              <div className="relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                                <input type="text" placeholder="Search team..." className="bg-white/5 border border-white/10 rounded-xl pl-12 pr-6 py-3 text-[10px] text-white outline-none focus:border-cyan-500/50 transition-all w-64 font-bold uppercase tracking-widest"/>
+                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                 <input type="text" placeholder="Search team..." className="bg-white/5 border border-white/10 rounded-xl pl-12 pr-6 py-3 text-[10px] text-white outline-none focus:border-cyan-500/50 transition-all w-64 font-bold uppercase tracking-widest"/>
                              </div>
                         </div>
 
                         <div className="divide-y divide-white/5">
-                            {team.map((user, i) => (
+                            {displayTeam.map((user, i) => (
                                 <div key={i} className="flex items-center justify-between py-8 px-6 hover:bg-white/5 transition-all rounded-[2.5rem] group cursor-pointer -mx-4 group border border-transparent hover:border-white/5">
                                     <div className="flex items-center gap-6">
                                         <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center font-black text-slate-500 group-hover:text-cyan-400 transition-colors shrink-0">
@@ -82,16 +104,23 @@ export default function TeamModule() {
                                     <div className="flex items-center gap-12">
                                         <div className="hidden md:block">
                                             <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/10 flex items-center gap-2 ${
-                                                user.role === 'Super Admin' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-white/5 text-slate-500'
+                                                user.role?.includes('Admin') ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-white/5 text-slate-500'
                                             }`}>
                                                 <Shield className="w-3 h-3" /> {user.role}
                                             </span>
                                         </div>
-                                        <div className="text-right min-w-[80px]">
-                                            <p className="text-[10px] font-black text-slate-400 italic uppercase">Logged</p>
-                                            <p className="text-[9px] font-bold text-white uppercase tracking-widest mt-1"><Clock className="w-2.5 h-2.5 inline mr-1 opacity-50" /> {user.lastLogin}</p>
+                                        <div className="hidden md:block text-right">
+                                            <p className="text-[11px] font-black text-slate-300 uppercase italic tracking-tighter flex items-center gap-2">
+                                                <Clock className="w-3 h-3" /> {user.lastLogin}
+                                            </p>
+                                            <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mt-1">Last Active</p>
                                         </div>
-                                        <button className="p-3 bg-white/5 border border-white/10 rounded-xl text-slate-500 opacity-0 group-hover:opacity-100 transition-all hover:text-white">
+                                        <div className={`px-5 py-2 rounded-full border transition-all ${
+                                            user.status === 'ACTIVE' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-red-500/10 border-red-500/20 text-red-500'
+                                        }`}>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${user.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></div>
+                                        </div>
+                                        <button className="p-3 bg-white/5 border border-white/10 rounded-xl text-slate-700 hover:text-white transition-all">
                                             <MoreHorizontal className="w-5 h-5" />
                                         </button>
                                     </div>
@@ -110,10 +139,9 @@ export default function TeamModule() {
                         </h4>
                         <div className="space-y-4">
                             {[
-                                { name: 'Admin', users: 2, icon: Shield },
-                                { name: 'Coordinator', users: 8, icon: Users },
-                                { name: 'CRA / Sponsor', users: 4, icon: Mail },
-                                { name: 'Medical Monitor', users: 1, icon: CheckCircle2 },
+                                { name: 'Admin', users: team.filter(u => u.role?.includes('ADMIN')).length || 1, icon: Shield },
+                                { name: 'Coordinator', users: team.filter(u => u.role === 'COORDINATOR').length || 0, icon: Users },
+                                { name: 'Sponsor', users: team.filter(u => u.role === 'SPONSOR').length || 0, icon: Mail },
                             ].map((role, i) => (
                                 <div key={i} className="p-6 bg-white/5 border border-white/5 rounded-[2.5rem] group hover:border-indigo-500/30 transition-all cursor-pointer">
                                     <div className="flex items-center justify-between mb-4">

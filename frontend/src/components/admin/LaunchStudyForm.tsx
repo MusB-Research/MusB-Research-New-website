@@ -13,7 +13,8 @@ import {
     Activity,
     Settings2,
     CheckCircle2,
-    X
+    X,
+    ChevronDown
 } from 'lucide-react';
 
 interface TrialConfiguratorProps {
@@ -22,19 +23,21 @@ interface TrialConfiguratorProps {
     initialData?: any;
     availablePIs?: any[];
     availableCoordinators?: any[];
+    availableSponsors?: any[];
 }
 
-export default function LaunchStudyForm({ onClose, onSave, initialData, availablePIs = [], availableCoordinators = [] }: TrialConfiguratorProps) {
+export default function LaunchStudyForm({ onClose, onSave, initialData, availablePIs = [], availableCoordinators = [], availableSponsors = [] }: TrialConfiguratorProps) {
     const [formData, setFormData] = useState({
         title: initialData?.title || '',
         protocol_id: initialData?.protocol_id || '',
         description: initialData?.description || '',
         sponsor_name: initialData?.sponsor_name || '',
-        pi_id: initialData?.pi_id || '',
-        coordinator_id: initialData?.coordinator_id || '',
+        sponsor_id: initialData?.sponsor_id || '',
+        pi_ids: initialData?.pi_ids || (initialData?.pi_id ? [initialData.pi_id] : []),
+        coordinator_ids: initialData?.coordinator_ids || (initialData?.coordinator_id ? [initialData.coordinator_id] : []),
         startDate: initialData?.startDate || '',
         endDate: initialData?.endDate || '',
-        participantLimit: initialData?.participantLimit || 100,
+        target_screened: initialData?.target_screened || 100,
         status: initialData?.status || 'PAUSED',
         study_type: initialData?.study_type || 'IN_PERSON',
         trial_model: initialData?.trial_model || 'RCT',
@@ -45,6 +48,15 @@ export default function LaunchStudyForm({ onClose, onSave, initialData, availabl
         consent_mode: initialData?.consent_mode || 'ECONSENT',
         primary_indication: initialData?.primary_indication || '',
     });
+
+    const [piSearch, setPiSearch] = useState('');
+    const [coordSearch, setCoordSearch] = useState('');
+    const [sponsorSearch, setSponsorSearch] = useState('');
+    const [isPiDropdownOpen, setIsPiDropdownOpen] = useState(false);
+    const [isCoordDropdownOpen, setIsCoordDropdownOpen] = useState(false);
+    const [isSponsorDropdownOpen, setIsSponsorDropdownOpen] = useState(false);
+    const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
+    const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
@@ -107,7 +119,7 @@ export default function LaunchStudyForm({ onClose, onSave, initialData, availabl
                 <div className="xl:col-span-2 space-y-10">
                     
                     {/* Section 1: Core Identity */}
-                    <div className="bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-10 space-y-8">
+                    <div className="relative z-[30] bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-10 space-y-8">
                         <div className="flex items-center gap-3 border-b border-white/5 pb-6">
                             <Beaker className="w-6 h-6 text-cyan-400" />
                             <h3 className="text-base font-black text-white uppercase tracking-widest italic">Core Protocol Identity</h3>
@@ -141,14 +153,48 @@ export default function LaunchStudyForm({ onClose, onSave, initialData, availabl
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-3">
                                 <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">Sponsor Organization</label>
-                                <input 
-                                    type="text" 
-                                    name="sponsor_name" 
-                                    value={formData.sponsor_name} 
-                                    onChange={handleChange}
-                                    placeholder="Global BioPharma Ltd"
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm text-white font-bold outline-none focus:border-cyan-500/50 transition-all placeholder:text-slate-700"
-                                />
+                                <div className="relative">
+                                    <div 
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 flex items-center justify-between cursor-pointer hover:border-cyan-500/50 transition-all"
+                                        onClick={() => setIsSponsorDropdownOpen(!isSponsorDropdownOpen)}
+                                    >
+                                        <div className="flex flex-col">
+                                            <span className="text-sm text-white font-bold">{formData.sponsor_name || '-- Select Sponsor --'}</span>
+                                        </div>
+                                        <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isSponsorDropdownOpen ? 'rotate-180' : ''}`} />
+                                    </div>
+
+                                    {isSponsorDropdownOpen && (
+                                        <div className="absolute top-full left-0 w-full mt-2 bg-[#0B101B] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden backdrop-blur-3xl">
+                                            <div className="p-3 border-b border-white/5">
+                                                <input 
+                                                    type="text"
+                                                    placeholder="Filter sponsors..."
+                                                    value={sponsorSearch}
+                                                    onChange={(e) => setSponsorSearch(e.target.value)}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-cyan-500/30"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                />
+                                            </div>
+                                            <div className="max-h-60 overflow-y-auto">
+                                                {availableSponsors.filter(s => s.name.toLowerCase().includes(sponsorSearch.toLowerCase())).map(s => (
+                                                    <div 
+                                                        key={s.id}
+                                                        onClick={() => {
+                                                            setFormData({ ...formData, sponsor_id: s.id, sponsor_name: s.name });
+                                                            setIsSponsorDropdownOpen(false);
+                                                            setSponsorSearch('');
+                                                        }}
+                                                        className="px-6 py-4 hover:bg-white/5 cursor-pointer flex items-center justify-between group"
+                                                    >
+                                                        <span className={`text-sm font-bold group-hover:text-cyan-400 ${formData.sponsor_id === s.id ? 'text-cyan-400' : 'text-slate-300'}`}>{s.name}</span>
+                                                        {formData.sponsor_id === s.id && <CheckCircle2 className="w-4 h-4 text-cyan-400" />}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div className="space-y-3">
                                 <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">Primary Medical Indication</label>
@@ -165,49 +211,97 @@ export default function LaunchStudyForm({ onClose, onSave, initialData, availabl
                     </div>
 
                     {/* Section 2: Clinical Model & Methodology */}
-                    <div className="bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-10 space-y-8">
+                    <div className="relative z-[20] bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-10 space-y-8">
                         <div className="flex items-center gap-3 border-b border-white/5 pb-6">
                             <Activity className="w-6 h-6 text-indigo-400" />
                             <h3 className="text-base font-black text-white uppercase tracking-widest italic">Clinical Design & Methodology</h3>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">Study Execution Type</label>
-                                <select 
-                                    name="study_type"
-                                    value={formData.study_type}
-                                    onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xs text-white font-black uppercase tracking-widest outline-none focus:border-cyan-500/50 appearance-none cursor-pointer"
-                                >
-                                    <option value="IN_PERSON">In-Person Clinical</option>
-                                    <option value="VIRTUAL">Virtual / Decentralized</option>
-                                    <option value="HYBRID">Hybrid (On-Site + Virtual)</option>
-                                </select>
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-2 min-h-[32px] flex items-end">Study Execution Type</label>
+                                <div className="relative">
+                                    <div 
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl h-16 px-6 flex items-center justify-between cursor-pointer hover:border-cyan-500/50 transition-all"
+                                        onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
+                                    >
+                                        <span className="text-[10px] text-white font-black uppercase tracking-widest">
+                                            {formData.study_type === 'IN_PERSON' ? 'In-Person Clinical' : 
+                                             formData.study_type === 'VIRTUAL' ? 'Virtual / Decentralized' : 'Hybrid Trial'}
+                                        </span>
+                                        <ChevronDown className={`w-3 h-3 text-slate-500 transition-transform ${isTypeDropdownOpen ? 'rotate-180' : ''}`} />
+                                    </div>
+
+                                    {isTypeDropdownOpen && (
+                                        <div className="absolute top-full left-0 w-full mt-2 bg-[#0B101B] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden backdrop-blur-3xl">
+                                            {[
+                                                { id: 'IN_PERSON', label: 'In-Person Clinical' },
+                                                { id: 'VIRTUAL', label: 'Virtual / Decentralized' },
+                                                { id: 'DECENTRALIZED', label: 'Hybrid Trial' }
+                                            ].map(type => (
+                                                <div 
+                                                    key={type.id}
+                                                    onClick={() => {
+                                                        setFormData({ ...formData, study_type: type.id });
+                                                        setIsTypeDropdownOpen(false);
+                                                    }}
+                                                    className="px-6 py-4 hover:bg-white/5 cursor-pointer text-[10px] font-black uppercase tracking-widest group"
+                                                >
+                                                    <span className={`group-hover:text-cyan-400 ${formData.study_type === type.id ? 'text-cyan-400' : 'text-slate-400'}`}>{type.label}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">Statistical Trial Model</label>
-                                <select 
-                                    name="trial_model"
-                                    value={formData.trial_model}
-                                    onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xs text-white font-black uppercase tracking-widest outline-none focus:border-cyan-500/50 appearance-none cursor-pointer"
-                                >
-                                    <option value="RCT">RCT (Randomized Controlled)</option>
-                                    <option value="OPEN_LABEL">Open Label</option>
-                                    <option value="IHUT">In-Home Use Test (IHUT)</option>
-                                    <option value="REGISTRY">Patient Registry</option>
-                                    <option value="OBSERVATIONAL">Observational</option>
-                                </select>
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-2 min-h-[32px] flex items-end">Statistical Trial Model</label>
+                                <div className="relative">
+                                    <div 
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl h-16 px-6 flex items-center justify-between cursor-pointer hover:border-cyan-500/50 transition-all"
+                                        onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+                                    >
+                                        <span className="text-[10px] text-white font-black uppercase tracking-widest">
+                                            {formData.trial_model === 'RCT' ? 'RCT (Randomized Controlled)' : 
+                                             formData.trial_model === 'OPEN_LABEL' ? 'Open Label' : 
+                                             formData.trial_model === 'IHUT' ? 'In-Home Use Test' :
+                                             formData.trial_model === 'REGISTRY' ? 'Patient Registry' : 'Observational'}
+                                        </span>
+                                        <ChevronDown className={`w-3 h-3 text-slate-500 transition-transform ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
+                                    </div>
+
+                                    {isModelDropdownOpen && (
+                                        <div className="absolute top-full left-0 w-full mt-2 bg-[#0B101B] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden backdrop-blur-3xl max-h-60 overflow-y-auto">
+                                            {[
+                                                { id: 'RCT', label: 'RCT (Randomized Controlled)' },
+                                                { id: 'OPEN_LABEL', label: 'Open Label' },
+                                                { id: 'IHUT', label: 'In-Home Use Test (IHUT)' },
+                                                { id: 'REGISTRY', label: 'Patient Registry' },
+                                                { id: 'OBSERVATIONAL', label: 'Observational' }
+                                            ].map(model => (
+                                                <div 
+                                                    key={model.id}
+                                                    onClick={() => {
+                                                        setFormData({ ...formData, trial_model: model.id });
+                                                        setIsModelDropdownOpen(false);
+                                                    }}
+                                                    className="px-6 py-4 hover:bg-white/5 cursor-pointer text-[10px] font-black uppercase tracking-widest group"
+                                                >
+                                                    <span className={`group-hover:text-cyan-400 ${formData.trial_model === model.id ? 'text-cyan-400' : 'text-slate-400'}`}>{model.label}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">Recruitment Limit</label>
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-2 min-h-[32px] flex items-end">Recruitment Limit</label>
                                 <input 
                                     type="number" 
-                                    name="participantLimit"
-                                    value={formData.participantLimit}
+                                    name="target_screened"
+                                    value={formData.target_screened}
                                     onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xl text-white font-black italic outline-none focus:border-cyan-500/50 transition-all font-mono"
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl h-16 px-6 text-[11px] text-white font-black uppercase tracking-[0.1em] outline-none focus:border-cyan-500/50 transition-all font-mono italic"
                                 />
                             </div>
                         </div>
@@ -260,23 +354,23 @@ export default function LaunchStudyForm({ onClose, onSave, initialData, availabl
                 <div className="space-y-10">
                     
                     {/* Section 3: Supply Chain */}
-                    <div className="bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-10 space-y-8">
+                    <div className="relative z-[30] bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-10 space-y-8">
                         <div className="flex items-center gap-3 border-b border-white/5 pb-6">
                             <Truck className="w-6 h-6 text-emerald-400" />
                             <h3 className="text-base font-black text-white uppercase tracking-widest italic">Logistics & Supply</h3>
                         </div>
 
-                        <div className="space-y-6">
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">Product Distribution Mode</label>
-                                <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-10">
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Product Distribution Mode</label>
+                                <div className="grid grid-cols-3 gap-4">
                                     <button 
                                         type="button"
                                         onClick={() => setFormData({...formData, shipment_mode: 'CLINIC'})}
-                                        className={`py-4 rounded-xl text-xs font-black uppercase tracking-widest border transition-all ${
+                                        className={`h-20 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] border transition-all duration-300 flex items-center justify-center text-center px-2 ${
                                             formData.shipment_mode === 'CLINIC' 
-                                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-lg' 
-                                            : 'bg-white/5 border-white/10 text-slate-500 hover:text-white'
+                                            ? 'bg-emerald-500/5 text-emerald-400 border-emerald-500/40 shadow-[0_0_20px_rgba(16,185,129,0.1)]' 
+                                            : 'bg-white/[0.02] border-white/5 text-slate-600 hover:text-slate-400 hover:bg-white/[0.05]'
                                         }`}
                                     >
                                         Clinic Delivery
@@ -284,27 +378,38 @@ export default function LaunchStudyForm({ onClose, onSave, initialData, availabl
                                     <button 
                                         type="button"
                                         onClick={() => setFormData({...formData, shipment_mode: 'DTP'})}
-                                        className={`py-4 rounded-xl text-xs font-black uppercase tracking-widest border transition-all ${
+                                        className={`h-20 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] border transition-all duration-300 flex items-center justify-center text-center px-2 ${
                                             formData.shipment_mode === 'DTP' 
-                                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-lg' 
-                                            : 'bg-white/5 border-white/10 text-slate-500 hover:text-white'
+                                            ? 'bg-emerald-500/5 text-emerald-400 border-emerald-500/40 shadow-[0_0_20px_rgba(16,185,129,0.1)]' 
+                                            : 'bg-white/[0.02] border-white/5 text-slate-600 hover:text-slate-400 hover:bg-white/[0.05]'
                                         }`}
                                     >
                                         Direct-to-Participant
                                     </button>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setFormData({...formData, shipment_mode: 'HYBRID'})}
+                                        className={`h-20 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] border transition-all duration-300 flex items-center justify-center text-center px-2 ${
+                                            formData.shipment_mode === 'HYBRID' 
+                                            ? 'bg-emerald-500/5 text-emerald-400 border-emerald-500/40 shadow-[0_0_20px_rgba(16,185,129,0.1)]' 
+                                            : 'bg-white/[0.02] border-white/5 text-slate-600 hover:text-slate-400 hover:bg-white/[0.05]'
+                                        }`}
+                                    >
+                                        Hybrid (Both)
+                                    </button>
                                 </div>
                             </div>
 
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">Consent Framework</label>
-                                <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Consent Framework</label>
+                                <div className="grid grid-cols-3 gap-4">
                                     <button 
                                         type="button"
                                         onClick={() => setFormData({...formData, consent_mode: 'PAPER'})}
-                                        className={`py-4 rounded-xl text-xs font-black uppercase tracking-widest border transition-all ${
+                                        className={`h-20 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] border transition-all duration-300 flex items-center justify-center text-center px-2 ${
                                             formData.consent_mode === 'PAPER' 
-                                            ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30' 
-                                            : 'bg-white/5 border-white/10 text-slate-500 hover:text-white'
+                                            ? 'bg-cyan-500/5 text-cyan-400 border-cyan-500/40 shadow-[0_0_20px_rgba(6,182,212,0.1)]' 
+                                            : 'bg-white/[0.02] border-white/5 text-slate-600 hover:text-slate-400 hover:bg-white/[0.05]'
                                         }`}
                                     >
                                         Paper Record
@@ -312,13 +417,24 @@ export default function LaunchStudyForm({ onClose, onSave, initialData, availabl
                                     <button 
                                         type="button"
                                         onClick={() => setFormData({...formData, consent_mode: 'ECONSENT'})}
-                                        className={`py-4 rounded-xl text-xs font-black uppercase tracking-widest border transition-all ${
+                                        className={`h-20 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] border transition-all duration-300 flex items-center justify-center text-center px-2 ${
                                             formData.consent_mode === 'ECONSENT' 
-                                            ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 shadow-lg' 
-                                            : 'bg-white/5 border-white/10 text-slate-500 hover:text-white'
+                                            ? 'bg-cyan-500/5 text-cyan-400 border-cyan-500/40 shadow-[0_0_20px_rgba(6,182,212,0.1)]' 
+                                            : 'bg-white/[0.02] border-white/5 text-slate-600 hover:text-slate-400 hover:bg-white/[0.05]'
                                         }`}
                                     >
                                         eConsent (Digital)
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setFormData({...formData, consent_mode: 'HYBRID'})}
+                                        className={`h-20 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] border transition-all duration-300 flex items-center justify-center text-center px-2 ${
+                                            formData.consent_mode === 'HYBRID' 
+                                            ? 'bg-cyan-500/5 text-cyan-400 border-cyan-500/40 shadow-[0_0_20px_rgba(6,182,212,0.1)]' 
+                                            : 'bg-white/[0.02] border-white/5 text-slate-600 hover:text-slate-400 hover:bg-white/[0.05]'
+                                        }`}
+                                    >
+                                        Hybrid (Both)
                                     </button>
                                 </div>
                             </div>
@@ -326,71 +442,166 @@ export default function LaunchStudyForm({ onClose, onSave, initialData, availabl
                     </div>
 
                     {/* Section 4: Operational Dates */}
-                    <div className="bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-10 space-y-8">
+                    <div className="relative z-[20] bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-10 space-y-8">
                         <div className="flex items-center gap-3 border-b border-white/5 pb-6">
                             <Calendar className="w-6 h-6 text-amber-400" />
                             <h3 className="text-base font-black text-white uppercase tracking-widest italic">Operational Window</h3>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">FPI (First In)</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">FPI (First In)</label>
                                 <input 
                                     type="date" 
                                     name="startDate"
                                     value={formData.startDate}
                                     onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white font-mono outline-none" 
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm text-white font-mono outline-none focus:border-amber-500/50 transition-all text-center" 
                                 />
                             </div>
                             <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">LPO (Last Out)</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">LPO (Last Out)</label>
                                 <input 
                                     type="date" 
                                     name="endDate"
                                     value={formData.endDate}
                                     onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white font-mono outline-none" 
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm text-white font-mono outline-none focus:border-amber-500/50 transition-all text-center" 
                                 />
                             </div>
                         </div>
                     </div>
 
-                    {/* Section 5: Team Assignments */}
-                    <div className="bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-10 space-y-8">
+                    {/* Section 3: Medical Team Assignment */}
+                    <div className="relative z-[10] bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-10 space-y-8">
                         <div className="flex items-center gap-3 border-b border-white/5 pb-6">
-                            <Users className="w-6 h-6 text-indigo-400" />
-                            <h3 className="text-base font-black text-white uppercase tracking-widest italic">Clinical Supervision</h3>
+                            <Users className="w-6 h-6 text-emerald-400" />
+                            <h3 className="text-base font-black text-white uppercase tracking-widest italic">Clinical Research Team</h3>
                         </div>
 
-                        <div className="space-y-6">
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">Principal Investigator</label>
-                                <select 
-                                    name="pi_id"
-                                    value={formData.pi_id}
-                                    onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xs text-white font-black uppercase tracking-widest outline-none transition-all"
-                                >
-                                    <option value="">-- Unassigned --</option>
-                                    {availablePIs.map(pi => (
-                                        <option key={pi.id} value={pi.id}>{pi.name}</option>
-                                    ))}
-                                </select>
+                        <div className="grid grid-cols-1 gap-10">
+                            {/* PI Multi-Select */}
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-end px-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Principal Investigator(s)</label>
+                                    <span className="text-[10px] text-cyan-500 uppercase font-black tracking-widest flex items-center gap-1.5 bg-cyan-500/10 px-3 py-1 rounded-full border border-cyan-500/20">
+                                        <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse" />
+                                        {formData.pi_ids.length} Assigned
+                                    </span>
+                                </div>
+                                <div className="relative">
+                                    <div className="w-full bg-white/5 border border-white/10 rounded-2xl min-h-[56px] p-2 flex flex-wrap gap-2 focus-within:border-emerald-500/50 transition-all">
+                                        {formData.pi_ids.map(id => {
+                                            const pi = availablePIs.find(p => p.id === id);
+                                            return (
+                                                <div key={id} className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-1.5 flex items-center gap-2">
+                                                    <span className="text-[11px] font-black text-emerald-400 uppercase tracking-tight">{pi?.name || 'Unknown'}</span>
+                                                    <button 
+                                                        onClick={() => setFormData({...formData, pi_ids: formData.pi_ids.filter(i => i !== id)})}
+                                                        className="text-emerald-500 hover:text-white transition-colors"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                        <input 
+                                            type="text"
+                                            placeholder={formData.pi_ids.length === 0 ? "Search and select PIs..." : "Add more..."}
+                                            value={piSearch}
+                                            onChange={(e) => {
+                                                setPiSearch(e.target.value);
+                                                setIsPiDropdownOpen(true);
+                                            }}
+                                            onFocus={() => setIsPiDropdownOpen(true)}
+                                            className="flex-1 bg-transparent border-none outline-none text-sm text-white px-3 min-w-[120px]"
+                                        />
+                                    </div>
+
+                                    {isPiDropdownOpen && (
+                                        <div className="absolute top-full left-0 w-full mt-2 bg-[#0B101B] border border-white/10 rounded-2xl shadow-2xl z-50 max-h-60 overflow-y-auto backdrop-blur-3xl">
+                                            {availablePIs.filter(p => p.name.toLowerCase().includes(piSearch.toLowerCase()) && !formData.pi_ids.includes(p.id)).map(pi => (
+                                                <div 
+                                                    key={pi.id}
+                                                    onClick={() => {
+                                                        setFormData({...formData, pi_ids: [...formData.pi_ids, pi.id]});
+                                                        setPiSearch('');
+                                                        setIsPiDropdownOpen(false);
+                                                    }}
+                                                    className="px-6 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-none transition-colors group"
+                                                >
+                                                    <p className="text-sm font-bold text-white group-hover:text-emerald-400">{pi.name}</p>
+                                                    <p className="text-[10px] text-slate-500 font-mono">{pi.email}</p>
+                                                </div>
+                                            ))}
+                                            <div className="px-6 py-3">
+                                                <button onClick={() => setIsPiDropdownOpen(false)} className="text-[10px] text-slate-500 font-black uppercase hover:text-white">Close Dropdown</button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">Lead Site Coordinator</label>
-                                <select 
-                                    name="coordinator_id"
-                                    value={formData.coordinator_id}
-                                    onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xs text-white font-black uppercase tracking-widest outline-none transition-all"
-                                >
-                                    <option value="">-- Unassigned --</option>
-                                    {availableCoordinators.map(c => (
-                                        <option key={c.id} value={c.id}>{c.name}</option>
-                                    ))}
-                                </select>
+
+                             {/* Coordinator Multi-Select */}
+                             <div className="space-y-4">
+                                <div className="flex justify-between items-end px-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Clinical Coordinator(s)</label>
+                                    <span className="text-[10px] text-indigo-500 uppercase font-black tracking-widest flex items-center gap-1.5 bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20">
+                                        <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse" />
+                                        {formData.coordinator_ids.length} Assigned
+                                    </span>
+                                </div>
+                                <div className="relative">
+                                    <div className="w-full bg-white/5 border border-white/10 rounded-2xl min-h-[56px] p-2 flex flex-wrap gap-2 focus-within:border-indigo-500/50 transition-all">
+                                        {formData.coordinator_ids.map(id => {
+                                            const c = availableCoordinators.find(coord => coord.id === id);
+                                            return (
+                                                <div key={id} className="bg-indigo-500/10 border border-indigo-500/20 rounded-lg px-3 py-1.5 flex items-center gap-2">
+                                                    <span className="text-[11px] font-black text-indigo-400 uppercase tracking-tight">{c?.name || 'Unknown'}</span>
+                                                    <button 
+                                                        onClick={() => setFormData({...formData, coordinator_ids: formData.coordinator_ids.filter(i => i !== id)})}
+                                                        className="text-indigo-500 hover:text-white transition-colors"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                        <input 
+                                            type="text"
+                                            placeholder={formData.coordinator_ids.length === 0 ? "Search and select Coords..." : "Add more..."}
+                                            value={coordSearch}
+                                            onChange={(e) => {
+                                                setCoordSearch(e.target.value);
+                                                setIsCoordDropdownOpen(true);
+                                            }}
+                                            onFocus={() => setIsCoordDropdownOpen(true)}
+                                            className="flex-1 bg-transparent border-none outline-none text-sm text-white px-3 min-w-[120px]"
+                                        />
+                                    </div>
+
+                                    {isCoordDropdownOpen && (
+                                        <div className="absolute top-full left-0 w-full mt-2 bg-[#0B101B] border border-white/10 rounded-2xl shadow-2xl z-50 max-h-60 overflow-y-auto backdrop-blur-3xl">
+                                            {availableCoordinators.filter(c => c.name.toLowerCase().includes(coordSearch.toLowerCase()) && !formData.coordinator_ids.includes(c.id)).map(c => (
+                                                <div 
+                                                    key={c.id}
+                                                    onClick={() => {
+                                                        setFormData({...formData, coordinator_ids: [...formData.coordinator_ids, c.id]});
+                                                        setCoordSearch('');
+                                                        setIsCoordDropdownOpen(false);
+                                                    }}
+                                                    className="px-6 py-3 hover:bg-white/5 cursor-pointer border-b border-white/5 last:border-none transition-colors group"
+                                                >
+                                                    <p className="text-sm font-bold text-white group-hover:text-indigo-400">{c.name}</p>
+                                                    <p className="text-[10px] text-slate-500 font-mono">{c.email}</p>
+                                                </div>
+                                            ))}
+                                             <div className="px-6 py-3">
+                                                <button onClick={() => setIsCoordDropdownOpen(false)} className="text-[10px] text-slate-500 font-black uppercase hover:text-white">Close Dropdown</button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>

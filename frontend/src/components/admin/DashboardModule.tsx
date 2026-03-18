@@ -17,9 +17,12 @@ import {
 
 interface DashboardModuleProps {
     studyCount: number;
+    onLaunch: () => void;
 }
 
-export default function DashboardModule({ studyCount }: DashboardModuleProps) {
+import { Rocket } from 'lucide-react';
+
+export default function DashboardModule({ studyCount, onLaunch }: DashboardModuleProps) {
     const funnelSteps = [
         { label: 'Impressions', value: '1.2M', growth: '+12%', icon: Globe },
         { label: 'Clicks', value: '84.2K', growth: '+8%', icon: MousePointer2 },
@@ -45,6 +48,12 @@ export default function DashboardModule({ studyCount }: DashboardModuleProps) {
                         <Clock className="w-6 h-6 text-cyan-400" />
                         <span className="text-xs sm:text-sm font-black text-white uppercase italic tracking-widest">Session: 04h 12m</span>
                     </div>
+                    <button 
+                        onClick={onLaunch}
+                        className="px-10 py-5 bg-cyan-600 text-white rounded-[2rem] text-[10px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-2xl shadow-cyan-900/40 hover:scale-[1.05] active:scale-95 transition-all font-mono"
+                    >
+                        <Rocket className="w-5 h-5" /> LAUNCH A STUDY
+                    </button>
                 </div>
             </div>
 

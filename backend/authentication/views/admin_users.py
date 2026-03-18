@@ -40,7 +40,7 @@ def admin_create_user(request):
     Role-specific credentials delivery and mandatory reset flags.
     """
     admin_user = request.user
-    if not admin_user or not admin_user.is_authenticated or admin_user.role not in ['SUPER_ADMIN', 'ADMIN']:
+    if not admin_user or not admin_user.is_authenticated or admin_user.role not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR']:
         return Response({'error': 'Unauthorized access.'}, status=status.HTTP_403_FORBIDDEN)
 
     # 1. Extraction
@@ -56,6 +56,10 @@ def admin_create_user(request):
     
     if role not in ALLOWED_ROLES:
         return Response({'error': f'Invalid role. Allowed: {", ".join(ALLOWED_ROLES)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Permission Restriction: PI/Coordinator can ONLY create Sponsors
+    if admin_user.role in ['PI', 'COORDINATOR'] and role != 'SPONSOR':
+        return Response({'error': 'You only have the authority to generate Sponsor credentials.'}, status=status.HTTP_403_FORBIDDEN)
 
     if User.objects.filter(email=email).exists():
         return Response({'error': 'An account with this email already exists.'}, status=status.HTTP_409_CONFLICT)
@@ -148,7 +152,7 @@ def admin_create_user(request):
 def admin_resend_credentials(request, user_id):
     """Endpoint to manual trigger credential resend/regeneration."""
     admin_user = request.user
-    if not admin_user or not admin_user.is_authenticated or admin_user.role not in ['SUPER_ADMIN', 'ADMIN']:
+    if not admin_user or not admin_user.is_authenticated or admin_user.role not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR']:
         return Response({'error': 'Unauthorized.'}, status=status.HTTP_403_FORBIDDEN)
     
     try:
@@ -157,6 +161,10 @@ def admin_resend_credentials(request, user_id):
         # Only allow resend if they haven't changed password yet
         if not target_user.must_change_password:
             return Response({'error': 'User has already secured their account. Password cannot be reset this way.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Permission Restriction: PI/Coordinator can ONLY resend for Sponsors
+        if admin_user.role in ['PI', 'COORDINATOR'] and target_user.role != 'SPONSOR':
+            return Response({'error': 'You only have the authority to manage Sponsor credentials.'}, status=status.HTTP_403_FORBIDDEN)
             
         new_temp_password = generate_secure_password(14)
         target_user.set_password(new_temp_password)
@@ -199,3 +207,35 @@ def admin_resend_credentials(request, user_id):
         return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+def admin_get_audit_logs(request):
+    """Retrieves all platform audit logs for Super Admin dashboard."""
+    admin_user = request.user
+    if not admin_user or not admin_user.is_authenticated or admin_user.role not in ['SUPER_ADMIN', 'ADMIN']:
+        return Response({'error': 'Unauthorized access.'}, status=status.HTTP_403_FORBIDDEN)
+
+    logs = AuditLog.objects.all()[:100] # Limit to 100 for dashboard performance
+    data = []
+    
+    # Map backend AuditLog model to frontend Activity interface
+    for log in logs:
+        # Determine category based on action
+        category = 'System:Auth'
+        if 'ROLE' in log.action or 'ACCOUNT' in log.action:
+            category = 'User:Mgmt'
+        elif 'CONFIG' in log.action or 'STUDY' in log.action:
+            category = 'Project:Data'
+            
+        data.append({
+            'id': f'log-{log.id}',
+            'timestamp': log.timestamp.strftime('%d/%m/%Y %H:%M:%S'),
+            'type': log.action,
+            'category': category,
+            'user': log.user_email or 'Anonymous',
+            'details': log.detail or 'Platform operation successful',
+            'ip': log.ip_address or 'Unknown',
+            'severity': 'danger' if 'FAILED' in log.action or 'LIMITED' in log.action else 
+                        ('warning' if 'RESET' in log.action or 'REISSUED' in log.action else 'info')
+        })
+    return Response(data)

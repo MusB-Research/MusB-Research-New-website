@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, User, ShieldCheck, ArrowRight, Lock, Key, CheckCircle2, AlertCircle, ChevronLeft, LogIn, PhoneCall } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { Link, useNavigate } from 'react-router-dom';
-import { saveToken } from '../../utils/auth';
+import { saveToken, saveUser } from '../../utils/auth';
 
 type AuthMode = 'LOGIN' | 'REGISTER' | 'FORGOT';
 type AuthStep = 'INFO' | 'OTP' | 'PASSWORD' | 'SUCCESS';
@@ -205,7 +205,7 @@ export default function SignIn() {
 
 
             saveToken(data.access, data.user.role);
-            localStorage.setItem('user', JSON.stringify(data.user));
+            saveUser(data.user);
 
             if (data.user.must_reset) {
                 navigate('/auth/reset-forced');
@@ -354,7 +354,7 @@ export default function SignIn() {
 
 
             saveToken(data.access, userRole);
-            localStorage.setItem('user', JSON.stringify(data.user));
+            saveUser(data.user);
 
             if (data.user.must_reset) {
                 navigate('/auth/reset-forced');

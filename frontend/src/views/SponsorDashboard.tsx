@@ -180,13 +180,13 @@ export default function SponsorDashboard() {
 
     const confirmSignOut = async () => {
         await clearToken();
-        navigate('/'); // Redirect to main page
+        window.location.href = "/";
     };
 
     const handleInviteMember = async () => {
         try {
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-            const res = await authFetch(`${apiUrl}/api/invite-team-member/`, {
+            const res = await authFetch(`${apiUrl}/api/auth/invite-team-member/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(inviteForm)

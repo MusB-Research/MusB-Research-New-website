@@ -133,10 +133,29 @@ class StudySerializer(SanitizedModelSerializer):
     coordinator_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), source='coordinator', required=False, allow_null=True
     )
-
+    sponsor_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), source='sponsor', required=False, allow_null=True
+    )
+    pi_ids = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all(), write_only=True, required=False)
+    coordinator_ids = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all(), write_only=True, required=False)
+    
+    # Read-only fields for current assignments
+    assigned_pis = UserSerializer(many=True, read_only=True)
+    assigned_coordinators = UserSerializer(many=True, read_only=True)
+    
     class Meta:
         model = Study
-        fields = '__all__'
+        fields = [
+            'id', 'title', 'description', 'protocol_id', 'sponsor_name', 'study_type', 'status',
+            'pi_id', 'coordinator_id', 'sponsor_id', 'pi_ids', 'coordinator_ids',
+            'assigned_pis', 'assigned_coordinators', 'approval_status', 'created_by',
+            'primary_indication', 'trial_model', 'is_double_blind', 'has_placebo_control',
+            'has_screening_log', 'shipment_mode', 'consent_mode', 'condition',
+            'trial_format', 'benefit', 'duration', 'tags', 'compensation', 'location',
+            'time_commitment', 'overview', 'timeline', 'kits_info', 'safety_info',
+            'privacy_standards', 'remote_participation', 'start_date', 'end_date',
+            'launch_date', 'irb_status', 'target_screened', 'actual_screened'
+        ]
 
 class InterventionArmSerializer(SanitizedModelSerializer):
     class Meta:
