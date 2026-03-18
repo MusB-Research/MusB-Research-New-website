@@ -138,6 +138,15 @@ class RefreshToken(models.Model):
     """Stores the SHA-256 hash of issued refresh tokens for rotation tracking."""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='refresh_tokens')
     token_hash = models.CharField(max_length=64, unique=True)  # SHA-256 hex digest
+
+    def __hash__(self) -> int:
+        pk = getattr(self, 'pk', None)
+        if pk is None:
+            return id(self)
+        try:
+            return hash(str(pk))
+        except Exception:
+            return id(self)
     jti = models.CharField(max_length=64, unique=True)         # JWT ID claim
     issued_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
@@ -165,6 +174,15 @@ class TokenBlacklist(models.Model):
     revoked_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()   # So we can clean up expired entries
     reason = models.CharField(max_length=50, default='logout')  # logout | password_change | admin_revoke
+
+    def __hash__(self) -> int:
+        pk = getattr(self, 'pk', None)
+        if pk is None:
+            return id(self)
+        try:
+            return hash(str(pk))
+        except Exception:
+            return id(self)
 
     @classmethod
     def is_blacklisted(cls, jti: str) -> bool:
@@ -205,6 +223,15 @@ class AuditLog(models.Model):
     user_agent = models.CharField(max_length=512, blank=True, null=True)
     detail = models.CharField(max_length=500, blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __hash__(self) -> int:
+        pk = getattr(self, 'pk', None)
+        if pk is None:
+            return id(self)
+        try:
+            return hash(str(pk))
+        except Exception:
+            return id(self)
 
     class Meta:
         ordering = ['-timestamp']

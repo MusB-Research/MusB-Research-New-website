@@ -1,162 +1,131 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
 import { 
-    Users, 
-    ShieldCheck, 
-    Mail, 
-    MoreHorizontal, 
-    Plus, 
-    Search,
-    Shield,
-    Clock,
-    UserPlus,
-    CheckCircle2,
-    Lock
+  Users, UserPlus, Shield, Mail, 
+  MapPin, Clock, Search, Filter, 
+  MoreVertical, CheckCircle2, Lock
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-interface TeamMember {
-    name: string;
-    role: string;
-    email: string;
-    status: string;
-    lastLogin: string;
-}
+export default function TeamModule() {
+  const [searchTerm, setSearchTerm] = useState('');
 
-interface TeamModuleProps {
-    team?: any[];
-    onRefresh?: () => void;
-}
+  const team = [
+    { name: 'Brijesh Raj', role: 'Super Admin', email: 'admin@musb.com', status: 'Active', lastLogin: '2h ago', location: 'Tampa, US' },
+    { name: 'Dr. Michael Chen', role: 'PI', email: 'm.chen@hospital.org', status: 'Active', lastLogin: '45m ago', location: 'Miami, US' },
+    { name: 'Sarah Wilson', role: 'Coordinator', email: 's.wilson@research.net', status: 'Away', lastLogin: '5h ago', location: 'Orlando, US' },
+    { name: 'James Thompson', role: 'Sponsor', email: 'j.thompson@pharma.corp', status: 'Active', lastLogin: '12m ago', location: 'New York, US' },
+  ];
 
-export default function TeamModule({ team = [], onRefresh }: TeamModuleProps) {
-    const displayTeam: TeamMember[] = team.length > 0 ? team.map(u => ({
-        name: u.full_name || u.name || 'Personnel Instance',
-        role: u.role || 'Staff',
-        email: u.email,
-        status: u.is_active === false ? 'INACTIVE' : 'ACTIVE',
-        lastLogin: u.last_login_formatted || 'Recently'
-    })) : [
-        { name: 'Dr. Emily Vance', role: 'Super Admin', email: 'e.vance@musbresearch.com', status: 'ACTIVE', lastLogin: '12m ago' },
-        { name: 'Sarah Zhang', role: 'Study Coordinator', email: 's.zhang@clinical.org', status: 'ACTIVE', lastLogin: '2h ago' },
-        { name: 'Mike Ross', role: 'CRA', email: 'm.ross@sponsor.com', status: 'INACTIVE', lastLogin: '3 days ago' },
-        { name: 'James Wilson', role: 'Principal Investigator', email: 'j.wilson@site01.edu', status: 'ACTIVE', lastLogin: '5m ago' },
-    ];
+  return (
+    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      {/* Platform Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+             <div className="p-3 bg-cyan-500/10 rounded-2xl border border-cyan-500/20">
+              <Users className="w-6 h-6 text-cyan-500" />
+            </div>
+            <span className="text-[11px] font-black text-cyan-500 uppercase tracking-[0.4em] italic font-black">Authorized Personnel</span>
+          </div>
+          <h1 className="text-5xl font-black text-white tracking-tighter uppercase italic tracking-widest">Medical Team</h1>
+          <p className="text-slate-500 font-bold mt-2 text-lg">Manage cross-functional access for PIs, Coordinators, and Sponsors.</p>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <button className="px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center gap-2 italic">
+             <Lock className="w-4 h-4" /> Permission Audit
+          </button>
+          <button className="px-10 py-5 bg-cyan-500 text-[#0a0b1a] rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-4 shadow-2xl shadow-cyan-500/30 hover:scale-105 transition-all italic">
+            <UserPlus className="w-5 h-5" /> Onboard Staff
+          </button>
+        </div>
+      </div>
 
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-10"
-        >
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                    <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">
-                        Team <span className="text-cyan-400">& RBAC</span>
-                    </h2>
-                    <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px] mt-2 italic">
-                        Access Control & Clinical Personnel Management
-                    </p>
-                </div>
-                <div className="flex gap-4">
-                    <button 
-                        onClick={onRefresh}
-                        className="px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center gap-2 italic"
-                    >
-                         <Clock className="w-4 h-4" /> Refresh Sync
-                    </button>
-                    <button className="px-8 py-4 bg-cyan-500 text-slate-950 rounded-[2rem] text-[10px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-xl shadow-cyan-500/20 hover:scale-[1.02] transition-all">
-                        <UserPlus className="w-4 h-4" /> Provision Access
-                    </button>
-                </div>
+      {/* Stats and Filter */}
+      <div className="flex flex-col xl:flex-row gap-8 items-center justify-between">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full xl:w-auto">
+          {[
+            { name: 'Admin', users: 2, icon: Shield },
+            { name: 'Coordinator', users: 8, icon: Users },
+            { name: 'CRA / Sponsor', users: 4, icon: Mail },
+            { name: 'Medical Monitor', users: 1, icon: CheckCircle2 },
+          ].map((cat, i) => (
+            <div key={i} className="px-8 py-5 bg-white/[0.02] border border-white/5 rounded-2xl group hover:border-white/20 transition-all flex items-center gap-4">
+              <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                <cat.icon className="w-4 h-4 text-slate-500" />
+              </div>
+              <div className="whitespace-nowrap">
+                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{cat.name}</p>
+                <p className="text-lg font-black text-white">{cat.users}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-4 w-full xl:w-auto">
+          <div className="relative group w-full xl:w-96">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-cyan-500 transition-colors" />
+            <input 
+              type="text" 
+              placeholder="SEARCH TEAM..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-950/50 border border-white/10 rounded-2xl pl-16 pr-8 py-5 text-white font-bold outline-none focus:border-cyan-500/50 transition-all text-[11px] uppercase tracking-[0.2em] placeholder:text-slate-800"
+            />
+          </div>
+          <button className="p-5 bg-white/5 border border-white/10 rounded-2xl text-slate-500 hover:text-white transition-all"><Filter className="w-5 h-5" /></button>
+        </div>
+      </div>
+
+      {/* Team Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        {team.map((user, i) => (
+          <div key={i} className="group relative bg-[#0a0b1a]/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-10 hover:border-cyan-500/30 transition-all shadow-2xl overflow-hidden">
+            <div className="absolute top-0 right-0 p-8">
+               <button className="p-3 bg-white/5 border border-white/10 rounded-xl text-slate-500 opacity-0 group-hover:opacity-100 transition-all hover:text-white">
+                 <MoreVertical className="w-4 h-4" />
+               </button>
             </div>
 
-            <div className="grid lg:grid-cols-12 gap-8">
-                {/* Team Directory */}
-                <div className="lg:col-span-8 space-y-6">
-                    <div className="bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3.5rem] p-10">
-                        <div className="flex items-center justify-between mb-10">
-                             <h3 className="text-xl font-black text-white uppercase italic tracking-tighter flex items-center gap-3">
-                                <Users className="w-5 h-5 text-cyan-400" />
-                                Personnel <span className="text-cyan-400">Directory</span>
-                             </h3>
-                             <div className="relative">
-                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                                 <input type="text" placeholder="Search team..." className="bg-white/5 border border-white/10 rounded-xl pl-12 pr-6 py-3 text-[10px] text-white outline-none focus:border-cyan-500/50 transition-all w-64 font-bold uppercase tracking-widest"/>
-                             </div>
-                        </div>
-
-                        <div className="divide-y divide-white/5">
-                            {displayTeam.map((user, i) => (
-                                <div key={i} className="flex items-center justify-between py-8 px-6 hover:bg-white/5 transition-all rounded-[2.5rem] group cursor-pointer -mx-4 group border border-transparent hover:border-white/5">
-                                    <div className="flex items-center gap-6">
-                                        <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center font-black text-slate-500 group-hover:text-cyan-400 transition-colors shrink-0">
-                                            {user.name[0]}
-                                        </div>
-                                        <div>
-                                            <h4 className="text-lg font-black text-white italic uppercase tracking-tight group-hover:text-cyan-400 transition-colors">{user.name}</h4>
-                                            <div className="flex items-center gap-3 mt-1">
-                                                <Mail className="w-3 h-3 text-slate-700" />
-                                                <span className="text-[10px] font-bold text-slate-500 lowercase tracking-widest">{user.email}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-12">
-                                        <div className="hidden md:block">
-                                            <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/10 flex items-center gap-2 ${
-                                                user.role?.includes('Admin') ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-white/5 text-slate-500'
-                                            }`}>
-                                                <Shield className="w-3 h-3" /> {user.role}
-                                            </span>
-                                        </div>
-                                        <div className="hidden md:block text-right">
-                                            <p className="text-[11px] font-black text-slate-300 uppercase italic tracking-tighter flex items-center gap-2">
-                                                <Clock className="w-3 h-3" /> {user.lastLogin}
-                                            </p>
-                                            <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mt-1">Last Active</p>
-                                        </div>
-                                        <div className={`px-5 py-2 rounded-full border transition-all ${
-                                            user.status === 'ACTIVE' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-red-500/10 border-red-500/20 text-red-500'
-                                        }`}>
-                                            <div className={`w-1.5 h-1.5 rounded-full ${user.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></div>
-                                        </div>
-                                        <button className="p-3 bg-white/5 border border-white/10 rounded-xl text-slate-700 hover:text-white transition-all">
-                                            <MoreHorizontal className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+            <div className="flex flex-col items-center text-center">
+              <div className="relative mb-10">
+                <div className="w-32 h-32 rounded-[2.5rem] bg-gradient-to-br from-slate-800 to-slate-950 border-4 border-white/5 flex items-center justify-center font-black text-4xl text-white shadow-2xl group-hover:scale-105 transition-all">
+                  {user.name.split(' ').map(n => n[0]).join('')}
                 </div>
-
-                {/* Role Definitions */}
-                <div className="lg:col-span-4 space-y-8">
-                    <div className="bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-10 space-y-8">
-                        <h4 className="text-sm font-black text-white uppercase italic tracking-tighter flex items-center gap-3">
-                            <ShieldCheck className="w-5 h-5 text-indigo-400" />
-                            Role <span className="text-indigo-400">Governance</span>
-                        </h4>
-                        <div className="space-y-4">
-                            {[
-                                { name: 'Admin', users: team.filter(u => u.role?.includes('ADMIN')).length || 1, icon: Shield },
-                                { name: 'Coordinator', users: team.filter(u => u.role === 'COORDINATOR').length || 0, icon: Users },
-                                { name: 'Sponsor', users: team.filter(u => u.role === 'SPONSOR').length || 0, icon: Mail },
-                            ].map((role, i) => (
-                                <div key={i} className="p-6 bg-white/5 border border-white/5 rounded-[2.5rem] group hover:border-indigo-500/30 transition-all cursor-pointer">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <role.icon className="w-6 h-6 text-slate-700 group-hover:text-indigo-400 transition-colors" />
-                                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest italic">{role.users} Active</span>
-                                    </div>
-                                    <p className="text-sm font-black text-white italic uppercase tracking-tight">{role.name}</p>
-                                    <p className="text-[8px] text-slate-600 font-bold uppercase tracking-widest mt-1">Full System Read/Write</p>
-                                </div>
-                            ))}
-                        </div>
-                        <button className="w-full py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-white hover:text-slate-950 transition-all italic">Role Schema Editor</button>
-                    </div>
+                <div className={`absolute -bottom-2 -right-2 w-10 h-10 rounded-2xl border-4 border-[#0a0b1a] flex items-center justify-center ${user.status === 'Active' ? 'bg-emerald-500' : 'bg-amber-500'} shadow-lg`}>
+                   <div className="w-2 h-2 rounded-full bg-white opacity-40" />
                 </div>
+              </div>
+
+              <h3 className="text-xl font-black text-white uppercase tracking-widest">{user.name}</h3>
+              <p className={`mt-3 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border ${
+                user.role === 'Super Admin' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.15)]' : 'bg-white/5 text-slate-500 border-white/5'
+              }`}>
+                {user.role}
+              </p>
+
+              <div className="mt-10 w-full space-y-4 text-left">
+                <div className="flex items-center gap-4 bg-white/[0.02] border border-white/5 p-4 rounded-2xl group/link hover:bg-white/5 transition-all">
+                   <Mail className="w-4 h-4 text-slate-600 group-hover/link:text-cyan-400" />
+                   <span className="text-[10px] font-bold text-slate-400 tracking-widest truncate">{user.email}</span>
+                </div>
+                <div className="flex items-center gap-4 bg-white/[0.02] border border-white/5 p-4 rounded-2xl">
+                   <MapPin className="w-4 h-4 text-slate-600" />
+                   <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">{user.location}</span>
+                </div>
+              </div>
+
+              <div className="mt-10 pt-8 border-t border-white/5 w-full flex items-center justify-between">
+                <div className="text-left">
+                   <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest italic">Last Logged</p>
+                   <p className="text-[10px] font-bold text-white uppercase tracking-[0.1em] mt-1 italic"><Clock className="w-3 h-3 inline mr-1 opacity-40" /> {user.lastLogin}</p>
+                </div>
+                <button className="px-6 py-3 bg-white text-black rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-transform italic">Manage</button>
+              </div>
             </div>
-        </motion.div>
-    );
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }

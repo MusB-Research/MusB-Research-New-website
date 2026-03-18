@@ -105,7 +105,7 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated:
-            return Study.objects.filter(status__in=['RECRUITING', 'UPCOMING'], approval_status='approved')
+            return Study.objects.filter(status__in=['RECRUITING', 'ACTIVE'], approval_status='approved')
             
         if user.role in ['ADMIN', 'SUPER_ADMIN']:
             return Study.objects.all()
@@ -193,8 +193,8 @@ class PublicStudyViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        # Public only sees approved studies that are recruiting or upcoming
-        return Study.objects.filter(approval_status='approved', status__in=['RECRUITING', 'UPCOMING'])
+        # Public only sees approved studies that are recruiting or active
+        return Study.objects.filter(approval_status='approved', status__in=['RECRUITING', 'ACTIVE'])
 
 class SponsorViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.filter(role='SPONSOR')
@@ -223,9 +223,8 @@ class ParticipantViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ['ADMIN', 'SUPER_ADMIN']:
-            return Participant.objects.all()
-        # Sponsors, PIs, and Coordinators only see their study's participants
+        if not user.is_authenticated:
+            return Participant.objects.none()
         return Participant.objects.filter(study__assignments__user=user)
 
 class LeadViewSet(viewsets.ModelViewSet):
@@ -234,19 +233,32 @@ class LeadViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrCoordinator]
 
     def get_queryset(self):
-        if self.request.user.role in ['ADMIN', 'SUPER_ADMIN']:
-            return Lead.objects.all()
-        return Lead.objects.filter(study__assignments__user=self.request.user)
+        user = self.request.user
+        if not user.is_authenticated:
+            return Lead.objects.none()
+        return Lead.objects.filter(study__assignments__user=user)
 
 class CommunicationLogViewSet(viewsets.ModelViewSet):
     queryset = CommunicationLog.objects.all()
     serializer_class = CommunicationLogSerializer
     permission_classes = [IsAdminOrCoordinator]
 
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return CommunicationLog.objects.none()
+        return CommunicationLog.objects.filter(participant__study__assignments__user=user)
+
 class CompensationViewSet(viewsets.ModelViewSet):
     queryset = Compensation.objects.all()
     serializer_class = CompensationSerializer
     permission_classes = [IsAdminOrCoordinator]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return Compensation.objects.none()
+        return Compensation.objects.filter(participant__study__assignments__user=user)
 
 class LabResultViewSet(viewsets.ModelViewSet):
     queryset = LabResult.objects.all()

@@ -1,214 +1,160 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 import { 
-    Users, 
-    CheckCircle2, 
-    AlertCircle, 
-    Truck, 
-    ShieldAlert, 
-    Globe, 
-    TrendingUp, 
-    Clock,
-    MousePointer2,
-    ClipboardCheck,
-    ArrowUpRight,
-    Map
+  Rocket, Users, Activity, Clock, 
+  ArrowUpRight, Target, Shield, 
+  Plus, Calendar, HeartPulse
 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { authFetch } from '../../utils/auth';
 
 interface DashboardModuleProps {
-    studyCount: number;
-    onLaunch: () => void;
+  studyCount: number;
 }
 
-import { Rocket } from 'lucide-react';
+export default function DashboardModule({ studyCount }: DashboardModuleProps) {
+  const [studies, setStudies] = useState<any[]>([]);
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-export default function DashboardModule({ studyCount, onLaunch }: DashboardModuleProps) {
-    const funnelSteps = [
-        { label: 'Impressions', value: '1.2M', growth: '+12%', icon: Globe },
-        { label: 'Clicks', value: '84.2K', growth: '+8%', icon: MousePointer2 },
-        { label: 'Screeners', value: '12.4K', growth: '+24%', icon: ClipboardCheck },
-        { label: 'Consented', value: '842', growth: '+15%', icon: CheckCircle2 },
-        { label: 'Enrolled', value: '420', growth: '+5%', icon: Users },
-    ];
+  const fetchStudies = async () => {
+    try {
+      const res = await authFetch(`${apiUrl}/api/studies/`);
+      if (res.ok) {
+        const data = await res.json();
+        setStudies(data);
+      }
+    } catch (error) {
+      console.error("Dashboard fetch error:", error);
+    }
+  };
 
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-10"
-        >
-            {/* Header / Top Stats */}
-            <div className="flex flex-col sm:flex-row shadow-2xl items-start sm:items-center justify-between gap-6">
-                <div>
-                    <h2 className="text-4xl sm:text-6xl font-black text-white italic uppercase tracking-tighter leading-tight">Live System <span className="text-cyan-400">Overview</span></h2>
-                    <p className="text-sm sm:text-lg text-slate-500 font-black uppercase tracking-[0.3em] mt-4 italic">Real-time metrics across {studyCount} active protocols</p>
-                </div>
-                <div className="flex gap-4">
-                    <div className="px-8 py-5 bg-white/5 border border-white/10 rounded-2xl flex items-center gap-4 shadow-xl">
-                        <Clock className="w-6 h-6 text-cyan-400" />
-                        <span className="text-xs sm:text-sm font-black text-white uppercase italic tracking-widest">Session: 04h 12m</span>
-                    </div>
-                    <button 
-                        onClick={onLaunch}
-                        className="px-10 py-5 bg-cyan-600 text-white rounded-[2rem] text-[10px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-2xl shadow-cyan-900/40 hover:scale-[1.05] active:scale-95 transition-all font-mono"
-                    >
-                        <Rocket className="w-5 h-5" /> LAUNCH A STUDY
-                    </button>
-                </div>
+  useEffect(() => {
+    fetchStudies();
+  }, []);
+
+  const stats = [
+    { label: 'Active Studies', value: (studies || []).filter(s => s.status === 'ACTIVE' || s.status === 'RECRUITING').length, icon: Activity, color: '#14b8a6' },
+    { label: 'Total Enrollment', value: '1,240', icon: Users, color: '#f43f5e' },
+    { label: 'Retention Rate', value: '94.2%', icon: Target, color: '#a855f7' },
+    { label: 'System Health', value: 'Optimal', icon: Shield, color: '#3b82f6' },
+  ];
+
+  return (
+    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      {/* Platform Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex -space-x-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="w-6 h-6 rounded-full border-2 border-[#0B101B] bg-slate-800" />
+              ))}
             </div>
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] italic">8 System Admins Active</span>
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,1)]" />
+          </div>
+          <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-4">
+            Live System Overview
+            <span className="text-[10px] font-bold text-slate-500 px-3 py-1 bg-white/5 rounded-full uppercase tracking-widest flex items-center gap-2">
+              <Clock className="w-3.5 h-3.5" />
+              Session: 04h 12m
+            </span>
+          </h1>
+        </div>
+        
+        <button className="px-10 py-5 bg-white text-black rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-4 shadow-[0_20px_40px_rgba(255,255,255,0.1)] hover:scale-105 transition-all">
+          <Rocket className="w-5 h-5" /> Launch Study
+        </button>
+      </div>
 
-            {/* Recruitment Funnel */}
-            <div className="bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[4rem] p-12 space-y-10 shadow-2xl">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-                    <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter flex items-center gap-4">
-                        <TrendingUp className="w-6 h-6 text-cyan-400" />
-                        Recruitment <span className="text-cyan-400">Funnel</span>
-                    </h3>
-                    <div className="px-6 py-2 bg-cyan-500/10 text-cyan-400 rounded-full text-xs font-black uppercase tracking-[0.2em] border border-cyan-500/20 shadow-lg shadow-cyan-500/10">30 Day Performance Analysis</div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-6 relative">
-                    {funnelSteps.map((step, i) => (
-                        <div key={step.label} className="relative group">
-                            <div className="bg-white/5 border border-white/5 rounded-[2.5rem] p-8 space-y-6 hover:bg-white/10 hover:scale-105 transition-all cursor-crosshair shadow-xl">
-                                <div className="flex items-center justify-between">
-                                    <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-cyan-500/20 transition-all">
-                                        <step.icon className="w-6 h-6 text-slate-400 group-hover:text-cyan-400 transition-colors" />
-                                    </div>
-                                    <span className="text-xs font-black text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20">{step.growth}</span>
-                                </div>
-                                <div>
-                                    <p className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] italic group-hover:text-slate-300 transition-colors">{step.label}</p>
-                                    <p className="text-4xl font-black text-white italic tracking-tighter mt-2">{step.value}</p>
-                                </div>
-                            </div>
-                            {i < funnelSteps.length - 1 && (
-                                <div className="hidden md:block absolute -right-3 top-1/2 -translate-y-1/2 z-10 transition-all group-hover:translate-x-2">
-                                    <ArrowUpRight className="w-8 h-8 text-white/10 rotate-45" />
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        {stats.map((stat, i) => (
+          <div key={i} className="relative overflow-hidden bg-white/[0.02] border border-white/5 p-8 rounded-[2.5rem] group hover:bg-white/[0.04] transition-all">
+            <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity">
+              <ArrowUpRight className="w-5 h-5 text-white/20" />
             </div>
-
-            {/* Main Grid: Compliance, Logistics, Safety */}
-            <div className="grid lg:grid-cols-3 gap-10">
-                
-                {/* Module: Compliance Metrics */}
-                <div className="bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3.5rem] p-10 space-y-10 shadow-2xl group hover:border-emerald-500/20 transition-all">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-xl font-black text-white uppercase italic tracking-tighter flex items-center gap-4">
-                            <ClipboardCheck className="w-6 h-6 text-emerald-400" />
-                            Compliance
-                        </h3>
-                        <div className="flex items-center gap-3">
-                             <span className="text-sm font-black text-emerald-400">94%</span>
-                             <div className="w-16 h-2 bg-white/5 rounded-full overflow-hidden shadow-inner border border-white/5">
-                                <div className="h-full bg-emerald-500 w-[94%] shadow-[0_0_10px_#10b981]"></div>
-                             </div>
-                        </div>
-                    </div>
-                    <div className="space-y-5">
-                        {[
-                            { label: 'Tasks Due Today', val: '12', color: 'text-white' },
-                            { label: 'Overdue Tasks', val: '03', color: 'text-red-400' },
-                            { label: 'Completion Rate', val: '98.2%', color: 'text-emerald-400' },
-                        ].map(item => (
-                            <div key={item.label} className="flex justify-between items-center p-6 bg-white/5 rounded-2xl border border-white/5 group/row hover:bg-white/10 transition-all">
-                                <span className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] italic group-hover/row:text-slate-300 transition-colors">{item.label}</span>
-                                <span className={`text-xl font-black italic tracking-tight ${item.color}`}>{item.val}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Module: Logistics Overview */}
-                <div className="bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3.5rem] p-10 space-y-10 shadow-2xl group hover:border-cyan-500/20 transition-all">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-xl font-black text-white uppercase italic tracking-tighter flex items-center gap-4">
-                            <Truck className="w-6 h-6 text-cyan-400" />
-                            Logistics
-                        </h3>
-                        <span className="px-4 py-1.5 bg-white/5 rounded-full text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border border-white/10 italic">Global Inventory Flow</span>
-                    </div>
-                    <div className="space-y-5">
-                        {[
-                            { label: 'Pending Shipment', val: '24', icon: Clock },
-                            { label: 'In Transit', val: '156', icon: ActivityIcon },
-                            { label: 'Overdue Returns', val: '08', icon: AlertCircle },
-                        ].map(item => (
-                            <div key={item.label} className="flex justify-between items-center p-6 bg-white/5 rounded-2xl border border-white/5 group/row hover:border-cyan-500/30 transition-all hover:bg-white/10">
-                                <div className="flex items-center gap-4">
-                                    <item.icon className="w-5 h-5 text-slate-600 group-hover/row:text-cyan-400 transition-colors" />
-                                    <span className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] italic group-hover/row:text-slate-300 transition-colors">{item.label}</span>
-                                </div>
-                                <span className="text-xl font-black italic tracking-tight text-white group-hover/row:text-cyan-400 transition-colors">{item.val}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Module: Safety Overview */}
-                <div className="bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3.5rem] p-10 space-y-10 shadow-2xl group hover:border-red-500/20 transition-all">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-xl font-black text-white uppercase italic tracking-tighter flex items-center gap-4 text-red-400">
-                            <ShieldAlert className="w-6 h-6" />
-                            Safety <span className="text-white">Alerts</span>
-                        </h3>
-                        <span className="px-4 py-1.5 bg-red-500/10 text-red-500 rounded-lg text-[10px] font-black uppercase tracking-[0.3em] animate-pulse border border-red-500/20 shadow-lg shadow-red-500/10">Critical Protocol Alert</span>
-                    </div>
-                    <div className="space-y-6">
-                        <div className="p-8 bg-red-500/5 rounded-[2.5rem] border border-red-500/10 flex flex-col items-center justify-center text-center space-y-3 group-hover:bg-red-500/10 transition-all shadow-inner">
-                             <p className="text-6xl font-black text-red-500 tracking-tighter drop-shadow-lg">02</p>
-                             <p className="text-xs font-black text-slate-500 uppercase tracking-[0.3em] italic group-hover:text-red-400/60 transition-colors">Open Adverse Events</p>
-                        </div>
-                        <div className="flex justify-between items-center p-6 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all">
-                            <span className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] italic">High Severity Flags</span>
-                            <span className="text-xl font-black italic tracking-tight text-red-500">01</span>
-                        </div>
-                    </div>
-                </div>
-
+            
+            <div className="flex flex-col h-full">
+              <div 
+                className="w-14 h-14 rounded-2xl flex items-center justify-center mb-8 shadow-2xl transition-transform group-hover:scale-110"
+                style={{ backgroundColor: `${stat.color}15`, color: stat.color }}
+              >
+                <stat.icon className="w-7 h-7" />
+              </div>
+              
+              <div className="mt-auto">
+                <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2 font-mono">{stat.label}</p>
+                <p className="text-4xl font-black text-white tracking-tight italic">{stat.value}</p>
+              </div>
             </div>
+          </div>
+        ))}
+      </div>
 
-            {/* Geographic Distribution Mock */}
-            <div className="bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[4rem] p-12 space-y-10 shadow-2xl">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-                    <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter flex items-center gap-4">
-                        <Map className="w-6 h-6 text-indigo-400" />
-                        Geographic <span className="text-indigo-400">Distribution Architecture</span>
-                    </h3>
-                    <div className="flex gap-3">
-                        {['US', 'UK', 'EU', 'AS'].map(code => (
-                            <span key={code} className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-xs font-black text-slate-400 hover:text-white hover:border-indigo-400/50 hover:bg-white/10 cursor-pointer transition-all shadow-lg">{code}</span>
-                        ))}
+      {/* Secondary Content */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <div className="xl:col-span-2 space-y-8">
+          <div className="flex items-center justify-between px-4">
+            <h2 className="text-xl font-black text-white uppercase tracking-widest flex items-center gap-4 italic font-black">
+              <HeartPulse className="w-6 h-6 text-pink-500" />
+              Active Clinical Trials
+            </h2>
+            <button className="text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-colors">View Deployment Map</button>
+          </div>
+          
+          <div className="bg-white/[0.02] border border-white/5 rounded-[3rem] p-10 backdrop-blur-3xl shadow-2xl space-y-8">
+            {studies.length === 0 ? (
+               <div className="flex flex-col items-center justify-center py-20 text-slate-600 gap-6">
+               <Activity className="w-16 h-16 opacity-20" />
+               <p className="font-black uppercase tracking-widest italic text-sm">Synchronizing live protocol data...</p>
+             </div>
+            ) : (
+              <div className="space-y-6">
+                {studies.slice(0, 3).map((study: any) => (
+                  <div key={study.id} className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/5 hover:border-white/20 transition-all group">
+                    <div className="flex items-center gap-6">
+                      <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform">
+                        <Calendar className="w-5 h-5 text-slate-500" />
+                      </div>
+                      <div>
+                        <h4 className="text-white font-black uppercase tracking-widest group-hover:text-pink-400 transition-colors">{study.title}</h4>
+                        <p className="text-xs text-slate-500 font-bold uppercase tracking-widest italic mt-1">{study.protocol_id}</p>
+                      </div>
                     </div>
-                </div>
-                
-                <div className="h-80 w-full bg-[#0a0b1a]/60 rounded-[3rem] border-4 border-dashed border-white/5 flex flex-col items-center justify-center space-y-6 hover:border-indigo-500/20 transition-all group/map relative overflow-hidden">
-                     <div className="absolute inset-0 bg-gradient-to-t from-indigo-500/5 to-transparent opacity-0 group-hover/map:opacity-100 transition-opacity"></div>
-                     <Globe className="w-16 h-16 text-slate-800 group-hover/map:text-indigo-500/40 group-hover/map:animate-spin-slow transition-all transform group-hover/map:scale-110" />
-                     <p className="text-xs font-black text-slate-600 uppercase tracking-[0.5em] italic z-10 group-hover/map:text-slate-400 transition-colors">Interactive Global Map Rendering Engine Initializing...</p>
-                </div>
-            </div>
-        </motion.div>
-    );
+                    <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border ${
+                      study.status === 'ACTIVE' || study.status === 'RECRUITING' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-white/5 text-slate-400 border-white/5'
+                    }`}>
+                      {study.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-8">
+           <div className="flex items-center justify-between px-4">
+            <h2 className="text-xl font-black text-white uppercase tracking-widest flex items-center gap-4 italic font-black text-pink-500">
+               Audit
+            </h2>
+          </div>
+          <div className="bg-white/[0.02] border border-white/5 rounded-[3.5rem] p-10 backdrop-blur-4xl shadow-2xl h-[500px] flex flex-col items-center justify-center text-center">
+             <div className="w-20 h-20 rounded-3xl bg-pink-500/10 flex items-center justify-center mb-8 border border-pink-500/20 shadow-[0_0_30px_rgba(236,72,153,0.1)]">
+                <Target className="w-10 h-10 text-pink-500" />
+             </div>
+             <h3 className="text-white font-black text-2xl uppercase tracking-[0.1em] italic">Compliance Center</h3>
+             <p className="text-slate-500 text-[11px] font-black uppercase tracking-widest mt-4 leading-loose">
+               Immutable blockchain-verified <br />
+               audit logs are synchronized <br />
+               every 15 minutes.
+             </p>
+             <button className="mt-10 px-8 py-4 bg-white/5 border border-white/10 hover:border-white/20 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:scale-105">
+                Verify Chain
+             </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
-
-// Sub components for small metrics
-const ActivityIcon = ({ className }: { className?: string }) => (
-    <svg 
-        xmlns="http://www.w3.org/2000/svg" 
-        width="24" height="24" 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
-        strokeWidth="3" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        className={className}
-    >
-        <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-    </svg>
-);

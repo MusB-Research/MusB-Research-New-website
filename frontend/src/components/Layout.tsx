@@ -1,6 +1,7 @@
 import React, { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ArrowRight, Linkedin, Mail, MapPin, Phone, ChevronDown, Youtube, Facebook, Instagram, Send, Loader2, CheckCircle2, LogIn, LogOut, LayoutDashboard, User } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { redirectToLogin, clearToken, isLoggedIn, getRole, getUser } from '../utils/auth';
 import AnimatedBackground from './AnimatedBackground';
 
@@ -101,6 +102,16 @@ export default function Layout({ children }: LayoutProps) {
         }
     }, [location]);
 
+    const [isScrolled, setIsScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setIsScrolled(window.scrollY > 20);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
     const isDashboard = location.pathname.startsWith('/dashboard');
     if (isDashboard) {
         return <>{children}</>;
@@ -109,151 +120,168 @@ export default function Layout({ children }: LayoutProps) {
     return (
         <div className="min-h-screen flex flex-col font-sans text-slate-100 relative">
             {/* Sticky Header */}
-            <header className="fixed top-0 left-0 right-0 z-[100] h-20 md:h-24 transition-all duration-500 bg-white/80 backdrop-blur-2xl border-b border-white/10">
-                <div className="max-w-[1800px] mx-auto px-4 md:px-6 2xl:px-12 h-full flex items-center justify-between gap-4 xl:gap-8">
-                    {/* Logo - Acts as Home button opening in new tab */}
-                    <Link
-                        to="/"
-                        className="flex-shrink-0 flex items-center gap-4 group"
-                    >
-                        <div className="h-16 md:h-[4.5rem] bg-white backdrop-blur-md rounded-2xl shadow-xl border border-white/10 group-hover:scale-105 transition-all duration-300 flex items-center justify-center overflow-hidden">
-                            <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain brightness-100" />
-                        </div>
-                    </Link>
+            <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+                isScrolled ? 'h-20 md:h-24 py-2' : 'h-24 md:h-32 py-6'
+            }`}>
+                <div className="container mx-auto px-6 md:px-10 h-full">
+                    <nav className={`h-full flex items-center justify-between px-10 transition-all duration-500 rounded-[2.5rem] ${
+                        isScrolled 
+                            ? 'bg-[#0B101B]/80 backdrop-blur-2xl border-b border-white/5 shadow-2xl' 
+                            : 'bg-transparent'
+                    }`}>
+                        {/* Logo - Acts as Home button opening in new tab */}
+                        <Link
+                            to="/"
+                            className="flex-shrink-0 flex items-center gap-4 group"
+                        >
+                            <div className="h-16 md:h-[4.5rem] bg-white backdrop-blur-md rounded-2xl shadow-xl border border-white/10 group-hover:scale-105 transition-all duration-300 flex items-center justify-center overflow-hidden">
+                                <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain brightness-100" />
+                            </div>
+                        </Link>
 
-                    {/* Right-aligned Navigation Group */}
-                    <div className="hidden xl:flex items-center gap-4 2xl:gap-12 ml-auto">
-                        {/* Desktop Navigation */}
-                        <nav className="flex items-center gap-3 2xl:gap-8">
-                            {navItems.map((item) => (
-                                <div
-                                    key={item.label}
-                                    className="relative group/nav"
-                                    onMouseEnter={() => item.children && setOpenDropdown(item.label)}
-                                    onMouseLeave={() => setOpenDropdown(null)}
-                                >
-                                    {item.path === '#' ? (
-                                        <div
-                                            className="text-[11px] font-black tracking-[0.12em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 cursor-pointer text-slate-900 whitespace-nowrap"
-                                        >
-                                            {item.label}
-                                            <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${openDropdown === item.label ? 'rotate-180' : ''}`} />
-                                            <span className={`absolute bottom-6 left-0 w-full h-0.5 bg-cyan-600 transform origin-left transition-transform duration-300 ${openDropdown === item.label ? 'scale-x-100' : 'scale-x-0 group-hover/nav:scale-x-100'}`}></span>
-                                        </div>
-                                    ) : (
-                                        <Link
-                                            to={item.path}
-                                            className={`text-[11px] font-black tracking-[0.12em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 whitespace-nowrap ${location.pathname === item.path ? 'text-cyan-600' : 'text-slate-900'
-                                                }`}
-                                        >
-                                            {item.label}
-                                            {item.children && <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${openDropdown === item.label ? 'rotate-180' : ''}`} />}
-                                            <span className={`absolute bottom-6 left-0 w-full h-0.5 bg-cyan-600 transform origin-left transition-transform duration-300 ${location.pathname === item.path ? 'scale-x-100' : 'scale-x-0 group-hover/nav:scale-x-100'}`}></span>
-                                        </Link>
-                                    )}
-
-                                    {/* Dropdown Menu */}
-                                    {item.children && (
-                                        <div className={`absolute top-full left-1/2 -translate-x-1/2 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200 p-2 transition-all duration-300 transform origin-top ${openDropdown === item.label ? 'opacity-100 scale-100 pointer-events-auto translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-2'
-                                            }`}>
-                                            <div className="space-y-1">
-                                                {item.children.map((child) => (
-                                                    <Link
-                                                        key={child.path + child.label}
-                                                        to={child.path}
-                                                        onClick={() => setOpenDropdown(null)}
-                                                        className="block px-5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-cyan-600 transition-all"
-                                                    >
-                                                        {child.label}
-                                                    </Link>
-                                                ))}
+                        {/* Right-aligned Navigation Group */}
+                        <div className="hidden xl:flex items-center gap-4 2xl:gap-12 ml-auto">
+                            {/* Desktop Navigation Links */}
+                            <div className="flex items-center gap-3 2xl:gap-8">
+                                {navItems.map((item) => (
+                                    <div
+                                        key={item.label}
+                                        className="relative group/nav"
+                                        onMouseEnter={() => item.children && setOpenDropdown(item.label)}
+                                        onMouseLeave={() => setOpenDropdown(null)}
+                                    >
+                                        {item.path === '#' ? (
+                                            <div
+                                                className={`text-[11px] font-black tracking-[0.12em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 cursor-pointer ${isScrolled ? 'text-white' : 'text-slate-900'} whitespace-nowrap`}
+                                            >
+                                                {item.label}
+                                                <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${openDropdown === item.label ? 'rotate-180' : ''}`} />
+                                                <span className={`absolute bottom-6 left-0 w-full h-0.5 bg-cyan-600 transform origin-left transition-transform duration-300 ${openDropdown === item.label ? 'scale-x-100' : 'scale-x-0 group-hover/nav:scale-x-100'}`}></span>
                                             </div>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </nav>
+                                        ) : (
+                                            <Link
+                                                to={item.path}
+                                                className={`text-[11px] font-black tracking-[0.12em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 whitespace-nowrap ${location.pathname === item.path ? 'text-cyan-600' : (isScrolled ? 'text-white' : 'text-slate-900')
+                                                    }`}
+                                            >
+                                                {item.label}
+                                                {item.children && <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${openDropdown === item.label ? 'rotate-180' : ''}`} />}
+                                                <span className={`absolute bottom-6 left-0 w-full h-0.5 bg-cyan-600 transform origin-left transition-transform duration-300 ${location.pathname === item.path ? 'scale-x-100' : 'scale-x-0 group-hover/nav:scale-x-100'}`}></span>
+                                            </Link>
+                                        )}
 
-                        {/* CTA Buttons */}
-                        <div className="flex items-center gap-2 2xl:gap-4">
-                            {isTrialsPage ? (
-                                <>
-                                    <Link
-                                        to="/trials#current-studies"
-                                        className="bg-cyan-500 text-slate-900 px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-white hover:-translate-y-0.5 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
-                                    >
-                                        Check Eligibility
-                                        <ArrowRight className="w-4 h-4" />
-                                    </Link>
-                                    <a
-                                        href="tel:+18134190781"
-                                        className="border-2 border-slate-200 text-slate-900 px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-slate-900 hover:text-white transition-all backdrop-blur-md whitespace-nowrap"
-                                    >
-                                        Call / Text Us
-                                    </a>
-                                </>
-                            ) : (
-                                <>
-                                    <Link
-                                        to="/trials"
-                                        className="bg-cyan-500 text-slate-900 px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-white hover:-translate-y-0.5 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
-                                    >
-                                        Join a Study
-                                        <ArrowRight className="w-4 h-4" />
-                                    </Link>
+                                        {/* Dropdown Menu */}
+                                        {item.children && (
+                                            <div className={`absolute top-full left-1/2 -translate-x-1/2 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200 p-2 transition-all duration-300 transform origin-top ${openDropdown === item.label ? 'opacity-100 scale-100 pointer-events-auto translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-2'
+                                                }`}>
+                                                <div className="space-y-1">
+                                                    {item.children.map((child) => (
+                                                        <Link
+                                                            key={child.path + child.label}
+                                                            to={child.path}
+                                                            onClick={() => setOpenDropdown(null)}
+                                                            className="block px-5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-cyan-600 transition-all"
+                                                        >
+                                                            {child.label}
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
 
-                                </>
-                            )}
-                            {!isLoggedIn() ? (
-                                <button
-                                    onClick={redirectToLogin}
-                                    className="bg-slate-900 text-white px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-cyan-500 hover:text-slate-900 transition-all shadow-xl flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
-                                >
-                                    <LogIn className="w-4 h-4" />
-                                    Sign In
-                                </button>
-                            ) : (
-                                <>
-                                    <Link
-                                        to={dashboardLink}
-                                        className="flex items-center gap-2 group ml-2 md:ml-4"
-                                    >
-                                        <div className="text-right hidden sm:flex flex-col justify-center">
-                                            <div className="text-[11px] font-black uppercase tracking-[0.05em] text-slate-800 leading-tight">DASHBOARD</div>
-                                            <div className="text-[#00d8ff] text-[18px] font-black leading-tight tracking-tight group-hover:text-[#00c4e8] transition-colors">{userName}</div>
-                                        </div>
-                                        <div className="w-[42px] h-[42px] rounded-[14px] border-[2px] border-[#00d8ff] overflow-hidden flex items-center justify-center bg-white shadow-sm group-hover:scale-105 transition-transform shrink-0">
-                                            {userObj?.profile_image ? (
-                                                <img src={userObj.profile_image} alt={userName} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <User className="w-[22px] h-[22px] text-[#00d8ff]" strokeWidth={2.5} />
-                                            )}
-                                        </div>
-                                    </Link>
+                            {/* CTA Buttons */}
+                            <div className="flex items-center gap-2 2xl:gap-4">
+                                {isTrialsPage ? (
+                                    <>
+                                        <Link
+                                            to="/trials#current-studies"
+                                            className="bg-cyan-500 text-slate-900 px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-white hover:-translate-y-0.5 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
+                                        >
+                                            Check Eligibility
+                                            <ArrowRight className="w-4 h-4" />
+                                        </Link>
+                                        <a
+                                            href="tel:+18134190781"
+                                            className="border-2 border-slate-200 text-slate-900 px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-slate-900 hover:text-white transition-all backdrop-blur-md whitespace-nowrap"
+                                        >
+                                            Call / Text Us
+                                        </a>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Link
+                                            to="/trials"
+                                            className="bg-cyan-500 text-slate-900 px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-white hover:-translate-y-0.5 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
+                                        >
+                                            Join a Study
+                                            <ArrowRight className="w-4 h-4" />
+                                        </Link>
+
+                                    </>
+                                )}
+                                {!isLoggedIn() ? (
                                     <button
-                                        onClick={async () => { await clearToken(); window.location.href = "/"; }}
-                                        className="w-[42px] h-[42px] rounded-full border-[1.5px] border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50 transition-all shrink-0 ml-1 md:ml-3"
-                                        title="Logout"
+                                        onClick={redirectToLogin}
+                                        className="bg-slate-900 text-white px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-cyan-500 hover:text-slate-900 transition-all shadow-xl flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
                                     >
-                                        <LogOut className="w-[20px] h-[20px] translate-x-[1.5px]" strokeWidth={2} />
+                                        <LogIn className="w-4 h-4" />
+                                        Sign In
                                     </button>
-                                </>
-                            )}
+                                ) : (
+                                    <>
+                                        <Link
+                                            to={dashboardLink}
+                                            className="flex items-center gap-2 group ml-2 md:ml-4"
+                                        >
+                                            <div className="text-right hidden sm:flex flex-col justify-center">
+                                                <div className={`text-[11px] font-black uppercase tracking-[0.05em] leading-tight ${isScrolled ? 'text-slate-400' : 'text-slate-800'}`}>DASHBOARD</div>
+                                                <div className="text-[#00d8ff] text-[18px] font-black leading-tight tracking-tight group-hover:text-[#00c4e8] transition-colors">{userName}</div>
+                                            </div>
+                                            <div className="w-[42px] h-[42px] rounded-[14px] border-[2px] border-[#00d8ff] overflow-hidden flex items-center justify-center bg-white shadow-sm group-hover:scale-105 transition-transform shrink-0">
+                                                {userObj?.profile_image ? (
+                                                    <img src={userObj.profile_image} alt={userName} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <User className="w-[22px] h-[22px] text-[#00d8ff]" strokeWidth={2.5} />
+                                                )}
+                                            </div>
+                                        </Link>
+                                        <button
+                                            onClick={async () => { await clearToken(); window.location.href = "/"; }}
+                                            className="w-[42px] h-[42px] rounded-full border-[1.5px] border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50 transition-all shrink-0 ml-1 md:ml-3"
+                                            title="Logout"
+                                        >
+                                            <LogOut className="w-[20px] h-[20px] translate-x-[1.5px]" strokeWidth={2} />
+                                        </button>
+                                    </>
+                                )}
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Mobile Menu Toggle */}
-                    <button
-                        className="xl:hidden p-2 md:p-3 text-slate-900 hover:text-cyan-600 bg-slate-100 rounded-lg border border-slate-200"
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    >
-                        {isMenuOpen ? <X className="w-5 h-5 md:w-6 md:h-6" /> : <Menu className="w-5 h-5 md:w-6 md:h-6" />}
-                    </button>
-                </div>
+                        {/* Mobile Menu Toggle */}
+                        <button
+                            className={`xl:hidden p-2 md:p-3 rounded-lg border transition-all ${
+                                isScrolled 
+                                    ? 'text-white border-white/10 bg-white/5 hover:bg-white/10' 
+                                    : 'text-slate-900 border-slate-200 bg-slate-100 hover:bg-slate-200'
+                            }`}
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        >
+                            {isMenuOpen ? <X className="w-5 h-5 md:w-6 md:h-6" /> : <Menu className="w-5 h-5 md:w-6 md:h-6" />}
+                        </button>
+                    </nav>
 
-                {/* Mobile Menu */}
-                {isMenuOpen && (
-                    <div className="xl:hidden absolute top-20 md:top-24 left-4 right-4 md:left-6 md:right-6 bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl animate-in fade-in slide-in-from-top-4 z-40 overflow-hidden border border-slate-200 max-h-[calc(100vh-6rem)] md:max-h-[calc(100vh-8rem)] overflow-y-auto">
+                    {/* Mobile Menu */}
+                    <AnimatePresence>
+                        {isMenuOpen && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: -20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                className="xl:hidden absolute top-full left-4 right-4 md:left-6 md:right-6 bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl z-40 overflow-hidden border border-slate-200 max-h-[calc(100vh-6rem)] overflow-y-auto mt-4"
+                            >
                         <div className="p-4 space-y-2">
                             {navItems.map((item) => (
                                 <div key={item.label}>
@@ -363,14 +391,15 @@ export default function Layout({ children }: LayoutProps) {
                                 )}
                             </div>
                         </div>
-                    </div>
+                    </motion.div>
                 )}
-            </header>
+            </AnimatePresence>
+        </header>
 
-            {/* Main Content */}
-            <main className="flex-grow w-full">
-                {children}
-            </main>
+        {/* Main Content */}
+        <main className="flex-grow w-full">
+            {children}
+        </main>
             {/* Footer Section */}
             <footer className="pt-20 pb-10 bg-[#020617] border-t border-white/5 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
