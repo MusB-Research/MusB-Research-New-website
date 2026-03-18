@@ -14,6 +14,7 @@ from ..security import (
     generate_access_token, generate_refresh_token,
     decode_access_token, decode_refresh_token,
     REFRESH_TOKEN_LIFETIME, hash_token,
+    decrypt_data,
 )
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 # ── Cookie configuration ──────────────────────────────────
 COOKIE_OPTS = {
     'httponly':  True,
-    'samesite':  'Lax',
+    'samesite':  'Lax' if settings.DEBUG else 'None',
     'secure':    not settings.DEBUG,   # True in production (HTTPS only)
     'path':      '/',
 }
@@ -115,6 +116,14 @@ def login_view(request):
             'picture':      user.profile_picture or '',
             'must_reset':   user.must_change_password,
             'profile_incomplete': not user.profile_completed,
+            'mobile_number': user.decrypted_phone or '',
+            'full_address': decrypt_data(user.full_address) if user.full_address else '',
+            'city': decrypt_data(user.city) if user.city else '',
+            'state': decrypt_data(user.state) if user.state else '',
+            'zip_code': user.zip_code or '',
+            'country': user.country or '',
+            'place_of_origin': decrypt_data(user.place_of_origin) if user.place_of_origin else '',
+            'timezone': user.timezone or 'UTC',
         }
     })
     return _set_auth_cookies(response, access_token, refresh_token)

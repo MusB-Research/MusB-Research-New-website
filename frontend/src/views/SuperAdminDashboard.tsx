@@ -45,6 +45,13 @@ interface User {
   created: string;
   must_reset?: boolean;
   profile_incomplete?: boolean;
+  full_address?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
+  country?: string;
+  mobile_number?: string;
+  place_of_origin?: string;
 }
 
 interface Sponsor {
@@ -1667,7 +1674,11 @@ export default function SuperAdminDashboard() {
                       </div>
                       <div className="space-y-1">
                         <label className="text-xs font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic"><Phone className="w-3 h-3" /> Mobile Number</label>
-                        <p className="text-base font-bold text-white">+1 (813) 419-0781</p>
+                        <p className="text-base font-bold text-white">{selectedUser.mobile_number || 'N/A'}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic"><Globe className="w-3 h-3" /> Place of Origin</label>
+                        <p className="text-base font-bold text-white">{selectedUser.place_of_origin || 'N/A'}</p>
                       </div>
                     </div>
                     <div className="space-y-6">
@@ -1677,7 +1688,9 @@ export default function SuperAdminDashboard() {
                       </div>
                       <div className="space-y-1">
                         <label className="text-xs font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic"><MapPin className="w-3 h-3" /> Location / Address</label>
-                        <p className="text-base font-bold text-white italic leading-relaxed">Tampa, Florida, USA</p>
+                        <p className="text-base font-bold text-white italic leading-relaxed">
+                          {selectedUser.full_address ? `${selectedUser.full_address}, ${selectedUser.city}, ${selectedUser.state} ${selectedUser.zip_code || ''}, ${selectedUser.country || ''}` : 'N/A'}
+                        </p>
                       </div>
                     </div>
                   </div>

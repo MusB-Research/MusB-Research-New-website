@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, MapPin, Globe, CheckCircle2, ArrowRight, ArrowLeft, ShieldCheck, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { authFetch } from '../../utils/auth';
+import { authFetch, saveToken } from '../../utils/auth';
 
 export default function ProfileSetup() {
     const [step, setStep] = useState(1);
@@ -14,7 +14,10 @@ export default function ProfileSetup() {
         full_address: '',
         city: '',
         state: '',
-        place_of_origin: ''
+        zip_code: '',
+        country: '',
+        place_of_origin: '',
+        mobile_number: ''
     });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -40,17 +43,22 @@ export default function ProfileSetup() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Setup failed');
 
-            // Update local user info
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            user.profile_incomplete = false;
-            user.full_name = data.user.full_name;
-            localStorage.setItem('user', JSON.stringify(user));
+            // Update local user info and token
+            const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+            const updatedUser = { ...storedUser, ...data.user };
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            if (data.access) {
+                saveToken(data.access, updatedUser.role || 'PARTICIPANT');
+                // Dispatch event so other components know the token updated
+                window.dispatchEvent(new Event('auth-token-changed'));
+            }
 
             setStep(3); // Success step
             setTimeout(() => {
-                const role = user.role;
+                const role = updatedUser.role || 'PARTICIPANT';
                 switch (role) {
                     case 'ADMIN':
+                    case 'SUPER_ADMIN':
                     case 'COORDINATOR': navigate('/dashboard/admin'); break;
                     case 'PI': navigate('/dashboard/pi'); break;
                     case 'SPONSOR': navigate('/dashboard/sponsor'); break;
@@ -125,7 +133,7 @@ export default function ProfileSetup() {
                                 <div className="space-y-3 px-2">
                                     <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Gender Identity</label>
                                     <select name="gender" value={formData.gender} onChange={handleChange} className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white outline-none focus:border-cyan-500/40 transition-all font-bold appearance-none">
-                                        <option value="">Select Protocol</option>
+                                        <option value="">Select Gender</option>
                                         <option value="Male">Male</option>
                                         <option value="Female">Female</option>
                                         <option value="Non-binary">Non-binary</option>
@@ -134,7 +142,7 @@ export default function ProfileSetup() {
                                 </div>
                             </div>
 
-                            <button onClick={handleNext} className="w-full py-6 bg-cyan-500 text-slate-950 rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] italic hover:bg-white hover:-translate-y-1 transition-all flex items-center justify-center gap-4">
+                            <button onClick={handleNext} disabled={!formData.first_name || !formData.last_name || !formData.gender} className="w-full py-6 bg-cyan-500 text-slate-950 rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] italic hover:bg-white hover:-translate-y-1 transition-all flex items-center justify-center gap-4 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed">
                                 Initialize Next Phase <ArrowRight className="w-5 h-5" />
                             </button>
                         </motion.div>
@@ -170,11 +178,28 @@ export default function ProfileSetup() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-3 px-2">
-                                    <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Place of Origin / Birth</label>
-                                    <div className="relative">
-                                        <Globe className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-700" />
-                                        <input name="place_of_origin" value={formData.place_of_origin} onChange={handleChange} placeholder="Country / Major City" className="w-full bg-black/40 border border-white/5 rounded-[1.5rem] pl-16 pr-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
+                                <div className="grid grid-cols-2 gap-8">
+                                    <div className="space-y-3 px-2">
+                                        <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">ZIP / PIN Code</label>
+                                        <input name="zip_code" value={formData.zip_code} onChange={handleChange} placeholder="12345" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
+                                    </div>
+                                    <div className="space-y-3 px-2">
+                                        <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Country</label>
+                                        <input name="country" value={formData.country} onChange={handleChange} placeholder="USA" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-8">
+                                    <div className="space-y-3 px-2">
+                                        <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Place of Origin / Birth</label>
+                                        <div className="relative">
+                                            <Globe className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-700" />
+                                            <input name="place_of_origin" value={formData.place_of_origin} onChange={handleChange} placeholder="City, Country" className="w-full bg-black/40 border border-white/5 rounded-[1.5rem] pl-16 pr-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-3 px-2">
+                                        <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Mobile Number</label>
+                                        <input name="mobile_number" value={formData.mobile_number} onChange={handleChange} placeholder="+1 234 567 8900" className="w-full bg-black/40 border border-white/5 rounded-[1.5rem] px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
                                     </div>
                                 </div>
                             </div>
@@ -189,7 +214,7 @@ export default function ProfileSetup() {
                                 <button onClick={handleBack} className="flex-1 py-6 bg-white/5 border border-white/5 text-[#555a7a] rounded-[2rem] font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2">
                                     <ArrowLeft className="w-4 h-4" /> Finalize Setup
                                 </button>
-                                <button onClick={handleSubmit} disabled={isLoading} className="flex-[2] py-6 bg-purple-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] italic shadow-xl shadow-purple-900/40 hover:scale-[1.02] transition-all flex items-center justify-center gap-4 disabled:opacity-50">
+                                <button onClick={handleSubmit} disabled={isLoading || !formData.full_address || !formData.city || !formData.state || !formData.zip_code || !formData.country || !formData.place_of_origin || !formData.mobile_number} className="flex-[2] py-6 bg-purple-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] italic shadow-xl shadow-purple-900/40 hover:scale-[1.02] transition-all flex items-center justify-center gap-4 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed">
                                     {isLoading ? 'Synchronizing...' : 'Authorize Profile'} <ShieldCheck className="w-5 h-5" />
                                 </button>
                             </div>

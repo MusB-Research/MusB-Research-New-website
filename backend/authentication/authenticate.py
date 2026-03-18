@@ -17,10 +17,12 @@ class CookieJWTAuthentication(authentication.BaseAuthentication):
 
         # 2. Fallback to Authorization header
         auth_header = request.headers.get('Authorization')
+        print(f"DEBUG AUTH: access_token_cookie={access_token != None}, auth_header={auth_header}")
         if not access_token and auth_header and auth_header.startswith('Bearer '):
             access_token = auth_header.split(' ')[1]
 
         if not access_token:
+            print("DEBUG AUTH: No access token found. Returning None.")
             return None
 
         try:
@@ -46,7 +48,9 @@ class CookieJWTAuthentication(authentication.BaseAuthentication):
             return (user, None)
 
         except Exception as e:
-            logger.debug("Auth error: %s", str(e))
+            logger.error(f"Auth error decoding token: {str(e)}")
+            import traceback
+            traceback.print_exc()
             # Re-raise authentication failed exceptions
             if isinstance(e, exceptions.AuthenticationFailed):
                 raise e

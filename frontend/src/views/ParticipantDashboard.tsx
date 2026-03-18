@@ -695,7 +695,7 @@ const ReportsView = ({ userName }: { userName: string }) => {
    MAIN COMPONENT
 ───────────────────────────────────────────────────────────────── */
 // 8. PROFILE VIEW
-const ProfileView = ({ userName, userEmail, userPicture, initials }: any) => {
+const ProfileView = ({ userName, userEmail, userPicture, initials, userPhone, userLocation, userTimezone }: any) => {
     return (
         <div className="space-y-6 max-w-[1400px]">
             <div className="mb-6">
@@ -751,7 +751,7 @@ const ProfileView = ({ userName, userEmail, userPicture, initials }: any) => {
                             </div>
                             <div>
                                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">PHONE NUMBER</p>
-                                <p className="text-[13px] font-bold text-white">+1 (555) 000-0000</p>
+                                <p className="text-[13px] font-bold text-white">{userPhone || 'Not set'}</p>
                             </div>
                         </div>
                         <button className="text-[11px] font-black text-cyan-400 uppercase tracking-widest hover:text-cyan-300">EDIT</button>
@@ -763,7 +763,7 @@ const ProfileView = ({ userName, userEmail, userPicture, initials }: any) => {
                             </div>
                             <div>
                                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">LOCATION</p>
-                                <p className="text-[13px] font-bold text-white">Not set</p>
+                                <p className="text-[13px] font-bold text-white">{userLocation || 'Not set'}</p>
                             </div>
                         </div>
                         <button className="text-[11px] font-black text-cyan-400 uppercase tracking-widest hover:text-cyan-300">EDIT</button>
@@ -775,7 +775,7 @@ const ProfileView = ({ userName, userEmail, userPicture, initials }: any) => {
                             </div>
                             <div>
                                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">TIMEZONE</p>
-                                <p className="text-[13px] font-bold text-white">Asia/Kolkata</p>
+                                <p className="text-[13px] font-bold text-white">{userTimezone}</p>
                             </div>
                         </div>
                         <button className="text-[11px] font-black text-cyan-400 uppercase tracking-widest hover:text-cyan-300">EDIT</button>
@@ -1002,12 +1002,19 @@ export default function ParticipantDashboard() {
             const userName = isEncrypted(rawName)
                 ? (rawEmail ? rawEmail.split('@')[0] : 'Participant')
                 : (rawName || 'Participant');
-            const firstName = userName.split(' ')[0];
-            return { userName, userEmail: rawEmail, userPicture: u.picture || u.avatar || '', firstName };
-        } catch { return { userName: 'Participant', userEmail: '', userPicture: '', firstName: 'there' }; }
+            return {
+                userName,
+                userEmail: rawEmail,
+                userPicture: u.picture || u.avatar || '',
+                firstName,
+                userPhone: u.mobile_number || u.phone_number || '',
+                userLocation: u.full_address ? `${u.full_address}, ${u.city || ''}, ${u.state || ''} ${u.zip_code || ''}, ${u.country || ''}`.replace(/,\s*,/g, ',').replace(/(^,\s*)|(\s*,\s*$)/g, '') : '',
+                userTimezone: u.timezone || 'UTC'
+            };
+        } catch { return { userName: 'Participant', userEmail: '', userPicture: '', firstName: 'there', userPhone: '', userLocation: '', userTimezone: 'UTC' }; }
     };
 
-    const { userName, userEmail, userPicture, firstName } = getUserData();
+    const { userName, userEmail, userPicture, firstName, userPhone, userLocation, userTimezone } = getUserData();
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase();
 
     const handleSignOut = () => {
@@ -1038,7 +1045,6 @@ export default function ParticipantDashboard() {
     return (
         <div className="min-h-screen flex overflow-hidden font-sans relative" style={{ background: '#0a0e1a' }}>
             <div className="absolute inset-0 z-0 opacity-50 pointer-events-none">
-                <AnimatedBackground />
             </div>
 
             {/* ──────────────── SIDEBAR ──────────────── */}
@@ -1209,7 +1215,7 @@ export default function ParticipantDashboard() {
                             {activeNav === 'Messages' && <MessagesView />}
                             {activeNav === 'Documents' && <DocumentsView />}
                             {activeNav === 'Reports' && <ReportsView userName={userName} />}
-                            {activeNav === 'Profile' && <ProfileView userName={userName} userEmail={userEmail} userPicture={userPicture} initials={initials} />}
+                            {activeNav === 'Profile' && <ProfileView userName={userName} userEmail={userEmail} userPicture={userPicture} initials={userName[0]} userPhone={userPhone} userLocation={userLocation} userTimezone={userTimezone} />}
                             {activeNav === 'Privacy & Data' && <PrivacyDataView onAction={openActionModal} />}
                         </motion.div>
                     </AnimatePresence>

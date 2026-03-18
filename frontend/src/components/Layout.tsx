@@ -108,9 +108,6 @@ export default function Layout({ children }: LayoutProps) {
 
     return (
         <div className="min-h-screen flex flex-col font-sans text-slate-100 relative">
-            {/* Animated Mesh Background */}
-            <AnimatedBackground />
-
             {/* Sticky Header */}
             <header className="fixed top-0 left-0 right-0 z-50 glass-nav h-20 md:h-24 transition-all duration-500">
                 <div className="max-w-[1800px] mx-auto px-4 md:px-6 2xl:px-12 h-full flex items-center justify-between gap-4 xl:gap-8">

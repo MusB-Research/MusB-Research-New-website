@@ -24,9 +24,20 @@ class UserSerializer(SanitizedModelSerializer):
     last_login_formatted = serializers.SerializerMethodField()
     password = serializers.CharField(write_only=True, required=False)
     
+    mobile_number = serializers.SerializerMethodField()
+    full_address = serializers.SerializerMethodField()
+    city = serializers.SerializerMethodField()
+    state = serializers.SerializerMethodField()
+    place_of_origin = serializers.SerializerMethodField()
+    
     class Meta:
         model = User
-        fields = ['id', 'email', 'full_name', 'role', 'phone_number', 'profile_picture', 'password', 'last_login_formatted']
+        fields = [
+            'id', 'email', 'full_name', 'role', 'phone_number', 'mobile_number',
+            'profile_picture', 'password', 'last_login_formatted',
+            'full_address', 'city', 'state', 'zip_code', 'country', 'place_of_origin',
+            'must_change_password', 'profile_completed', 'is_active'
+        ]
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
@@ -36,6 +47,21 @@ class UserSerializer(SanitizedModelSerializer):
 
     def get_phone_number(self, obj):
         return obj.decrypted_phone
+
+    def get_mobile_number(self, obj):
+        return obj.decrypted_phone
+
+    def get_full_address(self, obj):
+        return decrypt_data(obj.full_address) if obj.full_address else ''
+
+    def get_city(self, obj):
+        return decrypt_data(obj.city) if obj.city else ''
+
+    def get_state(self, obj):
+        return decrypt_data(obj.state) if obj.state else ''
+
+    def get_place_of_origin(self, obj):
+        return decrypt_data(obj.place_of_origin) if obj.place_of_origin else ''
 
     def get_last_login_formatted(self, obj):
         if not obj.last_login:

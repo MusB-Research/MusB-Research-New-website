@@ -77,6 +77,8 @@ def generate_access_token(user) -> str:
         'sub':   str(user.pk),
         'email': user.email,
         'role':  user.role,
+        'profile_completed': user.profile_completed,
+        'must_change_password': user.must_change_password,
         'iat':   now,
         'exp':   now + ACCESS_TOKEN_LIFETIME,
         'type':  'access',

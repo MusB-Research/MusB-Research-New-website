@@ -25,7 +25,7 @@ export interface Study {
 
 export const fetchStudies = async (): Promise<Study[]> => {
     try {
-        const url = `${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/public-studies/`;
+        const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/public-studies/`;
         const response = await fetch(url);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);

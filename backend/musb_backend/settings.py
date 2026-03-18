@@ -68,6 +68,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'authentication.middleware.OnboardingEnforcementMiddleware',
 ]
 
 ROOT_URLCONF = 'musb_backend.urls'
@@ -98,10 +99,11 @@ import certifi
 DATABASES = {
     'default': {
         'ENGINE': 'django_mongodb_backend',
-        'HOST': os.getenv('MONGO_URI', 'mongodb://localhost:27017/musb_research'),
+        'HOST': os.getenv('MONGO_URI'),
         'NAME': 'musb_research',
         'OPTIONS': {
             'tlsCAFile': certifi.where(),
+            'authSource': 'admin',
         },
     }
 }
@@ -217,6 +219,11 @@ else:
     # Development security
     CSRF_COOKIE_HTTPONLY = True
     SESSION_COOKIE_HTTPONLY = True
+    # Ensure local development allows cross-port cookies for auth
+    CSRF_COOKIE_SAMESITE = 'None'
+    SESSION_COOKIE_SAMESITE = 'None'
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False
 
 # Django REST Framework settings
 REST_FRAMEWORK = {

@@ -10,8 +10,10 @@ import os
 import uuid
 from datetime import timedelta
 
-from ..models import User, OTP, Invitation
+from ..models import User, OTP, Invitation, RefreshToken, AuditLog
 from ..utils import send_resend_email
+from ..security import generate_access_token, generate_refresh_token, hash_token, REFRESH_TOKEN_LIFETIME, decrypt_data
+from .auth import _set_auth_cookies
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +147,25 @@ def complete_profile(request):
     user = request.user
     data = request.data
     
+    required_fields = [
+        'first_name', 'last_name', 'gender', 'full_address', 
+        'city', 'state', 'zip_code', 'country', 
+        'place_of_origin', 'mobile_number'
+    ]
+    
+    missing = []
+    for field in required_fields:
+        val = data.get(field)
+        if hasattr(user, field) and getattr(user, field):
+            pass # skip if already in user object
+        elif field == 'mobile_number' and user.phone_number:
+            pass
+        elif not val or not str(val).strip():
+            missing.append(field)
+            
+    if missing:
+        return Response({'error': f'Missing required fields: {", ".join(missing)}'}, status=status.HTTP_400_BAD_REQUEST)
+
     # Core Identity Update
     if not user.first_name:
         user.first_name = data.get('first_name', '')
@@ -157,7 +178,10 @@ def complete_profile(request):
     user.full_address = data.get('full_address', user.full_address)
     user.city = data.get('city', user.city)
     user.state = data.get('state', user.state)
+    user.zip_code = data.get('zip_code', user.zip_code)
+    user.country = data.get('country', user.country)
     user.place_of_origin = data.get('place_of_origin', user.place_of_origin)
+    user.phone_number = data.get('mobile_number', user.phone_number)
     
     # Make sure we explicitly set profile_completed to True
     user.profile_completed = True
@@ -171,10 +195,44 @@ def complete_profile(request):
     # Then explicitly enforce profile_completed=True just in case
     User.objects.filter(pk=user.pk).update(profile_completed=True)
     
-    return Response({
+    # Issue Full JWT Token
+    access_token = generate_access_token(user)
+    refresh_token, ref_jti = generate_refresh_token(user)
+
+    ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
+    ip_address = ip.split(',')[0].strip() if ip and ',' in ip else ip
+
+    # Invalidate old refresh tokens
+    RefreshToken.objects.filter(user=user, is_revoked=False).update(is_revoked=True)
+
+    RefreshToken.objects.create(
+        user=user,
+        token_hash=hash_token(refresh_token),
+        jti=ref_jti,
+        expires_at=now() + REFRESH_TOKEN_LIFETIME,
+        user_agent=request.META.get('HTTP_USER_AGENT', '')[:512],
+        ip_address=ip_address,
+    )
+
+    response = Response({
         'message': 'Profile synchronized and secured.',
+        'access': access_token,
         'user': {
-            'full_name': user.decrypted_name,
-            'profile_completed': True
+            'email':        user.email,
+            'full_name':    user.decrypted_name,
+            'organization': user.decrypted_organization,
+            'role':         user.role,
+            'picture':      user.profile_picture or '',
+            'must_reset':   user.must_change_password,
+            'profile_incomplete': False,
+            'mobile_number': user.decrypted_phone or '',
+            'full_address': decrypt_data(user.full_address) if user.full_address else '',
+            'city': decrypt_data(user.city) if user.city else '',
+            'state': decrypt_data(user.state) if user.state else '',
+            'zip_code': user.zip_code or '',
+            'country': user.country or '',
+            'place_of_origin': decrypt_data(user.place_of_origin) if user.place_of_origin else '',
+            'timezone': user.timezone or 'UTC',
         }
     })
+    return _set_auth_cookies(response, access_token, refresh_token)

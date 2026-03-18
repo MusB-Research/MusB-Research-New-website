@@ -59,6 +59,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     full_address = models.TextField(blank=True, null=True)
     city = models.CharField(max_length=100, blank=True, null=True)
     state = models.CharField(max_length=100, blank=True, null=True)
+    zip_code = models.CharField(max_length=20, blank=True, null=True)
     place_of_origin = models.CharField(max_length=255, blank=True, null=True)
     
     # Regional & Global Config
@@ -81,13 +82,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name']
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         # Fix for Django 5.x + MongoDB crash during migration construction
-        if self.pk is None:
+        pk = getattr(self, 'pk', None)
+        if pk is None:
             return id(self)
         try:
-            return hash(str(self.pk))
-        except TypeError:
+            return hash(str(pk))
+        except Exception:
             return id(self)
 
     def save(self, *args, **kwargs):
