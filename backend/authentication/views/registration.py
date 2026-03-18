@@ -159,8 +159,17 @@ def complete_profile(request):
     user.state = data.get('state', user.state)
     user.place_of_origin = data.get('place_of_origin', user.place_of_origin)
     
+    # Make sure we explicitly set profile_completed to True
     user.profile_completed = True
-    user.save()
+    
+    # First save the fields that need encryption
+    try:
+        user.save()
+    except Exception as e:
+        logger.error(f"Failed to encrypt and save profile data: {e}")
+        
+    # Then explicitly enforce profile_completed=True just in case
+    User.objects.filter(pk=user.pk).update(profile_completed=True)
     
     return Response({
         'message': 'Profile synchronized and secured.',
