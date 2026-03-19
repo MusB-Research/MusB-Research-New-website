@@ -120,22 +120,16 @@ export default function Layout({ children }: LayoutProps) {
     return (
         <div className="min-h-screen flex flex-col font-sans text-slate-100 relative">
             {/* Sticky Header */}
-            <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-                isScrolled ? 'h-20 md:h-24 py-2' : 'h-24 md:h-32 py-6'
-            }`}>
-                <div className="container mx-auto px-6 md:px-10 h-full">
-                    <nav className={`h-full flex items-center justify-between px-10 transition-all duration-500 rounded-[2.5rem] ${
-                        isScrolled 
-                            ? 'bg-[#0B101B]/80 backdrop-blur-2xl border-b border-white/5 shadow-2xl' 
-                            : 'bg-transparent'
-                    }`}>
+            <header className="fixed top-0 left-0 right-0 z-50 h-20 md:h-24 bg-white/95 backdrop-blur-md border-b border-slate-200">
+                <div className="w-full h-full">
+                    <nav className="h-full flex items-center justify-between px-6 md:px-12">
                         {/* Logo - Acts as Home button opening in new tab */}
                         <Link
                             to="/"
-                            className="flex-shrink-0 flex items-center gap-4 group"
+                            className="flex-shrink-0 flex items-center group py-2"
                         >
-                            <div className="h-16 md:h-[4.5rem] bg-white backdrop-blur-md rounded-2xl shadow-xl border border-white/10 group-hover:scale-105 transition-all duration-300 flex items-center justify-center overflow-hidden">
-                                <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain brightness-100" />
+                            <div className="h-14 md:h-16 bg-white rounded-2xl border border-slate-200/80 flex items-center justify-center overflow-hidden px-2 shadow-sm hover:scale-105 hover:shadow-md transition-all duration-300">
+                                <img src="/logo.jpg" alt="MusB™ Research" className="h-[96%] w-auto object-contain brightness-100" />
                             </div>
                         </Link>
 
@@ -152,7 +146,7 @@ export default function Layout({ children }: LayoutProps) {
                                     >
                                         {item.path === '#' ? (
                                             <div
-                                                className={`text-[11px] font-black tracking-[0.12em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 cursor-pointer ${isScrolled ? 'text-white' : 'text-slate-900'} whitespace-nowrap`}
+                                                className="text-[11px] font-black tracking-[0.12em] uppercase transition-colors hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 cursor-pointer text-slate-900 whitespace-nowrap"
                                             >
                                                 {item.label}
                                                 <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${openDropdown === item.label ? 'rotate-180' : ''}`} />
@@ -161,8 +155,7 @@ export default function Layout({ children }: LayoutProps) {
                                         ) : (
                                             <Link
                                                 to={item.path}
-                                                className={`text-[11px] font-black tracking-[0.12em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 whitespace-nowrap ${location.pathname === item.path ? 'text-cyan-600' : (isScrolled ? 'text-white' : 'text-slate-900')
-                                                    }`}
+                                                className={`text-[11px] font-black tracking-[0.12em] uppercase transition-colors hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 whitespace-nowrap ${location.pathname === item.path ? 'text-cyan-600' : 'text-slate-900'}`}
                                             >
                                                 {item.label}
                                                 {item.children && <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${openDropdown === item.label ? 'rotate-180' : ''}`} />}
@@ -225,7 +218,7 @@ export default function Layout({ children }: LayoutProps) {
                                 {!isLoggedIn() ? (
                                     <button
                                         onClick={redirectToLogin}
-                                        className="bg-slate-900 text-white px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-cyan-500 hover:text-slate-900 transition-all shadow-xl flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
+                                        className="bg-slate-900 text-white px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-cyan-600 transition-all shadow-md flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
                                     >
                                         <LogIn className="w-4 h-4" />
                                         Sign In
@@ -237,7 +230,7 @@ export default function Layout({ children }: LayoutProps) {
                                             className="flex items-center gap-2 group ml-2 md:ml-4"
                                         >
                                             <div className="text-right hidden sm:flex flex-col justify-center">
-                                                <div className={`text-[11px] font-black uppercase tracking-[0.05em] leading-tight ${isScrolled ? 'text-slate-400' : 'text-slate-800'}`}>DASHBOARD</div>
+                                                <div className="text-[10px] font-black uppercase tracking-[0.05em] leading-tight text-slate-900">DASHBOARD</div>
                                                 <div className="text-[#00d8ff] text-[18px] font-black leading-tight tracking-tight group-hover:text-[#00c4e8] transition-colors">{userName}</div>
                                             </div>
                                             <div className="w-[42px] h-[42px] rounded-[14px] border-[2px] border-[#00d8ff] overflow-hidden flex items-center justify-center bg-white shadow-sm group-hover:scale-105 transition-transform shrink-0">
@@ -262,11 +255,10 @@ export default function Layout({ children }: LayoutProps) {
 
                         {/* Mobile Menu Toggle */}
                         <button
-                            className={`xl:hidden p-2 md:p-3 rounded-lg border transition-all ${
-                                isScrolled 
-                                    ? 'text-white border-white/10 bg-white/5 hover:bg-white/10' 
+                            className={`xl:hidden p-2 md:p-3 rounded-lg border transition-all ${isScrolled
+                                    ? 'text-white border-white/10 bg-white/5 hover:bg-white/10'
                                     : 'text-slate-900 border-slate-200 bg-slate-100 hover:bg-slate-200'
-                            }`}
+                                }`}
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
                         >
                             {isMenuOpen ? <X className="w-5 h-5 md:w-6 md:h-6" /> : <Menu className="w-5 h-5 md:w-6 md:h-6" />}
@@ -276,131 +268,131 @@ export default function Layout({ children }: LayoutProps) {
 
                 {/* Mobile Menu */}
                 <AnimatePresence>
-                        {isMenuOpen && (
-                            <motion.div 
-                                initial={{ opacity: 0, y: -20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                className="xl:hidden absolute top-full left-4 right-4 md:left-6 md:right-6 bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl z-40 overflow-hidden border border-slate-200 max-h-[calc(100vh-6rem)] overflow-y-auto mt-4"
-                            >
-                        <div className="p-4 space-y-2">
-                            {navItems.map((item) => (
-                                <div key={item.label}>
-                                    {item.children ? (
-                                        <div className="space-y-1">
-                                            <div className="px-4 py-3 text-xs font-black uppercase tracking-[0.2em] text-cyan-600/60 mt-4 first:mt-0">
-                                                {item.label}
+                    {isMenuOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="xl:hidden absolute top-full left-4 right-4 md:left-6 md:right-6 bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl z-40 overflow-hidden border border-slate-200 max-h-[calc(100vh-6rem)] overflow-y-auto mt-4"
+                        >
+                            <div className="p-4 space-y-2">
+                                {navItems.map((item) => (
+                                    <div key={item.label}>
+                                        {item.children ? (
+                                            <div className="space-y-1">
+                                                <div className="px-4 py-3 text-xs font-black uppercase tracking-[0.2em] text-cyan-600/60 mt-4 first:mt-0">
+                                                    {item.label}
+                                                </div>
+                                                {item.children.map((child) => (
+                                                    <Link
+                                                        key={child.path + child.label}
+                                                        to={child.path}
+                                                        onClick={() => setIsMenuOpen(false)}
+                                                        className={`block p-4 rounded-xl text-base font-bold uppercase tracking-widest border border-transparent ${location.pathname === child.path
+                                                            ? 'bg-slate-100 text-cyan-600 border-slate-200'
+                                                            : 'text-slate-700 hover:bg-slate-50'
+                                                            }`}
+                                                    >
+                                                        {child.label}
+                                                    </Link>
+                                                ))}
                                             </div>
-                                            {item.children.map((child) => (
-                                                <Link
-                                                    key={child.path + child.label}
-                                                    to={child.path}
-                                                    onClick={() => setIsMenuOpen(false)}
-                                                    className={`block p-4 rounded-xl text-base font-bold uppercase tracking-widest border border-transparent ${location.pathname === child.path
-                                                        ? 'bg-slate-100 text-cyan-600 border-slate-200'
-                                                        : 'text-slate-700 hover:bg-slate-50'
-                                                        }`}
-                                                >
-                                                    {child.label}
-                                                </Link>
-                                            ))}
-                                        </div>
+                                        ) : (
+                                            <Link
+                                                to={item.path}
+                                                onClick={() => setIsMenuOpen(false)}
+                                                className={`block p-4 rounded-xl text-base font-bold uppercase tracking-widest border border-transparent ${location.pathname === item.path
+                                                    ? 'bg-slate-100 text-cyan-600 border-slate-200'
+                                                    : 'text-slate-700 hover:bg-slate-50'
+                                                    }`}
+                                            >
+                                                {item.label}
+                                            </Link>
+                                        )}
+                                    </div>
+                                ))}
+                                <div className="pt-6 space-y-3">
+                                    {isTrialsPage ? (
+                                        <>
+                                            <a
+                                                href="tel:+18134190781"
+                                                onClick={() => setIsMenuOpen(false)}
+                                                className="block w-full text-center border-2 border-slate-200 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all"
+                                            >
+                                                Call / Text Us
+                                            </a>
+                                            <Link
+                                                to="/trials#current-studies"
+                                                onClick={() => setIsMenuOpen(false)}
+                                                className="block w-full text-center bg-cyan-500 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2"
+                                            >
+                                                Check Eligibility
+                                                <ArrowRight className="w-4 h-4" />
+                                            </Link>
+                                        </>
                                     ) : (
-                                        <Link
-                                            to={item.path}
-                                            onClick={() => setIsMenuOpen(false)}
-                                            className={`block p-4 rounded-xl text-base font-bold uppercase tracking-widest border border-transparent ${location.pathname === item.path
-                                                ? 'bg-slate-100 text-cyan-600 border-slate-200'
-                                                : 'text-slate-700 hover:bg-slate-50'
-                                                }`}
+                                        <>
+
+                                            <Link
+                                                to="/trials"
+                                                onClick={() => setIsMenuOpen(false)}
+                                                className="block w-full text-center bg-cyan-500 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2"
+                                            >
+                                                Join Study
+                                                <ArrowRight className="w-4 h-4" />
+                                            </Link>
+                                        </>
+                                    )}
+                                    {!isLoggedIn() ? (
+                                        <button
+                                            onClick={redirectToLogin}
+                                            className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-cyan-500 hover:text-slate-900 transition-all flex items-center justify-center gap-2"
                                         >
-                                            {item.label}
-                                        </Link>
+                                            <LogIn className="w-5 h-5" />
+                                            Sign In
+                                        </button>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <Link
+                                                to={dashboardLink}
+                                                onClick={() => setIsMenuOpen(false)}
+                                                className="w-full flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-200 transition-all hover:bg-slate-100"
+                                            >
+                                                <div className="w-12 h-12 rounded-2xl border-2 border-cyan-400 overflow-hidden flex items-center justify-center bg-white shrink-0 shadow-sm">
+                                                    {userObj?.profile_image ? (
+                                                        <img src={userObj.profile_image} alt={userName} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <User className="w-6 h-6 text-cyan-500" />
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 text-left">
+                                                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 leading-none mb-1">DASHBOARD</div>
+                                                    <div className="text-cyan-500 text-base font-black capitalize leading-none">{userName}</div>
+                                                </div>
+                                                <div className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
+                                                    <ArrowRight className="w-4 h-4" />
+                                                </div>
+                                            </Link>
+                                            <button
+                                                onClick={() => { clearToken(); window.location.href = "/"; }}
+                                                className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl border-2 border-slate-200 text-slate-600 font-black text-sm uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all shadow-sm group"
+                                            >
+                                                <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                                Logout
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
-                            ))}
-                            <div className="pt-6 space-y-3">
-                                {isTrialsPage ? (
-                                    <>
-                                        <a
-                                            href="tel:+18134190781"
-                                            onClick={() => setIsMenuOpen(false)}
-                                            className="block w-full text-center border-2 border-slate-200 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all"
-                                        >
-                                            Call / Text Us
-                                        </a>
-                                        <Link
-                                            to="/trials#current-studies"
-                                            onClick={() => setIsMenuOpen(false)}
-                                            className="block w-full text-center bg-cyan-500 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2"
-                                        >
-                                            Check Eligibility
-                                            <ArrowRight className="w-4 h-4" />
-                                        </Link>
-                                    </>
-                                ) : (
-                                    <>
-
-                                        <Link
-                                            to="/trials"
-                                            onClick={() => setIsMenuOpen(false)}
-                                            className="block w-full text-center bg-cyan-500 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2"
-                                        >
-                                            Join Study
-                                            <ArrowRight className="w-4 h-4" />
-                                        </Link>
-                                    </>
-                                )}
-                                {!isLoggedIn() ? (
-                                    <button
-                                        onClick={redirectToLogin}
-                                        className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-cyan-500 hover:text-slate-900 transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <LogIn className="w-5 h-5" />
-                                        Sign In
-                                    </button>
-                                ) : (
-                                    <div className="space-y-3">
-                                        <Link
-                                            to={dashboardLink}
-                                            onClick={() => setIsMenuOpen(false)}
-                                            className="w-full flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-200 transition-all hover:bg-slate-100"
-                                        >
-                                            <div className="w-12 h-12 rounded-2xl border-2 border-cyan-400 overflow-hidden flex items-center justify-center bg-white shrink-0 shadow-sm">
-                                                {userObj?.profile_image ? (
-                                                    <img src={userObj.profile_image} alt={userName} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <User className="w-6 h-6 text-cyan-500" />
-                                                )}
-                                            </div>
-                                            <div className="flex-1 text-left">
-                                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 leading-none mb-1">DASHBOARD</div>
-                                                <div className="text-cyan-500 text-base font-black capitalize leading-none">{userName}</div>
-                                            </div>
-                                            <div className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
-                                                <ArrowRight className="w-4 h-4" />
-                                            </div>
-                                        </Link>
-                                        <button
-                                            onClick={() => { clearToken(); window.location.href = "/"; }}
-                                            className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl border-2 border-slate-200 text-slate-600 font-black text-sm uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all shadow-sm group"
-                                        >
-                                            <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                            Logout
-                                        </button>
-                                    </div>
-                                )}
                             </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </header>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </header>
 
-        {/* Main Content */}
-        <main className="flex-grow w-full">
-            {children}
-        </main>
+            {/* Main Content */}
+            <main className="flex-grow w-full">
+                {children}
+            </main>
             {/* Footer Section */}
             <footer className="pt-20 pb-10 bg-[#020617] border-t border-white/5 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>

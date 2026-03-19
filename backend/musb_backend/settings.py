@@ -24,6 +24,19 @@ try:
 except ImportError:
     pass
 
+# Patch Django Model hash to fix "Model instances without primary key value are unhashable"
+# This is required for Django 6.x with MongoDB backends during migration/setup
+import django.db.models as django_models
+def _safe_model_hash(self):
+    pk = getattr(self, 'pk', None)
+    if pk is None:
+        return id(self)
+    try:
+        return hash(str(pk))
+    except Exception:
+        return id(self)
+django_models.Model.__hash__ = _safe_model_hash
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -101,10 +114,6 @@ DATABASES = {
         'ENGINE': 'django_mongodb_backend',
         'HOST': os.getenv('MONGO_URI'),
         'NAME': 'musb_research',
-        'OPTIONS': {
-            'tlsCAFile': certifi.where(),
-            'authSource': 'admin',
-        },
     }
 }
 
