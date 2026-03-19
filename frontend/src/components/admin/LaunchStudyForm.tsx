@@ -491,13 +491,13 @@ export default function LaunchStudyForm({ onClose, onSave, initialData, availabl
                                 </div>
                                 <div className="relative">
                                     <div className="w-full bg-white/5 border border-white/10 rounded-2xl min-h-[56px] p-2 flex flex-wrap gap-2 focus-within:border-emerald-500/50 transition-all">
-                                        {formData.pi_ids.map(id => {
+                                        {formData.pi_ids.map((id: any) => {
                                             const pi = availablePIs.find(p => p.id === id);
                                             return (
                                                 <div key={id} className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-1.5 flex items-center gap-2">
                                                     <span className="text-[11px] font-black text-emerald-400 uppercase tracking-tight">{pi?.name || 'Unknown'}</span>
                                                     <button 
-                                                        onClick={() => setFormData({...formData, pi_ids: formData.pi_ids.filter(i => i !== id)})}
+                                                        onClick={() => setFormData({...formData, pi_ids: formData.pi_ids.filter((i: any) => i !== id)})}
                                                         className="text-emerald-500 hover:text-white transition-colors"
                                                     >
                                                         <X className="w-3 h-3" />
@@ -553,13 +553,13 @@ export default function LaunchStudyForm({ onClose, onSave, initialData, availabl
                                 </div>
                                 <div className="relative">
                                     <div className="w-full bg-white/5 border border-white/10 rounded-2xl min-h-[56px] p-2 flex flex-wrap gap-2 focus-within:border-indigo-500/50 transition-all">
-                                        {formData.coordinator_ids.map(id => {
+                                        {formData.coordinator_ids.map((id: any) => {
                                             const c = availableCoordinators.find(coord => coord.id === id);
                                             return (
                                                 <div key={id} className="bg-indigo-500/10 border border-indigo-500/20 rounded-lg px-3 py-1.5 flex items-center gap-2">
                                                     <span className="text-[11px] font-black text-indigo-400 uppercase tracking-tight">{c?.name || 'Unknown'}</span>
                                                     <button 
-                                                        onClick={() => setFormData({...formData, coordinator_ids: formData.coordinator_ids.filter(i => i !== id)})}
+                                                        onClick={() => setFormData({...formData, coordinator_ids: formData.coordinator_ids.filter((i: any) => i !== id)})}
                                                         className="text-indigo-500 hover:text-white transition-colors"
                                                     >
                                                         <X className="w-3 h-3" />

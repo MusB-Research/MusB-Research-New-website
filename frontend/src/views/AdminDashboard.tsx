@@ -7,12 +7,12 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { authFetch, clearToken } from '../../utils/auth';
-import DashboardModule from '../../components/admin/DashboardModule';
-import TeamModule from '../../components/admin/TeamModule';
-import AuditLogs from '../../components/admin/AuditLogs';
-import ScreenerBuilder from '../../components/admin/ScreenerBuilder';
-import { LaunchStudyForm } from '../../components/admin/LaunchStudyForm';
+import { authFetch, clearToken } from '../utils/auth';
+import DashboardModule from '../components/admin/DashboardModule';
+import TeamModule from '../components/admin/TeamModule';
+import AuditLogs from '../components/admin/AuditLogs';
+import ScreenerBuilder from '../components/admin/ScreenerBuilder';
+import LaunchStudyForm from '../components/admin/LaunchStudyForm';
 
 type AdminModule = 'DASHBOARD' | 'STUDIES' | 'TEAM' | 'SCREENER_BUILDER' | 'AUDIT_LOGS' | 'SETTINGS' | 'WEBSITE';
 

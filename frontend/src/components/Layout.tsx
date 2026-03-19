@@ -272,9 +272,10 @@ export default function Layout({ children }: LayoutProps) {
                             {isMenuOpen ? <X className="w-5 h-5 md:w-6 md:h-6" /> : <Menu className="w-5 h-5 md:w-6 md:h-6" />}
                         </button>
                     </nav>
+                </div>
 
-                    {/* Mobile Menu */}
-                    <AnimatePresence>
+                {/* Mobile Menu */}
+                <AnimatePresence>
                         {isMenuOpen && (
                             <motion.div 
                                 initial={{ opacity: 0, y: -20 }}
