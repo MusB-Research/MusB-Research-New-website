@@ -3,18 +3,30 @@ import {
   Layout, Users, Activity, Shield, 
   Settings, LogOut, ChevronRight,
   Plus, Search, Bell, Globe,
-  ShieldAlert, UserPlus, Rocket, ClipboardList
+  ShieldAlert, UserPlus, Rocket, ClipboardList,
+  ShieldCheck, FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { authFetch, clearToken } from '../utils/auth';
+import { authFetch, clearToken, getRole } from '../utils/auth';
 import DashboardModule from '../components/admin/DashboardModule';
 import TeamModule from '../components/admin/TeamModule';
 import AuditLogs from '../components/admin/AuditLogs';
 import ScreenerBuilder from '../components/admin/ScreenerBuilder';
 import LaunchStudyForm from '../components/admin/LaunchStudyForm';
+import ApprovalModule from '../components/admin/ApprovalModule';
+import SubmitContentForms from '../components/admin/SubmitContentForms';
+import WorkflowModerationPanel from '../components/admin/WorkflowModerationPanel';
+import PIMessagesModule from '../components/pi/PIMessagesModule';
+import { MessageSquare } from 'lucide-react';
 
-type AdminModule = 'DASHBOARD' | 'STUDIES' | 'TEAM' | 'SCREENER_BUILDER' | 'AUDIT_LOGS' | 'SETTINGS' | 'WEBSITE';
+
+
+
+type AdminModule = 'DASHBOARD' | 'STUDIES' | 'TEAM' | 'SCREENER_BUILDER' | 'AUDIT_LOGS' | 'SETTINGS' | 'WEBSITE' | 'COMPLIANCE' | 'APPROVALS' | 'SUBMIT_CONTENT' | 'WORKFLOW' | 'MESSAGES';
+
+
+
 
 export default function AdminDashboard() {
     const [activeModule, setActiveModule] = useState<AdminModule>('DASHBOARD');
@@ -22,6 +34,7 @@ export default function AdminDashboard() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedStudy, setSelectedStudy] = useState<any>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [user, setUser] = useState<any>(null);
     const navigate = useNavigate();
 
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -39,8 +52,19 @@ export default function AdminDashboard() {
     };
 
     useEffect(() => {
+        const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+        const role = getRole();
+        
+        const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI'];
+        if (!userStr || !allowedRoles.includes(role)) {
+            console.warn("Unauthorized access to Staff Dashboard. Redirecting...");
+            navigate('/signin');
+            return;
+        }
+
+        if (userStr) setUser(JSON.parse(userStr));
         fetchStudies();
-    }, []);
+    }, [navigate]);
 
     const handleCreateStudy = (newStudy: any) => {
         setStudies([...studies, newStudy]);
@@ -48,13 +72,25 @@ export default function AdminDashboard() {
     };
 
     const navItems = [
-        { id: 'DASHBOARD', label: 'Overview', icon: Layout },
-        { id: 'TEAM', label: 'Medical Team', icon: Users },
-        { id: 'STUDIES', label: 'Protocols', icon: ClipboardList },
-        { id: 'SCREENER_BUILDER', label: 'Screeners', icon: Rocket },
-        { id: 'AUDIT_LOGS', label: 'Audit Trail', icon: ShieldAlert },
-        { id: 'WEBSITE', label: 'View Public Site', icon: Globe },
-    ];
+        { id: 'DASHBOARD', label: 'Overview', icon: Layout, roles: ['super_admin', 'admin', 'sponsor', 'coordinator', 'pi'] },
+        { id: 'TEAM', label: 'Medical Team', icon: Users, roles: ['super_admin', 'admin', 'coordinator', 'pi'] },
+        { id: 'MESSAGES', label: 'PI Messaging', icon: MessageSquare, roles: ['super_admin', 'admin', 'coordinator', 'pi'] },
+
+        { id: 'APPROVALS', label: 'Review Queue', icon: ShieldCheck, roles: ['super_admin'] },
+        { id: 'STUDIES', label: 'Protocols', icon: ClipboardList, roles: ['super_admin', 'admin', 'sponsor', 'coordinator', 'pi'] },
+        { id: 'SCREENER_BUILDER', label: 'Screeners', icon: Rocket, roles: ['super_admin', 'admin'] },
+        { id: 'AUDIT_LOGS', label: 'Audit Trail', icon: ShieldAlert, roles: ['super_admin', 'admin'] },
+        { id: 'COMPLIANCE', label: 'Compliance Docs', icon: ShieldCheck, roles: ['coordinator', 'pi'] },
+        { id: 'SUBMIT_CONTENT', label: 'Submit Content', icon: Plus, roles: ['super_admin', 'admin', 'coordinator', 'pi'] },
+        { id: 'WORKFLOW', label: 'Moderation Queue', icon: ShieldCheck, roles: ['super_admin', 'admin'] },
+        { id: 'WEBSITE', label: 'View Public Site', icon: Globe, roles: ['*'] },
+
+
+    ].filter(item => {
+        if (!user) return false;
+        if (item.roles.includes('*')) return true;
+        return item.roles.includes(user.role?.toLowerCase());
+    });
 
     const confirmSignOut = () => {
         clearToken();
@@ -70,7 +106,7 @@ export default function AdminDashboard() {
                         <button
                             key={item.id}
                             onClick={() => {
-                                if (item.id === 'WEBSITE') navigate('/home');
+                                if (item.id === 'WEBSITE') navigate('/');
                                 else setActiveModule(item.id as AdminModule);
                             }}
                             className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group ${activeModule === item.id
@@ -102,13 +138,14 @@ export default function AdminDashboard() {
             {/* Top Bar Header */}
             <header className="fixed top-0 left-0 right-0 h-28 z-50 bg-[#0B101B]/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between px-10">
                 <div className="flex items-center gap-12">
-                    <div className="flex items-center gap-5 cursor-pointer" onClick={() => navigate('/home')}>
-                        <div className="h-10 px-5 rounded-full bg-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95">
-                           <span className="text-black font-black italic tracking-tighter text-lg">MUSB</span>
+                    <div className="flex items-center gap-5 cursor-pointer" onClick={() => navigate('/')}>
+                        <div className="h-12 px-6 rounded-full bg-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 group overflow-hidden">
+                           <img src="/logo.jpg" alt="MusB Research" className="h-7 w-auto object-contain" />
                         </div>
-                        <div className="h-4 w-px bg-white/10 hidden md:block" />
+                        <div className="h-8 w-px bg-white/10 hidden md:block" />
                         <span className="text-[10px] font-black uppercase tracking-[0.4em] text-cyan-400 hidden md:block">Research Terminal</span>
                     </div>
+
 
                     <div className="relative group hidden lg:block">
                         <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
@@ -128,12 +165,19 @@ export default function AdminDashboard() {
                     
                     <div className="flex items-center gap-6 pl-4 border-l border-white/5">
                         <div className="text-right hidden sm:block">
-                            <p className="text-[10px] font-black text-white uppercase tracking-widest">Admin Control</p>
-                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 italic">Session Active</p>
+                            <p className="text-[10px] font-black text-white uppercase tracking-widest">{user?.role?.replace('_', ' ') || 'Admin Control'}</p>
+                            <div className="flex items-center justify-end gap-2 mt-0.5 pointer-events-none">
+                                <span className={`text-[8px] font-black uppercase tracking-widest italic px-2 py-0.5 rounded border ${
+                                    user?.affiliation === 'onsite' ? 'text-indigo-400 border-indigo-400/30' : 'text-cyan-400 border-cyan-400/30'
+                                }`}>
+                                    {user?.affiliation || 'MusB'}
+                                </span>
+                                <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest italic">Active</p>
+                            </div>
                         </div>
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-indigo-600 p-0.5 shadow-xl hover:rotate-6 transition-transform cursor-pointer">
                             <div className="w-full h-full bg-[#0B101B] rounded-[0.9rem] flex items-center justify-center font-black text-white uppercase italic text-xs">
-                                AD
+                                {user?.first_name?.[0] || 'A'}{user?.last_name?.[0] || 'D'}
                             </div>
                         </div>
                     </div>
@@ -157,6 +201,29 @@ export default function AdminDashboard() {
                 {activeModule === 'AUDIT_LOGS' && (
                     <AuditLogs />
                 )}
+
+                {activeModule === 'COMPLIANCE' && (
+                    <ComplianceModule />
+                )}
+
+                {activeModule === 'APPROVALS' && (
+                    <ApprovalModule />
+                )}
+
+                {activeModule === 'SUBMIT_CONTENT' && (
+                    <SubmitContentForms userRole={user?.role} />
+                )}
+
+                {activeModule === 'WORKFLOW' && (
+                    <WorkflowModerationPanel />
+                )}
+
+                {activeModule === 'MESSAGES' && (
+                    <PIMessagesModule />
+                )}
+
+
+
 
                 {activeModule === 'STUDIES' && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -246,5 +313,86 @@ export default function AdminDashboard() {
                 )}
             </AnimatePresence>
         </div>
+    );
+}
+
+function ComplianceModule() {
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : {};
+
+    return (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
+            <div>
+                <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Compliance <span className="text-cyan-400">& Credentials</span></h1>
+                <p className="text-slate-500 font-bold mt-2 uppercase tracking-widest text-xs italic text-pretty">Secure documentation for clinical trial coordination</p>
+            </div>
+
+            <div className="bg-white/[0.02] border border-white/5 rounded-[3rem] p-10 backdrop-blur-3xl shadow-2xl relative overflow-hidden group">
+                <div className="absolute -top-24 -right-24 w-96 h-96 bg-cyan-500/5 blur-[100px] rounded-full group-hover:bg-cyan-500/10 transition-colors duration-1000" />
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+                    {[
+                        { id: 'medical_licence', label: 'Medical Licence', path: user.medical_licence, desc: 'Official authorization for medical trial support' },
+                        { id: 'insurance_certificate', label: 'Liability Insurance', path: user.insurance_certificate, desc: 'Professional coverage for clinical trial oversight' },
+                        { id: 'cv_document', label: 'Coordinator CV', path: user.cv_document, desc: 'Professional experience and certification history' }
+                    ].map((doc, i) => (
+                        <div key={i} className="bg-black/20 border border-white/5 rounded-[2.5rem] p-8 space-y-6 hover:border-cyan-500/30 transition-all flex flex-col">
+                            <div className="flex justify-between items-center">
+                                <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                                    <FileText className="w-6 h-6" />
+                                </div>
+                                {doc.path ? (
+                                    <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(16,185,129,1)]" />
+                                        <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">Verified</span>
+                                    </div>
+                                ) : (
+                                    <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                                        <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest">Pending</span>
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-black text-white italic uppercase tracking-widest">{doc.label}</h4>
+                                <p className="text-[10px] text-slate-500 font-bold mt-2 leading-relaxed italic">{doc.desc}</p>
+                            </div>
+                            <div className="mt-4 pt-6 border-t border-white/5">
+                                {doc.path ? (
+                                    <a 
+                                        href={`${import.meta.env.VITE_API_URL}/media/${doc.path}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="w-full py-4 bg-white/5 hover:bg-white text-white hover:text-slate-950 border border-white/10 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 group/link"
+                                    >
+                                        <Globe className="w-4 h-4 group-hover/link:rotate-12 transition-transform" /> VIEW DOCUMENT
+                                    </a>
+                                ) : (
+                                    <button className="w-full py-4 bg-amber-500/5 text-amber-500 border border-amber-500/20 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] opacity-50 cursor-not-allowed">
+                                        UPLOAD REQUIRED
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="mt-12 p-8 bg-cyan-500/10 border border-cyan-500/20 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+                    <div className="flex items-center gap-6">
+                        <div className="w-12 h-12 rounded-full bg-cyan-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                            <ShieldCheck className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-black text-white uppercase italic tracking-widest">Node Synchronization</p>
+                            <p className="text-[10px] text-cyan-300/60 font-black uppercase tracking-widest mt-1">Research Terminal Status: Encrypted & Verified</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,1)]" />
+                        <span className="text-xs font-black text-emerald-400 uppercase tracking-widest line-clamp-1 italic">Identity Authenticated</span>
+                    </div>
+                </div>
+            </div>
+        </motion.div>
     );
 }

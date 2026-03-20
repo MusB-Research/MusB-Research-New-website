@@ -13,7 +13,33 @@ from ..utils import send_resend_email
 
 logger = logging.getLogger(__name__)
 
-ALLOWED_ROLES = ['PI', 'COORDINATOR', 'SPONSOR', 'SUPER_ADMIN'] # Participants excluded as per rule
+ALLOWED_ROLES = ['super_admin', 'admin', 'sponsor', 'coordinator', 'pi', 'team_member', 'PARTICIPANT']
+
+def check_permission(creator, target_role):
+    """Enforce RBAC rules for user creation (Section 1.4)"""
+    if creator.status != "active":
+        return False
+
+    c_role = creator.role.lower()
+    c_aff  = creator.affiliation.lower()
+    t_role = target_role.lower()
+
+    if c_role == "super_admin":
+        return t_role in ["admin", "sponsor", "coordinator", "pi"]
+    
+    if c_role == "admin":
+        return t_role in ["sponsor", "coordinator", "pi"]
+    
+    if c_role == "coordinator" and c_aff == "musb":
+        return t_role in ["sponsor", "pi"]
+    
+    if c_role == "pi" and c_aff == "musb":
+        return t_role in ["sponsor", "coordinator"]
+    
+    if c_role == "pi" and c_aff == "onsite":
+        return t_role == "team_member"
+
+    return False
 
 def generate_secure_password(length=12):
     """Generates a cryptographically random temporary password."""
@@ -54,12 +80,13 @@ def admin_create_user(request):
     if not all([email, first_name, last_name, role]):
         return Response({'error': 'First Name, Last Name, Email, and Role are mandatory.'}, status=status.HTTP_400_BAD_REQUEST)
     
-    if role not in ALLOWED_ROLES:
-        return Response({'error': f'Invalid role. Allowed: {", ".join(ALLOWED_ROLES)}'}, status=status.HTTP_400_BAD_REQUEST)
+    role = role.lower()
+    if role not in [r[0] for r in User.ROLE_CHOICES]:
+        return Response({'error': f'Invalid role. Allowed: {", ".join([r[1] for r in User.ROLE_CHOICES])}'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Permission Restriction: PI/Coordinator can ONLY create Sponsors
-    if admin_user.role in ['PI', 'COORDINATOR'] and role != 'SPONSOR':
-        return Response({'error': 'You only have the authority to generate Sponsor credentials.'}, status=status.HTTP_403_FORBIDDEN)
+    # 3. RBAC Permission Check
+    if not check_permission(admin_user, role):
+        return Response({'error': 'You do not have permission to create this type of account.'}, status=status.HTTP_403_FORBIDDEN)
 
     if User.objects.filter(email=email).exists():
         return Response({'error': 'An account with this email already exists.'}, status=status.HTTP_409_CONFLICT)
@@ -70,6 +97,24 @@ def admin_create_user(request):
     
     # 4. Atomic Creation
     try:
+        # Rule 1.1: HOW AFFILIATION IS DETERMINED
+        affiliation = 'musb' # Default
+        status_val = 'active' # Default
+        
+        # Onsite PI adds team members -> inherit onsite, set pending
+        if admin_user.role == 'pi' and admin_user.affiliation == 'onsite':
+            affiliation = 'onsite'
+            status_val = 'pending'
+            
+        # Explicit override for onsite PIs if flag provided (e.g., from study assignment flow)
+        elif request.data.get('is_onsite_hire'):
+             affiliation = 'onsite'
+             # If created by Super Admin/Admin, maybe it doesn't need approval? 
+             # Rule: "Onsite PI team member requests ALWAYS go through Super Admin approval"
+             # Rule 6 suggests only TM created by Onsite PI needs approval.
+             if role == 'team_member':
+                 status_val = 'pending'
+
         new_user = User.objects.create_user(
             email=email,
             password=temp_password,
@@ -77,11 +122,22 @@ def admin_create_user(request):
             middle_name=middle_name,
             last_name=last_name,
             role=role,
+            affiliation=affiliation,
+            status=status_val,
             username=username,
             must_change_password=True,
             profile_completed=False,
             created_by=admin_user
         )
+        
+        # 4.1 Approval Request for Onsite Team Members
+        if status_val == 'pending':
+            from ..models import ApprovalRequest
+            ApprovalRequest.objects.create(
+                requested_by=admin_user,
+                target_user=new_user,
+                status='pending'
+            )
         
         # 5. Email Delivery Logic
         subject_map = {
@@ -239,3 +295,61 @@ def admin_get_audit_logs(request):
                         ('warning' if 'RESET' in log.action or 'REISSUED' in log.action else 'info')
         })
     return Response(data)
+
+@api_view(['GET'])
+def get_pending_approvals(request):
+    """List team member requests for Super Admin with status filtering"""
+    if request.user.role != 'super_admin':
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+    
+    status_filter = request.query_params.get('status', 'pending').lower()
+    
+    from ..models import ApprovalRequest
+    requests = ApprovalRequest.objects.filter(status=status_filter).select_related('target_user', 'requested_by')
+    
+    data = []
+    for req in requests:
+        data.append({
+            'id': str(req.id),
+            'target_name': req.target_user.decrypted_name,
+            'target_email': req.target_user.email,
+            'requested_by': req.requested_by.decrypted_name or req.requested_by.email,
+            'created_at': req.created_at,
+            'reviewed_by': req.reviewed_by.email if req.reviewed_by else None,
+            'reviewed_at': req.reviewed_at,
+            'status': req.status,
+            'studies': [s.protocol_id for s in req.target_user.pi_studies.all()] # Adjusting to target user's relation
+        })
+    return Response(data)
+
+@api_view(['POST'])
+def process_approval(request, request_id, action):
+    """Approve or Reject a pending team member"""
+    if request.user.role != 'super_admin':
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+    
+    from ..models import ApprovalRequest
+    try:
+        app_req = ApprovalRequest.objects.get(id=request_id)
+        if action == 'approve':
+            app_req.status = 'approved'
+            app_req.target_user.status = 'active'
+        else:
+            app_req.status = 'rejected'
+            app_req.target_user.status = 'rejected'
+            
+        app_req.target_user.save()
+        app_req.reviewed_by = request.user
+        app_req.reviewed_at = now()
+        app_req.save()
+        
+        AuditLog.log(
+            action='ACCOUNT_UPDATED',
+            user_email=request.user.email,
+            request=request,
+            detail=f'{"Approved" if action == "approve" else "Rejected"} team member {app_req.target_user.email}'
+        )
+        
+        return Response({'message': f'User {action}d successfully'})
+    except ApprovalRequest.DoesNotExist:
+        return Response({'error': 'Request not found'}, status=status.HTTP_404_NOT_FOUND)

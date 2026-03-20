@@ -11,7 +11,7 @@ import uuid
 from datetime import timedelta
 
 from ..models import User, OTP, Invitation, RefreshToken, AuditLog
-from ..utils import send_resend_email
+from ..utils import send_resend_email, handle_credential_upload
 from ..security import generate_access_token, generate_refresh_token, hash_token, REFRESH_TOKEN_LIFETIME, decrypt_data
 from .auth import _set_auth_cookies
 
@@ -76,12 +76,17 @@ def invite_team_member(request):
     token = str(uuid.uuid4())
     expires_at = now() + timedelta(days=7)
     
+    scope = request.data.get('scope', 'ALL')
+    study_ids = request.data.get('study_ids', [])
+    
     invitation = Invitation.objects.create(
         email=target_email,
         role=role,
         invited_by=admin,
         organization=organization,
         token=token,
+        scope=scope,
+        study_ids=study_ids,
         expires_at=expires_at
     )
     
@@ -132,7 +137,8 @@ def setup_credentials(request):
         password=password,
         organization=invitation.organization,
         role=invitation.role,
-        parent_sponsor=invitation.invited_by
+        parent_sponsor=invitation.invited_by,
+        assigned_studies=invitation.study_ids
     )
     
     invitation.is_accepted = True
@@ -165,6 +171,25 @@ def complete_profile(request):
             
     if missing:
         return Response({'error': f'Missing required fields: {", ".join(missing)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Professional Role Documents (PI, Coordinator)
+    role_check = (user.role or '').upper()
+    if role_check in ['PI', 'COORDINATOR']:
+        doc_fields = {
+            'medical_licence': 'Medical Licence',
+            'insurance_certificate': 'Insurance Certificate',
+            'cv_document': 'CV Document'
+        }
+        for field_name, label in doc_fields.items():
+            file_obj = request.FILES.get(field_name)
+            if not file_obj and not getattr(user, field_name):
+                return Response({'error': f'{label} is required for professional roles'}, status=status.HTTP_400_BAD_REQUEST)
+            if file_obj:
+                saved_path = handle_credential_upload(user, file_obj, field_name)
+                if saved_path:
+                    setattr(user, field_name, saved_path)
+                else:
+                    return Response({'error': f'Invalid file format for {label}. Please upload PDF, JPG, or PNG.'}, status=status.HTTP_400_BAD_REQUEST)
 
     # Core Identity Update
     if not user.first_name:
@@ -219,9 +244,8 @@ def complete_profile(request):
         'access': access_token,
         'user': {
             'email':        user.email,
-            'full_name':    user.decrypted_name,
-            'organization': user.decrypted_organization,
-            'role':         user.role,
+            'affiliation':  getattr(user, 'affiliation', 'musb'),
+            'status':       getattr(user, 'status', 'active'),
             'picture':      user.profile_picture or '',
             'must_reset':   user.must_change_password,
             'profile_incomplete': False,
@@ -233,6 +257,9 @@ def complete_profile(request):
             'country': user.country or '',
             'place_of_origin': decrypt_data(user.place_of_origin) if user.place_of_origin else '',
             'timezone': user.timezone or 'UTC',
+            'medical_licence': user.medical_licence,
+            'insurance_certificate': user.insurance_certificate,
+            'cv_document': user.cv_document,
         }
     })
     return _set_auth_cookies(response, access_token, refresh_token)

@@ -22,14 +22,22 @@ class UserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = [
-        ('PARTICIPANT', 'Participant'),
-        ('PI', 'Principal Investigator'),
-        ('COORDINATOR', 'Coordinator'),
-        ('SPONSOR', 'Sponsor Admin'),
-        ('SPONSOR_MANAGER', 'Study Manager'),
-        ('SPONSOR_VIEWER', 'Sponsor Viewer'),
-        ('ADMIN', 'Admin'),
-        ('SUPER_ADMIN', 'Super Admin'),
+        ('super_admin', 'Super Admin'),
+        ('admin', 'Admin'),
+        ('sponsor', 'Sponsor'),
+        ('coordinator', 'Coordinator'),
+        ('pi', 'PI'),
+        ('team_member', 'Team Member'),
+        ('PARTICIPANT', 'Participant'), # Keep existing for compatibility
+    ]
+    AFFILIATION_CHOICES = [
+        ('musb', 'MusB'),
+        ('onsite', 'Onsite'),
+    ]
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('pending', 'Pending'),
+        ('rejected', 'Rejected'),
     ]
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=150, unique=True, null=True, blank=True)
@@ -40,6 +48,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     organization = models.CharField(max_length=255, blank=True, null=True)
     role = models.CharField(max_length=30, choices=ROLE_CHOICES, default='PARTICIPANT')
+    affiliation = models.CharField(max_length=20, choices=AFFILIATION_CHOICES, default='musb', null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active', null=True, blank=True)
+    assigned_studies = models.JSONField(default=list, blank=True, null=True) # List of study protocol_ids
     
     # Hierarchy
     parent_sponsor = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='team_members')
@@ -66,6 +77,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     timezone = models.CharField(max_length=50, default='UTC')
     country = models.CharField(max_length=100, blank=True, null=True)
     
+    # Credentials (PI, Coordinator, Sponsor)
+    medical_licence = models.CharField(max_length=1024, blank=True, null=True)
+    insurance_certificate = models.CharField(max_length=1024, blank=True, null=True)
+    cv_document = models.CharField(max_length=1024, blank=True, null=True)
+    
     # GDPR & Privacy Compliance
     has_consented_to_data_use = models.BooleanField(default=False)
     withdrawal_requested = models.BooleanField(default=False)
@@ -75,6 +91,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=now)
+    modified_at = models.DateTimeField(auto_now=True, null=True)
     created_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='users_created')
 
     objects = UserManager()
@@ -83,7 +100,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = ['full_name']
 
     def __hash__(self) -> int:
-        # Fix for Django 5.x + MongoDB crash during migration construction
+        # Compatibility patch for Django 5.x + MongoDB
         pk = getattr(self, 'pk', None)
         if pk is None:
             return id(self)
@@ -95,18 +112,20 @@ class User(AbstractBaseUser, PermissionsMixin):
     def save(self, *args, **kwargs):
         # Update full_name from components if they exist
         if self.first_name and self.last_name:
-            self.full_name = f"{self.first_name} {self.last_name}"
+            f_plain = decrypt_data(str(self.first_name))
+            l_plain = decrypt_data(str(self.last_name))
+            self.full_name = f"{f_plain} {l_plain}"
 
         # Encrypt personal fields if not already encrypted
         fields_to_encrypt = [
-            'full_name', 'first_name', 'last_name', 'middle_name', 
             'organization', 'phone_number', 'full_address', 
             'city', 'state', 'place_of_origin'
         ]
         
         for field in fields_to_encrypt:
             val = getattr(self, field)
-            if val and isinstance(val, str) and not val.startswith('gAAAA'):
+            # Only encrypt if it's a non-empty string and doesn't look like a Fernet token
+            if val and isinstance(val, str) and not str(val).startswith('gAAAA'):
                 setattr(self, field, encrypt_data(val))
         
         # Normalize active status
@@ -270,6 +289,8 @@ class Invitation(models.Model):
     invited_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_invitations')
     organization = models.CharField(max_length=255)
     token = models.CharField(max_length=100, unique=True)
+    scope = models.CharField(max_length=20, default='ALL', null=True, blank=True) # ALL | SPECIFIC
+    study_ids = models.JSONField(default=list, blank=True, null=True) # List of protocol_ids
     is_accepted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
@@ -304,3 +325,32 @@ class MagicLink(models.Model):
     def is_expired(self):
         # Magic link valid for 1 hour
         return now() > self.created_at + datetime.timedelta(hours=1)
+
+class ApprovalRequest(models.Model):
+    """Tracks onsite PI requests for team member account activation"""
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    
+    requested_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_approvals')
+    target_user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='approval_request')
+    study = models.ForeignKey('api.Study', on_delete=models.CASCADE, related_name='approvals', null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_approvals')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __hash__(self) -> int:
+        pk = getattr(self, 'pk', None)
+        if pk is None:
+            return id(self)
+        try:
+            return hash(str(pk))
+        except Exception:
+            return id(self)
+
+    def __str__(self):
+        return f"Request for {self.target_user.email} by {self.requested_by.email}"

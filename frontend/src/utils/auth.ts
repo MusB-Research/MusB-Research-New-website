@@ -9,7 +9,7 @@ const API = import.meta.env.VITE_API_URL || '';
 
 /** Role is stored in sessionStorage (not sensitive — it's in the JWT payload too). */
 export const getToken = () => sessionStorage.getItem('access') || localStorage.getItem('access') || localStorage.getItem('token');
-export const getRole = () => sessionStorage.getItem('role') || localStorage.getItem('role');
+export const getRole = () => (sessionStorage.getItem('role') || localStorage.getItem('role') || '').toUpperCase();
 
 /** Keep the user object in sessionStorage for quick access. */
 export const getUser = () => {

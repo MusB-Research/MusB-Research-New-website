@@ -1,15 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { clearToken, authFetch } from '../utils/auth';
+import { clearToken, authFetch, getRole } from '../utils/auth';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
 import SubmitContentForms from '../components/admin/SubmitContentForms';
-import ScreenerBuilder from '../components/admin/ScreenerBuilder';
 import LaunchStudyForm from '../components/admin/LaunchStudyForm';
 import SponsorsManagement from '../components/admin/SponsorsManagement';
+import PIMessagesModule from '../components/pi/PIMessagesModule';
+import PITeamModule from '../components/pi/PITeamModule';
+import SubjectReviewModule from '../components/pi/SubjectReviewModule';
+import SupportModule from '../components/pi/SupportModule';
+import VisitsModule from '../components/pi/VisitsModule';
+import QuestionnaireBuilder from '../components/pi/QuestionnaireBuilder';
 import {
     LayoutDashboard,
     Beaker,
+    Calendar,
+    DraftingCompass,
     Users,
     ClipboardList,
     ShieldCheck,
@@ -24,6 +31,7 @@ import {
     Plus,
     X,
     Filter,
+    HelpCircle,
     Stethoscope,
     UsersRound,
     Clock,
@@ -34,7 +42,7 @@ import {
     Menu
 } from 'lucide-react';
 
-type PIModule = 'OVERSIGHT' | 'STUDIES' | 'PARTICIPANTS' | 'MESSAGES' | 'REPORTS' | 'SUBMIT' | 'SCREENER_BUILDER' | 'LAUNCH_STUDY' | 'SPONSORS';
+type PIModule = 'OVERSIGHT' | 'STUDIES' | 'TEAM' | 'PARTICIPANTS' | 'VISITS' | 'MESSAGES' | 'REPORTS' | 'SUBMIT' | 'SCREENER_BUILDER' | 'LAUNCH_STUDY' | 'SPONSORS' | 'COMPLIANCE' | 'SUPPORT';
 
 export default function PIDashboard() {
     const [activeModule, setActiveModule] = useState<PIModule>('OVERSIGHT');
@@ -44,6 +52,17 @@ export default function PIDashboard() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const profileRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const user = localStorage.getItem('user') || sessionStorage.getItem('user');
+        const role = getRole();
+        
+        const allowedRoles = ['PI', 'COORDINATOR', 'ONSITE'];
+        if (!user || !allowedRoles.includes(role)) {
+            console.warn("Unauthorized access to PI Dashboard. Redirecting...");
+            navigate('/signin');
+        }
+    }, [navigate]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -121,12 +140,16 @@ export default function PIDashboard() {
         { id: 'OVERSIGHT', label: 'Scientific Oversight', icon: Activity },
         { id: 'STUDIES', label: 'My Studies', icon: Beaker },
         { id: 'LAUNCH_STUDY', label: 'LAUNCH A STUDY', icon: Rocket },
+        { id: 'TEAM', label: 'Team Management', icon: Users },
         { id: 'PARTICIPANTS', label: 'Subject Review', icon: UsersRound },
+        { id: 'VISITS', label: 'Visits & Assessments', icon: Calendar },
         { id: 'MESSAGES', label: 'Messages', icon: MessageSquare },
         { id: 'REPORTS', label: 'Analytics', icon: TrendingUp },
         { id: 'SUBMIT', label: 'Submit Content', icon: Plus },
-        { id: 'SCREENER_BUILDER', label: 'Screener Builder', icon: Filter },
+        { id: 'SCREENER_BUILDER', label: 'Questionnaire Architect', icon: DraftingCompass },
         { id: 'SPONSORS', label: 'Manage Sponsors', icon: Globe },
+        { id: 'COMPLIANCE', label: 'COMPLIANCE & DOCUMENTS', icon: ShieldCheck },
+        { id: 'SUPPORT', label: 'Help & Support', icon: HelpCircle },
     ];
 
     const renderHeader = () => {
@@ -153,44 +176,66 @@ export default function PIDashboard() {
         } catch (e) { }
 
         return (
-            <header className="fixed top-0 left-0 right-0 h-28 z-[60] bg-[#0B101B]/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between px-6 lg:px-10">
-                <div className="flex items-center gap-6 lg:gap-12">
-                    <button 
-                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                        className="lg:hidden p-3 bg-white/5 border border-white/10 rounded-xl text-slate-300 active:scale-95 transition-all"
-                    >
-                        {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-                    </button>
-                    <Link to="/" className="flex items-center group">
-                        <div className="h-10 px-4 lg:px-5 rounded-full bg-white flex items-center justify-center shadow-lg transition-transform group-hover:scale-105">
-                            <img src="/logo.jpg" alt="MusB Research" className="h-6 w-auto object-contain" />
+            <header className="fixed top-0 left-0 right-0 h-20 md:h-28 z-[60] bg-[#0B101B]/80 backdrop-blur-3xl border-b border-white/5 flex items-center justify-between px-4 md:px-8 lg:px-10">
+
+                <div className="flex items-center gap-4 lg:gap-7">
+                    <Link to="/" className="flex items-center group transition-all hover:scale-105 active:scale-95">
+                        <div className="h-12 px-6 rounded-full bg-white flex items-center justify-center shadow-2xl group/logo overflow-hidden border border-white/10">
+                            <img src="/logo.jpg" alt="MusB Research" className="h-7 w-auto object-contain" />
                         </div>
                     </Link>
+
+                    <div className="h-8 w-px bg-white/10 hidden sm:block mx-1" />
+
+                    <div className="flex items-center gap-2 md:gap-4">
+                        <button 
+                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                            className="lg:hidden p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:text-white transition-all flex items-center justify-center h-10 w-10 hover:bg-white/10 shrink-0"
+                        >
+                            {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                        </button>
+
+                    </div>
+
+
+
+                    <div className="hidden lg:flex flex-col ml-4 pl-4 border-l border-white/10">
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400 group-hover:text-white transition-colors">Scientific</span>
+                        <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-slate-500">Terminal Node</span>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-6">
-                    <button className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all">
-                        <Bell className="w-5 h-5 text-slate-300" />
+
+
+                <div className="flex items-center gap-3 md:gap-6 lg:gap-8 h-10 md:h-12">
+                    <button className="h-10 w-10 md:h-12 md:w-12 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-xl md:rounded-2xl border border-white/10 transition-all text-slate-300 hover:text-white shrink-0">
+                        <Bell className="w-4 h-4 md:w-5 h-5" />
                     </button>
-                    <div className="flex items-center gap-4 pl-6 border-l border-white/10 relative" ref={profileRef}>
-                        <div className="text-right">
-                            <p className="text-xs font-black text-white uppercase italic leading-none">{userName}</p>
-                            <p className="text-[9px] text-indigo-400 font-bold uppercase tracking-widest mt-1">Principal Investigator</p>
+                    
+                    <div className="h-6 md:h-8 w-px bg-white/10 hidden md:block" />
+
+
+                    <div className="flex items-center gap-3 md:gap-4 relative" ref={profileRef}>
+                        <div className="text-right hidden lg:block">
+                            <p className="text-[11px] md:text-xs font-black text-white uppercase italic leading-none tracking-tight">{userName}</p>
+                            <p className="text-[8px] md:text-[9px] text-indigo-400 font-bold uppercase tracking-[0.2em] mt-1.5 opacity-80">Principal Investigator</p>
                         </div>
                         <button
                             onClick={() => setIsProfileOpen(!isProfileOpen)}
-                            className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 overflow-hidden hover:border-indigo-500/50 transition-all active:scale-95"
+                            className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white/5 border border-white/10 overflow-hidden hover:border-indigo-500/50 transition-all active:scale-95 shadow-lg group shrink-0"
                         >
                             <img
                                 src={userPicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=4f46e5&color=fff`}
+
                                 alt="PI"
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover grayscale transition-all group-hover:grayscale-0"
                                 onError={(e) => {
                                     const target = e.target as HTMLImageElement;
                                     target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=4f46e5&color=fff`;
                                 }}
                             />
                         </button>
+
 
                         <AnimatePresence>
                             {isProfileOpen && (
@@ -227,24 +272,24 @@ export default function PIDashboard() {
                         animate={{ opacity: 1 }} 
                         exit={{ opacity: 0 }} 
                         onClick={() => setIsSidebarOpen(false)}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] lg:hidden"
+                        className="fixed inset-0 bg-black/90 backdrop-blur-md z-[55] lg:hidden"
                     />
                 )}
             </AnimatePresence>
 
-            <aside className={`fixed left-0 top-28 bottom-0 w-80 bg-[#0B101B]/40 backdrop-blur-3xl border-r border-white/5 p-6 z-[56] transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-                <nav className="space-y-1.5">
+            <aside className={`fixed left-0 top-28 bottom-0 w-80 bg-[#0B101B]/95 lg:bg-[#0B101B]/40 backdrop-blur-3xl border-r border-white/5 p-6 z-[56] transition-transform duration-300 lg:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+                <nav className="space-y-1.5 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                     {navItems.map((item) => (
                         <button
                             key={item.id}
                             onClick={() => {
-                                if (item.id === 'WEBSITE') navigate('/home');
+                                if (item.id === 'WEBSITE') navigate('/');
                                 else {
                                     setActiveModule(item.id as PIModule);
                                     setIsSidebarOpen(false);
                                 }
                             }}
-                            className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all group ${activeModule === item.id
+                            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group ${activeModule === item.id
                                     ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
                                     : 'text-slate-500 hover:bg-white/5 hover:text-white'
                                 }`}
@@ -252,15 +297,26 @@ export default function PIDashboard() {
                             <div className="w-10 flex items-center justify-center flex-shrink-0">
                                 <item.icon className={`w-4 h-4 ${activeModule === item.id ? 'text-white' : 'text-slate-600 group-hover:text-indigo-400'}`} />
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">{item.label}</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-left leading-tight break-words">{item.label}</span>
                         </button>
                     ))}
                 </nav>
+
+                <div className="mt-auto pt-6 border-t border-white/5 space-y-2">
+                    <button onClick={handleSignOut} className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-all group">
+                        <div className="w-10 flex items-center justify-center flex-shrink-0">
+                            <LogOut className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-widest italic">Terminate Session</span>
+                    </button>
+                </div>
             </aside>
+
 
             <main className="lg:ml-80 pt-36 pb-24 px-4 lg:px-10 overflow-x-hidden">
                 <AnimatePresence mode="wait">
                     {activeModule === 'OVERSIGHT' && <OversightModule studyCount={studies.length} onLaunch={() => setActiveModule('LAUNCH_STUDY')} />}
+                    {activeModule === 'COMPLIANCE' && <ComplianceModule />}
                     {activeModule === 'STUDIES' && (
                         <StudyOverviewModule 
                             studies={studies} 
@@ -285,8 +341,13 @@ export default function PIDashboard() {
                         />
                     )}
                     {activeModule === 'SUBMIT' && <SubmitContentForms userRole="PI" />}
-                    {activeModule === 'SCREENER_BUILDER' && <ScreenerBuilder />}
-                    {activeModule === 'SPONSORS' && (
+                    {activeModule === 'SCREENER_BUILDER' && <QuestionnaireBuilder />}
+                    { activeModule === 'MESSAGES' && <PIMessagesModule /> }
+                    { activeModule === 'TEAM' && <PITeamModule /> }
+                    { activeModule === 'PARTICIPANTS' && <SubjectReviewModule /> }
+                    { activeModule === 'VISITS' && <VisitsModule /> }
+                    { activeModule === 'SUPPORT' && <SupportModule /> }
+                    { activeModule === 'SPONSORS' && (
                         <SponsorsManagement 
                             allUsers={users} 
                             allStudies={studies} 
@@ -328,21 +389,22 @@ function OversightModule({ studyCount, onLaunch }: { studyCount: number, onLaunc
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {[
+                { [
                     { label: 'Active Protocols', val: studyCount.toString().padStart(2, '0'), icon: Beaker, color: 'indigo' },
                     { label: 'Total Subjects', val: '1,240', icon: UsersRound, color: 'emerald' },
                     { label: 'Critical Alerts', val: '02', icon: Activity, color: 'red' },
                 ].map((stat, i) => (
-                    <div key={i} className="bg-white/5 border border-white/5 rounded-[2.5rem] p-10 space-y-6">
-                        <div className={`w-14 h-14 rounded-2xl bg-${stat.color}-500/10 border border-${stat.color}-500/20 flex items-center justify-center`}>
-                            <stat.icon className={`w-7 h-7 text-${stat.color}-400`} />
+                    <div key={i} className="bg-white/5 border border-white/5 rounded-[3rem] p-10 flex flex-col justify-between min-h-[280px] group hover:border-white/10 transition-all">
+                        <div className={`w-16 h-16 rounded-[1.5rem] bg-${stat.color}-500/10 border border-${stat.color}-500/20 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform`}>
+                            <stat.icon className={`w-8 h-8 text-${stat.color}-400`} />
                         </div>
-                        <div>
-                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">{stat.label}</h4>
-                            <p className="text-5xl font-black text-white italic tracking-tighter mt-2">{stat.val}</p>
+                        <div className="mt-8">
+                            <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] italic mb-3">{stat.label}</h4>
+                            <p className="text-6xl font-black text-white italic tracking-tighter leading-none">{stat.val}</p>
                         </div>
                     </div>
                 ))}
+
             </div>
         </motion.div>
     );
@@ -395,6 +457,91 @@ function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd
                         </button>
                     </div>
                 ))}
+            </div>
+        </motion.div>
+    );
+}
+
+function ComplianceModule() {
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : {};
+
+    return (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
+            <div>
+                <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter leading-none">
+                    Compliance <span className="text-indigo-400">& Credentials</span>
+                </h2>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-3 italic">
+                    Verified professional documentation and node synchronization
+                </p>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 rounded-[3rem] p-12 relative overflow-hidden group">
+                <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/5 blur-[100px] rounded-full group-hover:bg-indigo-500/10 transition-colors duration-1000" />
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+                    {[
+                        { id: 'medical_licence', label: 'Medical Licence', path: user.medical_licence, desc: 'Official state-issued medical practice authorization' },
+                        { id: 'insurance_certificate', label: 'Professional Insurance', path: user.insurance_certificate, desc: 'Coverage for clinical trial liability and oversight' },
+                        { id: 'cv_document', label: 'Curriculum Vitae', path: user.cv_document, desc: 'Up-to-date professional history and research experience' }
+                    ].map((doc, i) => (
+                        <div key={i} className="bg-[#0B101B]/60 border border-white/5 rounded-[2.5rem] p-8 space-y-6 hover:border-indigo-500/30 transition-all flex flex-col">
+                            <div className="flex justify-between items-center">
+                                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                    <FileText className="w-6 h-6" />
+                                </div>
+                                {doc.path ? (
+                                    <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(16,185,129,1)]" />
+                                        <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">Verified</span>
+                                    </div>
+                                ) : (
+                                    <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                                        <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest">Pending</span>
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-black text-white italic uppercase tracking-widest">{doc.label}</h4>
+                                <p className="text-[10px] text-slate-500 font-bold mt-2 leading-relaxed italic">{doc.desc}</p>
+                            </div>
+                            <div className="mt-4 pt-6 border-t border-white/5">
+                                {doc.path ? (
+                                    <a 
+                                        href={`${import.meta.env.VITE_API_URL}/media/${doc.path}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="w-full py-4 bg-white/5 hover:bg-white text-white hover:text-slate-950 border border-white/10 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 group/link"
+                                    >
+                                        <Globe className="w-4 h-4 group-hover/link:rotate-12 transition-transform" /> VIEW DOCUMENT
+                                    </a>
+                                ) : (
+                                    <button className="w-full py-4 bg-amber-500/5 text-amber-500 border border-amber-500/20 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] opacity-50 cursor-not-allowed">
+                                        UPLOAD REQUIRED
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="mt-12 p-8 bg-indigo-500/10 border border-indigo-500/20 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+                    <div className="flex items-center gap-6">
+                        <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                            <ShieldCheck className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-black text-white uppercase italic tracking-widest">Authorization Status</p>
+                            <p className="text-[10px] text-indigo-300/60 font-black uppercase tracking-widest mt-1">Global Scientific Network Verification</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,1)]" />
+                        <span className="text-xs font-black text-emerald-400 uppercase tracking-widest line-clamp-1 italic">Synchronization Complete</span>
+                    </div>
+                </div>
             </div>
         </motion.div>
     );

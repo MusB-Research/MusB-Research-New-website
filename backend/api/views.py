@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from .models import (
     Study, StudyAssignment, Participant, Form, FormResponse, Task, 
     ParticipantTask, Consent, Lead, CommunicationLog, 
-    Compensation, LabResult, DataAuditLog, News, Event
+    Compensation, LabResult, DataAuditLog,    News, Event, Partnership, Publication, EducationMaterial
 )
 from .serializers import (
     StudySerializer, StudyAssignmentSerializer, ParticipantSerializer, 
@@ -12,7 +12,8 @@ from .serializers import (
     FormResponseSerializer, TaskSerializer, ParticipantTaskSerializer, 
     ConsentSerializer, LeadSerializer, CommunicationLogSerializer,
     CompensationSerializer, LabResultSerializer, DataAuditLogSerializer,
-    NewsSerializer, EventSerializer
+    NewsSerializer, EventSerializer, PartnershipSerializer, 
+    PublicationSerializer, EducationMaterialSerializer
 )
 from authentication.models import User, AuditLog
 
@@ -144,8 +145,8 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         user = self.request.user
-        pi_ids = serializer.validated_data.pop('pi_ids', [])
-        coord_ids = serializer.validated_data.pop('coordinator_ids', [])
+        pi_ids = serializer.validated_data.pop('pi_ids', None)
+        coord_ids = serializer.validated_data.pop('coordinator_ids', None)
         
         # If internal staff is updating, ensure it's approved (especially if it was pending)
         extra_fields = {}
@@ -380,3 +381,20 @@ class EventViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
     queryset = Event.objects.all().order_by('-event_date')
     serializer_class = EventSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+class PartnershipViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
+    queryset = Partnership.objects.all().order_by('-created_at')
+    serializer_class = PartnershipSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
+
+class PublicationViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
+    queryset = Publication.objects.all().order_by('-publication_date')
+    serializer_class = PublicationSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+class EducationMaterialViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
+    queryset = EducationMaterial.objects.all().order_by('-created_at')
+    serializer_class = EducationMaterialSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)

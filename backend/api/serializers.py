@@ -2,7 +2,8 @@ from rest_framework import serializers
 from .models import (
     Study, StudyAssignment, Participant, Visit, Kit, Form, FormResponse, 
     Task, ParticipantTask, Consent, Lead, CommunicationLog, 
-    Compensation, LabResult, DataAuditLog, InterventionArm, News, Event
+    Compensation, LabResult, DataAuditLog, InterventionArm, News, Event,
+    Partnership, Publication, EducationMaterial
 )
 from authentication.models import User
 from authentication.security import decrypt_data
@@ -146,7 +147,7 @@ class StudySerializer(SanitizedModelSerializer):
     class Meta:
         model = Study
         fields = [
-            'id', 'title', 'description', 'protocol_id', 'sponsor_name', 'study_type', 'status',
+            'id', 'title', 'full_title', 'description', 'protocol_id', 'sponsor_name', 'study_type', 'status',
             'pi_id', 'coordinator_id', 'sponsor_id', 'pi_ids', 'coordinator_ids',
             'assigned_pis', 'assigned_coordinators', 'approval_status', 'created_by',
             'primary_indication', 'trial_model', 'is_double_blind', 'has_placebo_control',
@@ -154,8 +155,71 @@ class StudySerializer(SanitizedModelSerializer):
             'trial_format', 'benefit', 'duration', 'tags', 'compensation', 'location',
             'time_commitment', 'overview', 'timeline', 'kits_info', 'safety_info',
             'privacy_standards', 'remote_participation', 'start_date', 'end_date',
-            'launch_date', 'irb_status', 'target_screened', 'actual_screened'
+            'launch_date', 'irb_status', 'target_screened', 'actual_screened',
+            'proposal_source', 'proposal_submitted_date', 'agreement_signed_date',
+            'contract_status', 'sponsor_contact_name', 'sponsor_contact_email'
         ]
+
+    def create(self, validated_data):
+        pi_ids = validated_data.pop('pi_ids', [])
+        coordinator_ids = validated_data.pop('coordinator_ids', [])
+        
+        study = super().create(validated_data)
+        
+        # Create assignments
+        for user in pi_ids:
+            StudyAssignment.objects.get_or_create(study=study, user=user, role='PI')
+        
+        # Ensure lead PI is also in assignments
+        if study.pi:
+            StudyAssignment.objects.get_or_create(study=study, user=study.pi, role='PI')
+
+        for user in coordinator_ids:
+            StudyAssignment.objects.get_or_create(study=study, user=user, role='COORDINATOR')
+        
+        # Ensure lead coordinator is also in assignments
+        if study.coordinator:
+            StudyAssignment.objects.get_or_create(study=study, user=study.coordinator, role='COORDINATOR')
+            
+        return study
+
+    def update(self, instance, validated_data):
+        pi_ids = validated_data.pop('pi_ids', None)
+        coordinator_ids = validated_data.pop('coordinator_ids', None)
+        
+        study = super().update(instance, validated_data)
+        
+        # Update PI assignments if provided
+        if pi_ids is not None:
+            instance.assignments.filter(role='PI').delete()
+            for user in pi_ids:
+                StudyAssignment.objects.get_or_create(study=instance, user=user, role='PI')
+            
+            # Sync back to primary PI field if it's null and we have PIs
+            if not study.pi and pi_ids:
+                study.pi = pi_ids[0]
+                study.save()
+        elif 'pi' in validated_data:
+            # If ONLY lead PI was updated, ensure it's in the assignments list
+            if study.pi:
+                StudyAssignment.objects.get_or_create(study=instance, user=study.pi, role='PI')
+
+        # Update Coordinator assignments if provided
+        if coordinator_ids is not None:
+            instance.assignments.filter(role='COORDINATOR').delete()
+            for user in coordinator_ids:
+                StudyAssignment.objects.get_or_create(study=instance, user=user, role='COORDINATOR')
+            
+            # Sync back to primary coordinator field if it's null and we have coords
+            if not study.coordinator and coordinator_ids:
+                study.coordinator = coordinator_ids[0]
+                study.save()
+        elif 'coordinator' in validated_data:
+            # If ONLY lead coordinator was updated, ensure it's in the assignments list
+            if study.coordinator:
+                StudyAssignment.objects.get_or_create(study=instance, user=study.coordinator, role='COORDINATOR')
+                
+        return study
 
 class InterventionArmSerializer(SanitizedModelSerializer):
     class Meta:
@@ -303,3 +367,37 @@ class EventSerializer(SanitizedModelSerializer):
     class Meta:
         model = Event
         fields = '__all__'
+
+class PartnershipSerializer(SanitizedModelSerializer):
+    id = ObjectIdField(read_only=True)
+    logo_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Partnership
+        fields = '__all__'
+
+    def get_logo_url(self, obj):
+        if not obj.logo: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.logo.url)
+        return obj.logo.url
+
+class PublicationSerializer(SanitizedModelSerializer):
+    id = ObjectIdField(read_only=True)
+    class Meta:
+        model = Publication
+        fields = '__all__'
+
+class EducationMaterialSerializer(SanitizedModelSerializer):
+    id = ObjectIdField(read_only=True)
+    file_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EducationMaterial
+        fields = '__all__'
+
+    def get_file_url(self, obj):
+        if not obj.file: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.file.url)
+        return obj.file.url

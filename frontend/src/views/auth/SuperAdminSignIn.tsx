@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Lock, ArrowRight, Eye, EyeOff, Mail, Globe } from 'lucide-react';
+import { Lock, ArrowRight, Eye, EyeOff, Mail, Globe } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { saveToken } from '../../utils/auth';
 
@@ -175,15 +175,13 @@ export default function SuperAdminSignIn() {
                 {/* Branding */}
                 <div className="text-center space-y-8 mb-12">
                     <div className="flex justify-center">
-                        <div className="bg-white p-2 rounded-xl">
-                            <img src="/logo.jpg" alt="MusB Research" className="h-8 w-auto object-contain" />
+                        <div className="bg-white p-4 rounded-2xl shadow-xl border border-white/20">
+                            <img src="/logo.jpg" alt="MusB Research" className="h-14 md:h-16 w-auto object-contain" />
                         </div>
                     </div>
                     
                     <div className="space-y-4">
-                        <div className="w-14 h-14 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center mx-auto text-indigo-400">
-                            <Shield className="w-7 h-7" />
-                        </div>
+
                         <h1 className="text-3xl font-black text-white tracking-tight">Super Admin Portal</h1>
                         <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest leading-relaxed max-w-[280px] mx-auto">
                             Highest-privilege system access. All actions are logged.

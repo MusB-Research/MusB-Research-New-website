@@ -30,5 +30,9 @@ urlpatterns = [
     path('admin/create-user/', admin_users.admin_create_user, name='admin_create_user'),
     path('admin/resend-credentials/<str:user_id>/', admin_users.admin_resend_credentials, name='admin_resend_credentials'),
     path('admin/audit-logs/', admin_users.admin_get_audit_logs, name='admin_audit_logs'),
+    
+    # RBAC Approvals
+    path('admin/approvals/', admin_users.get_pending_approvals, name='get_pending_approvals'),
+    path('admin/approvals/<str:request_id>/<str:action>/', admin_users.process_approval, name='process_approval'),
 ]
 

@@ -36,7 +36,7 @@ export default function Layout({ children }: LayoutProps) {
         userRole === 'SUPER_ADMIN' ? '/dashboard/super-admin'
             : userRole === 'ADMIN' ? '/dashboard/admin'
                 : userRole === 'PARTICIPANT' ? '/dashboard/participant'
-                    : userRole === 'PI' ? '/dashboard/pi'
+                    : (userRole === 'PI' || userRole === 'COORDINATOR' || userRole === 'ONSITE') ? '/dashboard/pi'
                         : userRole === 'SPONSOR' ? '/dashboard/sponsor'
                             : '/dashboard';
 
@@ -128,10 +128,11 @@ export default function Layout({ children }: LayoutProps) {
                             to="/"
                             className="flex-shrink-0 flex items-center group py-2"
                         >
-                            <div className="h-14 md:h-16 bg-white rounded-2xl border border-slate-200/80 flex items-center justify-center overflow-hidden px-2 shadow-sm hover:scale-105 hover:shadow-md transition-all duration-300">
-                                <img src="/logo.jpg" alt="MusB™ Research" className="h-[96%] w-auto object-contain brightness-100" />
+                            <div className="h-11 md:h-16 bg-white rounded-xl md:rounded-2xl border border-slate-200/80 flex items-center justify-center overflow-hidden px-3 md:px-2 shadow-sm hover:scale-105 hover:shadow-md transition-all duration-300">
+                                <img src="/logo.jpg" alt="MusB™ Research" className="h-[90%] w-auto object-contain brightness-100" />
                             </div>
                         </Link>
+
 
                         {/* Right-aligned Navigation Group */}
                         <div className="hidden xl:flex items-center gap-4 2xl:gap-12 ml-auto">
@@ -255,14 +256,12 @@ export default function Layout({ children }: LayoutProps) {
 
                         {/* Mobile Menu Toggle */}
                         <button
-                            className={`xl:hidden p-2 md:p-3 rounded-lg border transition-all ${isScrolled
-                                    ? 'text-white border-white/10 bg-white/5 hover:bg-white/10'
-                                    : 'text-slate-900 border-slate-200 bg-slate-100 hover:bg-slate-200'
-                                }`}
+                            className="xl:hidden p-2 md:p-3 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100 transition-all flex items-center justify-center"
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
                         >
                             {isMenuOpen ? <X className="w-5 h-5 md:w-6 md:h-6" /> : <Menu className="w-5 h-5 md:w-6 md:h-6" />}
                         </button>
+
                     </nav>
                 </div>
 

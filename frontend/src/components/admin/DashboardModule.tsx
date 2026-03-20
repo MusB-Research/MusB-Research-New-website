@@ -13,14 +13,23 @@ interface DashboardModuleProps {
 
 export default function DashboardModule({ studyCount }: DashboardModuleProps) {
   const [studies, setStudies] = useState<any[]>([]);
+  const [pendingCount, setPendingCount] = useState(0);
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-  const fetchStudies = async () => {
+  const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
+
+  const fetchData = async () => {
     try {
       const res = await authFetch(`${apiUrl}/api/studies/`);
-      if (res.ok) {
-        const data = await res.json();
-        setStudies(data);
+      if (res.ok) setStudies(await res.json());
+
+      if (user?.role === 'super_admin') {
+        const approveRes = await authFetch(`${apiUrl}/api/auth/admin/approvals/`);
+        if (approveRes.ok) {
+            const data = await approveRes.json();
+            setPendingCount(data.length);
+        }
       }
     } catch (error) {
       console.error("Dashboard fetch error:", error);
@@ -28,14 +37,14 @@ export default function DashboardModule({ studyCount }: DashboardModuleProps) {
   };
 
   useEffect(() => {
-    fetchStudies();
+    fetchData();
   }, []);
 
   const stats = [
     { label: 'Active Studies', value: (studies || []).filter(s => s.status === 'ACTIVE' || s.status === 'RECRUITING').length, icon: Activity, color: '#14b8a6' },
-    { label: 'Total Enrollment', value: '1,240', icon: Users, color: '#f43f5e' },
-    { label: 'Retention Rate', value: '94.2%', icon: Target, color: '#a855f7' },
-    { label: 'System Health', value: 'Optimal', icon: Shield, color: '#3b82f6' },
+    { label: 'Team Capacity', value: '18 Nodes', icon: Users, color: '#f43f5e' },
+    { label: 'Pending Approvals', value: user?.role === 'super_admin' ? pendingCount : '0', icon: Shield, color: '#a855f7' },
+    { label: 'Platform Health', value: 'NOMINAL', icon: HeartPulse, color: '#3b82f6' },
   ];
 
   return (

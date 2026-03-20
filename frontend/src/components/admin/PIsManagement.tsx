@@ -36,7 +36,7 @@ export default function PIsManagement({ allUsers = [], allStudies = [], onRefres
         credentials: (u as any).credentials || 'MD, PhD',
         status: (u as any).status === 'Suspended' ? 'Inactive' : 'Active',
         studies: allStudies
-          .filter(s => s.pi === u.id || s.pi_id === u.id)
+          .filter(s => s.pi === u.id || s.pi_id === u.id || (s.assigned_pis || []).some((p: any) => p.id === u.id))
           .map(s => s.title)
       }));
   }, [allUsers, allStudies]);

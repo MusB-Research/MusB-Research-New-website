@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { clearToken, authFetch } from '../utils/auth';
+import { clearToken, authFetch, getRole } from '../utils/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Briefcase, Activity, Crown, Shield, Bell, Settings, LogOut, Search,
@@ -23,6 +23,7 @@ import AnalyticsDashboard from '../components/admin/AnalyticsDashboard';
 import AuditLogs from '../components/admin/AuditLogs';
 import WorkflowModerationPanel from '../components/admin/WorkflowModerationPanel';
 import SubmitContentForms from '../components/admin/SubmitContentForms';
+import ApprovalModule from '../components/admin/ApprovalModule';
 
 // ═══════════════════════════════════════════
 // TYPES & MOCK DATA
@@ -33,7 +34,7 @@ type Page =
   | 'SPONSOR_LEADS' | 'METRICS' | 'TEAM' | 'INQUIRIES'
   | 'ANNOUNCEMENTS' | 'AUDIT_LOGS' | 'SETTINGS'
   | 'LAUNCH_STUDY' | 'SCREENER_BUILDER' | 'PIS' 
-  | 'COORDINATORS' | 'PARTICIPANTS' | 'LIVE_USERS' | 'WORKFLOW' | 'SUBMIT_CONTENT';
+  | 'COORDINATORS' | 'PARTICIPANTS' | 'LIVE_USERS' | 'WORKFLOW' | 'SUBMIT_CONTENT' | 'TEAM_APPROVALS';
 
 interface User {
   id: string;
@@ -52,6 +53,9 @@ interface User {
   country?: string;
   mobile_number?: string;
   place_of_origin?: string;
+  medical_licence?: string;
+  insurance_certificate?: string;
+  cv_document?: string;
 }
 
 interface Sponsor {
@@ -105,6 +109,7 @@ export default function SuperAdminDashboard() {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [creationRole, setCreationRole] = useState('PARTICIPANT');
+  const navigate = useNavigate();
   const profileRef = React.useRef<HTMLDivElement>(null);
 
   // Data States
@@ -177,6 +182,16 @@ export default function SuperAdminDashboard() {
   }, []);
 
   useEffect(() => {
+    const user = localStorage.getItem('user') || sessionStorage.getItem('user');
+    const role = getRole();
+    
+    if (!user || role !== 'SUPER_ADMIN') {
+      console.warn("Unauthorized access to Super Admin Dashboard. Redirecting...");
+      navigate('/signin');
+    }
+  }, [navigate]);
+
+  useEffect(() => {
     // Dashboard data simulation
     setTimeout(() => setLoading(false), 1500);
 
@@ -204,7 +219,7 @@ export default function SuperAdminDashboard() {
   }, []);
 
   const handleWebsiteLink = useCallback(() => {
-    window.location.href = '/home';
+    window.location.href = '/';
   }, []);
 
   const handleSignOut = async () => {
@@ -904,19 +919,35 @@ export default function SuperAdminDashboard() {
                             alert("Status update failed");
                           }
                         }}
-                        className={`text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border outline-none cursor-pointer transition-all ${
-                          study.status === 'RECRUITING' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 
-                          study.status === 'UPCOMING' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                        className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border outline-none cursor-pointer transition-all ${
+                          ['ACTIVE', 'RECRUITING'].includes(study.status) ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 
+                          ['DRAFT', 'PROPOSAL_SUBMITTED', 'PROPOSAL_UNDER_NEGOTIATION'].includes(study.status) ? 'bg-slate-500/10 text-slate-400 border-slate-500/20' :
+                          ['IRB_PROTOCOL_INITIATED', 'UNDER_IRB_SUBMISSION', 'IRB_APPROVED'].includes(study.status) ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
+                          study.status === 'PREPARING_TO_LAUNCH' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
+                          ['RECRUITMENT_COMPLETED', 'ANALYSIS_UNDERWAY'].includes(study.status) ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                          ['PROGRESS_REPORT_DRAFT', 'FINAL_REPORT_SENT', 'COMPLETED'].includes(study.status) ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                           study.status === 'PAUSED' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                          study.status === 'ARCHIVED' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                          study.status === 'CLOSED_ARCHIVED' ? 'bg-slate-500/10 text-slate-400 border-slate-500/20' :
                           'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
                         }`}
                       >
+                        <option value="DRAFT" className="bg-[#0a0b1a]">Draft</option>
+                        <option value="PROPOSAL_SUBMITTED" className="bg-[#0a0b1a]">Proposal Submitted</option>
+                        <option value="PROPOSAL_UNDER_NEGOTIATION" className="bg-[#0a0b1a]">Proposal Under Negotiation</option>
+                        <option value="AGREEMENT_SIGNED" className="bg-[#0a0b1a]">Agreement Signed</option>
+                        <option value="IRB_PROTOCOL_INITIATED" className="bg-[#0a0b1a]">IRB Protocol Initiated</option>
+                        <option value="UNDER_IRB_SUBMISSION" className="bg-[#0a0b1a]">Under IRB Submission / Dev</option>
+                        <option value="IRB_APPROVED" className="bg-[#0a0b1a]">IRB Approved</option>
+                        <option value="PREPARING_TO_LAUNCH" className="bg-[#0a0b1a]">Preparing to Launch</option>
+                        <option value="ACTIVE" className="bg-[#0a0b1a]">Active</option>
                         <option value="RECRUITING" className="bg-[#0a0b1a]">Recruiting</option>
-                        <option value="UPCOMING" className="bg-[#0a0b1a]">Upcoming</option>
-                        <option value="PAUSED" className="bg-[#0a0b1a]">Paused</option>
+                        <option value="RECRUITMENT_COMPLETED" className="bg-[#0a0b1a]">Recruitment Completed</option>
+                        <option value="ANALYSIS_UNDERWAY" className="bg-[#0a0b1a]">Analysis Underway</option>
+                        <option value="PROGRESS_REPORT_DRAFT" className="bg-[#0a0b1a]">Progress Report Draft</option>
+                        <option value="FINAL_REPORT_SENT" className="bg-[#0a0b1a]">Final Report Sent</option>
                         <option value="COMPLETED" className="bg-[#0a0b1a]">Completed</option>
-                        <option value="ARCHIVED" className="bg-[#0a0b1a]">Archived</option>
+                        <option value="PAUSED" className="bg-[#0a0b1a]">Paused</option>
+                        <option value="CLOSED_ARCHIVED" className="bg-[#0a0b1a]">Closed / Archived</option>
                       </select>
                     </td>
                     <td className="px-8 py-5 text-right flex items-center justify-end gap-2">
@@ -1168,9 +1199,9 @@ export default function SuperAdminDashboard() {
       ]
     },
     {
-      group: 'STAKEHOLDERS', items: [
+      group: 'STAKEHOLDERS & ACCESS', items: [
+        { id: 'TEAM_APPROVALS', label: 'Team Approvals', icon: ShieldCheck, hasNotify: true },
         { id: 'SPONSORS', label: 'Sponsors', icon: Building },
-        { id: 'PIS', label: 'PIs (Investigators)', icon: Shield },
         { id: 'COORDINATORS', label: 'Coordinators', icon: UserCheck },
         { id: 'PARTICIPANTS', label: 'Participants', icon: UserIcon },
       ]
@@ -1672,6 +1703,7 @@ export default function SuperAdminDashboard() {
             {currentPage === 'METRICS' && <AnalyticsDashboard />}
             {currentPage === 'AUDIT_LOGS' && <AuditLogs activities={activities} />}
             { currentPage === 'WORKFLOW' && <WorkflowModerationPanel /> }
+            { currentPage === 'TEAM_APPROVALS' && <ApprovalModule /> }
             { currentPage === 'SUBMIT_CONTENT' && <SubmitContentForms userRole="SUPER_ADMIN" /> }
             {currentPage === 'SETTINGS' && <SettingsPage />}
             {currentPage === 'ANNOUNCEMENTS' && <AnnouncementsPage />}
@@ -1680,7 +1712,7 @@ export default function SuperAdminDashboard() {
             {currentPage === 'INQUIRIES' && <InquiriesPage />}
 
             {/* Stub for other pages */}
-            {!['DASHBOARD', 'ALL_USERS', 'STUDIES', 'SPONSORS', 'LAUNCH_STUDY', 'SCREENER_BUILDER', 'PIS', 'COORDINATORS', 'PARTICIPANTS', 'LIVE_USERS', 'METRICS', 'AUDIT_LOGS', 'SETTINGS', 'ANNOUNCEMENTS', 'SPONSOR_LEADS', 'TEAM', 'INQUIRIES'].includes(currentPage) && (
+            {!['DASHBOARD', 'ALL_USERS', 'STUDIES', 'SPONSORS', 'LAUNCH_STUDY', 'SCREENER_BUILDER', 'PIS', 'COORDINATORS', 'PARTICIPANTS', 'LIVE_USERS', 'METRICS', 'AUDIT_LOGS', 'SETTINGS', 'ANNOUNCEMENTS', 'SPONSOR_LEADS', 'TEAM', 'INQUIRIES', 'TEAM_APPROVALS'].includes(currentPage) && (
               <div className="h-[70vh] flex flex-col items-center justify-center text-center space-y-6">
                 <div className="w-24 h-24 bg-white/5 border border-white/10 rounded-[2.5rem] flex items-center justify-center">
                   <LayoutDashboard className="w-12 h-12 text-[#555a7a] animate-pulse" />
@@ -1782,6 +1814,47 @@ export default function SuperAdminDashboard() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Verification Documents for PI/Coordinator */}
+                  {(selectedUser.role === 'PI' || selectedUser.role === 'COORDINATOR') && (
+                    <div className="mt-10 p-8 bg-emerald-500/5 border border-emerald-500/20 rounded-3xl space-y-6 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <ShieldCheck className="w-24 h-24 text-emerald-500" />
+                        </div>
+                        <div className="flex items-center gap-4 relative z-10">
+                            <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
+                            <h4 className="text-sm font-black text-white italic uppercase tracking-widest">Compliance Documents</h4>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
+                            {[
+                                { id: 'medical_licence', label: 'Medical Licence', path: selectedUser.medical_licence },
+                                { id: 'insurance_certificate', label: 'Insurance Cert', path: selectedUser.insurance_certificate },
+                                { id: 'cv_document', label: 'Professional CV', path: selectedUser.cv_document }
+                            ].map((doc) => (
+                                <div key={doc.id} className="p-4 bg-black/20 border border-white/5 rounded-2xl flex flex-col gap-3 group/doc relative overflow-hidden">
+                                    <div className="flex items-center justify-between">
+                                        <FileText className="w-5 h-5 text-emerald-400" />
+                                        {doc.path ? (
+                                            <a 
+                                                href={`${import.meta.env.VITE_API_URL}/media/${doc.path}`} 
+                                                target="_blank" 
+                                                rel="noreferrer"
+                                                className="p-1.5 bg-emerald-500 text-slate-950 rounded-lg hover:scale-110 transition-transform"
+                                                title="View Document"
+                                            >
+                                                <ExternalLink className="w-3.5 h-3.5" />
+                                            </a>
+                                        ) : (
+                                            <div title="Documentation Missing" className="cursor-help"><AlertTriangle className="w-4 h-4 text-amber-500" /></div>
+                                        )}
+                                    </div>
+                                    <p className="text-[10px] font-black text-white uppercase tracking-widest leading-none truncate">{doc.label}</p>
+                                    {!doc.path && <p className="text-[8px] font-bold text-amber-500/60 uppercase tracking-tighter">Not Uploaded</p>}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                  )}
 
                   <div className="mt-12 pt-8 border-t border-white/5 flex gap-4">
                     <button onClick={() => setIsUserDetailOpen(false)} className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-xs font-black text-white uppercase tracking-[0.2em] transition-all">Close Entry</button>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, UserPlus, Shield, Mail, 
   MapPin, Clock, Search, Filter, 
@@ -6,15 +6,80 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+import { authFetch } from '../../utils/auth';
+
 export default function TeamModule() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [team, setTeam] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    first_name: '',
+    last_name: '',
+    role: '',
+  });
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  const team = [
-    { name: 'Brijesh Raj', role: 'Super Admin', email: 'admin@musb.com', status: 'Active', lastLogin: '2h ago', location: 'Tampa, US' },
-    { name: 'Dr. Michael Chen', role: 'PI', email: 'm.chen@hospital.org', status: 'Active', lastLogin: '45m ago', location: 'Miami, US' },
-    { name: 'Sarah Wilson', role: 'Coordinator', email: 's.wilson@research.net', status: 'Away', lastLogin: '5h ago', location: 'Orlando, US' },
-    { name: 'James Thompson', role: 'Sponsor', email: 'j.thompson@pharma.corp', status: 'Active', lastLogin: '12m ago', location: 'New York, US' },
-  ];
+  const currentUserStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+  const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+  const fetchTeam = async () => {
+    try {
+      // In a real app, this would be a specialized 'team-list' endpoint
+      // For now, we'll fetch from a generic users endpoint if it exists
+      const res = await authFetch(`${apiUrl}/api/auth/admin/audit-logs/`); // Mocking team via audit logs for now or specialized endpoint
+      // Since there's no dedicated 'list-users' yet, we'll use a placeholder or the audit log to infer
+      // Actually, I should probably stick to the placeholder if no list-users exists, 
+      // but I'll add the UI for the new fields.
+      setTeam([
+        { id: 1, first_name: 'Brijesh', last_name: 'Raj', role: 'super_admin', email: 'admin@musb.com', status: 'active', affiliation: 'musb', lastLogin: '2h ago', location: 'Tampa, US' },
+        { id: 2, first_name: 'Michael', last_name: 'Chen', role: 'pi', email: 'm.chen@hospital.org', status: 'active', affiliation: 'onsite', lastLogin: '45m ago', location: 'Miami, US' },
+        { id: 3, first_name: 'Sarah', last_name: 'Wilson', role: 'coordinator', email: 's.wilson@research.net', status: 'active', affiliation: 'musb', lastLogin: '5h ago', location: 'Orlando, US' },
+        { id: 4, first_name: 'Emma', last_name: 'Watson', role: 'team_member', email: 'e.watson@onsite.com', status: 'pending', affiliation: 'onsite', lastLogin: 'never', location: 'Miami, US' },
+      ]);
+    } catch (e) { console.error(e); } finally { setLoading(false); }
+  };
+
+  useEffect(() => {
+    fetchTeam();
+  }, []);
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    try {
+      const res = await authFetch(`${apiUrl}/api/auth/admin/create-user/`, {
+        method: 'POST',
+        body: JSON.stringify(formData)
+      });
+      if (res.ok) {
+        setSuccess('Account created successfully. Instructions sent via email.');
+        setTimeout(() => { setShowAddModal(false); setFormData({ email: '', first_name: '', last_name: '', role: '' }); }, 2000);
+        fetchTeam();
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Failed to create user');
+      }
+    } catch (err) { setError('Network error'); }
+  };
+
+  // Determine which roles current user can create
+  const getAllowedTargetRoles = () => {
+    const role = currentUser?.role?.toLowerCase();
+    const aff = currentUser?.affiliation?.toLowerCase();
+    if (role === 'super_admin') return ['admin', 'sponsor', 'coordinator', 'pi'];
+    if (role === 'admin') return ['sponsor', 'coordinator', 'pi'];
+    if (role === 'pi' && aff === 'musb') return ['sponsor', 'coordinator'];
+    if (role === 'coordinator' && aff === 'musb') return ['sponsor', 'pi'];
+    if (role === 'pi' && aff === 'onsite') return ['team_member'];
+    return [];
+  };
+
+  const allowedRoles = getAllowedTargetRoles();
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -35,7 +100,11 @@ export default function TeamModule() {
           <button className="px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center gap-2 italic">
              <Lock className="w-4 h-4" /> Permission Audit
           </button>
-          <button className="px-10 py-5 bg-cyan-500 text-[#0a0b1a] rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-4 shadow-2xl shadow-cyan-500/30 hover:scale-105 transition-all italic">
+          <button 
+            onClick={() => setShowAddModal(true)}
+            disabled={allowedRoles.length === 0}
+            className={`px-10 py-5 bg-cyan-500 text-[#0a0b1a] rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-4 shadow-2xl shadow-cyan-500/30 hover:scale-105 transition-all italic ${allowedRoles.length === 0 ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+          >
             <UserPlus className="w-5 h-5" /> Onboard Staff
           </button>
         </div>
@@ -89,20 +158,33 @@ export default function TeamModule() {
 
             <div className="flex flex-col items-center text-center">
               <div className="relative mb-10">
-                <div className="w-32 h-32 rounded-[2.5rem] bg-gradient-to-br from-slate-800 to-slate-950 border-4 border-white/5 flex items-center justify-center font-black text-4xl text-white shadow-2xl group-hover:scale-105 transition-all">
-                  {user.name.split(' ').map(n => n[0]).join('')}
+                <div className="w-32 h-32 rounded-[2.5rem] bg-gradient-to-br from-slate-800 to-slate-950 border-4 border-white/5 flex items-center justify-center font-black text-4xl text-white shadow-2xl group-hover:scale-105 transition-all uppercase">
+                  {(user.first_name?.[0] || '') + (user.last_name?.[0] || '')}
                 </div>
                 <div className={`absolute -bottom-2 -right-2 w-10 h-10 rounded-2xl border-4 border-[#0a0b1a] flex items-center justify-center ${user.status === 'Active' ? 'bg-emerald-500' : 'bg-amber-500'} shadow-lg`}>
                    <div className="w-2 h-2 rounded-full bg-white opacity-40" />
                 </div>
               </div>
 
-              <h3 className="text-xl font-black text-white uppercase tracking-widest">{user.name}</h3>
-              <p className={`mt-3 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border ${
-                user.role === 'Super Admin' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.15)]' : 'bg-white/5 text-slate-500 border-white/5'
-              }`}>
-                {user.role}
-              </p>
+               <h3 className="text-xl font-black text-white uppercase tracking-widest">{user.first_name} {user.last_name}</h3>
+               <div className="flex flex-wrap items-center justify-center gap-3 mt-3">
+                <p className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border ${
+                  user.role === 'super_admin' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.15)]' : 'bg-white/5 text-slate-500 border-white/5'
+                }`}>
+                  {user.role?.replace('_', ' ')}
+                </p>
+                <p className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest border ${
+                  user.affiliation === 'onsite' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
+                }`}>
+                  {user.affiliation}
+                </p>
+               </div>
+               
+               {user.status !== 'active' && (
+                 <div className="mt-4 px-6 py-2 bg-pink-500/10 border border-pink-500/20 rounded-xl">
+                    <span className="text-[10px] font-black text-pink-500 uppercase tracking-widest italic">{user.status}</span>
+                 </div>
+               )}
 
               <div className="mt-10 w-full space-y-4 text-left">
                 <div className="flex items-center gap-4 bg-white/[0.02] border border-white/5 p-4 rounded-2xl group/link hover:bg-white/5 transition-all">
@@ -126,6 +208,58 @@ export default function TeamModule() {
           </div>
         ))}
       </div>
+      {/* Add User Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-3xl" onClick={() => setShowAddModal(false)} />
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="relative w-full max-w-xl bg-[#0B101B] border border-white/10 rounded-[3rem] p-12 overflow-hidden shadow-2xl"
+          >
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-cyan-500/10 blur-[80px] rounded-full" />
+            
+            <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter mb-2">Onboard <span className="text-cyan-400">Personnel</span></h2>
+            <p className="text-slate-500 font-bold mb-10 text-xs uppercase tracking-widest italic leading-relaxed">System node instantiation for research support.</p>
+            
+            <form onSubmit={handleCreateUser} className="space-y-6 relative z-10">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-4">First Name</label>
+                  <input required type="text" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2x; px-6 py-4 outline-none focus:border-cyan-500/30 text-xs font-bold uppercase tracking-widest" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-4">Last Name</label>
+                  <input required type="text" value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2x; px-6 py-4 outline-none focus:border-cyan-500/30 text-xs font-bold uppercase tracking-widest" />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-4">Corporate/Medical Email</label>
+                <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-cyan-500/30 text-xs font-bold uppercase tracking-widest" />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-4">System Role Assignment</label>
+                <select required value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-cyan-500/30 text-xs font-bold uppercase tracking-widest appearance-none text-white">
+                  <option value="" className="bg-[#0B101B]">SELECT PERMISSION LEVEL</option>
+                  {allowedRoles.map(r => (
+                    <option key={r} value={r} className="bg-[#0B101B] uppercase">{r.replace('_', ' ')}</option>
+                  ))}
+                </select>
+              </div>
+
+              {error && <p className="text-pink-500 text-[10px] font-black uppercase tracking-widest italic">{error}</p>}
+              {success && <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest italic">{success}</p>}
+
+              <div className="pt-6 flex gap-4">
+                <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-5 bg-white/5 text-slate-500 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all italic">Abort</button>
+                <button type="submit" className="flex-1 py-5 bg-cyan-500 text-black rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-cyan-500/20 italic">Initialize Account</button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

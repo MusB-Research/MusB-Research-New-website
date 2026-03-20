@@ -39,6 +39,7 @@ function AppContent() {
             <Layout>
                 <Routes>
                     <Route path="/" element={<Home />} />
+                    <Route path="/home" element={<Home />} />
                     <Route path="/about" element={<About />} />
                     <Route path="/why-choose-us" element={<WhyChooseUs />} />
                     <Route path="/team" element={<Team />} />
@@ -62,6 +63,7 @@ function AppContent() {
                     <Route path="/dashboard/super-admin" element={<SuperAdminDashboard />} />
                     <Route path="/dashboard/admin" element={<AdminDashboard />} />
                     <Route path="/dashboard/pi" element={<PIDashboard />} />
+                    <Route path="/dashboard/sponsor" element={<SponsorDashboard />} />
                     <Route path="/auth/reset-forced" element={<ResetForced />} />
                     <Route path="/auth/profile-setup" element={<ProfileSetup />} />
                 </Routes>

@@ -34,7 +34,7 @@ import {
     X,
     ChevronDown
 } from 'lucide-react';
-import { clearToken, getToken, getUser, authFetch } from '../utils/auth';
+import { clearToken, getToken, getUser, authFetch, getRole } from '../utils/auth';
 import InquireStudyModal from '../components/InquireStudyModal';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
 
@@ -118,7 +118,7 @@ export default function SponsorDashboard() {
     const [isInquireModalOpen, setIsInquireModalOpen] = useState(false);
     const [isTabDropdownOpen, setIsTabDropdownOpen] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-    const [inviteForm, setInviteForm] = useState({ email: '', role: 'MANAGER', scope: 'ALL' });
+    const [inviteForm, setInviteForm] = useState({ email: '', role: 'MANAGER', scope: 'ALL', study_ids: [] as string[] });
     
     // API Data State
     const [studies, setStudies] = useState<any[]>([]);
@@ -131,7 +131,7 @@ export default function SponsorDashboard() {
 
     useEffect(() => {
         const user = localStorage.getItem('user') || sessionStorage.getItem('user');
-        const role = localStorage.getItem('role') || sessionStorage.getItem('role');
+        const role = getRole();
         
         if (!user || role !== 'SPONSOR') {
             console.warn("Unauthorized access to Sponsor Dashboard. Redirecting...");
@@ -193,7 +193,7 @@ export default function SponsorDashboard() {
             });
             if (res.ok) {
                 setIsInviteModalOpen(false);
-                setInviteForm({ email: '', role: 'MANAGER', scope: 'ALL' });
+                setInviteForm({ email: '', role: 'MANAGER', scope: 'ALL', study_ids: [] });
                 // Optionally show success toast
             }
         } catch (e) {
@@ -322,7 +322,7 @@ export default function SponsorDashboard() {
                         <button
                             key={item.id}
                             onClick={() => {
-                                if (item.id === 'WEBSITE') navigate('/home');
+                                if (item.id === 'WEBSITE') navigate('/');
                                 else {
                                     setActiveModule(item.id as SponsorModule);
                                     if (window.innerWidth < 1024) setIsSidebarOpen(false);
@@ -944,7 +944,7 @@ export default function SponsorDashboard() {
                                                     <label className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Primary Scope</label>
                                                     <select 
                                                         value={inviteForm.scope}
-                                                        onChange={(e) => setInviteForm({...inviteForm, scope: e.target.value})}
+                                                        onChange={(e) => setInviteForm({...inviteForm, scope: e.target.value, study_ids: []})}
                                                         className="w-full bg-slate-900/50 border border-white/5 rounded-xl sm:rounded-2xl p-4 sm:p-5 text-sm text-white focus:border-blue-500/50 transition-all outline-none appearance-none"
                                                     >
                                                         <option value="ALL">All Active Protocols</option>
@@ -952,6 +952,47 @@ export default function SponsorDashboard() {
                                                     </select>
                                                 </div>
                                             </div>
+
+                                            {/* Specific Study Selection for Sequestration Logic */}
+                                            {inviteForm.scope === 'SPECIFIC' && (
+                                                <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                                                    <label className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Protocol Selection (Required)</label>
+                                                    <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                                                        {studies.map(study => (
+                                                            <div 
+                                                                key={study.protocol_id}
+                                                                onClick={() => {
+                                                                    const ids = [...inviteForm.study_ids];
+                                                                    if (ids.includes(study.protocol_id)) {
+                                                                        setInviteForm({...inviteForm, study_ids: ids.filter(id => id !== study.protocol_id)});
+                                                                    } else {
+                                                                        setInviteForm({...inviteForm, study_ids: [...ids, study.protocol_id]});
+                                                                    }
+                                                                }}
+                                                                className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between group ${
+                                                                    inviteForm.study_ids.includes(study.protocol_id) 
+                                                                    ? 'bg-blue-500/10 border-blue-500/30' 
+                                                                    : 'bg-white/5 border-white/5 hover:border-white/10'
+                                                                }`}
+                                                            >
+                                                                <div className="flex flex-col">
+                                                                    <span className={`text-[11px] font-black uppercase italic ${inviteForm.study_ids.includes(study.protocol_id) ? 'text-blue-400' : 'text-slate-300'}`}>
+                                                                        {study.title}
+                                                                    </span>
+                                                                    <span className="text-[8px] text-slate-600 font-bold uppercase tracking-widest mt-0.5">#{study.protocol_id}</span>
+                                                                </div>
+                                                                <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
+                                                                    inviteForm.study_ids.includes(study.protocol_id) 
+                                                                    ? 'bg-blue-500 border-blue-500' 
+                                                                    : 'border-white/20'
+                                                                }`}>
+                                                                    {inviteForm.study_ids.includes(study.protocol_id) && <CheckCircle2 className="w-3 h-3 text-[#05080f]" />}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <button 

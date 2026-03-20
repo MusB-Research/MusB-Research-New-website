@@ -193,10 +193,14 @@ export default function SignIn() {
         setError(null);
         try {
             console.log("Google response received, verifying with backend...");
+            const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/google-login/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ credential: response.credential }),
+                body: JSON.stringify({ 
+                    credential: response.credential,
+                    timezone: detectedTimezone 
+                }),
                 credentials: 'include'
             });
             const data = await res.json();
@@ -331,10 +335,11 @@ export default function SignIn() {
         setIsLoading(true);
         setError(null);
         try {
+            const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ email, password, timezone: detectedTimezone }),
                 credentials: 'include'
             });
 
@@ -449,24 +454,26 @@ export default function SignIn() {
                                 <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain" />
                             </motion.div>
                         </Link>
-                        <div className="text-center space-y-2">
+                        <div className="text-center space-y-4">
                             <AnimatePresence mode="wait">
                                 <motion.h1
                                     key={mode}
                                     initial={{ opacity: 0, y: -10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: 10 }}
-                                    className="text-4xl md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none"
+                                    className="text-5xl md:text-7xl font-black text-white italic uppercase tracking-tighter leading-[0.85] flex flex-col items-center"
                                 >
-                                    {mode === 'LOGIN' ? 'Welcome ' : 'Start '}<span className="text-cyan-400">{mode === 'LOGIN' ? 'Back' : 'Journey'}</span>
+                                    <span>{mode === 'LOGIN' ? 'Welcome' : 'Start'}</span>
+                                    <span className="text-cyan-400">{mode === 'LOGIN' ? 'Back' : 'Journey'}</span>
                                 </motion.h1>
                             </AnimatePresence>
-                            <p className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center justify-center gap-2">
-                                <span className="w-1 h-1 rounded-full bg-cyan-500/50"></span>
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center justify-center gap-3">
+                                <span className="w-1.5 h-[1px] bg-cyan-500/30"></span>
                                 {mode === 'LOGIN' ? 'Enter your credentials to continue' : 'Participant Enrollment'}
-                                <span className="w-1 h-1 rounded-full bg-cyan-500/50"></span>
+                                <span className="w-1.5 h-[1px] bg-cyan-500/30"></span>
                             </p>
                         </div>
+
                     </div>
 
                     {/* Step Progress Bar (Only for Register flow) */}
@@ -613,37 +620,40 @@ export default function SignIn() {
                                     onSubmit={handleLogin}
                                     className="space-y-6"
                                 >
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-6">Email Address</label>
-                                        <div className="relative group">
-                                            <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
-                                            <input
-                                                type="email"
-                                                required
-                                                placeholder="name@example.com"
-                                                value={email}
-                                                onChange={e => setEmail(e.target.value)}
-                                                className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-6 py-5 text-white placeholder:text-slate-700 outline-none transition-all font-bold text-sm ${isFieldMissing('email') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
-                                            />
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Email Address</label>
+                                            <div className="relative group">
+                                                <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
+                                                <input
+                                                    type="email"
+                                                    required
+                                                    placeholder="name@example.com"
+                                                    value={email}
+                                                    onChange={e => setEmail(e.target.value)}
+                                                    className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-6 py-5 text-white placeholder:text-slate-700 outline-none transition-all font-bold text-sm ${isFieldMissing('email') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
+                                                />
+                                            </div>
+                                        </div>
+ 
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Password</label>
+                                            <div className="relative group">
+                                                <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
+                                                <input
+                                                    type="password"
+                                                    required
+                                                    placeholder="••••••••••••"
+                                                    value={password}
+                                                    onChange={e => setPassword(e.target.value)}
+                                                    className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-6 py-5 text-white placeholder:text-slate-800 outline-none transition-all font-bold text-sm tracking-widest ${isFieldMissing('password') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-6">Password</label>
-                                        <div className="relative group">
-                                            <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
-                                            <input
-                                                type="password"
-                                                required
-                                                placeholder="••••••••••••"
-                                                value={password}
-                                                onChange={e => setPassword(e.target.value)}
-                                                className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-6 py-5 text-white placeholder:text-slate-800 outline-none transition-all font-bold text-sm tracking-widest ${isFieldMissing('password') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
-                                            />
-                                        </div>
-                                    </div>
 
-                                    <div className="flex justify-end pr-4">
+                                    <div className="flex justify-end px-2">
                                         <button
                                             type="button"
                                             onClick={() => { setMode('FORGOT'); setStep('INFO'); setError(null); }}
@@ -652,6 +662,7 @@ export default function SignIn() {
                                             Forgot Password?
                                         </button>
                                     </div>
+
 
                                     <button
                                         type="submit"

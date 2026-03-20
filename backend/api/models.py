@@ -33,15 +33,27 @@ class Study(BaseMongoModel):
     ]
 
     STATUS_CHOICES = [
-        ('RECRUITING', 'Recruiting'),
+        ('DRAFT', 'Draft'),
+        ('PROPOSAL_SUBMITTED', 'Proposal Submitted'),
+        ('PROPOSAL_UNDER_NEGOTIATION', 'Proposal Under Negotiation'),
+        ('AGREEMENT_SIGNED', 'Agreement Signed'),
+        ('IRB_PROTOCOL_INITIATED', 'IRB Protocol Initiated'),
+        ('UNDER_IRB_SUBMISSION', 'Under IRB Submission / Development'),
+        ('IRB_APPROVED', 'IRB Approved'),
+        ('PREPARING_TO_LAUNCH', 'Preparing to Launch'),
         ('ACTIVE', 'Active'),
-        ('UPCOMING', 'Upcoming'),
-        ('PAUSED', 'Paused'),
+        ('RECRUITING', 'Recruiting'),
+        ('RECRUITMENT_COMPLETED', 'Recruitment Completed'),
+        ('ANALYSIS_UNDERWAY', 'Analysis Underway'),
+        ('PROGRESS_REPORT_DRAFT', 'Progress Report Draft Created'),
+        ('FINAL_REPORT_SENT', 'Project Report Sent to Sponsor'),
         ('COMPLETED', 'Completed'),
-        ('ARCHIVED', 'Archived'),
+        ('PAUSED', 'Paused'),
+        ('CLOSED_ARCHIVED', 'Closed / Archived'),
     ]
 
     title = models.CharField(max_length=255)
+    full_title = models.TextField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     protocol_id = models.CharField(max_length=100, unique=True, null=True, blank=True, verbose_name="Protocol ID / Internal ID")
     sponsor_name = models.CharField(max_length=255)
@@ -53,12 +65,20 @@ class Study(BaseMongoModel):
     coordinator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='coordinator_studies')
     sponsor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='sponsor_studies')
     
-    # Workflow approval status
-    approval_status = models.CharField(max_length=20, choices=[
+    APPROVAL_STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected')
-    ], default='pending')
+    ]
+    approval_status = models.CharField(max_length=20, choices=APPROVAL_STATUS_CHOICES, default='pending')
+    
+    # Sponsor & Agreement Tracking
+    proposal_source = models.CharField(max_length=20, choices=[('ONLINE', 'Online'), ('OFFLINE', 'Offline')], default='OFFLINE')
+    proposal_submitted_date = models.DateField(null=True, blank=True)
+    agreement_signed_date = models.DateField(null=True, blank=True)
+    contract_status = models.CharField(max_length=50, blank=True)
+    sponsor_contact_name = models.CharField(max_length=255, blank=True)
+    sponsor_contact_email = models.EmailField(blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='created_studies')
     
     primary_indication = models.CharField(max_length=255, blank=True)
@@ -169,7 +189,7 @@ class StudyAssignment(BaseMongoModel):
     ])
     date_assigned = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
+    class Meta(BaseMongoModel.Meta):
         unique_together = ('study', 'user', 'role')
 
 class Document(BaseMongoModel):
@@ -323,7 +343,7 @@ class FormResponse(BaseMongoModel):
     is_complete = models.BooleanField(default=False)
     submitted_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
+    class Meta(BaseMongoModel.Meta):
         ordering = ['-submitted_at']
 
 class Task(BaseMongoModel):
@@ -373,7 +393,7 @@ class ParticipantTask(BaseMongoModel):
     # Store dynamic state for multi-step tasks if needed
     current_data = models.JSONField(default=dict, blank=True)
 
-    class Meta:
+    class Meta(BaseMongoModel.Meta):
         ordering = ['due_date']
 
     def __str__(self):
@@ -488,7 +508,7 @@ class PermissionMatrix(BaseMongoModel):
     capability = models.CharField(max_length=100) # e.g., 'EDIT_STUDY_STATUS', 'CREATE_FORM'
     is_allowed = models.BooleanField(default=False)
 
-    class Meta:
+    class Meta(BaseMongoModel.Meta):
         unique_together = ('role', 'capability')
 
 class News(BaseMongoModel):
@@ -523,3 +543,56 @@ class Event(BaseMongoModel):
 
     def __str__(self):
         return f"{self.title} - {self.event_date.strftime('%Y-%m-%d')}"
+
+class Partnership(BaseMongoModel):
+    name = models.CharField(max_length=255)
+    description = models.TextField()
+    logo = models.ImageField(upload_to='partnership_logos/', max_length=1024, blank=True, null=True)
+    link = models.URLField(blank=True, null=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='authored_partnerships')
+    status = models.CharField(max_length=20, choices=[
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected')
+    ], default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.status})"
+
+class Publication(BaseMongoModel):
+    title = models.CharField(max_length=255)
+    authors = models.TextField()
+    journal = models.CharField(max_length=255)
+    publication_date = models.DateField()
+    link = models.URLField(blank=True, null=True)
+    abstract = models.TextField(blank=True, null=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='authored_publications')
+    status = models.CharField(max_length=20, choices=[
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected')
+    ], default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.title} ({self.status})"
+
+class EducationMaterial(BaseMongoModel):
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    category = models.CharField(max_length=100, blank=True)
+    file = models.FileField(upload_to='education_materials/', blank=True, null=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='authored_education')
+    status = models.CharField(max_length=20, choices=[
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected')
+    ], default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.title} ({self.status})"

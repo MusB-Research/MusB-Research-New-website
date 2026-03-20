@@ -79,9 +79,15 @@ def login_view(request):
         AuditLog.log('LOGIN_FAILED', user_email=email, request=request, detail='Invalid credentials')
         return Response({'error': 'Invalid email or password'}, status=status.HTTP_401_UNAUTHORIZED)
 
-    if user.is_active is False:
-        AuditLog.log('LOGIN_FAILED', user_email=email, request=request, detail='Account deactivated')
-        return Response({'error': 'Account deactivated. Contact support.'}, status=status.HTTP_403_FORBIDDEN)
+    # Role-Based Status Check
+    status_val = getattr(user, 'status', 'active')
+    if user.is_active is False or status_val == 'rejected':
+        AuditLog.log('LOGIN_FAILED', user_email=email, request=request, detail='Account rejected/deactivated')
+        return Response({'error': 'Your account has been rejected. Contact support.' if status_val == 'rejected' else 'Account deactivated. Contact support.'}, status=status.HTTP_403_FORBIDDEN)
+    
+    if status_val == 'pending':
+        AuditLog.log('LOGIN_FAILED', user_email=email, request=request, detail='Account pending approval')
+        return Response({'error': 'Your account is pending Super Admin approval.'}, status=status.HTTP_403_FORBIDDEN)
 
     try:
         access_token           = generate_access_token(user)
@@ -101,7 +107,15 @@ def login_view(request):
     )
 
     user.last_login = now()
-    user.save(update_fields=['last_login'])
+    
+    # Auto-detect and update timezone if provided by frontend
+    client_timezone = request.data.get('timezone')
+    update_fields = ['last_login']
+    if client_timezone and user.timezone != client_timezone:
+        user.timezone = client_timezone
+        update_fields.append('timezone')
+        
+    user.save(update_fields=update_fields)
 
     AuditLog.log('LOGIN_SUCCESS', user_email=user.email, request=request)
 
@@ -111,8 +125,12 @@ def login_view(request):
         'user': {
             'email':        user.email,
             'full_name':    user.decrypted_name,
+            'first_name':   decrypt_data(user.first_name) if user.first_name else '',
+            'last_name':    decrypt_data(user.last_name) if user.last_name else '',
             'organization': user.decrypted_organization,
             'role':         user.role,
+            'affiliation':  getattr(user, 'affiliation', 'musb'),
+            'status':       getattr(user, 'status', 'active'),
             'picture':      user.profile_picture or '',
             'must_reset':   user.must_change_password,
             'profile_incomplete': not user.profile_completed,
@@ -242,7 +260,16 @@ def google_login(request):
         )
         
         needs_save = False
-        if not user.full_name or user.full_name == 'Google User' or '@' in user.full_name:
+        # Ensure we have a human-readable name. If current is encrypted but un-decryptable, overwrite it.
+        is_broken_encryption = False
+        if user.full_name and user.full_name.startswith('gAAAA'):
+            try:
+                # If this doesn't raise, the name is fine
+                user.decrypted_name
+            except Exception:
+                is_broken_encryption = True
+
+        if not user.full_name or user.full_name == 'Google User' or '@' in user.full_name or is_broken_encryption:
             user.full_name = full_name
             needs_save = True
             
@@ -268,7 +295,16 @@ def google_login(request):
         )
 
         user.last_login = now()
-        user.save(update_fields=['last_login'])
+        
+        # Auto-detect and update timezone if provided by frontend
+        client_timezone = request.data.get('timezone')
+        update_fields = ['last_login']
+        
+        if client_timezone and user.timezone != client_timezone:
+            user.timezone = client_timezone
+            update_fields.append('timezone')
+            
+        user.save(update_fields=update_fields)
 
         AuditLog.log('GOOGLE_LOGIN', user_email=user.email, request=request)
 

@@ -176,13 +176,13 @@ export default function ScreenerBuilder() {
                 <button 
                   key={ft.type}
                   onClick={() => addField(ft.type as any)}
-                  className="w-full flex items-center justify-between p-6 bg-white/[0.02] border border-white/5 rounded-[1.5rem] hover:bg-pink-500/10 hover:border-pink-500/30 transition-all group"
+                  className="w-full flex items-center justify-between p-5 bg-white/[0.02] border border-white/5 rounded-2xl hover:bg-pink-500/10 hover:border-pink-500/30 transition-all group"
                 >
-                  <div className="flex items-center gap-6">
-                    <div className="w-10 h-10 bg-slate-900 border border-white/5 rounded-xl flex items-center justify-center text-slate-500 group-hover:text-pink-400 group-hover:scale-110 transition-all">
+                  <div className="flex items-center gap-5">
+                    <div className="w-12 h-12 bg-slate-900 border border-white/5 rounded-xl flex items-center justify-center text-slate-500 group-hover:text-pink-400 group-hover:scale-110 transition-all">
                       <ft.icon className="w-5 h-5" />
                     </div>
-                    <span className="text-xs font-black text-slate-300 uppercase tracking-[0.2em] group-hover:text-pink-400 transition-colors">{ft.label}</span>
+                    <span className="text-[11px] font-black text-slate-300 uppercase tracking-[0.2em] group-hover:text-pink-400 transition-colors">{ft.label}</span>
                   </div>
                   <Plus className="w-5 h-5 text-slate-600 group-hover:text-pink-400 transform group-hover:rotate-90 transition-all" />
                 </button>
@@ -223,7 +223,7 @@ export default function ScreenerBuilder() {
                   </div>
 
                   <div className="flex-1 space-y-10">
-                    <div className="flex flex-col xl:flex-row gap-8">
+                    <div className="flex flex-col xl:flex-row gap-8 items-start xl:items-center">
                       <input 
                         type="text" 
                         value={field.label}
@@ -232,11 +232,11 @@ export default function ScreenerBuilder() {
                           nf[idx].label = e.target.value;
                           setFields(nf);
                         }}
-                        className="flex-1 bg-transparent border-b-2 border-dashed border-white/10 text-white font-black text-2xl outline-none focus:border-pink-500 px-4 py-3 placeholder:text-slate-800 transition-all"
+                        className="flex-1 bg-transparent border-b-2 border-dashed border-white/10 text-white font-black text-2xl outline-none focus:border-pink-500 px-2 py-4 placeholder:text-slate-800 transition-all"
                         placeholder="Enter your question prompt here..."
                       />
-                      <div className="flex items-center gap-6 bg-[#0a0b1a] px-8 py-4 rounded-2xl border border-white/5 self-start shadow-inner">
-                        <label className="text-sm font-black uppercase text-slate-400 tracking-[0.2em] flex items-center gap-4 cursor-pointer hover:text-white transition-colors">
+                      <div className="flex items-center gap-4 bg-[#0a0b1a] px-6 py-3 rounded-xl border border-white/5 shadow-inner">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] flex items-center gap-3 cursor-pointer hover:text-white transition-colors">
                           <input 
                             type="checkbox" 
                             checked={field.required}
@@ -245,7 +245,7 @@ export default function ScreenerBuilder() {
                               nf[idx].required = e.target.checked;
                               setFields(nf);
                             }}
-                            className="w-5 h-5 accent-pink-500 rounded-md" 
+                            className="w-4 h-4 accent-pink-500 rounded cursor-pointer" 
                           />
                           Mandatory
                         </label>
@@ -255,10 +255,10 @@ export default function ScreenerBuilder() {
                     {(field.type === 'choice' || field.type === 'dropdown') && field.options && (
                       <div className="pl-10 space-y-6 border-l-2 border-white/5">
                         <p className="text-[10px] font-black uppercase text-slate-600 tracking-[0.3em]">Configure Options</p>
-                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
                           {field.options.map((option, oIdx) => (
-                            <div key={oIdx} className="flex gap-6 items-center group/opt">
-                              <span className="w-6 h-6 rounded-lg border-2 border-white/10 group-hover:border-pink-500/30 transition-colors"></span>
+                            <div key={oIdx} className="flex gap-4 items-center group/opt relative">
+                              <span className="w-5 h-5 flex-shrink-0 rounded-lg border-2 border-white/10 group-hover:border-pink-500/30 transition-colors"></span>
                               <input 
                                 type="text" 
                                 value={option}
@@ -269,7 +269,7 @@ export default function ScreenerBuilder() {
                                   nf[idx].options = opts;
                                   setFields(nf);
                                 }}
-                                className="bg-transparent border-b border-white/10 text-slate-200 outline-none focus:border-pink-500 w-full xl:w-[600px] px-4 py-3 text-lg font-bold transition-all"
+                                className="bg-transparent border-b border-white/10 text-slate-200 outline-none focus:border-pink-500 flex-1 px-4 py-3 text-lg font-bold transition-all"
                               />
                               <button 
                                 onClick={() => {
@@ -277,7 +277,7 @@ export default function ScreenerBuilder() {
                                   nf[idx].options = nf[idx].options?.filter((_, i) => i !== oIdx);
                                   setFields(nf);
                                 }}
-                                className="opacity-0 group-hover/opt:opacity-100 p-2 text-slate-700 hover:text-red-500 transition-colors"
+                                className="opacity-0 group-hover/opt:opacity-100 p-2 text-slate-700 hover:text-red-500 transition-colors absolute -right-10"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>

@@ -1,19 +1,28 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Image as ImageIcon, Sparkles, Megaphone, Calendar, Briefcase, Loader2, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Send, Image as ImageIcon, Sparkles, Megaphone, Calendar, Briefcase, Loader2, ShieldCheck, CheckCircle2, FileText } from 'lucide-react';
 import { authFetch } from '../../utils/auth';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export default function SubmitContentForms({ userRole }: { userRole: string }) {
     const [submitting, setSubmitting] = useState(false);
-    const [activeForm, setActiveForm] = useState<'news' | 'event'>('news');
+    const [activeForm, setActiveForm] = useState<'news' | 'event' | 'partnership' | 'publication' | 'education'>('news');
     const [formData, setFormData] = useState({
         title: '',
         description: '', // or content
         image: null as File | null,
         is_success_story: false,
         event_date: '',
+        // New fields
+        name: '',
+        link: '',
+        authors: '',
+        journal: '',
+        publication_date: '',
+        abstract: '',
+        category: '',
+        file: null as File | null,
     });
 
     const isSuperAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(userRole);
@@ -24,23 +33,42 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
         
         try {
             const body = new FormData();
-            body.append('title', formData.title);
             body.append('status', isSuperAdmin ? 'approved' : 'pending');
 
             if (activeForm === 'news') {
+                body.append('title', formData.title);
                 body.append('content', formData.description);
-                if (formData.image) {
-                    body.append('image', formData.image);
-                }
+                if (formData.image) body.append('image', formData.image);
                 body.append('is_success_story', String(formData.is_success_story));
             } else if (activeForm === 'event') {
+                body.append('title', formData.title);
                 body.append('description', formData.description);
                 body.append('event_date', new Date(formData.event_date).toISOString());
+            } else if (activeForm === 'partnership') {
+                body.append('name', formData.title || formData.name);
+                body.append('description', formData.description);
+                if (formData.link) body.append('link', formData.link);
+                if (formData.image) body.append('logo', formData.image);
+            } else if (activeForm === 'publication') {
+                body.append('title', formData.title);
+                body.append('authors', formData.authors);
+                body.append('journal', formData.journal);
+                body.append('publication_date', formData.publication_date);
+                if (formData.link) body.append('link', formData.link);
+                if (formData.abstract) body.append('abstract', formData.abstract);
+            } else if (activeForm === 'education') {
+                body.append('title', formData.title);
+                body.append('content', formData.description);
+                body.append('category', formData.category);
+                if (formData.file) body.append('file', formData.file);
             }
 
             const endpointMap: Record<string, string> = {
                 'news': 'news',
-                'event': 'events'
+                'event': 'events',
+                'partnership': 'partnerships',
+                'publication': 'publications',
+                'education': 'education'
             };
 
             const res = await authFetch(`${API_URL}/api/${endpointMap[activeForm]}/`, {
@@ -51,7 +79,9 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
             if (res.ok) {
                 alert(`System synchronized! ${isSuperAdmin ? 'Content is now live in global clusters.' : 'Submission buffered for moderator review.'}`);
                 setFormData({
-                    title: '', description: '', image: null, is_success_story: false, event_date: ''
+                    title: '', description: '', image: null, is_success_story: false, event_date: '',
+                    name: '', link: '', authors: '', journal: '', publication_date: '', abstract: '',
+                    category: '', file: null
                 });
             } else {
                 let errMsg = `Server returned status ${res.status}`;
@@ -76,7 +106,9 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
         switch(type) {
             case 'news': return <Megaphone className="w-4 h-4" />;
             case 'event': return <Calendar className="w-4 h-4" />;
-            case 'study': return <Briefcase className="w-4 h-4" />;
+            case 'partnership': return <Briefcase className="w-4 h-4" />;
+            case 'publication': return <FileText className="w-4 h-4" />;
+            case 'education': return <Sparkles className="w-4 h-4" />;
             default: return <Sparkles className="w-4 h-4" />;
         }
     };
@@ -113,7 +145,7 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
             <div className="bg-[#0f1133] border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl bg-gradient-to-br from-[#0f1133] to-[#0a0b1a]">
                 {/* Form Tabs */}
                 <div className="p-2 border-b border-white/5 bg-white/[0.02] flex flex-wrap gap-2">
-                    {['news', 'event'].map((type) => (
+                    {['news', 'event', 'partnership', 'publication', 'education'].map((type) => (
                         <button
                             key={type}
                             type="button"
@@ -177,9 +209,9 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
                                     </div>
                                 )}
 
-                                {activeForm === 'news' && (
+                                {(activeForm === 'news' || activeForm === 'partnership') && (
                                     <div className="col-span-1 space-y-4">
-                                        <label className="text-xs font-black text-indigo-400 uppercase tracking-widest italic">Visual Media Asset (Upload)</label>
+                                        <label className="text-xs font-black text-indigo-400 uppercase tracking-widest italic">{activeForm === 'partnership' ? 'Corporate Logo / Asset' : 'Visual Media Asset (Upload)'}</label>
                                         <label className="relative flex flex-col items-center justify-center w-full h-40 bg-white/5 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-indigo-500/50 transition-all group">
                                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                                 <ImageIcon className="w-10 h-10 mb-3 text-slate-500 group-hover:text-indigo-400 transition-colors" />
@@ -198,6 +230,101 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
                                             />
                                         </label>
                                     </div>
+                                )}
+
+                                {activeForm === 'partnership' && (
+                                    <div className="col-span-1 space-y-4">
+                                        <label className="text-xs font-black text-cyan-400 uppercase tracking-widest italic">External Link (Optional)</label>
+                                        <input
+                                            type="url"
+                                            value={formData.link}
+                                            onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-8 py-6 text-lg text-white font-black outline-none focus:border-cyan-500/50"
+                                            placeholder="https://partner-website.com"
+                                        />
+                                    </div>
+                                )}
+
+                                {activeForm === 'publication' && (
+                                    <>
+                                        <div className="col-span-1 space-y-4">
+                                            <label className="text-xs font-black text-emerald-400 uppercase tracking-widest italic">Primary Authors</label>
+                                            <input
+                                                required
+                                                type="text"
+                                                value={formData.authors}
+                                                onChange={(e) => setFormData({ ...formData, authors: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-8 py-6 text-lg text-white font-black outline-none focus:border-emerald-500/50"
+                                                placeholder="e.g., Dr. Smith, J. Doe"
+                                            />
+                                        </div>
+                                        <div className="col-span-1 space-y-4">
+                                            <label className="text-xs font-black text-emerald-400 uppercase tracking-widest italic">Scientific Journal/Outlet</label>
+                                            <input
+                                                required
+                                                type="text"
+                                                value={formData.journal}
+                                                onChange={(e) => setFormData({ ...formData, journal: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-8 py-6 text-lg text-white font-black outline-none focus:border-emerald-500/50"
+                                                placeholder="e.g., Nature Medicine"
+                                            />
+                                        </div>
+                                        <div className="col-span-1 space-y-4">
+                                            <label className="text-xs font-black text-emerald-400 uppercase tracking-widest italic">Publication Date</label>
+                                            <input
+                                                required
+                                                type="date"
+                                                value={formData.publication_date}
+                                                onChange={(e) => setFormData({ ...formData, publication_date: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-8 py-6 text-lg text-white font-black outline-none focus:border-emerald-500/50"
+                                            />
+                                        </div>
+                                        <div className="col-span-1 space-y-4">
+                                            <label className="text-xs font-black text-emerald-400 uppercase tracking-widest italic">DOI / Article Link</label>
+                                            <input
+                                                type="url"
+                                                value={formData.link}
+                                                onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-8 py-6 text-lg text-white font-black outline-none focus:border-emerald-500/50"
+                                                placeholder="https://doi.org/..."
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
+                                {activeForm === 'education' && (
+                                    <>
+                                        <div className="col-span-1 space-y-4">
+                                            <label className="text-xs font-black text-purple-400 uppercase tracking-widest italic">Resource Category</label>
+                                            <input
+                                                required
+                                                type="text"
+                                                value={formData.category}
+                                                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-8 py-6 text-lg text-white font-black outline-none focus:border-purple-500/50"
+                                                placeholder="e.g., Patient Guide, Methodology"
+                                            />
+                                        </div>
+                                        <div className="col-span-1 space-y-4">
+                                            <label className="text-xs font-black text-purple-400 uppercase tracking-widest italic">Digital Asset (PDF/Doc)</label>
+                                            <label className="relative flex flex-col items-center justify-center w-full h-40 bg-white/5 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-purple-500/50 transition-all group">
+                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                    <FileText className="w-10 h-10 mb-3 text-slate-500 group-hover:text-purple-400 transition-colors" />
+                                                    <p className="text-xs font-black text-slate-500 uppercase tracking-widest group-hover:text-white transition-colors">
+                                                        {formData.file ? formData.file.name : 'Click to upload from local storage'}
+                                                    </p>
+                                                </div>
+                                                <input 
+                                                    type="file" 
+                                                    className="hidden" 
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) setFormData({ ...formData, file: file });
+                                                    }}
+                                                />
+                                            </label>
+                                        </div>
+                                    </>
                                 )}
                             </div>
 
