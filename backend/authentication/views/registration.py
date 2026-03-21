@@ -58,20 +58,16 @@ def register(request):
     return Response({'message': 'User registered successfully'}, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def invite_team_member(request):
     """Invite for specific roles like Sponsor Manager, PI, Coordinator etc."""
-    invited_by_email = request.data.get('admin_email')
+    admin = request.user
     target_email = request.data.get('email')
     role = request.data.get('role', 'SPONSOR_MANAGER')
-    organization = request.data.get('organization')
+    organization = request.data.get('organization') or admin.organization
     
-    if not all([target_email, organization]):
-        return Response({'error': 'Email and organization are required'}, status=status.HTTP_400_BAD_REQUEST)
-
-    admin = User.objects.filter(email=invited_by_email).first()
-    if not admin:
-         return Response({'error': 'Admin user not found'}, status=status.HTTP_404_NOT_FOUND)
+    if not target_email:
+        return Response({'error': 'Target email is required'}, status=status.HTTP_400_BAD_REQUEST)
 
     token = str(uuid.uuid4())
     expires_at = now() + timedelta(days=7)
@@ -263,3 +259,43 @@ def complete_profile(request):
         }
     })
     return _set_auth_cookies(response, access_token, refresh_token)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_team_members(request):
+    """Retrieve all users and pending invites for the sponsor's organization."""
+    admin = request.user
+    org = admin.organization
+    
+    if not org:
+        return Response([], status=200)
+
+    # Get registered team members
+    users = User.objects.filter(organization=org).exclude(id=admin.id)
+    
+    # Get pending invitations
+    invites = Invitation.objects.filter(organization=org, is_used=False)
+
+    members = []
+    
+    # Add active users
+    for u in users:
+        members.append({
+            'name': f"{u.first_name} {u.last_name}".strip() if (u.first_name or u.last_name) else u.email.split('@')[0],
+            'email': u.email,
+            'role': u.role or 'Sponsor Member',
+            'status': 'ACTIVE',
+            'id': u.id
+        })
+        
+    # Add pending invites
+    for i in invites:
+        members.append({
+            'name': 'Awaiting Activation',
+            'email': i.email,
+            'role': i.role,
+            'status': 'PENDING',
+            'id': f"inv-{i.id}"
+        })
+        
+    return Response(members)

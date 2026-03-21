@@ -86,8 +86,8 @@ const MOCK_QUESTIONNAIRE: Section[] = [
     }
 ];
 
-export default function QuestionnaireBuilder() {
-    const [activeTab, setActiveTab] = useState('Create New');
+export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { initialTab?: string }) {
+    const [activeTab, setActiveTab] = useState(initialTab);
     const [sections, setSections] = useState<Section[]>(MOCK_QUESTIONNAIRE);
     const [selectedQId, setSelectedQId] = useState<string | null>('q4');
     const [previewMode, setPreviewMode] = useState<'Desktop' | 'Mobile'>('Desktop');

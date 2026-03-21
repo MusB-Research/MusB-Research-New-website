@@ -18,6 +18,7 @@ def api_root(request):
 urlpatterns = [
     path('', api_root),
     path('admin/', admin.site.urls),
+    path('api/careers/', include('careers.urls')),
     path('api/', include('api.urls')),
     path('api/contact/', include('contact.urls')),
     path('api/auth/', include('authentication.urls')),

@@ -115,7 +115,8 @@ export default function SuperAdminSignIn() {
             const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: email.toLowerCase(), password })
+                body: JSON.stringify({ email, password }),
+                credentials: 'include'
             });
             
             const contentType = response.headers.get("content-type");
@@ -129,11 +130,18 @@ export default function SuperAdminSignIn() {
             
             if (!response.ok) throw new Error(data.error || 'Identity verification failed');
             
-            if (data.user.role !== 'SUPER_ADMIN') {
+            const userRole = (data.user.role || '').toUpperCase();
+            
+            if (userRole !== 'SUPER_ADMIN') {
                 throw new Error('UNAUTHORIZED_ACCESS: Restricted to Super Admin personnel.');
             }
 
-            saveToken(data.access, data.user.role);
+            if (data.user.must_reset) {
+                navigate('/auth/reset-forced');
+                return;
+            }
+
+            saveToken(data.access, userRole);
             localStorage.setItem('user', JSON.stringify(data.user));
             
             navigate('/dashboard/super-admin');
@@ -174,11 +182,11 @@ export default function SuperAdminSignIn() {
             >
                 {/* Branding */}
                 <div className="text-center space-y-8 mb-12">
-                    <div className="flex justify-center">
+                    <Link to="/" target="_blank" rel="noopener noreferrer" className="flex justify-center transition-transform hover:scale-105 active:scale-95">
                         <div className="bg-white p-4 rounded-2xl shadow-xl border border-white/20">
                             <img src="/logo.jpg" alt="MusB Research" className="h-14 md:h-16 w-auto object-contain" />
                         </div>
-                    </div>
+                    </Link>
                     
                     <div className="space-y-4">
 
@@ -191,13 +199,13 @@ export default function SuperAdminSignIn() {
 
                 <form onSubmit={handleAdminLogin} className="space-y-6">
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-4">Email Address</label>
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-4">Email or User ID</label>
                         <div className="relative group/input">
                             <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within/input:text-indigo-400 transition-colors" />
                             <input
-                                type="email"
+                                type="text"
                                 required
-                                placeholder="superadmin@musbresearch.com"
+                                placeholder="Email or User ID"
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
                                 className="w-full bg-[#050614] border border-white/5 rounded-2xl pl-16 pr-6 py-5 text-white placeholder:text-slate-800 outline-none focus:border-indigo-500/50 transition-all font-bold text-sm tracking-tight"

@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import AnimatedBackground from './components/AnimatedBackground';
 import MeshBackground from './components/MeshBackground';
@@ -8,11 +9,10 @@ import Team from './views/Team';
 import Contact from './views/Contact';
 import Innovations from './views/Innovations';
 import News from './views/News';
-import Careers from './views/Careers';
+import CareersPage from './views/CareersPage';
 import Facilities from './views/Facilities';
 import Trials from './views/Trials';
 import Support from './views/Support';
-import JobDetail from './views/JobDetail';
 import WhyChooseUs from './views/WhyChooseUs';
 import Capabilities from './views/Capabilities';
 import SignIn from './views/auth/SignIn';
@@ -26,11 +26,27 @@ import PIDashboard from './views/PIDashboard';
 import SponsorDashboard from './views/SponsorDashboard';
 import StudyConsent from './views/StudyConsent';
 import ResetForced from './views/auth/ResetForced';
+import ResetPassword from './views/auth/ResetPassword';
 import ProfileSetup from './views/auth/ProfileSetup';
+import { performLogout, isLoggedIn } from './utils/auth';
 
 function AppContent() {
     const location = useLocation();
     const isDashboard = location.pathname.startsWith('/dashboard');
+
+    // === SECURITY: VOLATILE SESSION GUARD ===
+    // Automatically logs out if tab is hidden (minimized, switched, or closed)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden' && isLoggedIn()) {
+                console.warn("🔐 SECURITY ALERT: Tab hidden. Terminating session...");
+                performLogout();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, []);
 
     return (
         <>
@@ -46,8 +62,8 @@ function AppContent() {
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/innovations" element={<Innovations />} />
                     <Route path="/news" element={<News />} />
-                    <Route path="/careers" element={<Careers />} />
-                    <Route path="/careers/:id" element={<JobDetail />} />
+                    <Route path="/careers" element={<CareersPage />} />
+                    <Route path="/careers/:id" element={<CareersPage />} />
                     <Route path="/facilities" element={<Facilities />} />
                     <Route path="/trials" element={<Trials />} />
                     <Route path="/capabilities" element={<Capabilities />} />
@@ -61,10 +77,12 @@ function AppContent() {
                     {/* Dashboard Routes (RBAC) */}
                     <Route path="/dashboard/participant" element={<ParticipantDashboard />} />
                     <Route path="/dashboard/super-admin" element={<SuperAdminDashboard />} />
+                    <Route path="/dashboard/super admin" element={<Navigate to="/dashboard/super-admin" replace />} />
                     <Route path="/dashboard/admin" element={<AdminDashboard />} />
                     <Route path="/dashboard/pi" element={<PIDashboard />} />
                     <Route path="/dashboard/sponsor" element={<SponsorDashboard />} />
                     <Route path="/auth/reset-forced" element={<ResetForced />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/auth/profile-setup" element={<ProfileSetup />} />
                 </Routes>
             </Layout>

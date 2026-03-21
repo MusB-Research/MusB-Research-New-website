@@ -1,5 +1,5 @@
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth.password_validation import validate_password
@@ -78,7 +78,12 @@ def reset_password(request):
 
     return Response({'message': 'Password reset successful'})
 
+from django.views.decorators.csrf import csrf_exempt
+from ..authenticate import CookieJWTAuthentication
+
+@csrf_exempt
 @api_view(['POST'])
+@authentication_classes([CookieJWTAuthentication])
 @permission_classes([IsAuthenticated])
 def reset_forced(request):
     """Handles first-time login password change requirement."""
@@ -103,5 +108,8 @@ def reset_forced(request):
     user.set_password(new_password)
     user.must_change_password = False
     user.save()
+    
+    from ..models import AuditLog
+    AuditLog.log('PASSWORD_RESET_FORCED', user_email=user.email, request=request, detail='Mandatory password reset completed')
 
     return Response({'message': 'Identity secured. Password updated successfully.'})

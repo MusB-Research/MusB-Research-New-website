@@ -20,6 +20,7 @@ class OnboardingEnforcementMiddleware:
         re.compile(r'^/api/auth/google-login/?$'),
         re.compile(r'^/api/auth/refresh/?$'),
         re.compile(r'^/api/auth/logout/?$'),
+        re.compile(r'^/api/auth/reset-forced/?$'),
         re.compile(r'^/api/auth/setup-credentials/?$'),
         re.compile(r'^/admin/'),  # Django admin
     ]
@@ -73,9 +74,10 @@ class OnboardingEnforcementMiddleware:
                         status=status.HTTP_403_FORBIDDEN
                     )
                     
-            # Check for profile_completed
-            profile_completed = payload.get('profile_completed', True)  # Default True for old tokens without scope
-            if not profile_completed:
+            # Check for profile_completed (Skip for Super Admins)
+            role = payload.get('role', '').upper()
+            profile_completed = payload.get('profile_completed', True)
+            if not profile_completed and role != 'SUPER_ADMIN':
                 if not any(pattern.match(path) for pattern in self.PROFILE_WHITELIST):
                     return JsonResponse(
                         {'error': 'Profile completion required before proceeding.'}, 

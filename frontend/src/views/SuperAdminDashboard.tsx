@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { clearToken, authFetch, getRole } from '../utils/auth';
+import { authFetch, clearToken, getRole, performLogout } from '../utils/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Briefcase, Activity, Crown, Shield, Bell, Settings, LogOut, Search,
@@ -24,6 +24,7 @@ import AuditLogs from '../components/admin/AuditLogs';
 import WorkflowModerationPanel from '../components/admin/WorkflowModerationPanel';
 import SubmitContentForms from '../components/admin/SubmitContentForms';
 import ApprovalModule from '../components/admin/ApprovalModule';
+import CareerManagement from '../components/admin/CareerManagement';
 
 // ═══════════════════════════════════════════
 // TYPES & MOCK DATA
@@ -34,7 +35,7 @@ type Page =
   | 'SPONSOR_LEADS' | 'METRICS' | 'TEAM' | 'INQUIRIES'
   | 'ANNOUNCEMENTS' | 'AUDIT_LOGS' | 'SETTINGS'
   | 'LAUNCH_STUDY' | 'SCREENER_BUILDER' | 'PIS' 
-  | 'COORDINATORS' | 'PARTICIPANTS' | 'LIVE_USERS' | 'WORKFLOW' | 'SUBMIT_CONTENT' | 'TEAM_APPROVALS';
+  | 'COORDINATORS' | 'PARTICIPANTS' | 'LIVE_USERS' | 'WORKFLOW' | 'SUBMIT_CONTENT' | 'TEAM_APPROVALS' | 'CAREERS';
 
 interface User {
   id: string;
@@ -108,7 +109,7 @@ export default function SuperAdminDashboard() {
   const [isUserDetailOpen, setIsUserDetailOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-  const [creationRole, setCreationRole] = useState('PARTICIPANT');
+  const [creationRole, setCreationRole] = useState('PI');
   const navigate = useNavigate();
   const profileRef = React.useRef<HTMLDivElement>(null);
 
@@ -125,16 +126,23 @@ export default function SuperAdminDashboard() {
     { id: 3, text: 'System backup completed successfully', time: '4h ago', unread: false },
   ]);
 
+  const formatName = useCallback((name: string) => {
+    if (!name) return 'Unknown User';
+    if (name.startsWith('gAAAA')) return 'Node Identity Locked';
+    return name;
+  }, []);
+
   const currentUserName = useMemo(() => {
     const userStr = localStorage.getItem('user');
     if (!userStr) return 'Super Admin';
     try {
       const u = JSON.parse(userStr);
-      return u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'Super Admin'));
+      const nameStr = u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'Super Admin'));
+      return formatName(nameStr);
     } catch (e) {
       return 'Super Admin';
     }
-  }, []);
+  }, [formatName]);
 
   // ═══════════════════════════════════════════
   // DATA FETCHING
@@ -159,7 +167,9 @@ export default function SuperAdminDashboard() {
           status: u.is_active === false ? 'Inactive' : 'Active',
           lastLogin: u.last_login_formatted || 'Never',
           must_reset: u.must_change_password,
-          profile_incomplete: !u.profile_completed
+          profile_incomplete: !u.profile_completed,
+          // Normalize role to uppercase to match ROLES IDs
+          role: u.role ? u.role.toString().toUpperCase() : 'ADMIN'
         })));
       }
       if (sRes.ok) setStudies(await sRes.json());
@@ -187,7 +197,7 @@ export default function SuperAdminDashboard() {
     
     if (!user || role !== 'SUPER_ADMIN') {
       console.warn("Unauthorized access to Super Admin Dashboard. Redirecting...");
-      navigate('/signin');
+      navigate('/mainframe/restricted-auth');
     }
   }, [navigate]);
 
@@ -219,7 +229,7 @@ export default function SuperAdminDashboard() {
   }, []);
 
   const handleWebsiteLink = useCallback(() => {
-    window.location.href = '/';
+    window.open('/', '_blank');
   }, []);
 
   const handleSignOut = async () => {
@@ -227,8 +237,7 @@ export default function SuperAdminDashboard() {
   };
 
   const confirmSignOut = async () => {
-    await clearToken();
-    window.location.href = '/';
+    await performLogout();
   };
 
 
@@ -311,7 +320,8 @@ export default function SuperAdminDashboard() {
   );
 
   const RoleBadge = ({ role }: { role: string }) => {
-    const roleData = ROLES.find(r => r.id === role) || ROLES[1];
+    const normalizedRole = (role || '').toUpperCase();
+    const roleData = ROLES.find(r => r.id === normalizedRole) || ROLES[1];
     return (
       <span className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider" style={{ backgroundColor: `${roleData.color}20`, color: roleData.color, border: `1px solid ${roleData.color}40` }}>
         {roleData.label}
@@ -397,9 +407,11 @@ export default function SuperAdminDashboard() {
                 </div>
               )}
             </div>
-            <p className="text-xs sm:text-sm font-bold text-[#555a7a] uppercase tracking-widest mb-1">{stat.label}</p>
-            <h4 className="text-3xl sm:text-4xl xl:text-5xl font-black text-white italic tracking-tighter">{stat.value}</h4>
-            <ChevronRight className="absolute bottom-6 right-6 w-4 h-4 sm:w-5 sm:h-5 text-[#333] group-hover:text-white transition-all transform group-hover:translate-x-1" />
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 group-hover:text-white transition-colors">{stat.label}</p>
+            <h4 className="text-3xl sm:text-4xl xl:text-5xl font-black text-white italic tracking-tighter drop-shadow-2xl">{stat.value}</h4>
+            <div className="absolute bottom-6 right-6 p-2 rounded-lg bg-white/5 border border-white/5 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1">
+              <ArrowRight className="w-4 h-4 text-white" />
+            </div>
             <div className={`absolute bottom-0 left-0 h-1 w-0 group-hover:w-full transition-all duration-300`} style={{ backgroundColor: stat.color }}></div>
           </div>
         ))}
@@ -592,7 +604,7 @@ export default function SuperAdminDashboard() {
                           {user.name?.[0] || 'U'}
                         </div>
                         <div>
-                          <p className="text-sm font-black text-white italic group-hover/name:text-indigo-400 transition-colors uppercase tracking-tight">{user.name}</p>
+                          <p className="text-sm font-black text-white italic group-hover/name:text-indigo-400 transition-colors uppercase tracking-tight">{formatName(user.name)}</p>
                           <p className="text-xs text-[#555a7a] font-medium tracking-tight mt-0.5">{user.email}</p>
                         </div>
                       </div>
@@ -1196,6 +1208,7 @@ export default function SuperAdminDashboard() {
         { id: 'STUDIES', label: 'All Studies', icon: Briefcase },
         { id: 'LAUNCH_STUDY', label: 'Launch A Study', icon: Rocket },
         { id: 'SCREENER_BUILDER', label: 'Screener Builder', icon: ClipboardList },
+        { id: 'CAREERS', label: 'Careers', icon: Briefcase },
       ]
     },
     {
@@ -1291,12 +1304,21 @@ export default function SuperAdminDashboard() {
       middleName: '', 
       lastName: '', 
       email: '', 
-      role: creationRole || 'PI' 
+      role: creationRole ? creationRole.toUpperCase() : 'PI' 
     });
+
+    // Update role if creationRole changes externally
+    useEffect(() => {
+        if (creationRole) {
+            setNewUser(prev => ({ ...prev, role: creationRole.toUpperCase() }));
+        }
+    }, [creationRole]);
     const [isCreating, setIsCreating] = useState(false);
 
-    // Filter out PARTICIPANT role
-    const filteredRoles = ROLES.filter(r => r.id !== 'PARTICIPANT');
+    // Super Admin can create these specifiche roles
+    const filteredRoles = ROLES.filter(r => 
+        ['SUPER_ADMIN', 'ADMIN', 'PI', 'SPONSOR', 'COORDINATOR'].includes(r.id)
+    );
 
     const handleCreateUser = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -1318,7 +1340,7 @@ export default function SuperAdminDashboard() {
           const data = await res.json();
           alert(`✅ INITIALIZATION COMPLETE\n\nGenerated Username: ${data.username}\nCredentials sent to ${newUser.email}`);
           setModals({ ...modals, createUser: false });
-          setNewUser({ firstName: '', middleName: '', lastName: '', email: '', role: 'PI' });
+          setNewUser({ firstName: '', middleName: '', lastName: '', email: '', role: creationRole ? creationRole.toUpperCase() : 'PI' });
           fetchData(); 
         } else {
           const err = await res.json();
@@ -1474,7 +1496,7 @@ export default function SuperAdminDashboard() {
         {/* ────────────────────────────────────────── Sidebar ────────────────────────────────────────── */}
         <aside className={`fixed inset-y-0 left-0 w-80 bg-[#0a0b1b] border-r border-white/5 z-[70] flex flex-col transition-transform duration-500 lg:static lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="p-8 flex items-center justify-between border-b border-white/5">
-            <Link to="/home" className="group">
+            <Link to="/" target="_blank" rel="noopener noreferrer" className="group">
               <div className="flex items-center gap-4">
                 <div className="bg-white p-2 rounded-xl group-hover:scale-110 transition-transform">
                   <img src="/logo.jpg" alt="Logo" className="h-9 w-auto object-contain" />
@@ -1642,6 +1664,17 @@ export default function SuperAdminDashboard() {
           </header>
 
           <div className="flex-1 overflow-y-auto p-4 sm:p-8 lg:p-12 custom-scrollbar">
+            {currentPage !== 'DASHBOARD' && (
+              <motion.button
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                onClick={() => setCurrentPage('DASHBOARD')}
+                className="mb-8 flex items-center gap-2 px-6 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[#7c3aed] hover:bg-[#7c3aed] hover:text-white transition-all group font-black uppercase italic tracking-widest text-[10px]"
+              >
+                <ChevronRight className="w-4 h-4 rotate-180 group-hover:-translate-x-1 transition-transform" />
+                Back to Terminal Overview
+              </motion.button>
+            )}
             {currentPage === 'DASHBOARD' && <DashboardPage />}
             {currentPage === 'ALL_USERS' && <UsersPage />}
             {currentPage === 'STUDIES' && <StudiesPage />}
@@ -1705,6 +1738,7 @@ export default function SuperAdminDashboard() {
             { currentPage === 'WORKFLOW' && <WorkflowModerationPanel /> }
             { currentPage === 'TEAM_APPROVALS' && <ApprovalModule /> }
             { currentPage === 'SUBMIT_CONTENT' && <SubmitContentForms userRole="SUPER_ADMIN" /> }
+            { currentPage === 'CAREERS' && <CareerManagement /> }
             {currentPage === 'SETTINGS' && <SettingsPage />}
             {currentPage === 'ANNOUNCEMENTS' && <AnnouncementsPage />}
             {currentPage === 'SPONSOR_LEADS' && <SponsorLeadsPage />}
@@ -1712,7 +1746,7 @@ export default function SuperAdminDashboard() {
             {currentPage === 'INQUIRIES' && <InquiriesPage />}
 
             {/* Stub for other pages */}
-            {!['DASHBOARD', 'ALL_USERS', 'STUDIES', 'SPONSORS', 'LAUNCH_STUDY', 'SCREENER_BUILDER', 'PIS', 'COORDINATORS', 'PARTICIPANTS', 'LIVE_USERS', 'METRICS', 'AUDIT_LOGS', 'SETTINGS', 'ANNOUNCEMENTS', 'SPONSOR_LEADS', 'TEAM', 'INQUIRIES', 'TEAM_APPROVALS'].includes(currentPage) && (
+            {!['DASHBOARD', 'ALL_USERS', 'STUDIES', 'SPONSORS', 'LAUNCH_STUDY', 'SCREENER_BUILDER', 'PIS', 'COORDINATORS', 'PARTICIPANTS', 'LIVE_USERS', 'METRICS', 'AUDIT_LOGS', 'SETTINGS', 'ANNOUNCEMENTS', 'SPONSOR_LEADS', 'TEAM', 'INQUIRIES', 'TEAM_APPROVALS', 'CAREERS', 'WORKFLOW', 'SUBMIT_CONTENT', 'ACTIVITY_LOG'].includes(currentPage) && (
               <div className="h-[70vh] flex flex-col items-center justify-center text-center space-y-6">
                 <div className="w-24 h-24 bg-white/5 border border-white/10 rounded-[2.5rem] flex items-center justify-center">
                   <LayoutDashboard className="w-12 h-12 text-[#555a7a] animate-pulse" />
@@ -1737,11 +1771,9 @@ export default function SuperAdminDashboard() {
         )}
       </AnimatePresence>
 
-      <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden fixed top-8 left-8 p-3 bg-white/5 rounded-2xl border border-white/10 text-[#555a7a] z-[45]">
-        <Menu className="w-5 h-5" />
-      </button>
 
       {/* NEW PAGES & MODALS */}
+
 
         {/* User Detail Modal */}
         <AnimatePresence>
@@ -1767,10 +1799,10 @@ export default function SuperAdminDashboard() {
                 <div className="px-12 pb-12">
                   <div className="relative -mt-12 mb-8 flex items-end gap-6">
                     <div className="w-24 h-24 rounded-3xl bg-indigo-600 border-4 border-[#0d0e2b] flex items-center justify-center text-3xl font-black text-white italic shadow-2xl">
-                      {selectedUser.name?.[0] || 'U'}
+                      {(selectedUser.name?.[0] || 'U').toUpperCase()}
                     </div>
                     <div className="pb-2">
-                      <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none">{selectedUser.name}</h3>
+                      <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none">{formatName(selectedUser.name)}</h3>
                       <div className="flex items-center gap-3 mt-2">
                         <RoleBadge role={selectedUser.role} />
                         <span className={`px-2 py-0.5 rounded-full text-xs font-black uppercase tracking-widest ${selectedUser.status === 'Active' ? 'text-green-500 bg-green-500/10' : 'text-red-500 bg-red-500/10'}`}>
@@ -1916,7 +1948,7 @@ export default function SuperAdminDashboard() {
       <LogoutConfirmationModal 
         isOpen={isLogoutModalOpen}
         onClose={() => setIsLogoutModalOpen(false)}
-        onConfirm={() => { clearToken(); window.location.href = "/"; }}
+        onConfirm={() => { clearToken(); window.location.href = "/mainframe/restricted-auth"; }}
       />
 
       <style>{`

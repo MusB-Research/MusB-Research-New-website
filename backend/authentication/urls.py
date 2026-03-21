@@ -17,7 +17,8 @@ urlpatterns = [
     
     # Registration & Invitations
     path('register/', registration.register, name='register'),
-    path('invite-team-member/', registration.invite_team_member, name='invite_team_member'),
+    path('invite-team-member/', registration.invite_team_member, name='invite-team-member'),
+    path('list-team-members/', registration.list_team_members, name='list-team-members'),
     path('setup-credentials/', registration.setup_credentials, name='setup_credentials'),
     path('complete-profile/', registration.complete_profile, name='complete_profile'),
     
@@ -30,6 +31,7 @@ urlpatterns = [
     path('admin/create-user/', admin_users.admin_create_user, name='admin_create_user'),
     path('admin/resend-credentials/<str:user_id>/', admin_users.admin_resend_credentials, name='admin_resend_credentials'),
     path('admin/audit-logs/', admin_users.admin_get_audit_logs, name='admin_audit_logs'),
+    path('admin/analytics-stats/', admin_users.admin_get_analytics_stats, name='admin_analytics_stats'),
     
     # RBAC Approvals
     path('admin/approvals/', admin_users.get_pending_approvals, name='get_pending_approvals'),

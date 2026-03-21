@@ -1,733 +1,610 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-    Search, 
-    Filter, 
-    Plus, 
-    MessageSquare, 
-    Flag, 
-    AlertCircle, 
-    CheckCircle2, 
-    MoreHorizontal, 
-    Paperclip, 
-    Send, 
-    User, 
-    ArrowUpRight,
-    Shield,
-    Clock,
-    FileText,
-    History,
-    MoreVertical,
-    Check,
-    X,
-    Star,
-    Maximize2,
-    ShieldAlert,
-    Save,
-    Tag,
-    Info,
-    AlertTriangle,
-    Hash,
-    Link2
+    Search, Plus, Filter, MessageSquare, Flag, CheckCircle2, 
+    AlertTriangle, User, Paperclip, Send, X, MoreVertical,
+    Clock, Tag, Bookmark, ShieldAlert, FileText, ChevronRight, ChevronDown,
+    ArrowUpRight, AlertCircle, Save, Layers, ListFilter
 } from 'lucide-react';
 
-// --- Types & Interfaces ---
-
-type MessageStatus = 'Open' | 'In Progress' | 'Resolved' | 'Action Required' | 'Flagged';
-type UrgencyLevel = 'Urgent' | 'Attention' | 'Normal';
-type MessageCategory = 'Safety' | 'Protocol' | 'Eligibility' | 'General';
-
-interface Attachment {
-    id: string;
-    name: string;
-    type: string;
-    url: string;
-}
-
+// --- TYPES ---
 interface Message {
     id: string;
-    senderId: string;
-    senderName: string;
-    senderRole: string;
-    content: string;
-    timestamp: string;
-    type: MessageCategory;
-    attachments?: Attachment[];
-    isDraft?: boolean;
-    hash?: string; // For audit-ready feel
+    sender: string;
+    role: string;
+    time: string;
+    text: string;
+    tag: 'Safety' | 'Protocol' | 'Eligibility' | 'General';
+    attachment: string | null;
+    fromPI: boolean;
 }
 
 interface Conversation {
     id: string;
     participantId: string;
-    studyName: string;
-    protocolId: string;
+    study: string;
+    sender: string;
+    senderRole: string;
+    preview: string;
+    timestamp: string;
+    status: 'Unread' | 'Action Required' | 'Resolved' | 'Open';
+    flagged: boolean;
     assignedCoordinator: string;
-    status: MessageStatus;
-    urgency: UrgencyLevel;
-    lastMessage: string;
-    lastMessageSender: string;
-    lastMessageRole: string;
-    lastMessageTimestamp: string;
-    isUnread: boolean;
-    aiSummary: string;
+    participantStatus: 'Active' | 'Screening' | 'Completed';
+    draft: string;
     messages: Message[];
 }
 
-// --- Mock Data ---
+interface Toast {
+    id: string;
+    type: 'success' | 'error' | 'warning';
+    message: string;
+}
 
+// --- MOCK DATA ---
 const MOCK_CONVERSATIONS: Conversation[] = [
     {
-        id: 'c1',
-        participantId: 'SUB-4022',
-        studyName: 'Hyper-Immune B-Cell Response',
-        protocolId: 'HI-202B',
-        assignedCoordinator: 'Sarah Jenkins',
+        id: 'conv-1',
+        participantId: 'BTB-023',
+        study: 'Beat the Bloat',
+        sender: 'John Doe',
+        senderRole: 'Coordinator',
+        preview: 'Participant reported mild discomfort after dose...',
+        timestamp: '10:32 AM',
         status: 'Action Required',
-        urgency: 'Urgent',
-        isUnread: true,
-        lastMessage: "Subject reported severe nausea and headache 2 hours post-infusion. Seeking PI guidance on dosage adjustment.",
-        lastMessageSender: "Sarah Jenkins",
-        lastMessageRole: "Lead Coordinator",
-        lastMessageTimestamp: "2026-03-20T09:15:00Z",
-        aiSummary: "Potential Grade 2 Adverse Event (nausea/headache). Recommendation: Review dosage protocol for Visit 5.",
+        flagged: true,
+        assignedCoordinator: 'John Doe',
+        participantStatus: 'Active',
+        draft: '',
         messages: [
-            {
-                id: 'm1',
-                senderId: 'sj1',
-                senderName: 'Sarah Jenkins',
-                senderRole: 'Lead Coordinator',
-                content: "Subject reported severe nausea and headache 2 hours post-infusion. Seeking PI guidance on dosage adjustment for next visit.",
-                timestamp: "2026-03-20T08:15:00Z",
-                type: 'Safety',
-                hash: 'sha256:7f8e...9a2b'
-            },
-            {
-                id: 'm2',
-                senderId: 'pi01',
-                senderName: 'Dr. Michael Chen',
-                senderRole: 'Principal Investigator',
-                content: "Noted. Please monitor vitals every 30 minutes. If symptoms persist beyond 4 hours, escalate to the medical board.",
-                timestamp: "2026-03-20T08:45:00Z",
-                type: 'Safety',
-                hash: 'sha256:1a2b...3c4d'
-            },
-            {
-                id: 'm3',
-                senderId: 'sj1',
-                senderName: 'Sarah Jenkins',
-                senderRole: 'Lead Coordinator',
-                content: "Subject reported severe nausea and headache 2 hours post-infusion. Seeking PI guidance on dosage adjustment.",
-                timestamp: "2026-03-20T09:15:00Z",
-                type: 'Safety',
-                hash: 'sha256:4d5e...6f7g'
-            }
+            { id: 'm1', sender: 'John Doe', role: 'Coordinator', time: '10:32 AM', text: 'Participant BTB-023 reported mild bloating increase after dose 3.', tag: 'Safety', attachment: 'Symptom_Log.pdf', fromPI: false },
+            { id: 'm2', sender: 'You', role: 'PI', time: '10:45 AM', text: 'Please monitor for 24 hours and report any escalation immediately.', tag: 'Protocol', attachment: null, fromPI: true }
         ]
     },
     {
-        id: 'c2',
-        participantId: 'SUB-1109',
-        studyName: 'Metabolic Syndrome Study-01',
-        protocolId: 'MS-801',
-        assignedCoordinator: 'Mark Wilson',
-        status: 'Open',
-        urgency: 'Attention',
-        isUnread: false,
-        lastMessage: "Patient missed today's glucose monitoring window. Protocol deviation form prepared for signature.",
-        lastMessageSender: "Mark Wilson",
-        lastMessageRole: "Coordinator",
-        lastMessageTimestamp: "2026-03-19T16:45:00Z",
-        aiSummary: "Protocol deviation: Missed V4 fasting window. No immediate safety risk.",
-        messages: [
-            {
-                id: 'm4',
-                senderId: 'mw1',
-                senderName: 'Mark Wilson',
-                senderRole: 'Coordinator',
-                content: "Patient missed today's glucose monitoring window. Protocol deviation form prepared for signature.",
-                timestamp: "2026-03-19T16:45:00Z",
-                type: 'Protocol',
-                hash: 'sha256:9z8y...7x6w'
-            }
-        ]
-    },
-    {
-        id: 'c3',
-        participantId: 'SUB-5521',
-        studyName: 'Neuro-Repair Phase II',
-        protocolId: 'NR-009',
-        assignedCoordinator: 'Elena Rodriguez',
+        id: 'conv-2',
+        participantId: 'BTB-017',
+        study: 'Beat the Bloat',
+        sender: 'Sarah Lee',
+        senderRole: 'Coordinator',
+        preview: 'Visit 4 completed successfully, labs submitted...',
+        timestamp: 'Yesterday',
         status: 'Resolved',
-        urgency: 'Normal',
-        isUnread: false,
-        lastMessage: "Informed consent signed and uploaded to the portal. Eligibility confirmed for Cohort B.",
-        lastMessageSender: "Elena Rodriguez",
-        lastMessageRole: "Study Lead",
-        lastMessageTimestamp: "2026-03-18T11:20:00Z",
-        aiSummary: "Enrollment complete. Document verification successful.",
+        flagged: false,
+        assignedCoordinator: 'Sarah Lee',
+        participantStatus: 'Active',
+        draft: '',
         messages: [
-            {
-                id: 'm5',
-                senderId: 'er1',
-                senderName: 'Elena Rodriguez',
-                senderRole: 'Study Lead',
-                content: "Informed consent signed and uploaded to the portal. Eligibility confirmed for Cohort B.",
-                timestamp: "2026-03-18T11:20:00Z",
-                type: 'Eligibility',
-                attachments: [
-                    { id: 'a1', name: 'ICF_SUB-5521.pdf', type: 'application/pdf', url: '#' }
-                ],
-                hash: 'sha256:5v4u...3t2s'
-            }
+            { id: 'm3', sender: 'Sarah Lee', role: 'Coordinator', time: 'Yesterday 2:15 PM', text: 'Visit 4 completed successfully. Labs submitted to central lab.', tag: 'General', attachment: null, fromPI: false }
+        ]
+    },
+    {
+        id: 'conv-3',
+        participantId: 'MS-044',
+        study: 'Menopause Study',
+        sender: 'Admin',
+        senderRole: 'Admin',
+        preview: 'IRB approval renewal due in 14 days...',
+        timestamp: 'Mon',
+        status: 'Unread',
+        flagged: false,
+        assignedCoordinator: 'Elena Rodriguez',
+        participantStatus: 'Screening',
+        draft: '',
+        messages: [
+            { id: 'm4', sender: 'Admin', role: 'Admin', time: 'Mon 9:00 AM', text: 'IRB approval renewal is due in 14 days. Please submit required documents.', tag: 'Protocol', attachment: 'IRB_Renewal_Form.pdf', fromPI: false }
         ]
     }
 ];
 
+const TEMPLATES = [
+    { label: "Eligibility Clarification", text: "Based on the internal review of participant [ID], we require further clarification on the eligibility criteria related to [PARAMETER]. Please verify clinical history." },
+    { label: "AE Follow-up", text: "The reported Adverse Event requires close monitoring. Please provide updated vital signs and symptom logs every 12 hours until stabilization." },
+    { label: "Visit Reminder", text: "This is a reminder that the upcoming visit [X] for participant [ID] is scheduled for [DATE]. Please ensure all primary assessments are primary." }
+];
+
+const COORDINATORS = ['John Doe', 'Sarah Lee', 'Elena Rodriguez', 'Marcus Wilt'];
+
+// --- COMPONENT ---
 export default function PIMessagesModule() {
+    // State
     const [conversations, setConversations] = useState<Conversation[]>(MOCK_CONVERSATIONS);
-    const [selectedId, setSelectedId] = useState<string>(MOCK_CONVERSATIONS[0].id);
+    const [activeConvId, setActiveConvId] = useState('conv-1');
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeTab, setActiveTab] = useState<'All' | 'Unread' | 'Flagged' | 'Action' | 'Study'>('All');
-    const [replyText, setReplyText] = useState('');
-    const [selectedTag, setSelectedTag] = useState<MessageCategory>('General');
-    const [isActionPanelOpen, setIsActionPanelOpen] = useState(false);
-    const scrollRef = useRef<HTMLDivElement>(null);
+    const [filterStatus, setFilterStatus] = useState('All');
+    const [sortMode, setSortMode] = useState<'recent' | 'priority' | 'unread'>('recent');
+    const [messageInput, setMessageInput] = useState('');
+    const [selectedTag, setSelectedTag] = useState<'Safety' | 'Protocol' | 'Eligibility' | 'General'>('General');
+    const [attachedFile, setAttachedFile] = useState<File | null>(null);
+    const [composeOpen, setComposeOpen] = useState(false);
+    const [toasts, setToasts] = useState<Toast[]>([]);
+    const [confirmModal, setConfirmModal] = useState<{ message: string, onConfirm: () => void } | null>(null);
+    const [actionPanelOpen, setActionPanelOpen] = useState(true);
+    const [participantDrawerOpen, setParticipantDrawerOpen] = useState(false);
+    
+    // Refs
+    const threadEndRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const selectedConv = useMemo(() => 
-        conversations.find(c => c.id === selectedId) || conversations[0]
-    , [selectedId, conversations]);
-
-    // Filter Logic
-    const filteredConversations = useMemo(() => {
-        return conversations.filter(c => {
-            const matchesSearch = c.participantId.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                 c.studyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                 c.lastMessage.toLowerCase().includes(searchQuery.toLowerCase());
-            
-            if (!matchesSearch) return false;
-            if (activeTab === 'Unread') return c.isUnread;
-            if (activeTab === 'Flagged') return c.status === 'Flagged';
-            if (activeTab === 'Action') return c.status === 'Action Required';
-            
-            return true;
-        });
-    }, [searchQuery, activeTab, conversations]);
-
+    // Auto-scroll on active conversation or messages change
     useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-    }, [selectedId, conversations]);
+        threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [activeConvId, conversations]);
 
+    // --- LOGIC: TOASTS ---
+    const addToast = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
+        const id = Math.random().toString(36).substr(2, 9);
+        setToasts(prev => [...prev, { id, message, type }]);
+        setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+    };
+
+    // --- LOGIC: CONVERSATION LIST ---
+    const activeConv = conversations.find(c => c.id === activeConvId);
+
+    const getSortedConversations = () => {
+        let filtered = conversations.filter(c => {
+            const matchesSearch = c.participantId.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                 c.study.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                 c.preview.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesFilter = filterStatus === 'All' || 
+                                 (filterStatus === 'Unread' && c.status === 'Unread') ||
+                                 (filterStatus === 'Flagged' && c.flagged) ||
+                                 (filterStatus === 'Requires Action' && c.status === 'Action Required');
+            return matchesSearch && matchesFilter;
+        });
+
+        if (sortMode === 'priority') {
+            return filtered.sort((a, b) => (a.flagged === b.flagged) ? 0 : a.flagged ? -1 : 1);
+        }
+        if (sortMode === 'unread') {
+            return filtered.sort((a, b) => (a.status === 'Unread' ? -1 : 1));
+        }
+        return filtered; // Default to recent (order in mock)
+    };
+
+    const handleSelectConv = (id: string) => {
+        setActiveConvId(id);
+        setConversations(prev => prev.map(c => c.id === id ? { ...c, status: c.status === 'Unread' ? 'Open' : c.status } : c));
+    };
+
+    // --- LOGIC: MESSAGE SENDING ---
     const handleSendMessage = () => {
-        if (!replyText.trim()) return;
-        
+        if (!messageInput.trim() && !attachedFile) return;
+
         const newMessage: Message = {
-            id: `msg-${Date.now()}`,
-            senderId: 'pi01',
-            senderName: 'Dr. Michael Chen',
-            senderRole: 'Principal Investigator',
-            content: replyText,
-            timestamp: new Date().toISOString(),
-            type: selectedTag,
-            hash: `sha256:${Math.random().toString(36).substring(2, 10)}...${Math.random().toString(36).substring(2, 10)}`
+            id: 'm-' + Date.now(),
+            sender: 'You',
+            role: 'PI',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            text: messageInput,
+            tag: selectedTag,
+            attachment: attachedFile ? attachedFile.name : null,
+            fromPI: true
         };
 
-        setConversations(prev => prev.map(c => 
-            c.id === selectedId ? {
-                ...c,
-                messages: [...c.messages, newMessage],
-                lastMessage: replyText,
-                lastMessageSender: 'Dr. Michael Chen',
-                lastMessageRole: 'Principal Investigator',
-                lastMessageTimestamp: new Date().toISOString(),
-                isUnread: false
-            } : c
-        ));
-        setReplyText('');
+        setConversations(prev => prev.map(c => c.id === activeConvId ? {
+            ...c,
+            messages: [...c.messages, newMessage],
+            preview: messageInput || (attachedFile ? `File: ${attachedFile.name}` : ''),
+            timestamp: 'Just now',
+            draft: ''
+        } : c));
+
+        setMessageInput('');
+        setAttachedFile(null);
+        setSelectedTag('General');
+        addToast('Message dispatched');
     };
 
-    const handleStatusChange = (newStatus: MessageStatus) => {
-        setConversations(prev => prev.map(c => 
-            c.id === selectedId ? { ...c, status: newStatus } : c
-        ));
+    const handleSaveDraft = () => {
+        setConversations(prev => prev.map(c => c.id === activeConvId ? { ...c, draft: messageInput } : c));
+        setMessageInput('');
+        addToast('Draft saved for thread', 'warning');
     };
 
-    const urgencyColor = (urgency: UrgencyLevel) => {
-        switch (urgency) {
-            case 'Urgent': return 'text-red-500 border-red-500/20 bg-red-500/10 shadow-[0_0_15px_rgba(239,68,68,0.1)]';
-            case 'Attention': return 'text-amber-500 border-amber-500/20 bg-amber-500/10';
-            case 'Normal': return 'text-emerald-500 border-emerald-500/20 bg-emerald-500/10';
+    // --- LOGIC: ACTIONS ---
+    const toggleFlag = (id: string) => {
+        setConversations(prev => prev.map(c => c.id === id ? { ...c, flagged: !c.flagged } : c));
+        addToast(activeConv?.flagged ? 'Flag removed' : 'Thread flagged for priority');
+    };
+
+    const markResolved = (id: string) => {
+        setConversations(prev => prev.map(c => c.id === id ? { ...c, status: 'Resolved' } : c));
+        addToast('Conversation marked as resolved', 'success');
+    };
+
+    const handleAction = (label: string, systemText: string, tag: any = 'General', escalation = false) => {
+        if (escalation) {
+            setConfirmModal({
+                message: "Escalate this to a safety event? Local IRB and Sponsor will be notified.",
+                onConfirm: () => {
+                    executeSystemAction(label, systemText, tag, true);
+                    setConfirmModal(null);
+                }
+            });
+        } else {
+            executeSystemAction(label, systemText, tag);
         }
     };
 
-    const getStatusIndicator = (status: MessageStatus) => {
-        switch (status) {
-            case 'Action Required': return <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />;
-            case 'Resolved': return <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />;
-            case 'In Progress': return <div className="w-2.5 h-2.5 rounded-full bg-cyan-500" />;
-            default: return <div className="w-2.5 h-2.5 rounded-full bg-slate-700" />;
-        }
+    const executeSystemAction = (label: string, systemText: string, tag: any, escalation = false) => {
+        const sysMsg: Message = {
+            id: 'sys-' + Date.now(),
+            sender: 'System',
+            role: 'Audit',
+            time: 'Now',
+            text: systemText,
+            tag,
+            attachment: null,
+            fromPI: false
+        };
+        setConversations(prev => prev.map(c => c.id === activeConvId ? {
+            ...c,
+            status: escalation ? 'Action Required' : c.status,
+            messages: [...c.messages, sysMsg]
+        } : c));
+        addToast(`${label} executed successfully`);
     };
 
-    const handleAction = (type: string) => {
-        alert(`ACTION LOGGED: [${type}] for ${selectedConv.participantId}. \nAudit Trail updated with PI Signature.`);
-        if (type === 'Flag for Primary Review') {
-            handleStatusChange('Flagged');
+    // --- STYLES ---
+    const G = {
+        glass: {
+            backgroundColor: 'rgba(7, 10, 19, 0.8)',
+            backdropFilter: 'blur(40px)',
+            border: '1px solid rgba(99, 102, 241, 0.2)',
+            boxShadow: 'inset 0 0 20px rgba(99, 102, 241, 0.05)'
+        },
+        title: {
+            fontSize: '2.5rem',
+            fontWeight: 900,
+            fontStyle: 'italic',
+            textTransform: 'uppercase' as const,
+            letterSpacing: '-0.04em',
+            margin: 0,
+            color: 'white'
+        },
+        label: {
+            fontSize: '11px',
+            fontWeight: 900,
+            textTransform: 'uppercase' as const,
+            letterSpacing: '0.25em',
+            color: '#64748b'
+        },
+        btnPrimary: {
+            backgroundColor: '#6366f1',
+            color: 'white',
+            border: 'none',
+            padding: '1rem 2rem',
+            borderRadius: '6px',
+            fontSize: '14px',
+            fontWeight: 900,
+            textTransform: 'uppercase' as const,
+            cursor: 'pointer',
+            boxShadow: '0 4px 20px rgba(99, 102, 241, 0.3)'
+        },
+        btnGhost: {
+            backgroundColor: 'transparent',
+            color: '#94a3b8',
+            border: '1px solid rgba(255,255,255,0.1)',
+            padding: '0.8rem 1.25rem',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: 900,
+            textTransform: 'uppercase' as const,
+            cursor: 'pointer'
         }
     };
 
     return (
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', backgroundColor: '#0B101B', color: 'white', overflow: 'hidden' }}>
+            {/* TOP BAR */}
+            <header style={{ ...G.glass, padding: '1rem 3rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10 }}>
+                <h1 style={{ ...G.title, fontSize: '2rem' }}>Messages</h1>
 
-        <div className="flex flex-col h-[calc(100vh-14rem)] bg-[#0B101B] border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl relative">
-            
-            {/* --- Sticky Top Bar --- */}
-            <header className="flex-shrink-0 px-10 py-8 bg-[#0B101B]/95 backdrop-blur-3xl border-b border-white/5 flex items-center justify-between gap-12 z-20">
-                <div className="flex items-center gap-8">
-                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter flex items-center gap-4">
-                        Messages
-                        <div className="h-6 w-px bg-white/10" />
-                        <span className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.3em] flex items-center gap-2">
-                             PI Workspace <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                        </span>
-                    </h2>
-
-                    <div className="relative group min-w-[320px]">
-                        <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
-                        <input 
-                            type="text" 
-                            placeholder="SEARCH BY SUBJ ID, STUDY, KEYWORD..." 
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-white/5 border border-white/10 rounded-2xl pl-16 pr-8 py-4 w-full text-[10px] font-bold text-white outline-none focus:border-cyan-500/30 transition-all uppercase tracking-widest placeholder:text-slate-800"
-                        />
-                    </div>
+                <div style={{ display: 'flex', flex: 1, maxWidth: '600px', margin: '0 2rem', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '0 1rem' }}>
+                    <Search size={16} color="#64748b" style={{ marginTop: '0.75rem' }} />
+                    <input 
+                        style={{ backgroundColor: 'transparent', border: 'none', color: 'white', padding: '0.75rem', fontSize: '14px', outline: 'none', width: '100%' }}
+                        placeholder="Search IDs, studies, or clinical keywords..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                    />
                 </div>
 
-                <div className="flex items-center gap-6">
-                    <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5">
-                        {[
-                            { id: 'All', label: 'All' },
-                            { id: 'Unread', label: 'Unread' },
-                            { id: 'Flagged', label: 'Flagged' },
-                            { id: 'Action', label: 'Requires Action' },
-                            { id: 'Study', label: 'By Study' }
-                        ].map((tab) => (
-                            <button 
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
-                                className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                    activeTab === tab.id ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20 scale-105' : 'text-slate-500 hover:text-white'
-                                }`}
-                            >
-                                {tab.label}
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <button style={G.btnPrimary} onClick={() => setComposeOpen(true)}><Plus size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Compose</button>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem' }}>
+                        {['All', 'Unread', 'Flagged', 'Requires Action'].map(f => (
+                            <button key={f} 
+                                onClick={() => setFilterStatus(f)}
+                                style={{ ...G.btnGhost, borderColor: filterStatus === f ? '#6366f1' : 'rgba(255,255,255,0.1)', backgroundColor: filterStatus === f ? 'rgba(99,102,241,0.1)' : 'transparent', color: filterStatus === f ? 'white' : '#64748b' }}>
+                                {f}
                             </button>
                         ))}
                     </div>
-                    <button className="px-8 py-4 bg-white text-slate-950 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:scale-105 transition-all shadow-xl italic">
-                        <Plus className="w-4 h-4" /> Compose Message
-                    </button>
                 </div>
             </header>
 
-            <div className="flex flex-1 overflow-hidden">
+            {/* TWO-PANEL LAYOUT */}
+            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
                 
-                {/* --- Left Panel: Conversation List --- */}
-                <aside className="w-[450px] bg-white/[0.01] border-r border-white/5 flex flex-col">
-                    <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
-                        {filteredConversations.map((conv) => (
-                            <motion.div 
-                                key={conv.id}
-                                onClick={() => setSelectedId(conv.id)}
-                                whileHover={{ x: 4, backgroundColor: 'rgba(255,255,255,0.03)' }}
-                                className={`p-6 rounded-[2rem] border transition-all cursor-pointer relative group ${
-                                    selectedId === conv.id 
-                                        ? 'bg-indigo-600/10 border-indigo-500/30 shadow-2xl z-10' 
-                                        : 'bg-transparent border-transparent'
-                                }`}
-                            >
-                                {conv.isUnread && (
-                                    <div className="absolute top-6 left-2 w-2 h-10 bg-cyan-500 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.6)]" />
-                                )}
-                                
-                                <div className="space-y-4">
-                                    <div className="flex items-start justify-between">
-                                        <div>
-                                            <div className="flex items-center gap-3">
-                                                <h4 className="text-sm font-black text-white italic uppercase tracking-tighter">{conv.participantId}</h4>
-                                                <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${urgencyColor(conv.urgency).split(' ')[0]} ${urgencyColor(conv.urgency).split(' ')[1]}`}>
-                                                    {conv.urgency}
-                                                </span>
-                                            </div>
-                                            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1 italic line-clamp-1">{conv.studyName}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">{conv.lastMessageTimestamp.split('T')[1].substring(0, 5)}</p>
-                                            <p className="text-[8px] text-slate-800 font-bold uppercase mt-1 italic">Audit Linked</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[10px] font-black text-indigo-400 italic uppercase">{conv.lastMessageSender}</span>
-                                            <span className="text-[8px] text-slate-700 font-black uppercase tracking-wider">/ {conv.lastMessageRole}</span>
-                                        </div>
-                                        <p className="text-[11px] text-slate-400 font-bold italic line-clamp-2 group-hover:text-slate-200 transition-colors leading-relaxed">
-                                            {conv.lastMessage}
-                                        </p>
-                                    </div>
-
-                                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                                        <div className="flex items-center gap-3">
-                                            {getStatusIndicator(conv.status)}
-                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">{conv.status}</span>
-                                        </div>
-                                        {conv.status === 'Action Required' && (
-                                            <div className="flex items-center gap-2 px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full">
-                                                <ShieldAlert className="w-3 h-3 text-red-500" />
-                                                <span className="text-[8px] font-black text-red-500 uppercase">Priority</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
-                </aside>
-
-                {/* --- Right Panel: Message Thread --- */}
-                <main className="flex-1 flex flex-col bg-[#060811]/30 relative">
-                    
-                    {/* Header Region */}
-                    <div className="flex-shrink-0 px-12 py-10 bg-[#0B101B]/40 backdrop-blur-2xl border-b border-white/5">
-                        <div className="flex items-start justify-between gap-12">
-                            <div className="space-y-6 flex-1">
-                                <div className="flex items-center gap-8">
-                                    <div className="w-16 h-16 rounded-[2rem] bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner">
-                                        <User className="w-8 h-8" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-4">
-                                            <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">{selectedConv.participantId}</h3>
-                                            <div className="flex items-center gap-3 px-4 py-1.5 bg-white/5 border border-white/10 rounded-full">
-                                                {getStatusIndicator(selectedConv.status)}
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{selectedConv.status}</span>
-                                            </div>
-                                        </div>
-                                        <p className="text-xs font-black text-slate-500 uppercase tracking-[0.2em]">{selectedConv.studyName} <span className="text-indigo-500/50">• Protocol #{selectedConv.protocolId}</span></p>
-                                    </div>
-                                </div>
-
-                                {/* AI Summary Line */}
-                                <div className="flex items-center gap-6 p-5 bg-indigo-500/5 border border-indigo-500/10 rounded-[2rem] max-w-3xl group cursor-help transition-all hover:bg-indigo-500/10">
-                                    <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center flex-shrink-0 text-indigo-400">
-                                        <Shield className="w-5 h-5 animate-pulse" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">Clinical Sentiment & AI Insight</p>
-                                        <p className="text-[12px] text-slate-300 font-bold italic leading-relaxed">"{selectedConv.aiSummary}"</p>
-                                    </div>
-                                    <button className="px-5 py-2.5 bg-white/5 hover:bg-white hover:text-[#0B101B] rounded-xl border border-white/10 text-[9px] font-black uppercase tracking-widest transition-all">
-                                        Full Record
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div className="flex flex-col items-end gap-6 text-right">
-                                <div className="flex gap-3">
-                                    <button className="p-4 bg-white/5 border border-white/10 rounded-2xl text-slate-500 hover:text-white transition-all">
-                                        <Star className="w-5 h-5" />
-                                    </button>
-                                    <button className="p-4 bg-white/5 border border-white/10 rounded-2xl text-slate-500 hover:text-white transition-all">
-                                        <Link2 className="w-5 h-5" />
-                                    </button>
-                                    <button 
-                                        onClick={() => setIsActionPanelOpen(!isActionPanelOpen)}
-                                        className={`p-4 rounded-2xl transition-all flex items-center gap-3 border ${
-                                            isActionPanelOpen ? 'bg-indigo-600 text-white border-transparent' : 'bg-white/5 border-white/10 text-slate-500 hover:text-white'
-                                        }`}
-                                    >
-                                        <MoreVertical className="w-5 h-5" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest">Controls</span>
-                                    </button>
-                                </div>
-                                <div className="space-y-1">
-                                    <p className="text-[9px] text-slate-600 font-black uppercase tracking-[0.2em] italic">Assigned Coordinator</p>
-                                    <div className="flex items-center gap-3 justify-end mt-1">
-                                        <span className="text-xs font-black text-white italic uppercase">{selectedConv.assignedCoordinator}</span>
-                                        <div className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
-                                            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                {/* LEFT PANEL: Conversation List */}
+                <div style={{ width: '360px', borderRight: '1px solid rgba(99, 102, 241, 0.2)', display: 'flex', flexDirection: 'column', ...G.glass }}>
+                    <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={G.label}>Conversations</span>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button onClick={() => setSortMode('recent')} style={{ border: 'none', background: 'none', color: sortMode === 'recent' ? '#6366f1' : '#64748b', cursor: 'pointer' }}><Clock size={16} /></button>
+                            <button onClick={() => setSortMode('priority')} style={{ border: 'none', background: 'none', color: sortMode === 'priority' ? '#6366f1' : '#64748b', cursor: 'pointer' }}><Bookmark size={16} /></button>
+                            <button onClick={() => setSortMode('unread')} style={{ border: 'none', background: 'none', color: sortMode === 'unread' ? '#6366f1' : '#64748b', cursor: 'pointer' }}><ListFilter size={16} /></button>
                         </div>
                     </div>
-
-                    {/* Chat Body */}
-                    <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar p-12 space-y-12 bg-gradient-to-b from-transparent to-[#0B101B]/20">
-                        {selectedConv.messages.map((msg) => (
-                            <div key={msg.id} className={`flex ${msg.senderId === 'pi01' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
-                                <div className={`max-w-[70%] space-y-4 ${msg.senderId === 'pi01' ? 'items-end' : 'items-start'}`}>
-                                    <div className={`flex items-center gap-4 ${msg.senderId === 'pi01' ? 'flex-row-reverse text-right' : ''}`}>
-                                        <div className={`w-10 h-10 rounded-[1.25rem] flex items-center justify-center font-black text-[12px] italic border ${
-                                            msg.senderId === 'pi01' ? 'bg-white text-slate-950 border-white' : 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/20'
-                                        }`}>
-                                            {msg.senderName.charAt(0)}
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center gap-3 justify-inherit">
-                                                <span className="text-[11px] font-black text-white italic uppercase tracking-wider">{msg.senderName}</span>
-                                                <span className="px-2 py-0.5 bg-white/5 rounded text-[8px] font-black uppercase tracking-[0.2em] text-slate-500 border border-white/10">{msg.senderRole}</span>
-                                            </div>
-                                            <div className="flex items-center gap-3 mt-0.5 justify-inherit">
-                                                <span className="text-[8px] text-slate-700 font-black uppercase">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • MARCH 20</span>
-                                                {msg.hash && (
-                                                    <span className="text-[7px] text-slate-800 font-mono uppercase tracking-tighter flex items-center gap-1 group">
-                                                        <Hash className="w-2 h-2" /> {msg.hash}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className={`relative p-8 rounded-[2.5rem] text-[14px] font-bold leading-relaxed italic border group ${
-                                        msg.senderId === 'pi01' 
-                                            ? 'bg-indigo-600 text-white border-transparent shadow-2xl' 
-                                            : 'bg-white/[0.03] text-slate-300 border-white/5 hover:bg-white/[0.05] transition-all'
-                                    }`}>
-                                        {msg.content}
-                                        
-                                        <div className={`absolute ${msg.senderId === 'pi01' ? '-left-4' : '-right-4'} -top-2 px-3 py-1 bg-[#0B101B] border border-white/10 rounded-full text-[8px] font-black uppercase tracking-widest text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity shadow-2xl`}>
-                                            {msg.type} Category
-                                        </div>
-
-                                        {msg.type === 'Safety' && msg.senderId !== 'pi01' && (
-                                            <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-12 bg-red-500 rounded-full shadow-[0_0_15px_rgba(239,68,68,.8)]" />
-                                        )}
-                                    </div>
-
-                                    {msg.attachments && msg.attachments.length > 0 && (
-                                        <div className="flex flex-wrap gap-3 mt-4">
-                                            {msg.attachments.map(at => (
-                                                <div key={at.id} className="flex items-center gap-4 px-6 py-3 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all cursor-pointer group shadow-xl">
-                                                    <Paperclip className="w-4 h-4 text-cyan-500" />
-                                                    <div className="text-left">
-                                                        <p className="text-[10px] font-black text-white uppercase tracking-widest">{at.name}</p>
-                                                        <p className="text-[8px] text-slate-600 font-bold uppercase mt-0.5">2.4 MB • Hashed PDF</p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                    <div style={{ flex: 1, overflowY: 'auto' }}>
+                        {getSortedConversations().map(conv => (
+                            <div 
+                                key={conv.id}
+                                onClick={() => handleSelectConv(conv.id)}
+                                style={{
+                                    padding: '1.25rem 1.5rem',
+                                    borderBottom: '1px solid rgba(255,255,255,0.03)',
+                                    cursor: 'pointer',
+                                    borderLeft: activeConvId === conv.id ? '4px solid #6366f1' : '4px solid transparent',
+                                    backgroundColor: activeConvId === conv.id ? 'rgba(99,102,241,0.08)' : 'transparent',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                    <span style={{ fontSize: '16px', fontWeight: 900, fontStyle: 'italic', color: 'white' }}>{conv.participantId} <span style={{ color: '#64748b', fontSize: '12px' }}>| {conv.study}</span></span>
+                                    <span style={{ fontSize: '11px', color: '#64748b' }}>{conv.timestamp}</span>
+                                </div>
+                                <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: 'bold', textTransform: 'uppercase' }}>{conv.sender} • {conv.senderRole}</div>
+                                <div style={{ fontSize: '13px', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.preview}</div>
+                                
+                                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', alignItems: 'center' }}>
+                                    {conv.status === 'Unread' && <span style={{ backgroundColor: '#6366f1', height: '8px', width: '8px', borderRadius: '50%' }} />}
+                                    {conv.status === 'Action Required' && <span style={{ backgroundColor: '#ef4444', height: '8px', width: '8px', borderRadius: '50%' }} />}
+                                    {conv.status === 'Resolved' && <CheckCircle2 size={12} color="#10b981" />}
+                                    {conv.flagged && <Bookmark size={12} color="#f59e0b" fill="#f59e0b" />}
+                                    <span style={{ fontSize: '10px', fontWeight: 900, color: conv.status === 'Resolved' ? '#10b981' : '#64748b', textTransform: 'uppercase' }}>{conv.status}</span>
                                 </div>
                             </div>
                         ))}
                     </div>
+                </div>
 
-                    {/* --- Reply Interface --- */}
-                    <div className="flex-shrink-0 px-12 py-10 bg-[#0B101B]/80 backdrop-blur-3xl border-t border-white/5">
-                        <div className="max-w-5xl mx-auto space-y-6">
-                            
-                            {/* Auto-tag suggestions */}
-                            <div className="flex items-center gap-4 overflow-x-auto no-scrollbar py-2">
-                                <div className="flex items-center gap-2 bg-indigo-500/10 px-3 py-1.5 rounded-xl border border-indigo-500/20 whitespace-nowrap">
-                                    <Star className="w-3 h-3 text-indigo-400" />
-                                    <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Clinical Chips:</span>
+                {/* RIGHT PANEL: Message Thread */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'rgba(255,255,255,0.01)' }}>
+                    {activeConv ? (
+                        <>
+                            {/* THREAD HEADER */}
+                            <div style={{ ...G.glass, borderTop: 'none', borderRight: 'none', padding: '1rem 3rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div>
+                                    <div style={{ fontSize: '20px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' }}>{activeConv.participantId} • <span style={{ color: '#6366f1' }}>{activeConv.study}</span></div>
+                                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.4rem', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '11px', fontWeight: 900, color: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', padding: '0.2rem 0.6rem', borderRadius: '20px' }}>{activeConv.participantStatus} Participant</span>
+                                        <span style={{ fontSize: '11px', color: '#94a3b8' }}><User size={12} style={{ marginRight: '6px' }} /> {activeConv.assignedCoordinator}</span>
+                                    </div>
                                 </div>
-                                {[
-                                    "Adverse event detected", "Missed visit alert", "Dose adjustment required", 
-                                    "Eligibility waiver needed", "Safety Labs requested", "Protocol Deviation Noted"
-                                ].map((chip) => (
-                                    <button 
-                                        key={chip}
-                                        onClick={() => setReplyText(prev => prev + (prev ? ' ' : '') + chip + '. ')}
-                                        className="whitespace-nowrap px-5 py-2 rounded-2xl bg-white/5 border border-white/10 text-[9px] font-black text-slate-500 hover:text-white hover:border-indigo-500/50 transition-all uppercase tracking-widest"
-                                    >
-                                        + {chip}
-                                    </button>
-                                ))}
+                                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                    <button style={{ ...G.btnGhost, padding: '0.6rem 1rem' }} onClick={() => toggleFlag(activeConv.id)}><Bookmark size={14} color={activeConv.flagged ? '#f59e0b' : '#64748b'} fill={activeConv.flagged ? '#f59e0b' : 'none'} style={{ marginRight: '6px' }} /> FLAG</button>
+                                    <button style={{ ...G.btnGhost, padding: '0.6rem 1rem' }} onClick={() => markResolved(activeConv.id)}><CheckCircle2 size={14} color="#10b981" style={{ marginRight: '6px' }} /> RESOLVE</button>
+                                    <button style={{ ...G.btnGhost, padding: '0.6rem 1rem' }} onClick={() => setParticipantDrawerOpen(true)}><FileText size={14} style={{ marginRight: '6px' }} /> RECORD</button>
+                                    <button style={{ ...G.btnPrimary, padding: '0.6rem 1.5rem' }} onClick={() => setActionPanelOpen(!actionPanelOpen)}>ACTIONS {actionPanelOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</button>
+                                </div>
                             </div>
 
-                            <div className="bg-white/5 border border-white/10 rounded-[3rem] p-8 focus-within:border-indigo-500/50 transition-all shadow-inner relative group/input">
-                                <div className="flex items-center justify-between mb-6 px-2">
-                                    <div className="flex items-center gap-6">
-                                        <div className="flex items-center gap-3">
-                                            <Tag className="w-4 h-4 text-slate-700" />
-                                            <div className="flex gap-2">
-                                                {['Safety', 'Protocol', 'Eligibility', 'General'].map(tag => (
-                                                    <button 
-                                                        key={tag}
-                                                        onClick={() => setSelectedTag(tag as MessageCategory)}
-                                                        className={`px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
-                                                            selectedTag === tag ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white/5 text-slate-600 hover:text-slate-400'
-                                                        }`}
-                                                    >
-                                                        {tag}
-                                                    </button>
+                            {/* DYNAMIC ACTION PANEL */}
+                            {actionPanelOpen && (
+                                <div style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '1rem 3rem' }}>
+                                    <div style={{ display: 'flex', gap: '3rem' }}>
+                                        <div>
+                                            <div style={{ ...G.label, marginBottom: '0.6rem' }}>Clinical Actions</div>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem' }} onClick={() => handleAction('Info Request', 'PI has requested additional information. Please update clinical details.', 'General')}>Request MI</button>
+                                                <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem' }} onClick={() => handleAction('Deviation', 'Marked as protocol deviation by PI.', 'Protocol')}>Protocol Dev.</button>
+                                                <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', borderColor: '#ef444430', color: '#ef4444' }} onClick={() => handleAction('Escalation', 'Escalated to safety event by PI. Immediate review required.', 'Safety', true)}>Escalate Safety</button>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div style={{ ...G.label, marginBottom: '0.6rem' }}>Workflow Actions</div>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <select 
+                                                    style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', outline: 'none', backgroundColor: '#0B101B' }}
+                                                    onChange={(e) => executeSystemAction('Assignment', `Assigned to coordinator ${e.target.value} by PI`, 'General')}
+                                                >
+                                                    <option>Assign to...</option>
+                                                    {COORDINATORS.map(c => <option key={c} value={c}>{c}</option>)}
+                                                </select>
+                                                {['Open', 'In Progress', 'Resolved'].map(s => (
+                                                    <button key={s} onClick={() => markResolved(activeConv.id)} style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', border: activeConv.status === s ? '1px solid #10b981' : '1px solid rgba(255,255,255,0.1)' }}>{s}</button>
                                                 ))}
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex gap-4">
-                                        <button className="p-3 bg-white/5 rounded-2xl text-slate-600 hover:text-white transition-all border border-white/5">
-                                            <Paperclip className="w-5 h-5" />
-                                        </button>
-                                        <button className="p-3 bg-white/5 rounded-2xl text-slate-600 hover:text-white transition-all border border-white/5">
-                                            <Maximize2 className="w-5 h-5" />
-                                        </button>
-                                    </div>
                                 </div>
-                                
-                                <textarea 
-                                    value={replyText}
-                                    onChange={(e) => setReplyText(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && !e.shiftKey) {
-                                            e.preventDefault();
-                                            handleSendMessage();
-                                        }
-                                    }}
-                                    placeholder="TYPE CLINICAL RESPONSE... (ENTER TO TRANSMIT)"
-                                    className="w-full bg-transparent border-none outline-none resize-none text-[15px] text-white placeholder-slate-800 font-bold italic h-28 p-2 custom-scrollbar uppercase tracking-[0.05em]"
-                                />
+                            )}
 
-                                <div className="flex items-center justify-between mt-6 pt-6 border-t border-white/5">
-                                    <div className="flex items-center gap-6">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                            <p className="text-[10px] text-slate-700 font-black uppercase italic tracking-widest">Signed: Dr. Michael Chen</p>
+                            {/* CHAT THREAD */}
+                            <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 3rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {activeConv.messages.map(m => (
+                                    <div key={m.id} style={{ alignSelf: m.fromPI ? 'flex-end' : 'flex-start', maxWidth: '75%', textAlign: m.fromPI ? 'right' : 'left' }}>
+                                        <div style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', color: '#64748b', marginBottom: '0.4rem', display: 'flex', justifyContent: m.fromPI ? 'flex-end' : 'flex-start', gap: '0.6rem' }}>
+                                            {!m.fromPI && <span style={{ color: '#6366f1' }}>{m.sender} [{m.role}]</span>}
+                                            <span>{m.time}</span>
+                                            {m.fromPI && <span style={{ color: '#6366f1' }}>YOU [PI]</span>}
+                                        </div>
+                                        <div style={{ 
+                                            padding: '1.5rem', 
+                                            borderRadius: '12px', 
+                                            backgroundColor: m.fromPI ? 'rgba(99, 102, 241, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                                            border: `1px solid ${m.fromPI ? 'rgba(99, 102, 241, 0.3)' : 'rgba(255, 255, 255, 0.08)'}`,
+                                            lineHeight: '1.6',
+                                            fontSize: '16px',
+                                            color: '#f8fafc',
+                                            boxShadow: m.fromPI ? '0 10px 30px rgba(99, 102, 241, 0.1)' : 'none'
+                                        }}>
+                                            {m.text}
+                                            {m.attachment && (
+                                                <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.8rem', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '6px', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                                                    <Paperclip size={14} color="#6366f1" />
+                                                    <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#6366f1' }}>{m.attachment}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div style={{ marginTop: '0.75rem', display: 'flex', justifyContent: m.fromPI ? 'flex-end' : 'flex-start', gap: '0.5rem' }}>
+                                            <span style={{ 
+                                                fontSize: '10px', fontWeight: 900, textTransform: 'uppercase',
+                                                padding: '0.25rem 0.6rem', borderRadius: '4px',
+                                                backgroundColor: m.tag === 'Safety' ? '#ef444420' : m.tag === 'Protocol' ? '#6366f120' : 'rgba(255,255,255,0.05)',
+                                                color: m.tag === 'Safety' ? '#ef4444' : m.tag === 'Protocol' ? '#6366f1' : '#64748b',
+                                                border: `1px solid ${m.tag === 'Safety' ? '#ef444440' : 'rgba(255,255,255,0.1)'}`
+                                            }}>{m.tag}</span>
                                         </div>
                                     </div>
-                                    <div className="flex gap-5">
-                                        <button className="px-10 py-4 bg-white/5 text-slate-500 hover:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 border border-white/10">
-                                            <Save className="w-4 h-4" /> Save Draft
-                                        </button>
-                                        <button 
-                                            onClick={handleSendMessage}
-                                            className="px-12 py-4 bg-white text-slate-950 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-2xl flex items-center gap-4 italic"
-                                        >
-                                            Transmit <Send className="w-5 h-5" />
-                                        </button>
+                                ))}
+                                <div ref={threadEndRef} />
+                            </div>
+
+                            {/* INPUT AREA */}
+                            <div style={{ ...G.glass, borderRight: 'none', borderBottom: 'none', padding: '1rem 3rem' }}>
+                                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                                    <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', fontSize: '10px' }} onClick={() => {
+                                        const t = TEMPLATES[0];
+                                        setMessageInput(t.text.replace('[ID]', activeConv.participantId));
+                                    }}>Template: Eligibility</button>
+                                    <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', fontSize: '10px' }} onClick={() => {
+                                        const t = TEMPLATES[1];
+                                        setMessageInput(t.text);
+                                    }}>Template: AE Follow-up</button>
+                                    <div style={{ flex: 1 }} />
+                                    <div style={{ display: 'flex', backgroundColor: 'rgba(255,255,255,0.03)', padding: '2px', borderRadius: '4px' }}>
+                                        {['General', 'Safety', 'Eligibility', 'Protocol'].map(t => (
+                                            <button key={t} 
+                                                onClick={() => setSelectedTag(t as any)}
+                                                style={{ border: 'none', background: selectedTag === t ? 'rgba(99,102,241,0.2)' : 'transparent', color: selectedTag === t ? '#6366f1' : '#64748b', padding: '0.4rem 1rem', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', borderRadius: '4px', cursor: 'pointer' }}>
+                                                {t}
+                                            </button>
+                                        ))}
                                     </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-end' }}>
+                                    <div style={{ flex: 1, position: 'relative' }}>
+                                        {attachedFile && (
+                                            <div style={{ position: 'absolute', top: '-45px', left: 0, padding: '0.5rem 1rem', backgroundColor: 'rgba(99,102,241,0.1)', borderRadius: '20px', border: '1px solid #6366f1', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                <Paperclip size={12} color="#6366f1" />
+                                                <span style={{ fontSize: '11px', fontWeight: 900, color: '#6366f1' }}>{attachedFile.name}</span>
+                                                <X size={12} color="#6366f1" style={{ cursor: 'pointer' }} onClick={() => setAttachedFile(null)} />
+                                            </div>
+                                        )}
+                                        <textarea 
+                                            style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'white', padding: '1.25rem', fontSize: '16px', outline: 'none', minHeight: '80px', resize: 'vertical' }}
+                                            placeholder="Compose clinical feedback..."
+                                            value={messageInput}
+                                            onChange={e => setMessageInput(e.target.value)}
+                                        />
+                                    </div>
+                                    <input type="file" ref={fileInputRef} hidden onChange={e => setAttachedFile(e.target.files?.[0] || null)} />
+                                    <button style={{ ...G.btnGhost, padding: '1.25rem' }} onClick={() => fileInputRef.current?.click()}><Paperclip size={20} /></button>
+                                    <button style={{ ...G.btnGhost, padding: '1.25rem' }} onClick={handleSaveDraft}><Save size={20} /></button>
+                                    <button style={{ ...G.btnPrimary, height: '80px', padding: '0 2.5rem' }} onClick={handleSendMessage}><Send size={20} /></button>
                                 </div>
                             </div>
+                        </>
+                    ) : (
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                            <MessageSquare size={80} style={{ marginBottom: '2rem', opacity: 0.1 }} />
+                            <div style={{ fontSize: '24px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' }}>Select a participant thread</div>
+                            <div style={{ fontSize: '14px', marginTop: '1rem' }}>Clinical correspondence queue active.</div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* COMPOSE MODAL */}
+            {composeOpen && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)' }} onClick={() => setComposeOpen(false)} />
+                    <div style={{ ...G.glass, width: '720px', padding: '3rem', position: 'relative', borderRadius: '12px' }}>
+                        <h2 style={G.title}>Compose New Message</h2>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '2.5rem' }}>
+                            <div>
+                                <label style={G.label}>Participant ID / To</label>
+                                <input style={{ ...G.btnGhost, width: '100%', padding: '1rem', marginTop: '0.5rem', textAlign: 'left', cursor: 'text' }} placeholder="Select Recipient..." />
+                            </div>
+                            <div>
+                                <label style={G.label}>Select Study</label>
+                                <select style={{ ...G.btnGhost, width: '100%', padding: '1rem', marginTop: '0.5rem', backgroundColor: '#0B101B' }}>
+                                    <option>Beat the Bloat</option>
+                                    <option>Menopause Study</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style={{ marginTop: '2rem' }}>
+                            <label style={G.label}>Clinical Assessment / Message</label>
+                            <textarea style={{ ...G.glass, width: '100%', padding: '1.5rem', marginTop: '0.5rem', minHeight: '200px', fontSize: '16px', color: 'white', outline: 'none' }} placeholder="Detail assessment..." />
+                        </div>
+                        <div style={{ display: 'flex', gap: '1rem', marginTop: '3rem', justifyContent: 'flex-end' }}>
+                            <button style={G.btnGhost} onClick={() => setComposeOpen(false)}>CANCEL</button>
+                            <button style={G.btnPrimary} onClick={() => { setComposeOpen(false); addToast('Direct message initialized'); }}>SEND DISPATCH</button>
                         </div>
                     </div>
-                </main>
+                </div>
+            )}
 
-                {/* --- Action & Workflow Panel (Slide-in) --- */}
-                <AnimatePresence>
-                    {isActionPanelOpen && (
-                        <>
-                            <motion.div 
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                onClick={() => setIsActionPanelOpen(false)}
-                                className="absolute inset-0 bg-slate-950/80 backdrop-blur-md z-40"
-                            />
-                            <motion.aside 
-                                initial={{ x: '100%' }}
-                                animate={{ x: 0 }}
-                                exit={{ x: '100%' }}
-                                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                                className="absolute right-0 top-0 bottom-0 w-[420px] bg-[#0B101B] border-l border-white/10 z-50 flex flex-col shadow-2xl"
-                            >
-                                <div className="flex-shrink-0 px-10 py-10 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                                    <div>
-                                        <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Clinical Controls</h3>
-                                        <p className="text-[9px] text-indigo-400 font-black uppercase tracking-widest mt-1 italic">Audit-Linked Response Matrix</p>
-                                    </div>
-                                    <button onClick={() => setIsActionPanelOpen(false)} className="p-4 bg-white/5 border border-white/10 rounded-2xl text-slate-500 hover:text-white transition-all">
-                                        <X className="w-6 h-6" />
-                                    </button>
-                                </div>
+            {/* CONFIRM MODAL */}
+            {confirmModal && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.9)' }} onClick={() => setConfirmModal(null)} />
+                    <div style={{ ...G.glass, width: '400px', padding: '3rem', position: 'relative', borderRadius: '12px', textAlign: 'center' }}>
+                        <ShieldAlert size={48} color="#ef4444" style={{ marginBottom: '1.5rem' }} />
+                        <p style={{ fontSize: '16px', fontWeight: 'bold', lineHeight: 1.6, marginBottom: '2.5rem' }}>{confirmModal.message}</p>
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <button style={{ ...G.btnGhost, flex: 1 }} onClick={() => setConfirmModal(null)}>ABORT</button>
+                            <button style={{ ...G.btnPrimary, flex: 1, backgroundColor: '#ef4444' }} onClick={confirmModal.onConfirm}>CONFIRM</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
-                                <div className="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-12">
-                                    
-                                    <section>
-                                        <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] mb-6 italic border-b border-white/5 pb-3">Clinical Oversight</h4>
-                                        <div className="grid gap-3">
-                                            {[
-                                                { label: 'Flag for Primary Review', icon: Flag, color: 'amber', desc: 'Add visual indicator for high-priority monitoring' },
-                                                { label: 'Protocol Deviation', icon: AlertCircle, color: 'cyan', desc: 'Log non-compliance event to regulatory trail' },
-                                                { label: 'Escalate to Sponsor', icon: ArrowUpRight, color: 'red', desc: 'Transmit thread to external clinical monitor' },
-                                                { label: 'Add to Participant Record', icon: FileText, color: 'indigo', desc: 'Permanent link to subject medical history' }
-                                            ].map((action, i) => (
-                                                <button 
-                                                    key={i} 
-                                                    onClick={() => handleAction(action.label)}
-                                                    className="w-full flex items-start gap-4 p-5 bg-white/5 border border-white/5 rounded-[2rem] hover:bg-white/[0.08] hover:border-white/10 transition-all group text-left"
-                                                >
-                                                    <div className={`w-12 h-12 rounded-2xl bg-${action.color}-500/10 flex items-center justify-center text-${action.color}-500/80 group-hover:text-${action.color}-400 transition-colors flex-shrink-0`}>
-                                                        <action.icon className="w-5 h-5" />
-                                                    </div>
-                                                    <div>
-                                                        <span className="text-[11px] font-black text-white uppercase tracking-widest group-hover:text-white block">{action.label}</span>
-                                                        <span className="text-[8px] text-slate-600 font-bold uppercase mt-1 block italic">{action.desc}</span>
-                                                    </div>
-                                                </button>
-                                            ))}
-
-                                        </div>
-                                    </section>
-
-                                    <section>
-                                        <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] mb-6 italic border-b border-white/5 pb-3">Workflow State</h4>
-                                        <div className="space-y-8">
-                                            <div>
-                                                <label className="text-[9px] text-slate-500 font-black uppercase tracking-widest ml-1 mb-4 block">Resolution Phase</label>
-                                                <div className="grid gap-2">
-                                                    {['Open', 'In Progress', 'Resolved'].map(status => (
-                                                        <button 
-                                                            key={status} 
-                                                            onClick={() => handleStatusChange(status as MessageStatus)}
-                                                            className={`w-full flex items-center justify-between p-5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all ${
-                                                                selectedConv.status === status 
-                                                                    ? 'bg-indigo-600 text-white border border-indigo-500 shadow-xl shadow-indigo-600/20 scale-[1.02]' 
-                                                                    : 'bg-white/5 border border-transparent text-slate-500 hover:text-white hover:bg-white/10'
-                                                            }`}
-                                                        >
-                                                            {status}
-                                                            {selectedConv.status === status && <Check className="w-4 h-4" />}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-4 pt-6 border-t border-white/5">
-                                                <label className="text-[9px] text-slate-500 font-black uppercase tracking-widest ml-1 block">Coordinator Assignment</label>
-                                                <div className="relative">
-                                                    <User className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
-                                                    <select className="w-full bg-white/5 border border-white/10 rounded-2xl pl-16 pr-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-300 outline-none focus:border-indigo-500/50 appearance-none italic">
-                                                        <option>Transfer to: Sarah Jenkins</option>
-                                                        <option>Transfer to: Mark Wilson</option>
-                                                        <option>Escalate to: Dr. Elena R.</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </section>
-
-                                    <div className="mt-auto p-8 bg-cyan-500/5 border border-cyan-500/10 rounded-[2.5rem] relative overflow-hidden group">
-                                        <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl group-hover:bg-cyan-500/10 transition-colors" />
-                                        <div className="flex items-center gap-4 mb-4">
-                                            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400">
-                                                <History className="w-5 h-5" />
-                                            </div>
-                                            <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest italic">Immutable Audit Trail</p>
-                                        </div>
-                                        <p className="text-[11px] text-slate-600 font-bold leading-relaxed italic relative z-10">
-                                            Transmission stability verified via SHA-256. This thread is ready for FDA/EMA investigator inspection.
-                                        </p>
-                                    </div>
-
-                                </div>
-                            </motion.aside>
-                        </>
+            {/* RECORD DRAWER */}
+            {participantDrawerOpen && (
+                <div style={{ position: 'fixed', top: 0, right: 0, width: '480px', height: '100vh', ...G.glass, zIndex: 500, boxShadow: '-50px 0 100px rgba(0,0,0,0.8)', padding: '3rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
+                        <h2 style={G.title}>Participant Record</h2>
+                        <button style={G.btnGhost} onClick={() => setParticipantDrawerOpen(false)}><X size={24} /></button>
+                    </div>
+                    {activeConv && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                            <div style={{ padding: '2rem', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                <span style={G.label}>Primary ID</span>
+                                <div style={{ fontSize: '24px', fontWeight: 900, fontStyle: 'italic', marginTop: '0.5rem' }}>{activeConv.participantId}</div>
+                            </div>
+                            <div>
+                                <span style={G.label}>Clinical Status</span>
+                                <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#10b981', marginTop: '0.5rem' }}>{activeConv.participantStatus}</div>
+                            </div>
+                            <div>
+                                <span style={G.label}>Active Study</span>
+                                <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#6366f1', marginTop: '0.5rem' }}>{activeConv.study}</div>
+                            </div>
+                            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '2rem' }}>
+                                <button style={{ ...G.btnPrimary, width: '100%' }}>OPEN FULL MEDICAL VULCAN</button>
+                            </div>
+                        </div>
                     )}
-                </AnimatePresence>
+                </div>
+            )}
+
+            {/* TOAST SYSTEM */}
+            <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 2000, display: 'flex', flexDirection: 'column-reverse', gap: '0.75rem' }}>
+                {toasts.map(t => (
+                    <div key={t.id} style={{ 
+                        padding: '1rem 2rem', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '1rem',
+                        backgroundColor: t.type === 'success' ? '#10b981' : t.type === 'error' ? '#ef4444' : '#f59e0b',
+                        color: 'white', fontWeight: 900, textTransform: 'uppercase', fontSize: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+                    }}>
+                        {t.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                        {t.message}
+                    </div>
+                ))}
             </div>
         </div>
     );

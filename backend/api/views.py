@@ -23,7 +23,7 @@ class IsAdminOrCoordinator(permissions.BasePermission):
     def has_permission(self, request, view):
         if not request.user.is_authenticated:
             return False
-        return request.user.role in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']
+        return request.user.role.upper() in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']
 
 class WorkflowContentMixin:
     """Mixin to handle role-based workflow logic for content creation and status."""
@@ -41,7 +41,7 @@ class WorkflowContentMixin:
             # Public only sees approved content
             return self.queryset.filter(**{status_field: 'approved'})
             
-        if user.role in ['SUPER_ADMIN', 'ADMIN']:
+        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']:
             qs = self.queryset.all()
             if status_filter:
                 qs = qs.filter(**{status_field: status_filter})
@@ -58,7 +58,7 @@ class WorkflowContentMixin:
         status_field = 'approval_status' if is_study else 'status'
         
         # Determine status based on role
-        status_val = 'approved' if user.role in ['SUPER_ADMIN', 'ADMIN'] else 'pending'
+        status_val = 'approved' if user.role.upper() in ['SUPER_ADMIN', 'ADMIN'] else 'pending'
         
         # Save with user and status
         serializer.save(created_by=user, **{status_field: status_val})
@@ -68,14 +68,14 @@ class WorkflowContentMixin:
         is_study = hasattr(serializer.Meta.model, 'approval_status')
         status_field = 'approval_status' if is_study else 'status'
 
-        if user.role not in ['SUPER_ADMIN', 'ADMIN']:
+        if user.role.upper() not in ['SUPER_ADMIN', 'ADMIN']:
             serializer.save(**{status_field: 'pending'})
         else:
             serializer.save()
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def approve(self, request, pk=None):
-        if request.user.role not in ['SUPER_ADMIN', 'ADMIN']:
+        if request.user.role.upper() not in ['SUPER_ADMIN', 'ADMIN']:
             return Response({'error': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
         obj = self.get_object()
         if hasattr(obj, 'approval_status'):
@@ -87,7 +87,7 @@ class WorkflowContentMixin:
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def reject(self, request, pk=None):
-        if request.user.role not in ['SUPER_ADMIN', 'ADMIN']:
+        if request.user.role.upper() not in ['SUPER_ADMIN', 'ADMIN']:
             return Response({'error': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
         obj = self.get_object()
         if hasattr(obj, 'approval_status'):
@@ -108,7 +108,7 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         if not user.is_authenticated:
             return Study.objects.filter(status__in=['RECRUITING', 'ACTIVE'], approval_status='approved')
             
-        if user.role in ['ADMIN', 'SUPER_ADMIN']:
+        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
             return Study.objects.all()
         
         # Sponsors, Coordinators, and PIs only see assigned studies
@@ -126,7 +126,7 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         coord_ids = serializer.validated_data.pop('coordinator_ids', [])
         
         # PIs and Coordinators are trusted internal staff; auto-approve their studies
-        approval_status = 'approved' if user.role in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR'] else 'pending'
+        approval_status = 'approved' if user.role.upper() in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR'] else 'pending'
         
         if user.role == 'SPONSOR':
             study = serializer.save(status='PAUSED', created_by=user, approval_status=approval_status)
@@ -140,7 +140,7 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         AuditLog.log('UPDATE_STUDY', user_email=user.email, request=self.request, detail=f"Created study {study.title}")
         
         # Ensure creator has assignment
-        if user.role in ['PI', 'COORDINATOR']:
+        if user.role.upper() in ['PI', 'COORDINATOR']:
             StudyAssignment.objects.get_or_create(study=study, user=user, role=user.role)
 
     def perform_update(self, serializer):
@@ -150,7 +150,7 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         
         # If internal staff is updating, ensure it's approved (especially if it was pending)
         extra_fields = {}
-        if user.role in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR']:
+        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR']:
             extra_fields['approval_status'] = 'approved'
 
         study = serializer.save(**extra_fields)
@@ -268,7 +268,7 @@ class LabResultViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ['ADMIN', 'SUPER_ADMIN']:
+        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
             return LabResult.objects.all()
         if user.role == 'SPONSOR':
             # Sponsors see all labs for their studies but de-identified (handled by Participant filter)
@@ -342,7 +342,7 @@ class ParticipantTaskViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return ParticipantTask.objects.none()
-        if user.role in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']:
+        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']:
             return ParticipantTask.objects.all()
         return ParticipantTask.objects.filter(participant__user=user)
 
@@ -358,7 +358,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ['ADMIN', 'SUPER_ADMIN']:
+        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
             return User.objects.all()
         return User.objects.filter(id=user.id)
 

@@ -28,19 +28,31 @@ def verify_recaptcha(token):
         logger.error(f"reCAPTCHA verification error: {e}")
         return False
 
+from django.core.mail import send_mail
+from django.utils.html import strip_tags
+
 def send_resend_email(to_email, subject, html_content):
-    """Sends an email using the Resend API."""
+    """
+    Sends an email using Django's standard email system.
+    This works with any provider (Resend, SendGrid, SMTP) via settings.py.
+    In DEBUG mode, it prints to the console. In production, it uses SMTP.
+    """
     try:
-        params = {
-            "from": settings.DEFAULT_FROM_EMAIL or "MusB Research <noreply@musbhealth.com>",
-            "to": [to_email],
-            "subject": subject,
-            "html": html_content,
-        }
-        resend.Emails.send(params)
+        from_email = settings.DEFAULT_FROM_EMAIL
+        plain_message = strip_tags(html_content)
+        
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=from_email,
+            recipient_list=[to_email],
+            html_message=html_content,
+            fail_silently=False,
+        )
         return True
     except Exception as e:
-        logger.error(f"Error sending email via Resend: {e}")
+        logger.error(f"Failed to send email to {to_email}: {str(e)}")
+        # In DEBUG mode, even with the console backend, errors can occur if settings are corrupt.
         return False
 
 def generate_token():

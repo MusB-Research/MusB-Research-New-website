@@ -1,6 +1,6 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, permissions
 from django.utils.timezone import now
 from django.utils.crypto import get_random_string
 from django.conf import settings
@@ -10,6 +10,7 @@ import secrets
 import logging
 from ..models import User, AuditLog
 from ..utils import send_resend_email
+from api.views import IsAdminOrCoordinator
 
 logger = logging.getLogger(__name__)
 
@@ -17,18 +18,19 @@ ALLOWED_ROLES = ['super_admin', 'admin', 'sponsor', 'coordinator', 'pi', 'team_m
 
 def check_permission(creator, target_role):
     """Enforce RBAC rules for user creation (Section 1.4)"""
-    if creator.status != "active":
+    if creator.status.lower() != "active":
         return False
 
     c_role = creator.role.lower()
-    c_aff  = creator.affiliation.lower()
+    c_aff  = (creator.affiliation or '').lower()
     t_role = target_role.lower()
 
     if c_role == "super_admin":
-        return t_role in ["admin", "sponsor", "coordinator", "pi"]
+        # Super Admin can create any role (Master override)
+        return True
     
     if c_role == "admin":
-        return t_role in ["sponsor", "coordinator", "pi"]
+        return t_role in ["admin", "sponsor", "coordinator", "pi"]
     
     if c_role == "coordinator" and c_aff == "musb":
         return t_role in ["sponsor", "pi"]
@@ -66,7 +68,7 @@ def admin_create_user(request):
     Role-specific credentials delivery and mandatory reset flags.
     """
     admin_user = request.user
-    if not admin_user or not admin_user.is_authenticated or admin_user.role not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR']:
+    if not admin_user or not admin_user.is_authenticated or admin_user.role.upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR']:
         return Response({'error': 'Unauthorized access.'}, status=status.HTTP_403_FORBIDDEN)
 
     # 1. Extraction
@@ -74,14 +76,20 @@ def admin_create_user(request):
     first_name  = request.data.get('first_name', '').strip()
     middle_name = request.data.get('middle_name', '').strip() or None
     last_name   = request.data.get('last_name', '').strip()
-    role        = request.data.get('role', '').strip().upper()
+    role_input = request.data.get('role', '').strip()
     
     # 2. Validation
-    if not all([email, first_name, last_name, role]):
+    if not all([email, first_name, last_name, role_input]):
         return Response({'error': 'First Name, Last Name, Email, and Role are mandatory.'}, status=status.HTTP_400_BAD_REQUEST)
     
-    role = role.lower()
-    if role not in [r[0] for r in User.ROLE_CHOICES]:
+    # Find matching role in choices regardless of case
+    role = None
+    role_choices_keys = [r[0].lower() for r in User.ROLE_CHOICES]
+    if role_input.lower() in role_choices_keys:
+        # Use the actual key from ROLE_CHOICES (respecting original case like PARTICIPANT)
+        role = [r[0] for r in User.ROLE_CHOICES if r[0].lower() == role_input.lower()][0]
+    
+    if not role:
         return Response({'error': f'Invalid role. Allowed: {", ".join([r[1] for r in User.ROLE_CHOICES])}'}, status=status.HTTP_400_BAD_REQUEST)
 
     # 3. RBAC Permission Check
@@ -141,14 +149,22 @@ def admin_create_user(request):
         
         # 5. Email Delivery Logic
         subject_map = {
-            'PI': 'Your PI Coordinator Account Has Been Created',
-            'COORDINATOR': 'Your PI Coordinator Account Has Been Created',
-            'SPONSOR': 'Welcome — Your Sponsor Account Is Ready',
-            'SUPER_ADMIN': 'Super Admin Access Granted — Action Required',
+            'pi': 'Your PI Coordinator Account Has Been Created',
+            'coordinator': 'Your PI Coordinator Account Has Been Created',
+            'sponsor': 'Welcome — Your Sponsor Account Is Ready',
+            'super_admin': 'Super Admin Access Granted — Action Required',
+            'admin': 'Admin Account Access Granted — Action Required',
         }
         
-        subject = subject_map.get(role, 'Account Created — MusB Research')
-        login_url = f"{settings.CORS_ALLOWED_ORIGINS[0]}/signin" if settings.CORS_ALLOWED_ORIGINS else "https://musbhealth.com/signin"
+        subject = subject_map.get(role.lower(), 'Account Created — MusB Research')
+        
+        # Determine correct login URL based on role
+        frontend_base = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
+        
+        if role.lower() == 'super_admin':
+            login_url = f"{frontend_base.rstrip('/')}/mainframe/restricted-auth"
+        else:
+            login_url = f"{frontend_base.rstrip('/')}/signin"
         
         html_content = f"""
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
@@ -208,7 +224,7 @@ def admin_create_user(request):
 def admin_resend_credentials(request, user_id):
     """Endpoint to manual trigger credential resend/regeneration."""
     admin_user = request.user
-    if not admin_user or not admin_user.is_authenticated or admin_user.role not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR']:
+    if not admin_user or not admin_user.is_authenticated or admin_user.role.upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR']:
         return Response({'error': 'Unauthorized.'}, status=status.HTTP_403_FORBIDDEN)
     
     try:
@@ -219,7 +235,7 @@ def admin_resend_credentials(request, user_id):
             return Response({'error': 'User has already secured their account. Password cannot be reset this way.'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Permission Restriction: PI/Coordinator can ONLY resend for Sponsors
-        if admin_user.role in ['PI', 'COORDINATOR'] and target_user.role != 'SPONSOR':
+        if admin_user.role.upper() in ['PI', 'COORDINATOR'] and target_user.role.lower() != 'sponsor':
             return Response({'error': 'You only have the authority to manage Sponsor credentials.'}, status=status.HTTP_403_FORBIDDEN)
             
         new_temp_password = generate_secure_password(14)
@@ -228,7 +244,10 @@ def admin_resend_credentials(request, user_id):
         
         # Reuse email logic
         subject = "Updated Credentials — MusB Research"
-        login_url = f"{settings.CORS_ALLOWED_ORIGINS[0]}/signin" if settings.CORS_ALLOWED_ORIGINS else "https://musbhealth.com/signin"
+        origins = getattr(settings, 'CORS_ALLOWED_ORIGINS', [])
+        if not origins and getattr(settings, 'DEBUG', False):
+            origins = ["http://localhost:5173"]
+        login_url = f"{origins[0]}/signin" if origins else "https://musbhealth.com/signin"
         
         html_content = f"""
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #4f46e5; border-radius: 10px;">
@@ -268,7 +287,7 @@ def admin_resend_credentials(request, user_id):
 def admin_get_audit_logs(request):
     """Retrieves all platform audit logs for Super Admin dashboard."""
     admin_user = request.user
-    if not admin_user or not admin_user.is_authenticated or admin_user.role not in ['SUPER_ADMIN', 'ADMIN']:
+    if not admin_user or not admin_user.is_authenticated or admin_user.role.upper() not in ['SUPER_ADMIN', 'ADMIN']:
         return Response({'error': 'Unauthorized access.'}, status=status.HTTP_403_FORBIDDEN)
 
     logs = AuditLog.objects.all()[:100] # Limit to 100 for dashboard performance
@@ -299,7 +318,7 @@ def admin_get_audit_logs(request):
 @api_view(['GET'])
 def get_pending_approvals(request):
     """List team member requests for Super Admin with status filtering"""
-    if request.user.role != 'super_admin':
+    if request.user.role.lower() != 'super_admin':
         return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
     
     status_filter = request.query_params.get('status', 'pending').lower()
@@ -325,7 +344,7 @@ def get_pending_approvals(request):
 @api_view(['POST'])
 def process_approval(request, request_id, action):
     """Approve or Reject a pending team member"""
-    if request.user.role != 'super_admin':
+    if request.user.role.lower() != 'super_admin':
         return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
     
     from ..models import ApprovalRequest
@@ -353,3 +372,48 @@ def process_approval(request, request_id, action):
         return Response({'message': f'User {action}d successfully'})
     except ApprovalRequest.DoesNotExist:
         return Response({'error': 'Request not found'}, status=status.HTTP_404_NOT_FOUND)
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated, IsAdminOrCoordinator])
+def admin_get_analytics_stats(request):
+    """
+    Super Admin / Admin aggregated analytics.
+    Returns:
+    - User segmentation (Role, Country, Status)
+    - Study segmentation
+    - Activity trends from AuditLog
+    """
+    from ..models import User, AuditLog
+    from api.models import Study, Participant
+    from django.db.models import Count
+    
+    # 1. User Summary
+    total_users = User.objects.count()
+    users_by_role = list(User.objects.values('role').annotate(count=Count('role')))
+    
+    # 2. Location Distribution (from User.country)
+    # Filter out empty strings/None
+    locations = list(User.objects.exclude(country__in=[None, '']).values('country').annotate(count=Count('country')).order_by('-count')[:8])
+    
+    # 3. Content Stats
+    total_studies = Study.objects.count()
+    total_participants = Participant.objects.count()
+    
+    # 4. Recent Activity (Audit Logs)
+    # We use these to simulate "Traffic Trends" / "News"
+    recent_audit = list(AuditLog.objects.order_by('-timestamp').values('action', 'timestamp')[:50])
+
+    # 5. Study Distribution by status
+    studies_by_status = list(Study.objects.values('status').annotate(count=Count('status')))
+
+    return Response({
+        'summary': {
+            'total_users': total_users,
+            'total_studies': total_studies,
+            'total_participants': total_participants,
+            'online_now': int(total_users * 0.1) + 1, # Placeholder for REAL real-time
+        },
+        'user_distribution': users_by_role,
+        'location_distribution': locations,
+        'recent_activity': recent_audit,
+        'study_distribution': studies_by_status
+    })

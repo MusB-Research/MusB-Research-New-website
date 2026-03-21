@@ -1,7 +1,8 @@
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.utils.timezone import now
@@ -22,15 +23,21 @@ logger = logging.getLogger(__name__)
 # ── Cookie configuration ──────────────────────────────────
 COOKIE_OPTS = {
     'httponly':  True,
-    'samesite':  'Lax' if settings.DEBUG else 'None',
-    'secure':    not settings.DEBUG,   # True in production (HTTPS only)
+    # Must be 'None' for cross-port/cross-origin cookies to works with fetch/credentials:include
+    'samesite':  'None',
+    # Must be True for SameSite=None. Modern browsers allow this on localhost even without HTTPS.
+    'secure':    True,
     'path':      '/',
 }
 
 def _set_auth_cookies(response, access_token: str, refresh_token: str):
-    """Attach HttpOnly cookies for both tokens."""
-    response.set_cookie('access_token',  access_token,  max_age=8*3600,              **COOKIE_OPTS)
-    response.set_cookie('refresh_token', refresh_token, max_age=30*24*3600, **COOKIE_OPTS)
+    """
+    Attach HttpOnly cookies for both tokens.
+    Omitting 'max_age' makes these SESSION COOKIES, 
+    meaning they are deleted when the browser/session is closed.
+    """
+    response.set_cookie('access_token',  access_token,  **COOKIE_OPTS)
+    response.set_cookie('refresh_token', refresh_token, **COOKIE_OPTS)
     return response
 
 def _clear_auth_cookies(response):
@@ -39,54 +46,40 @@ def _clear_auth_cookies(response):
     response.delete_cookie('refresh_token', path='/')
     return response
 
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([AnonRateThrottle])
 def login_view(request):
     """Unified login for all roles (Superadmin, Admin, PI, Coordinator, Participant, Sponsor)"""
-    from django_ratelimit.core import is_ratelimited
-    limited = is_ratelimited(
-        request,
-        group='login',
-        key='ip',
-        rate='5/m',
-        method='POST',
-        increment=True,
-    )
-    if limited:
-        AuditLog.log('RATE_LIMITED', request=request, detail='Login rate limit hit')
-        return Response({'error': 'Too many login attempts. Please wait 1 minute.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
-    email    = request.data.get('email', '').strip().lower()
+    login_id = request.data.get('email', '').strip().lower()
     password = request.data.get('password', '')
 
-    if not email or not password:
-        return Response({'error': 'Email and password are required'}, status=status.HTTP_400_BAD_REQUEST)
+    if not login_id or not password:
+        return Response({'error': 'Email or User ID and password are required'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        user = authenticate(request=request, email=email, password=password)
+        # Standard authenticate() now uses DualAuthBackend to check both Email and User ID
+        user = authenticate(request=request, username=login_id, password=password)
     except Exception as e:
         logger.error(f'Login authenticate() crashed: {e}')
-        try:
-            from ..models import User as UserModel
-            db_user = UserModel.objects.filter(email=email).first()
-            user = db_user if (db_user and db_user.password and db_user.check_password(password)) else None
-        except Exception as e2:
-            logger.error(f'Login fallback also failed: {e2}')
-            AuditLog.log('LOGIN_FAILED', user_email=email, request=request, detail='Auth service error')
-            return Response({'error': 'Authentication service error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        user = None
 
     if not user:
-        AuditLog.log('LOGIN_FAILED', user_email=email, request=request, detail='Invalid credentials')
-        return Response({'error': 'Invalid email or password'}, status=status.HTTP_401_UNAUTHORIZED)
+        AuditLog.log('LOGIN_FAILED', user_email=login_id, request=request, detail='Invalid credentials')
+        return Response({'error': 'Invalid email/user id or password'}, status=status.HTTP_401_UNAUTHORIZED)
 
     # Role-Based Status Check
     status_val = getattr(user, 'status', 'active')
     if user.is_active is False or status_val == 'rejected':
-        AuditLog.log('LOGIN_FAILED', user_email=email, request=request, detail='Account rejected/deactivated')
+        AuditLog.log('LOGIN_FAILED', user_email=login_id, request=request, detail='Account rejected/deactivated')
         return Response({'error': 'Your account has been rejected. Contact support.' if status_val == 'rejected' else 'Account deactivated. Contact support.'}, status=status.HTTP_403_FORBIDDEN)
     
     if status_val == 'pending':
-        AuditLog.log('LOGIN_FAILED', user_email=email, request=request, detail='Account pending approval')
+        AuditLog.log('LOGIN_FAILED', user_email=login_id, request=request, detail='Account pending approval')
         return Response({'error': 'Your account is pending Super Admin approval.'}, status=status.HTTP_403_FORBIDDEN)
 
     try:
@@ -128,7 +121,7 @@ def login_view(request):
             'first_name':   decrypt_data(user.first_name) if user.first_name else '',
             'last_name':    decrypt_data(user.last_name) if user.last_name else '',
             'organization': user.decrypted_organization,
-            'role':         user.role,
+            'role':         user.role.upper() if user.role else 'PARTICIPANT',
             'affiliation':  getattr(user, 'affiliation', 'musb'),
             'status':       getattr(user, 'status', 'active'),
             'picture':      user.profile_picture or '',
@@ -146,6 +139,7 @@ def login_view(request):
     })
     return _set_auth_cookies(response, access_token, refresh_token)
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def logout_view(request):

@@ -4,6 +4,7 @@ from django.utils.timezone import now
 import random
 import datetime
 from .security import encrypt_data, decrypt_data
+from functools import cached_property
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -118,8 +119,8 @@ class User(AbstractBaseUser, PermissionsMixin):
 
         # Encrypt personal fields if not already encrypted
         fields_to_encrypt = [
-            'organization', 'phone_number', 'full_address', 
-            'city', 'state', 'place_of_origin'
+            'full_name', 'first_name', 'last_name', 'organization', 'phone_number', 
+            'full_address', 'city', 'state', 'place_of_origin'
         ]
         
         for field in fields_to_encrypt:
@@ -127,6 +128,7 @@ class User(AbstractBaseUser, PermissionsMixin):
             # Only encrypt if it's a non-empty string and doesn't look like a Fernet token
             if val and isinstance(val, str) and not str(val).startswith('gAAAA'):
                 setattr(self, field, encrypt_data(val))
+
         
         # Normalize active status
         if self.is_active is None:
@@ -134,15 +136,15 @@ class User(AbstractBaseUser, PermissionsMixin):
             
         super().save(*args, **kwargs)
 
-    @property
+    @cached_property
     def decrypted_name(self):
         return decrypt_data(self.full_name)
 
-    @property
+    @cached_property
     def decrypted_organization(self):
         return decrypt_data(self.organization)
 
-    @property
+    @cached_property
     def decrypted_phone(self):
         return decrypt_data(self.phone_number)
 
@@ -236,7 +238,7 @@ class AuditLog(models.Model):
         ('EXPORT_DATA',            'Export Data'),
         ('SYSTEM_CONFIG_CHANGE',   'System Config Change'),
     ]
-    user_email = models.EmailField(null=True, blank=True)   # nullable for failed unknown logins
+    user_email = models.CharField(max_length=255, null=True, blank=True)   # nullable for failed unknown logins (e.g. User IDs)
     action = models.CharField(max_length=30, choices=ACTION_CHOICES)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.CharField(max_length=512, blank=True, null=True)

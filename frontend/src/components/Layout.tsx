@@ -2,7 +2,7 @@ import React, { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ArrowRight, Linkedin, Mail, MapPin, Phone, ChevronDown, Youtube, Facebook, Instagram, Send, Loader2, CheckCircle2, LogIn, LogOut, LayoutDashboard, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { redirectToLogin, clearToken, isLoggedIn, getRole, getUser } from '../utils/auth';
+import { redirectToLogin, clearToken, isLoggedIn, getRole, getUser, performLogout } from '../utils/auth';
 import AnimatedBackground from './AnimatedBackground';
 
 interface LayoutProps {
@@ -126,6 +126,8 @@ export default function Layout({ children }: LayoutProps) {
                         {/* Logo - Acts as Home button opening in new tab */}
                         <Link
                             to="/"
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="flex-shrink-0 flex items-center group py-2"
                         >
                             <div className="h-11 md:h-16 bg-white rounded-xl md:rounded-2xl border border-slate-200/80 flex items-center justify-center overflow-hidden px-3 md:px-2 shadow-sm hover:scale-105 hover:shadow-md transition-all duration-300">
@@ -243,7 +245,7 @@ export default function Layout({ children }: LayoutProps) {
                                             </div>
                                         </Link>
                                         <button
-                                            onClick={async () => { await clearToken(); window.location.href = "/"; }}
+                                            onClick={async () => { await performLogout(); }}
                                             className="w-[42px] h-[42px] rounded-full border-[1.5px] border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50 transition-all shrink-0 ml-1 md:ml-3"
                                             title="Logout"
                                         >
@@ -373,7 +375,7 @@ export default function Layout({ children }: LayoutProps) {
                                                 </div>
                                             </Link>
                                             <button
-                                                onClick={() => { clearToken(); window.location.href = "/"; }}
+                                                onClick={async () => { await performLogout(); }}
                                                 className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl border-2 border-slate-200 text-slate-600 font-black text-sm uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all shadow-sm group"
                                             >
                                                 <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -400,7 +402,7 @@ export default function Layout({ children }: LayoutProps) {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-x-6 gap-y-16 mb-20">
                         {/* Branding & Contact */}
                         <div className="lg:col-span-3 space-y-10">
-                            <Link to="/" className="inline-block group">
+                            <Link to="/" target="_blank" rel="noopener noreferrer" className="inline-block group">
                                 <div className="h-24 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 group-hover:border-cyan-500/30 transition-all duration-500 flex items-center justify-center shadow-2xl overflow-hidden">
                                     <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain brightness-110 contrast-125" />
                                 </div>

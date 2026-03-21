@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { authFetch, clearToken, getRole } from '../utils/auth';
+import { authFetch, clearToken, getRole, performLogout } from '../utils/auth';
 import DashboardModule from '../components/admin/DashboardModule';
 import TeamModule from '../components/admin/TeamModule';
 import AuditLogs from '../components/admin/AuditLogs';
@@ -92,9 +92,8 @@ export default function AdminDashboard() {
         return item.roles.includes(user.role?.toLowerCase());
     });
 
-    const confirmSignOut = () => {
-        clearToken();
-        navigate('/');
+    const confirmSignOut = async () => {
+        await performLogout();
     };
 
     return (
@@ -106,7 +105,7 @@ export default function AdminDashboard() {
                         <button
                             key={item.id}
                             onClick={() => {
-                                if (item.id === 'WEBSITE') navigate('/');
+                                if (item.id === 'WEBSITE') window.open('/', '_blank');
                                 else setActiveModule(item.id as AdminModule);
                             }}
                             className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group ${activeModule === item.id
@@ -117,7 +116,7 @@ export default function AdminDashboard() {
                             <div className="w-10 flex items-center justify-center flex-shrink-0">
                                 <item.icon className={`w-4 h-4 ${activeModule === item.id ? 'text-cyan-400' : 'text-slate-600 group-hover:text-cyan-400'}`} />
                             </div>
-                            {isSidebarOpen && <span className="text-[11px] font-black uppercase tracking-[0.15em]">{item.label}</span>}
+                            {isSidebarOpen && <span className="text-[13px] font-black uppercase tracking-[0.1em]">{item.label}</span>}
                             {activeModule === item.id && isSidebarOpen && (
                                 <motion.div layoutId="activeInd" className="ml-auto w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,1)]" />
                             )}
@@ -130,7 +129,7 @@ export default function AdminDashboard() {
                          <div className="w-10 flex items-center justify-center flex-shrink-0">
                             <LogOut className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
                         </div>
-                        {isSidebarOpen && <span className="text-[10px] font-black uppercase tracking-widest italic">Terminate Session</span>}
+                        {isSidebarOpen && <span className="text-[13px] font-black uppercase tracking-widest italic">Terminate Session</span>}
                     </button>
                 </div>
             </aside>
@@ -138,12 +137,12 @@ export default function AdminDashboard() {
             {/* Top Bar Header */}
             <header className="fixed top-0 left-0 right-0 h-28 z-50 bg-[#0B101B]/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between px-10">
                 <div className="flex items-center gap-12">
-                    <div className="flex items-center gap-5 cursor-pointer" onClick={() => navigate('/')}>
+                    <div className="flex items-center gap-5 cursor-pointer" onClick={() => window.open('/', '_blank')}>
                         <div className="h-12 px-6 rounded-full bg-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 group overflow-hidden">
                            <img src="/logo.jpg" alt="MusB Research" className="h-7 w-auto object-contain" />
                         </div>
                         <div className="h-8 w-px bg-white/10 hidden md:block" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-cyan-400 hidden md:block">Research Terminal</span>
+                        <span className="text-[13px] font-black uppercase tracking-[0.4em] text-cyan-400 hidden md:block">Research Terminal</span>
                     </div>
 
 
@@ -152,7 +151,7 @@ export default function AdminDashboard() {
                         <input 
                             type="text" 
                             placeholder="SEARCH SYSTEM DATA..." 
-                            className="bg-white/5 border border-white/10 rounded-2xl pl-16 pr-8 py-4 w-96 text-[10px] font-bold text-white outline-none focus:border-cyan-500/30 transition-all uppercase tracking-widest placeholder:text-slate-800"
+                            className="bg-white/5 border border-white/10 rounded-2xl pl-16 pr-8 py-4 w-96 text-[12px] font-bold text-white outline-none focus:border-cyan-500/30 transition-all uppercase tracking-widest placeholder:text-slate-800"
                         />
                     </div>
                 </div>
@@ -165,7 +164,7 @@ export default function AdminDashboard() {
                     
                     <div className="flex items-center gap-6 pl-4 border-l border-white/5">
                         <div className="text-right hidden sm:block">
-                            <p className="text-[10px] font-black text-white uppercase tracking-widest">{user?.role?.replace('_', ' ') || 'Admin Control'}</p>
+                            <p className="text-[12px] font-black text-white uppercase tracking-widest">{user?.role?.replace('_', ' ') || 'Admin Control'}</p>
                             <div className="flex items-center justify-end gap-2 mt-0.5 pointer-events-none">
                                 <span className={`text-[8px] font-black uppercase tracking-widest italic px-2 py-0.5 rounded border ${
                                     user?.affiliation === 'onsite' ? 'text-indigo-400 border-indigo-400/30' : 'text-cyan-400 border-cyan-400/30'
@@ -245,11 +244,11 @@ export default function AdminDashboard() {
                              <table className="w-full text-left">
                                  <thead>
                                      <tr className="bg-white/[0.03] border-b border-white/5">
-                                         <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Protocol ID</th>
-                                         <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Study Title & Phase</th>
-                                         <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Medical Sponsor</th>
-                                         <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Status</th>
-                                         <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] text-right italic">Action</th>
+                                         <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Protocol ID</th>
+                                         <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Study Title & Phase</th>
+                                         <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Medical Sponsor</th>
+                                         <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Status</th>
+                                         <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] text-right italic">Action</th>
                                      </tr>
                                  </thead>
                                  <tbody className="divide-y divide-white/5">
@@ -384,7 +383,7 @@ function ComplianceModule() {
                         </div>
                         <div>
                             <p className="text-xs font-black text-white uppercase italic tracking-widest">Node Synchronization</p>
-                            <p className="text-[10px] text-cyan-300/60 font-black uppercase tracking-widest mt-1">Research Terminal Status: Encrypted & Verified</p>
+                            <p className="text-[12px] text-cyan-300/60 font-black uppercase tracking-widest mt-1">Research Terminal Status: Encrypted & Verified</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">

@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'api',
     'contact',
     'authentication',
+    'careers',
 ]
 
 AUTH_USER_MODEL = 'authentication.User'
@@ -140,6 +141,11 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'authentication.backends.DualAuthBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
@@ -180,15 +186,17 @@ BASE_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
     CSRF_TRUSTED_ORIGINS = BASE_ORIGINS
+    FRONTEND_URL = os.getenv('FRONTEND_URL', "http://localhost:5173")
 else:
     CORS_ALLOWED_ORIGINS = os.getenv(
         'CORS_ALLOWED_ORIGINS',
-        'http://localhost:3000,https://musbresearchnewwebsite.vercel.app,https://musbhealth.com,https://www.musbhealth.com,https://musb-research-new-website.onrender.com,https://musb-backend.onrender.com'
+        'https://musbhealth.com,https://www.musbhealth.com,https://musbresearchnewwebsite.vercel.app,https://musb-research-new-website.onrender.com,https://musb-backend.onrender.com'
     ).split(',')
     CSRF_TRUSTED_ORIGINS = os.getenv(
         'CSRF_TRUSTED_ORIGINS',
-        'https://musbresearchnewwebsite.vercel.app,https://musbhealth.com,https://www.musbhealth.com,https://musb-research-new-website.onrender.com,https://musb-backend.onrender.com'
+        'https://musbhealth.com,https://www.musbhealth.com,https://musbresearchnewwebsite.vercel.app,https://musb-research-new-website.onrender.com,https://musb-backend.onrender.com'
     ).split(',')
+    FRONTEND_URL = os.getenv('FRONTEND_URL', CORS_ALLOWED_ORIGINS[0] if CORS_ALLOWED_ORIGINS else "https://musbhealth.com")
 
 CORS_ALLOW_HEADERS = [
     "authorization",
@@ -200,17 +208,19 @@ CORS_ALLOW_HEADERS = [
 DEFAULT_AUTO_FIELD = 'django_mongodb_backend.fields.ObjectIdAutoField'
 
 # Email Settings
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'MusB Research <noreply@musbhealth.com>')
+DEFAULT_FROM_EMAIL = os.getenv('ADMIN_EMAIL', 'MusB Research <noreply@musbhealth.com>')
 
-if DEBUG:
+# Allow SMTP in development if configured, otherwise fallback to Console
+EMAIL_HOST = os.getenv('SMTP_HOST')
+if DEBUG and not EMAIL_HOST:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = os.getenv('EMAIL_HOST')
-    EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
-    EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS') == 'True'
-    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+    EMAIL_HOST = EMAIL_HOST or 'smtp.gmail.com'
+    EMAIL_PORT = int(os.getenv('SMTP_PORT', 587))
+    EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
+    EMAIL_HOST_USER = os.getenv('SMTP_EMAIL')
+    EMAIL_HOST_PASSWORD = os.getenv('SMTP_PASSWORD')
 
 # Production Security Settings
 if not DEBUG:
@@ -246,6 +256,14 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '5/minute',  # Strict limit for login attempts
+        'user': '1000/day',  # Generous limit for active PI users
+    }
 }
 
 # Essential for HttpOnly cookies

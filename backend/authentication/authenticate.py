@@ -32,17 +32,13 @@ class CookieJWTAuthentication(authentication.BaseAuthentication):
             # 4. Check if token is blacklisted
             if TokenBlacklist.is_blacklisted(payload.get('jti', '')):
                 logger.debug("Token blacklisted for %s", payload.get('email'))
-                raise exceptions.AuthenticationFailed('Token has been revoked')
+                return None # Simply do not authenticate
 
             # 5. Fetch user
             user = User.objects.filter(email=payload['email']).first()
-            if not user:
-                logger.debug("User not found: %s", payload['email'])
-                raise exceptions.AuthenticationFailed('User not found')
-
-            if not user.is_active:
-                logger.debug("User deactivated: %s", user.email)
-                raise exceptions.AuthenticationFailed('User account is deactivated')
+            if not user or not user.is_active:
+                logger.debug("User not found or deactivated: %s", payload.get('email'))
+                return None # Simply do not authenticate
 
             logger.debug("Auth success for %s (role: %s)", user.email, user.role)
             return (user, None)

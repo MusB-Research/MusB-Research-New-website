@@ -87,7 +87,9 @@ export default function ProfileSetup() {
             setStep(totalSteps); // Success step
             setTimeout(() => {
                 const role = (updatedUser.role || 'participant').toLowerCase();
-                if (role === 'admin' || role === 'super_admin' || role === 'coordinator') {
+                if (role === 'super_admin') {
+                    window.location.href = '/dashboard/super-admin';
+                } else if (role === 'admin' || role === 'coordinator') {
                     window.location.href = '/dashboard/admin';
                 } else if (role === 'pi') {
                     window.location.href = '/dashboard/pi';

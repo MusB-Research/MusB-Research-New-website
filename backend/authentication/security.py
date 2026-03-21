@@ -11,15 +11,24 @@ import base64
 #  Symmetric Encryption (Fernet) — for PII field encryption
 # ─────────────────────────────────────────────────────────
 
+# Global cache for expensive crypto objects
+_CIPHER_CACHE = None
+_PRIVATE_KEY_CACHE = None
+_PUBLIC_KEY_CACHE = None
+
 def get_all_ciphers():
-    """Returns a list of potential ciphers to try for decryption."""
+    """Returns a list of potential ciphers to try for decryption, cached for performance."""
+    global _CIPHER_CACHE
+    if _CIPHER_CACHE is not None:
+        return _CIPHER_CACHE
+
     ciphers = []
     
     # 1. Main explicit encryption key
     explicit_key = os.getenv('DATA_ENCRYPTION_KEY')
     if explicit_key:
         try:
-            ciphers.append(Fernet(explicit_key))
+            ciphers.append(Fernet(explicit_key.encode()))
         except:
             pass
             
@@ -30,7 +39,7 @@ def get_all_ciphers():
     except:
         pass
 
-    # 3. Default fallback if .env is missing and secret is default
+    # 3. Default fallback
     try:
         default_secret = 'django-insecure-%s_3@h)4+#%gs%)nm@xvwar%j!9e38oa_5j#m2w+0j_mblj78g'
         default_key = base64.urlsafe_b64encode(default_secret[:32].encode().ljust(32, b'0'))
@@ -38,6 +47,7 @@ def get_all_ciphers():
     except:
         pass
         
+    _CIPHER_CACHE = ciphers
     return ciphers
 
 
@@ -73,23 +83,40 @@ def decrypt_data(encrypted_data: str) -> str:
 # ─────────────────────────────────────────────────────────
 
 def get_private_key() -> bytes:
-    # Fallback to Env Var for deployed environments (Heroku/Vercel/Docker)
+    global _PRIVATE_KEY_CACHE
+    if _PRIVATE_KEY_CACHE: return _PRIVATE_KEY_CACHE
+
+    # Fallback to Env Var
     env_key = os.getenv('JWT_PRIVATE_KEY')
     if env_key:
-        return env_key.replace('\\n', '\n').encode()
+        _PRIVATE_KEY_CACHE = env_key.replace('\\n', '\n').encode()
+        return _PRIVATE_KEY_CACHE
     
-    with open(os.path.join(settings.BASE_DIR, 'private_key.pem'), 'rb') as f:
-        return f.read()
+    try:
+        with open(os.path.join(settings.BASE_DIR, 'private_key.pem'), 'rb') as f:
+            _PRIVATE_KEY_CACHE = f.read()
+            return _PRIVATE_KEY_CACHE
+    except:
+        # Emergency fallback to secret key based derivation if files are missing
+        return settings.SECRET_KEY.encode()
 
 
 def get_public_key() -> bytes:
-    # Fallback to Env Var for deployed environments
+    global _PUBLIC_KEY_CACHE
+    if _PUBLIC_KEY_CACHE: return _PUBLIC_KEY_CACHE
+
+    # Fallback to Env Var
     env_key = os.getenv('JWT_PUBLIC_KEY')
     if env_key:
-        return env_key.replace('\\n', '\n').encode()
+        _PUBLIC_KEY_CACHE = env_key.replace('\\n', '\n').encode()
+        return _PUBLIC_KEY_CACHE
 
-    with open(os.path.join(settings.BASE_DIR, 'public_key.pem'), 'rb') as f:
-        return f.read()
+    try:
+        with open(os.path.join(settings.BASE_DIR, 'public_key.pem'), 'rb') as f:
+            _PUBLIC_KEY_CACHE = f.read()
+            return _PUBLIC_KEY_CACHE
+    except:
+        return settings.SECRET_KEY.encode()
 
 
 # ─────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { getToken, clearToken, authFetch, getRole } from '../utils/auth';
+import { authFetch, clearToken, getRole, performLogout } from '../utils/auth';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal'; // Added import
 import AnimatedBackground from '../components/AnimatedBackground';
 import {
@@ -1013,9 +1013,8 @@ export default function ParticipantDashboard() {
             userTimezone: 'UTC' 
         };
         try {
-            const userStr = localStorage.getItem('user');
-            if (!userStr) return defaultData;
-            const u = JSON.parse(userStr);
+            const u = getUser();
+            if (!u) return defaultData;
             const isEncrypted = (s: string | undefined | null) => s && typeof s === 'string' && s.startsWith('gAAAA') && s.length > 40;
             
             const rawName = u.full_name || (u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : '')));
@@ -1050,8 +1049,7 @@ export default function ParticipantDashboard() {
     };
 
     const confirmSignOut = async () => {
-        await clearToken();
-        window.location.href = "/";
+        await performLogout();
     };
 
     // Updated Nav Items per Request
@@ -1086,7 +1084,7 @@ export default function ParticipantDashboard() {
 
             <aside className={`w-[260px] flex-shrink-0 flex flex-col border-r border-white/[0.05] relative z-40 transition-transform duration-300 lg:translate-x-0 ${isMobileMenuOpen ? 'fixed inset-y-0 left-0 bg-[#0d1525] translate-x-0' : 'fixed lg:relative inset-y-0 left-0 bg-[#0d1525] -translate-x-full'}`} style={{ background: '#0d1525' }}>
                 <div className="px-6 pt-8 pb-6 flex justify-between items-center lg:justify-center">
-                    <Link to="/">
+                    <Link to="/" target="_blank" rel="noopener noreferrer">
                         <div className="inline-flex items-center bg-white rounded-full px-5 py-2.5 shadow-lg">
                             <img src="/logo.jpg" alt="MusB" className="h-6 w-auto object-contain" style={{ filter: 'contrast(1.2)' }} />
                         </div>
@@ -1113,7 +1111,7 @@ export default function ParticipantDashboard() {
                             <button
                                 key={item.label}
                                 onClick={() => {
-                                    if (item.label === 'Main Website') navigate('/home');
+                                    if (item.label === 'Main Website') window.open('/', '_blank');
                                     else setActiveNav(item.label);
                                 }}
                                 className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left group ${isActive ? 'bg-[#0a1525] text-cyan-400 border border-cyan-500/30 shadow-[0_4px_20px_rgba(0,0,0,0.2)]' : 'text-slate-400 hover:text-white hover:bg-white/[0.04] border border-transparent'
@@ -1197,7 +1195,7 @@ export default function ParticipantDashboard() {
                                             <div className="h-px bg-white/10 my-1 mx-2"></div>
 
                                             <button
-                                                onClick={() => navigate('/')}
+                                                onClick={() => window.open('/', '_blank')}
                                                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.04] transition-colors text-left"
                                             >
                                                 <LayoutDashboard className="w-4 h-4 text-slate-400" />

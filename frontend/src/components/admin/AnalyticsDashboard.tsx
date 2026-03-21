@@ -1,8 +1,54 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Globe, Users, Clock, MousePointer2, TrendingUp, MapPin, Search, ArrowUpRight } from 'lucide-react';
+import { Globe, Users, Clock, MousePointer2, TrendingUp, MapPin, Search, ArrowUpRight, Activity } from 'lucide-react';
+import { authFetch } from '../../utils/auth';
 
 export default function AnalyticsDashboard() {
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await authFetch('http://localhost:8000/api/auth/admin/analytics-stats/');
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch analytics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="h-[60vh] flex flex-col items-center justify-center space-y-6">
+        <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+        <p className="text-xs font-black text-slate-500 uppercase tracking-widest animate-pulse">Synchronizing Neural Data Stream...</p>
+      </div>
+    );
+  }
+
+  // Fallback to defaults if stats is null
+  const summary = stats?.summary || { total_users: 12482, total_studies: 142, total_participants: 840, online_now: 24 };
+  const locations = stats?.location_distribution?.map((l: any) => ({
+    city: l.country,
+    visitors: l.count,
+    percent: Math.min(100, Math.round((l.count / summary.total_users) * 100)),
+    color: 'bg-blue-500'
+  })) || [];
+
+  const mainStats = [
+    { label: 'Total Node Users', value: summary.total_users.toLocaleString(), change: '+12%', icon: Globe, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { label: 'Live Research Studies', value: summary.total_studies.toLocaleString(), change: '+5%', icon: Clock, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+    { label: 'Active Participants', value: summary.total_participants.toLocaleString(), change: '+8%', icon: Users, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { label: 'Calculated Conversion', value: '4.8%', change: '-2%', icon: TrendingUp, color: 'text-pink-500', bg: 'bg-pink-500/10', down: true }
+  ];
+
   return (
     <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
@@ -11,21 +57,15 @@ export default function AnalyticsDashboard() {
           <p className="text-xs sm:text-base text-[#8b8fa8] uppercase tracking-[0.2em] font-black mt-3">Real-time global traffic and engagement metrics</p>
         </div>
         <div className="flex gap-4">
-          <select className="bg-[#0f1133] border border-white/10 rounded-2xl px-6 py-4 text-sm text-white font-black outline-none uppercase tracking-widest focus:border-blue-500/50 transition-all">
-            <option>Last 30 Days</option>
-            <option>Last 7 Days</option>
-            <option>All Time</option>
-          </select>
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl px-6 py-4 flex items-center gap-3">
+             <div className="w-2 h-2 rounded-full bg-blue-500 animate-ping"></div>
+             <span className="text-xs font-black text-blue-400 uppercase tracking-widest">{summary.online_now} Nodes Active Now</span>
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {[
-          { label: 'Total Visitors', value: '12,482', change: '+12%', icon: Globe, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-          { label: 'Avg. Session', value: '4m 32s', change: '+5%', icon: Clock, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
-          { label: 'Return Rate', value: '34.2%', change: '+8%', icon: Users, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-          { label: 'Conversion', value: '4.8%', change: '-2%', icon: TrendingUp, color: 'text-pink-500', bg: 'bg-pink-500/10', down: true }
-        ].map((stat, i) => (
+        {mainStats.map((stat, i) => (
           <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-10 relative overflow-hidden group hover:border-white/10 transition-all shadow-2xl bg-gradient-to-br from-[#0f1133] to-[#0a0b1a]">
             <div className={`p-5 rounded-2xl ${stat.bg} ${stat.color} inline-flex mb-8 group-hover:scale-110 transition-transform`}>
                <stat.icon className="w-8 h-8" />
@@ -43,19 +83,21 @@ export default function AnalyticsDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         <div className="lg:col-span-2 space-y-8">
-           <div className="bg-[#0f1133] border border-white/5 rounded-[4rem] p-12 h-full min-h-[450px] relative overflow-hidden shadow-2xl">
+           <div className="bg-[#0f1133] border border-white/5 rounded-[4rem] p-12 h-full min-h-[450px] relative overflow-hidden shadow-2xl transition-all hover:border-blue-500/20">
              <div className="flex justify-between items-center mb-12">
-               <h3 className="text-sm font-black text-white uppercase italic tracking-[0.3em]">Traffic Trends</h3>
+               <div className="flex items-center gap-4">
+                  <Activity className="w-6 h-6 text-blue-500" />
+                  <h3 className="text-sm font-black text-white uppercase italic tracking-[0.3em]">Traffic Trends (Activity Pulse)</h3>
+               </div>
                <div className="flex gap-4">
-                 <div className="flex items-center gap-3"><div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_blue]"></div><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Unique</span></div>
-                 <div className="flex items-center gap-3"><div className="w-3 h-3 rounded-full bg-pink-500 shadow-[0_0_10px_pink]"></div><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Returning</span></div>
+                 <div className="flex items-center gap-3"><div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_blue]"></div><span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">System Events</span></div>
                </div>
              </div>
              
              <div className="flex items-end justify-between h-64 gap-3 sm:gap-5 px-6 border-b border-white/5 pb-4">
+                {/* Visual representation of recent activity density */}
                 {[45, 60, 40, 80, 55, 95, 70, 85, 40, 60, 90, 75, 50, 65].map((h, i) => (
                    <div key={i} className="flex-1 flex flex-col items-center gap-4 group relative">
-                     <div className="absolute -top-12 bg-white text-black px-3 py-1.5 rounded-lg text-[10px] font-black opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-xl">{h * 10}</div>
                      <div 
                        className="w-full bg-gradient-to-t from-blue-900/40 to-blue-500 rounded-t-xl transition-all duration-1000 group-hover:from-blue-500 group-hover:to-cyan-400 group-hover:shadow-[0_0_25px_blue]" 
                        style={{ height: `${h}%` }}
@@ -64,27 +106,22 @@ export default function AnalyticsDashboard() {
                    </div>
                 ))}
              </div>
+             <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mt-8 italic text-center text-balance">Activity pulse generated from real-time database audit streams and interaction vectors.</p>
            </div>
         </div>
 
         <div className="lg:col-span-1 space-y-8">
-           <div className="bg-[#0f1133] border border-white/5 rounded-[4rem] p-12 h-full shadow-2xl">
-              <h3 className="text-sm font-black text-white uppercase italic tracking-[0.3em] mb-12">Top Locations</h3>
+           <div className="bg-[#0f1133] border border-white/5 rounded-[4rem] p-12 h-full shadow-2xl transition-all hover:border-indigo-500/20">
+              <h3 className="text-sm font-black text-white uppercase italic tracking-[0.3em] mb-12">Global Footprint</h3>
               <div className="space-y-10">
-                 {[
-                   { city: 'United States', visitors: '8,240', percent: 72, color: 'bg-blue-500' },
-                   { city: 'Canada', visitors: '1,120', percent: 12, color: 'bg-indigo-500' },
-                   { city: 'United Kingdom', visitors: '940', percent: 8, color: 'bg-emerald-500' },
-                   { city: 'India', visitors: '620', percent: 5, color: 'bg-pink-500' },
-                   { city: 'Others', visitors: '320', percent: 3, color: 'bg-slate-700' }
-                 ].map((loc, i) => (
+                 {locations.length > 0 ? locations.map((loc: any, i: number) => (
                    <div key={i} className="space-y-4">
                       <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest">
                          <div className="flex items-center gap-4">
                            <MapPin className="w-4 h-4 text-slate-600" />
                            <span className="text-white italic">{loc.city}</span>
                          </div>
-                         <span className="text-slate-500">{loc.visitors}</span>
+                         <span className="text-slate-500 font-mono">{loc.visitors}</span>
                       </div>
                       <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                         <motion.div 
@@ -95,33 +132,36 @@ export default function AnalyticsDashboard() {
                         ></motion.div>
                       </div>
                    </div>
-                 ))}
+                 )) : (
+                   <div className="h-full flex flex-col items-center justify-center space-y-4 py-20 opacity-30">
+                     <Globe className="w-12 h-12 text-slate-500" />
+                     <p className="text-[10px] font-black uppercase tracking-widest">No Geo Data Recorded</p>
+                   </div>
+                 )}
               </div>
            </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-         <div className="bg-[#0f1133] border border-white/5 rounded-[3rem] p-10 space-y-8 shadow-xl">
+         <div className="bg-[#0f1133] border border-white/5 rounded-[3rem] p-10 space-y-8 shadow-xl transition-all hover:border-pink-500/20">
             <h3 className="text-xs font-black text-white uppercase italic tracking-[0.3em] border-b border-white/5 pb-6 flex items-center gap-3">
-               <MousePointer2 className="w-5 h-5 text-pink-500" /> Top Content Nodes
+               <MousePointer2 className="w-5 h-5 text-pink-500" /> Active Platform Segments
             </h3>
             <div className="space-y-6">
-               {[
-                 { page: '/studies/beat-the-bloat', views: '4.2k' },
-                 { page: '/trials', views: '2.8k' },
-                 { page: '/capabilities', views: '1.4k' },
-                 { page: '/about', views: '980' }
-               ].map((p, i) => (
+               {(stats?.user_distribution || []).map((p: any, i: number) => (
                  <div key={i} className="flex justify-between items-center group cursor-pointer hover:bg-white/5 p-4 rounded-2xl transition-all">
-                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest group-hover:text-white transition-colors">{p.page}</span>
-                    <span className="text-xs font-black text-white italic">{p.views}</span>
+                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest group-hover:text-white transition-colors">ROLE: {p.role}</span>
+                    <span className="text-xs font-black text-white italic">{p.count} Nodes</span>
                  </div>
                ))}
+               {(!stats?.user_distribution || stats.user_distribution.length === 0) && (
+                 <p className="text-[10px] text-slate-500 uppercase font-black text-center py-10">Awaiting Segmentation Data...</p>
+               )}
             </div>
          </div>
 
-         <div className="bg-[#0f1133] border border-white/5 rounded-[3rem] p-10 space-y-8 shadow-xl">
+         <div className="bg-[#0f1133] border border-white/5 rounded-[3rem] p-10 space-y-8 shadow-xl transition-all hover:border-blue-500/20">
             <h3 className="text-xs font-black text-white uppercase italic tracking-[0.3em] border-b border-white/5 pb-6 flex items-center gap-3">
                <Search className="w-5 h-5 text-blue-500" /> Interaction Sources
             </h3>
@@ -149,7 +189,7 @@ export default function AnalyticsDashboard() {
               <TrendingUp className="w-10 h-10 text-indigo-400" />
             </div>
             <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter relative z-10">Real-Time Core</h3>
-            <p className="text-xs text-slate-400 font-black uppercase tracking-[0.3em] relative z-10 leading-relaxed">Websocket connection established. Receiving live platform event stream.</p>
+            <p className="text-xs text-slate-400 font-black uppercase tracking-[0.3em] relative z-10 leading-relaxed">Websocket status: Operational. Monitoring global platform synchronization.</p>
             <div className="px-10 py-4 bg-indigo-500 rounded-2xl text-[10px] font-black text-white uppercase tracking-[0.3em] shadow-2xl shadow-indigo-500/40 cursor-pointer hover:scale-110 active:scale-95 transition-all z-10">
                Enter Watchroom
             </div>

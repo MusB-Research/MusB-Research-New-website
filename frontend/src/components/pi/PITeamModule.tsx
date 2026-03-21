@@ -1,704 +1,883 @@
-import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-    Search, 
-    Filter, 
-    Plus, 
-    Users, 
-    ShieldCheck, 
-    Building2, 
-    Mail, 
-    Phone, 
-    ChevronRight,
-    ChevronDown,
-    Edit2, 
-    Trash2, 
-    AlertTriangle, 
-    CheckCircle2, 
-    X,
-    Upload,
-    FileText,
-    Calendar,
-    Clock,
-    MoreVertical,
-    Check,
-    Lock,
-    ExternalLink
+    Users, Shield, CheckCircle2, Building2, AlertTriangle, 
+    Search, Edit2, Lock, Unlock, Trash2, Mail, Phone, 
+    ChevronRight, X, Upload, Check, FileText, AlertCircle,
+    ChevronDown, User, Briefcase, Database
 } from 'lucide-react';
 
+// --- TYPES ---
 interface Document {
     id: string;
     name: string;
-    uploadDate: string;
-    expiryDate: string;
-    status: 'Valid' | 'Expiring Soon' | 'Expired' | 'Missing';
+    status: 'Valid' | 'Missing' | 'Expired';
+    uploadDate?: string;
+    expiryDate?: string;
+    isRequired: boolean;
 }
 
 interface TeamMember {
     id: string;
     name: string;
-    role: string;
-    type: 'MusB' | 'PI Office';
     email: string;
-    phone?: string;
-    expertise?: string;
+    phone: string;
+    role: string;
+    type: 'MusB' | 'Office';
+    status: 'Active' | 'Inactive' | 'Draft';
     assignedStudies: string[];
-    status: 'Active' | 'Inactive';
+    permissionLevel: 'Full' | 'Limited' | 'Read-only';
     documents: Document[];
-    hasPendingActions: boolean;
+    expertise?: string;
 }
 
-const MOCK_MUSB_COORDINATORS: TeamMember[] = [
-    {
-        id: 'mc1',
-        name: 'Sarah Jenkins',
-        role: 'Senior Clinical Coordinator',
-        type: 'MusB',
-        email: 's.jenkins@musb.org',
-        expertise: 'Oncology, Phase I/II',
-        assignedStudies: ['HI-202B', 'MS-801'],
-        status: 'Active',
-        documents: [],
-        hasPendingActions: false
+interface Toast {
+    id: string;
+    type: 'success' | 'error' | 'warning';
+    message: string;
+}
+
+interface ConfirmModal {
+    message: string;
+    onConfirm: () => void;
+    type?: 'danger' | 'warning';
+}
+
+// --- MOCK DATA ---
+const MOCK_MUSB: TeamMember[] = [
+    { 
+        id: 'm1', name: 'Dr. Sarah Chen', email: 's.chen@musb.network', phone: '(555) 012-3456', 
+        role: 'Senior Coordinator', type: 'MusB', status: 'Active', assignedStudies: ['HI-202B'], 
+        permissionLevel: 'Full', expertise: 'Neurology', documents: [] 
     },
-    {
-        id: 'mc2',
-        name: 'Mark Wilson',
-        role: 'Clinical Research Coordinator',
-        type: 'MusB',
-        email: 'm.wilson@musb.org',
-        expertise: 'Metabolic Disorders',
-        assignedStudies: ['MS-801'],
-        status: 'Active',
-        documents: [],
-        hasPendingActions: false
+    { 
+        id: 'm2', name: 'Marcus Rodriguez', email: 'm.rod@musb.network', phone: '(555) 012-3457', 
+        role: 'Clinical Lead', type: 'MusB', status: 'Active', assignedStudies: [], 
+        permissionLevel: 'Limited', expertise: 'Cardiology', documents: [] 
     },
-    {
-        id: 'mc3',
-        name: 'Elena Rodriguez',
-        role: 'Study Lead',
-        type: 'MusB',
-        email: 'e.rodriguez@musb.org',
-        expertise: 'Neurology, Pediatric',
-        assignedStudies: ['NR-009'],
-        status: 'Active',
-        documents: [],
-        hasPendingActions: false
+    { 
+        id: 'm3', name: 'Elena Gilbert', email: 'e.gilbert@musb.network', phone: '(555) 012-3458', 
+        role: 'Data Manager', type: 'MusB', status: 'Inactive', assignedStudies: ['PT-901'], 
+        permissionLevel: 'Read-only', expertise: 'Oncology', documents: [] 
     }
 ];
 
-const MOCK_OFFICE_TEAM: TeamMember[] = [
+const INITIAL_OFFICE_TEAM: TeamMember[] = [
     {
-        id: 'ot1',
-        name: 'Dr. David Miller',
-        role: 'Sub-Investigator',
-        type: 'PI Office',
-        email: 'd.miller@miller-clinic.com',
-        phone: '+1 (555) 234-9088',
-        assignedStudies: ['HI-202B', 'NR-009'],
-        status: 'Active',
-        hasPendingActions: true,
-        documents: [
-            { id: 'd1', name: 'CV', uploadDate: '2025-10-12', expiryDate: '2027-10-12', status: 'Valid' },
-            { id: 'd2', name: 'Medical License', uploadDate: '2025-10-12', expiryDate: '2026-04-15', status: 'Expiring Soon' },
-            { id: 'd3', name: 'GCP Certificate', uploadDate: '2025-11-05', expiryDate: '2028-11-05', status: 'Valid' }
-        ]
-    },
-    {
-        id: 'ot2',
-        name: 'Rachel Voss',
-        role: 'Phlebotomist',
-        type: 'PI Office',
-        email: 'r.voss@miller-clinic.com',
-        phone: '+1 (555) 234-9021',
-        assignedStudies: ['HI-202B'],
-        status: 'Inactive',
-        hasPendingActions: false,
-        documents: [
-            { id: 'd4', name: 'Training Certificate', uploadDate: '2026-01-20', expiryDate: '2029-01-20', status: 'Valid' },
-            { id: 'd5', name: 'OSHA Training', uploadDate: '2026-01-20', expiryDate: '2026-01-20', status: 'Expired' }
+        id: 'o1', name: 'James Wilson', email: 'j.wilson@clinic.res', phone: '(555) 987-6543',
+        role: 'Clinical Coordinator', type: 'Office', status: 'Active', assignedStudies: ['HI-202B'],
+        permissionLevel: 'Full', documents: [
+            { id: 'd1', name: 'CV', status: 'Valid', uploadDate: '2023-10-15', isRequired: true },
+            { id: 'd2', name: 'GCP Certificate', status: 'Valid', uploadDate: '2023-11-20', isRequired: true },
+            { id: 'd3', name: 'HSP Certificate', status: 'Missing', isRequired: true }
         ]
     }
 ];
 
-const REQUIRED_DOCS_BY_ROLE: Record<string, string[]> = {
-    'APRN': ['CV', 'APRN License', 'Malpractice Insurance', 'GCP Certificate', 'HIPAA Agreement', 'Protocol Training'],
+const ROLE_DOCS: Record<string, string[]> = {
+    'Clinical Coordinator': ['CV', 'GCP Certificate', 'HSP Certificate', 'HIPAA Agreement', 'Protocol Training'],
+    'APRN': ['CV', 'APRN License', 'Malpractice Insurance', 'GCP Certificate', 'HIPAA Agreement'],
+    'Sub-Investigator': ['Medical License', 'CV', 'GCP Certificate', 'DOB/ID'],
     'Phlebotomist': ['CV', 'Training Certificate', 'Venipuncture Competency', 'OSHA Training', 'HIPAA Agreement'],
-    'Nurse': ['CV', 'Nursing License', 'GCP Certificate', 'HIPAA Agreement', 'Protocol Training'],
-    'Sub-Investigator': ['CV', 'Medical License', 'GCP Certificate', 'Financial Disclosure', 'Protocol Training'],
-    'Administrator': ['CV', 'HIPAA Agreement', 'Platform Authorization'],
-    'Clinical Coordinator': ['CV', 'GCP Certificate', 'HIPAA Agreement', 'Protocol Training']
+    'Other': ['CV']
 };
 
+const PROTOCOLS = ['HI-202B', 'PT-901', 'OB-442', 'VX-001', 'DM-772'];
+
+// --- COMPONENT ---
 export default function PITeamModule() {
+    // State
+    const [officeTeam, setOfficeTeam] = useState<TeamMember[]>(INITIAL_OFFICE_TEAM);
+    const [musbTeam, setMusbTeam] = useState<TeamMember[]>(MOCK_MUSB);
     const [activeTab, setActiveTab] = useState<'MusB' | 'Office' | 'All'>('MusB');
-    const [officeTeam, setOfficeTeam] = useState<TeamMember[]>(MOCK_OFFICE_TEAM);
-    const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
-    const [isEditPanelOpen, setIsEditPanelOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [filterStatus, setFilterStatus] = useState<'All' | 'Available' | 'Assigned' | 'Active'>('All');
+    const [filterStatus, setFilterStatus] = useState('All');
+    
+    // Panel/Modal State
+    const [panelOpen, setPanelOpen] = useState(false);
+    const [panelMode, setPanelMode] = useState<'add' | 'edit'>('add');
+    const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+    const [editedMember, setEditedMember] = useState<Partial<TeamMember>>({});
+    
+    const [toasts, setToasts] = useState<Toast[]>([]);
+    const [confirmModal, setConfirmModal] = useState<ConfirmModal | null>(null);
+    const [musbModalOpen, setMusbModalOpen] = useState(false);
+    const [tempMusbSelected, setTempMusbSelected] = useState<string[]>([]);
 
-    // Filter Logic
-    const filteredMusB = useMemo(() => {
-        return MOCK_MUSB_COORDINATORS.filter(m => {
-            const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) || m.expertise?.toLowerCase().includes(searchQuery.toLowerCase());
-            if (filterStatus === 'Active') return matchesSearch && m.status === 'Active';
-            if (filterStatus === 'Assigned') return matchesSearch && m.assignedStudies.length > 0;
-            return matchesSearch;
-        });
-    }, [searchQuery, filterStatus]);
+    // Refs
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const activeDocId = useRef<string | null>(null);
 
-    const filteredOffice = useMemo(() => {
-        return officeTeam.filter(m => m.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    }, [searchQuery, officeTeam]);
+    // --- LOGIC: TOASTS ---
+    const addToast = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
+        const id = Math.random().toString(36).substr(2, 9);
+        setToasts(prev => [...prev, { id, message, type }]);
+        setTimeout(() => {
+            setToasts(prev => prev.filter(t => t.id !== id));
+        }, 3000);
+    };
 
-    const allTeam = useMemo(() => [...MOCK_MUSB_COORDINATORS, ...officeTeam], [officeTeam]);
-
-    const handleDelete = (id: string) => {
-        const member = officeTeam.find(m => m.id === id);
-        if (member?.hasPendingActions) {
-            alert("Deletion blocked: User has active study actions pending. Please inactivate instead.");
+    // --- LOGIC: CRUD ---
+    const handleSaveMember = () => {
+        // Validation
+        if (!editedMember.name || !editedMember.email || !editedMember.role) {
+            addToast('Please fill all required identity fields', 'error');
             return;
         }
-        if (window.confirm("Are you sure you want to delete this team member? This action cannot be undone.")) {
-            setOfficeTeam(prev => prev.filter(m => m.id !== id));
+
+        if (panelMode === 'add') {
+            const newMember: TeamMember = {
+                id: 'o-' + Math.random().toString(36).substr(2, 5),
+                name: editedMember.name!,
+                email: editedMember.email!,
+                phone: editedMember.phone || 'N/A',
+                role: editedMember.role!,
+                type: 'Office',
+                status: 'Draft',
+                assignedStudies: editedMember.assignedStudies || [],
+                permissionLevel: editedMember.permissionLevel || 'Read-only',
+                documents: editedMember.documents || []
+            };
+            setOfficeTeam(prev => [...prev, newMember]);
+            addToast('New personnel registered to PI Office');
+        } else {
+            setOfficeTeam(prev => prev.map(m => m.id === editedMember.id ? { ...m, ...editedMember } as TeamMember : m));
+            addToast('Personnel record updated successfully');
         }
+        setPanelOpen(false);
     };
 
-    const handleInactivate = (id: string) => {
-        if (window.confirm("Warning: This user will lose access to all assigned studies immediately. Continue?")) {
-            setOfficeTeam(prev => prev.map(m => m.id === id ? { ...m, status: 'Inactive' } : m));
+    const handleActivateUser = () => {
+        // Validation for missing docs
+        const missingDocs = (editedMember.documents || []).filter(d => d.isRequired && d.status !== 'Valid');
+        if (missingDocs.length > 0) {
+            addToast('Cannot activate: Credentials incomplete', 'error');
+            return;
         }
+        
+        const activated = { ...editedMember, status: 'Active' as const };
+        setOfficeTeam(prev => prev.map(m => m.id === editedMember.id ? { ...m, ...activated } as TeamMember : m));
+        setEditedMember(activated); // Update local panel state too
+        addToast('User activated successfully', 'success');
+        setPanelOpen(false);
     };
+
+    const handleDelete = (member: TeamMember) => {
+        // Blocking logic
+        if (member.assignedStudies.length > 0) {
+            addToast('Cannot delete — user has active study assignments. Inactivate instead.', 'error');
+            return;
+        }
+
+        setConfirmModal({
+            message: `This action will permanently remove ${member.name}. Continue?`,
+            type: 'danger',
+            onConfirm: () => {
+                setOfficeTeam(prev => prev.filter(m => m.id !== member.id));
+                addToast('Member removed from system');
+                setConfirmModal(null);
+                if (panelOpen && selectedMember?.id === member.id) setPanelOpen(false);
+            }
+        });
+    };
+
+    const handleInactivateToggle = (member: TeamMember) => {
+        const newStatus = member.status === 'Active' ? 'Inactive' : 'Active';
+        const msg = newStatus === 'Inactive' 
+            ? "Access suspension will revoke all protocol-level edit permissions. Continue?"
+            : `Restore access for ${member.name}?`;
+
+        setConfirmModal({
+            message: msg,
+            onConfirm: () => {
+                setOfficeTeam(prev => prev.map(m => m.id === member.id ? { ...m, status: newStatus as any } : m));
+                addToast(`User status updated to ${newStatus}`);
+                setConfirmModal(null);
+            }
+        });
+    };
+
+    // --- LOGIC: DOCUMENT UPLOAD ---
+    const triggerUpload = (docId: string) => {
+        activeDocId.current = docId;
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.[0] || !activeDocId.current) return;
+        
+        const today = new Date().toISOString().split('T')[0];
+        setEditedMember(prev => ({
+            ...prev,
+            documents: prev.documents?.map(d => d.id === activeDocId.current ? { ...d, status: 'Valid', uploadDate: today } : d)
+        }));
+        
+        addToast(`Document verified: ${e.target.files[0].name}`, 'success');
+        activeDocId.current = null;
+    };
+
+    // --- LOGIC: MUSB SELECTION ---
+    const handleApplyMusBChanges = () => {
+        // Toggle 'Assigned' status based on selection
+        setMusbTeam(prev => prev.map(m => ({
+            ...m,
+            status: tempMusbSelected.includes(m.id) ? 'Active' : 'Inactive'
+        } as TeamMember)));
+        
+        addToast('MusB team updated', 'success');
+        setMusbModalOpen(false);
+    };
+
+    // --- FILTERING ---
+    const getVisibleTeam = () => {
+        if (activeTab === 'MusB') {
+            return musbTeam.filter(m => {
+                const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                    m.email.toLowerCase().includes(searchQuery.toLowerCase());
+                const matchesFilter = filterStatus === 'All' || 
+                                     (filterStatus === 'Available' && m.assignedStudies.length === 0) ||
+                                     (filterStatus === 'Assigned' && m.assignedStudies.length > 0) ||
+                                     (filterStatus === 'Active' && m.status === 'Active');
+                return matchesSearch && matchesFilter;
+            });
+        }
+        if (activeTab === 'Office') {
+            return officeTeam.filter(m => 
+                m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                m.email.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
+        return [...officeTeam, ...musbTeam].filter(m => 
+            m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            m.email.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    };
+
+    // --- STYLES ---
+    const S = {
+        container: {
+            display: 'flex',
+            flexDirection: 'column' as const,
+            height: '100vh',
+            width: '100%',
+            backgroundColor: 'transparent',
+            color: 'white',
+            overflow: 'hidden',
+            fontFamily: 'system-ui, -apple-system, sans-serif'
+        },
+        header: {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '2.5rem 4rem',
+            borderBottom: '1px solid rgba(99, 102, 241, 0.15)',
+            backgroundColor: 'rgba(7, 10, 19, 0.7)',
+            backdropFilter: 'blur(40px)',
+            flexShrink: 0,
+            boxShadow: 'inset 0 -1px 20px rgba(99, 102, 241, 0.05)'
+        },
+        title: {
+            fontSize: '2.5rem',
+            fontWeight: 900,
+            fontStyle: 'italic',
+            textTransform: 'uppercase' as const,
+            letterSpacing: '-0.04em',
+            margin: 0
+        },
+        btnPrimary: {
+            backgroundColor: '#6366f1',
+            color: 'white',
+            border: 'none',
+            padding: '1rem 2rem',
+            borderRadius: '6px',
+            fontSize: '14px',
+            fontWeight: 900,
+            textTransform: 'uppercase' as const,
+            letterSpacing: '0.12em',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            marginLeft: '1.5rem',
+            boxShadow: '0 4px 20px rgba(99, 102, 241, 0.3)'
+        },
+        btnGhost: {
+            backgroundColor: 'transparent',
+            color: '#94a3b8',
+            border: '1px solid rgba(255,255,255,0.1)',
+            padding: '1rem 2rem',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: 900,
+            textTransform: 'uppercase' as const,
+            letterSpacing: '0.12em',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+        },
+        kpiStrip: {
+            display: 'flex',
+            backgroundColor: 'rgba(255,255,255,0.02)',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            flexShrink: 0,
+            backdropFilter: 'blur(10px)'
+        },
+        kpiItem: {
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '2rem',
+            padding: '2rem 3rem',
+            borderRight: '1px solid rgba(99, 102, 241, 0.15)',
+            backgroundColor: 'rgba(255, 255, 255, 0.01)',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+        },
+        kpiValue: {
+            fontSize: '48px',
+            fontFamily: 'monospace',
+            fontWeight: 900,
+            fontStyle: 'italic',
+            lineHeight: 1,
+            letterSpacing: '-0.05em',
+            textShadow: '0 0 30px rgba(99, 102, 241, 0.3)'
+        },
+        kpiLabel: {
+            fontSize: '14px',
+            fontWeight: 900,
+            textTransform: 'uppercase' as const,
+            letterSpacing: '0.25em',
+            color: '#94a3b8',
+            marginTop: '8px'
+        },
+        navRow: {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '1rem 2.5rem',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            flexShrink: 0
+        },
+        tabBtn: (active: boolean) => ({
+            padding: '0.8rem 1.75rem',
+            backgroundColor: active ? '#6366f1' : 'transparent',
+            color: active ? 'white' : '#94a3b8',
+            border: active ? 'none' : '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '6px',
+            fontSize: '14px',
+            fontWeight: 900,
+            textTransform: 'uppercase' as const,
+            letterSpacing: '0.12em',
+            cursor: 'pointer',
+            marginRight: '0.75rem',
+            transition: 'all 0.2s'
+        }),
+        searchBox: {
+            display: 'flex',
+            alignItems: 'center',
+            backgroundColor: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '6px',
+            padding: '0 1.25rem'
+        },
+        searchInput: {
+            backgroundColor: 'transparent',
+            border: 'none',
+            color: 'white',
+            padding: '1rem 0.75rem',
+            fontSize: '14px',
+            fontWeight: 900,
+            textTransform: 'uppercase' as const,
+            outline: 'none',
+            width: '320px',
+            letterSpacing: '0.05em'
+        },
+        tableArea: {
+            flex: 1,
+            overflowY: 'auto' as const,
+            padding: '0 2.5rem'
+        },
+        table: {
+            width: '100%',
+            borderCollapse: 'separate' as const,
+            borderSpacing: '0 1px'
+        },
+        th: {
+            position: 'sticky' as const,
+            top: 0,
+            padding: '2rem 1.5rem',
+            fontSize: '14px',
+            fontWeight: 900,
+            textTransform: 'uppercase' as const,
+            letterSpacing: '0.25em',
+            color: '#64748b',
+            textAlign: 'left' as const,
+            backgroundColor: 'rgba(11, 16, 27, 0.9)',
+            backdropFilter: 'blur(20px)',
+            zIndex: 10
+        },
+        td: {
+            padding: '2.5rem 1.5rem',
+            backgroundColor: 'rgba(255,255,255,0.01)',
+            verticalAlign: 'middle',
+            borderBottom: '1px solid rgba(255,255,255,0.04)'
+        },
+        name: {
+            fontSize: '24px',
+            fontWeight: 900,
+            fontStyle: 'italic',
+            textTransform: 'uppercase' as const,
+            color: 'white',
+            marginBottom: '6px',
+            letterSpacing: '-0.02em'
+        },
+        panel: {
+            position: 'fixed' as const,
+            top: 0,
+            right: 0,
+            width: '720px',
+            height: '100vh',
+            backgroundColor: 'rgba(7, 10, 19, 0.85)',
+            backdropFilter: 'blur(40px)',
+            borderLeft: '1px solid rgba(99, 102, 241, 0.3)',
+            zIndex: 100,
+            display: 'flex',
+            flexDirection: 'column' as const,
+            boxShadow: '-20px 0 60px rgba(0,0,0,0.8), inset 0 0 100px rgba(99, 102, 241, 0.05)',
+            transform: panelOpen ? 'translateX(0)' : 'translateX(100%)',
+            transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+        },
+        input: {
+            width: '100%',
+            backgroundColor: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '4px',
+            color: 'white',
+            padding: '1rem',
+            fontSize: '14px',
+            outline: 'none',
+            marginTop: '0.5rem'
+        },
+        label: {
+            fontSize: '10px',
+            fontWeight: 900,
+            textTransform: 'uppercase' as const,
+            letterSpacing: '0.15em',
+            color: '#475569',
+            display: 'block'
+        },
+        overlay: {
+            position: 'fixed' as const,
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 90,
+            display: panelOpen || confirmModal || musbModalOpen ? 'block' : 'none'
+        },
+        toast: (type: string) => ({
+            padding: '1rem 1.5rem',
+            borderRadius: '4px',
+            backgroundColor: type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#f59e0b',
+            color: 'white',
+            fontSize: '12px',
+            fontWeight: 900,
+            textTransform: 'uppercase' as const,
+            marginBottom: '0.75rem',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
+        }),
+        statusBadge: (status: string) => ({
+            padding: '0.6rem 1rem',
+            borderRadius: '20px',
+            fontSize: '13px',
+            fontWeight: 900,
+            textTransform: 'uppercase' as const,
+            backgroundColor: status === 'Active' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)',
+            color: status === 'Active' ? '#10b981' : '#94a3b8',
+            border: `1px solid ${status === 'Active' ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.1)'}`
+        })
+    };
+
+    // --- RENDER HELPERS ---
+    const renderKPI = (label: string, value: number, Icon: any, color: string) => (
+        <div style={S.kpiItem}>
+            <div style={{ padding: '0.5rem', borderRadius: '8px', backgroundColor: `${color}10`, color: color }}>
+                <Icon size={20} />
+            </div>
+            <div>
+                <div style={{ ...S.kpiValue, color: label === 'Action Required' && value > 0 ? '#f59e0b' : 'inherit' }}>{value.toString().padStart(2, '0')}</div>
+                <div style={S.kpiLabel}>{label}</div>
+            </div>
+        </div>
+    );
 
     return (
-        <div className="flex flex-col h-[calc(100vh-14rem)] bg-[#0B101B] border border-white/5 rounded-[1.5rem] lg:rounded-[2.5rem] overflow-hidden shadow-2xl relative">
-            {/* Top Header */}
-            <div className="flex-shrink-0 px-6 py-6 lg:px-10 lg:py-8 bg-[#0B101B]/80 backdrop-blur-3xl border-b border-white/5 flex flex-col lg:flex-row lg:items-center justify-between gap-6 z-20">
+        <div style={S.container}>
+            <input type="file" ref={fileInputRef} hidden onChange={handleFileChange} />
+            <div style={S.overlay} onClick={() => { setPanelOpen(false); setConfirmModal(null); setMusbModalOpen(false); }} />
 
-                <div>
-                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Team Management</h2>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-1 italic">
-                        Manage coordinators and study staff for your studies
-                    </p>
+            {/* HEADER */}
+            <header style={S.header}>
+                <h1 style={S.title}>Team Management</h1>
+                <div style={{ display: 'flex' }}>
+                    <button style={S.btnGhost} onClick={() => {
+                        setTempMusbSelected(musbTeam.filter(m => m.status === 'Active').map(m => m.id));
+                        setMusbModalOpen(true);
+                    }}>+ Select MusB Coordinators</button>
+                    <button style={S.btnPrimary} onClick={() => {
+                        setPanelMode('add');
+                        const defaultRole = 'Clinical Coordinator';
+                        setEditedMember({
+                            name: '', email: '', phone: '', role: defaultRole,
+                            assignedStudies: [], permissionLevel: 'Read-only',
+                            documents: ROLE_DOCS[defaultRole].map(name => ({
+                                id: Math.random().toString(36).substr(2, 9),
+                                name, status: 'Missing', isRequired: true
+                            }))
+                        });
+                        setPanelOpen(true);
+                    }}>+ Add Team Member</button>
                 </div>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-4">
-                    <button 
-                        onClick={() => { setSelectedMember(null); setIsEditPanelOpen(true); }}
-                        className="px-5 lg:px-6 py-3.5 lg:py-4 bg-indigo-600 text-white rounded-xl lg:rounded-2xl text-[9px] lg:text-[10px] font-black uppercase tracking-widest hover:scale-[1.05] active:scale-95 transition-all shadow-xl shadow-indigo-900/40"
-                    >
-                        + Add Team Member
-                    </button>
-                    <button className="px-5 lg:px-6 py-3.5 lg:py-4 bg-white/5 border border-white/10 text-white rounded-xl lg:rounded-2xl text-[9px] lg:text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all font-black">
-                        + Select MusB Coordinators
-                    </button>
-                </div>
+            </header>
 
+            {/* KPI STRIP */}
+            <div style={S.kpiStrip}>
+                {renderKPI('Total Personnel', officeTeam.length + musbTeam.length, Users, '#6366f1')}
+                {renderKPI('Active Status', [...officeTeam, ...musbTeam].filter(t => t.status === 'Active').length, CheckCircle2, '#10b981')}
+                {renderKPI('MusB Network', musbTeam.length, Building2, '#6366f1')}
+                {renderKPI('PI Office Team', officeTeam.length, Users, '#475569')}
+                {renderKPI('Action Required', officeTeam.filter(m => m.documents.some(d => d.status !== 'Valid')).length, AlertTriangle, '#f59e0b')}
             </div>
 
-            {/* Navigation Tabs & Search bar stack */}
-            <div className="px-6 lg:px-10 py-6 border-b border-white/5 bg-white/[0.01] flex flex-col lg:flex-row lg:items-center justify-between gap-6 lg:gap-8">
-                {/* Mobile Tab Select Dropdown */}
-                <div className="lg:hidden w-full relative group">
-                    <select
-                        value={activeTab}
-                        onChange={(e) => setActiveTab(e.target.value as any)}
-                        className="w-full appearance-none bg-white/5 border border-white/10 rounded-xl px-6 py-3.5 text-[10px] font-black text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500/50 cursor-pointer outline-none transition-all transition-all italic"
-                    >
-                        <option value="MusB" className="bg-[#0B101B]">MusB Coordinators</option>
-                        <option value="Office" className="bg-[#0B101B]">My Office Team</option>
-                        <option value="All" className="bg-[#0B101B]">All Team Members</option>
-                    </select>
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none group-hover:text-white transition-colors" />
+            {/* NAVIGATION / SEARCH */}
+            <div style={S.navRow}>
+                <div style={{ display: 'flex' }}>
+                    <button style={S.tabBtn(activeTab === 'MusB')} onClick={() => setActiveTab('MusB')}>MusB Coordinators</button>
+                    <button style={S.tabBtn(activeTab === 'Office')} onClick={() => setActiveTab('Office')}>My Office Team</button>
+                    <button style={S.tabBtn(activeTab === 'All')} onClick={() => setActiveTab('All')}>All Team Members</button>
                 </div>
-
-                {/* Desktop Tab Buttons */}
-                <div className="hidden lg:flex bg-white/5 p-1 rounded-2xl border border-white/5">
-
-
-                    {[
-                        { id: 'MusB', label: 'MusB Coordinators' },
-                        { id: 'Office', label: 'My Office Team' },
-                        { id: 'All', label: 'All Team Members' }
-                    ].map((tab) => (
-                        <button 
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={`px-4 lg:px-6 py-2.5 rounded-lg lg:rounded-xl text-[9px] lg:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
-                                activeTab === tab.id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'
-                            }`}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
-                </div>
-
-
-                <div className="flex flex-col sm:flex-row lg:items-center gap-4 lg:gap-6">
-                    <div className="relative w-full sm:w-64">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <div style={{ display: 'flex', gap: '1.5rem' }}>
+                    {activeTab === 'MusB' && (
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <span style={S.label}>Filter:</span>
+                            {['All', 'Available', 'Assigned', 'Active'].map(f => (
+                                <button key={f} 
+                                    onClick={() => setFilterStatus(f)}
+                                    style={{
+                                        ...S.tabBtn(filterStatus === f),
+                                        padding: '0.4rem 0.8rem',
+                                        backgroundColor: filterStatus === f ? 'rgba(99,102,241,0.1)' : 'transparent',
+                                        border: filterStatus === f ? '1px solid #6366f1' : '1px solid rgba(255,255,255,0.06)',
+                                        color: filterStatus === f ? '#6366f1' : '#475569'
+                                    }}>{f}</button>
+                            ))}
+                        </div>
+                    )}
+                    <div style={S.searchBox}>
+                        <Search size={14} color="#475569" />
                         <input 
-                            type="text" 
-                            placeholder="Search team..." 
+                            style={S.searchInput} 
+                            placeholder="SEARCH TEAM..." 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl lg:rounded-2xl pl-11 pr-4 py-2.5 text-[10px] text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 transition-all uppercase tracking-widest"
                         />
                     </div>
-                    {activeTab === 'MusB' && (
-                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-                            <span className="text-[9px] text-slate-600 font-black uppercase tracking-widest whitespace-nowrap">Filters:</span>
-                            {['All', 'Available', 'Assigned', 'Active'].map(f => (
-                                <button 
-                                    key={f} 
-                                    onClick={() => setFilterStatus(f as any)}
-                                    className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all whitespace-nowrap ${
-                                        filterStatus === f ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400' : 'bg-transparent border-white/5 text-slate-600 hover:text-slate-400'
-                                    }`}
-                                >
-                                    {f}
-                                </button>
-                            ))}
-                        </div>
-                    )}
                 </div>
-
             </div>
 
-            {/* Main Content Area */}
-            <div className="flex-1 overflow-hidden flex">
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-8">
-                    {/* Tab 1: MusB Coordinators */}
-                    {activeTab === 'MusB' && (
-                        <div className="space-y-6">
-                            <div className="bg-white/5 border border-white/5 rounded-[2rem] overflow-hidden">
-                                <table className="w-full text-left">
-                                    <thead>
-                                        <tr className="bg-white/10 border-b border-white/5">
-                                            <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest w-16">Select</th>
-                                            <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Name</th>
-                                            <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Role</th>
-                                            <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Expertise</th>
-                                            <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Assigned Studies</th>
-                                            <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-white/5">
-                                        {filteredMusB.map(m => (
-                                            <tr key={m.id} className="hover:bg-white/[0.02] transition-colors group">
-                                                <td className="px-8 py-6">
-                                                    <input type="checkbox" className="w-4 h-4 rounded border-white/10 bg-white/5 accent-indigo-600" />
-                                                </td>
-                                                <td className="px-8 py-6">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-bold italic">
-                                                            {m.name.charAt(0)}
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-[11px] font-black text-white italic uppercase">{m.name}</p>
-                                                            <p className="text-[9px] text-slate-600 font-bold">{m.email}</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase italic">{m.role}</td>
-                                                <td className="px-8 py-6">
-                                                    <span className="px-3 py-1 bg-white/5 rounded-full text-[8px] font-black text-slate-500 uppercase tracking-widest">{m.expertise}</span>
-                                                </td>
-                                                <td className="px-8 py-6 text-[10px] font-black text-indigo-400 uppercase italic">
-                                                    {m.assignedStudies.join(', ') || 'None'}
-                                                </td>
-                                                <td className="px-8 py-6">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                                                        <span className="text-[9px] font-black text-emerald-400 uppercase italic">Active</span>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div className="p-6 bg-indigo-500/5 border border-indigo-500/10 rounded-3xl flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <ShieldCheck className="w-6 h-6 text-indigo-400" />
-                                    <p className="text-[10px] text-indigo-300/60 font-black uppercase tracking-[0.2em]">MusB internal staff identity verified by global research nodes</p>
-                                </div>
-                                <button className="px-6 py-3 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all">
-                                    Apply Changes
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Tab 2: PI Office Team */}
-                    {activeTab === 'Office' && (
-                        <div className="grid gap-6">
-                            <div className="bg-white/5 border border-white/5 rounded-[2rem] overflow-hidden">
-                                <table className="w-full text-left">
-                                    <thead>
-                                        <tr className="bg-white/10 border-b border-white/5">
-                                            <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Personnel</th>
-                                            <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Contact</th>
-                                            <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Assigned Studies</th>
-                                            <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                                            <th className="px-10 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-white/5">
-                                        {filteredOffice.map(m => (
-                                            <tr key={m.id} className="hover:bg-white/[0.02] transition-colors group">
-                                                <td className="px-8 py-6">
-                                                    <div>
-                                                        <p className="text-[11px] font-black text-white italic uppercase">{m.name}</p>
-                                                        <p className="text-[9px] text-indigo-400 font-black uppercase tracking-widest mt-0.5 italic">{m.role}</p>
-                                                    </div>
-                                                </td>
-                                                <td className="px-8 py-6">
-                                                    <div className="space-y-1">
-                                                        <div className="flex items-center gap-2 text-[9px] text-slate-500">
-                                                            <Mail className="w-3 h-3" /> {m.email}
-                                                        </div>
-                                                        <div className="flex items-center gap-2 text-[9px] text-slate-500">
-                                                            <Phone className="w-3 h-3" /> {m.phone}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-8 py-6 text-[10px] font-black text-slate-300 uppercase italic">
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {m.assignedStudies.map(s => (
-                                                            <span key={s} className="px-2.5 py-1 bg-white/5 border border-white/10 rounded-md">#{s}</span>
-                                                        ))}
-                                                    </div>
-                                                </td>
-                                                <td className="px-8 py-6">
-                                                    <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
-                                                        m.status === 'Active' 
-                                                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                                                            : 'bg-slate-500/10 text-slate-500 border-white/5'
-                                                    }`}>
-                                                        {m.status}
-                                                    </span>
-                                                </td>
-                                                <td className="px-10 py-6">
-                                                    <div className="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
-                                                        <button 
-                                                            onClick={() => { setSelectedMember(m); setIsEditPanelOpen(true); }}
-                                                            className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white hover:text-slate-950 transition-all"
-                                                        >
-                                                            <Edit2 className="w-4 h-4" />
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleInactivate(m.id)}
-                                                            className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-amber-500/20 hover:text-amber-400 transition-all"
-                                                        >
-                                                            <Lock className="w-4 h-4" />
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleDelete(m.id)}
-                                                            className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-red-500/20 hover:text-red-400 transition-all text-red-500/60"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Tab 3: All Members */}
-                    {activeTab === 'All' && (
-                        <div className="bg-white/5 border border-white/5 rounded-[2rem] overflow-hidden">
-                            <table className="w-full text-left">
-                                <thead>
-                                    <tr className="bg-white/10 border-b border-white/5">
-                                        <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Name</th>
-                                        <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Affiliation</th>
-                                        <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Studies</th>
-                                        <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                                        <th className="px-10 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Verification</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {allTeam.map(m => (
-                                        <tr key={m.id} className="hover:bg-white/[0.02] border-b border-white/5 transition-colors">
-                                            <td className="px-8 py-6">
-                                                <div>
-                                                    <p className="text-[11px] font-black text-white italic uppercase">{m.name}</p>
-                                                    <p className="text-[9px] text-slate-500 font-bold italic line-clamp-1">{m.role}</p>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-6">
-                                                <div className="flex items-center gap-2">
-                                                    {m.type === 'MusB' ? <Building2 className="w-3.5 h-3.5 text-indigo-400" /> : <Users className="w-3.5 h-3.5 text-slate-500" />}
-                                                    <span className={`text-[9px] font-black uppercase tracking-widest ${m.type === 'MusB' ? 'text-indigo-400' : 'text-slate-500'}`}>{m.type}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-6">
-                                                <span className="text-[10px] font-black text-slate-400 italic font-mono">{m.assignedStudies.length.toString().padStart(2, '0')} Protocols</span>
-                                            </td>
-                                            <td className="px-8 py-6">
-                                              <div className={`w-2 h-2 rounded-full ${m.status === 'Active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]' : 'bg-slate-700'}`} />
-                                            </td>
-                                            <td className="px-10 py-6 text-right">
-                                                <button className="text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:text-white transition-all underline underline-offset-4 decoration-slate-800 flex items-center gap-2 ml-auto">
-                                                    Review Audit Trail <ChevronRight className="w-3.5 h-3.5" />
+            {/* TABLE AREA */}
+            <div style={S.tableArea}>
+                <table style={S.table}>
+                    <thead>
+                        <tr>
+                            <th style={S.th}>Personnel</th>
+                            <th style={{ ...S.th, width: '20%' }}>Role</th>
+                            <th style={S.th}>Assigned Protocols</th>
+                            <th style={{ ...S.th, textAlign: 'center' }}>Status</th>
+                            <th style={{ ...S.th, textAlign: 'right' }}>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {getVisibleTeam().map(m => (
+                            <tr key={m.id}>
+                                <td style={S.td}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                        <div style={{ width: '40px', height: '40px', borderRadius: '4px', backgroundColor: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <User size={20} color="#475569" />
+                                        </div>
+                                        <div>
+                                            <div style={S.name}>{m.name}</div>
+                                            <div style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 'bold', letterSpacing: '0.05em' }}>{m.email}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td style={S.td}>
+                                    <div style={{ fontSize: '14px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{m.role}</div>
+                                    {m.expertise && <div style={{ fontSize: '14px', color: '#6366f1', marginTop: '6px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.expertise}</div>}
+                                </td>
+                                <td style={S.td}>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
+                                        {m.assignedStudies.length > 0 ? m.assignedStudies.map(s => (
+                                            <span key={s} style={{ fontSize: '14px', fontWeight: 900, color: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)', padding: '0.4rem 0.8rem', borderRadius: '4px', border: '1px solid rgba(99,102,241,0.2)' }}>{s}</span>
+                                        )) : <span style={{ fontSize: '14px', color: '#475569', fontWeight: 900, tracking: '0.1em' }}>NO ASSIGNMENTS</span>}
+                                    </div>
+                                </td>
+                                <td style={{ ...S.td, textAlign: 'center' }}>
+                                    <span style={S.statusBadge(m.status)}>{m.status}</span>
+                                </td>
+                                <td style={{ ...S.td, textAlign: 'right' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                        {m.type === 'Office' && (
+                                            <>
+                                                <button style={S.btnGhost} onClick={() => {
+                                                    setPanelMode('edit');
+                                                    setEditedMember({ ...m });
+                                                    setSelectedMember(m);
+                                                    setPanelOpen(true);
+                                                }}><Edit2 size={14} /></button>
+                                                <button style={S.btnGhost} onClick={() => handleInactivateToggle(m)}>
+                                                    {m.status === 'Inactive' ? <Unlock size={14} color="#10b981" /> : <Lock size={14} color="#f59e0b" />}
                                                 </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                                                <button style={{ ...S.btnGhost, borderColor: 'rgba(239, 68, 68, 0.2)' }} onClick={() => handleDelete(m)}><Trash2 size={14} color="#ef4444" /></button>
+                                            </>
+                                        )}
+                                        {m.type === 'MusB' && (
+                                            <button style={S.btnGhost} onClick={() => addToast('MusB credentials managed by Network Admin', 'warning')}>
+                                                <Shield size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* SLIDE-IN PANEL */}
+            <div style={S.panel}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 2rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                    <h2 style={S.title}>{panelMode === 'add' ? 'Register New Personnel' : 'Edit Team Member'}</h2>
+                    <button style={{ ...S.btnGhost, padding: '0.5rem' }} onClick={() => setPanelOpen(false)}><X size={20} /></button>
                 </div>
 
-                {/* Right Side Summary Panel */}
-                <div className="hidden xl:block w-[350px] bg-white/[0.02] border-l border-white/5 p-10 space-y-12 shrink-0 overflow-y-auto custom-scrollbar">
+                <div style={{ flex: 1, overflowY: 'auto', padding: '2rem' }}>
+                    {/* IDENTITY */}
+                    <section style={{ marginBottom: '2.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                            <div style={{ width: '2px', height: '14px', backgroundColor: '#6366f1' }} />
+                            <h3 style={S.label}>Personnel Identity</h3>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            <div>
+                                <label style={S.label}>Full Name</label>
+                                <input style={S.input} value={editedMember.name || ''} onChange={e => setEditedMember({...editedMember, name: e.target.value})} />
+                            </div>
+                            <div>
+                                <label style={S.label}>Role Dropdown</label>
+                                <select style={{ ...S.input, fontSize: '18px', fontWeight: 900, textTransform: 'uppercase', cursor: 'pointer' }} value={editedMember.role} onChange={e => {
+                                    const role = e.target.value;
+                                    setEditedMember({
+                                        ...editedMember, 
+                                        role,
+                                        documents: ROLE_DOCS[role].map(name => ({
+                                            id: Math.random().toString(36).substr(2, 9),
+                                            name, status: 'Missing', isRequired: true
+                                        }))
+                                    });
+                                }}>
+                                    {Object.keys(ROLE_DOCS).map(r => <option key={r} value={r} style={{ backgroundColor: '#0B101B', color: 'white' }}>{r.toUpperCase()}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label style={S.label}>Email Address</label>
+                                <input style={S.input} value={editedMember.email || ''} onChange={e => setEditedMember({...editedMember, email: e.target.value})} />
+                            </div>
+                            <div>
+                                <label style={S.label}>Phone Number</label>
+                                <input style={S.input} value={editedMember.phone || ''} onChange={e => setEditedMember({...editedMember, phone: e.target.value})} />
+                            </div>
+                        </div>
+                    </section>
 
-                   <section>
-                       <h4 className="text-[9px] font-black text-slate-600 uppercase tracking-[0.3em] mb-6 border-b border-white/5 pb-3">Operational Stats</h4>
-                       <div className="space-y-6">
-                           {[
-                               { label: 'Total Personnel', val: allTeam.length, icon: Users, color: 'indigo' },
-                               { label: 'Active Status', val: allTeam.filter(t => t.status === 'Active').length, icon: CheckCircle2, color: 'emerald' },
-                               { label: 'MusB Network', val: MOCK_MUSB_COORDINATORS.length, icon: Building2, color: 'indigo' },
-                               { label: 'PI Office Team', val: officeTeam.length, icon: Users, color: 'slate' }
-                           ].map((stat, i) => (
-                               <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-[1.5rem] border border-white/5">
-                                   <div className="flex items-center gap-3">
-                                       <div className={`w-8 h-8 rounded-xl bg-${stat.color}-500/10 flex items-center justify-center text-${stat.color}-400`}>
-                                           <stat.icon className="w-4 h-4" />
-                                       </div>
-                                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</span>
-                                   </div>
-                                   <span className="text-lg font-black font-mono text-white italic">{stat.val.toString().padStart(2, '0')}</span>
-                               </div>
-                           ))}
-                       </div>
-                   </section>
+                    {/* AUTHORIZATION */}
+                    <section style={{ marginBottom: '2.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                            <div style={{ width: '2px', height: '14px', backgroundColor: '#6366f1' }} />
+                            <h3 style={S.label}>Authorization & Scope</h3>
+                        </div>
+                        <label style={{ ...S.label, marginBottom: '0.75rem' }}>Assign Studies</label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                            {PROTOCOLS.map(p => {
+                                const selected = editedMember.assignedStudies?.includes(p);
+                                return (
+                                    <button key={p} 
+                                        onClick={() => setEditedMember({
+                                            ...editedMember,
+                                            assignedStudies: selected 
+                                                ? editedMember.assignedStudies?.filter(s => s !== p)
+                                                : [...(editedMember.assignedStudies || []), p]
+                                        })}
+                                        style={{
+                                            ...S.btnGhost,
+                                            backgroundColor: selected ? '#6366f1' : 'transparent',
+                                            color: selected ? 'white' : '#475569',
+                                            borderColor: selected ? '#6366f1' : 'rgba(255,255,255,0.06)'
+                                        }}>{p}</button>
+                                );
+                            })}
+                        </div>
+                        
+                        <label style={{ ...S.label, marginBottom: '0.75rem' }}>Permission Level</label>
+                        <div style={{ display: 'flex', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '4px', padding: '4px' }}>
+                            {['Full', 'Limited', 'Read-only'].map(lvl => (
+                                <button key={lvl} 
+                                    onClick={() => setEditedMember({...editedMember, permissionLevel: lvl as any})}
+                                    style={{
+                                        flex: 1, padding: '0.75rem', border: 'none', borderRadius: '4px',
+                                        fontSize: '11px', fontWeight: 900, textTransform: 'uppercase',
+                                        backgroundColor: editedMember.permissionLevel === lvl ? '#6366f1' : 'transparent',
+                                        color: editedMember.permissionLevel === lvl ? 'white' : '#475569',
+                                        cursor: 'pointer'
+                                    }}>{lvl}</button>
+                            ))}
+                        </div>
+                    </section>
 
-                   <section>
-                       <h4 className="text-[9px] font-black text-slate-600 uppercase tracking-[0.3em] mb-6 border-b border-white/5 pb-3">Studies Coverage</h4>
-                       <div className="space-y-3">
-                            {['HI-202B', 'MS-801', 'NR-009'].map(s => (
-                                <div key={s} className="flex items-center justify-between group">
-                                    <span className="text-[10px] font-black text-slate-500 uppercase italic">#{s} Protocol</span>
-                                    <div className="flex -space-x-3">
-                                        {[1,2,3].map(i => (
-                                            <div key={i} className="w-7 h-7 rounded-full border-2 border-[#0B101B] bg-indigo-600 flex items-center justify-center text-[8px] font-bold text-white shadow-xl">
-                                                PI
-                                            </div>
-                                        ))}
+                    {/* REPOSITORY */}
+                    <section>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                            <div style={{ width: '2px', height: '14px', backgroundColor: '#6366f1' }} />
+                            <h3 style={S.label}>Qualification Repository ({editedMember.role})</h3>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {editedMember.documents?.map(doc => (
+                                <div key={doc.id} style={{ 
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                                    padding: '1rem', backgroundColor: doc.status === 'Valid' ? 'rgba(16,185,129,0.05)' : 'rgba(255,255,255,0.02)',
+                                    borderRadius: '4px', border: `1px solid ${doc.status === 'Valid' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)'}`
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                        {doc.status === 'Valid' ? <CheckCircle2 size={16} color="#10b981" /> : <AlertCircle size={16} color="#475569" />}
+                                        <div>
+                                            <div style={{ fontSize: '12px', fontWeight: 'bold', color: doc.status === 'Valid' ? 'white' : '#475569' }}>{doc.name}</div>
+                                            {doc.uploadDate && <div style={{ fontSize: '10px', color: '#10b981', marginTop: '2px' }}>VERIFIED: {doc.uploadDate}</div>}
+                                        </div>
                                     </div>
+                                    <button style={{ ...S.btnGhost, padding: '0.4rem 0.8rem' }} onClick={() => triggerUpload(doc.id)}>
+                                        <Upload size={12} style={{ marginRight: '6px' }} /> UPLOAD
+                                    </button>
                                 </div>
                             ))}
-                       </div>
-                   </section>
+                        </div>
+                    </section>
+                </div>
 
-                   <div className="p-8 bg-amber-500/5 border border-amber-500/10 rounded-[2rem] space-y-4">
-                       <div className="flex items-center gap-3">
-                           <AlertTriangle className="w-5 h-5 text-amber-500" />
-                           <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest italic">Action Required</p>
-                       </div>
-                       <p className="text-[11px] text-slate-500 font-bold leading-relaxed italic">
-                           {officeTeam.filter(m => m.documents.some(d => d.status === 'Missing' || d.status === 'Expired')).length} team members have missing or expired required clinical documents.
-                       </p>
-                   </div>
+                {/* BOTTOM BANNER */}
+                <div style={{ padding: '1.5rem 2rem', borderTop: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                    {editedMember.status !== 'Active' && (
+                        <div style={{ 
+                            display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', 
+                            borderRadius: '4px', marginBottom: '1.5rem',
+                            backgroundColor: (editedMember.documents || []).every(d => d.status === 'Valid') ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.05)',
+                            border: `1px solid ${(editedMember.documents || []).every(d => d.status === 'Valid') ? '#10b981' : '#ef4444'}20`
+                        }}>
+                            {(editedMember.documents || []).every(d => d.status === 'Valid') ? (
+                                <>
+                                    <CheckCircle2 size={20} color="#10b981" />
+                                    <div style={{ fontSize: '11px', fontWeight: 900, color: '#10b981' }}>ALL CREDENTIALS VERIFIED. READY FOR ACTIVATION.</div>
+                                </>
+                            ) : (
+                                <>
+                                    <AlertCircle size={20} color="#ef4444" />
+                                    <div style={{ fontSize: '11px', fontWeight: 900, color: '#ef4444' }}>
+                                        INELIGIBLE: {(editedMember.documents || []).filter(d => d.status !== 'Valid').length} DOCUMENTS REMAINING
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
+                    
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        {panelMode === 'edit' && (
+                            <button style={{ ...S.btnGhost, borderColor: '#ef444430', color: '#ef4444' }} onClick={() => handleDelete(editedMember as TeamMember)}>DELETE PERSON</button>
+                        )}
+                        <div style={{ flex: 1 }} />
+                        <button style={S.btnGhost} onClick={() => setPanelOpen(false)}>CANCEL</button>
+                        <button style={{ 
+                            ...S.btnPrimary, 
+                            backgroundColor: (editedMember.documents || []).every(d => d.status === 'Valid') ? '#10b981' : '#1e293b',
+                            cursor: (editedMember.documents || []).every(d => d.status === 'Valid') ? 'pointer' : 'not-allowed'
+                        }} onClick={handleActivateUser}>
+                            {(editedMember.documents || []).every(d => d.status === 'Valid') ? 'ACTIVATE USER' : 'LOCKED'}
+                        </button>
+                        <button style={S.btnPrimary} onClick={handleSaveMember}>SAVE PROGRESSION</button>
+                    </div>
                 </div>
             </div>
 
-            {/* Edit / Add Slide-in Panel */}
-            <AnimatePresence>
-                {isEditPanelOpen && (
-                    <>
-                        <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setIsEditPanelOpen(false)}
-                            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]"
-                        />
-                        <motion.div 
-                            initial={{ x: '100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '100%' }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="fixed right-0 top-0 bottom-0 w-[800px] bg-[#0B101B] border-l border-white/10 z-[101] flex flex-col shadow-2xl"
-                        >
-                            <div className="flex-shrink-0 px-10 py-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+            {/* MUSB MODAL */}
+            {musbModalOpen && (
+                <div style={{ 
+                    position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                    width: '600px', backgroundColor: '#0B101B', border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '8px', zIndex: 100, overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.5)'
+                }}>
+                    <div style={{ padding: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between' }}>
+                        <h2 style={S.title}>SELECT MUSB COORDINATORS</h2>
+                        <button onClick={() => setMusbModalOpen(false)} style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer' }}><X size={20} /></button>
+                    </div>
+                    <div style={{ padding: '1.5rem', maxHeight: '400px', overflowY: 'auto' }}>
+                        {MOCK_MUSB.map(m => (
+                            <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                <input type="checkbox" checked={tempMusbSelected.includes(m.id)} onChange={() => {
+                                    setTempMusbSelected(prev => prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id]);
+                                }} style={{ width: '18px', height: '18px', accentColor: '#6366f1' }} />
                                 <div>
-                                    <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">
-                                        {selectedMember ? 'Edit Team Member' : 'Register New Personnel'}
-                                    </h3>
-                                    <p className="text-[9px] text-indigo-300 font-black uppercase tracking-widest mt-1">PI Office Environment & Protocol Access</p>
-                                </div>
-                                <button onClick={() => setIsEditPanelOpen(false)} className="p-3 bg-white/5 border border-white/10 rounded-2xl text-slate-500 hover:text-white transition-all">
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-
-                            <div className="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-12">
-                                {/* Basic Info Section */}
-                                <section className="grid grid-cols-2 gap-8">
-                                    <div className="col-span-2">
-                                        <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] mb-6 italic">Identity & Identification</h4>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <label className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Full Name</label>
-                                        <input type="text" defaultValue={selectedMember?.name} placeholder="e.g. Rachel Voss" className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm text-white placeholder-slate-700 outline-none focus:border-indigo-500/50" />
-                                    </div>
-                                    <div className="space-y-4">
-                                        <label className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Clinical Email</label>
-                                        <input type="email" defaultValue={selectedMember?.email} placeholder="r.voss@miller-clinic.com" className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm text-white placeholder-slate-700 outline-none focus:border-indigo-500/50" />
-                                    </div>
-                                    <div className="space-y-4">
-                                        <label className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Role Selection</label>
-                                        <select 
-                                            defaultValue={selectedMember?.role || 'Clinical Coordinator'} 
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm text-white outline-none focus:border-indigo-500/50 appearance-none italic font-black uppercase"
-                                            onChange={(e) => setSelectedMember(prev => prev ? {...prev, role: e.target.value} : null)}
-                                        >
-                                            {Object.keys(REQUIRED_DOCS_BY_ROLE).map(r => (
-                                                <option key={r} value={r}>{r}</option>
-                                            ))}
-                                            <option value="Other">Other</option>
-                                        </select>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <label className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Mobile/Office Phone</label>
-                                        <input type="text" defaultValue={selectedMember?.phone} placeholder="+1 (555) 000-0000" className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm text-white placeholder-slate-700 outline-none focus:border-indigo-500/50" />
-                                    </div>
-                                </section>
-
-                                {/* Access Control & Studies */}
-                                <section>
-                                    <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] mb-6 italic">Authorization & Scope</h4>
-                                    <div className="bg-white/5 border border-white/5 rounded-[2rem] p-8 space-y-8">
-                                        <div className="space-y-4">
-                                            <label className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Assigned Studies (PI's Portfolio Only)</label>
-                                            <div className="flex flex-wrap gap-3">
-                                                {['HI-202B', 'MS-801', 'NR-009', 'OB-770'].map(s => (
-                                                    <button key={s} className="px-5 py-2.5 bg-indigo-600/10 border border-indigo-500/30 text-indigo-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all">
-                                                        Protocol #{s}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center justify-between py-6 border-t border-white/5">
-                                            <div>
-                                                <p className="text-[11px] font-black text-white italic uppercase">Permission Level</p>
-                                                <p className="text-[9px] text-slate-500 mt-1 italic font-bold">Defines write access to subject medical records</p>
-                                            </div>
-                                            <div className="flex bg-white/10 p-1 rounded-xl">
-                                                {['Full', 'Limited', 'Read-only'].map(p => (
-                                                    <button key={p} className="px-4 py-2 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all hover:text-white text-slate-500">
-                                                        {p}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </section>
-
-                                {/* Required Documents Checklist */}
-                                <section className="space-y-8">
-                                    <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                                        <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] italic">Qualification Repository</h4>
-                                        <span className="px-3 py-1 bg-indigo-500/10 text-indigo-400 rounded-lg text-[8px] font-black uppercase tracking-widest">
-                                            Role: {selectedMember?.role || 'Clinical Coordinator'}
-                                        </span>
-                                    </div>
-                                    
-                                    <div className="grid gap-4">
-                                        {(REQUIRED_DOCS_BY_ROLE[selectedMember?.role || 'Clinical Coordinator'] || []).map((docName, idx) => {
-                                            const doc = selectedMember?.documents.find(d => d.name === docName);
-                                            return (
-                                                <div key={idx} className="bg-white/[0.03] border border-white/5 rounded-2xl p-6 flex items-center justify-between group hover:border-white/10 transition-all">
-                                                    <div className="flex items-center gap-6">
-                                                        <div className={`p-4 rounded-xl ${doc ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-700/10 text-slate-600 border border-white/5'}`}>
-                                                            {doc ? <CheckCircle2 className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-[11px] font-black text-white italic uppercase tracking-wider">{docName}</p>
-                                                            <p className="text-[9px] text-slate-500 font-bold mt-1 uppercase tracking-widest">
-                                                                {doc ? `Uploaded: ${doc.uploadDate} • Expires: ${doc.expiryDate}` : 'Required Document Missing'}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-4">
-                                                        {doc && (
-                                                            <span className={`px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${
-                                                                doc.status === 'Valid' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 
-                                                                doc.status === 'Expiring Soon' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 
-                                                                'bg-red-500/10 text-red-500 border border-red-500/20'
-                                                            }`}>
-                                                                {doc.status}
-                                                            </span>
-                                                        )}
-                                                        <button className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/10 transition-all">
-                                                            <Upload className="w-4 h-4" /> Upload
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </section>
-
-                                {/* Activation Status Banner */}
-                                <section className="pt-10 border-t border-white/5">
-                                    {(selectedMember?.documents.some(d => d.status === 'Missing' || d.status === 'Expired')) || !selectedMember ? (
-                                        <div className="p-8 bg-red-500/5 border border-red-500/10 rounded-[2.5rem] flex items-center justify-between">
-                                            <div className="flex items-center gap-5">
-                                                <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 border border-red-500/20">
-                                                    <AlertTriangle className="w-6 h-6" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-black text-red-100 italic uppercase">Ineligible for Activation</p>
-                                                    <p className="text-[10px] text-red-500/60 font-black uppercase tracking-widest mt-1">Personnel credentials must be verified and valid</p>
-                                                </div>
-                                            </div>
-                                            <button className="px-8 py-3 bg-slate-800 text-slate-500 rounded-2xl text-[9px] font-black uppercase tracking-widest cursor-not-allowed border border-white/5">
-                                                Locked
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="p-8 bg-emerald-500/5 border border-emerald-500/10 rounded-[2.5rem] flex items-center justify-between">
-                                            <div className="flex items-center gap-5">
-                                                <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
-                                                    <ShieldCheck className="w-6 h-6" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-black text-emerald-100 italic uppercase">Credential Synchronization Complete</p>
-                                                    <p className="text-[10px] text-emerald-500/60 font-black uppercase tracking-widest mt-1">This user is ready for protocol deployment</p>
-                                                </div>
-                                            </div>
-                                            <button className="px-8 py-3 bg-emerald-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-xl shadow-emerald-900/40 hover:scale-105 transition-all">
-                                                Activate User
-                                            </button>
-                                        </div>
-                                    )}
-                                </section>
-
-                                {/* Sticky Bottom Actions */}
-                                <div className="pt-10 pb-20 flex items-center justify-between border-t border-white/5 bg-gradient-to-t from-[#0B101B] to-transparent">
-                                    <button onClick={() => handleDelete(selectedMember?.id || '')} className="flex items-center gap-3 px-8 py-4 bg-white/5 border border-white/5 rounded-2xl text-[10px] font-black text-red-500 uppercase tracking-widest hover:bg-red-500/20 transition-all">
-                                        <Trash2 className="w-4 h-4" /> Delete Person
-                                    </button>
-                                    <div className="flex gap-4">
-                                        <button onClick={() => setIsEditPanelOpen(false)} className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white">Cancel</button>
-                                        <button className="px-10 py-4 bg-white text-slate-950 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-all italic">Save Progression</button>
-                                    </div>
+                                    <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{m.name}</div>
+                                    <div style={{ fontSize: '11px', color: '#475569' }}>{m.expertise} • {m.email}</div>
                                 </div>
                             </div>
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
+                        ))}
+                    </div>
+                    <div style={{ padding: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                        <button style={S.btnGhost} onClick={() => setMusbModalOpen(false)}>CANCEL</button>
+                        <button style={S.btnPrimary} onClick={handleApplyMusBChanges}>CONFIRM SELECTION</button>
+                    </div>
+                </div>
+            )}
+
+            {/* CONFIRM MODAL */}
+            {confirmModal && (
+                <div style={{ 
+                    position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                    width: '400px', backgroundColor: '#0B101B', border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '8px', zIndex: 110, padding: '2rem', textAlign: 'center', boxShadow: '0 25px 50px rgba(0,0,0,0.8)'
+                }}>
+                    <div style={{ color: confirmModal.type === 'danger' ? '#ef4444' : '#f59e0b', marginBottom: '1.5rem' }}>
+                        <AlertTriangle size={48} style={{ margin: '0 auto' }} />
+                    </div>
+                    <p style={{ fontSize: '14px', fontWeight: 'bold', color: 'white', marginBottom: '2rem' }}>{confirmModal.message}</p>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => setConfirmModal(null)}>CANCEL</button>
+                        <button style={{ 
+                            ...S.btnPrimary, 
+                            flex: 1, 
+                            backgroundColor: confirmModal.type === 'danger' ? '#ef4444' : '#6366f1' 
+                        }} onClick={confirmModal.onConfirm}>PROCEED</button>
+                    </div>
+                </div>
+            )}
+
+            {/* TOASTS */}
+            <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 200, display: 'flex', flexDirection: 'column-reverse' }}>
+                {toasts.map(t => (
+                    <div key={t.id} style={S.toast(t.type)}>
+                        {t.type === 'success' ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+                        {t.message}
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }

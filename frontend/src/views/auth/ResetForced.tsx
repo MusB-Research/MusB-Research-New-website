@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, Key, ShieldCheck, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Lock, Key, ShieldCheck, ArrowRight, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { authFetch } from '../../utils/auth';
 
@@ -11,6 +11,9 @@ export default function ResetForced() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [showOld, setShowOld] = useState(false);
+    const [showNew, setShowNew] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
     const navigate = useNavigate();
 
     const handleReset = async (e: React.FormEvent) => {
@@ -49,6 +52,7 @@ export default function ResetForced() {
                 } else {
                     const role = user.role;
                     switch (role) {
+                        case 'SUPER_ADMIN': navigate('/dashboard/super-admin'); break;
                         case 'ADMIN':
                         case 'COORDINATOR': navigate('/dashboard/admin'); break;
                         case 'PI': navigate('/dashboard/pi'); break;
@@ -111,38 +115,65 @@ export default function ResetForced() {
                                 <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic flex items-center gap-2">
                                    <Key className="w-3 h-3" /> System Security Key (Temporary Password)
                                 </label>
-                                <input
-                                    type="password"
-                                    required
-                                    placeholder="••••••••••••"
-                                    value={oldPassword}
-                                    onChange={e => setOldPassword(e.target.value)}
-                                    className="w-full bg-black/40 border border-white/5 rounded-2xl px-8 py-5 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-mono text-lg tracking-[0.3em]"
-                                />
+                                <div className="relative group">
+                                    <input
+                                        type={showOld ? "text" : "password"}
+                                        required
+                                        placeholder="••••••••••••"
+                                        value={oldPassword}
+                                        onChange={e => setOldPassword(e.target.value)}
+                                        className="w-full bg-black/40 border border-white/5 rounded-2xl px-8 pr-16 py-5 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-mono text-lg tracking-[0.3em]"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowOld(!showOld)}
+                                        className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-purple-400 transition-colors"
+                                    >
+                                        {showOld ? <EyeOff size={20} /> : <Eye size={20} />}
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-3 px-4">
                                     <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic">New Security Key</label>
-                                    <input
-                                        type="password"
-                                        required
-                                        placeholder="••••••••"
-                                        value={password}
-                                        onChange={e => setPassword(e.target.value)}
-                                        className="w-full bg-black/40 border border-white/5 rounded-2xl px-8 py-5 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-mono"
-                                    />
+                                    <div className="relative group">
+                                        <input
+                                            type={showNew ? "text" : "password"}
+                                            required
+                                            placeholder="••••••••"
+                                            value={password}
+                                            onChange={e => setPassword(e.target.value)}
+                                            className="w-full bg-black/40 border border-white/5 rounded-2xl px-8 pr-16 py-5 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-mono"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowNew(!showNew)}
+                                            className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-purple-400 transition-colors"
+                                        >
+                                            {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="space-y-3 px-4">
                                     <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic">Confirm Key</label>
-                                    <input
-                                        type="password"
-                                        required
-                                        placeholder="••••••••"
-                                        value={confirmPassword}
-                                        onChange={e => setConfirmPassword(e.target.value)}
-                                        className="w-full bg-black/40 border border-white/5 rounded-2xl px-8 py-5 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-mono"
-                                    />
+                                    <div className="relative group">
+                                        <input
+                                            type={showConfirm ? "text" : "password"}
+                                            required
+                                            placeholder="••••••••"
+                                            value={confirmPassword}
+                                            onChange={e => setConfirmPassword(e.target.value)}
+                                            className="w-full bg-black/40 border border-white/5 rounded-2xl px-8 pr-16 py-5 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-mono"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirm(!showConfirm)}
+                                            className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-purple-400 transition-colors"
+                                        >
+                                            {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

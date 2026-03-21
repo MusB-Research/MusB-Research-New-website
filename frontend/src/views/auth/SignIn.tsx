@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, User, ShieldCheck, ArrowRight, Lock, Key, CheckCircle2, AlertCircle, ChevronLeft, LogIn, PhoneCall } from 'lucide-react';
+import { Mail, User, ShieldCheck, ArrowRight, Lock, Key, CheckCircle2, AlertCircle, ChevronLeft, LogIn, PhoneCall, Eye, EyeOff } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { Link, useNavigate } from 'react-router-dom';
 import { saveToken, saveUser } from '../../utils/auth';
@@ -24,6 +24,8 @@ export default function SignIn() {
     const [phoneOtp, setPhoneOtp] = useState(['', '', '', '', '', '']);
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [captchaToken, setCaptchaToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -208,7 +210,12 @@ export default function SignIn() {
 
 
 
-            saveToken(data.access, data.user.role);
+            const userRole = (data.user.role || '').toUpperCase();
+            if (userRole === 'SUPER_ADMIN') {
+                 throw new Error('RESTRICTED_ACCESS: Super Admin accounts must use the Restricted Portal for login.');
+            }
+
+            saveToken(data.access, userRole);
             saveUser(data.user);
 
             if (data.user.must_reset) {
@@ -354,9 +361,11 @@ export default function SignIn() {
             if (!response.ok) throw new Error(data.error || 'Login failed');
 
             // RBAC Redirection Logic
-            const userRole = data.user.role;
+            const userRole = (data.user.role || '').toUpperCase();
 
-
+            if (userRole === 'SUPER_ADMIN') {
+                throw new Error('RESTRICTED_ACCESS: Please use the dedicated Admin Portal for Super Admin login.');
+            }
 
             saveToken(data.access, userRole);
             saveUser(data.user);
@@ -371,6 +380,7 @@ export default function SignIn() {
             }
 
             switch (userRole) {
+                case 'SUPER_ADMIN': navigate('/dashboard/super-admin'); break;
                 case 'ADMIN':
                 case 'COORDINATOR': navigate('/dashboard/admin'); break;
                 case 'SPONSOR': navigate('/dashboard/sponsor'); break;
@@ -446,7 +456,7 @@ export default function SignIn() {
 
                     {/* Branding Section */}
                     <div className="flex flex-col items-center mb-12 relative z-10">
-                        <Link to="/">
+                        <Link to="/" target="_blank" rel="noopener noreferrer">
                             <motion.div 
                                 whileHover={{ scale: 1.05 }}
                                 className="bg-white rounded-3xl shadow-2xl border border-white/20 mb-8 flex items-center justify-center overflow-hidden h-16 md:h-20"
@@ -469,7 +479,7 @@ export default function SignIn() {
                             </AnimatePresence>
                             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center justify-center gap-3">
                                 <span className="w-1.5 h-[1px] bg-cyan-500/30"></span>
-                                {mode === 'LOGIN' ? 'Enter your credentials to continue' : 'Participant Enrollment'}
+                                {mode === 'LOGIN' ? 'Enter credentials to access MusB' : 'Participant Enrollment'}
                                 <span className="w-1.5 h-[1px] bg-cyan-500/30"></span>
                             </p>
                         </div>
@@ -622,13 +632,13 @@ export default function SignIn() {
                                 >
                                     <div className="space-y-4">
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Email Address</label>
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Email or User ID</label>
                                             <div className="relative group">
                                                 <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
                                                 <input
-                                                    type="email"
+                                                    type="text"
                                                     required
-                                                    placeholder="name@example.com"
+                                                    placeholder="Email or User ID"
                                                     value={email}
                                                     onChange={e => setEmail(e.target.value)}
                                                     className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-6 py-5 text-white placeholder:text-slate-700 outline-none transition-all font-bold text-sm ${isFieldMissing('email') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
@@ -641,13 +651,20 @@ export default function SignIn() {
                                             <div className="relative group">
                                                 <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
                                                 <input
-                                                    type="password"
+                                                    type={showPassword ? "text" : "password"}
                                                     required
                                                     placeholder="••••••••••••"
                                                     value={password}
                                                     onChange={e => setPassword(e.target.value)}
-                                                    className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-6 py-5 text-white placeholder:text-slate-800 outline-none transition-all font-bold text-sm tracking-widest ${isFieldMissing('password') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
+                                                    className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-14 py-5 text-white placeholder:text-slate-800 outline-none transition-all font-bold text-sm tracking-widest ${isFieldMissing('password') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
                                                 />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPassword(!showPassword)}
+                                                    className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-cyan-400 transition-colors"
+                                                >
+                                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -798,7 +815,7 @@ export default function SignIn() {
                                                     <div className="relative group">
                                                         <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400" />
                                                         <input
-                                                            type="password"
+                                                            type={showPassword ? "text" : "password"}
                                                             required
                                                             placeholder="••••••••••••"
                                                             value={password}
@@ -806,8 +823,15 @@ export default function SignIn() {
                                                                 setPassword(e.target.value);
                                                                 validatePasswordComplexity(e.target.value);
                                                             }}
-                                                            className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-6 py-5 text-white placeholder:text-slate-800 outline-none transition-all font-bold tracking-widest text-sm ${isFieldMissing('password') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
+                                                            className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-14 py-5 text-white placeholder:text-slate-800 outline-none transition-all font-bold tracking-widest text-sm ${isFieldMissing('password') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
                                                         />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowPassword(!showPassword)}
+                                                            className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-cyan-400 transition-colors"
+                                                        >
+                                                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                                        </button>
                                                     </div>
 
                                                     {/* Strength Indicator */}
@@ -849,13 +873,20 @@ export default function SignIn() {
                                                     <div className="relative group">
                                                         <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400" />
                                                         <input
-                                                            type="password"
+                                                            type={showConfirmPassword ? "text" : "password"}
                                                             required
                                                             placeholder="••••••••••••"
                                                             value={confirmPassword}
                                                             onChange={e => setConfirmPassword(e.target.value)}
-                                                            className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-6 py-5 text-white placeholder:text-slate-800 outline-none transition-all font-bold tracking-widest text-sm ${isFieldMissing('confirmPassword') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
+                                                            className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-14 py-5 text-white placeholder:text-slate-800 outline-none transition-all font-bold tracking-widest text-sm ${isFieldMissing('confirmPassword') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
                                                         />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                            className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-cyan-400 transition-colors"
+                                                        >
+                                                            {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
