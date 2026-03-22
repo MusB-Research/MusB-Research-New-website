@@ -158,8 +158,8 @@ def admin_create_user(request):
         
         subject = subject_map.get(role.lower(), 'Account Created — MusB Research')
         
-        # Determine correct login URL based on role
-        frontend_base = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
+        # Determine correct login URL based on role (Section 2.1)
+        frontend_base = getattr(settings, 'FRONTEND_URL', 'https://musbhealth.com')
         
         if role.lower() == 'super_admin':
             login_url = f"{frontend_base.rstrip('/')}/mainframe/restricted-auth"
@@ -244,10 +244,13 @@ def admin_resend_credentials(request, user_id):
         
         # Reuse email logic
         subject = "Updated Credentials — MusB Research"
-        origins = getattr(settings, 'CORS_ALLOWED_ORIGINS', [])
-        if not origins and getattr(settings, 'DEBUG', False):
-            origins = ["http://localhost:5173"]
-        login_url = f"{origins[0]}/signin" if origins else "https://musbhealth.com/signin"
+        # Determine correct login URL based on role (Section 2.1)
+        frontend_base = getattr(settings, 'FRONTEND_URL', 'https://musbhealth.com')
+        
+        if target_user.role.lower() == 'super_admin':
+            login_url = f"{frontend_base.rstrip('/')}/mainframe/restricted-auth"
+        else:
+            login_url = f"{frontend_base.rstrip('/')}/signin"
         
         html_content = f"""
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #4f46e5; border-radius: 10px;">

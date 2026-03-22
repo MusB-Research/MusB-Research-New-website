@@ -186,17 +186,18 @@ BASE_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
     CSRF_TRUSTED_ORIGINS = BASE_ORIGINS
+    # Ensure local development uses the correct Vite port
     FRONTEND_URL = os.getenv('FRONTEND_URL', "http://localhost:5173")
 else:
+    # PRODUCTION: Strictly pull from environment or default to primary domain
     CORS_ALLOWED_ORIGINS = os.getenv(
         'CORS_ALLOWED_ORIGINS',
         'https://musbhealth.com,https://www.musbhealth.com,https://musbresearchnewwebsite.vercel.app,https://musb-research-new-website.onrender.com,https://musb-backend.onrender.com'
     ).split(',')
-    CSRF_TRUSTED_ORIGINS = os.getenv(
-        'CSRF_TRUSTED_ORIGINS',
-        'https://musbhealth.com,https://www.musbhealth.com,https://musbresearchnewwebsite.vercel.app,https://musb-research-new-website.onrender.com,https://musb-backend.onrender.com'
-    ).split(',')
-    FRONTEND_URL = os.getenv('FRONTEND_URL', CORS_ALLOWED_ORIGINS[0] if CORS_ALLOWED_ORIGINS else "https://musbhealth.com")
+    CSRF_TRUSTED_ORIGINS = [o for o in CORS_ALLOWED_ORIGINS]
+    
+    # Use the primary website domain for emails/links if FRONTEND_URL environment variable is missing
+    FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://musbhealth.com')
 
 CORS_ALLOW_HEADERS = [
     "authorization",
