@@ -404,7 +404,7 @@ export default function PITeamModule() {
             fontSize: '14px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
-            letterSpacing: '0.25em',
+            letterSpacing: '0.05em',
             color: '#64748b',
             textAlign: 'left' as const,
             backgroundColor: 'rgba(11, 16, 27, 0.9)',
@@ -496,7 +496,7 @@ export default function PITeamModule() {
             color: status === 'Active' ? '#10b981' : '#94a3b8',
             border: `1px solid ${status === 'Active' ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.1)'}`
         })
-    };
+    } as Record<string, any>;
 
     // --- RENDER HELPERS ---
     const renderKPI = (label: string, value: number, Icon: any, color: string) => (
@@ -619,7 +619,7 @@ export default function PITeamModule() {
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
                                         {m.assignedStudies.length > 0 ? m.assignedStudies.map(s => (
                                             <span key={s} style={{ fontSize: '14px', fontWeight: 900, color: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)', padding: '0.4rem 0.8rem', borderRadius: '4px', border: '1px solid rgba(99,102,241,0.2)' }}>{s}</span>
-                                        )) : <span style={{ fontSize: '14px', color: '#475569', fontWeight: 900, tracking: '0.1em' }}>NO ASSIGNMENTS</span>}
+                                        )) : <span style={{ fontSize: '14px', color: '#475569', fontWeight: 900, letterSpacing: '0.1em' }}>NO ASSIGNMENTS</span>}
                                     </div>
                                 </td>
                                 <td style={{ ...S.td, textAlign: 'center' }}>

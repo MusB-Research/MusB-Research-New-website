@@ -18,6 +18,10 @@ interface AE {
     action: string;
     status: string;
     confirmed: boolean;
+    term?: string;         // Alias for event to fix TS error
+    relationship?: string; // Alias for relatedness to fix TS error
+    outcome?: string;      // Alias for status to fix TS error
+    date?: string;         // Alias for onset to fix TS error
 }
 
 interface Doc {
@@ -102,8 +106,13 @@ const S = {
         padding: '2rem 1.5rem', backgroundColor: 'rgba(255,255,255,0.01)',
         display: 'flex', flexDirection: 'column' as const, gap: '2rem', flexShrink: 0,
         overflowY: 'auto' as const
-    }
-};
+    },
+    title: { fontSize: '14px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: '1rem' },
+    badge: (color: string) => ({
+        padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '10px', fontWeight: 900 as const,
+        backgroundColor: `${color}20`, color: color, border: `1px solid ${color}40`, textTransform: 'uppercase' as const
+    })
+} as Record<string, any>;
 
 // --- MOCK DATA ---
 const MOCK_PARTICIPANT = {
@@ -454,7 +463,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                                     {participant.adverseEvents.map((ae, i) => (
                                         <div key={i} style={S.card}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                                                <span style={{ fontSize: '15px', fontWeight: 900, color: COLORS.danger }}>{ae.term.toUpperCase()}</span>
+                                                <span style={{ fontSize: '15px', fontWeight: 900, color: COLORS.danger }}>{ae.event.toUpperCase()}</span>
                                                 <span style={S.badge(COLORS.danger)}>SERIOUS AE (SAE)</span>
                                             </div>
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '2rem' }}>
@@ -463,16 +472,16 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                                                     <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{ae.severity}</p>
                                                 </div>
                                                 <div>
-                                                    <label style={S.label}>Relationship</label>
-                                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{ae.relationship}</p>
+                                                    <label style={S.label}>Relatedness</label>
+                                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{ae.relatedness}</p>
                                                 </div>
                                                 <div>
-                                                    <label style={S.label}>Outcome</label>
-                                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{ae.outcome}</p>
+                                                    <label style={S.label}>Status</label>
+                                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{ae.status}</p>
                                                 </div>
                                                 <div>
-                                                    <label style={S.label}>Logged Date</label>
-                                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{ae.date}</p>
+                                                    <label style={S.label}>Onset Date</label>
+                                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{ae.onset}</p>
                                                 </div>
                                             </div>
                                         </div>

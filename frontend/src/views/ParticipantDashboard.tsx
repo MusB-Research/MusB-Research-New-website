@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { authFetch, clearToken, getRole, performLogout } from '../utils/auth';
+import { authFetch, clearToken, getRole, performLogout, getUser } from '../utils/auth';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal'; // Added import
 import AnimatedBackground from '../components/AnimatedBackground';
 import {

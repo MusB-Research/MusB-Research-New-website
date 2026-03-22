@@ -218,8 +218,8 @@ export default function PIVisitsAssessmentsModule() {
         title: { fontSize: '20px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' as const, color: 'white' },
         btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '0.6rem 1.25rem', borderRadius: '4px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' },
         btnGhost: { backgroundColor: 'transparent', color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: '0.6rem 1.25rem', borderRadius: '4px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' },
-        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' as const })
-    };
+        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '10px', fontWeight: 900 as const, textTransform: 'uppercase' as const })
+    } as Record<string, any>;
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', backgroundColor: COLORS.bg, color: 'white', overflow: 'hidden' }}>
@@ -405,7 +405,7 @@ export default function PIVisitsAssessmentsModule() {
                                     {openAccordions.has('checklist') && (
                                         <div style={{ padding: '0 1.5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                             {activeVisit.checklist.map((item, i) => (
-                                                <div key={i} onClick={() => handleCheckItem(i)} style={{ display: 'flex', items: 'center', gap: '0.75rem', padding: '0.75rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '8px', cursor: 'pointer' }}>
+                                                <div key={i} onClick={() => handleCheckItem(i)} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '8px', cursor: 'pointer' }}>
                                                     {item.checked ? <CheckCircle2 size={16} color={COLORS.success} /> : <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `1px solid ${COLORS.border}` }} />}
                                                     <div style={{ flex: 1 }}>
                                                         <div style={{ fontSize: '13px', color: item.checked ? 'white' : COLORS.text }}>{item.label}</div>
@@ -473,7 +473,7 @@ export default function PIVisitsAssessmentsModule() {
                             </div>
                         </>
                     ) : (
-                        <div style={{ flex: 1, display: 'flex', flexDir: 'column', alignItems: 'center', justifyContent: 'center', color: COLORS.label }}>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: COLORS.label }}>
                             <Stethoscope size={48} style={{ opacity: 0.1, marginBottom: '2rem' }} />
                             <div style={{ ...G.title, fontSize: '16px' }}>Terminal Standby</div>
                             <div style={{ fontSize: '10px', marginTop: '0.5rem' }}>Select participant protocol node...</div>
