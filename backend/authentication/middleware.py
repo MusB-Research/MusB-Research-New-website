@@ -1,7 +1,7 @@
 import re
 from django.http import JsonResponse
 from rest_framework import status
-from authentication.security import decode_access_token
+from .security import decode_access_token
 import logging
 
 logger = logging.getLogger(__name__)
@@ -79,6 +79,7 @@ class OnboardingEnforcementMiddleware:
             profile_completed = payload.get('profile_completed', True)
             if not profile_completed and role != 'SUPER_ADMIN':
                 if not any(pattern.match(path) for pattern in self.PROFILE_WHITELIST):
+                    # For older tokens or newly-linked ones, double-check essential fields
                     return JsonResponse(
                         {'error': 'Profile completion required before proceeding.'}, 
                         status=status.HTTP_403_FORBIDDEN

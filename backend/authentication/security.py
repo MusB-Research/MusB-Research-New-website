@@ -28,7 +28,9 @@ def get_all_ciphers():
     explicit_key = os.getenv('DATA_ENCRYPTION_KEY')
     if explicit_key:
         try:
-            ciphers.append(Fernet(explicit_key.encode()))
+            # Ensure it is bytes before calling Fernet
+            key_bytes = explicit_key.encode() if isinstance(explicit_key, str) else explicit_key
+            ciphers.append(Fernet(key_bytes))
         except:
             pass
             
@@ -39,7 +41,7 @@ def get_all_ciphers():
     except:
         pass
 
-    # 3. Default fallback
+    # 3. Default fallback if .env is missing and secret is default
     try:
         default_secret = 'django-insecure-%s_3@h)4+#%gs%)nm@xvwar%j!9e38oa_5j#m2w+0j_mblj78g'
         default_key = base64.urlsafe_b64encode(default_secret[:32].encode().ljust(32, b'0'))
