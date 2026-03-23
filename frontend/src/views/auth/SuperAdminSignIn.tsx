@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, ArrowRight, Eye, EyeOff, Mail, Globe } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
-import { saveToken } from '../../utils/auth';
+import { saveToken, saveUser, API } from '../../utils/auth';
 
 const ParticlesBackground = () => {
     useEffect(() => {
@@ -112,10 +112,11 @@ export default function SuperAdminSignIn() {
         setError(null);
         
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login/`, {
+            const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const response = await fetch(`${API}/api/auth/login/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ email, password, timezone: detectedTimezone }),
                 credentials: 'include'
             });
             
@@ -142,7 +143,7 @@ export default function SuperAdminSignIn() {
             }
 
             saveToken(data.access, userRole);
-            localStorage.setItem('user', JSON.stringify(data.user));
+            saveUser(data.user);
             
             navigate('/dashboard/super-admin');
         } catch (err: any) {

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, UserPlus, Eye, Edit2, Shield, MoreVertical, GraduationCap, Loader2 } from 'lucide-react';
-import { authFetch } from '../../utils/auth';
+import { authFetch , API } from '../../utils/auth';
 
 interface PI {
   id: string;
@@ -45,7 +45,7 @@ export default function PIsManagement({ allUsers = [], allStudies = [], onRefres
     const isCurrentlyActive = pi.status === 'Active';
     const newStatus = isCurrentlyActive ? 'Suspended' : 'Verified';
     setUpdatingId(pi.id);
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8000';
     
     try {
       const res = await authFetch(`${apiUrl}/api/users/${pi.id}/`, {

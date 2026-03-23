@@ -1,534 +1,294 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-    X, ChevronRight, ChevronLeft, Lock, CheckCircle2, Beaker,
-    Building2, FileText, Upload, Phone, AlertCircle, Loader2, Calendar
+import React, { useState, useCallback } from 'react';
+import { 
+  X, ChevronRight, ChevronLeft, Calendar, 
+  MapPin, DollarSign, Users, FileText, 
+  Upload, CheckCircle2, AlertCircle, Loader2 
 } from 'lucide-react';
-import { authFetch } from '../utils/auth';
+import { authFetch, API } from '../utils/auth';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
-interface Props {
-    isOpen: boolean;
-    onClose: () => void;
-}
-
-type Step = 'STEP1' | 'NDA' | 'NDA_CONFIRM' | 'NDA_SENT' | 'STEP2' | 'SUCCESS';
-
-const STEPS_LABELS: Record<Step, string> = {
-    STEP1: 'Quick Check',
-    NDA: 'Confidentiality',
-    NDA_CONFIRM: 'NDA Details',
-    NDA_SENT: 'NDA Sent',
-    STEP2: 'Project Details',
-    SUCCESS: 'Done',
+const THEME = {
+  primary: '#2563eb',
+  secondary: '#6366f1',
+  success: '#10b981',
+  warning: '#f59e0b',
+  danger: '#ef4444',
+  border: '#e2e8f0',
+  dark: '#0f172a',
+  body: '#475569',
+  label: '#64748b',
+  white: '#ffffff',
+  bg: '#f8fafc'
 };
 
-const inputClass = `w-full bg-white/[0.04] border border-white/10 rounded-2xl px-5 py-4 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-500/50 focus:bg-white/[0.06] transition-all`;
-const labelClass = `block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2`;
-const selectClass = `${inputClass} appearance-none cursor-pointer`;
+const inputStyle = {
+  width: '100%', padding: '12px 16px', borderRadius: '10px', 
+  border: `1px solid ${THEME.border}`, background: '#f8fafc',
+  fontSize: '14px', color: THEME.dark, marginBottom: '16px',
+  outline: 'none', transition: 'border-color 0.2s',
+  display: 'block'
+};
 
-const Checkbox = ({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) => (
-    <button
-        type="button"
-        onClick={onChange}
-        className={`flex items-center gap-3 px-5 py-3.5 rounded-xl border transition-all text-left w-full text-sm ${
-            checked
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                : 'bg-white/[0.03] border-white/10 text-slate-400 hover:border-white/20 hover:text-white'
-        }`}
-    >
-        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-            checked ? 'border-amber-500 bg-amber-500' : 'border-slate-600'
-        }`}>
-            {checked && <CheckCircle2 className="w-3 h-3 text-black" />}
-        </div>
-        {label}
-    </button>
-);
+const labelStyle = {
+  display: 'block', fontSize: '11px', fontWeight: 700, 
+  color: THEME.label, textTransform: 'uppercase' as const, 
+  marginBottom: '8px', letterSpacing: '0.05em'
+};
 
-const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-    <h3 className="text-[9px] font-black uppercase tracking-[0.3em] text-amber-500/70 border-b border-white/5 pb-3 mb-5">{children}</h3>
-);
+const pillStyle = (active: boolean) => ({
+  padding: '10px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+  cursor: 'pointer', transition: 'all 0.2s', border: `1px solid ${active ? THEME.primary : THEME.border}`,
+  background: active ? `${THEME.primary}10` : '#fff',
+  color: active ? THEME.primary : THEME.body,
+  flex: 1, textAlign: 'center' as const
+});
+
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+}
 
 export default function InquireStudyModal({ isOpen, onClose }: Props) {
-    const [step, setStep] = useState<Step>('STEP1');
-    const [isLoading, setIsLoading] = useState(false);
+  const [step, setStep] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
-    // Step 1 Data
-    const [step1, setStep1] = useState({
-        productName: '',
-        productCategory: '',
-        stageDev: '',
-        studyNeed: [] as string[],
-        healthFocus: '',
-        timeline: '',
-    });
+  const [form, setForm] = useState({
+    title: '',
+    researchArea: 'Aging',
+    studyType: 'Clinical Trial',
+    description: '',
+    participants: '',
+    startDate: '',
+    duration: '6 months',
+    budget: '$50K–$200K',
+    sites: [] as string[],
+    contactName: 'Dr. Patricia Lane',
+    contactEmail: 'p.lane@vitanova.com',
+    phone: '',
+    notes: '',
+    files: [] as string[]
+  });
 
-    // NDA Data
-    const [ndaChoice, setNdaChoice] = useState<'YES' | 'NO' | ''>('');
-    const [ndaDetails, setNdaDetails] = useState({
-        companyName: '',
-        signatoryName: '',
-        title: '',
-        address: '',
-    });
+  const handleNext = useCallback(() => {
+    if (step === 1 && (!form.title || !form.description)) return;
+    setStep(s => s + 1);
+  }, [step, form]);
 
-    // Step 2 Data
-    const [step2, setStep2] = useState({
-        studyType: [] as string[],
-        targetPopulation: '',
-        specificCondition: '',
-        ageRange: '',
-        budgetRange: '',
-        services: [] as string[],
-        description: '',
-        fileName: '',
-    });
+  const handleBack = useCallback(() => setStep(s => s - 1), []);
 
-    const toggleArray = (arr: string[], val: string) =>
-        arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val];
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    try {
+      // Simulate real logic as requested
+      const response = await authFetch(`${API || 'http://localhost:8000'}/api/studies/`, {
+        method: 'POST',
+        body: JSON.stringify({
+          title: form.title,
+          protocol_id: `INQ-${Math.floor(1000 + Math.random() * 9000)}`,
+          status: 'PAUSED', // Represents "Under Review" locally
+          primary_indication: form.researchArea,
+          description: form.description,
+          target_enrollment: parseInt(form.participants) || 50,
+        })
+      });
 
-    const simulateDelay = (cb: () => void) => {
-        setIsLoading(true);
-        setTimeout(() => { setIsLoading(false); cb(); }, 1200);
-    };
+      if (response.ok) {
+        setShowSuccess(true);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const handleSubmit = async () => {
-        setIsLoading(true);
-        try {
-            const studyData = {
-                title: step1.productName || 'New Study Inquiry',
-                sponsor_name: 'Sponsor Identity', // Backend will link to authenticated user
-                study_type: step2.studyType.includes('Randomized Controlled Trial') ? 'IN_PERSON' : 'VIRTUAL',
-                primary_indication: step1.healthFocus,
-                status: 'PROPOSAL_SUBMITTED',
-                protocol_id: `INQ-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-                trial_model: step2.studyType.includes('Randomized Controlled Trial') ? 'RCT' : 'OBSERVATIONAL',
-            };
+  const resetAndClose = () => {
+    onClose();
+    setTimeout(() => {
+      setStep(1);
+      setShowSuccess(false);
+      setForm({
+        title: '', researchArea: 'Aging', studyType: 'Clinical Trial',
+        description: '', participants: '', startDate: '', duration: '6 months',
+        budget: '$50K–$200K', sites: [], contactName: 'Dr. Patricia Lane',
+        contactEmail: 'p.lane@vitanova.com', phone: '', notes: '', files: []
+      });
+    }, 500);
+  };
 
-            const response = await authFetch(`${API_URL}/api/studies/`, {
-                method: 'POST',
-                body: JSON.stringify(studyData),
-            });
+  if (!isOpen) return null;
 
-            if (response.ok) {
-                setStep('SUCCESS');
-            } else {
-                const err = await response.json();
-                console.error('Submission failed:', err);
-                // Handle error
-            }
-        } catch (error) {
-            console.error('Error submitting inquiry:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div style={{ background: '#fff', borderRadius: '24px', width: '680px', maxWidth: '100%', overflow: 'hidden', boxShadow: '0 25px 70px rgba(0,0,0,0.15)', position: 'relative' }}>
+        
+        {/* Header */}
+        <div style={{ padding: '32px 32px 24px', borderBottom: `1px solid ${THEME.border}`, background: '#fff' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+            <div>
+              <h2 style={{ fontSize: '24px', fontWeight: 700, color: THEME.dark, margin: 0 }}>New Study Inquiry</h2>
+              <p style={{ fontSize: '14px', color: THEME.body, marginTop: '4px' }}>Submit a research collaboration request to MusB Research</p>
+            </div>
+            <button onClick={resetAndClose} style={{ border: 'none', background: 'none', cursor: 'pointer', color: THEME.label }}><X size={24} /></button>
+          </div>
 
-    const handleClose = () => {
-        onClose();
-        setTimeout(() => {
-            setStep('STEP1');
-            setStep1({ productName: '', productCategory: '', stageDev: '', studyNeed: [], healthFocus: '', timeline: '' });
-            setNdaChoice('');
-            setNdaDetails({ companyName: '', signatoryName: '', title: '', address: '' });
-            setStep2({ studyType: [], targetPopulation: '', specificCondition: '', ageRange: '', budgetRange: '', services: [], description: '', fileName: '' });
-        }, 400);
-    };
+          {/* Progress Indicator */}
+          {!showSuccess && (
+            <div style={{ display: 'flex', gap: '8px', marginTop: '24px' }}>
+              {[1, 2, 3].map(s => (
+                <div key={s} style={{ 
+                  flex: 1, height: '6px', borderRadius: '3px', 
+                  background: s <= step ? THEME.primary : THEME.border,
+                  transition: 'background 0.3s'
+                }} />
+              ))}
+            </div>
+          )}
+        </div>
 
-    const getProgressWidth = () => {
-        const order: Step[] = ['STEP1', 'NDA', 'STEP2', 'SUCCESS'];
-        const idx = order.indexOf(step === 'NDA_CONFIRM' ? 'NDA' : step === 'NDA_SENT' ? 'STEP2' : step);
-        return `${((idx + 1) / order.length) * 100}%`;
-    };
+        {/* Body */}
+        <div style={{ padding: '32px', maxHeight: '60vh', overflowY: 'auto' }}>
+          {showSuccess ? (
+            <div style={{ textAlign: 'center', padding: '32px 0' }}>
+              <div style={{ width: '80px', height: '80px', background: `${THEME.success}10`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                <CheckCircle2 size={40} color={THEME.success} />
+              </div>
+              <h3 style={{ fontSize: '20px', fontWeight: 700, color: THEME.dark, marginBottom: '12px' }}>Inquiry Submitted Successfully!</h3>
+              <p style={{ fontSize: '14px', color: THEME.body, marginBottom: '24px', lineHeight: '1.6' }}>
+                Submit this study inquiry to MusB Research? A coordinator will contact you within 2 business days. 
+                Your Inquiry ID is: <strong>INQ-{Math.floor(Math.random()*10000)}</strong>
+              </p>
+              <button 
+                onClick={resetAndClose}
+                style={{ padding: '12px 32px', background: THEME.primary, color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Return to Dashboard
+              </button>
+            </div>
+          ) : (
+            <>
+              {step === 1 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div>
+                    <label style={labelStyle}>Study Title (Required)</label>
+                    <input style={inputStyle} value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="e.g., Evaluation of NAD+ in Aging Cohorts" />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Research Area</label>
+                    <select style={inputStyle} value={form.researchArea} onChange={e => setForm({...form, researchArea: e.target.value})}>
+                      {['Oncology', 'Metabolic', 'Neurology', 'Aging', 'Gut Health', 'Women\'s Health', 'Other'].map(v => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Study Type</label>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      {['Clinical Trial', 'Observational', 'Preclinical'].map(v => (
+                        <button key={v} onClick={() => setForm({...form, studyType: v})} style={pillStyle(form.studyType === v)}>{v}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Brief Description (Required)</label>
+                    <textarea style={{ ...inputStyle, minHeight: '100px', resize: 'none' }} value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="Describe the objectives and methods..." />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Estimated Number of Participants</label>
+                    <input style={inputStyle} type="number" value={form.participants} onChange={e => setForm({...form, participants: e.target.value})} placeholder="e.g., 100" />
+                  </div>
+                </div>
+              )}
 
-    return (
-        <AnimatePresence>
-            {isOpen && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[200] flex items-center justify-center p-4"
-                    onClick={handleClose}
-                >
-                    {/* Backdrop */}
-                    <div className="absolute inset-0 bg-black/70 backdrop-blur-md" />
+              {step === 2 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                   <div>
+                    <label style={labelStyle}>Proposed Start Date</label>
+                    <input style={inputStyle} type="date" value={form.startDate} onChange={e => setForm({...form, startDate: e.target.value})} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Estimated Duration</label>
+                    <select style={inputStyle} value={form.duration} onChange={e => setForm({...form, duration: e.target.value})}>
+                      {['3 months', '6 months', '12 months', '18+ months'].map(v => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Budget Range</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                      {['< $50K', '$50K–$200K', '$200K–$500K', '$500K+'].map(v => (
+                        <button key={v} onClick={() => setForm({...form, budget: v})} style={pillStyle(form.budget === v)}>{v}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Preferred Sites</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                      {['Tampa', 'Miami', 'Orlando', 'Remote'].map(v => (
+                        <button key={v} onClick={() => {
+                          const sites = form.sites.includes(v) ? form.sites.filter(s => s !== v) : [...form.sites, v];
+                          setForm({...form, sites});
+                        }} style={pillStyle(form.sites.includes(v))}>{v}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        transition={{ type: 'spring', damping: 25 }}
-                        className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col bg-[#07090f] border border-white/10 rounded-[2.5rem] shadow-2xl shadow-black/50"
-                        onClick={e => e.stopPropagation()}
-                    >
-                        {/* Header */}
-                        <div className="flex-shrink-0 px-8 pt-8 pb-6 border-b border-white/5">
-                            <div className="flex items-center justify-between mb-5">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-9 h-9 bg-amber-500/10 rounded-xl flex items-center justify-center">
-                                        <Beaker className="w-4 h-4 text-amber-400" />
-                                    </div>
-                                    <div>
-                                        <p className="text-[9px] font-black uppercase tracking-[0.3em] text-amber-500/60">MusB Research</p>
-                                        <p className="text-sm font-black text-white leading-none">Start a Clinical Study</p>
-                                    </div>
-                                </div>
-                                <button onClick={handleClose} className="w-9 h-9 bg-white/5 hover:bg-white/10 rounded-xl flex items-center justify-center text-slate-500 hover:text-white transition-all">
-                                    <X className="w-4 h-4" />
-                                </button>
-                            </div>
+              {step === 3 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div>
+                      <label style={labelStyle}>Contact Name</label>
+                      <input style={inputStyle} value={form.contactName} readOnly disabled />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Contact Email</label>
+                      <input style={inputStyle} value={form.contactEmail} readOnly disabled />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Primary Contact Phone</label>
+                    <input style={inputStyle} value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+1 (813) 000-0000" />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Additional Notes</label>
+                    <textarea style={{ ...inputStyle, minHeight: '100px', resize: 'none' }} value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder="Any other details or requirements..." />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Attach Supporting Files</label>
+                    <div style={{ padding: '20px', border: `2px dashed ${THEME.border}`, borderRadius: '12px', textAlign: 'center', cursor: 'pointer' }}>
+                       <Upload size={24} color={THEME.label} style={{ marginBottom: '8px' }} />
+                       <p style={{ fontSize: '13px', color: THEME.label, margin: 0 }}>Click to upload protocol synopsis or budget draft</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
-                            {/* Progress Bar */}
-                            <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                                <motion.div
-                                    animate={{ width: getProgressWidth() }}
-                                    transition={{ duration: 0.5, ease: 'easeInOut' }}
-                                    className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full"
-                                />
-                            </div>
-                            <div className="flex justify-between mt-2">
-                                {(['Quick Check', 'Confidentiality', 'Project Details', 'Complete'] as const).map((l, i) => (
-                                    <span key={i} className="text-[8px] font-bold uppercase tracking-widest text-slate-600">{l}</span>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Scrollable Body */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar px-8 py-6">
-                            <AnimatePresence mode="wait">
-
-                                {/* ── STEP 1 ── */}
-                                {step === 'STEP1' && (
-                                    <motion.div key="step1" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="space-y-8">
-                                        <div>
-                                            <h2 className="text-2xl font-black text-white leading-tight">Let's Explore Your Study Concept</h2>
-                                            <p className="text-slate-500 text-sm mt-1">Tell us a little about your project. Our team will guide the rest.</p>
-                                        </div>
-
-                                        {/* Section A */}
-                                        <div className="space-y-4">
-                                            <SectionTitle>Section A — Product Overview</SectionTitle>
-                                            <div>
-                                                <label className={labelClass}>Product / Ingredient Name *</label>
-                                                <input value={step1.productName} onChange={e => setStep1(s => ({ ...s, productName: e.target.value }))} placeholder="e.g., NAD+ Precursor Blend" className={inputClass} />
-                                            </div>
-                                            <div>
-                                                <label className={labelClass}>Product Category *</label>
-                                                <select value={step1.productCategory} onChange={e => setStep1(s => ({ ...s, productCategory: e.target.value }))} className={selectClass}>
-                                                    <option value="" disabled>Select a category...</option>
-                                                    {['Probiotic / Postbiotic', 'Nutraceutical', 'Botanical', 'Functional Food', 'Pharmaceutical', 'Device', 'Other'].map(v => <option key={v} value={v}>{v}</option>)}
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className={labelClass}>Stage of Development *</label>
-                                                <select value={step1.stageDev} onChange={e => setStep1(s => ({ ...s, stageDev: e.target.value }))} className={selectClass}>
-                                                    <option value="" disabled>Select stage...</option>
-                                                    {['Concept', 'Preclinical Complete', 'Ready for Clinical', 'Marketed Product Seeking Data'].map(v => <option key={v} value={v}>{v}</option>)}
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        {/* Section B */}
-                                        <div className="space-y-4">
-                                            <SectionTitle>Section B — Study Scope</SectionTitle>
-                                            <div>
-                                                <label className={labelClass}>What best describes your need? *</label>
-                                                <div className="space-y-2">
-                                                    {['New Clinical Study', 'Preclinical Validation', 'Biomarker / Lab Support', 'Biorepository', 'Not Sure – Need Guidance'].map(v => (
-                                                        <Checkbox key={v} label={v} checked={step1.studyNeed.includes(v)} onChange={() => setStep1(s => ({ ...s, studyNeed: toggleArray(s.studyNeed, v) }))} />
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className={labelClass}>Primary Health Focus *</label>
-                                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                                    {['Gut', 'Metabolic', 'Brain', 'Aging', "Women's Health", 'Environmental', 'Liver / Behavioral', 'Other'].map(v => (
-                                                        <button key={v} type="button" onClick={() => setStep1(s => ({ ...s, healthFocus: v }))}
-                                                            className={`py-3 px-2 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${
-                                                                step1.healthFocus === v
-                                                                    ? 'bg-amber-500/10 border-amber-500/40 text-amber-400'
-                                                                    : 'bg-white/[0.03] border-white/10 text-slate-500 hover:text-white hover:border-white/20'
-                                                            }`}
-                                                        >{v}</button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className={labelClass}>Estimated Timeline</label>
-                                                <select value={step1.timeline} onChange={e => setStep1(s => ({ ...s, timeline: e.target.value }))} className={selectClass}>
-                                                    <option value="" disabled>Select timeline...</option>
-                                                    {['Immediate (0–3 months)', '3–6 months', '6–12 months', 'Exploring Options'].map(v => <option key={v} value={v}>{v}</option>)}
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                )}
-
-                                {/* ── NDA CHOICE ── */}
-                                {step === 'NDA' && (
-                                    <motion.div key="nda" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="space-y-8">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center">
-                                                <Lock className="w-5 h-5 text-slate-400" />
-                                            </div>
-                                            <div>
-                                                <h2 className="text-xl font-black text-white leading-tight">Would You Like an NDA Before Sharing Details?</h2>
-                                                <p className="text-slate-500 text-sm mt-0.5">Your concept and formulation data may be confidential.</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-white/[0.03] border border-white/8 rounded-2xl p-5 text-sm text-slate-400 leading-relaxed">
-                                            We understand that your concept, formulation, or data may be confidential. If you prefer, we can execute a <strong className="text-white">mutual NDA</strong> before reviewing detailed project materials.
-                                        </div>
-
-                                        <div className="space-y-3">
-                                            {[
-                                                { val: 'YES', label: 'Yes — Send NDA Before Proceeding', sub: 'Our legal team will send a mutual NDA within 1–2 business days.' },
-                                                { val: 'NO', label: 'No — Continue to Detailed Submission', sub: 'Skip the NDA and proceed directly to full project details.' },
-                                            ].map(opt => (
-                                                <button key={opt.val} type="button" onClick={() => setNdaChoice(opt.val as 'YES' | 'NO')}
-                                                    className={`w-full text-left p-5 rounded-2xl border transition-all ${
-                                                        ndaChoice === opt.val
-                                                            ? opt.val === 'YES' ? 'bg-slate-700/40 border-slate-500/50 text-white' : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                                                            : 'bg-white/[0.03] border-white/10 text-slate-400 hover:border-white/20 hover:text-white'
-                                                    }`}
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${ndaChoice === opt.val ? 'border-current bg-current' : 'border-slate-600'}`} />
-                                                        <div>
-                                                            <p className="font-black text-sm">{opt.label}</p>
-                                                            <p className="text-[11px] text-slate-500 mt-0.5">{opt.sub}</p>
-                                                        </div>
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </motion.div>
-                                )}
-
-                                {/* ── NDA CONFIRM (company details) ── */}
-                                {step === 'NDA_CONFIRM' && (
-                                    <motion.div key="nda_confirm" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="space-y-6">
-                                        <div>
-                                            <h2 className="text-xl font-black text-white">Confirm NDA Details</h2>
-                                            <p className="text-slate-500 text-sm mt-1">We'll prepare a personalized mutual NDA and send it within 1–2 business days.</p>
-                                        </div>
-                                        {[
-                                            { field: 'companyName', label: 'Legal Name of Company *', placeholder: 'Acme Biotech Inc.' },
-                                            { field: 'signatoryName', label: 'Authorized Signatory Name *', placeholder: 'Jane Smith' },
-                                            { field: 'title', label: 'Title *', placeholder: 'Chief Scientific Officer' },
-                                            { field: 'address', label: 'Corporate Address *', placeholder: '123 Research Blvd, Boston, MA 02101' },
-                                        ].map(({ field, label, placeholder }) => (
-                                            <div key={field}>
-                                                <label className={labelClass}>{label}</label>
-                                                <input value={(ndaDetails as any)[field]} onChange={e => setNdaDetails(s => ({ ...s, [field]: e.target.value }))} placeholder={placeholder} className={inputClass} />
-                                            </div>
-                                        ))}
-                                    </motion.div>
-                                )}
-
-                                {/* ── NDA SENT ── */}
-                                {step === 'NDA_SENT' && (
-                                    <motion.div key="nda_sent" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="text-center py-8 space-y-6">
-                                        <div className="w-20 h-20 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto">
-                                            <CheckCircle2 className="w-10 h-10 text-emerald-400" />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-xl font-black text-white">NDA Request Submitted</h2>
-                                            <p className="text-slate-400 text-sm mt-2 max-w-md mx-auto leading-relaxed">
-                                                Our team will send a <strong className="text-white">Mutual NDA</strong> to your authorized signatory within <strong className="text-white">1–2 business days</strong>. Once executed, you may proceed with your detailed study submission.
-                                            </p>
-                                        </div>
-                                        <div className="bg-amber-500/5 border border-amber-500/15 rounded-2xl p-5">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-amber-500/70 mb-1">Lead Status</p>
-                                            <p className="text-amber-400 font-bold">🔒 NDA Requested</p>
-                                        </div>
-                                        <button
-                                            onClick={handleClose}
-                                            className="flex items-center gap-2 mx-auto px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-sm font-black text-slate-300 hover:text-white hover:bg-white/10 transition-all"
-                                        >
-                                            <Calendar className="w-4 h-4" /> Schedule Intro Call
-                                        </button>
-                                    </motion.div>
-                                )}
-
-                                {/* ── STEP 2 ── */}
-                                {step === 'STEP2' && (
-                                    <motion.div key="step2" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="space-y-8">
-                                        <div>
-                                            <h2 className="text-2xl font-black text-white">Tell Us More About Your Study</h2>
-                                            <p className="text-slate-500 text-sm mt-1">Full qualification — this helps our team prepare a tailored proposal.</p>
-                                        </div>
-
-                                        {/* Study Type */}
-                                        <div className="space-y-4">
-                                            <SectionTitle>Section A — Study Type</SectionTitle>
-                                            <div className="space-y-2">
-                                                {['Pilot Study', 'Randomized Controlled Trial', 'Mechanistic Study', 'Observational', 'Not Sure'].map(v => (
-                                                    <Checkbox key={v} label={v} checked={step2.studyType.includes(v)} onChange={() => setStep2(s => ({ ...s, studyType: toggleArray(s.studyType, v) }))} />
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Target Population */}
-                                        <div className="space-y-4">
-                                            <SectionTitle>Section B — Target Population & Budget</SectionTitle>
-                                            <div>
-                                                <label className={labelClass}>Target Population</label>
-                                                <select value={step2.targetPopulation} onChange={e => setStep2(s => ({ ...s, targetPopulation: e.target.value }))} className={selectClass}>
-                                                    <option value="" disabled>Select population...</option>
-                                                    {['Healthy Adults', 'Specific Condition', 'Children / Pediatric', 'Elderly (65+)', 'Mixed'].map(v => <option key={v} value={v}>{v}</option>)}
-                                                </select>
-                                            </div>
-                                            {step2.targetPopulation === 'Specific Condition' && (
-                                                <div>
-                                                    <label className={labelClass}>Specify Condition</label>
-                                                    <input value={step2.specificCondition} onChange={e => setStep2(s => ({ ...s, specificCondition: e.target.value }))} placeholder="e.g., Type 2 Diabetes, IBS..." className={inputClass} />
-                                                </div>
-                                            )}
-                                            <div>
-                                                <label className={labelClass}>Age Range (Optional)</label>
-                                                <input value={step2.ageRange} onChange={e => setStep2(s => ({ ...s, ageRange: e.target.value }))} placeholder="e.g., 30–65 years" className={inputClass} />
-                                            </div>
-                                            <div>
-                                                <label className={labelClass}>Estimated Budget Range</label>
-                                                <select value={step2.budgetRange} onChange={e => setStep2(s => ({ ...s, budgetRange: e.target.value }))} className={selectClass}>
-                                                    <option value="" disabled>Select range...</option>
-                                                    {['< $100K', '$100K – $250K', '$250K – $500K', '$500K+', 'Prefer to Discuss'].map(v => <option key={v} value={v}>{v}</option>)}
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        {/* Services */}
-                                        <div className="space-y-4">
-                                            <SectionTitle>Section C — Services Needed</SectionTitle>
-                                            <div className="space-y-2">
-                                                {[
-                                                    'Study Design & Protocol Development',
-                                                    'IRB & Regulatory Support',
-                                                    'Participant Recruitment',
-                                                    'Clinical Site Execution',
-                                                    'Central Laboratory Services',
-                                                    'Microbiome / Omics Analysis',
-                                                    'Biostatistics',
-                                                    'End-to-End Study Management',
-                                                ].map(v => (
-                                                    <Checkbox key={v} label={v} checked={step2.services.includes(v)} onChange={() => setStep2(s => ({ ...s, services: toggleArray(s.services, v) }))} />
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Additional Info */}
-                                        <div className="space-y-4">
-                                            <SectionTitle>Section D — Additional Information</SectionTitle>
-                                            <div>
-                                                <label className={labelClass}>Project Description *</label>
-                                                <textarea
-                                                    value={step2.description}
-                                                    onChange={e => setStep2(s => ({ ...s, description: e.target.value }))}
-                                                    rows={4}
-                                                    placeholder="Briefly describe your product, the study goal, and any key questions you're looking to answer..."
-                                                    className={`${inputClass} resize-none`}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className={labelClass}>Supporting Documents (Optional)</label>
-                                                <label className="flex items-center gap-3 w-full bg-white/[0.04] border-2 border-dashed border-white/10 rounded-2xl px-5 py-5 cursor-pointer hover:border-white/20 transition-all group">
-                                                    <Upload className="w-5 h-5 text-slate-600 group-hover:text-slate-400 transition-all" />
-                                                    <span className="text-sm text-slate-600 group-hover:text-slate-400 transition-all">
-                                                        {step2.fileName || 'Click to upload (PDF, DOCX, PPTX)'}
-                                                    </span>
-                                                    <input type="file" className="hidden" accept=".pdf,.doc,.docx,.ppt,.pptx" onChange={e => setStep2(s => ({ ...s, fileName: e.target.files?.[0]?.name || '' }))} />
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                )}
-
-                                {/* ── SUCCESS ── */}
-                                {step === 'SUCCESS' && (
-                                    <motion.div key="success" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="text-center py-8 space-y-6">
-                                        <motion.div
-                                            initial={{ scale: 0 }} animate={{ scale: 1 }}
-                                            transition={{ delay: 0.2, type: 'spring', damping: 12 }}
-                                            className="w-20 h-20 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center justify-center mx-auto"
-                                        >
-                                            <CheckCircle2 className="w-10 h-10 text-amber-400" />
-                                        </motion.div>
-                                        <div>
-                                            <h2 className="text-xl font-black text-white">Thank You for Your Submission</h2>
-                                            <p className="text-slate-400 text-sm mt-2 max-w-md mx-auto leading-relaxed">
-                                                Our clinical development team will review your project and contact you within <strong className="text-white">2–3 business days</strong>.
-                                            </p>
-                                        </div>
-                                        <div className="bg-amber-500/5 border border-amber-500/15 rounded-2xl p-5 text-left space-y-2">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-amber-500/70">Lead Status Updated</p>
-                                            <p className="text-amber-400 font-bold">✅ Qualified Lead — Routed to Clinical Development Team</p>
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                                            <button onClick={handleClose} className="px-6 py-3 bg-amber-500 text-slate-950 rounded-2xl text-sm font-black hover:scale-[1.02] active:scale-95 transition-all">
-                                                Done
-                                            </button>
-                                            <button onClick={handleClose} className="flex items-center gap-2 justify-center px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-sm font-black text-slate-300 hover:text-white hover:bg-white/10 transition-all">
-                                                <Calendar className="w-4 h-4" /> Schedule a Call Now
-                                            </button>
-                                        </div>
-                                    </motion.div>
-                                )}
-
-                            </AnimatePresence>
-                        </div>
-
-                        {/* Footer Actions */}
-                        {step !== 'NDA_SENT' && step !== 'SUCCESS' && (
-                            <div className="flex-shrink-0 px-8 py-5 border-t border-white/5 flex items-center justify-between gap-4">
-                                <button
-                                    onClick={() => {
-                                        if (step === 'STEP1') handleClose();
-                                        else if (step === 'NDA') setStep('STEP1');
-                                        else if (step === 'NDA_CONFIRM') setStep('NDA');
-                                        else if (step === 'STEP2') setStep('NDA');
-                                    }}
-                                    className="flex items-center gap-2 px-5 py-3 text-sm font-black text-slate-500 hover:text-white transition-all"
-                                >
-                                    <ChevronLeft className="w-4 h-4" />
-                                    {step === 'STEP1' ? 'Cancel' : 'Back'}
-                                </button>
-
-                                <button
-                                    disabled={isLoading}
-                                    onClick={() => {
-                                        if (step === 'STEP1') {
-                                            simulateDelay(() => setStep('NDA'));
-                                        } else if (step === 'NDA') {
-                                            if (!ndaChoice) return;
-                                            if (ndaChoice === 'YES') setStep('NDA_CONFIRM');
-                                            else simulateDelay(() => setStep('STEP2'));
-                                        } else if (step === 'NDA_CONFIRM') {
-                                            simulateDelay(() => setStep('NDA_SENT'));
-                                        } else if (step === 'STEP2') {
-                                            handleSubmit();
-                                        }
-                                    }}
-                                    className="flex items-center gap-2 px-8 py-3.5 bg-amber-500 text-slate-950 rounded-2xl text-sm font-black shadow-lg shadow-amber-500/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-60 disabled:scale-100"
-                                >
-                                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
-                                        <>
-                                            {step === 'STEP1' && 'Continue'}
-                                            {step === 'NDA' && (ndaChoice === 'YES' ? 'Proceed to NDA Details' : ndaChoice === 'NO' ? 'Continue to Project Details' : 'Select an Option')}
-                                            {step === 'NDA_CONFIRM' && <>Request NDA <Lock className="w-4 h-4" /></>}
-                                            {step === 'STEP2' && <>Request Clinical Consultation <ChevronRight className="w-4 h-4" /></>}
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        )}
-                    </motion.div>
-                </motion.div>
-            )}
-        </AnimatePresence>
-    );
+        {/* Footer */}
+        {!showSuccess && (
+          <div style={{ padding: '24px 32px', borderTop: `1px solid ${THEME.border}`, display: 'flex', justifyContent: 'space-between', background: '#fff' }}>
+            <button 
+              onClick={step === 1 ? resetAndClose : handleBack}
+              style={{ padding: '10px 24px', border: 'none', background: 'none', color: THEME.label, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              {step === 1 ? 'Cancel' : <><ChevronLeft size={18} /> Back</>}
+            </button>
+            <button 
+              onClick={step === 3 ? handleSubmit : handleNext}
+              disabled={isLoading || (step === 1 && (!form.title || !form.description))}
+              style={{ 
+                padding: '10px 32px', background: THEME.primary, color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 700, 
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: (step === 1 && (!form.title || !form.description)) ? 0.5 : 1
+              }}
+            >
+              {isLoading ? <Loader2 size={18} className="animate-spin" /> : (
+                step === 3 ? 'Submit Inquiry' : <>Next <ChevronRight size={18} /></>
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

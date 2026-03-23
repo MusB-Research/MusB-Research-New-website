@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
     Users,
     Target,
@@ -108,11 +108,39 @@ const HARDCODED_JOBS: JobOpening[] = [
     }
 ];
 
+const API_ROOT = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export default function Careers() {
     const [activeDept, setActiveDept] = useState<string>('All');
     const [searchQuery, setSearchQuery] = useState('');
+    const [jobOpenings, setJobOpenings] = useState<JobOpening[]>([]);
+    const [loading, setLoading] = useState(true);
+    const careerCategories = HARDCODED_CATEGORIES;
 
-    const jobOpenings = HARDCODED_JOBS; const careerCategories = HARDCODED_CATEGORIES;
+    useEffect(() => {
+        const fetchJobs = async () => {
+            try {
+                const res = await fetch(`${API_ROOT}/api/careers/public/active/`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setJobOpenings(data.map((j: any) => ({
+                        ...j,
+                        department: j.category, 
+                        summary: j.role_summary,
+                        experienceLevel: j.experience_level,
+                        type: j.job_type,
+                        isFeatured: j.is_featured,
+                        status: j.status === 'Active' ? 'Live' : 'Closed'
+                    })));
+                }
+            } catch (err) {
+                console.error("Failed to fetch jobs:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchJobs();
+    }, []);
 
 
 
@@ -308,7 +336,12 @@ export default function Careers() {
                     </div>
 
                     <div className="grid gap-6">
-                        {filteredJobs.length > 0 ? (
+                        {loading ? (
+                            <div className="py-24 flex flex-col items-center justify-center space-y-4">
+                                <div className="w-12 h-12 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
+                                <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] animate-pulse">Syncing Openings...</p>
+                            </div>
+                        ) : filteredJobs.length > 0 ? (
                             filteredJobs.map((job: JobOpening) => (
                                 <div key={job.id} className="group bg-white/5 border border-white/5 rounded-[2.5rem] p-6 md:p-10 flex flex-col lg:flex-row items-start lg:items-center gap-10 hover:bg-white/10 hover:border-cyan-500/30 transition-all shadow-xl">
                                     <div className="flex-grow space-y-4">
@@ -335,19 +368,19 @@ export default function Careers() {
                                 </div>
                             ))
                         ) : (
-                            <div className="py-24 flex flex-col items-center text-center space-y-8">
-                                <SearchX className="w-20 h-20 text-slate-700" />
+                            <div className="py-24 bg-white/5 border border-white/5 rounded-[3rem] flex flex-col items-center text-center space-y-8 animate-in fade-in zoom-in duration-700">
+                                <SearchX className="w-24 h-24 text-slate-800" />
                                 <div className="space-y-4">
-                                    <h3 className="text-3xl font-black text-white italic uppercase">No openings right now</h3>
-                                    <p className="text-xl text-slate-500 font-medium max-w-lg">We don’t have any openings in this category, but we’re always interested in meeting talented people.</p>
+                                    <h3 className="text-4xl font-black text-white italic uppercase tracking-tighter">Current Node Empty</h3>
+                                    <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-xs max-w-md mx-auto leading-relaxed">We don’t have any active openings in this sector at the moment. Please synchronize later or submit a general application.</p>
                                 </div>
-                                <a 
+                                <a
                                     href="https://docs.google.com/forms/d/e/1FAIpQLSenHSuSVQaIxKA40tsub0PwR91haXYBorPcmH2RZp0hsf6LyA/viewform?usp=publish-editor"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-block bg-cyan-500 text-slate-950 px-12 py-5 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-cyan-500/20 whitespace-nowrap"
                                 >
-                                    Submit Your Resume
+                                    Submit General Application
                                 </a>
                             </div>
                         )}
@@ -390,7 +423,7 @@ export default function Careers() {
                             MusB™ Research actively supports students, trainees, and early-career scientists through internships and mentorship opportunities.
                         </p>
                     </div>
-                    <button 
+                    <button
                         onClick={() => document.getElementById('open-positions')?.scrollIntoView({ behavior: 'smooth' })}
                         className="bg-indigo-500 text-white px-12 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-white hover:text-slate-950 hover:scale-105 transition-all shadow-xl shadow-indigo-500/20 relative z-10 inline-block"
                     >
@@ -415,7 +448,7 @@ export default function Careers() {
                             <p className="text-xl font-bold text-slate-400">Your journey in clinical breakthroughs starts here.</p>
                         </div>
                         <div className="flex flex-col gap-4 w-full lg:w-auto">
-                            <button 
+                            <button
                                 onClick={() => document.getElementById('open-positions')?.scrollIntoView({ behavior: 'smooth' })}
                                 className="w-full px-16 py-8 rounded-2xl bg-cyan-500 text-slate-950 font-black uppercase tracking-wider hover:bg-white transition-all shadow-xl shadow-cyan-500/10 text-center block whitespace-nowrap"
                             >
@@ -426,7 +459,7 @@ export default function Careers() {
                     </div>
                 </div>
             </section>
-            
+
 
         </div >
     );

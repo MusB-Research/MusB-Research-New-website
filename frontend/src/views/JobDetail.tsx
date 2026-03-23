@@ -8,82 +8,53 @@ import {
     Send,
     CheckCircle2,
     Calendar,
-    ArrowRight
+    ArrowRight,
+    Star
 } from 'lucide-react';
 import { JobOpening } from '@/types';
 
 
-const HARDCODED_JOBS: JobOpening[] = [
-    {
-        id: '1', title: 'Senior Clinical Research Coordinator', department: 'Clinical Research',
-        location: 'Tampa, FL (On-site)', type: 'Full-time', experienceLevel: 'Senior',
-        summary: 'Lead the management of complex clinical trials in microbiome and metabolic health.',
-        description: 'As a Senior Clinical Research Coordinator at MusB™ Research, you will play a pivotal role in leading and managing high-impact clinical trials. You will oversee study protocols, ensure regulatory compliance, and coordinate with cross-functional teams to deliver high-quality data.',
-        requirements: [
-            'Bachelor\'s or Master\'s degree in a life science or nursing field.',
-            'Minimum of 5 years of experience in clinical research coordination.',
-            'In-depth knowledge of GCP, IRB protocols, and FDA regulations.',
-            'Excellent communication and leadership skills.',
-            'Ability to manage multiple complex trials simultaneously.'
-        ],
-        isFeatured: true,
-        status: 'Live'
-    },
-    {
-        id: '2', title: 'Research Associate - Biotics & Omics', department: 'Research & Innovation',
-        location: 'Tampa, FL (Hybrid)', type: 'Full-time', experienceLevel: 'Mid-level',
-        summary: 'Support bench-top research in our multi-omics laboratory.',
-        description: 'We are seeking a dedicated Research Associate to join our Biotics & Omics team. You will be responsible for sample processing, DNA/RNA extraction, and supporting next-generation sequencing workflows.',
-        requirements: [
-            'Bachelor\'s or Master\'s degree in Biology, Biochemistry, or related field.',
-            '2-3 years of wet-lab experience.',
-            'Experience with sample processing (DNA/RNA extraction, PCR, NGS).',
-            'Familiarity with data analysis software.',
-            'Strong attention to detail.'
-        ],
-        isFeatured: false,
-        status: 'Live'
-    },
-    {
-        id: '3', title: 'Laboratory Technician', department: 'Laboratory & Diagnostics',
-        location: 'Tampa, FL (On-site)', type: 'Full-time', experienceLevel: 'Entry-level',
-        summary: 'Execute standard laboratory protocols for clinical sample processing.',
-        description: 'MusB™ Research is looking for a Laboratory Technician to support operations. You will handle daily sample intake, maintain lab equipment, and ensure adherence to safety protocols.',
-        requirements: [
-            'Associate\'s or Bachelor\'s degree in laboratory science.',
-            'Basic understanding of laboratory safety.',
-            'Experience with pipetting and sample handling.',
-            'Ability to work carefully under supervision.',
-            'Excellent record-keeping skills.'
-        ],
-        isFeatured: false,
-        status: 'Live'
-    },
-    {
-        id: '4', title: 'Clinical Data Analyst', department: 'Data & Biostatistics',
-        location: 'Remote / Tampa, FL', type: 'Contract', experienceLevel: 'Mid-level',
-        summary: 'Perform statistical cleaning and analysis of microbiome-based clinical data.',
-        description: 'As a Clinical Data Analyst, you will handle data from our clinical trials. Your focus will be on ensuring data integrity, performing exploratory analyses, and supporting the biostatistics team in reporting.',
-        requirements: [
-            'Master\'s degree in Biostatistics, Data Science, or related field.',
-            'Proficiency in R or Python.',
-            'Experience with clinical trial data and CDISC standards.',
-            'Background in microbiome data analysis is a plus.',
-            'Strong analytical thinking.'
-        ],
-        isFeatured: false,
-        status: 'Live'
-    }
-];
+const API_ROOT = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export default function JobDetail() {
     const { id } = useParams<{ id: string }>();
+    const [job, setJob] = useState<JobOpening | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    const jobOpenings = HARDCODED_JOBS;
+    useEffect(() => {
+        const fetchJob = async () => {
+            if (!id) return;
+            try {
+                const res = await fetch(`${API_ROOT}/api/careers/public/job/${id}/`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setJob({
+                        ...data,
+                        department: data.category,
+                        summary: data.role_summary,
+                        experienceLevel: data.experience_level,
+                        type: data.job_type,
+                        isFeatured: data.is_featured,
+                        status: data.status === 'Active' ? 'Live' : 'Closed',
+                        deadline: data.expiry_date
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to fetch job detail:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchJob();
+    }, [id]);
 
-
-
-    const job = jobOpenings.find(j => j.id === id);
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="w-12 h-12 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
+            </div>
+        );
+    }
 
     if (!job) {
         return (
@@ -121,39 +92,42 @@ export default function JobDetail() {
             </div>
 
             {/* HERO SECTION */}
-            <section className="relative pt-40 pb-16 overflow-hidden z-10">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.12)_0%,transparent_70%)]"></div>
-                <div className="max-w-[1200px] mx-auto px-4 md:px-12 relative z-10">
-                    <Link to="/careers" className="inline-flex items-center gap-2 text-slate-500 hover:text-cyan-400 font-black uppercase tracking-widest text-xs mb-12 transition-colors">
-                        <ChevronLeft className="w-4 h-4" /> Back to Careers
+            <section className="relative pt-40 pb-20 overflow-hidden z-10 border-b border-white/5">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.15)_0%,transparent_70%)]"></div>
+                <div className="max-w-[1400px] mx-auto px-6 md:px-12 relative z-10">
+                    <Link to="/careers" className="inline-flex items-center gap-2 text-slate-500 hover:text-cyan-400 font-black uppercase tracking-widest text-[10px] mb-12 transition-all group">
+                        <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Back to Careers
                     </Link>
-
-                    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
-                        <div className="space-y-6">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12">
+                        <div className="space-y-6 flex-1">
                             <div className="flex flex-wrap gap-4 items-center">
+                                <span className="px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-black uppercase tracking-widest italic">{job.department}</span>
                                 {job.isFeatured && (
-                                    <span className="px-3 py-1 rounded-lg bg-cyan-500 text-slate-950 text-[10px] font-black uppercase tracking-widest">Featured</span>
+                                    <span className="px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-black uppercase tracking-widest italic flex items-center gap-2">
+                                        <Star className="w-3 h-3 fill-amber-500" /> Featured
+                                    </span>
                                 )}
-                                <span className="text-xs font-black uppercase tracking-widest text-cyan-400">{job.department}</span>
                             </div>
-                            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white uppercase italic tracking-tighter leading-none">
+                            <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white uppercase italic tracking-tighter leading-none">
                                 {job.title}
                             </h1>
-                            <div className="flex flex-wrap gap-8 text-sm font-bold text-slate-400 uppercase tracking-widest">
-                                <div className="flex items-center gap-2"><MapPin className="w-5 h-5 text-cyan-500" /> {job.location}</div>
-                                <div className="flex items-center gap-2"><Clock className="w-5 h-5 text-cyan-500" /> {job.type}</div>
-                                <div className="flex items-center gap-2"><Briefcase className="w-5 h-5 text-cyan-500" /> {job.experienceLevel}</div>
+                            <div className="flex flex-wrap gap-8 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] pt-4">
+                                <div className="flex items-center gap-3"><MapPin className="w-5 h-5 text-cyan-500" /> {job.location}</div>
+                                <div className="flex items-center gap-3"><Clock className="w-5 h-5 text-cyan-500" /> {job.type}</div>
+                                <div className="flex items-center gap-3"><Briefcase className="w-5 h-5 text-cyan-500" /> {job.experienceLevel}</div>
                                 {job.deadline && (
-                                    <div className="flex items-center gap-2"><Calendar className="w-5 h-5 text-cyan-500" /> Apply by {job.deadline}</div>
+                                    <div className="flex items-center gap-3"><Calendar className="w-5 h-5 text-cyan-500" /> Apply By {job.deadline}</div>
                                 )}
                             </div>
                         </div>
-                        <a
-                            href="#apply-now"
-                            className="bg-white text-slate-950 px-12 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-cyan-500 hover:scale-105 transition-all shadow-xl shadow-cyan-500/10 text-center whitespace-nowrap"
-                        >
-                            Apply Now
-                        </a>
+                        <div className="lg:w-auto">
+                            <a
+                                href="#apply-now"
+                                className="inline-block bg-white text-slate-950 px-16 py-6 rounded-2xl font-black uppercase tracking-widest hover:bg-cyan-500 hover:scale-105 transition-all shadow-2xl shadow-white/5 text-center whitespace-nowrap text-sm"
+                            >
+                                Apply Now
+                            </a>
+                        </div>
                     </div>
                 </div>
             </section>

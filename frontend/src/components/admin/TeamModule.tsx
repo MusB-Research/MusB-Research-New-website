@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-import { authFetch } from '../../utils/auth';
+import { authFetch , API } from '../../utils/auth';
 
 export default function TeamModule() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,7 +24,7 @@ export default function TeamModule() {
 
   const currentUserStr = localStorage.getItem('user') || sessionStorage.getItem('user');
   const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const apiUrl = API || 'http://localhost:8000';
 
   const fetchTeam = async () => {
     try {

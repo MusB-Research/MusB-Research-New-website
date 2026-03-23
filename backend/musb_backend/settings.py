@@ -184,7 +184,7 @@ CORS_ALLOW_CREDENTIALS = True
 BASE_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
 if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOWED_ORIGINS = BASE_ORIGINS
     CSRF_TRUSTED_ORIGINS = BASE_ORIGINS
     # Ensure local development uses the correct Vite port
     FRONTEND_URL = os.getenv('FRONTEND_URL', "http://localhost:5173")
@@ -262,8 +262,10 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '5/minute',  # Strict limit for login attempts
-        'user': '1000/day',  # Generous limit for active PI users
+        'anon': '60/minute',    # Raised: refresh calls are anonymous — 3 concurrent refreshes was hitting the old limit of 5
+        'user': '2000/day',
+        'login': '10/minute',   # Scoped throttle for login endpoint only
+        'refresh': '30/minute', # Scoped throttle for token refresh
     }
 }
 

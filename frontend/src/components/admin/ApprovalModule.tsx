@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Check, X, Shield, Clock, User, Mail, ShieldCheck, History, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { authFetch } from '../../utils/auth';
+import { authFetch , API } from '../../utils/auth';
 
 export default function ApprovalModule() {
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8000';
 
     const fetchRequests = async () => {
         setLoading(true);

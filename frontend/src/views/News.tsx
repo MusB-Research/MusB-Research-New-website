@@ -17,7 +17,7 @@ import {
     GraduationCap
 } from 'lucide-react';
 import { NewsItem, NewsType } from '@/types';
-import { authFetch } from '../utils/auth';
+import { authFetch , API } from '../utils/auth';
 import { Link } from 'react-router-dom';
 
 const categories: (NewsType | 'All')[] = [
@@ -128,12 +128,15 @@ export default function News() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                const apiUrl = API || 'http://localhost:8000';
                 
-                // Fetch News & Events from our new API
-                const [newsRes, eventsRes] = await Promise.all([
+                // Fetch All Content Types from our API
+                const [newsRes, eventsRes, partnersRes, pubsRes, eduRes] = await Promise.all([
                     authFetch(`${apiUrl}/api/news/`),
-                    authFetch(`${apiUrl}/api/events/`)
+                    authFetch(`${apiUrl}/api/events/`),
+                    authFetch(`${apiUrl}/api/partnerships/`),
+                    authFetch(`${apiUrl}/api/publications/`),
+                    authFetch(`${apiUrl}/api/education/`)
                 ]);
 
                 let combined: any[] = [];
@@ -142,9 +145,10 @@ export default function News() {
                     const newsData = await newsRes.json();
                     combined = [...combined, ...newsData.map((n: any) => ({
                         ...n,
-                        type: n.type || 'News',
-                        excerpt: n.content ? n.content.substring(0, 150) + '...' : '',
-                        date: new Date(n.published_at || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        type: n.is_success_story ? 'Success Story' : 'News',
+                        title: n.title || 'Untitled News',
+                        excerpt: n.excerpt || n.content?.substring(0, 150) || 'No excerpt available.',
+                        date: new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     }))];
                 }
 
@@ -153,14 +157,49 @@ export default function News() {
                     combined = [...combined, ...eventsData.map((e: any) => ({
                         ...e,
                         type: 'Event',
-                        content: e.description,
-                        excerpt: e.description ? e.description.substring(0, 150) + '...' : '',
-                        date: new Date(e.date || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        title: e.title || e.name || 'Untitled Event',
+                        excerpt: e.description || e.excerpt || 'No description available.',
+                        date: new Date(e.event_date || e.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    }))];
+                }
+
+                if (partnersRes.ok) {
+                    const partnersData = await partnersRes.json();
+                    combined = [...combined, ...partnersData.map((p: any) => ({
+                        ...p,
+                        type: 'Partnership',
+                        title: p.name || p.partner_name || p.title || 'New Partnership',
+                        excerpt: p.description || p.collaboration_details || 'Partnership details not provided.',
+                        date: new Date(p.announcement_date || p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    }))];
+                }
+
+                if (pubsRes.ok) {
+                    const pubsData = await pubsRes.json();
+                    combined = [...combined, ...pubsData.map((p: any) => ({
+                        ...p,
+                        type: 'Publication',
+                        title: p.title || 'Untitled Publication',
+                        excerpt: p.abstract || p.summary || 'No abstract available.',
+                        date: new Date(p.publication_date || p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    }))];
+                }
+
+                if (eduRes.ok) {
+                    const eduData = await eduRes.json();
+                    combined = [...combined, ...eduData.map((e: any) => ({
+                        ...e,
+                        type: 'Educational Material',
+                        title: e.title || 'Untitled Material',
+                        excerpt: e.content || e.description || e.summary || 'No description available.',
+                        date: new Date(e.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     }))];
                 }
 
                 // If we got real data, use it; otherwise fallback to hardcoded
                 if (combined.length > 0) {
+                    // Sort descending by date
+                    combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                     setNewsItems(combined);
                 } else {
                     setNewsItems(HARDCODED_NEWS);

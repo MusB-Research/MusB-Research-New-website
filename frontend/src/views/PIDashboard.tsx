@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { authFetch, clearToken, getRole, performLogout, getUser } from '../utils/auth';
+import { authFetch, clearToken, getRole, performLogout, getUser, getDisplayName, API } from '../utils/auth';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
 import SubmitContentForms from '../components/admin/SubmitContentForms';
 import LaunchStudyForm from '../components/admin/LaunchStudyForm';
@@ -136,7 +136,7 @@ export default function PIDashboard() {
     const fetchPIContent = async () => {
         setLoading(true);
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || '';
+            const apiUrl = API || '';
             const [studiesRes, usersRes] = await Promise.all([
                 authFetch(`${apiUrl}/api/studies/`),
                 authFetch(`${apiUrl}/api/users/`)
@@ -157,7 +157,7 @@ export default function PIDashboard() {
 
     const handleCreateStudy = async (data: any) => {
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || '';
+            const apiUrl = API || '';
             const method = selectedStudy ? 'PATCH' : 'POST';
             const url = selectedStudy ? `${apiUrl}/api/studies/${selectedStudy.protocol_id || selectedStudy.id}/` : `${apiUrl}/api/studies/`;
 
@@ -224,19 +224,8 @@ export default function PIDashboard() {
         let userPicture = '';
         try {
             if (u) {
-                const rawName = u.full_name || (u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || ''));
-                const rawEmail = u.email || '';
-
-                // Identify encrypted hashes (Fernet)
-                const isEncrypted = (str: string) => str && str.startsWith('gAAAA') && str.length > 40;
-
-                if (isEncrypted(rawName)) {
-                    userName = rawEmail ? rawEmail.split('@')[0].toUpperCase() : 'PI';
-                } else {
-                    userName = rawName || (rawEmail ? rawEmail.split('@')[0] : 'PI');
-                }
-
-                userPicture = u.picture || u.avatar || u.avatar_url || '';
+                userName = getDisplayName(u);
+                userPicture = u.picture || u.avatar || u.avatar_url || u.profile_picture || '';
             }
         } catch (e) { }
 
@@ -281,7 +270,7 @@ export default function PIDashboard() {
                             <p className="text-[14px] font-black text-white uppercase italic leading-none tracking-tight">{userName}</p>
                             <p className="text-[9px] text-indigo-400 font-bold uppercase tracking-[0.2em] mt-2">Principal Investigator</p>
                         </div>
-                        <button 
+                        <button
                             onClick={() => setIsProfileOpen(!isProfileOpen)}
                             className="w-11 h-11 md:w-14 md:h-14 rounded-2xl bg-white/5 border border-white/10 p-0.5 hover:border-indigo-600 transition-all active:scale-95 group overflow-hidden shadow-2xl"
                         >
@@ -599,8 +588,8 @@ function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd
                     <button
                         key={cat.id}
                         onClick={() => setFilter(cat.id)}
-                        className={`p-8 rounded-[2.5rem] border transition-all duration-300 text-left flex flex-col justify-between h-[180px] group ${filter === cat.id 
-                            ? 'bg-indigo-600/20 border-indigo-500 shadow-[0_0_40px_rgba(99,102,241,0.15)] ring-1 ring-indigo-500/50' 
+                        className={`p-8 rounded-[2.5rem] border transition-all duration-300 text-left flex flex-col justify-between h-[180px] group ${filter === cat.id
+                            ? 'bg-indigo-600/20 border-indigo-500 shadow-[0_0_40px_rgba(99,102,241,0.15)] ring-1 ring-indigo-500/50'
                             : 'bg-[#0B101B]/60 backdrop-blur-md border-white/5 hover:bg-[#0B101B] hover:border-white/10 shadow-lg shadow-black/30'}`}
                     >
                         <cat.icon className={`w-8 h-8 ${filter === cat.id ? 'text-white' : 'text-indigo-400 group-hover:scale-110 transition-transform'}`} />
@@ -709,7 +698,7 @@ function ComplianceModule() {
                             <div className="mt-4 pt-6 border-t border-white/5">
                                 {doc.path ? (
                                     <a
-                                        href={`${import.meta.env.VITE_API_URL}/media/${doc.path}`}
+                                        href={`${API}/media/${doc.path}`}
                                         target="_blank"
                                         rel="noreferrer"
                                         className="w-full py-4 bg-white/5 hover:bg-white text-white hover:text-slate-950 border border-white/10 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 group/link"
@@ -727,21 +716,21 @@ function ComplianceModule() {
                 </div>
             </div>
 
-                <div className="mt-12 p-8 bg-indigo-500/10 border border-indigo-500/20 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-                    <div className="flex items-center gap-6">
-                        <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                            <ShieldCheck className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                            <p className="text-xs font-black text-white uppercase italic tracking-widest">Authorization Status</p>
-                            <p className="text-[12px] text-indigo-300/60 font-black uppercase tracking-widest mt-1">Global Scientific Network Verification</p>
-                        </div>
+            <div className="mt-12 p-8 bg-indigo-500/10 border border-indigo-500/20 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+                <div className="flex items-center gap-6">
+                    <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                        <ShieldCheck className="w-6 h-6 text-white" />
                     </div>
-                    <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,1)]" />
-                        <span className="text-xs font-black text-emerald-400 uppercase tracking-widest line-clamp-1 italic">Synchronization Complete</span>
+                    <div>
+                        <p className="text-xs font-black text-white uppercase italic tracking-widest">Authorization Status</p>
+                        <p className="text-[12px] text-indigo-300/60 font-black uppercase tracking-widest mt-1">Global Scientific Network Verification</p>
                     </div>
                 </div>
+                <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,1)]" />
+                    <span className="text-xs font-black text-emerald-400 uppercase tracking-widest line-clamp-1 italic">Synchronization Complete</span>
+                </div>
+            </div>
         </motion.div>
     );
 }

@@ -61,7 +61,7 @@ class WorkflowContentMixin:
         status_field = 'approval_status' if is_study else 'status'
         
         # Determine status based on role
-        status_val = 'approved' if user.role.upper() in ['SUPER_ADMIN', 'ADMIN'] else 'pending'
+        status_val = 'approved' if user.role.upper() in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR'] else 'pending'
         
         # Save with user and status
         serializer.save(created_by=user, **{status_field: status_val})
@@ -71,7 +71,7 @@ class WorkflowContentMixin:
         is_study = hasattr(serializer.Meta.model, 'approval_status')
         status_field = 'approval_status' if is_study else 'status'
 
-        if user.role.upper() not in ['SUPER_ADMIN', 'ADMIN']:
+        if user.role.upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR']:
             serializer.save(**{status_field: 'pending'})
         else:
             serializer.save()
@@ -125,7 +125,7 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         # PIs and Coordinators are trusted internal staff; auto-approve their studies
         approval_status = 'approved' if user.role.upper() in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR'] else 'pending'
         
-        if user.role == 'SPONSOR':
+        if user.role.upper() == 'SPONSOR':
             study = serializer.save(status='PAUSED', created_by=user, approval_status=approval_status)
             StudyAssignment.objects.get_or_create(study=study, user=user, role='SPONSOR_ADMIN')
         else:
@@ -215,7 +215,7 @@ class ParticipantViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_serializer_class(self):
-        if self.request.user.role == 'SPONSOR':
+        if self.request.user.role.upper() == 'SPONSOR':
             return DeIdentifiedParticipantSerializer
         return ParticipantSerializer
 
@@ -267,7 +267,7 @@ class LabResultViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
             return LabResult.objects.all()
-        if user.role == 'SPONSOR':
+        if user.role.upper() == 'SPONSOR':
             # Sponsors see all labs for their studies but de-identified (handled by Participant filter)
             return LabResult.objects.filter(participant__study__assignments__user=user)
         return LabResult.objects.filter(participant__study__assignments__user=user)

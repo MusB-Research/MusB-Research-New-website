@@ -33,11 +33,16 @@ COOKIE_OPTS = {
 def _set_auth_cookies(response, access_token: str, refresh_token: str):
     """
     Attach HttpOnly cookies for both tokens.
-    Omitting 'max_age' makes these SESSION COOKIES, 
-    meaning they are deleted when the browser/session is closed.
+    Adding 'max_age' makes these PERSISTENT COOKIES, 
+    meaning they remain even after the browser is closed.
     """
-    response.set_cookie('access_token',  access_token,  **COOKIE_OPTS)
-    response.set_cookie('refresh_token', refresh_token, **COOKIE_OPTS)
+    from ..security import ACCESS_TOKEN_LIFETIME, REFRESH_TOKEN_LIFETIME
+    
+    access_expiry = int(ACCESS_TOKEN_LIFETIME.total_seconds())
+    refresh_expiry = int(REFRESH_TOKEN_LIFETIME.total_seconds())
+
+    response.set_cookie('access_token',  access_token,  max_age=access_expiry, **COOKIE_OPTS)
+    response.set_cookie('refresh_token', refresh_token, max_age=refresh_expiry, **COOKIE_OPTS)
     return response
 
 def _clear_auth_cookies(response):
@@ -45,6 +50,24 @@ def _clear_auth_cookies(response):
     response.delete_cookie('access_token',  path='/')
     response.delete_cookie('refresh_token', path='/')
     return response
+
+def get_user_data_dict(user):
+    """Consistent user dictionary helper."""
+    return {
+        'email':        user.email,
+        'full_name':    user.decrypted_name,
+        'first_name':   user.decrypted_first_name,
+        'last_name':    user.decrypted_last_name,
+        'organization': user.decrypted_organization,
+        'role':         user.role.upper() if user.role else 'PARTICIPANT',
+        'affiliation':  getattr(user, 'affiliation', 'musb'),
+        'status':       getattr(user, 'status', 'active'),
+        'picture':      user.profile_picture or '',
+        'must_reset':   user.must_change_password,
+        'profile_incomplete': not user.profile_completed,
+        'mobile_number': user.decrypted_phone or '',
+        'timezone':     user.timezone or 'UTC',
+    }
 
 from django.views.decorators.csrf import csrf_exempt
 
@@ -115,27 +138,7 @@ def login_view(request):
     response = Response({
         'message': 'Login successful',
         'access': access_token, 
-        'user': {
-            'email':        user.email,
-            'full_name':    user.decrypted_name,
-            'first_name':   decrypt_data(user.first_name) if user.first_name else '',
-            'last_name':    decrypt_data(user.last_name) if user.last_name else '',
-            'organization': user.decrypted_organization,
-            'role':         user.role.upper() if user.role else 'PARTICIPANT',
-            'affiliation':  getattr(user, 'affiliation', 'musb'),
-            'status':       getattr(user, 'status', 'active'),
-            'picture':      user.profile_picture or '',
-            'must_reset':   user.must_change_password,
-            'profile_incomplete': not user.profile_completed,
-            'mobile_number': user.decrypted_phone or '',
-            'full_address': decrypt_data(user.full_address) if user.full_address else '',
-            'city': decrypt_data(user.city) if user.city else '',
-            'state': decrypt_data(user.state) if user.state else '',
-            'zip_code': user.zip_code or '',
-            'country': user.country or '',
-            'place_of_origin': decrypt_data(user.place_of_origin) if user.place_of_origin else '',
-            'timezone': user.timezone or 'UTC',
-        }
+        'user': get_user_data_dict(user)
     })
     return _set_auth_cookies(response, access_token, refresh_token)
 
@@ -211,8 +214,8 @@ def refresh_token_view(request):
 
     response = Response({
         'message': 'Token refreshed',
-        'access': new_access,  # Also returned in body for Authorization header fallback
-        'user': {'email': user.email, 'role': user.role},
+        'access': new_access,  
+        'user': get_user_data_dict(user)
     })
     return _set_auth_cookies(response, new_access, new_refresh)
 
@@ -246,6 +249,8 @@ def google_login(request):
 
         email = id_info.get('email')
         full_name = id_info.get('name', 'Google User')
+        given_name = id_info.get('given_name', '')
+        family_name = id_info.get('family_name', '')
         picture = id_info.get('picture', '')
 
         import uuid
@@ -260,23 +265,29 @@ def google_login(request):
         )
         
         needs_save = False
-        # Ensure we have a human-readable name. If current is encrypted but un-decryptable, overwrite it.
-        is_broken_encryption = False
-        if user.full_name and user.full_name.startswith('gAAAA'):
-            try:
-                # If this doesn't raise, the name is fine
-                user.decrypted_name
-            except Exception:
-                is_broken_encryption = True
+        
+        # Determine if we should overwrite existing name data
+        # Overwrite if: empty, default placeholder, contains '@', or matches email prefix (indicating no real name was set)
+        current_plain_name = decrypt_data(user.full_name)
+        email_prefix = email.split('@')[0] if email else None
+        
+        should_update_name = (
+            not user.full_name or 
+            current_plain_name == 'Google User' or 
+            '@' in current_plain_name or
+            (email_prefix and current_plain_name == email_prefix)
+        )
 
-        if not user.full_name or user.full_name == 'Google User' or '@' in user.full_name or is_broken_encryption:
+        if should_update_name:
             user.full_name = full_name
+            if given_name: user.first_name = given_name
+            if family_name: user.last_name = family_name
             needs_save = True
-            
+
         if picture and not user.profile_picture:
             user.profile_picture = picture
             needs_save = True
-            
+
         if needs_save:
             user.save()
 
@@ -310,17 +321,7 @@ def google_login(request):
 
         response = Response({
             'message': 'Login successful',
-            'access': access_token,
-            'refresh': refresh_token,
-            'user': {
-                'email':        user.email,
-                'full_name':    user.decrypted_name,
-                'organization': user.decrypted_organization,
-                'role':         user.role,
-                'picture':      user.profile_picture or '',
-                'must_reset':   user.must_change_password,
-                'profile_incomplete': not user.profile_completed,
-            }
+            'user': get_user_data_dict(user)
         })
         return _set_auth_cookies(response, access_token, refresh_token)
     except Exception as e:

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, FileText, CheckCircle2, FileSignature, AlertCircle, Eye, Download } from 'lucide-react';
-import { authFetch } from '../utils/auth';
+import { authFetch , API } from '../utils/auth';
 
 export default function StudyConsent() {
     const { id } = useParams();
@@ -26,7 +26,7 @@ export default function StudyConsent() {
     useEffect(() => {
         const fetchStudy = async () => {
             try {
-                const response = await authFetch(`${import.meta.env.VITE_API_URL}/api/studies/${id}/`);
+                const response = await authFetch(`${API}/api/studies/${id}/`);
                 if (!response.ok) throw new Error('Study not found');
                 const data = await response.json();
                 setStudy({
@@ -92,7 +92,7 @@ export default function StudyConsent() {
         setError(null);
 
         try {
-            const apiUrl = import.meta.env.VITE_API_URL;
+            const apiUrl = API;
             const res = await authFetch(`${apiUrl}/api/consent/`, {
                 method: 'POST',
                 body: JSON.stringify({

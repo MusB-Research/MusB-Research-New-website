@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, MapPin, Globe, CheckCircle2, ArrowRight, ArrowLeft, ShieldCheck, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { authFetch, saveToken, saveUser, getUser } from '../../utils/auth';
+import { authFetch, saveToken, saveUser, getUser , API } from '../../utils/auth';
 
 export default function ProfileSetup() {
     const [step, setStep] = useState(1);
@@ -50,7 +50,7 @@ export default function ProfileSetup() {
         setIsLoading(true);
         setError(null);
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const apiUrl = API || 'http://localhost:8000';
             const submissionData = new FormData();
             
             // Append all text fields

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, XCircle, Clock, Search, Filter, ShieldCheck, Loader2, Megaphone, Calendar, Briefcase, Eye, AlertCircle, FileText, Sparkles } from 'lucide-react';
-import { authFetch } from '../../utils/auth';
+import { authFetch , API } from '../../utils/auth';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = API || 'http://localhost:8000';
 
 export default function WorkflowModerationPanel() {
     const [activeTab, setActiveTab] = useState<'news' | 'events' | 'studies' | 'partnerships' | 'publications' | 'education'>('news');

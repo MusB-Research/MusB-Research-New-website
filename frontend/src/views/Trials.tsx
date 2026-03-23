@@ -22,7 +22,8 @@ import {
     DollarSign
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { authFetch } from '../utils/auth';
+import { motion, AnimatePresence } from 'framer-motion';
+import { authFetch , API } from '../utils/auth';
 
 
 
@@ -38,7 +39,7 @@ export default function Trials() {
         const getStudies = async () => {
             setLoading(true);
             try {
-                const apiUrl = import.meta.env.VITE_API_URL || '';
+                const apiUrl = API || '';
                 const response = await authFetch(`${apiUrl}/api/public-studies/`);
                 if (!response.ok) throw new Error('Failed to fetch studies');
                 const data = await response.json();

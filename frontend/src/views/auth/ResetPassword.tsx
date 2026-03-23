@@ -1,3 +1,4 @@
+import { API } from '../../utils/auth';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -50,7 +51,7 @@ const ResetPassword = () => {
         setError(null);
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/reset-password/`, {
+            const response = await fetch(`${API}/api/auth/reset-password/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token, password })

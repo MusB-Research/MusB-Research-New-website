@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, UserPlus, Eye, Edit2, Shield, MoreVertical, Building2, Loader2, X, ShieldAlert } from 'lucide-react';
-import { authFetch } from '../../utils/auth';
+import { authFetch , API } from '../../utils/auth';
 
 interface Sponsor {
   id: string;
@@ -53,7 +53,7 @@ export default function SponsorsManagement({ allUsers = [], allStudies = [], onR
     const isCurrentlyActive = sponsor.status === 'Active';
     const newStatus = isCurrentlyActive ? 'Suspended' : 'Verified';
     setUpdatingId(sponsor.id);
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8000';
     
     try {
       const res = await authFetch(`${apiUrl}/api/users/${sponsor.id}/`, {
@@ -79,7 +79,7 @@ export default function SponsorsManagement({ allUsers = [], allStudies = [], onR
     e.preventDefault();
     setIsCreating(true);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const apiUrl = API || 'http://localhost:8000';
       const res = await authFetch(`${apiUrl}/api/auth/admin/create-user/`, {
         method: 'POST',
         body: JSON.stringify({

@@ -1,3 +1,4 @@
+import { API } from '../utils/auth';
 export interface Study {
     id: string;
     title: string;
@@ -25,7 +26,7 @@ export interface Study {
 
 export const fetchStudies = async (): Promise<Study[]> => {
     try {
-        const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/public-studies/`;
+        const url = `${API || 'http://localhost:8000'}/api/public-studies/`;
         const response = await fetch(url);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);

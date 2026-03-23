@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, User as UserIcon, Eye, Edit2, Filter, Download, Loader2 } from 'lucide-react';
-import { authFetch } from '../../utils/auth';
+import { authFetch , API } from '../../utils/auth';
 
 interface ParticipantRecord {
   id: string;
@@ -53,7 +53,7 @@ export default function ParticipantsManagement({ allParticipants = [], allStudie
     // Basic toggle logic: if ACTIVE -> INACTIVE, if anything else -> ACTIVE
     const newStatus = p.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
     setUpdatingId(p.internal_id);
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8000';
     
     try {
       const res = await authFetch(`${apiUrl}/api/participants/${p.internal_id}/`, {

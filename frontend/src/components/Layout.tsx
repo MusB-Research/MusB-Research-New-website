@@ -1,7 +1,7 @@
 import React, { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ArrowRight, Linkedin, Mail, MapPin, Phone, ChevronDown, Youtube, Facebook, Instagram, Send, Loader2, CheckCircle2, LogIn, LogOut, LayoutDashboard, User } from 'lucide-react';
-import { redirectToLogin, clearToken, isLoggedIn, getRole, getUser } from '../utils/auth';
+import { redirectToLogin, clearToken, isLoggedIn, getRole, getUser, getDisplayName } from '../utils/auth';
 import { subscribeNewsletter } from '../api';
 import AnimatedBackground from './AnimatedBackground';
 
@@ -25,18 +25,23 @@ export default function Layout({ children }: LayoutProps) {
     const [userType, setUserType] = useState<'Business' | 'Individual'>('Individual');
     const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
-    // Authenticated User State
+    // Authenticated User State Reactivity
+    const [authCheck, setAuthCheck] = useState(0);
+    useEffect(() => {
+        const handleAuthChange = () => setAuthCheck(prev => prev + 1);
+        window.addEventListener('storage', handleAuthChange);
+        return () => window.removeEventListener('storage', handleAuthChange);
+    }, []);
+
     const userRole = getRole();
     const userObj = getUser();
-    const userName = userObj?.first_name
-        ? userObj.first_name.trim().split(' ')[0]
-        : (userObj?.name ? userObj.name.split(' ')[0] : (userObj?.email ? userObj.email.split('@')[0] : 'User'));
+    const userName = getDisplayName(userObj);
 
     const dashboardLink =
         userRole === 'SUPER_ADMIN' ? '/dashboard/super-admin'
             : userRole === 'ADMIN' ? '/dashboard/admin'
                 : userRole === 'PARTICIPANT' ? '/dashboard/participant'
-                    : userRole === 'PI' ? '/dashboard/pi'
+                    : (userRole === 'PI' || userRole === 'COORDINATOR' || userRole === 'ONSITE') ? '/dashboard/pi'
                         : userRole === 'SPONSOR' ? '/dashboard/sponsor'
                             : '/dashboard';
 
@@ -98,9 +103,10 @@ export default function Layout({ children }: LayoutProps) {
             // Retry for cross-page navigations where DOM may not be ready
             setTimeout(scrollToElement, 500);
         } else {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // Immediate reset for route changes ensures premium presentation from the top
+            window.scrollTo(0, 0);
         }
-    }, [location]);
+    }, [location.pathname, location.hash]);
 
     const isDashboard = location.pathname.startsWith('/dashboard');
     if (isDashboard) {

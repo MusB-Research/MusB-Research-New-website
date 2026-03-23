@@ -17,11 +17,7 @@ _PRIVATE_KEY_CACHE = None
 _PUBLIC_KEY_CACHE = None
 
 def get_all_ciphers():
-    """Returns a list of potential ciphers to try for decryption, cached for performance."""
-    global _CIPHER_CACHE
-    if _CIPHER_CACHE is not None:
-        return _CIPHER_CACHE
-
+    """Returns a list of potential ciphers to try for decryption."""
     ciphers = []
     
     # 1. Main explicit encryption key
@@ -49,7 +45,6 @@ def get_all_ciphers():
     except:
         pass
         
-    _CIPHER_CACHE = ciphers
     return ciphers
 
 

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, User, ShieldCheck, ArrowRight, Lock, Key, CheckCircle2, AlertCircle, ChevronLeft, LogIn, PhoneCall, Eye, EyeOff } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { Link, useNavigate } from 'react-router-dom';
-import { saveToken, saveUser } from '../../utils/auth';
+import { saveToken, saveUser, API } from '../../utils/auth';
 
 type AuthMode = 'LOGIN' | 'REGISTER' | 'FORGOT';
 type AuthStep = 'INFO' | 'OTP' | 'PASSWORD' | 'SUCCESS';
@@ -69,7 +69,7 @@ export default function SignIn() {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/send-otp/`, {
+            const response = await fetch(`${API}/api/auth/send-otp/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, captcha: captchaToken })
@@ -90,7 +90,7 @@ export default function SignIn() {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/verify-otp/`, {
+            const response = await fetch(`${API}/api/auth/verify-otp/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, code: otp.join('') })
@@ -114,7 +114,7 @@ export default function SignIn() {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/send-phone-otp/`, {
+            const response = await fetch(`${API}/api/auth/send-phone-otp/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ phone })
@@ -134,7 +134,7 @@ export default function SignIn() {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/verify-phone-otp/`, {
+            const response = await fetch(`${API}/api/auth/verify-phone-otp/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ phone, code: phoneOtp.join('') })
@@ -168,7 +168,7 @@ export default function SignIn() {
             // Senior Dev Pro-tip: Automatically detect timezone for global support
             const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/register/`, {
+            const response = await fetch(`${API}/api/auth/register/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -191,12 +191,12 @@ export default function SignIn() {
 
     // Unified handle for Google Credential
     const handleCredentialResponse = async (response: any) => {
+        if (!response.credential) return;
         setIsLoading(true);
         setError(null);
         try {
-            console.log("Google response received, verifying with backend...");
             const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/google-login/`, {
+            const res = await fetch(`${API}/api/auth/google-login/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
@@ -207,8 +207,6 @@ export default function SignIn() {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Google login failed');
-
-
 
             const userRole = (data.user.role || '').toUpperCase();
             if (userRole === 'SUPER_ADMIN') {
@@ -243,56 +241,46 @@ export default function SignIn() {
         }
     };
 
-    // Initialize Google on mount
+    // Initialize Google once on component load
     useEffect(() => {
         let retryCount = 0;
-        const maxRetries = 40;
+        const maxRetries = 20;
 
         const initGoogle = () => {
-            // Diagnostic: Log current origin to help user with whitelisting
-            if (retryCount === 0) {
-                console.log("🛠️ Auth Diagnostic: Current Origin is", window.location.origin);
-            }
-
-            if (window.google?.accounts?.id) {
+            if (window.google?.accounts?.id && !googleInitRef.current) {
                 const client_id = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-
-                if (!client_id) {
-                    console.error("❌ GOOGLE AUTH ERROR: VITE_GOOGLE_CLIENT_ID is missing.");
-                    return;
-                }
+                if (!client_id) return;
+                
                 try {
                     window.google.accounts.id.initialize({
                         client_id: client_id,
                         callback: handleCredentialResponse,
-                        ux_mode: 'popup',
-                        use_fedcm: true,
+                        auto_select: false,
+                        use_fedcm: false // FedCM is causing some 'Components deprecated' errors in recent Chrome versions
                     });
-
-                    if (googleButtonRef.current) {
-                        window.google.accounts.id.renderButton(googleButtonRef.current, {
-                            theme: 'outline',
-                            size: 'large',
-                            width: 320,
-                            shape: 'pill',
-                            text: 'continue_with'
-                        });
-                        console.log("✅ Google Button Rendered via Ref");
-                    } else if (retryCount < maxRetries) {
-                        retryCount++;
-                        setTimeout(initGoogle, 250);
-                    }
+                    googleInitRef.current = true;
                 } catch (err) {
-                    console.error("❌ Google Error:", err);
-                }
-            } else {
-                if (retryCount < maxRetries) {
-                    retryCount++;
-                    setTimeout(initGoogle, 500);
+                    console.error("Google Init Error:", err);
                 }
             }
+
+            if (googleInitRef.current && googleButtonRef.current) {
+                window.google.accounts.id.renderButton(googleButtonRef.current, {
+                    theme: 'outline', size: 'large', width: 320, shape: 'pill', text: 'continue_with'
+                });
+            } else if (retryCount < maxRetries) {
+                retryCount++;
+                setTimeout(initGoogle, 500);
+            }
         };
-        initGoogle();
+
+        if (!googleInitRef.current) initGoogle();
+        else if (googleButtonRef.current) {
+            // Re-render button if we already initialized but the element just appeared
+            window.google.accounts.id.renderButton(googleButtonRef.current, {
+                theme: 'outline', size: 'large', width: 320, shape: 'pill', text: 'continue_with'
+            });
+        }
     }, [mode, step]);
 
     const handleGoogleLogin = () => {
@@ -316,7 +304,7 @@ export default function SignIn() {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/forgot-password/`, {
+            const response = await fetch(`${API}/api/auth/forgot-password/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })
@@ -343,7 +331,7 @@ export default function SignIn() {
         setError(null);
         try {
             const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login/`, {
+            const response = await fetch(`${API}/api/auth/login/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password, timezone: detectedTimezone }),

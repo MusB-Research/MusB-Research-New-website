@@ -5,17 +5,21 @@ from django.utils.timezone import now
 from .models import JobPosting
 from .serializers import JobPostingSerializer
 
+class IsSuperAdminOrStaff(permissions.BasePermission):
+    def hasattr_role(self, user):
+        return hasattr(user, 'role') and str(user.role).upper() in ['SUPER_ADMIN', 'ADMIN']
+
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser or self.hasattr_role(request.user)))
+
 # Admin Viewset: CRUD for Super Admins
 class JobPostingViewSet(viewsets.ModelViewSet):
     queryset = JobPosting.objects.all()
     serializer_class = JobPostingSerializer
-    permission_classes = [permissions.IsAuthenticated] # Super Admin check typically handled in detail view or backend
 
     def get_permissions(self):
-        # We could enforce Super Admin here, but we'll assume the client handles the push appropriately
-        # while verify is_staff/is_superuser for sensitive operations
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [permissions.IsAdminUser()]
+            return [IsSuperAdminOrStaff()]
         return [permissions.IsAuthenticated()]
 
 # Public API: Read-only for Active jobs

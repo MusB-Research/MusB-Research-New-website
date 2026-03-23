@@ -19,7 +19,7 @@ import {
     X
 } from 'lucide-react';
 import { fetchStudies, Study } from '../data/studies';
-import { authFetch } from '../utils/auth';
+import { authFetch , API } from '../utils/auth';
 
 type ScreenerStep = 'STEP1' | 'STEP2' | 'STEP3' | 'OUTCOME';
 type OutcomeType = 'ELIGIBLE' | 'MAYBE' | 'NOT_ELIGIBLE';
@@ -50,7 +50,7 @@ export default function StudyScreener() {
     useEffect(() => {
         const fetchStudyAndForm = async () => {
             setIsLoading(true);
-            const apiUrl = import.meta.env.VITE_API_URL;
+            const apiUrl = API;
             try {
                 // Try fetching real study from API first
                 const res = await authFetch(`${apiUrl}/api/studies/${id}/`);
@@ -231,7 +231,7 @@ export default function StudyScreener() {
         setOutcome(finalOutcome);
 
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const apiUrl = API || 'http://localhost:8000';
             await authFetch(`${apiUrl}/api/contact/submit/`, {
                 method: 'POST',
                 body: JSON.stringify({

@@ -3,6 +3,7 @@ from django.http import JsonResponse
 from rest_framework import status
 from .security import decode_access_token
 import logging
+import jwt
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,14 @@ class OnboardingEnforcementMiddleware:
 
     PASSWORD_WHITELIST = [
         re.compile(r'^/api/auth/reset-password/?$'),
+    ]
+
+    # Dashboard whitelist (GET only for initial dashboard load)
+    # These paths are allowed for authenticated users even if they haven't completed their profile.
+    DASHBOARD_WHITELIST = [
+        re.compile(r'^/api/auth/list-team-members/?'),
+        re.compile(r'^/api/participants/?'),
+        re.compile(r'^/api/studies/?'),
     ]
 
     def __init__(self, get_response):
@@ -77,6 +86,11 @@ class OnboardingEnforcementMiddleware:
             # Check for profile_completed (Skip for Super Admins)
             role = payload.get('role', '').upper()
             profile_completed = payload.get('profile_completed', True)
+            
+            # Allow essential dashboard data even if profile is not completed
+            if request.method == 'GET' and any(pattern.match(path) for pattern in self.DASHBOARD_WHITELIST):
+                return self.get_response(request)
+
             if not profile_completed and role != 'SUPER_ADMIN':
                 if not any(pattern.match(path) for pattern in self.PROFILE_WHITELIST):
                     # For older tokens or newly-linked ones, double-check essential fields
@@ -85,9 +99,12 @@ class OnboardingEnforcementMiddleware:
                         status=status.HTTP_403_FORBIDDEN
                     )
 
+        except jwt.ExpiredSignatureError:
+            # Token expired is a routine event, no need to log as full error
+            logger.warning(f"Expired token in middleware for {path}")
+            pass
         except Exception as e:
             logger.error(f"Middleware token extraction err: {e}")
-            # Do nothing here, let the DRF authentication catch token errors
             pass
         
         return self.get_response(request)

@@ -5,7 +5,7 @@ import {
   Plus, Calendar, HeartPulse
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { authFetch } from '../../utils/auth';
+import { authFetch , API } from '../../utils/auth';
 
 interface DashboardModuleProps {
   studyCount: number;
@@ -14,7 +14,7 @@ interface DashboardModuleProps {
 export default function DashboardModule({ studyCount }: DashboardModuleProps) {
   const [studies, setStudies] = useState<any[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const apiUrl = API || 'http://localhost:8000';
 
   const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
   const user = userStr ? JSON.parse(userStr) : null;

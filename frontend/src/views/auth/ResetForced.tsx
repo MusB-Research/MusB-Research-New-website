@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Lock, Key, ShieldCheck, ArrowRight, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { authFetch } from '../../utils/auth';
+import { authFetch , API } from '../../utils/auth';
 
 export default function ResetForced() {
     const [oldPassword, setOldPassword] = useState('');
@@ -27,7 +27,7 @@ export default function ResetForced() {
 
         setIsLoading(true);
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const apiUrl = API || 'http://localhost:8000';
             const res = await authFetch(`${apiUrl}/api/auth/reset-forced/`, {
                 method: 'POST',
                 body: JSON.stringify({

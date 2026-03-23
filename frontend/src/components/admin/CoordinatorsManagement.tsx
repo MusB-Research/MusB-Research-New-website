@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, UserCheck, Eye, Edit2, ClipboardList, TrendingUp, Loader2 } from 'lucide-react';
-import { authFetch } from '../../utils/auth';
+import { authFetch , API } from '../../utils/auth';
 
 interface Coordinator {
   id: string;
@@ -53,7 +53,7 @@ export default function CoordinatorsManagement({ allUsers = [], allStudies = [],
     const isCurrentlyActive = coord.status === 'Active';
     const newStatus = isCurrentlyActive ? 'Suspended' : 'Verified';
     setUpdatingId(coord.id);
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8000';
     
     try {
       const res = await authFetch(`${apiUrl}/api/users/${coord.id}/`, {

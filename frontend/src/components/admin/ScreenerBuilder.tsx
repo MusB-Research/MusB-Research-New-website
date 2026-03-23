@@ -6,7 +6,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { authFetch } from '../../utils/auth';
+import { authFetch , API } from '../../utils/auth';
 
 interface FormField {
   id: string;
@@ -23,7 +23,7 @@ export default function ScreenerBuilder() {
   const [isSaving, setIsSaving] = useState(false);
   const [formId, setFormId] = useState<string | null>(null);
 
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const apiUrl = API || 'http://localhost:8000';
 
   useEffect(() => {
     fetchStudies();

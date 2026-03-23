@@ -5,7 +5,7 @@ import {
   Clock, Star, ChevronRight, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { authFetch } from '../../utils/auth';
+import { authFetch , API } from '../../utils/auth';
 
 interface JobPosting {
   id: string;
@@ -22,7 +22,7 @@ interface JobPosting {
   expiry_date: string;
 }
 
-const API_ROOT = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_ROOT = API || 'http://localhost:8000';
 
 export default function CareerManagement() {
   const [jobs, setJobs] = useState<JobPosting[]>([]);
@@ -78,12 +78,17 @@ export default function CareerManagement() {
       });
 
       if (res.ok) {
+        alert(`Sequence Synchronization Success: Content is now live in the global cluster.`);
         setShowForm(false);
         setEditingJob(null);
         fetchJobs();
+      } else {
+        const err = await res.json().catch(() => ({ error: 'Unknown protocol failure' }));
+        alert(`Critical Protocol Error [${res.status}]: ${JSON.stringify(err)}`);
       }
     } catch (error) {
       console.error('Submit error:', error);
+      alert('Transmission Interrupted: Failed to synchronize with the backend node.');
     }
   };
 

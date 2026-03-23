@@ -25,7 +25,7 @@ import SuperAdminDashboard from './views/SuperAdminDashboard';
 import AdminDashboard from './views/AdminDashboard';
 import ParticipantDashboard from './views/ParticipantDashboard';
 import PIDashboard from './views/PIDashboard';
-import SponsorDashboard from './views/SponsorDashboard';
+import SponsorDashboard from './views/SponsorDashboard/SponsorDashboard';
 import StudyConsent from './views/StudyConsent';
 import ResetForced from './views/auth/ResetForced';
 import ResetPassword from './views/auth/ResetPassword';
@@ -36,19 +36,6 @@ function AppContent() {
     const location = useLocation();
     const isDashboard = location.pathname.startsWith('/dashboard');
 
-    // === SECURITY: VOLATILE SESSION GUARD ===
-    // Automatically logs out if tab is hidden (minimized, switched, or closed)
-    useEffect(() => {
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'hidden' && isLoggedIn()) {
-                console.warn("🔐 SECURITY ALERT: Tab hidden. Terminating session...");
-                performLogout();
-            }
-        };
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, []);
 
     return (
         <>
@@ -76,7 +63,7 @@ function AppContent() {
                     <Route path="/studies/:id" element={<StudyDetail />} />
                     <Route path="/studies/:id/screener" element={<StudyScreener />} />
                     <Route path="/studies/:id/consent" element={<StudyConsent />} />
-                    
+
                     {/* Dashboard Routes (RBAC) */}
                     <Route path="/dashboard/participant" element={<ParticipantDashboard />} />
                     <Route path="/dashboard/super-admin" element={<SuperAdminDashboard />} />

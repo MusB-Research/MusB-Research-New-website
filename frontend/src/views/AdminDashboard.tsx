@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Layout, Users, Activity, Shield, 
-  Settings, LogOut, ChevronRight,
-  Plus, Search, Bell, Globe,
-  ShieldAlert, UserPlus, Rocket, ClipboardList,
-  ShieldCheck, FileText
+import {
+    Layout, Users, Activity, Shield,
+    Settings, LogOut, ChevronRight,
+    Plus, Search, Bell, Globe,
+    ShieldAlert, UserPlus, Rocket, ClipboardList,
+    ShieldCheck, FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { authFetch, clearToken, getRole, performLogout } from '../utils/auth';
+import { authFetch, clearToken, getRole, performLogout , API } from '../utils/auth';
 import DashboardModule from '../components/admin/DashboardModule';
 import TeamModule from '../components/admin/TeamModule';
 import AuditLogs from '../components/admin/AuditLogs';
@@ -37,7 +37,7 @@ export default function AdminDashboard() {
     const [user, setUser] = useState<any>(null);
     const navigate = useNavigate();
 
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const apiUrl = API || 'http://localhost:8000';
 
     const fetchStudies = async () => {
         try {
@@ -54,7 +54,7 @@ export default function AdminDashboard() {
     useEffect(() => {
         const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
         const role = getRole();
-        
+
         const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI'];
         if (!userStr || !allowedRoles.includes(role)) {
             console.warn("Unauthorized access to Staff Dashboard. Redirecting...");
@@ -109,8 +109,8 @@ export default function AdminDashboard() {
                                 else setActiveModule(item.id as AdminModule);
                             }}
                             className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group ${activeModule === item.id
-                                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]'
-                                    : 'text-slate-500 hover:bg-white/5 hover:text-white'
+                                ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]'
+                                : 'text-slate-500 hover:bg-white/5 hover:text-white'
                                 }`}
                         >
                             <div className="w-10 flex items-center justify-center flex-shrink-0">
@@ -126,7 +126,7 @@ export default function AdminDashboard() {
 
                 <div className="absolute bottom-10 left-6 right-6 space-y-2">
                     <button onClick={confirmSignOut} className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-all group">
-                         <div className="w-10 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 flex items-center justify-center flex-shrink-0">
                             <LogOut className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
                         </div>
                         {isSidebarOpen && <span className="text-[13px] font-black uppercase tracking-widest italic">Terminate Session</span>}
@@ -139,7 +139,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center gap-12">
                     <div className="flex items-center gap-5 cursor-pointer" onClick={() => window.open('/', '_blank')}>
                         <div className="h-12 px-6 rounded-full bg-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 group overflow-hidden">
-                           <img src="/logo.jpg" alt="MusB Research" className="h-7 w-auto object-contain" />
+                            <img src="/logo.jpg" alt="MusB Research" className="h-7 w-auto object-contain" />
                         </div>
                         <div className="h-8 w-px bg-white/10 hidden md:block" />
                         <span className="text-[13px] font-black uppercase tracking-[0.4em] text-cyan-400 hidden md:block">Research Terminal</span>
@@ -148,9 +148,9 @@ export default function AdminDashboard() {
 
                     <div className="relative group hidden lg:block">
                         <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
-                        <input 
-                            type="text" 
-                            placeholder="SEARCH SYSTEM DATA..." 
+                        <input
+                            type="text"
+                            placeholder="SEARCH SYSTEM DATA..."
                             className="bg-white/5 border border-white/10 rounded-2xl pl-16 pr-8 py-4 w-96 text-[12px] font-bold text-white outline-none focus:border-cyan-500/30 transition-all uppercase tracking-widest placeholder:text-slate-800"
                         />
                     </div>
@@ -161,14 +161,13 @@ export default function AdminDashboard() {
                         <Bell className="w-4 h-4 text-slate-500 group-hover:text-white" />
                         <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,1)]" />
                     </button>
-                    
+
                     <div className="flex items-center gap-6 pl-4 border-l border-white/5">
                         <div className="text-right hidden sm:block">
                             <p className="text-[12px] font-black text-white uppercase tracking-widest">{user?.role?.replace('_', ' ') || 'Admin Control'}</p>
                             <div className="flex items-center justify-end gap-2 mt-0.5 pointer-events-none">
-                                <span className={`text-[8px] font-black uppercase tracking-widest italic px-2 py-0.5 rounded border ${
-                                    user?.affiliation === 'onsite' ? 'text-indigo-400 border-indigo-400/30' : 'text-cyan-400 border-cyan-400/30'
-                                }`}>
+                                <span className={`text-[8px] font-black uppercase tracking-widest italic px-2 py-0.5 rounded border ${user?.affiliation === 'onsite' ? 'text-indigo-400 border-indigo-400/30' : 'text-cyan-400 border-cyan-400/30'
+                                    }`}>
                                     {user?.affiliation || 'MusB'}
                                 </span>
                                 <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest italic">Active</p>
@@ -231,52 +230,51 @@ export default function AdminDashboard() {
                                 <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">Study Directory</h1>
                                 <p className="text-slate-500 font-bold mt-2 uppercase tracking-widest text-xs italic">Managing {studies.length} live research protocols</p>
                             </div>
-                            <button 
+                            <button
                                 onClick={() => setShowCreateModal(true)}
                                 className="px-10 py-5 bg-white text-black rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-4 hover:scale-105 transition-all shadow-xl"
                             >
                                 <Plus className="w-5 h-5" /> Initialize New Protocol
                             </button>
                         </div>
-                        
+
                         {/* Summary of listed studies table here (already present in earlier versions) */}
-                         <div className="bg-white/[0.02] border border-white/5 rounded-[3rem] overflow-hidden backdrop-blur-3xl shadow-2xl">
-                             <table className="w-full text-left">
-                                 <thead>
-                                     <tr className="bg-white/[0.03] border-b border-white/5">
-                                         <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Protocol ID</th>
-                                         <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Study Title & Phase</th>
-                                         <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Medical Sponsor</th>
-                                         <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Status</th>
-                                         <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] text-right italic">Action</th>
-                                     </tr>
-                                 </thead>
-                                 <tbody className="divide-y divide-white/5">
-                                     {studies.map((study) => (
-                                         <tr key={study.id} className="hover:bg-white/[0.02] transition-colors group cursor-pointer" onClick={() => { setSelectedStudy(study); setShowCreateModal(true); }}>
-                                             <td className="px-8 py-5 text-sm font-black text-cyan-500 italic uppercase">{study.protocol_id}</td>
-                                             <td className="px-8 py-5">
-                                                 <p className="text-sm font-black text-white uppercase tracking-widest group-hover:text-cyan-400 transition-colors">{study.title}</p>
-                                                 <p className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-widest">{study.study_type}</p>
-                                             </td>
-                                             <td className="px-8 py-5 text-sm font-black text-slate-400 uppercase tracking-widest">{study.sponsor_name || 'MUSB Internal'}</td>
-                                             <td className="px-8 py-5">
-                                                 <span className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border ${
-                                                     study.status === 'ACTIVE' || study.status === 'RECRUITING' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'bg-white/5 text-slate-500 border-white/5'
-                                                 }`}>
-                                                     {study.status}
-                                                 </span>
-                                             </td>
-                                             <td className="px-8 py-5 text-right">
-                                                 <button className="p-3 bg-white/5 border border-white/10 rounded-xl hover:text-white hover:bg-white/10 transition-all">
-                                                     <ChevronRight className="w-4 h-4" />
-                                                 </button>
-                                             </td>
-                                         </tr>
-                                     ))}
-                                 </tbody>
-                             </table>
-                         </div>
+                        <div className="bg-white/[0.02] border border-white/5 rounded-[3rem] overflow-hidden backdrop-blur-3xl shadow-2xl">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="bg-white/[0.03] border-b border-white/5">
+                                        <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Protocol ID</th>
+                                        <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Study Title & Phase</th>
+                                        <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Medical Sponsor</th>
+                                        <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Status</th>
+                                        <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] text-right italic">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5">
+                                    {studies.map((study) => (
+                                        <tr key={study.id} className="hover:bg-white/[0.02] transition-colors group cursor-pointer" onClick={() => { setSelectedStudy(study); setShowCreateModal(true); }}>
+                                            <td className="px-8 py-5 text-sm font-black text-cyan-500 italic uppercase">{study.protocol_id}</td>
+                                            <td className="px-8 py-5">
+                                                <p className="text-sm font-black text-white uppercase tracking-widest group-hover:text-cyan-400 transition-colors">{study.title}</p>
+                                                <p className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-widest">{study.study_type}</p>
+                                            </td>
+                                            <td className="px-8 py-5 text-sm font-black text-slate-400 uppercase tracking-widest">{study.sponsor_name || 'MUSB Internal'}</td>
+                                            <td className="px-8 py-5">
+                                                <span className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border ${study.status === 'ACTIVE' || study.status === 'RECRUITING' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'bg-white/5 text-slate-500 border-white/5'
+                                                    }`}>
+                                                    {study.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-5 text-right">
+                                                <button className="p-3 bg-white/5 border border-white/10 rounded-xl hover:text-white hover:bg-white/10 transition-all">
+                                                    <ChevronRight className="w-4 h-4" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
             </main>
@@ -298,7 +296,7 @@ export default function AdminDashboard() {
                             exit={{ opacity: 0, scale: 0.98, y: 10 }}
                             className="relative w-full max-w-[90vw] h-[90vh] bg-[#0B101B] border border-white/10 rounded-[3rem] p-12 overflow-y-auto shadow-2xl custom-scrollbar"
                         >
-                            <LaunchStudyForm 
+                            <LaunchStudyForm
                                 onClose={() => {
                                     setShowCreateModal(false);
                                     setSelectedStudy(null);
@@ -328,7 +326,7 @@ function ComplianceModule() {
 
             <div className="bg-white/[0.02] border border-white/5 rounded-[3rem] p-10 backdrop-blur-3xl shadow-2xl relative overflow-hidden group">
                 <div className="absolute -top-24 -right-24 w-96 h-96 bg-cyan-500/5 blur-[100px] rounded-full group-hover:bg-cyan-500/10 transition-colors duration-1000" />
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
                     {[
                         { id: 'medical_licence', label: 'Medical Licence', path: user.medical_licence, desc: 'Official authorization for medical trial support' },
@@ -358,8 +356,8 @@ function ComplianceModule() {
                             </div>
                             <div className="mt-4 pt-6 border-t border-white/5">
                                 {doc.path ? (
-                                    <a 
-                                        href={`${import.meta.env.VITE_API_URL}/media/${doc.path}`}
+                                    <a
+                                        href={`${API}/media/${doc.path}`}
                                         target="_blank"
                                         rel="noreferrer"
                                         className="w-full py-4 bg-white/5 hover:bg-white text-white hover:text-slate-950 border border-white/10 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 group/link"

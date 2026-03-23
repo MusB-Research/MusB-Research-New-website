@@ -141,6 +141,14 @@ class User(AbstractBaseUser, PermissionsMixin):
         return decrypt_data(self.full_name)
 
     @cached_property
+    def decrypted_first_name(self):
+        return decrypt_data(self.first_name)
+
+    @cached_property
+    def decrypted_last_name(self):
+        return decrypt_data(self.last_name)
+
+    @cached_property
     def decrypted_organization(self):
         return decrypt_data(self.organization)
 

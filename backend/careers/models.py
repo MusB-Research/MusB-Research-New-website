@@ -20,7 +20,8 @@ class JobPosting(models.Model):
     location = models.CharField(max_length=255)
     job_type = models.CharField(max_length=50, choices=JOB_TYPES)
     experience_level = models.CharField(max_length=100)
-    role_summary = models.TextField()
+    role_summary = models.CharField(max_length=500)
+    description = models.TextField(blank=True)
     requirements = models.JSONField(default=list) # JSON Array as bullet points
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Active')
     publish_date = models.DateField()

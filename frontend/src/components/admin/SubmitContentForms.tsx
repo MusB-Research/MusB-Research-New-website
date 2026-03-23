@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Image as ImageIcon, Sparkles, Megaphone, Calendar, Briefcase, Loader2, ShieldCheck, CheckCircle2, FileText } from 'lucide-react';
-import { authFetch } from '../../utils/auth';
+import { authFetch , API } from '../../utils/auth';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = API || 'http://localhost:8000';
 
 export default function SubmitContentForms({ userRole }: { userRole: string }) {
     const [submitting, setSubmitting] = useState(false);
