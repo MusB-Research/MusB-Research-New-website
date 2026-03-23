@@ -11,6 +11,7 @@ import Innovations from './views/Innovations';
 import News from './views/News';
 import NewsDetail from './views/NewsDetail';
 import Careers from './views/Careers';
+import JobDetail from './views/JobDetail';
 import Facilities from './views/Facilities';
 import Trials from './views/Trials';
 import Support from './views/Support';
