@@ -565,3 +565,56 @@ class BookletDownloadRequest(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} - {self.technology_name}"
+
+class Partnership(BaseMongoModel):
+    name = models.CharField(max_length=255)
+    description = models.TextField()
+    logo = models.ImageField(upload_to='partnership_logos/', max_length=1024, blank=True, null=True)
+    link = models.URLField(blank=True, null=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='authored_partnerships')
+    status = models.CharField(max_length=20, choices=[
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected')
+    ], default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.status})"
+
+class Publication(BaseMongoModel):
+    title = models.CharField(max_length=255)
+    authors = models.TextField()
+    journal = models.CharField(max_length=255)
+    publication_date = models.DateField()
+    link = models.URLField(blank=True, null=True)
+    abstract = models.TextField(blank=True, null=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='authored_publications')
+    status = models.CharField(max_length=20, choices=[
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected')
+    ], default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.title} ({self.status})"
+
+class EducationMaterial(BaseMongoModel):
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    category = models.CharField(max_length=100, blank=True)
+    file = models.FileField(upload_to='education_materials/', blank=True, null=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='authored_education')
+    status = models.CharField(max_length=20, choices=[
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected')
+    ], default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.title} ({self.status})"

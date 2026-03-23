@@ -4,7 +4,7 @@ from .models import (
     Task, ParticipantTask, Consent, Lead, CommunicationLog, 
     Compensation, LabResult, DataAuditLog, InterventionArm,
     News, Event, FacilityInquiry, Candidate, NewsletterSubscriber,
-    BookletDownloadRequest
+    BookletDownloadRequest, Partnership, Publication, EducationMaterial
 )
 from authentication.models import User
 from authentication.security import decrypt_data
@@ -390,3 +390,37 @@ class BookletDownloadRequestSerializer(SanitizedModelSerializer):
     class Meta:
         model = BookletDownloadRequest
         fields = '__all__'
+
+class PartnershipSerializer(SanitizedModelSerializer):
+    id = ObjectIdField(read_only=True)
+    logo_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Partnership
+        fields = '__all__'
+
+    def get_logo_url(self, obj):
+        if not obj.logo: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.logo.url)
+        return obj.logo.url
+
+class PublicationSerializer(SanitizedModelSerializer):
+    id = ObjectIdField(read_only=True)
+    class Meta:
+        model = Publication
+        fields = '__all__'
+
+class EducationMaterialSerializer(SanitizedModelSerializer):
+    id = ObjectIdField(read_only=True)
+    file_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EducationMaterial
+        fields = '__all__'
+
+    def get_file_url(self, obj):
+        if not obj.file: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.file.url)
+        return obj.file.url

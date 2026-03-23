@@ -6,7 +6,7 @@ from .models import (
     ParticipantTask, Consent, Lead, CommunicationLog, 
     Compensation, LabResult, DataAuditLog,
     News, Event, FacilityInquiry, Candidate, NewsletterSubscriber, 
-    BookletDownloadRequest
+    BookletDownloadRequest, Partnership, Publication, EducationMaterial
 )
 from .serializers import (
     StudySerializer, StudyAssignmentSerializer, ParticipantSerializer, 
@@ -15,7 +15,8 @@ from .serializers import (
     ConsentSerializer, LeadSerializer, CommunicationLogSerializer,
     CompensationSerializer, LabResultSerializer, DataAuditLogSerializer,
     NewsSerializer, EventSerializer, FacilityInquirySerializer, CandidateSerializer,
-    NewsletterSubscriberSerializer, BookletDownloadRequestSerializer
+    NewsletterSubscriberSerializer, BookletDownloadRequestSerializer,
+    PartnershipSerializer, PublicationSerializer, EducationMaterialSerializer
 )
 from authentication.models import User, AuditLog
 
@@ -426,3 +427,20 @@ class BookletDownloadRequestCreateView(APIView):
             serializer.save()
             return Response({"status": "success", "message": "Download request logged."}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class PartnershipViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
+    queryset = Partnership.objects.all().order_by('-created_at')
+    serializer_class = PartnershipSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
+
+class PublicationViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
+    queryset = Publication.objects.all().order_by('-publication_date')
+    serializer_class = PublicationSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+class EducationMaterialViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
+    queryset = EducationMaterial.objects.all().order_by('-created_at')
+    serializer_class = EducationMaterialSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)

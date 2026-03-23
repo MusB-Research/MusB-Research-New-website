@@ -9,7 +9,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0027_study_agreement_signed_date_study_contract_status_and_more'),
+        ('api', '0002_event_facilityinquiry_news_study_approval_status_and_more'),
         ('authentication', '0007_user_zip_code_alter_auditlog_action'),
     ]
 
