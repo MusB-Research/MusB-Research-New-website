@@ -4,6 +4,7 @@ from django.utils.timezone import now
 import random
 import datetime
 from .security import encrypt_data, decrypt_data
+from functools import cached_property
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -22,14 +23,22 @@ class UserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = [
-        ('PARTICIPANT', 'Participant'),
-        ('PI', 'Principal Investigator'),
-        ('COORDINATOR', 'Coordinator'),
-        ('SPONSOR', 'Sponsor Admin'),
-        ('SPONSOR_MANAGER', 'Study Manager'),
-        ('SPONSOR_VIEWER', 'Sponsor Viewer'),
-        ('ADMIN', 'Admin'),
-        ('SUPER_ADMIN', 'Super Admin'),
+        ('super_admin', 'Super Admin'),
+        ('admin', 'Admin'),
+        ('sponsor', 'Sponsor'),
+        ('coordinator', 'Coordinator'),
+        ('pi', 'PI'),
+        ('team_member', 'Team Member'),
+        ('PARTICIPANT', 'Participant'), # Keep existing for compatibility
+    ]
+    AFFILIATION_CHOICES = [
+        ('musb', 'MusB'),
+        ('onsite', 'Onsite'),
+    ]
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('pending', 'Pending'),
+        ('rejected', 'Rejected'),
     ]
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=150, unique=True, null=True, blank=True)
@@ -40,6 +49,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     organization = models.CharField(max_length=255, blank=True, null=True)
     role = models.CharField(max_length=30, choices=ROLE_CHOICES, default='PARTICIPANT')
+    affiliation = models.CharField(max_length=20, choices=AFFILIATION_CHOICES, default='musb', null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active', null=True, blank=True)
+    assigned_studies = models.JSONField(default=list, blank=True, null=True) # List of study protocol_ids
     
     # Hierarchy
     parent_sponsor = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='team_members')
@@ -59,11 +71,17 @@ class User(AbstractBaseUser, PermissionsMixin):
     full_address = models.TextField(blank=True, null=True)
     city = models.CharField(max_length=100, blank=True, null=True)
     state = models.CharField(max_length=100, blank=True, null=True)
+    zip_code = models.CharField(max_length=20, blank=True, null=True)
     place_of_origin = models.CharField(max_length=255, blank=True, null=True)
     
     # Regional & Global Config
     timezone = models.CharField(max_length=50, default='UTC')
     country = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Credentials (PI, Coordinator, Sponsor)
+    medical_licence = models.CharField(max_length=1024, blank=True, null=True)
+    insurance_certificate = models.CharField(max_length=1024, blank=True, null=True)
+    cv_document = models.CharField(max_length=1024, blank=True, null=True)
     
     # GDPR & Privacy Compliance
     has_consented_to_data_use = models.BooleanField(default=False)
@@ -74,6 +92,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=now)
+    modified_at = models.DateTimeField(auto_now=True, null=True)
     created_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='users_created')
 
     objects = UserManager()
@@ -81,31 +100,35 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name']
 
-    def __hash__(self):
-        # Fix for Django 5.x + MongoDB crash during migration construction
-        if self.pk is None:
+    def __hash__(self) -> int:
+        # Compatibility patch for Django 5.x + MongoDB
+        pk = getattr(self, 'pk', None)
+        if pk is None:
             return id(self)
         try:
-            return hash(str(self.pk))
-        except TypeError:
+            return hash(str(pk))
+        except Exception:
             return id(self)
 
     def save(self, *args, **kwargs):
         # Update full_name from components if they exist
         if self.first_name and self.last_name:
-            self.full_name = f"{self.first_name} {self.last_name}"
+            f_plain = decrypt_data(str(self.first_name))
+            l_plain = decrypt_data(str(self.last_name))
+            self.full_name = f"{f_plain} {l_plain}"
 
         # Encrypt personal fields if not already encrypted
         fields_to_encrypt = [
-            'full_name', 'first_name', 'last_name', 'middle_name', 
-            'organization', 'phone_number', 'full_address', 
-            'city', 'state', 'place_of_origin'
+            'full_name', 'first_name', 'last_name', 'organization', 'phone_number', 
+            'full_address', 'city', 'state', 'place_of_origin'
         ]
         
         for field in fields_to_encrypt:
             val = getattr(self, field)
-            if val and isinstance(val, str) and not val.startswith('gAAAA'):
+            # Only encrypt if it's a non-empty string and doesn't look like a Fernet token
+            if val and isinstance(val, str) and not str(val).startswith('gAAAA'):
                 setattr(self, field, encrypt_data(val))
+
         
         # Normalize active status
         if self.is_active is None:
@@ -113,15 +136,15 @@ class User(AbstractBaseUser, PermissionsMixin):
             
         super().save(*args, **kwargs)
 
-    @property
+    @cached_property
     def decrypted_name(self):
         return decrypt_data(self.full_name)
 
-    @property
+    @cached_property
     def decrypted_organization(self):
         return decrypt_data(self.organization)
 
-    @property
+    @cached_property
     def decrypted_phone(self):
         return decrypt_data(self.phone_number)
 
@@ -136,6 +159,15 @@ class RefreshToken(models.Model):
     """Stores the SHA-256 hash of issued refresh tokens for rotation tracking."""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='refresh_tokens')
     token_hash = models.CharField(max_length=64, unique=True)  # SHA-256 hex digest
+
+    def __hash__(self) -> int:
+        pk = getattr(self, 'pk', None)
+        if pk is None:
+            return id(self)
+        try:
+            return hash(str(pk))
+        except Exception:
+            return id(self)
     jti = models.CharField(max_length=64, unique=True)         # JWT ID claim
     issued_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
@@ -164,6 +196,15 @@ class TokenBlacklist(models.Model):
     expires_at = models.DateTimeField()   # So we can clean up expired entries
     reason = models.CharField(max_length=50, default='logout')  # logout | password_change | admin_revoke
 
+    def __hash__(self) -> int:
+        pk = getattr(self, 'pk', None)
+        if pk is None:
+            return id(self)
+        try:
+            return hash(str(pk))
+        except Exception:
+            return id(self)
+
     @classmethod
     def is_blacklisted(cls, jti: str) -> bool:
         return cls.objects.filter(jti=jti).exists()
@@ -178,25 +219,40 @@ class TokenBlacklist(models.Model):
 class AuditLog(models.Model):
     """Immutable audit trail for all auth and role events."""
     ACTION_CHOICES = [
-        ('LOGIN_SUCCESS',    'Login Success'),
-        ('LOGIN_FAILED',     'Login Failed'),
-        ('LOGOUT',           'Logout'),
-        ('TOKEN_REFRESHED',  'Token Refreshed'),
-        ('TOKEN_REVOKED',    'Token Revoked'),
-        ('PASSWORD_CHANGED', 'Password Changed'),
-        ('PASSWORD_RESET',   'Password Reset'),
-        ('ROLE_CHANGED',     'Role Changed'),
-        ('ACCOUNT_CREATED',  'Account Created'),
-        ('ACCOUNT_DISABLED', 'Account Disabled'),
-        ('GOOGLE_LOGIN',     'Google Login'),
-        ('RATE_LIMITED',     'Rate Limited'),
+        ('LOGIN_SUCCESS',          'Login Success'),
+        ('LOGIN_FAILED',           'Login Failed'),
+        ('LOGOUT',                 'Logout'),
+        ('TOKEN_REFRESHED',        'Token Refreshed'),
+        ('TOKEN_REVOKED',          'Token Revoked'),
+        ('PASSWORD_CHANGED',       'Password Changed'),
+        ('PASSWORD_RESET',         'Password Reset'),
+        ('ROLE_CHANGED',           'Role Changed'),
+        ('ACCOUNT_CREATED',        'Account Created'),
+        ('ACCOUNT_DISABLED',       'Account Disabled'),
+        ('GOOGLE_LOGIN',           'Google Login'),
+        ('RATE_LIMITED',           'Rate Limited'),
+        ('CREDENTIALS_REISSUED',   'Credentials Reissued'),
+        ('UPDATE_STUDY',           'Update Study'),
+        ('DELETE_RECORD',          'Delete Record'),
+        ('VIEW_DATA',              'View Data'),
+        ('EXPORT_DATA',            'Export Data'),
+        ('SYSTEM_CONFIG_CHANGE',   'System Config Change'),
     ]
-    user_email = models.EmailField(null=True, blank=True)   # nullable for failed unknown logins
+    user_email = models.CharField(max_length=255, null=True, blank=True)   # nullable for failed unknown logins (e.g. User IDs)
     action = models.CharField(max_length=30, choices=ACTION_CHOICES)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.CharField(max_length=512, blank=True, null=True)
     detail = models.CharField(max_length=500, blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __hash__(self) -> int:
+        pk = getattr(self, 'pk', None)
+        if pk is None:
+            return id(self)
+        try:
+            return hash(str(pk))
+        except Exception:
+            return id(self)
 
     class Meta:
         ordering = ['-timestamp']
@@ -235,6 +291,8 @@ class Invitation(models.Model):
     invited_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_invitations')
     organization = models.CharField(max_length=255)
     token = models.CharField(max_length=100, unique=True)
+    scope = models.CharField(max_length=20, default='ALL', null=True, blank=True) # ALL | SPECIFIC
+    study_ids = models.JSONField(default=list, blank=True, null=True) # List of protocol_ids
     is_accepted = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
@@ -269,3 +327,32 @@ class MagicLink(models.Model):
     def is_expired(self):
         # Magic link valid for 1 hour
         return now() > self.created_at + datetime.timedelta(hours=1)
+
+class ApprovalRequest(models.Model):
+    """Tracks onsite PI requests for team member account activation"""
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    
+    requested_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_approvals')
+    target_user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='approval_request')
+    study = models.ForeignKey('api.Study', on_delete=models.CASCADE, related_name='approvals', null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_approvals')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __hash__(self) -> int:
+        pk = getattr(self, 'pk', None)
+        if pk is None:
+            return id(self)
+        try:
+            return hash(str(pk))
+        except Exception:
+            return id(self)
+
+    def __str__(self):
+        return f"Request for {self.target_user.email} by {self.requested_by.email}"

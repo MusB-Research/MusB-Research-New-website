@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { clearToken, authFetch } from '../utils/auth';
+import { authFetch, clearToken, getRole, performLogout } from '../utils/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Briefcase, Activity, Crown, Shield, Bell, Settings, LogOut, Search,
@@ -9,7 +9,7 @@ import {
   ChevronDown, Filter, Mail, Phone, Calendar, ArrowRight, ShieldCheck,
   LayoutDashboard, Server, Network, Terminal, CheckCircle2, MoreVertical,
   MapPin, Clock, MousePointer2, User as UserIcon, Menu, RefreshCw,
-  UserPlus, ShieldAlert, Rocket, ClipboardList
+  UserPlus, ShieldAlert, Rocket, ClipboardList, Archive
 } from 'lucide-react';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
 
@@ -23,6 +23,8 @@ import AnalyticsDashboard from '../components/admin/AnalyticsDashboard';
 import AuditLogs from '../components/admin/AuditLogs';
 import WorkflowModerationPanel from '../components/admin/WorkflowModerationPanel';
 import SubmitContentForms from '../components/admin/SubmitContentForms';
+import ApprovalModule from '../components/admin/ApprovalModule';
+import CareerManagement from '../components/admin/CareerManagement';
 
 // ═══════════════════════════════════════════
 // TYPES & MOCK DATA
@@ -33,7 +35,7 @@ type Page =
   | 'SPONSOR_LEADS' | 'METRICS' | 'TEAM' | 'INQUIRIES'
   | 'ANNOUNCEMENTS' | 'AUDIT_LOGS' | 'SETTINGS'
   | 'LAUNCH_STUDY' | 'SCREENER_BUILDER' | 'PIS' 
-  | 'COORDINATORS' | 'PARTICIPANTS' | 'LIVE_USERS' | 'WORKFLOW' | 'SUBMIT_CONTENT';
+  | 'COORDINATORS' | 'PARTICIPANTS' | 'LIVE_USERS' | 'WORKFLOW' | 'SUBMIT_CONTENT' | 'TEAM_APPROVALS' | 'CAREERS';
 
 interface User {
   id: string;
@@ -45,6 +47,16 @@ interface User {
   created: string;
   must_reset?: boolean;
   profile_incomplete?: boolean;
+  full_address?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
+  country?: string;
+  mobile_number?: string;
+  place_of_origin?: string;
+  medical_licence?: string;
+  insurance_certificate?: string;
+  cv_document?: string;
 }
 
 interface Sponsor {
@@ -97,13 +109,15 @@ export default function SuperAdminDashboard() {
   const [isUserDetailOpen, setIsUserDetailOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-  const [creationRole, setCreationRole] = useState('PARTICIPANT');
+  const [creationRole, setCreationRole] = useState('PI');
+  const navigate = useNavigate();
   const profileRef = React.useRef<HTMLDivElement>(null);
 
   // Data States
   const [users, setUsers] = useState<User[]>([]);
   const [studies, setStudies] = useState<any[]>([]);
   const [participants, setParticipants] = useState<any[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [notifications] = useState([
@@ -112,16 +126,23 @@ export default function SuperAdminDashboard() {
     { id: 3, text: 'System backup completed successfully', time: '4h ago', unread: false },
   ]);
 
+  const formatName = useCallback((name: string) => {
+    if (!name) return 'Unknown User';
+    if (name.startsWith('gAAAA')) return 'Node Identity Locked';
+    return name;
+  }, []);
+
   const currentUserName = useMemo(() => {
     const userStr = localStorage.getItem('user');
     if (!userStr) return 'Super Admin';
     try {
       const u = JSON.parse(userStr);
-      return u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'Super Admin'));
+      const nameStr = u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'Super Admin'));
+      return formatName(nameStr);
     } catch (e) {
       return 'Super Admin';
     }
-  }, []);
+  }, [formatName]);
 
   // ═══════════════════════════════════════════
   // DATA FETCHING
@@ -146,11 +167,21 @@ export default function SuperAdminDashboard() {
           status: u.is_active === false ? 'Inactive' : 'Active',
           lastLogin: u.last_login_formatted || 'Never',
           must_reset: u.must_change_password,
-          profile_incomplete: !u.profile_completed
+          profile_incomplete: !u.profile_completed,
+          // Normalize role to uppercase to match ROLES IDs
+          role: u.role ? u.role.toString().toUpperCase() : 'ADMIN'
         })));
       }
       if (sRes.ok) setStudies(await sRes.json());
       if (pRes.ok) setParticipants(await pRes.json());
+
+      // Fetch Live Audit Logs
+      try {
+        const aRes = await authFetch(`${apiUrl}/api/auth/admin/audit-logs/`);
+        if (aRes.ok) setActivities(await aRes.json());
+      } catch (e) {
+        console.warn("Audit logs fetch skipped or failed");
+      }
 
       setLastRefresh(new Date().toLocaleTimeString());
     } catch (err) {
@@ -159,6 +190,16 @@ export default function SuperAdminDashboard() {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    const user = localStorage.getItem('user') || sessionStorage.getItem('user');
+    const role = getRole();
+    
+    if (!user || role !== 'SUPER_ADMIN') {
+      console.warn("Unauthorized access to Super Admin Dashboard. Redirecting...");
+      navigate('/mainframe/restricted-auth');
+    }
+  }, [navigate]);
 
   useEffect(() => {
     // Dashboard data simulation
@@ -178,16 +219,7 @@ export default function SuperAdminDashboard() {
     fetchData();
   }, [fetchData]);
 
-  const activities: Activity[] = useMemo(() => Array.from({ length: 25 }, (_, i) => ({
-    id: `a-${i}`,
-    timestamp: '14/3/2026 ' + (14 - Math.floor(i / 2)) + ':' + (10 + (i % 50)).toString().padStart(2, '0') + ':' + (i % 60).toString().padStart(2, '0'),
-    type: ['LOGIN_SUCCESS', 'LOGOUT', 'CREATE_USER', 'UPDATE_STUDY', 'DELETE_RECORD', 'VIEW_DATA', 'EXPORT_DATA', 'SYSTEM_CONFIG_CHANGE'][i % 8],
-    category: ['System:Auth', 'Project:Data', 'User:Mgmt', 'System:Config'][i % 4],
-    user: ['Brijesh Raj', 'System Admin', 'PI Michael Chen', 'Sarah (PharmaCorp)'][i % 4],
-    details: 'Instruction executed successfully via Terminal 0x92',
-    ip: '192.168.1.' + (100 + i),
-    severity: i % 5 === 0 ? 'danger' : i % 3 === 0 ? 'warning' : 'info'
-  })), []);
+
 
   // ═══════════════════════════════════════════
   // HELPERS
@@ -197,7 +229,7 @@ export default function SuperAdminDashboard() {
   }, []);
 
   const handleWebsiteLink = useCallback(() => {
-    window.location.href = '/home';
+    window.open('/', '_blank');
   }, []);
 
   const handleSignOut = async () => {
@@ -205,8 +237,7 @@ export default function SuperAdminDashboard() {
   };
 
   const confirmSignOut = async () => {
-    await clearToken();
-    window.location.href = '/';
+    await performLogout();
   };
 
 
@@ -289,7 +320,8 @@ export default function SuperAdminDashboard() {
   );
 
   const RoleBadge = ({ role }: { role: string }) => {
-    const roleData = ROLES.find(r => r.id === role) || ROLES[1];
+    const normalizedRole = (role || '').toUpperCase();
+    const roleData = ROLES.find(r => r.id === normalizedRole) || ROLES[1];
     return (
       <span className="px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider" style={{ backgroundColor: `${roleData.color}20`, color: roleData.color, border: `1px solid ${roleData.color}40` }}>
         {roleData.label}
@@ -355,7 +387,7 @@ export default function SuperAdminDashboard() {
           { label: 'Admins & Staff', value: (users || []).filter(u => ['ADMIN', 'SUPER_ADMIN', 'PI', 'COORDINATOR'].includes(u.role)).length, icon: Crown, color: '#f59e0b', onClick: () => { } },
           { label: 'Sponsors', value: (users || []).filter(u => u.role === 'SPONSOR').length, icon: Building, color: '#ec4899', onClick: () => setCurrentPage('SPONSORS') },
           { label: 'Sponsor Teams', value: 0, icon: Users, color: '#ec4899', onClick: () => { } },
-          { label: 'Active Studies', value: (studies || []).filter(s => s.status === 'ACTIVE' || s.status === 'RECRUITING').length, icon: Activity, color: '#14b8a6', onClick: () => setCurrentPage('STUDIES') },
+          { label: 'Active Studies', value: (studies || []).filter(s => s.status === 'UPCOMING' || s.status === 'RECRUITING').length, icon: Activity, color: '#14b8a6', onClick: () => setCurrentPage('STUDIES') },
           { label: 'Open Adverse Events', value: 2, icon: ShieldAlert, color: '#ef4444', onClick: () => { } },
           { label: 'Audit Events Today', value: 5, icon: FileText, color: '#7c3aed', onClick: () => setCurrentPage('AUDIT_LOGS') },
         ].map((stat, i) => (
@@ -375,9 +407,11 @@ export default function SuperAdminDashboard() {
                 </div>
               )}
             </div>
-            <p className="text-xs sm:text-sm font-bold text-[#555a7a] uppercase tracking-widest mb-1">{stat.label}</p>
-            <h4 className="text-3xl sm:text-4xl xl:text-5xl font-black text-white italic tracking-tighter">{stat.value}</h4>
-            <ChevronRight className="absolute bottom-6 right-6 w-4 h-4 sm:w-5 sm:h-5 text-[#333] group-hover:text-white transition-all transform group-hover:translate-x-1" />
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 group-hover:text-white transition-colors">{stat.label}</p>
+            <h4 className="text-3xl sm:text-4xl xl:text-5xl font-black text-white italic tracking-tighter drop-shadow-2xl">{stat.value}</h4>
+            <div className="absolute bottom-6 right-6 p-2 rounded-lg bg-white/5 border border-white/5 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1">
+              <ArrowRight className="w-4 h-4 text-white" />
+            </div>
             <div className={`absolute bottom-0 left-0 h-1 w-0 group-hover:w-full transition-all duration-300`} style={{ backgroundColor: stat.color }}></div>
           </div>
         ))}
@@ -570,7 +604,7 @@ export default function SuperAdminDashboard() {
                           {user.name?.[0] || 'U'}
                         </div>
                         <div>
-                          <p className="text-sm font-black text-white italic group-hover/name:text-indigo-400 transition-colors uppercase tracking-tight">{user.name}</p>
+                          <p className="text-sm font-black text-white italic group-hover/name:text-indigo-400 transition-colors uppercase tracking-tight">{formatName(user.name)}</p>
                           <p className="text-xs text-[#555a7a] font-medium tracking-tight mt-0.5">{user.email}</p>
                         </div>
                       </div>
@@ -757,7 +791,30 @@ export default function SuperAdminDashboard() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-8 py-5 text-sm font-black text-slate-400 uppercase tracking-widest">{study.sponsor_name || 'MUSB Internal'}</td>
+                    <td className="px-8 py-5">
+                      <select
+                        value={study.sponsor_id || ''}
+                        onChange={async (e) => {
+                          const newId = e.target.value;
+                          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                          try {
+                            const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id}/`, {
+                              method: 'PATCH',
+                              body: JSON.stringify({ sponsor_id: newId })
+                            });
+                            if (res.ok) fetchData();
+                          } catch (err) {
+                            alert("Sponsor update failed");
+                          }
+                        }}
+                        className="bg-transparent text-[10px] font-black uppercase tracking-widest text-[#f472b6] outline-none cursor-pointer hover:text-white transition-all border-none"
+                      >
+                        <option value="" className="bg-[#0a0b1a]">-- Add Sponsor --</option>
+                        {users.filter(u => u.role === 'SPONSOR').map(s => (
+                          <option key={s.id} value={s.id} className="bg-[#0a0b1a]">{s.name}</option>
+                        ))}
+                      </select>
+                    </td>
                     <td className="px-8 py-5">
                       <div className="flex flex-col gap-2">
                         <select
@@ -831,17 +888,35 @@ export default function SuperAdminDashboard() {
                     </td>
                     <td className="px-8 py-5">
                       <div className="flex flex-col gap-1.5 min-w-[120px]">
-                        <div className="flex justify-between text-xs font-black uppercase text-slate-600">
-                          <span>Target Met</span>
-                          <span>{Math.round((study.actual_screened || 0) / (study.target_screened || 100) * 100)}%</span>
+                        <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-500">
+                          <div className="flex items-center gap-1">
+                            <span>Target:</span>
+                            <input 
+                              type="number"
+                              value={study.target_screened}
+                              onChange={async (e) => {
+                                const newTarget = parseInt(e.target.value) || 0;
+                                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                                try {
+                                  await authFetch(`${apiUrl}/api/studies/${study.protocol_id}/`, {
+                                    method: 'PATCH',
+                                    body: JSON.stringify({ target_screened: newTarget })
+                                  });
+                                  fetchData();
+                                } catch (err) {}
+                              }}
+                              className="w-12 bg-white/5 border-none outline-none text-blue-400 font-black italic focus:text-white"
+                            />
+                          </div>
+                          <span className="text-white">{Math.round((study.actual_screened || 0) / (study.target_screened || 1) * 100)}%</span>
                         </div>
                         <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                          <div className="h-full bg-blue-500" style={{ width: `${Math.min(100, (study.actual_screened || 0) / (study.target_screened || 100) * 100)}%` }}></div>
+                          <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${Math.min(100, (study.actual_screened || 0) / (study.target_screened || 1) * 100)}%` }}></div>
                         </div>
                       </div>
                     </td>
                     <td className="px-8 py-5">
-                      <select
+                        <select
                         value={study.status}
                         onChange={async (e) => {
                           const newStatus = e.target.value;
@@ -856,28 +931,90 @@ export default function SuperAdminDashboard() {
                             alert("Status update failed");
                           }
                         }}
-                        className={`text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border outline-none cursor-pointer transition-all ${
-                          study.status === 'RECRUITING' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 
-                          study.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                        className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border outline-none cursor-pointer transition-all ${
+                          ['ACTIVE', 'RECRUITING'].includes(study.status) ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 
+                          ['DRAFT', 'PROPOSAL_SUBMITTED', 'PROPOSAL_UNDER_NEGOTIATION'].includes(study.status) ? 'bg-slate-500/10 text-slate-400 border-slate-500/20' :
+                          ['IRB_PROTOCOL_INITIATED', 'UNDER_IRB_SUBMISSION', 'IRB_APPROVED'].includes(study.status) ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
+                          study.status === 'PREPARING_TO_LAUNCH' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
+                          ['RECRUITMENT_COMPLETED', 'ANALYSIS_UNDERWAY'].includes(study.status) ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                          ['PROGRESS_REPORT_DRAFT', 'FINAL_REPORT_SENT', 'COMPLETED'].includes(study.status) ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                           study.status === 'PAUSED' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                          study.status === 'CLOSED_ARCHIVED' ? 'bg-slate-500/10 text-slate-400 border-slate-500/20' :
                           'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
                         }`}
                       >
-                        <option value="RECRUITING" className="bg-[#0a0b1a]">Recruiting</option>
+                        <option value="DRAFT" className="bg-[#0a0b1a]">Draft</option>
+                        <option value="PROPOSAL_SUBMITTED" className="bg-[#0a0b1a]">Proposal Submitted</option>
+                        <option value="PROPOSAL_UNDER_NEGOTIATION" className="bg-[#0a0b1a]">Proposal Under Negotiation</option>
+                        <option value="AGREEMENT_SIGNED" className="bg-[#0a0b1a]">Agreement Signed</option>
+                        <option value="IRB_PROTOCOL_INITIATED" className="bg-[#0a0b1a]">IRB Protocol Initiated</option>
+                        <option value="UNDER_IRB_SUBMISSION" className="bg-[#0a0b1a]">Under IRB Submission / Dev</option>
+                        <option value="IRB_APPROVED" className="bg-[#0a0b1a]">IRB Approved</option>
+                        <option value="PREPARING_TO_LAUNCH" className="bg-[#0a0b1a]">Preparing to Launch</option>
                         <option value="ACTIVE" className="bg-[#0a0b1a]">Active</option>
-                        <option value="PAUSED" className="bg-[#0a0b1a]">Paused</option>
+                        <option value="RECRUITING" className="bg-[#0a0b1a]">Recruiting</option>
+                        <option value="RECRUITMENT_COMPLETED" className="bg-[#0a0b1a]">Recruitment Completed</option>
+                        <option value="ANALYSIS_UNDERWAY" className="bg-[#0a0b1a]">Analysis Underway</option>
+                        <option value="PROGRESS_REPORT_DRAFT" className="bg-[#0a0b1a]">Progress Report Draft</option>
+                        <option value="FINAL_REPORT_SENT" className="bg-[#0a0b1a]">Final Report Sent</option>
                         <option value="COMPLETED" className="bg-[#0a0b1a]">Completed</option>
+                        <option value="PAUSED" className="bg-[#0a0b1a]">Paused</option>
+                        <option value="CLOSED_ARCHIVED" className="bg-[#0a0b1a]">Closed / Archived</option>
                       </select>
                     </td>
-                    <td className="px-8 py-5 text-right">
+                    <td className="px-8 py-5 text-right flex items-center justify-end gap-2">
                       <button 
                         onClick={() => {
                           setSelectedStudy(study);
                           setCurrentPage('LAUNCH_STUDY');
                         }}
-                        className="p-2 text-slate-700 hover:text-white transition-all"
+                        className="p-2 text-slate-700 hover:text-white transition-all hover:bg-white/5 rounded-lg"
+                        title="Configure Protocol"
                       >
                         <Settings className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          const newStatus = study.status === 'ARCHIVED' ? 'RECRUITING' : 'ARCHIVED';
+                          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                          try {
+                            const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id || study.id}/`, {
+                              method: 'PATCH',
+                              body: JSON.stringify({ status: newStatus })
+                            });
+                            if (res.ok) fetchData();
+                          } catch (err) {
+                            alert("Archive state toggle failed");
+                          }
+                        }}
+                        className={`p-2 transition-all hover:bg-white/5 rounded-lg ${study.status === 'ARCHIVED' ? 'text-emerald-400' : 'text-amber-500/50 hover:text-amber-500'}`}
+                        title={study.status === 'ARCHIVED' ? 'Unarchive Study' : 'Archive Study'}
+                      >
+                        <Archive className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          const confirmMsg = `⚠️ IRREVERSIBLE ACTION DETECTED\n\nStudy: ${study.title.toUpperCase()}\n\nAre you sure you want to PERMANENTLY DELETE this clinical trial? This will purge all associated participant data and clinical records.`;
+                          if (window.confirm(confirmMsg)) {
+                            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                            try {
+                              const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id || study.id}/`, {
+                                method: 'DELETE'
+                              });
+                              if (res.ok) {
+                                fetchData();
+                              } else {
+                                alert("PROTECTION ACTIVE: Could not purge protocol.");
+                              }
+                            } catch (e) {
+                              alert("Network interference detected during purge command.");
+                            }
+                          }
+                        }}
+                        className="p-2 text-rose-500/40 hover:text-rose-500 transition-all hover:bg-rose-500/5 rounded-lg"
+                        title="Purge Study"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </td>
                   </tr>
@@ -1071,12 +1208,13 @@ export default function SuperAdminDashboard() {
         { id: 'STUDIES', label: 'All Studies', icon: Briefcase },
         { id: 'LAUNCH_STUDY', label: 'Launch A Study', icon: Rocket },
         { id: 'SCREENER_BUILDER', label: 'Screener Builder', icon: ClipboardList },
+        { id: 'CAREERS', label: 'Careers', icon: Briefcase },
       ]
     },
     {
-      group: 'STAKEHOLDERS', items: [
+      group: 'STAKEHOLDERS & ACCESS', items: [
+        { id: 'TEAM_APPROVALS', label: 'Team Approvals', icon: ShieldCheck, hasNotify: true },
         { id: 'SPONSORS', label: 'Sponsors', icon: Building },
-        { id: 'PIS', label: 'PIs (Investigators)', icon: Shield },
         { id: 'COORDINATORS', label: 'Coordinators', icon: UserCheck },
         { id: 'PARTICIPANTS', label: 'Participants', icon: UserIcon },
       ]
@@ -1166,12 +1304,21 @@ export default function SuperAdminDashboard() {
       middleName: '', 
       lastName: '', 
       email: '', 
-      role: creationRole || 'PI' 
+      role: creationRole ? creationRole.toUpperCase() : 'PI' 
     });
+
+    // Update role if creationRole changes externally
+    useEffect(() => {
+        if (creationRole) {
+            setNewUser(prev => ({ ...prev, role: creationRole.toUpperCase() }));
+        }
+    }, [creationRole]);
     const [isCreating, setIsCreating] = useState(false);
 
-    // Filter out PARTICIPANT role
-    const filteredRoles = ROLES.filter(r => r.id !== 'PARTICIPANT');
+    // Super Admin can create these specifiche roles
+    const filteredRoles = ROLES.filter(r => 
+        ['SUPER_ADMIN', 'ADMIN', 'PI', 'SPONSOR', 'COORDINATOR'].includes(r.id)
+    );
 
     const handleCreateUser = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -1193,7 +1340,7 @@ export default function SuperAdminDashboard() {
           const data = await res.json();
           alert(`✅ INITIALIZATION COMPLETE\n\nGenerated Username: ${data.username}\nCredentials sent to ${newUser.email}`);
           setModals({ ...modals, createUser: false });
-          setNewUser({ firstName: '', middleName: '', lastName: '', email: '', role: 'PI' });
+          setNewUser({ firstName: '', middleName: '', lastName: '', email: '', role: creationRole ? creationRole.toUpperCase() : 'PI' });
           fetchData(); 
         } else {
           const err = await res.json();
@@ -1349,7 +1496,7 @@ export default function SuperAdminDashboard() {
         {/* ────────────────────────────────────────── Sidebar ────────────────────────────────────────── */}
         <aside className={`fixed inset-y-0 left-0 w-80 bg-[#0a0b1b] border-r border-white/5 z-[70] flex flex-col transition-transform duration-500 lg:static lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="p-8 flex items-center justify-between border-b border-white/5">
-            <Link to="/home" className="group">
+            <Link to="/" target="_blank" rel="noopener noreferrer" className="group">
               <div className="flex items-center gap-4">
                 <div className="bg-white p-2 rounded-xl group-hover:scale-110 transition-transform">
                   <img src="/logo.jpg" alt="Logo" className="h-9 w-auto object-contain" />
@@ -1517,6 +1664,17 @@ export default function SuperAdminDashboard() {
           </header>
 
           <div className="flex-1 overflow-y-auto p-4 sm:p-8 lg:p-12 custom-scrollbar">
+            {currentPage !== 'DASHBOARD' && (
+              <motion.button
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                onClick={() => setCurrentPage('DASHBOARD')}
+                className="mb-8 flex items-center gap-2 px-6 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[#7c3aed] hover:bg-[#7c3aed] hover:text-white transition-all group font-black uppercase italic tracking-widest text-[10px]"
+              >
+                <ChevronRight className="w-4 h-4 rotate-180 group-hover:-translate-x-1 transition-transform" />
+                Back to Terminal Overview
+              </motion.button>
+            )}
             {currentPage === 'DASHBOARD' && <DashboardPage />}
             {currentPage === 'ALL_USERS' && <UsersPage />}
             {currentPage === 'STUDIES' && <StudiesPage />}
@@ -1526,6 +1684,7 @@ export default function SuperAdminDashboard() {
                 initialData={selectedStudy} 
                 availablePIs={users.filter(u => u.role === 'PI')}
                 availableCoordinators={users.filter(u => u.role === 'COORDINATOR')}
+                availableSponsors={users.filter(u => u.role === 'SPONSOR')}
                 onSave={async (data) => {
                   await handleCreateStudy(data);
                   setSelectedStudy(null);
@@ -1575,9 +1734,11 @@ export default function SuperAdminDashboard() {
             )}
             {currentPage === 'LIVE_USERS' && <LiveActiveUsers allUsers={users} />}
             {currentPage === 'METRICS' && <AnalyticsDashboard />}
-            {currentPage === 'AUDIT_LOGS' && <AuditLogs />}
+            {currentPage === 'AUDIT_LOGS' && <AuditLogs activities={activities} />}
             { currentPage === 'WORKFLOW' && <WorkflowModerationPanel /> }
+            { currentPage === 'TEAM_APPROVALS' && <ApprovalModule /> }
             { currentPage === 'SUBMIT_CONTENT' && <SubmitContentForms userRole="SUPER_ADMIN" /> }
+            { currentPage === 'CAREERS' && <CareerManagement /> }
             {currentPage === 'SETTINGS' && <SettingsPage />}
             {currentPage === 'ANNOUNCEMENTS' && <AnnouncementsPage />}
             {currentPage === 'SPONSOR_LEADS' && <SponsorLeadsPage />}
@@ -1585,7 +1746,7 @@ export default function SuperAdminDashboard() {
             {currentPage === 'INQUIRIES' && <InquiriesPage />}
 
             {/* Stub for other pages */}
-            {!['DASHBOARD', 'ALL_USERS', 'STUDIES', 'SPONSORS', 'LAUNCH_STUDY', 'SCREENER_BUILDER', 'PIS', 'COORDINATORS', 'PARTICIPANTS', 'LIVE_USERS', 'METRICS', 'AUDIT_LOGS', 'SETTINGS', 'ANNOUNCEMENTS', 'SPONSOR_LEADS', 'TEAM', 'INQUIRIES'].includes(currentPage) && (
+            {!['DASHBOARD', 'ALL_USERS', 'STUDIES', 'SPONSORS', 'LAUNCH_STUDY', 'SCREENER_BUILDER', 'PIS', 'COORDINATORS', 'PARTICIPANTS', 'LIVE_USERS', 'METRICS', 'AUDIT_LOGS', 'SETTINGS', 'ANNOUNCEMENTS', 'SPONSOR_LEADS', 'TEAM', 'INQUIRIES', 'TEAM_APPROVALS', 'CAREERS', 'WORKFLOW', 'SUBMIT_CONTENT', 'ACTIVITY_LOG'].includes(currentPage) && (
               <div className="h-[70vh] flex flex-col items-center justify-center text-center space-y-6">
                 <div className="w-24 h-24 bg-white/5 border border-white/10 rounded-[2.5rem] flex items-center justify-center">
                   <LayoutDashboard className="w-12 h-12 text-[#555a7a] animate-pulse" />
@@ -1610,11 +1771,9 @@ export default function SuperAdminDashboard() {
         )}
       </AnimatePresence>
 
-      <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden fixed top-8 left-8 p-3 bg-white/5 rounded-2xl border border-white/10 text-[#555a7a] z-[45]">
-        <Menu className="w-5 h-5" />
-      </button>
 
       {/* NEW PAGES & MODALS */}
+
 
         {/* User Detail Modal */}
         <AnimatePresence>
@@ -1640,10 +1799,10 @@ export default function SuperAdminDashboard() {
                 <div className="px-12 pb-12">
                   <div className="relative -mt-12 mb-8 flex items-end gap-6">
                     <div className="w-24 h-24 rounded-3xl bg-indigo-600 border-4 border-[#0d0e2b] flex items-center justify-center text-3xl font-black text-white italic shadow-2xl">
-                      {selectedUser.name?.[0] || 'U'}
+                      {(selectedUser.name?.[0] || 'U').toUpperCase()}
                     </div>
                     <div className="pb-2">
-                      <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none">{selectedUser.name}</h3>
+                      <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none">{formatName(selectedUser.name)}</h3>
                       <div className="flex items-center gap-3 mt-2">
                         <RoleBadge role={selectedUser.role} />
                         <span className={`px-2 py-0.5 rounded-full text-xs font-black uppercase tracking-widest ${selectedUser.status === 'Active' ? 'text-green-500 bg-green-500/10' : 'text-red-500 bg-red-500/10'}`}>
@@ -1667,7 +1826,11 @@ export default function SuperAdminDashboard() {
                       </div>
                       <div className="space-y-1">
                         <label className="text-xs font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic"><Phone className="w-3 h-3" /> Mobile Number</label>
-                        <p className="text-base font-bold text-white">+1 (813) 419-0781</p>
+                        <p className="text-base font-bold text-white">{selectedUser.mobile_number || 'N/A'}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic"><Globe className="w-3 h-3" /> Place of Origin</label>
+                        <p className="text-base font-bold text-white">{selectedUser.place_of_origin || 'N/A'}</p>
                       </div>
                     </div>
                     <div className="space-y-6">
@@ -1677,10 +1840,53 @@ export default function SuperAdminDashboard() {
                       </div>
                       <div className="space-y-1">
                         <label className="text-xs font-black text-[#555a7a] uppercase tracking-widest flex items-center gap-2 italic"><MapPin className="w-3 h-3" /> Location / Address</label>
-                        <p className="text-base font-bold text-white italic leading-relaxed">Tampa, Florida, USA</p>
+                        <p className="text-base font-bold text-white italic leading-relaxed">
+                          {selectedUser.full_address ? `${selectedUser.full_address}, ${selectedUser.city}, ${selectedUser.state} ${selectedUser.zip_code || ''}, ${selectedUser.country || ''}` : 'N/A'}
+                        </p>
                       </div>
                     </div>
                   </div>
+
+                  {/* Verification Documents for PI/Coordinator */}
+                  {(selectedUser.role === 'PI' || selectedUser.role === 'COORDINATOR') && (
+                    <div className="mt-10 p-8 bg-emerald-500/5 border border-emerald-500/20 rounded-3xl space-y-6 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <ShieldCheck className="w-24 h-24 text-emerald-500" />
+                        </div>
+                        <div className="flex items-center gap-4 relative z-10">
+                            <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
+                            <h4 className="text-sm font-black text-white italic uppercase tracking-widest">Compliance Documents</h4>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
+                            {[
+                                { id: 'medical_licence', label: 'Medical Licence', path: selectedUser.medical_licence },
+                                { id: 'insurance_certificate', label: 'Insurance Cert', path: selectedUser.insurance_certificate },
+                                { id: 'cv_document', label: 'Professional CV', path: selectedUser.cv_document }
+                            ].map((doc) => (
+                                <div key={doc.id} className="p-4 bg-black/20 border border-white/5 rounded-2xl flex flex-col gap-3 group/doc relative overflow-hidden">
+                                    <div className="flex items-center justify-between">
+                                        <FileText className="w-5 h-5 text-emerald-400" />
+                                        {doc.path ? (
+                                            <a 
+                                                href={`${import.meta.env.VITE_API_URL}/media/${doc.path}`} 
+                                                target="_blank" 
+                                                rel="noreferrer"
+                                                className="p-1.5 bg-emerald-500 text-slate-950 rounded-lg hover:scale-110 transition-transform"
+                                                title="View Document"
+                                            >
+                                                <ExternalLink className="w-3.5 h-3.5" />
+                                            </a>
+                                        ) : (
+                                            <div title="Documentation Missing" className="cursor-help"><AlertTriangle className="w-4 h-4 text-amber-500" /></div>
+                                        )}
+                                    </div>
+                                    <p className="text-[10px] font-black text-white uppercase tracking-widest leading-none truncate">{doc.label}</p>
+                                    {!doc.path && <p className="text-[8px] font-bold text-amber-500/60 uppercase tracking-tighter">Not Uploaded</p>}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                  )}
 
                   <div className="mt-12 pt-8 border-t border-white/5 flex gap-4">
                     <button onClick={() => setIsUserDetailOpen(false)} className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-xs font-black text-white uppercase tracking-[0.2em] transition-all">Close Entry</button>
@@ -1742,7 +1948,7 @@ export default function SuperAdminDashboard() {
       <LogoutConfirmationModal 
         isOpen={isLogoutModalOpen}
         onClose={() => setIsLogoutModalOpen(false)}
-        onConfirm={() => { clearToken(); window.location.href = "/"; }}
+        onConfirm={() => { clearToken(); window.location.href = "/mainframe/restricted-auth"; }}
       />
 
       <style>{`

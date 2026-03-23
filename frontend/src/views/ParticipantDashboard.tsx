@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { getToken, clearToken, authFetch, getRole } from '../utils/auth';
+import { authFetch, clearToken, getRole, performLogout, getUser } from '../utils/auth';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal'; // Added import
 import AnimatedBackground from '../components/AnimatedBackground';
 import {
@@ -147,8 +147,9 @@ const DashboardView = ({ firstName, today, onAction, tasks, study }: any) => (
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
             <div>
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.25em]">{today}</p>
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black italic text-white mt-1 tracking-tight leading-[1.1]">
-                    Welcome back, <span className="text-white">{firstName}</span>
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black italic text-white mt-1 tracking-tight leading-[1.05]">
+                    Welcome back,<br />
+                    <span className="text-white block mt-2">{firstName}</span>
                 </h1>
                 {study && (
                     <p className="text-xs font-bold text-cyan-500 uppercase tracking-widest mt-1">
@@ -695,7 +696,7 @@ const ReportsView = ({ userName }: { userName: string }) => {
    MAIN COMPONENT
 ───────────────────────────────────────────────────────────────── */
 // 8. PROFILE VIEW
-const ProfileView = ({ userName, userEmail, userPicture, initials }: any) => {
+const ProfileView = ({ userName, userEmail, userPicture, initials, userPhone, userLocation, userTimezone }: any) => {
     return (
         <div className="space-y-6 max-w-[1400px]">
             <div className="mb-6">
@@ -751,7 +752,7 @@ const ProfileView = ({ userName, userEmail, userPicture, initials }: any) => {
                             </div>
                             <div>
                                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">PHONE NUMBER</p>
-                                <p className="text-[13px] font-bold text-white">+1 (555) 000-0000</p>
+                                <p className="text-[13px] font-bold text-white">{userPhone || 'Not set'}</p>
                             </div>
                         </div>
                         <button className="text-[11px] font-black text-cyan-400 uppercase tracking-widest hover:text-cyan-300">EDIT</button>
@@ -763,7 +764,7 @@ const ProfileView = ({ userName, userEmail, userPicture, initials }: any) => {
                             </div>
                             <div>
                                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">LOCATION</p>
-                                <p className="text-[13px] font-bold text-white">Not set</p>
+                                <p className="text-[13px] font-bold text-white">{userLocation || 'Not set'}</p>
                             </div>
                         </div>
                         <button className="text-[11px] font-black text-cyan-400 uppercase tracking-widest hover:text-cyan-300">EDIT</button>
@@ -775,7 +776,7 @@ const ProfileView = ({ userName, userEmail, userPicture, initials }: any) => {
                             </div>
                             <div>
                                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">TIMEZONE</p>
-                                <p className="text-[13px] font-bold text-white">Asia/Kolkata</p>
+                                <p className="text-[13px] font-bold text-white">{userTimezone}</p>
                             </div>
                         </div>
                         <button className="text-[11px] font-black text-cyan-400 uppercase tracking-widest hover:text-cyan-300">EDIT</button>
@@ -991,32 +992,64 @@ export default function ParticipantDashboard() {
     }, [navigate]);
 
     // Read user from localStorage
-    const getUserData = () => {
+    interface UserData {
+        userName: string;
+        userEmail: string;
+        userPicture: string;
+        firstName: string;
+        userPhone: string;
+        userLocation: string;
+        userTimezone: string;
+    }
+
+    const getUserData = (): UserData => {
+        const defaultData: UserData = { 
+            userName: 'Participant', 
+            userEmail: '', 
+            userPicture: '', 
+            firstName: 'there', 
+            userPhone: '', 
+            userLocation: '', 
+            userTimezone: 'UTC' 
+        };
         try {
-            const userStr = localStorage.getItem('user');
-            if (!userStr) return { userName: 'Participant', userEmail: '', userPicture: '', firstName: 'there' };
-            const u = JSON.parse(userStr);
-            const rawName = u.full_name || (u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || ''));
+            const u = getUser();
+            if (!u) return defaultData;
+            const isEncrypted = (s: string | undefined | null) => s && typeof s === 'string' && s.startsWith('gAAAA') && s.length > 40;
+            
+            const rawName = u.full_name || (u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : '')));
+            const fName = (u.first_name && !isEncrypted(u.first_name) ? u.first_name : '') || (rawName && !isEncrypted(rawName) ? rawName.split(' ')[0] : '') || 'there';
             const rawEmail = u.email || '';
-            const isEncrypted = (s: string) => s && s.startsWith('gAAAA') && s.length > 40;
-            const userName = isEncrypted(rawName)
+            
+            const userNameVal = isEncrypted(rawName)
                 ? (rawEmail ? rawEmail.split('@')[0] : 'Participant')
                 : (rawName || 'Participant');
-            const firstName = userName.split(' ')[0];
-            return { userName, userEmail: rawEmail, userPicture: u.picture || u.avatar || '', firstName };
-        } catch { return { userName: 'Participant', userEmail: '', userPicture: '', firstName: 'there' }; }
+
+            const firstNameVal = isEncrypted(fName) ? 'there' : fName;
+
+            return {
+                userName: userNameVal,
+                userEmail: rawEmail,
+                userPicture: u.picture || u.avatar || '',
+                firstName: firstNameVal,
+                userPhone: u.mobile_number || u.phone_number || '',
+                userLocation: u.full_address ? `${u.full_address}, ${u.city || ''}, ${u.state || ''} ${u.zip_code || ''}, ${u.country || ''}`.replace(/,\s*,/g, ',').replace(/(^,\s*)|(\s*,\s*$)/g, '') : '',
+                userTimezone: u.timezone || 'UTC'
+            };
+        } catch { 
+            return defaultData; 
+        }
     };
 
-    const { userName, userEmail, userPicture, firstName } = getUserData();
+    const { userName, userEmail, userPicture, firstName, userPhone, userLocation, userTimezone } = getUserData();
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase();
 
     const handleSignOut = () => {
         setIsLogoutModalOpen(true);
     };
 
-    const confirmSignOut = () => {
-        clearToken();
-        navigate('/');
+    const confirmSignOut = async () => {
+        await performLogout();
     };
 
     // Updated Nav Items per Request
@@ -1038,7 +1071,6 @@ export default function ParticipantDashboard() {
     return (
         <div className="min-h-screen flex overflow-hidden font-sans relative" style={{ background: '#0a0e1a' }}>
             <div className="absolute inset-0 z-0 opacity-50 pointer-events-none">
-                <AnimatedBackground />
             </div>
 
             {/* ──────────────── SIDEBAR ──────────────── */}
@@ -1052,7 +1084,7 @@ export default function ParticipantDashboard() {
 
             <aside className={`w-[260px] flex-shrink-0 flex flex-col border-r border-white/[0.05] relative z-40 transition-transform duration-300 lg:translate-x-0 ${isMobileMenuOpen ? 'fixed inset-y-0 left-0 bg-[#0d1525] translate-x-0' : 'fixed lg:relative inset-y-0 left-0 bg-[#0d1525] -translate-x-full'}`} style={{ background: '#0d1525' }}>
                 <div className="px-6 pt-8 pb-6 flex justify-between items-center lg:justify-center">
-                    <Link to="/">
+                    <Link to="/" target="_blank" rel="noopener noreferrer">
                         <div className="inline-flex items-center bg-white rounded-full px-5 py-2.5 shadow-lg">
                             <img src="/logo.jpg" alt="MusB" className="h-6 w-auto object-contain" style={{ filter: 'contrast(1.2)' }} />
                         </div>
@@ -1079,7 +1111,7 @@ export default function ParticipantDashboard() {
                             <button
                                 key={item.label}
                                 onClick={() => {
-                                    if (item.label === 'Main Website') navigate('/home');
+                                    if (item.label === 'Main Website') window.open('/', '_blank');
                                     else setActiveNav(item.label);
                                 }}
                                 className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all text-left group ${isActive ? 'bg-[#0a1525] text-cyan-400 border border-cyan-500/30 shadow-[0_4px_20px_rgba(0,0,0,0.2)]' : 'text-slate-400 hover:text-white hover:bg-white/[0.04] border border-transparent'
@@ -1163,7 +1195,7 @@ export default function ParticipantDashboard() {
                                             <div className="h-px bg-white/10 my-1 mx-2"></div>
 
                                             <button
-                                                onClick={() => navigate('/')}
+                                                onClick={() => window.open('/', '_blank')}
                                                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.04] transition-colors text-left"
                                             >
                                                 <LayoutDashboard className="w-4 h-4 text-slate-400" />
@@ -1209,7 +1241,7 @@ export default function ParticipantDashboard() {
                             {activeNav === 'Messages' && <MessagesView />}
                             {activeNav === 'Documents' && <DocumentsView />}
                             {activeNav === 'Reports' && <ReportsView userName={userName} />}
-                            {activeNav === 'Profile' && <ProfileView userName={userName} userEmail={userEmail} userPicture={userPicture} initials={initials} />}
+                            {activeNav === 'Profile' && <ProfileView userName={userName} userEmail={userEmail} userPicture={userPicture} initials={initials} userPhone={userPhone} userLocation={userLocation} userTimezone={userTimezone} />}
                             {activeNav === 'Privacy & Data' && <PrivacyDataView onAction={openActionModal} />}
                         </motion.div>
                     </AnimatePresence>

@@ -39,7 +39,7 @@ export default function CoordinatorsManagement({ allUsers = [], allStudies = [],
         email: u.email,
         status: (u as any).status === 'Suspended' ? 'Inactive' : 'Active',
         assignedStudies: allStudies
-          .filter(s => s.coordinator === u.id || s.coordinator_id === u.id)
+          .filter(s => s.coordinator === u.id || s.coordinator_id === u.id || (s.assigned_coordinators || []).some((c: any) => c.id === u.id))
           .map(s => ({
             name: s.title,
             totalParticipants: s.target_screened || 0,

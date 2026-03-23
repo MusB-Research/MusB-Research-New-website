@@ -22,6 +22,9 @@ router.register(r'lab-results', views.LabResultViewSet)
 router.register(r'audit-logs', views.DataAuditLogViewSet)
 router.register(r'news', views.NewsViewSet)
 router.register(r'events', views.EventViewSet)
+router.register(r'partnerships', views.PartnershipViewSet)
+router.register(r'publications', views.PublicationViewSet)
+router.register(r'education', views.EducationMaterialViewSet)
 
 urlpatterns = [
     path('apply/', csrf_exempt(views.CandidateApplyView.as_view({'post': 'apply'})), name='candidate-apply'),

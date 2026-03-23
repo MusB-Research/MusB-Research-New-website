@@ -4,7 +4,7 @@ export interface Study {
     condition: string;
     type: 'On-site' | 'Remote' | 'Hybrid';
     trialFormat: 'RCT' | 'Open-label' | 'Pre-post' | 'IHUT' | 'Observational';
-    status: 'Recruiting' | 'Active' | 'Paused' | 'Completed';
+    status: 'Recruiting' | 'Upcoming' | 'Paused' | 'Completed';
     description: string;
     benefit: string;
     duration: string;
@@ -25,16 +25,16 @@ export interface Study {
 
 export const fetchStudies = async (): Promise<Study[]> => {
     try {
-        const url = `${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/public-studies/`;
+        const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/public-studies/`;
         const response = await fetch(url);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
         
-        const statusMap: Record<string, any> = {
+        const statusMap: Record<string, string> = {
             'RECRUITING': 'Recruiting',
-            'ACTIVE': 'Active',
+            'UPCOMING': 'Upcoming',
             'PAUSED': 'Paused',
             'COMPLETED': 'Completed'
         };

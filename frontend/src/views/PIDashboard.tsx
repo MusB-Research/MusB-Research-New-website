@@ -1,13 +1,37 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { clearToken, authFetch } from '../utils/auth';
+import { authFetch, clearToken, getRole, performLogout, getUser } from '../utils/auth';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
 import SubmitContentForms from '../components/admin/SubmitContentForms';
-import ScreenerBuilder from '../components/admin/ScreenerBuilder';
+import LaunchStudyForm from '../components/admin/LaunchStudyForm';
+import SponsorsManagement from '../components/admin/SponsorsManagement';
+import PIMessagesModule from '../components/pi/PIMessagesModule';
+import PISubjectReviewModule from '../components/pi/PISubjectReviewModule';
+import PITeamModule from '../components/pi/PITeamModule';
+import PIVisitsAssessmentsModule from '../components/pi/PIVisitsAssessmentsModule';
+import PIHelpSupportModule from '../components/pi/PIHelpSupportModule';
+import QuestionnaireBuilder from '../components/pi/QuestionnaireBuilder';
+
+// New PI Panel Modules
+import ParticipantOversight from '../components/pi/panels/ParticipantOversight';
+import FormsQuestionnairesModule from '../components/pi/panels/FormsQuestionnairesModule';
+import PIConsentModule from '../components/pi/PIConsentModule';
+import LabsResultsModule from '../components/pi/panels/LabsResultsModule';
+import ReportsSignOffModule from '../components/pi/panels/ReportsSignOffModule';
+import StudyDocumentsModule from '../components/pi/panels/StudyDocumentsModule';
+import MyDocumentsModule from '../components/pi/panels/MyDocumentsModule';
+import AlertsModule from '../components/pi/panels/AlertsModule';
+import AuditLogModule from '../components/pi/panels/AuditLogModule';
+import AnalyticsModule from '../components/pi/panels/AnalyticsModule';
+import AnimatedBackground from '../components/AnimatedBackground';
+
+
 import {
     LayoutDashboard,
     Beaker,
+    Calendar,
+    DraftingCompass,
     Users,
     ClipboardList,
     ShieldCheck,
@@ -22,23 +46,69 @@ import {
     Plus,
     X,
     Filter,
+    HelpCircle,
     Stethoscope,
     UsersRound,
     Clock,
     ArrowUpRight,
     LogOut,
-    Globe
+    Globe,
+    Rocket,
+    Menu,
+    FlaskConical,
+    History,
+    FileSearch,
+    Layers,
+    ListFilter,
+    CheckSquare,
+    ScrollText,
+    Settings2,
+    Database,
+    AlertTriangle,
+    FileCheck
 } from 'lucide-react';
 
-type PIModule = 'OVERSIGHT' | 'STUDIES' | 'PARTICIPANTS' | 'MESSAGES' | 'REPORTS' | 'SUBMIT' | 'SCREENER_BUILDER';
+type PIModule =
+    | 'WEBSITE'
+    | 'OVERSIGHT'
+    | 'STUDIES'
+    | 'TEAM'
+    | 'PARTICIPANTS'
+    | 'FORMS'
+    | 'CONSENT'
+    | 'VISITS'
+    | 'LABS'
+    | 'REPORTS'
+    | 'STUDY_DOCS'
+    | 'MY_DOCS'
+    | 'SUBJECT_REVIEW'
+    | 'MESSAGES'
+    | 'ALERTS'
+    | 'LAUNCH_STUDY'
+    | 'SPONSORS'
+    | 'SUPPORT'
+    | 'AUDIT_LOG'
+    | 'ANALYTICS';
 
 export default function PIDashboard() {
     const [activeModule, setActiveModule] = useState<PIModule>('OVERSIGHT');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const profileRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const user = getUser();
+        const role = getRole();
+
+        const allowedRoles = ['PI', 'COORDINATOR', 'ONSITE'];
+        if (!user || !allowedRoles.includes(role)) {
+            console.warn("Unauthorized access to PI Dashboard. Redirecting...");
+            navigate('/signin');
+        }
+    }, [navigate]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -54,23 +124,26 @@ export default function PIDashboard() {
         setIsLogoutModalOpen(true);
     };
 
-    const confirmSignOut = () => {
-        clearToken();
-        localStorage.removeItem('user');
-        navigate('/');
+    const confirmSignOut = async () => {
+        await performLogout();
     };
     const [studies, setStudies] = useState<any[]>([]);
+    const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [newStudy, setNewStudy] = useState({ title: '', protocol_id: '', study_type: 'RANDOMIZED' });
+    const [selectedStudy, setSelectedStudy] = useState<any>(null);
+    const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
 
     const fetchPIContent = async () => {
         setLoading(true);
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-            const res = await authFetch(`${apiUrl}/api/studies/`);
-            if (res.ok) {
-                setStudies(await res.json());
-            }
+            const apiUrl = import.meta.env.VITE_API_URL || '';
+            const [studiesRes, usersRes] = await Promise.all([
+                authFetch(`${apiUrl}/api/studies/`),
+                authFetch(`${apiUrl}/api/users/`)
+            ]);
+
+            if (studiesRes.ok) setStudies(await studiesRes.json());
+            if (usersRes.ok) setUsers(await usersRes.json());
         } catch (e) {
             console.error("PI Data Fetch Failed", e);
         } finally {
@@ -82,92 +155,147 @@ export default function PIDashboard() {
         fetchPIContent();
     }, []);
 
-    const handleCreateStudy = async () => {
+    const handleCreateStudy = async (data: any) => {
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-            const res = await authFetch(`${apiUrl}/api/studies/`, {
-                method: 'POST',
-                body: JSON.stringify(newStudy)
+            const apiUrl = import.meta.env.VITE_API_URL || '';
+            const method = selectedStudy ? 'PATCH' : 'POST';
+            const url = selectedStudy ? `${apiUrl}/api/studies/${selectedStudy.protocol_id || selectedStudy.id}/` : `${apiUrl}/api/studies/`;
+
+            const res = await authFetch(url, {
+                method: method,
+                body: JSON.stringify(data)
             });
             if (res.ok) {
-                setShowCreateModal(false);
+                setActiveModule('STUDIES');
+                setSelectedStudy(null);
                 fetchPIContent();
-                setNewStudy({ title: '', protocol_id: '', study_type: 'RANDOMIZED' });
+            } else {
+                const err = await res.json();
+                alert(`Operation failed: ${JSON.stringify(err)}`);
             }
         } catch (e) {
-            alert("Creation failed");
+            alert("Operation failed due to network error");
         }
     };
 
 
 
-    const navItems = [
-        { id: 'WEBSITE', label: 'Main Website', icon: Globe },
-        { id: 'OVERSIGHT', label: 'Scientific Oversight', icon: Activity },
-        { id: 'STUDIES', label: 'My Studies', icon: Beaker },
-        { id: 'PARTICIPANTS', label: 'Subject Review', icon: UsersRound },
-        { id: 'MESSAGES', label: 'Messages', icon: MessageSquare },
-        { id: 'REPORTS', label: 'Analytics', icon: TrendingUp },
-        { id: 'SUBMIT', label: 'Submit Content', icon: Plus },
-        { id: 'SCREENER_BUILDER', label: 'Screener Builder', icon: Filter },
+    const sidebarGroups = [
+        {
+            group: 'GENERAL',
+            items: [
+                { id: 'WEBSITE', label: 'Main Website', icon: Globe },
+                { id: 'OVERSIGHT', label: 'Dashboard', icon: LayoutDashboard },
+            ]
+        },
+        {
+            group: 'RESEARCH MANAGEMENT',
+            items: [
+                { id: 'STUDIES', label: 'My Studies', icon: Beaker },
+                { id: 'TEAM', label: 'My Team', icon: Users },
+                { id: 'PARTICIPANTS', label: 'Participant Oversight', icon: UsersRound },
+                { id: 'SUBJECT_REVIEW', label: 'Subject Review', icon: Activity },
+                { id: 'FORMS', label: 'Forms & Questionnaires', icon: ClipboardList },
+                { id: 'CONSENT', label: 'Consent Oversight', icon: ShieldCheck },
+                { id: 'VISITS', label: 'Visits & Assessments', icon: Calendar },
+            ]
+        },
+        {
+            group: 'DOCUMENTS & COMMS',
+            items: [
+                { id: 'STUDY_DOCS', label: 'Study Documents', icon: FileText },
+                { id: 'MY_DOCS', label: 'My Documents', icon: Settings2 },
+                { id: 'MESSAGES', label: 'Messages', icon: MessageSquare },
+                { id: 'ALERTS', label: 'Alerts', icon: Bell, hasNotify: true },
+            ]
+        },
+        {
+            group: 'RESOURCES',
+            items: [
+                { id: 'LAUNCH_STUDY', label: 'Launch a Study', icon: Rocket },
+                { id: 'SUPPORT', label: 'Help / Support', icon: HelpCircle },
+            ]
+        }
     ];
 
     const renderHeader = () => {
-        const userStr = localStorage.getItem('user');
+        const u = getUser();
         let userName = 'PI';
         let userPicture = '';
         try {
-            if (userStr) {
-                const u = JSON.parse(userStr);
+            if (u) {
                 const rawName = u.full_name || (u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || ''));
                 const rawEmail = u.email || '';
-                
+
                 // Identify encrypted hashes (Fernet)
                 const isEncrypted = (str: string) => str && str.startsWith('gAAAA') && str.length > 40;
-                
+
                 if (isEncrypted(rawName)) {
                     userName = rawEmail ? rawEmail.split('@')[0].toUpperCase() : 'PI';
                 } else {
                     userName = rawName || (rawEmail ? rawEmail.split('@')[0] : 'PI');
                 }
-                
+
                 userPicture = u.picture || u.avatar || u.avatar_url || '';
             }
         } catch (e) { }
 
         return (
-            <header className="fixed top-0 left-0 right-0 h-28 z-50 bg-[#0B101B]/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between px-10">
-                <div className="flex items-center gap-12">
-                    <Link to="/" className="flex items-center group">
-                        <div className="h-10 px-5 rounded-full bg-white flex items-center justify-center shadow-lg transition-transform group-hover:scale-105">
+            <header className="fixed top-0 lg:left-80 left-0 right-0 h-20 md:h-28 z-[60] bg-[#0B101B]/80 backdrop-blur-3xl border-b border-white/5 flex items-center justify-between px-4 md:px-8 lg:px-10">
+
+                <div className="flex items-center gap-4 lg:gap-7 lg:hidden">
+                    <Link to="/" target="_blank" rel="noopener noreferrer" className="flex items-center group transition-all hover:scale-105 active:scale-95">
+                        <div className="h-10 px-4 rounded-full bg-white flex items-center justify-center shadow-lg group/logo overflow-hidden">
                             <img src="/logo.jpg" alt="MusB Research" className="h-6 w-auto object-contain" />
                         </div>
                     </Link>
+
+                    <button
+                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                        className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:text-white transition-all flex items-center justify-center h-10 w-10 hover:bg-white/10 shrink-0"
+                    >
+                        {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                    </button>
                 </div>
 
-                <div className="flex items-center gap-6">
-                    <button className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all">
-                        <Bell className="w-5 h-5 text-slate-300" />
+                <div className="hidden lg:flex flex-col">
+                    <h1 className="text-xl font-black text-white uppercase italic tracking-tighter">PI DASHBOARD</h1>
+                    <div className="flex items-center gap-2 mt-1 blur-[1px]">
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400">RESEARCH TERMINAL</span>
+                    </div>
+                </div>
+
+
+
+                <div className="flex items-center gap-3 md:gap-6 lg:gap-8 h-10 md:h-12">
+                    <button className="h-10 w-10 md:h-12 md:w-12 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all text-slate-300 hover:text-white shrink-0 relative group">
+                        <Bell className="w-4 h-4 md:w-5 h-5" />
+                        <div className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(79,70,229,1)]" />
                     </button>
-                    <div className="flex items-center gap-4 pl-6 border-l border-white/10 relative" ref={profileRef}>
-                        <div className="text-right">
-                            <p className="text-xs font-black text-white uppercase italic leading-none">{userName}</p>
-                            <p className="text-[9px] text-indigo-400 font-bold uppercase tracking-widest mt-1">Principal Investigator</p>
+
+                    <div className="h-6 md:h-8 w-px bg-white/10 hidden md:block" />
+
+
+                    <div className="flex items-center gap-3 md:gap-5 relative" ref={profileRef}>
+                        <div className="text-right hidden lg:block">
+                            <p className="text-[14px] font-black text-white uppercase italic leading-none tracking-tight">{userName}</p>
+                            <p className="text-[9px] text-indigo-400 font-bold uppercase tracking-[0.2em] mt-2">Principal Investigator</p>
                         </div>
-                        <button
+                        <button 
                             onClick={() => setIsProfileOpen(!isProfileOpen)}
-                            className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 overflow-hidden hover:border-indigo-500/50 transition-all active:scale-95"
+                            className="w-11 h-11 md:w-14 md:h-14 rounded-2xl bg-white/5 border border-white/10 p-0.5 hover:border-indigo-600 transition-all active:scale-95 group overflow-hidden shadow-2xl"
                         >
-                            <img
-                                src={userPicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=4f46e5&color=fff`}
-                                alt="PI"
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=4f46e5&color=fff`;
-                                }}
-                            />
+                            <div className="w-full h-full rounded-[0.9rem] flex items-center justify-center bg-white/10 group-hover:bg-indigo-600/20 transition-colors">
+                                {userPicture ? (
+                                    <img src={userPicture} alt={userName} className="w-full h-full object-cover rounded-[0.9rem]" />
+                                ) : (
+                                    <span className="text-sm font-black text-white uppercase italic">
+                                        {userName.split(' ').map((n: string) => n?.[0]).join('').toUpperCase().slice(0, 2) || 'PI'}
+                                    </span>
+                                )}
+                            </div>
                         </button>
+
 
                         <AnimatePresence>
                             {isProfileOpen && (
@@ -179,9 +307,9 @@ export default function PIDashboard() {
                                 >
                                     <div className="p-3 border-b border-white/5 mb-2">
                                         <p className="text-xs font-bold text-white truncate">{userName}</p>
-                                        <p className="text-[9px] text-slate-500 truncate">{JSON.parse(localStorage.getItem('user') || '{}').email}</p>
+                                        <p className="text-[9px] text-slate-500 truncate">{getUser()?.email}</p>
                                     </div>
-                                    <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-100 hover:text-white hover:bg-red-500/20 transition-all text-[10px] font-black uppercase tracking-widest">
+                                    <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-100 hover:text-white hover:bg-red-500/20 transition-all text-[12px] font-black uppercase tracking-widest">
                                         <LogOut className="w-4 h-4" /> Sign Out
                                     </button>
                                 </motion.div>
@@ -194,120 +322,133 @@ export default function PIDashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-transparent">
+        <div className="min-h-screen relative overflow-hidden">
+            <AnimatedBackground />
             {renderHeader()}
 
-            <aside className="fixed left-0 top-28 bottom-0 w-80 bg-[#0B101B]/40 backdrop-blur-3xl border-r border-white/5 p-6 z-40">
-                <nav className="space-y-1.5">
-                    {navItems.map((item) => (
-                        <button
-                            key={item.id}
-                            onClick={() => {
-                                if (item.id === 'WEBSITE') navigate('/home');
-                                else setActiveModule(item.id as PIModule);
-                            }}
-                            className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all group ${activeModule === item.id
-                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-                                    : 'text-slate-500 hover:bg-white/5 hover:text-white'
-                                }`}
-                        >
-                            <div className="w-10 flex items-center justify-center flex-shrink-0">
-                                <item.icon className={`w-4 h-4 ${activeModule === item.id ? 'text-white' : 'text-slate-600 group-hover:text-indigo-400'}`} />
-                            </div>
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">{item.label}</span>
-                        </button>
-                    ))}
-                </nav>
-            </aside>
-
-            <main className="ml-80 pt-36 pb-24 px-10">
-                <AnimatePresence mode="wait">
-                    {activeModule === 'OVERSIGHT' && <OversightModule studyCount={studies.length} />}
-                    {activeModule === 'STUDIES' && <StudyOverviewModule studies={studies} onAdd={() => setActiveModule('SUBMIT')} />}
-                    {activeModule === 'SUBMIT' && <SubmitContentForms userRole="PI" />}
-                    {activeModule === 'SCREENER_BUILDER' && <ScreenerBuilder />}
-                </AnimatePresence>
-            </main>
-
-            {/* Create Study Modal - Reused logic for consistency */}
             <AnimatePresence>
-                {showCreateModal && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setShowCreateModal(false)}
-                            className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl"
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="relative w-full max-w-2xl bg-[#0B101B] border border-white/10 rounded-[3rem] p-12 overflow-hidden"
-                        >
-                            <div className="absolute top-8 right-8">
-                                <button onClick={() => setShowCreateModal(false)} className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-500 hover:text-white transition-all">
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-
-                            <div className="space-y-8">
-                                <div>
-                                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Initialize <span className="text-indigo-400">Research Protocol</span></h2>
-                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-2 px-1">Define scientific parameters and investigator oversight</p>
-                                </div>
-
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-2 gap-6">
-                                        <div className="space-y-2">
-                                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-4">Protocol Title</label>
-                                            <input 
-                                                type="text" 
-                                                value={newStudy.title}
-                                                onChange={(e) => setNewStudy({...newStudy, title: e.target.value})}
-                                                placeholder="e.g. Oncology Phase I" 
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder:text-slate-700 outline-none focus:border-indigo-500/50 transition-all font-bold text-xs" 
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-4">Protocol Number</label>
-                                            <input 
-                                                type="text" 
-                                                value={newStudy.protocol_id}
-                                                onChange={(e) => setNewStudy({...newStudy, protocol_id: e.target.value})}
-                                                placeholder="PRT-2024-X1" 
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder:text-slate-700 outline-none focus:border-indigo-500/50 transition-all font-bold text-xs" 
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-4">Study Model</label>
-                                        <select 
-                                            value={newStudy.study_type}
-                                            onChange={(e) => setNewStudy({...newStudy, study_type: e.target.value})}
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white outline-none focus:border-indigo-500/50 transition-all font-black uppercase tracking-widest text-[9px] appearance-none"
-                                        >
-                                            <option value="RANDOMIZED">Randomized Controlled Trial (RCT)</option>
-                                            <option value="OBSERVATIONAL">Observational Study</option>
-                                            <option value="OPEN_LABEL">Open Label</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <button 
-                                    onClick={handleCreateStudy}
-                                    className="w-full py-6 bg-indigo-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-600/20 hover:scale-[1.02] transition-all mt-4"
-                                >
-                                    Generate Research Framework
-                                </button>
-                            </div>
-                        </motion.div>
-                    </div>
+                {isSidebarOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="fixed inset-0 bg-black/90 backdrop-blur-md z-[55] lg:hidden"
+                    />
                 )}
             </AnimatePresence>
 
-            <LogoutConfirmationModal 
+            <aside className={`fixed left-0 top-0 bottom-0 w-80 bg-[#0B101B] border-r border-white/5 z-[70] transition-transform duration-300 lg:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+                <div className="h-20 md:h-28 flex items-center px-10 border-b border-white/5">
+                    <Link to="/" target="_blank" rel="noopener noreferrer" className="group">
+                        <div className="bg-white p-2.5 rounded-2xl group-hover:scale-105 transition-transform inline-block shadow-2xl">
+                            <img src="/logo.jpg" alt="Logo" className="h-6 md:h-8 w-auto object-contain" />
+                        </div>
+                    </Link>
+                </div>
+
+                <nav className="flex-1 overflow-y-auto px-4 py-8 space-y-10 custom-scrollbar">
+                    {sidebarGroups.map((group, i) => (
+                        <div key={i} className="space-y-4">
+                            <p className="px-4 text-[11px] font-black text-[#555a7a] uppercase tracking-[0.3em] font-mono">{group.group}</p>
+                            <div className="space-y-1.5">
+                                {group.items.map((item, j) => (
+                                    <button
+                                        key={j}
+                                        onClick={() => {
+                                            if (item.id === 'WEBSITE') window.open('/', '_blank');
+                                            else {
+                                                setActiveModule(item.id as PIModule);
+                                                setIsSidebarOpen(false);
+                                            }
+                                        }}
+                                        className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all group relative ${activeModule === item.id
+                                            ? 'bg-indigo-600/20 text-white border-l-[3px] border-indigo-500 shadow-lg shadow-indigo-900/10'
+                                            : 'text-[#8b8fa8] hover:bg-white/[0.02] hover:text-white'
+                                            }`}
+                                    >
+                                        <div className="w-8 flex items-center justify-center flex-shrink-0">
+                                            <item.icon className={`w-5 h-5 ${activeModule === item.id ? 'text-indigo-400' : 'text-slate-700 group-hover:text-white'}`} />
+                                        </div>
+                                        <span className="text-sm xl:text-base font-black uppercase tracking-[0.1em] text-left flex-1">{item.label}</span>
+                                        {item.hasNotify && (
+                                            <div className="w-2 h-2 rounded-full bg-pink-500 shadow-[0_0_10px_rgba(236,72,153,0.6)]" />
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </nav>
+
+                <div className="mt-auto p-4 border-t border-white/5 space-y-2">
+                    <button onClick={handleSignOut} className="w-full flex items-center gap-4 px-4 py-4 rounded-xl text-[#8b8fa8] hover:bg-red-500/10 hover:text-red-400 transition-all group">
+                        <div className="w-8 flex items-center justify-center flex-shrink-0">
+                            <LogOut className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" />
+                        </div>
+                        <span className="text-sm xl:text-base font-black uppercase tracking-widest italic">Terminate Session</span>
+                    </button>
+                </div>
+            </aside>
+
+
+            <main className="lg:ml-80 pt-36 pb-24 px-4 lg:px-10 overflow-x-hidden">
+                <AnimatePresence mode="wait">
+                    {activeModule === 'OVERSIGHT' && <OversightModule studyCount={studies.length} onLaunch={() => setActiveModule('LAUNCH_STUDY')} onNavigate={(id) => setActiveModule(id as PIModule)} />}
+                    {activeModule === 'STUDIES' && (
+                        <StudyOverviewModule
+                            studies={studies}
+                            onAdd={() => setActiveModule('LAUNCH_STUDY')}
+                            onEdit={(s) => {
+                                setSelectedStudy(s);
+                                setActiveModule('LAUNCH_STUDY');
+                            }}
+                        />
+                    )}
+                    {activeModule === 'LAUNCH_STUDY' && (
+                        <LaunchStudyForm
+                            onClose={() => {
+                                setActiveModule('STUDIES');
+                                setSelectedStudy(null);
+                            }}
+                            initialData={selectedStudy}
+                            onSave={handleCreateStudy}
+                            availablePIs={users.filter(u => u.role === 'PI')}
+                            availableCoordinators={users.filter(u => u.role === 'COORDINATOR')}
+                            availableSponsors={users.filter(u => u.role === 'SPONSOR')}
+                        />
+                    )}
+                    {activeModule === 'MESSAGES' && <PIMessagesModule />}
+                    {activeModule === 'SUBJECT_REVIEW' && <PISubjectReviewModule participantId={selectedParticipantId || 'BTB-023'} />}
+                    {activeModule === 'TEAM' && <PITeamModule />}
+                    {activeModule === 'PARTICIPANTS' && <ParticipantOversight onOpenProfile={(id) => {
+                        setSelectedParticipantId(id);
+                        setActiveModule('SUBJECT_REVIEW');
+                    }} />}
+                    {activeModule === 'FORMS' && <FormsQuestionnairesModule />}
+                    {activeModule === 'CONSENT' && <PIConsentModule />}
+                    {activeModule === 'VISITS' && <PIVisitsAssessmentsModule />}
+                    {activeModule === 'LABS' && <LabsResultsModule />}
+                    {activeModule === 'REPORTS' && <ReportsSignOffModule />}
+                    {activeModule === 'STUDY_DOCS' && <StudyDocumentsModule />}
+                    {activeModule === 'MY_DOCS' && <MyDocumentsModule />}
+                    {activeModule === 'ALERTS' && <AlertsModule />}
+                    {activeModule === 'SUPPORT' && <PIHelpSupportModule />}
+                    {activeModule === 'AUDIT_LOG' && <AuditLogModule />}
+                    {activeModule === 'ANALYTICS' && <AnalyticsModule />}
+                    {activeModule === 'SPONSORS' && (
+                        <SponsorsManagement
+                            allUsers={users}
+                            allStudies={studies}
+                            onRefresh={fetchPIContent}
+                        />
+                    )}
+                </AnimatePresence>
+            </main>
+
+
+
+            <LogoutConfirmationModal
                 isOpen={isLogoutModalOpen}
                 onClose={() => setIsLogoutModalOpen(false)}
                 onConfirm={confirmSignOut}
@@ -316,23 +457,204 @@ export default function PIDashboard() {
     );
 }
 
-function OversightModule({ studyCount }: { studyCount: number }) {
+function OversightModule({ studyCount, onLaunch, onNavigate }: { studyCount: number, onLaunch: () => void, onNavigate: (id: string) => void }) {
     return (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                    <h2 className="text-5xl font-black text-white italic uppercase tracking-tighter line-clamp-2 leading-none">
+                        Scientific <span className="text-indigo-400">Oversight</span>
+                    </h2>
+                    <p className="text-[14px] text-white/50 font-bold uppercase tracking-[0.3em] mt-3 italic">
+                        Portfolio Performance & clinical research velocity
+                    </p>
+                </div>
+                <button
+                    onClick={onLaunch}
+                    className="px-10 py-5 bg-indigo-600 text-white rounded-[2rem] text-[12px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-2xl shadow-indigo-900/40 hover:scale-[1.05] active:scale-95 transition-all font-mono"
+                >
+                    <Rocket className="w-5 h-5" /> LAUNCH A STUDY
+                </button>
+            </div>
+
+            {/* Row 1 - KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {[
                     { label: 'Active Protocols', val: studyCount.toString().padStart(2, '0'), icon: Beaker, color: 'indigo' },
                     { label: 'Total Subjects', val: '1,240', icon: UsersRound, color: 'emerald' },
                     { label: 'Critical Alerts', val: '02', icon: Activity, color: 'red' },
                 ].map((stat, i) => (
-                    <div key={i} className="bg-white/5 border border-white/5 rounded-[2.5rem] p-10 space-y-6">
-                        <div className={`w-14 h-14 rounded-2xl bg-${stat.color}-500/10 border border-${stat.color}-500/20 flex items-center justify-center`}>
+                    <div key={i} className="bg-[#0B101B]/60 backdrop-blur-md border border-white/5 rounded-[3rem] p-10 flex flex-col justify-between min-h-[250px] group hover:bg-[#0B101B] hover:border-indigo-500/30 transition-all duration-300 shadow-2xl shadow-black/50">
+                        <div className={`w-14 h-14 rounded-2xl bg-${stat.color}-500/10 border border-${stat.color}-500/20 flex items-center justify-center group-hover:scale-110 transition-transform`}>
                             <stat.icon className={`w-7 h-7 text-${stat.color}-400`} />
                         </div>
-                        <div>
-                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">{stat.label}</h4>
-                            <p className="text-5xl font-black text-white italic tracking-tighter mt-2">{stat.val}</p>
+                        <div className="mt-8">
+                            <h4 className="text-[15px] font-black text-white/60 uppercase tracking-[0.2em] italic mb-3 group-hover:text-white transition-colors">{stat.label}</h4>
+                            <p className="text-6xl font-black text-white italic tracking-tighter leading-none">{stat.val}</p>
                         </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Row 2 — Operational Widgets */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                    { label: 'Upcoming visits', val: '12', sub: 'this week', color: 'indigo', action: () => onNavigate('VISITS') },
+                    { label: 'Overdue follow-ups', val: '05', sub: 'Urgent Action', color: 'red', alert: true },
+                    { label: 'Awaiting callback', val: '08', sub: 'Participant leads', color: 'emerald' },
+                    { label: 'Pending forms', val: '14', sub: 'Completion required', color: 'amber' }
+                ].map((widget, i) => (
+                    <div key={i} onClick={widget.action} className="bg-[#0B101B]/40 backdrop-blur-sm border border-white/5 rounded-[2rem] p-6 hover:bg-[#0B101B] hover:border-white/10 transition-all duration-300 cursor-pointer relative overflow-hidden group shadow-xl shadow-black/30">
+                        {widget.alert && <div className="absolute top-4 right-4 w-2 h-2 bg-red-500 rounded-full animate-ping" />}
+                        <h4 className="text-[12.5px] font-black text-white uppercase tracking-widest italic group-hover:text-white transition-colors">{widget.label}</h4>
+                        <div className="flex items-end gap-3 mt-4">
+                            <p className={`text-5xl font-black text-${widget.color}-400 italic tracking-tighter leading-none`}>{widget.val}</p>
+                            <p className="text-[12px] text-white/30 font-bold uppercase tracking-widest mb-1.5">{widget.sub}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Row 3 — Calendar Widget Placeholder */}
+            <div className="bg-[#0B101B] border border-white/10 rounded-[3rem] p-10 space-y-8 shadow-2xl shadow-black/50">
+                <div className="flex justify-between items-center">
+                    <h3 className="text-xl font-black text-white italic uppercase tracking-widest">Active Schedule <span className="text-indigo-400">Calendar</span></h3>
+                    <div className="flex gap-2">
+                        {['Confirmed', 'Pending', 'Overdue'].map((label, idx) => (
+                            <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-white/5">
+                                <div className={`w-1.5 h-1.5 rounded-full ${idx === 0 ? 'bg-emerald-500' : idx === 1 ? 'bg-amber-500' : 'bg-red-500'}`} />
+                                <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{label}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <div className="grid grid-cols-7 gap-4 min-h-[300px]">
+                    {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day, i) => (
+                        <div key={i} className="space-y-4">
+                            <div className="text-center py-2 bg-white/5 border border-white/5 rounded-xl text-[11px] font-black text-white/50 uppercase tracking-widest">{day}</div>
+                            {i === 1 && (
+                                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl space-y-2">
+                                    <p className="text-[13px] font-black text-emerald-400 uppercase leading-tight">BTB-021</p>
+                                    <p className="text-[11px] text-white/50 font-bold uppercase tracking-widest">Visit 3 @ 10:00</p>
+                                </div>
+                            )}
+                            {i === 3 && (
+                                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-2">
+                                    <p className="text-[13px] font-black text-amber-400 uppercase leading-tight">MHC-104</p>
+                                    <p className="text-[11px] text-white/50 font-bold uppercase tracking-widest">Screening @ 14:00</p>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Row 4 — Quick Access Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                    { label: 'Alert Center', sub: '02 New Notifications', icon: Bell, id: 'ALERTS' },
+                    { label: 'Messaging Node', sub: '05 Unread Messages', icon: MessageSquare, id: 'MESSAGES' },
+                    { label: 'Study Archive', sub: '12 Recent Uploads', icon: FileText, id: 'STUDY_DOCS' },
+                    { label: 'Verified Docs', sub: '01 Expiry Warning', icon: ShieldCheck, id: 'MY_DOCS' }
+                ].map((card, i) => (
+                    <button key={i} onClick={() => onNavigate(card.id)} className="bg-[#0B101B]/60 backdrop-blur-md border border-white/5 rounded-[2.5rem] p-8 hover:bg-[#0B101B] hover:border-indigo-500/30 transition-all duration-300 text-left flex flex-col justify-between h-[200px] group shadow-xl shadow-black/30">
+                        <card.icon className="w-8 h-8 text-indigo-400 group-hover:scale-110 transition-transform" />
+                        <div>
+                            <h4 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none">{card.label}</h4>
+                            <p className="text-[11px] text-slate-400 font-black uppercase tracking-widest mt-3">{card.sub}</p>
+                        </div>
+                    </button>
+                ))}
+            </div>
+        </motion.div>
+    );
+}
+
+function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd: () => void, onEdit: (s: any) => void }) {
+    const [filter, setFilter] = useState('ALL');
+
+    const categories = [
+        { id: 'ALL', label: 'Total Assigned Studies', subtext: '(Include all)', count: studies.length, icon: Layers },
+        { id: 'ACTIVE', label: 'Active Studies', subtext: '(include only active)', count: studies.filter(s => s.status === 'Active').length, icon: Activity },
+        { id: 'RECRUITING', label: 'Recruiting Studies', subtext: '(include only that are recruiting)', count: studies.filter(s => s.status === 'Recruiting').length, icon: UsersRound },
+        { id: 'ANALYSIS', label: 'Studies in Analysis', subtext: '(include that completed recruitment)', count: studies.filter(s => s.status === 'Analysis').length, icon: TrendingUp },
+        { id: 'COMPLETED', label: 'Studies Completed', subtext: '(Include that are completed)', count: studies.filter(s => s.status === 'Completed').length, icon: CheckSquare },
+        { id: 'PAUSED', label: 'Studies Paused', subtext: '(include that are paused)', count: studies.filter(s => s.status === 'Paused').length, icon: Settings2 },
+    ];
+
+    const filteredStudies = filter === 'ALL' ? studies : studies.filter(s => s.status.toUpperCase() === filter);
+
+    return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10">
+            <div className="flex justify-between items-center">
+                <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Research <span className="text-indigo-400">Portfolio</span></h2>
+                <button onClick={onAdd} className="px-8 py-4 bg-indigo-600 text-white rounded-[2rem] text-[12.5px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-xl shadow-indigo-500/20 hover:scale-[1.02] transition-all">
+                    <Rocket className="w-4 h-4" /> LAUNCH A STUDY
+                </button>
+            </div>
+
+            {/* Filter Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                {categories.map((cat) => (
+                    <button
+                        key={cat.id}
+                        onClick={() => setFilter(cat.id)}
+                        className={`p-8 rounded-[2.5rem] border transition-all duration-300 text-left flex flex-col justify-between h-[180px] group ${filter === cat.id 
+                            ? 'bg-indigo-600/20 border-indigo-500 shadow-[0_0_40px_rgba(99,102,241,0.15)] ring-1 ring-indigo-500/50' 
+                            : 'bg-[#0B101B]/60 backdrop-blur-md border-white/5 hover:bg-[#0B101B] hover:border-white/10 shadow-lg shadow-black/30'}`}
+                    >
+                        <cat.icon className={`w-8 h-8 ${filter === cat.id ? 'text-white' : 'text-indigo-400 group-hover:scale-110 transition-transform'}`} />
+                        <div>
+                            <p className={`text-5xl font-black italic tracking-tighter leading-none ${filter === cat.id ? 'text-white' : 'text-white'}`}>{cat.count.toString().padStart(2, '0')}</p>
+                            <p className={`text-[11px] font-black uppercase tracking-widest mt-2 ${filter === cat.id ? 'text-indigo-200' : 'text-slate-500 font-bold'}`}>{cat.label}</p>
+                            <p className={`text-[9px] font-bold uppercase tracking-widest mt-1 italic ${filter === cat.id ? 'text-indigo-300/80' : 'text-slate-600'}`}>{cat.subtext}</p>
+                        </div>
+                    </button>
+                ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-white/5">
+                {filteredStudies.length === 0 ? (
+                    <div className="col-span-2 py-20 bg-white/5 border border-dashed border-white/10 rounded-[3rem] text-center">
+                        <p className="text-slate-500 font-bold uppercase tracking-widest italic">No matching protocols in this matrix</p>
+                    </div>
+                ) : filteredStudies.map((study, i) => (
+                    <div key={i} className="bg-[#0B101B]/60 backdrop-blur-md border border-white/5 rounded-[3rem] p-10 space-y-8 relative group hover:bg-[#0B101B] hover:border-indigo-500/30 transition-all duration-300 shadow-2xl shadow-black/50">
+                        <div className="flex justify-between items-start">
+                            <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                <Beaker className="w-7 h-7" />
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                                <span className={`px-5 py-2 rounded-full text-[12px] font-black uppercase tracking-widest border ${study.status === 'Active' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
+                                    study.status === 'Recruiting' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                        'bg-white/5 text-slate-500 border-white/10'
+                                    }`}>{study.status}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 className="text-4xl font-black text-white uppercase italic tracking-tighter truncate leading-tight group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{study.title}</h3>
+                            <p className="text-[14px] text-white/40 font-black uppercase tracking-widest mt-2 italic">Protocol #{study.protocol_id || '---'}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/5">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Enrollment</p>
+                                <p className="text-3xl font-black text-white italic mt-1.5">{study.actual_screened || '0'}<span className="text-[14px] text-slate-500 ml-1">/{study.target_screened || '100'}</span></p>
+                            </div>
+                            <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/5">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Completion</p>
+                                <p className="text-3xl font-black text-white italic mt-1.5">{study.completed_count || '0'}<span className="text-[14px] text-slate-500 ml-1">/{study.total_required || '90'}</span></p>
+                            </div>
+                        </div>
+                        <div className="p-6 rounded-2xl bg-indigo-500/5 border border-indigo-500/10">
+                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Next Milestone</p>
+                            <p className="text-[15px] font-black text-white italic mt-2 uppercase tracking-tight">{study.next_milestone || "Recruitment Closing"}</p>
+                        </div>
+                        <button
+                            onClick={() => onEdit(study)}
+                            className="w-full py-4 bg-white/5 border border-white/10 text-white rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] hover:bg-white hover:text-slate-950 transition-all shadow-lg"
+                        >
+                            Configure Protocol Matrix
+                        </button>
                     </div>
                 ))}
             </div>
@@ -340,48 +662,86 @@ function OversightModule({ studyCount }: { studyCount: number }) {
     );
 }
 
-function StudyOverviewModule({ studies, onAdd }: { studies: any[], onAdd: () => void }) {
+function ComplianceModule() {
+    const user = getUser() || {};
+
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10">
-            <div className="flex justify-between items-center">
-                <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Research <span className="text-indigo-400">Portfolio</span></h2>
-                <button onClick={onAdd} className="px-8 py-4 bg-indigo-600 text-white rounded-[2rem] text-[10px] font-black uppercase tracking-widest italic flex items-center gap-3">
-                    <Plus className="w-4 h-4" /> Initialize Protocol
-                </button>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
+            <div>
+                <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter leading-none">
+                    Compliance <span className="text-indigo-400">& Credentials</span>
+                </h2>
+                <p className="text-[13px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-3 italic">
+                    Verified professional documentation and node synchronization
+                </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {studies.length === 0 ? (
-                    <div className="col-span-2 py-20 bg-white/5 border border-dashed border-white/10 rounded-[3rem] text-center">
-                        <p className="text-slate-500 font-bold uppercase tracking-widest">No assigned protocols found</p>
-                    </div>
-                ) : studies.map((study, i) => (
-                    <div key={i} className="bg-[#0B101B]/40 border border-white/10 rounded-[3rem] p-10 space-y-8 relative group hover:border-indigo-500/30 transition-all">
-                        <div className="flex justify-between items-start">
-                            <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-                                <Beaker className="w-7 h-7" />
+            <div className="bg-white/5 border border-white/10 rounded-[3rem] p-12 relative overflow-hidden group">
+                <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/5 blur-[100px] rounded-full group-hover:bg-indigo-500/10 transition-colors duration-1000" />
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+                    {[
+                        { id: 'medical_licence', label: 'Medical Licence', path: user.medical_licence, desc: 'Official state-issued medical practice authorization' },
+                        { id: 'insurance_certificate', label: 'Professional Insurance', path: user.insurance_certificate, desc: 'Coverage for clinical trial liability and oversight' },
+                        { id: 'cv_document', label: 'Curriculum Vitae', path: user.cv_document, desc: 'Up-to-date professional history and research experience' }
+                    ].map((doc, i) => (
+                        <div key={i} className="bg-[#0B101B]/60 border border-white/5 rounded-[2.5rem] p-8 space-y-6 hover:border-indigo-500/30 transition-all flex flex-col">
+                            <div className="flex justify-between items-center">
+                                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                    <FileText className="w-6 h-6" />
+                                </div>
+                                {doc.path ? (
+                                    <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(16,185,129,1)]" />
+                                        <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">Verified</span>
+                                    </div>
+                                ) : (
+                                    <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                                        <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest">Pending</span>
+                                    </div>
+                                )}
                             </div>
-                            <div className="flex flex-col items-end gap-2">
-                                <span className="px-5 py-2 bg-indigo-500/10 text-indigo-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-500/20">{study.status}</span>
+                            <div>
+                                <h4 className="text-sm font-black text-white italic uppercase tracking-widest">{doc.label}</h4>
+                                <p className="text-[12px] text-slate-500 font-bold mt-2 leading-relaxed italic">{doc.desc}</p>
                             </div>
+                            <div className="mt-4 pt-6 border-t border-white/5">
+                                {doc.path ? (
+                                    <a
+                                        href={`${import.meta.env.VITE_API_URL}/media/${doc.path}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="w-full py-4 bg-white/5 hover:bg-white text-white hover:text-slate-950 border border-white/10 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 group/link"
+                                    >
+                                        <Globe className="w-4 h-4 group-hover/link:rotate-12 transition-transform" /> VIEW DOCUMENT
+                                    </a>
+                                ) : (
+                                    <button className="w-full py-4 bg-amber-500/5 text-amber-500 border border-amber-500/20 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] opacity-50 cursor-not-allowed">
+                                        UPLOAD REQUIRED
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+                <div className="mt-12 p-8 bg-indigo-500/10 border border-indigo-500/20 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+                    <div className="flex items-center gap-6">
+                        <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                            <ShieldCheck className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                            <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter truncate">{study.title}</h3>
-                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-2 italic">Protocol #{study.protocol_id}</p>
-                        </div>
-                        <div className="flex gap-4">
-                            <div className="flex-1 p-5 rounded-2xl bg-white/5 border border-white/5">
-                                <p className="text-[8px] font-black text-slate-500 uppercase">Screened</p>
-                                <p className="text-lg font-black text-white italic mt-1">{study.actual_screened}</p>
-                            </div>
-                            <div className="flex-1 p-5 rounded-2xl bg-white/5 border border-white/5">
-                                <p className="text-[8px] font-black text-slate-500 uppercase">Target</p>
-                                <p className="text-lg font-black text-indigo-400 italic mt-1">{study.target_screened}</p>
-                            </div>
+                            <p className="text-xs font-black text-white uppercase italic tracking-widest">Authorization Status</p>
+                            <p className="text-[12px] text-indigo-300/60 font-black uppercase tracking-widest mt-1">Global Scientific Network Verification</p>
                         </div>
                     </div>
-                ))}
-            </div>
+                    <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,1)]" />
+                        <span className="text-xs font-black text-emerald-400 uppercase tracking-widest line-clamp-1 italic">Synchronization Complete</span>
+                    </div>
+                </div>
         </motion.div>
     );
 }

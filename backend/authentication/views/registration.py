@@ -10,8 +10,10 @@ import os
 import uuid
 from datetime import timedelta
 
-from ..models import User, OTP, Invitation
-from ..utils import send_resend_email
+from ..models import User, OTP, Invitation, RefreshToken, AuditLog
+from ..utils import send_resend_email, handle_credential_upload
+from ..security import generate_access_token, generate_refresh_token, hash_token, REFRESH_TOKEN_LIFETIME, decrypt_data
+from .auth import _set_auth_cookies
 
 logger = logging.getLogger(__name__)
 
@@ -56,23 +58,22 @@ def register(request):
     return Response({'message': 'User registered successfully'}, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def invite_team_member(request):
     """Invite for specific roles like Sponsor Manager, PI, Coordinator etc."""
-    invited_by_email = request.data.get('admin_email')
+    admin = request.user
     target_email = request.data.get('email')
     role = request.data.get('role', 'SPONSOR_MANAGER')
-    organization = request.data.get('organization')
+    organization = request.data.get('organization') or admin.organization
     
-    if not all([target_email, organization]):
-        return Response({'error': 'Email and organization are required'}, status=status.HTTP_400_BAD_REQUEST)
-
-    admin = User.objects.filter(email=invited_by_email).first()
-    if not admin:
-         return Response({'error': 'Admin user not found'}, status=status.HTTP_404_NOT_FOUND)
+    if not target_email:
+        return Response({'error': 'Target email is required'}, status=status.HTTP_400_BAD_REQUEST)
 
     token = str(uuid.uuid4())
     expires_at = now() + timedelta(days=7)
+    
+    scope = request.data.get('scope', 'ALL')
+    study_ids = request.data.get('study_ids', [])
     
     invitation = Invitation.objects.create(
         email=target_email,
@@ -80,6 +81,8 @@ def invite_team_member(request):
         invited_by=admin,
         organization=organization,
         token=token,
+        scope=scope,
+        study_ids=study_ids,
         expires_at=expires_at
     )
     
@@ -130,7 +133,8 @@ def setup_credentials(request):
         password=password,
         organization=invitation.organization,
         role=invitation.role,
-        parent_sponsor=invitation.invited_by
+        parent_sponsor=invitation.invited_by,
+        assigned_studies=invitation.study_ids
     )
     
     invitation.is_accepted = True
@@ -145,6 +149,44 @@ def complete_profile(request):
     user = request.user
     data = request.data
     
+    required_fields = [
+        'first_name', 'last_name', 'gender', 'full_address', 
+        'city', 'state', 'zip_code', 'country', 
+        'place_of_origin', 'mobile_number'
+    ]
+    
+    missing = []
+    for field in required_fields:
+        val = data.get(field)
+        if hasattr(user, field) and getattr(user, field):
+            pass # skip if already in user object
+        elif field == 'mobile_number' and user.phone_number:
+            pass
+        elif not val or not str(val).strip():
+            missing.append(field)
+            
+    if missing:
+        return Response({'error': f'Missing required fields: {", ".join(missing)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Professional Role Documents (PI, Coordinator)
+    role_check = (user.role or '').upper()
+    if role_check in ['PI', 'COORDINATOR']:
+        doc_fields = {
+            'medical_licence': 'Medical Licence',
+            'insurance_certificate': 'Insurance Certificate',
+            'cv_document': 'CV Document'
+        }
+        for field_name, label in doc_fields.items():
+            file_obj = request.FILES.get(field_name)
+            if not file_obj and not getattr(user, field_name):
+                return Response({'error': f'{label} is required for professional roles'}, status=status.HTTP_400_BAD_REQUEST)
+            if file_obj:
+                saved_path = handle_credential_upload(user, file_obj, field_name)
+                if saved_path:
+                    setattr(user, field_name, saved_path)
+                else:
+                    return Response({'error': f'Invalid file format for {label}. Please upload PDF, JPG, or PNG.'}, status=status.HTTP_400_BAD_REQUEST)
+
     # Core Identity Update
     if not user.first_name:
         user.first_name = data.get('first_name', '')
@@ -157,15 +199,103 @@ def complete_profile(request):
     user.full_address = data.get('full_address', user.full_address)
     user.city = data.get('city', user.city)
     user.state = data.get('state', user.state)
+    user.zip_code = data.get('zip_code', user.zip_code)
+    user.country = data.get('country', user.country)
     user.place_of_origin = data.get('place_of_origin', user.place_of_origin)
+    user.phone_number = data.get('mobile_number', user.phone_number)
     
+    # Make sure we explicitly set profile_completed to True
     user.profile_completed = True
-    user.save()
     
-    return Response({
+    # First save the fields that need encryption
+    try:
+        user.save()
+    except Exception as e:
+        logger.error(f"Failed to encrypt and save profile data: {e}")
+        
+    # Then explicitly enforce profile_completed=True just in case
+    User.objects.filter(pk=user.pk).update(profile_completed=True)
+    
+    # Issue Full JWT Token
+    access_token = generate_access_token(user)
+    refresh_token, ref_jti = generate_refresh_token(user)
+
+    ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
+    ip_address = ip.split(',')[0].strip() if ip and ',' in ip else ip
+
+    # Invalidate old refresh tokens
+    RefreshToken.objects.filter(user=user, is_revoked=False).update(is_revoked=True)
+
+    RefreshToken.objects.create(
+        user=user,
+        token_hash=hash_token(refresh_token),
+        jti=ref_jti,
+        expires_at=now() + REFRESH_TOKEN_LIFETIME,
+        user_agent=request.META.get('HTTP_USER_AGENT', '')[:512],
+        ip_address=ip_address,
+    )
+
+    response = Response({
         'message': 'Profile synchronized and secured.',
+        'access': access_token,
         'user': {
-            'full_name': user.decrypted_name,
-            'profile_completed': True
+            'email':        user.email,
+            'affiliation':  getattr(user, 'affiliation', 'musb'),
+            'status':       getattr(user, 'status', 'active'),
+            'picture':      user.profile_picture or '',
+            'must_reset':   user.must_change_password,
+            'profile_incomplete': False,
+            'mobile_number': user.decrypted_phone or '',
+            'full_address': decrypt_data(user.full_address) if user.full_address else '',
+            'city': decrypt_data(user.city) if user.city else '',
+            'state': decrypt_data(user.state) if user.state else '',
+            'zip_code': user.zip_code or '',
+            'country': user.country or '',
+            'place_of_origin': decrypt_data(user.place_of_origin) if user.place_of_origin else '',
+            'timezone': user.timezone or 'UTC',
+            'medical_licence': user.medical_licence,
+            'insurance_certificate': user.insurance_certificate,
+            'cv_document': user.cv_document,
         }
     })
+    return _set_auth_cookies(response, access_token, refresh_token)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_team_members(request):
+    """Retrieve all users and pending invites for the sponsor's organization."""
+    admin = request.user
+    org = admin.organization
+    
+    if not org:
+        return Response([], status=200)
+
+    # Get registered team members
+    users = User.objects.filter(organization=org).exclude(id=admin.id)
+    
+    # Get pending invitations
+    invites = Invitation.objects.filter(organization=org, is_used=False)
+
+    members = []
+    
+    # Add active users
+    for u in users:
+        members.append({
+            'name': f"{u.first_name} {u.last_name}".strip() if (u.first_name or u.last_name) else u.email.split('@')[0],
+            'email': u.email,
+            'role': u.role or 'Sponsor Member',
+            'status': 'ACTIVE',
+            'id': u.id
+        })
+        
+    # Add pending invites
+    for i in invites:
+        members.append({
+            'name': 'Awaiting Activation',
+            'email': i.email,
+            'role': i.role,
+            'status': 'PENDING',
+            'id': f"inv-{i.id}"
+        })
+        
+    return Response(members)

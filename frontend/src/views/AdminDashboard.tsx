@@ -1,323 +1,287 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { clearToken, authFetch } from '../utils/auth';
-import { motion, AnimatePresence } from 'framer-motion';
-import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
-import DashboardModule from '../components/admin/DashboardModule';
-import StudiesModule from '../components/admin/StudiesModule';
-import LaunchStudyForm from '../components/admin/LaunchStudyForm';
-import ParticipantsModule from '../components/admin/ParticipantsModule';
-import SchedulingModule from '../components/admin/SchedulingModule';
-import InventoryModule from '../components/admin/InventoryModule';
-import SafetyModule from '../components/admin/SafetyModule';
-import DocumentsModule from '../components/admin/DocumentsModule';
-import DataModule from '../components/admin/DataModule';
-import ReportsModule from '../components/admin/ReportsModule';
-import TeamModule from '../components/admin/TeamModule';
-import SettingsModule from '../components/admin/SettingsModule';
-import SubmitContentForms from '../components/admin/SubmitContentForms';
-import ScreenerBuilder from '../components/admin/ScreenerBuilder';
-
-import {
-    LayoutDashboard,
-    Beaker,
-    Users,
-    Calendar,
-    Box,
-    Database,
-    ShieldAlert,
-    FileBarChart,
-    Settings,
-    FileText,
-    UsersRound,
-    Search,
-    Bell,
-    Plus,
-    Filter,
-    ArrowUpRight,
-    ArrowDownRight,
-    CircleCheck,
-    Clock,
-    Truck,
-    AlertTriangle,
-    Globe,
-    ChevronDown,
-    MoreHorizontal,
-    Download,
-    Share2,
-    Eye,
-    Stethoscope,
-    TrendingUp,
-    MessageSquare,
-    Activity,
-    X,
-    LogOut
+import React, { useState, useEffect } from 'react';
+import { 
+  Layout, Users, Activity, Shield, 
+  Settings, LogOut, ChevronRight,
+  Plus, Search, Bell, Globe,
+  ShieldAlert, UserPlus, Rocket, ClipboardList,
+  ShieldCheck, FileText
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { authFetch, clearToken, getRole, performLogout } from '../utils/auth';
+import DashboardModule from '../components/admin/DashboardModule';
+import TeamModule from '../components/admin/TeamModule';
+import AuditLogs from '../components/admin/AuditLogs';
+import ScreenerBuilder from '../components/admin/ScreenerBuilder';
+import LaunchStudyForm from '../components/admin/LaunchStudyForm';
+import ApprovalModule from '../components/admin/ApprovalModule';
+import SubmitContentForms from '../components/admin/SubmitContentForms';
+import WorkflowModerationPanel from '../components/admin/WorkflowModerationPanel';
+import PIMessagesModule from '../components/pi/PIMessagesModule';
+import { MessageSquare } from 'lucide-react';
 
-type AdminModule = 
-    | 'DASHBOARD' 
-    | 'STUDIES' 
-    | 'PARTICIPANTS' 
-    | 'SCHEDULING' 
-    | 'INVENTORY' 
-    | 'SAFETY' 
-    | 'DOCUMENTS' 
-    | 'DATA' 
-    | 'REPORTS' 
-    | 'TEAM' 
-    | 'SETTINGS'
-    | 'SUBMIT'
-    | 'SCREENER_BUILDER';
+
+
+
+type AdminModule = 'DASHBOARD' | 'STUDIES' | 'TEAM' | 'SCREENER_BUILDER' | 'AUDIT_LOGS' | 'SETTINGS' | 'WEBSITE' | 'COMPLIANCE' | 'APPROVALS' | 'SUBMIT_CONTENT' | 'WORKFLOW' | 'MESSAGES';
+
+
+
 
 export default function AdminDashboard() {
     const [activeModule, setActiveModule] = useState<AdminModule>('DASHBOARD');
+    const [studies, setStudies] = useState<any[]>([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-    const profileRef = useRef<HTMLDivElement>(null);
+    const [selectedStudy, setSelectedStudy] = useState<any>(null);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [user, setUser] = useState<any>(null);
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
-                setIsProfileOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-    const handleSignOut = async () => {
-        setIsLogoutModalOpen(true);
-    };
-
-    const confirmSignOut = async () => {
-        await clearToken();
-        navigate('/');
-    };
-    const [studies, setStudies] = useState<any[]>([]);
-    const [selectedStudy, setSelectedStudy] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-
-    const fetchContent = async () => {
-        setLoading(true);
+    const fetchStudies = async () => {
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
             const res = await authFetch(`${apiUrl}/api/studies/`);
-            if (res.ok) setStudies(await res.json());
-        } catch (e) {
-            console.error("Admin Data Fetch Failed", e);
-        } finally {
-            setLoading(false);
+            if (res.ok) {
+                const data = await res.json();
+                setStudies(data);
+            }
+        } catch (error) {
+            console.error('Fetch error:', error);
         }
     };
 
     useEffect(() => {
-        fetchContent();
-    }, []);
-
-    const handleLaunchStudy = async (id: number) => {
-        try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-            const res = await authFetch(`${apiUrl}/api/studies/${id}/`, {
-                method: 'PATCH',
-                body: JSON.stringify({ status: 'ACTIVE' })
-            });
-            if (res.ok) fetchContent();
-        } catch (e) {
-            alert('Failed to launch study');
+        const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+        const role = getRole();
+        
+        const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI'];
+        if (!userStr || !allowedRoles.includes(role)) {
+            console.warn("Unauthorized access to Staff Dashboard. Redirecting...");
+            navigate('/signin');
+            return;
         }
-    };
 
-    const handleCreateStudy = async (data: any) => {
-        try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-            const method = selectedStudy ? 'PATCH' : 'POST';
-            const url = selectedStudy ? `${apiUrl}/api/studies/${selectedStudy.id}/` : `${apiUrl}/api/studies/`;
-            
-            const res = await authFetch(url, {
-                method: method,
-                body: JSON.stringify(data)
-            });
-            if (res.ok) {
-                setShowCreateModal(false);
-                setSelectedStudy(null);
-                fetchContent();
-            } else {
-                const err = await res.json();
-                alert(`Creation failed: ${JSON.stringify(err)}`);
-            }
-        } catch (e) {
-            alert("Creation failed due to network error");
-        }
+        if (userStr) setUser(JSON.parse(userStr));
+        fetchStudies();
+    }, [navigate]);
+
+    const handleCreateStudy = (newStudy: any) => {
+        setStudies([...studies, newStudy]);
+        setShowCreateModal(false);
     };
 
     const navItems = [
-        { id: 'DASHBOARD', label: 'Dashboard', icon: LayoutDashboard },
-        { id: 'STUDIES', label: 'Studies', icon: Beaker },
-        { id: 'PARTICIPANTS', label: 'Participants', icon: Users },
-        { id: 'SCHEDULING', label: 'Scheduling', icon: Calendar },
-        { id: 'INVENTORY', label: 'Kits & Inventory', icon: Box },
-        { id: 'SAFETY', label: 'Safety (AE/SAE)', icon: ShieldAlert },
-        { id: 'DOCUMENTS', label: 'Documents', icon: FileText },
-        { id: 'DATA', label: 'Data & Exports', icon: Database },
-        { id: 'REPORTS', label: 'Reports', icon: FileBarChart },
-        { id: 'TEAM', label: 'Team & Roles', icon: UsersRound },
-        { id: 'SETTINGS', label: 'Settings', icon: Settings },
-        { id: 'SUBMIT', label: 'Submit Content', icon: Plus },
-        { id: 'SCREENER_BUILDER', label: 'Screener Builder', icon: Filter },
-    ];
+        { id: 'DASHBOARD', label: 'Overview', icon: Layout, roles: ['super_admin', 'admin', 'sponsor', 'coordinator', 'pi'] },
+        { id: 'TEAM', label: 'Medical Team', icon: Users, roles: ['super_admin', 'admin', 'coordinator', 'pi'] },
+        { id: 'MESSAGES', label: 'PI Messaging', icon: MessageSquare, roles: ['super_admin', 'admin', 'coordinator', 'pi'] },
 
-    const renderHeader = () => {
-        const userStr = localStorage.getItem('user');
-        let userName = 'Admin';
-        let userEmail = '';
-        let userPicture = '';
-        try {
-            if (userStr) {
-                const u = JSON.parse(userStr);
-                userName = u.first_name ? `${u.first_name} ${u.last_name || ''}`.trim() : (u.name || (u.email ? u.email.split('@')[0] : 'Admin'));
-                userPicture = u.picture || u.avatar || u.avatar_url || '';
-            }
-        } catch (e) { }
+        { id: 'APPROVALS', label: 'Review Queue', icon: ShieldCheck, roles: ['super_admin'] },
+        { id: 'STUDIES', label: 'Protocols', icon: ClipboardList, roles: ['super_admin', 'admin', 'sponsor', 'coordinator', 'pi'] },
+        { id: 'SCREENER_BUILDER', label: 'Screeners', icon: Rocket, roles: ['super_admin', 'admin'] },
+        { id: 'AUDIT_LOGS', label: 'Audit Trail', icon: ShieldAlert, roles: ['super_admin', 'admin'] },
+        { id: 'COMPLIANCE', label: 'Compliance Docs', icon: ShieldCheck, roles: ['coordinator', 'pi'] },
+        { id: 'SUBMIT_CONTENT', label: 'Submit Content', icon: Plus, roles: ['super_admin', 'admin', 'coordinator', 'pi'] },
+        { id: 'WORKFLOW', label: 'Moderation Queue', icon: ShieldCheck, roles: ['super_admin', 'admin'] },
+        { id: 'WEBSITE', label: 'View Public Site', icon: Globe, roles: ['*'] },
 
-        return (
+
+    ].filter(item => {
+        if (!user) return false;
+        if (item.roles.includes('*')) return true;
+        return item.roles.includes(user.role?.toLowerCase());
+    });
+
+    const confirmSignOut = async () => {
+        await performLogout();
+    };
+
+    return (
+        <div className="min-h-screen bg-[#060811] text-white flex font-sans selection:bg-pink-500/30">
+            {/* Sidebar Navigation */}
+            <aside className={`fixed left-0 top-28 bottom-0 bg-[#0B101B]/40 backdrop-blur-3xl border-r border-white/5 p-6 z-40 overflow-y-auto transition-all duration-500 custom-scrollbar ${isSidebarOpen ? 'w-80' : 'w-24'}`}>
+                <nav className="space-y-1.5">
+                    {navItems.map((item) => (
+                        <button
+                            key={item.id}
+                            onClick={() => {
+                                if (item.id === 'WEBSITE') window.open('/', '_blank');
+                                else setActiveModule(item.id as AdminModule);
+                            }}
+                            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group ${activeModule === item.id
+                                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]'
+                                    : 'text-slate-500 hover:bg-white/5 hover:text-white'
+                                }`}
+                        >
+                            <div className="w-10 flex items-center justify-center flex-shrink-0">
+                                <item.icon className={`w-4 h-4 ${activeModule === item.id ? 'text-cyan-400' : 'text-slate-600 group-hover:text-cyan-400'}`} />
+                            </div>
+                            {isSidebarOpen && <span className="text-[13px] font-black uppercase tracking-[0.1em]">{item.label}</span>}
+                            {activeModule === item.id && isSidebarOpen && (
+                                <motion.div layoutId="activeInd" className="ml-auto w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,1)]" />
+                            )}
+                        </button>
+                    ))}
+                </nav>
+
+                <div className="absolute bottom-10 left-6 right-6 space-y-2">
+                    <button onClick={confirmSignOut} className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-all group">
+                         <div className="w-10 flex items-center justify-center flex-shrink-0">
+                            <LogOut className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+                        </div>
+                        {isSidebarOpen && <span className="text-[13px] font-black uppercase tracking-widest italic">Terminate Session</span>}
+                    </button>
+                </div>
+            </aside>
+
+            {/* Top Bar Header */}
             <header className="fixed top-0 left-0 right-0 h-28 z-50 bg-[#0B101B]/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between px-10">
                 <div className="flex items-center gap-12">
-                    <Link to="/" className="flex items-center group">
-                        <div className="h-10 px-5 rounded-full bg-white flex items-center justify-center shadow-lg transition-transform group-hover:scale-105">
-                            <img src="/logo.jpg" alt="MusB Research" className="h-6 w-auto object-contain" />
+                    <div className="flex items-center gap-5 cursor-pointer" onClick={() => window.open('/', '_blank')}>
+                        <div className="h-12 px-6 rounded-full bg-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 group overflow-hidden">
+                           <img src="/logo.jpg" alt="MusB Research" className="h-7 w-auto object-contain" />
                         </div>
-                    </Link>
-                    <div className="relative hidden md:block">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                        <input
-                            type="text"
-                            placeholder="Search participants, studies, or shipping ID..."
-                            className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-2.5 text-xs text-white outline-none focus:border-cyan-500/50 transition-all w-[400px]"
+                        <div className="h-8 w-px bg-white/10 hidden md:block" />
+                        <span className="text-[13px] font-black uppercase tracking-[0.4em] text-cyan-400 hidden md:block">Research Terminal</span>
+                    </div>
+
+
+                    <div className="relative group hidden lg:block">
+                        <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
+                        <input 
+                            type="text" 
+                            placeholder="SEARCH SYSTEM DATA..." 
+                            className="bg-white/5 border border-white/10 rounded-2xl pl-16 pr-8 py-4 w-96 text-[12px] font-bold text-white outline-none focus:border-cyan-500/30 transition-all uppercase tracking-widest placeholder:text-slate-800"
                         />
                     </div>
                 </div>
 
-                <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                        <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">System Online</span>
-                    </div>
-                    <button className="relative p-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all">
-                        <Bell className="w-5 h-5 text-slate-300" />
-                        <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0B101B]"></span>
+                <div className="flex items-center gap-8">
+                    <button className="relative p-4 bg-white/5 rounded-2xl border border-white/10 hover:border-white/20 transition-all group">
+                        <Bell className="w-4 h-4 text-slate-500 group-hover:text-white" />
+                        <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,1)]" />
                     </button>
-                    <div className="flex items-center gap-4 pl-6 border-l border-white/10 relative" ref={profileRef}>
+                    
+                    <div className="flex items-center gap-6 pl-4 border-l border-white/5">
                         <div className="text-right hidden sm:block">
-                            <p className="text-xs font-black text-white uppercase italic leading-none">{userName}</p>
-                            <p className="text-[9px] text-cyan-500 font-bold uppercase tracking-widest mt-1">
-                                Admin Portal
-                            </p>
+                            <p className="text-[12px] font-black text-white uppercase tracking-widest">{user?.role?.replace('_', ' ') || 'Admin Control'}</p>
+                            <div className="flex items-center justify-end gap-2 mt-0.5 pointer-events-none">
+                                <span className={`text-[8px] font-black uppercase tracking-widest italic px-2 py-0.5 rounded border ${
+                                    user?.affiliation === 'onsite' ? 'text-indigo-400 border-indigo-400/30' : 'text-cyan-400 border-cyan-400/30'
+                                }`}>
+                                    {user?.affiliation || 'MusB'}
+                                </span>
+                                <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest italic">Active</p>
+                            </div>
                         </div>
-                        <button
-                            onClick={() => setIsProfileOpen(!isProfileOpen)}
-                            className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 overflow-hidden hover:border-cyan-500/50 transition-all active:scale-95"
-                        >
-                            <img
-                                src={userPicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=06b6d4&color=fff`}
-                                alt="Admin"
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=06b6d4&color=fff`;
-                                }}
-                            />
-                        </button>
-
-                        {/* Profile Dropdown */}
-                        <AnimatePresence>
-                            {isProfileOpen && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    className="absolute right-0 top-full mt-4 w-56 bg-[#0B101B] border border-white/10 rounded-2xl shadow-2xl p-2 z-50 overflow-hidden"
-                                >
-                                    <div className="p-3 border-b border-white/5 mb-2">
-                                        <p className="text-xs font-bold text-white truncate">{userName}</p>
-                                        <p className="text-[9px] text-slate-500 truncate">{userEmail}</p>
-                                    </div>
-                                    <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400/80 hover:text-red-400 hover:bg-red-500/5 transition-all text-[10px] font-black uppercase tracking-widest">
-                                        <LogOut className="w-4 h-4" /> Sign Out
-                                    </button>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-indigo-600 p-0.5 shadow-xl hover:rotate-6 transition-transform cursor-pointer">
+                            <div className="w-full h-full bg-[#0B101B] rounded-[0.9rem] flex items-center justify-center font-black text-white uppercase italic text-xs">
+                                {user?.first_name?.[0] || 'A'}{user?.last_name?.[0] || 'D'}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </header>
-        );
-    };
 
-    const renderSidebar = () => (
-        <aside className="fixed left-0 top-28 bottom-0 w-80 bg-[#0B101B]/40 backdrop-blur-3xl border-r border-white/5 p-6 z-40 overflow-y-auto custom-scrollbar">
-            <nav className="space-y-1.5">
-                {navItems.map((item) => (
-                    <button
-                        key={item.id}
-                        onClick={() => {
-                            if (item.id === 'WEBSITE') navigate('/home');
-                            else setActiveModule(item.id as AdminModule);
-                        }}
-                        className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group ${activeModule === item.id
-                                ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]'
-                                : 'text-slate-500 hover:bg-white/5 hover:text-white'
-                            }`}
-                    >
-                        <div className="w-10 flex items-center justify-center flex-shrink-0">
-                            <item.icon className={`w-4 h-4 ${activeModule === item.id ? 'text-cyan-400' : 'text-slate-600 group-hover:text-cyan-400'}`} />
+            {/* Main Workspace Area */}
+            <main className={`flex-1 pt-36 pb-24 px-10 transition-all duration-500 ${isSidebarOpen ? 'ml-80' : 'ml-24'}`}>
+                {activeModule === 'DASHBOARD' && (
+                    <DashboardModule key="DASHBOARD" studyCount={studies.length} />
+                )}
+
+                {activeModule === 'TEAM' && (
+                    <TeamModule />
+                )}
+
+                {activeModule === 'SCREENER_BUILDER' && (
+                    <ScreenerBuilder />
+                )}
+
+                {activeModule === 'AUDIT_LOGS' && (
+                    <AuditLogs />
+                )}
+
+                {activeModule === 'COMPLIANCE' && (
+                    <ComplianceModule />
+                )}
+
+                {activeModule === 'APPROVALS' && (
+                    <ApprovalModule />
+                )}
+
+                {activeModule === 'SUBMIT_CONTENT' && (
+                    <SubmitContentForms userRole={user?.role} />
+                )}
+
+                {activeModule === 'WORKFLOW' && (
+                    <WorkflowModerationPanel />
+                )}
+
+                {activeModule === 'MESSAGES' && (
+                    <PIMessagesModule />
+                )}
+
+
+
+
+                {activeModule === 'STUDIES' && (
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                        <div className="flex items-center justify-between mb-10">
+                            <div>
+                                <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">Study Directory</h1>
+                                <p className="text-slate-500 font-bold mt-2 uppercase tracking-widest text-xs italic">Managing {studies.length} live research protocols</p>
+                            </div>
+                            <button 
+                                onClick={() => setShowCreateModal(true)}
+                                className="px-10 py-5 bg-white text-black rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-4 hover:scale-105 transition-all shadow-xl"
+                            >
+                                <Plus className="w-5 h-5" /> Initialize New Protocol
+                            </button>
                         </div>
-                        <span className="text-[11px] font-black uppercase tracking-[0.15em]">{item.label}</span>
-                        {activeModule === item.id && (
-                            <motion.div layoutId="activeInd" className="ml-auto w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,1)]" />
-                        )}
-                    </button>
-                ))}
-            </nav>
-        </aside>
-    );
-
-    return (
-        <div className="min-h-screen bg-transparent">
-            {renderHeader()}
-            {renderSidebar()}
-            <main className="ml-80 pt-36 pb-24 px-10">
-                <AnimatePresence mode="wait">
-                    {activeModule === 'DASHBOARD' && (
-                        <DashboardModule key="DASHBOARD" studyCount={studies.length} />
-                    )}
-                    
-                    {activeModule === 'STUDIES' && (
-                        <StudiesModule 
-                            studies={studies} 
-                            onAdd={() => setShowCreateModal(true)} 
-                            onEdit={(s) => {
-                                setSelectedStudy(s);
-                                setShowCreateModal(true);
-                            }}
-                            onLaunch={handleLaunchStudy} 
-                        />
-                    )}
-                    {activeModule === 'PARTICIPANTS' && <ParticipantsModule />}
-                    {activeModule === 'SCHEDULING' && <SchedulingModule />}
-                    {activeModule === 'INVENTORY' && <InventoryModule />}
-                    {activeModule === 'SAFETY' && <SafetyModule />}
-                    {activeModule === 'DOCUMENTS' && <DocumentsModule />}
-                    {activeModule === 'DATA' && <DataModule />}
-                    {activeModule === 'REPORTS' && <ReportsModule />}
-                    {activeModule === 'TEAM' && <TeamModule />}
-                    {activeModule === 'SUBMIT' && <SubmitContentForms userRole="COORDINATOR" />}
-                    {activeModule === 'SCREENER_BUILDER' && <ScreenerBuilder />}
-                    {activeModule === 'SETTINGS' && <SettingsModule />}
-                </AnimatePresence>
+                        
+                        {/* Summary of listed studies table here (already present in earlier versions) */}
+                         <div className="bg-white/[0.02] border border-white/5 rounded-[3rem] overflow-hidden backdrop-blur-3xl shadow-2xl">
+                             <table className="w-full text-left">
+                                 <thead>
+                                     <tr className="bg-white/[0.03] border-b border-white/5">
+                                         <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Protocol ID</th>
+                                         <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Study Title & Phase</th>
+                                         <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Medical Sponsor</th>
+                                         <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Status</th>
+                                         <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] text-right italic">Action</th>
+                                     </tr>
+                                 </thead>
+                                 <tbody className="divide-y divide-white/5">
+                                     {studies.map((study) => (
+                                         <tr key={study.id} className="hover:bg-white/[0.02] transition-colors group cursor-pointer" onClick={() => { setSelectedStudy(study); setShowCreateModal(true); }}>
+                                             <td className="px-8 py-5 text-sm font-black text-cyan-500 italic uppercase">{study.protocol_id}</td>
+                                             <td className="px-8 py-5">
+                                                 <p className="text-sm font-black text-white uppercase tracking-widest group-hover:text-cyan-400 transition-colors">{study.title}</p>
+                                                 <p className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-widest">{study.study_type}</p>
+                                             </td>
+                                             <td className="px-8 py-5 text-sm font-black text-slate-400 uppercase tracking-widest">{study.sponsor_name || 'MUSB Internal'}</td>
+                                             <td className="px-8 py-5">
+                                                 <span className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border ${
+                                                     study.status === 'ACTIVE' || study.status === 'RECRUITING' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'bg-white/5 text-slate-500 border-white/5'
+                                                 }`}>
+                                                     {study.status}
+                                                 </span>
+                                             </td>
+                                             <td className="px-8 py-5 text-right">
+                                                 <button className="p-3 bg-white/5 border border-white/10 rounded-xl hover:text-white hover:bg-white/10 transition-all">
+                                                     <ChevronRight className="w-4 h-4" />
+                                                 </button>
+                                             </td>
+                                         </tr>
+                                     ))}
+                                 </tbody>
+                             </table>
+                         </div>
+                    </div>
+                )}
             </main>
 
+            {/* Launch Study Modal Component */}
             <AnimatePresence>
                 {showCreateModal && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
@@ -325,7 +289,7 @@ export default function AdminDashboard() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            onClick={() => setShowCreateModal(false)}
+                            onClick={() => { setShowCreateModal(false); setSelectedStudy(null); }}
                             className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl"
                         />
                         <motion.div
@@ -338,6 +302,7 @@ export default function AdminDashboard() {
                                 onClose={() => {
                                     setShowCreateModal(false);
                                     setSelectedStudy(null);
+                                    fetchStudies();
                                 }}
                                 initialData={selectedStudy}
                                 onSave={handleCreateStudy}
@@ -346,11 +311,87 @@ export default function AdminDashboard() {
                     </div>
                 )}
             </AnimatePresence>
-            <LogoutConfirmationModal 
-                isOpen={isLogoutModalOpen}
-                onClose={() => setIsLogoutModalOpen(false)}
-                onConfirm={confirmSignOut}
-            />
         </div>
+    );
+}
+
+function ComplianceModule() {
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : {};
+
+    return (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
+            <div>
+                <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Compliance <span className="text-cyan-400">& Credentials</span></h1>
+                <p className="text-slate-500 font-bold mt-2 uppercase tracking-widest text-xs italic text-pretty">Secure documentation for clinical trial coordination</p>
+            </div>
+
+            <div className="bg-white/[0.02] border border-white/5 rounded-[3rem] p-10 backdrop-blur-3xl shadow-2xl relative overflow-hidden group">
+                <div className="absolute -top-24 -right-24 w-96 h-96 bg-cyan-500/5 blur-[100px] rounded-full group-hover:bg-cyan-500/10 transition-colors duration-1000" />
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+                    {[
+                        { id: 'medical_licence', label: 'Medical Licence', path: user.medical_licence, desc: 'Official authorization for medical trial support' },
+                        { id: 'insurance_certificate', label: 'Liability Insurance', path: user.insurance_certificate, desc: 'Professional coverage for clinical trial oversight' },
+                        { id: 'cv_document', label: 'Coordinator CV', path: user.cv_document, desc: 'Professional experience and certification history' }
+                    ].map((doc, i) => (
+                        <div key={i} className="bg-black/20 border border-white/5 rounded-[2.5rem] p-8 space-y-6 hover:border-cyan-500/30 transition-all flex flex-col">
+                            <div className="flex justify-between items-center">
+                                <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                                    <FileText className="w-6 h-6" />
+                                </div>
+                                {doc.path ? (
+                                    <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(16,185,129,1)]" />
+                                        <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">Verified</span>
+                                    </div>
+                                ) : (
+                                    <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                                        <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest">Pending</span>
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-black text-white italic uppercase tracking-widest">{doc.label}</h4>
+                                <p className="text-[10px] text-slate-500 font-bold mt-2 leading-relaxed italic">{doc.desc}</p>
+                            </div>
+                            <div className="mt-4 pt-6 border-t border-white/5">
+                                {doc.path ? (
+                                    <a 
+                                        href={`${import.meta.env.VITE_API_URL}/media/${doc.path}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="w-full py-4 bg-white/5 hover:bg-white text-white hover:text-slate-950 border border-white/10 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 group/link"
+                                    >
+                                        <Globe className="w-4 h-4 group-hover/link:rotate-12 transition-transform" /> VIEW DOCUMENT
+                                    </a>
+                                ) : (
+                                    <button className="w-full py-4 bg-amber-500/5 text-amber-500 border border-amber-500/20 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] opacity-50 cursor-not-allowed">
+                                        UPLOAD REQUIRED
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="mt-12 p-8 bg-cyan-500/10 border border-cyan-500/20 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+                    <div className="flex items-center gap-6">
+                        <div className="w-12 h-12 rounded-full bg-cyan-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                            <ShieldCheck className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-black text-white uppercase italic tracking-widest">Node Synchronization</p>
+                            <p className="text-[12px] text-cyan-300/60 font-black uppercase tracking-widest mt-1">Research Terminal Status: Encrypted & Verified</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,1)]" />
+                        <span className="text-xs font-black text-emerald-400 uppercase tracking-widest line-clamp-1 italic">Identity Authenticated</span>
+                    </div>
+                </div>
+            </div>
+        </motion.div>
     );
 }

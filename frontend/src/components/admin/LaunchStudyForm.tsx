@@ -1,401 +1,559 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-    Rocket, 
-    Save, 
-    Plus, 
-    Shield, 
-    Truck, 
-    FileSignature, 
-    Beaker, 
-    Users, 
-    Calendar,
-    Activity,
-    Settings2,
-    CheckCircle2,
-    X
+    Rocket, Beaker, Activity, Users, FileText, CheckCircle2, 
+    X, ChevronDown, Upload, ChevronRight, ChevronLeft, 
+    AlertCircle, History, CheckSquare, TrendingUp,
+    ShieldCheck, Microscope, UserPlus, FileCheck, Layers,
+    Briefcase, Plus
 } from 'lucide-react';
 
-interface TrialConfiguratorProps {
+interface LaunchStudyFormProps {
     onClose?: () => void;
     onSave?: (data: any) => void;
     initialData?: any;
     availablePIs?: any[];
     availableCoordinators?: any[];
+    availableSponsors?: any[];
 }
 
-export default function LaunchStudyForm({ onClose, onSave, initialData, availablePIs = [], availableCoordinators = [] }: TrialConfiguratorProps) {
+type StepID = 1 | 2 | 3 | 4 | 5;
+
+interface DocumentFile {
+    id: string;
+    name: string;
+    category: 'Protocol' | 'IRB_Letter' | 'Flyer' | 'Other';
+    version: string;
+    status: 'Current' | 'Draft';
+}
+
+const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], availableCoordinators = [], availableSponsors = [] }: LaunchStudyFormProps) => {
+    const [currentStep, setCurrentStep] = useState<StepID>(1);
+    const [lastSaved, setLastSaved] = useState<string>('Just now');
+
+    // High-end Mock Data Fallbacks
+    const mockPIs = useMemo(() => [
+        { id: 'pi-1', name: 'Dr. Aris Thorne', role: 'PI' },
+        { id: 'pi-2', name: 'Dr. Sarah Jenkins', role: 'PI' },
+        { id: 'pi-3', name: 'Dr. Micheal Chen', role: 'PI' }
+    ], []);
+
+    const mockCoordinators = useMemo(() => [
+        { id: 'cc-1', name: 'Alex Rivera', role: 'COORDINATOR' },
+        { id: 'cc-2', name: 'Jordan Smith', role: 'COORDINATOR' },
+        { id: 'cc-3', name: 'Jamie Vane', role: 'COORDINATOR' }
+    ], []);
+
+    const displayPIs = useMemo(() => (availablePIs && availablePIs.length > 0 ? availablePIs : mockPIs), [availablePIs, mockPIs]);
+    const displayCoordinators = useMemo(() => (availableCoordinators && availableCoordinators.length > 0 ? availableCoordinators : mockCoordinators), [availableCoordinators, mockCoordinators]);
+    const displaySponsors = useMemo(() => (availableSponsors && availableSponsors.length > 0 ? availableSponsors : [
+        { id: 'sp-1', name: 'BioGen Global' },
+        { id: 'sp-2', name: 'NeuroPhase Research' },
+        { id: 'sp-3', name: 'Vanguard Clinical' }
+    ]), [availableSponsors]);
+    
     const [formData, setFormData] = useState({
-        title: initialData?.title || '',
-        protocol_id: initialData?.protocol_id || '',
-        description: initialData?.description || '',
+        protocol_id: initialData?.protocol_id || `MUSB-${new Date().getFullYear()}-${Math.floor(Math.random() * 900) + 100}`,
+        sponsor_id: initialData?.sponsor_id || '',
         sponsor_name: initialData?.sponsor_name || '',
-        pi_id: initialData?.pi_id || '',
-        coordinator_id: initialData?.coordinator_id || '',
         startDate: initialData?.startDate || '',
         endDate: initialData?.endDate || '',
-        participantLimit: initialData?.participantLimit || 100,
-        status: initialData?.status || 'PAUSED',
-        study_type: initialData?.study_type || 'IN_PERSON',
+        full_title: initialData?.full_title || '',
+        title: initialData?.title || '',
+        indication: initialData?.indication || '',
+        brief_description: initialData?.brief_description || '',
+        overview: initialData?.overview || '',
+        execution_type: initialData?.execution_type || 'IN_PERSON',
         trial_model: initialData?.trial_model || 'RCT',
-        is_double_blind: initialData?.is_double_blind || false,
-        has_placebo_control: initialData?.has_placebo_control || false,
-        has_screening_log: initialData?.has_screening_log ?? true,
-        shipment_mode: initialData?.shipment_mode || 'CLINIC',
-        consent_mode: initialData?.consent_mode || 'ECONSENT',
-        primary_indication: initialData?.primary_indication || '',
+        rct_design: initialData?.rct_design || 'PARALLEL',
+        masking: initialData?.masking || 'DOUBLE_BLIND',
+        phase: initialData?.phase || 'PHASE_2',
+        target_subjects: initialData?.target_subjects || 120,
+        medication_supply: initialData?.medication_supply || 'SPONSOR_PROVIDED',
+        consent_collection: initialData?.consent_collection || ['ECONSENT'],
+        assigned_pis: initialData?.assigned_pis || [] as string[],
+        assigned_coordinators: initialData?.assigned_coordinators || [] as string[],
+        status: initialData?.status || 'DRAFT'
     });
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value, type } = e.target;
-        const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
-        setFormData({ ...formData, [name]: val });
+    const [uploadedDocs, setUploadedDocs] = useState<DocumentFile[]>(() => [
+        { id: '1', name: 'IRB_Protocol_V3.pdf', category: 'Protocol', version: 'V3.1', status: 'Current' },
+        { id: '2', name: 'Consent_Form_Template.docx', category: 'Other', version: 'V1.0', status: 'Draft' }
+    ]);
+    const [sponsorSearch, setSponsorSearch] = useState('');
+    const [showSponsorDropdown, setShowSponsorDropdown] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const newDoc: DocumentFile = {
+                id: Math.random().toString(36).substr(2, 9),
+                name: file.name,
+                category: 'Protocol',
+                version: 'V1.0 (Draft)',
+                status: 'Draft'
+            };
+            setUploadedDocs(prev => [newDoc, ...prev]);
+        }
     };
 
-    const handleAction = (isPublish: boolean) => {
-        if (onSave) onSave({ ...formData, status: isPublish ? 'RECRUITING' : 'PAUSED' });
-    };
+    const steps = useMemo(() => [
+        { id: 1, label: 'Core Protocol', sub: 'Identity & Purpose', icon: Beaker },
+        { id: 2, label: 'Methodology', sub: 'Clinical Design', icon: Activity },
+        { id: 3, label: 'Research Team', sub: 'Roles & Operations', icon: Users },
+        { id: 4, label: 'Documents', sub: 'Compliance Uploads', icon: FileText },
+        { id: 5, label: 'Review', sub: 'Final Validation', icon: CheckCircle2 },
+    ], []);
+
+    const handleNext = useCallback(() => setCurrentStep((s) => (s < 5 ? (s + 1) as StepID : s)), []);
+    const handlePrev = useCallback(() => setCurrentStep((s) => (s > 1 ? (s - 1) as StepID : s)), []);
+
+    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    }, []);
+
+    const toggleMultiSelect = useCallback((field: 'assigned_pis' | 'assigned_coordinators' | 'consent_collection', val: string) => {
+        setFormData(prev => {
+            const list = Array.isArray(prev[field]) ? [...(prev[field] as string[])] : [];
+            const index = list.indexOf(val);
+            if (index > -1) list.splice(index, 1);
+            else list.push(val);
+            return { ...prev, [field]: list };
+        });
+    }, []);
+
+    const validation = useMemo(() => {
+        const required = ['sponsor_id', 'startDate', 'full_title', 'title', 'indication', 'brief_description', 'overview'];
+        const missingFields = required.filter(f => !formData[f as keyof typeof formData]);
+        const hasPI = Array.isArray(formData.assigned_pis) && formData.assigned_pis.length > 0;
+        const hasCC = Array.isArray(formData.assigned_coordinators) && formData.assigned_coordinators.length > 0;
+        const hasProtocol = Array.isArray(uploadedDocs) && uploadedDocs.some(d => d.category === 'Protocol');
+        
+        return {
+            isValid: missingFields.length === 0 && hasPI && hasCC && hasProtocol,
+            missingFields,
+            hasPI,
+            hasCC,
+            hasProtocol
+        };
+    }, [formData, uploadedDocs]);
+
+    const filteredSponsors = useMemo(() => {
+        if (!sponsorSearch) return displaySponsors;
+        return displaySponsors.filter(s => s?.name?.toLowerCase().includes(sponsorSearch.toLowerCase()));
+    }, [displaySponsors, sponsorSearch]);
 
     return (
-        <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-10"
-        >
-            {/* Header / Action Bar */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 border-b border-white/5 pb-10">
-                <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-cyan-500/10 rounded-xl">
-                            <Settings2 className="w-6 h-6 text-cyan-400" />
-                        </div>
-                        <h1 className="text-5xl font-black text-white italic uppercase tracking-tighter">
-                            Trial <span className="text-cyan-400">Configurator</span>
-                        </h1>
+        <div className="flex flex-col min-h-full pb-32">
+            {/* Header */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-12">
+                <div className="flex items-center gap-6">
+                    <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20">
+                        <Rocket className="w-8 h-8 text-indigo-400" />
                     </div>
-                    <p className="text-xs text-slate-500 font-black uppercase tracking-[0.3em] ml-12">
-                        Precision Protocol Engineering & Control Center
-                    </p>
+                    <div>
+                        <h1 className="text-3xl lg:text-5xl font-black text-white italic uppercase tracking-tighter leading-tight italic">Launch <span className="text-indigo-400">New Study</span></h1>
+                        <p className="text-xs text-white/40 font-bold uppercase tracking-[0.3em] mt-2">Protocol Matrix Verification Hub V2.6</p>
+                    </div>
                 </div>
-                
+                <div className="flex items-center gap-6">
+                    <div className="text-right">
+                        <p className="text-xs font-black text-indigo-400 uppercase tracking-widest leading-none">Status: Drafting</p>
+                        <p className="text-[11px] text-white/40 font-bold mt-1 uppercase">Last saved: {lastSaved}</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Stepper Progress Node */}
+            <div className="sticky top-0 z-40 bg-[#0B1120]/80 backdrop-blur-xl border border-white/5 rounded-3xl py-6 px-10 mb-12 shadow-xl will-change-transform">
+                <div className="flex items-center justify-between">
+                    {steps.map((step, idx) => (
+                        <React.Fragment key={step.id}>
+                            <button 
+                                onClick={() => step.id < currentStep && setCurrentStep(step.id as StepID)}
+                                className={`flex items-center gap-4 transition-all ${currentStep === step.id ? 'opacity-100 scale-105' : currentStep > step.id ? 'opacity-80 grayscale-0' : 'opacity-30'}`}
+                            >
+                                <div className={`w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center border transition-all ${currentStep === step.id ? 'bg-indigo-600 border-indigo-400 text-white shadow-[0_0_20px_rgba(79,70,229,0.3)]' : 'bg-white/5 border-white/10 text-slate-500'}`}>
+                                    <step.icon className="w-4 h-4 lg:w-5 lg:h-5" />
+                                </div>
+                                <div className="text-left hidden xl:block">
+                                    <p className="text-sm font-black text-white uppercase tracking-widest leading-none">{step.label}</p>
+                                    <p className={`text-[11px] uppercase tracking-tighter mt-1.5 ${currentStep === step.id ? 'text-indigo-400 font-bold' : 'text-slate-500'}`}>{step.sub}</p>
+                                </div>
+                            </button>
+                            {idx < steps.length - 1 && <div className="h-px flex-1 bg-white/5 mx-4" />}
+                        </React.Fragment>
+                    ))}
+                </div>
+            </div>
+
+            {/* Step Content Hub */}
+            <div className="flex-1">
+                <AnimatePresence mode="wait">
+                    {currentStep === 1 && (
+                        <motion.div key="step1" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-12 will-change-transform">
+                            <div className="bg-[#0B101B]/80 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-12 space-y-12 shadow-xl relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-12 opacity-5"><Beaker className="w-48 h-48 text-white" /></div>
+                                <div className="flex items-center gap-4 border-l-4 border-indigo-500 pl-8">
+                                    <h3 className="text-3xl font-black text-white uppercase tracking-tighter italic">Study Identity</h3>
+                                </div>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                                    <div className="space-y-4">
+                                        <label className="text-[15px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Internal ID / Registry Number</label>
+                                        <div className="bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-xl text-indigo-400 font-mono flex items-center justify-between">
+                                            <span>{formData.protocol_id}</span>
+                                            <span className="text-[10px] px-3 py-1.5 bg-indigo-500/10 rounded border border-indigo-500/20 font-black uppercase text-indigo-300">Auto-Generated</span>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4 relative">
+                                        <label className="text-[15px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Sponsor Organization</label>
+                                        <div onClick={() => setShowSponsorDropdown(!showSponsorDropdown)} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-lg text-white font-bold flex items-center justify-between cursor-pointer hover:border-white/20 transition-all font-mono italic">
+                                            <span>{formData.sponsor_name || "Select Sponsor"}</span>
+                                            <ChevronDown className="w-5 h-5 opacity-40" />
+                                        </div>
+                                        {showSponsorDropdown && (
+                                            <div className="absolute top-full left-0 right-0 mt-3 bg-[#111827] border border-white/10 rounded-2xl shadow-3xl z-50 overflow-hidden backdrop-blur-xl">
+                                                <div className="p-4 border-b border-white/5 bg-white/5">
+                                                    <input type="text" placeholder="Search Sponsor Database..." value={sponsorSearch} onChange={(e) => setSponsorSearch(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-indigo-500/50" />
+                                                </div>
+                                                <div className="max-h-60 overflow-y-auto">
+                                                    {filteredSponsors.map(s => (
+                                                        <div key={s?.id} onClick={() => { setFormData({...formData, sponsor_id: s?.id, sponsor_name: s?.name}); setShowSponsorDropdown(false); }} className="px-6 py-5 hover:bg-indigo-600 cursor-pointer text-sm font-bold text-slate-300 hover:text-white flex items-center gap-3 transition-all">
+                                                            <Briefcase className="w-4 h-4 text-slate-500 group-hover:text-white" /> {s?.name}
+                                                        </div>
+                                                    ))}
+                                                    <div className="p-4 border-t border-white/5 bg-indigo-600/5 hover:bg-indigo-600/10 cursor-pointer text-[10px] font-black uppercase text-indigo-400 text-center tracking-widest transition-all">
+                                                        + Add New Sponsor Organization
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                                    <div className="space-y-4">
+                                        <label className="text-[15px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Start Date</label>
+                                        <input type="date" name="startDate" value={formData.startDate} onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-lg text-white font-mono outline-none focus:border-indigo-500/50" />
+                                    </div>
+                                    <div className="space-y-4">
+                                        <label className="text-[15px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">End Date (Estimated)</label>
+                                        <input type="date" name="endDate" value={formData.endDate} onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-lg text-white font-mono outline-none focus:border-indigo-500/50" />
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-[#0B101B]/80 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-12 space-y-12 shadow-xl">
+                                <div className="flex items-center gap-4 border-l-4 border-emerald-500 pl-8">
+                                    <h3 className="text-3xl font-black text-white uppercase tracking-tighter italic">Protocol Headers</h3>
+                                </div>
+                                <div className="space-y-10">
+                                    <div className="space-y-4">
+                                        <label className="text-[15px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Official Full Title</label>
+                                        <textarea name="full_title" value={formData.full_title} onChange={handleChange} placeholder="As stated on the clinical trial registry..." className="w-full h-40 bg-white/5 border border-white/10 rounded-2xl px-8 py-6 text-xl text-white font-bold outline-none focus:border-emerald-500/50 resize-none placeholder:opacity-20 italic leading-relaxed" />
+                                    </div>
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                                        <div className="space-y-4">
+                                            <label className="text-[15px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Public Short Title</label>
+                                            <input type="text" name="title" value={formData.title} onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-2xl px-8 py-5 text-lg text-white font-bold outline-none focus:border-emerald-500/50" />
+                                        </div>
+                                        <div className="space-y-4">
+                                            <label className="text-[15px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Therapeutic Indication</label>
+                                            <input type="text" name="indication" value={formData.indication} onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-2xl px-8 py-5 text-lg text-white font-bold outline-none focus:border-emerald-500/50 italic" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <label className="text-[15px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Brief Summary Overview</label>
+                                        <textarea name="brief_description" value={formData.brief_description} onChange={handleChange} className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl px-8 py-6 text-base text-white/80 font-medium outline-none focus:border-emerald-500/50 resize-none leading-relaxed" />
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {currentStep === 2 && (
+                        <motion.div key="step2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-12 will-change-transform">
+                            <div className="bg-[#0B101B]/80 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-12 space-y-12 shadow-xl relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-12 opacity-5"><Activity className="w-48 h-48 text-white" /></div>
+                                <div className="flex items-center gap-4 border-l-4 border-indigo-500 pl-8">
+                                    <h3 className="text-3xl font-black text-white uppercase tracking-tighter italic">Methodology Configuration</h3>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                                    {[
+                                        { field: 'trial_model', label: 'Primary Model', options: ['RCT', 'Observational', 'Device Trial'] },
+                                        { field: 'phase', label: 'Clinical Phase', options: ['PHASE_1', 'PHASE_2', 'PHASE_3', 'PHASE_4'] },
+                                        { field: 'masking', label: 'Masking Strategy', options: ['NONE', 'SINGLE_BLIND', 'DOUBLE_BLIND', 'TRIPLE_BLIND'] },
+                                        { field: 'execution_type', label: 'Execution', options: ['IN_PERSON', 'REMOTE', 'HYBRID'] }
+                                    ].map((group) => (
+                                        <div key={group.field} className="space-y-4">
+                                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-2">{group.label}</label>
+                                            <div className="space-y-2">
+                                                {group.options.map(opt => (
+                                                    <button key={opt} onClick={() => setFormData({...formData, [group.field]: opt})} className={`w-full text-left px-5 py-4 rounded-xl text-xs font-black tracking-widest uppercase transition-all border ${formData[group.field as keyof typeof formData] === opt ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg' : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20'}`}>
+                                                        {opt.replace('_', ' ')}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                                <div className="pt-8 border-t border-white/5 grid grid-cols-1 lg:grid-cols-2 gap-12">
+                                    <div className="space-y-6">
+                                        <label className="text-[15px] font-black text-slate-500 uppercase tracking-widest ml-2 italic">Subject Population Node</label>
+                                        <div className="bg-white/5 border border-white/5 rounded-2xl p-8 flex items-center justify-between">
+                                            <div>
+                                                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Target Sample Size</p>
+                                                <p className="text-4xl font-black text-white italic mt-1">{formData.target_subjects}</p>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <button onClick={() => setFormData({...formData, target_subjects: Math.max(0, formData.target_subjects - 10)})} className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all font-black text-xl">-</button>
+                                                <button onClick={() => setFormData({...formData, target_subjects: formData.target_subjects + 10})} className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center hover:bg-indigo-500 transition-all font-black text-xl">+</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-6">
+                                        <label className="text-[15px] font-black text-slate-500 uppercase tracking-widest ml-2">Consent Mechanics</label>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {['ECONSENT', 'PAPER_CONSENT', 'REMOTE_WITNESS'].map(opt => (
+                                                <button key={opt} onClick={() => toggleMultiSelect('consent_collection', opt)} className={`flex items-center gap-3 px-6 py-5 rounded-2xl border transition-all ${Array.isArray(formData.consent_collection) && formData.consent_collection.includes(opt) ? 'bg-indigo-600/20 border-indigo-500 text-white' : 'bg-white/5 border-white/5 text-slate-500'}`}>
+                                                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${Array.isArray(formData.consent_collection) && formData.consent_collection.includes(opt) ? 'bg-indigo-500 border-indigo-500' : 'border-white/20'}`}>
+                                                        {Array.isArray(formData.consent_collection) && formData.consent_collection.includes(opt) && <CheckSquare className="w-3 h-3 text-white" />}
+                                                    </div>
+                                                    <span className="text-[10px] font-black uppercase tracking-widest leading-none">{opt.replace('_', ' ')}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {currentStep === 3 && (
+                        <motion.div key="step3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-12 will-change-transform">
+                            <div className="bg-[#0B101B]/80 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-12 space-y-12 shadow-xl relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-12 opacity-5"><Users className="w-48 h-48 text-white" /></div>
+                                <div className="flex items-center gap-4 border-l-4 border-indigo-500 pl-8">
+                                    <h3 className="text-3xl font-black text-white uppercase tracking-tighter italic">Research Team Deployment</h3>
+                                </div>
+                                <div className="space-y-8">
+                                    <div className="space-y-6">
+                                        <label className="text-[15px] font-black text-slate-500 uppercase tracking-widest ml-2">Principal Investigators (PI)</label>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {displayPIs.map(pi => (
+                                                <div key={pi?.id} onClick={() => toggleMultiSelect('assigned_pis', pi?.id)} className={`relative p-6 rounded-3xl border transition-all cursor-pointer group ${Array.isArray(formData.assigned_pis) && formData.assigned_pis.includes(pi?.id) ? 'bg-indigo-600/10 border-indigo-500/50' : 'bg-white/5 border-white/5 hover:border-white/20'}`}>
+                                                    {Array.isArray(formData.assigned_pis) && formData.assigned_pis.includes(pi?.id) && <div className="absolute top-4 right-4 text-indigo-400 group-hover:scale-110 transition-transform duration-300"><ShieldCheck className="w-6 h-6 shadow-[0_0_15px_rgba(129,140,248,0.4)]" /></div>}
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white italic group-hover:bg-white/10 transition-all">{String(pi?.name || 'U').charAt(0)}</div>
+                                                        <div>
+                                                            <p className="text-sm font-black text-white uppercase tracking-tighter">{pi?.name || 'Unknown User'}</p>
+                                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 italic">Verified Specialist</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-6">
+                                        <label className="text-[15px] font-black text-slate-500 uppercase tracking-widest ml-2">Clinical Research Coordinators (CRC)</label>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {displayCoordinators.map(crc => (
+                                                <div key={crc?.id} onClick={() => toggleMultiSelect('assigned_coordinators', crc?.id)} className={`relative p-6 rounded-3xl border transition-all cursor-pointer group ${Array.isArray(formData.assigned_coordinators) && formData.assigned_coordinators.includes(crc?.id) ? 'bg-emerald-600/10 border-emerald-500/50' : 'bg-white/5 border-white/5 hover:border-white/20'}`}>
+                                                    {Array.isArray(formData.assigned_coordinators) && formData.assigned_coordinators.includes(crc?.id) && <div className="absolute top-4 right-4 text-emerald-400 group-hover:scale-110 transition-transform duration-300"><UserPlus className="w-6 h-6 shadow-[0_0_15px_rgba(52,211,153,0.4)]" /></div>}
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white italic group-hover:bg-white/10 transition-all">{String(crc?.name || 'U').charAt(0)}</div>
+                                                        <div>
+                                                            <p className="text-sm font-black text-white uppercase tracking-tighter">{crc?.name || 'Unknown User'}</p>
+                                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 italic">Operations Lead</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {currentStep === 4 && (
+                        <motion.div key="step4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-12 will-change-transform">
+                            <div className="bg-[#0B101B]/80 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-12 shadow-xl relative overflow-hidden flex flex-col items-center justify-center py-20 min-h-[500px]">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent" />
+                                
+                                <div className="w-24 h-24 bg-indigo-600/10 border border-indigo-500/30 rounded-3xl flex items-center justify-center mb-8 shadow-[0_0_30px_rgba(79,70,229,0.1)]">
+                                    <Upload className="w-10 h-10 text-indigo-400" />
+                                </div>
+                                
+                                <h3 className="text-3xl font-black text-white uppercase tracking-tighter italic mb-4 leading-none">Sync Digital Protocol Matrix</h3>
+                                <p className="text-slate-400 text-lg font-medium max-w-xl mb-12 italic text-center leading-relaxed">Select files for IRB Protocol, Informed Consent Templates, and Patient Recruitment Flyers to begin clinical synchronization.</p>
+                                
+                                <div className="relative group">
+                                    <div className="absolute -inset-1 bg-indigo-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+                                    <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+                                    <button 
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="relative px-12 py-5 bg-[#0B101B] border border-white/10 hover:border-indigo-500/50 rounded-2xl flex items-center gap-4 transition-all overflow-hidden"
+                                    >
+                                        <Plus className="w-6 h-6 text-indigo-400 group-hover:rotate-90 transition-transform duration-500" />
+                                        <span className="text-xs font-black uppercase tracking-[0.3em] text-white">Select Protocol Artifacts</span>
+                                    </button>
+                                </div>
+                                
+                                <div className="mt-16 w-full max-w-4xl space-y-4">
+                                    <div className="flex items-center justify-between px-10 mb-2">
+                                        <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Active Document Feed</p>
+                                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{Array.isArray(uploadedDocs) ? uploadedDocs.length : 0} Artifacts Synced</p>
+                                    </div>
+                                    {Array.isArray(uploadedDocs) && uploadedDocs.map(doc => (
+                                        <div key={doc.id} className="bg-white/[0.03] border border-white/5 rounded-2xl px-10 py-6 flex items-center justify-between group hover:bg-white/[0.05] transition-all hover:border-white/10">
+                                            <div className="flex items-center gap-6">
+                                                <div className="p-3 bg-white/5 rounded-xl group-hover:bg-indigo-500/10 transition-colors"><Microscope className="w-6 h-6 text-indigo-400" /></div>
+                                                <div className="text-left">
+                                                    <p className="text-sm font-black text-white uppercase tracking-tighter group-hover:text-indigo-300 transition-colors">{doc.name}</p>
+                                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 italic">{doc.category} Node • {doc.version}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-6">
+                                                <span className="px-3 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20 text-[9px] font-black text-emerald-400 uppercase tracking-widest">{doc.status}</span>
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setUploadedDocs(prev => prev.filter(d => d.id !== doc.id));
+                                                    }}
+                                                    className="text-slate-600 hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg group/del"
+                                                >
+                                                    <X className="w-5 h-5 group-hover/del:rotate-90 transition-transform" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {currentStep === 5 && (
+                        <motion.div key="step5" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-12 will-change-transform">
+                            <div className="bg-[#0B101B]/80 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-12 space-y-12 shadow-xl relative overflow-hidden">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-4 border-l-4 border-indigo-500 pl-8">
+                                        <h3 className="text-4xl font-black text-white uppercase tracking-tighter italic">Protocol Pre-Flight Review</h3>
+                                    </div>
+                                    <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl border transition-all ${validation?.isValid ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'bg-red-500/10 border-red-500/50 text-red-500'}`}>
+                                        {validation?.isValid ? <ShieldCheck className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
+                                        <span className="text-sm font-black uppercase tracking-widest italic">{validation?.isValid ? "Synchronized & Ready" : "Critical Discretions Found"}</span>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                    <div className="space-y-12">
+                                        <div className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-10 space-y-8">
+                                            <h4 className="text-xs font-black text-indigo-400 uppercase tracking-widest flex items-center gap-3 italic"><Layers className="w-4 h-4" /> Identity Synopsis</h4>
+                                            <div className="grid grid-cols-2 gap-y-10">
+                                                <div>
+                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Protocol ID</p>
+                                                    <p className="text-lg font-bold text-white mt-1 italic font-mono">{formData.protocol_id}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Target Sample</p>
+                                                    <p className="text-2xl font-black text-white mt-1 italic">{formData.target_subjects} Subjects</p>
+                                                </div>
+                                                <div className="col-span-2">
+                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Short Title Alias</p>
+                                                    <p className="text-lg font-bold text-white mt-1 italic leading-tight uppercase underline decoration-indigo-500/30 underline-offset-8">{formData.title || "---"}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="bg-[#111827] border border-white/5 rounded-[2.5rem] p-10 space-y-8">
+                                            <h4 className="text-xs font-black text-pink-500 uppercase tracking-widest italic">Verification Status</h4>
+                                            <div className="space-y-5">
+                                                {[
+                                                    { label: 'Primary Identity Mapped', check: validation?.missingFields?.length === 0 },
+                                                    { label: 'Principal Investigator Synced', check: validation?.hasPI },
+                                                    { label: 'Operational Support Assigned', check: validation?.hasCC },
+                                                    { label: 'IRB Protocol Root Uploaded', check: validation?.hasProtocol }
+                                                ].map((item, i) => (
+                                                    <div key={i} className="flex items-center justify-between group">
+                                                        <span className={`text-xs font-black uppercase tracking-widest transition-all ${item.check ? 'text-slate-500 group-hover:text-slate-300' : 'text-red-400 italic underline'}`}>{item.label}</span>
+                                                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all ${item.check ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-red-500/20 border-red-500 text-red-500'}`}>
+                                                            {item.check ? <CheckSquare className="w-4 h-4 shadow-emerald-500/50" /> : <AlertCircle className="w-4 h-4" />}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="space-y-12">
+                                        <div className="bg-indigo-600/5 border border-indigo-500/10 rounded-[2.5rem] p-10 space-y-8">
+                                            <h4 className="text-xs font-black text-white uppercase tracking-widest italic flex items-center gap-3"><TrendingUp className="w-4 h-4" /> Timeline Projections</h4>
+                                            <div className="flex items-center gap-8">
+                                                <div className="flex-1 p-6 bg-[#03060C] rounded-2xl border border-white/5">
+                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Deployment</p>
+                                                    <p className="text-lg font-black text-white mt-1 italic font-mono">{formData.startDate || "TBD"}</p>
+                                                </div>
+                                                <ChevronRight className="w-6 h-6 text-slate-800" />
+                                                <div className="flex-1 p-6 bg-[#03060C] rounded-2xl border border-white/5">
+                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Termination</p>
+                                                    <p className="text-lg font-black text-white mt-1 italic font-mono">{formData.endDate || "TBD"}</p>
+                                                </div>
+                                            </div>
+                                            <p className="text-[11px] text-white/30 font-bold uppercase tracking-widest leading-relaxed italic">* These projections are intended for internal synchronization only and do not constitute absolute clinical deadlines.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
+            {/* Footer Action Bar Hub */}
+            <div className="fixed bottom-0 right-0 left-0 lg:left-[320px] h-24 border-t border-white/5 bg-[#0B101B]/90 backdrop-blur-xl flex items-center justify-between px-10 z-[60]">
                 <div className="flex items-center gap-4">
-                    {onClose && (
+                    <button 
+                        onClick={handlePrev} 
+                        disabled={currentStep === 1}
+                        className={`px-10 py-5 rounded-2xl border flex items-center gap-4 transition-all ${currentStep === 1 ? 'opacity-20 cursor-not-allowed border-white/5 text-slate-600' : 'bg-white/5 border-white/10 text-white hover:bg-white/10 shadow-xl'}`}
+                    >
+                        <ChevronLeft className="w-5 h-5 text-indigo-400" /> 
+                        <span className="text-xs font-black uppercase tracking-[0.2em]">Previous Phase</span>
+                    </button>
+                </div>
+
+                <div className="flex items-center gap-6">
+                    <button onClick={onClose} className="px-8 py-5 text-slate-500 hover:text-white transition-all text-xs font-black uppercase tracking-widest italic group">
+                        Discard <span className="opacity-0 group-hover:opacity-100 transition-opacity">Protocol</span>
+                    </button>
+                    
+                    {currentStep < 5 ? (
+                        <button onClick={handleNext} className="px-12 py-5 bg-indigo-600 text-white rounded-2xl flex items-center gap-4 shadow-2xl shadow-indigo-600/30 hover:scale-[1.02] active:scale-95 transition-all group">
+                            <span className="text-xs font-black uppercase tracking-[0.2em]">Proceed to Step {currentStep + 1}</span>
+                            <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </button>
+                    ) : (
                         <button 
-                            onClick={onClose}
-                            className="px-6 py-4 bg-white/5 border border-white/10 text-slate-400 rounded-2xl text-xs font-black uppercase tracking-widest hover:text-white transition-all flex items-center gap-2"
+                            onClick={() => {
+                                if (validation?.isValid && onSave) {
+                                    onSave(formData);
+                                    alert("✅ PROTOCOL SYNCED: Study has been successfully registered in the MusB Meta-Database.");
+                                }
+                            }} 
+                            disabled={!validation?.isValid}
+                            className={`px-14 py-5 rounded-2xl flex items-center gap-4 shadow-3xl transition-all ${validation?.isValid ? 'bg-emerald-600 animate-pulse-slow text-white shadow-emerald-500/40 hover:scale-[1.05] active:scale-95 hover:bg-emerald-500' : 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed border border-white/5'}`}
                         >
-                            <X className="w-5 h-5" /> Cancel
+                            <Rocket className="w-6 h-6" />
+                            <span className="text-xs font-black uppercase tracking-[0.2em]">{validation?.isValid ? 'Finalize & Launch Protocol' : 'Identity Verification Required'}</span>
                         </button>
                     )}
-                    <button 
-                        onClick={() => handleAction(false)}
-                        className="px-8 py-4 bg-white/5 border border-white/10 text-slate-300 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-3"
-                    >
-                        <Save className="w-5 h-5" /> Save Configuration
-                    </button>
-                    <button 
-                        onClick={() => handleAction(true)}
-                        className="px-10 py-4 bg-cyan-500 text-slate-950 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-cyan-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3"
-                    >
-                        <Rocket className="w-5 h-5" /> Deploy Protocol
-                    </button>
                 </div>
             </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
-                {/* Left: Core & Design */}
-                <div className="xl:col-span-2 space-y-10">
-                    
-                    {/* Section 1: Core Identity */}
-                    <div className="bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-10 space-y-8">
-                        <div className="flex items-center gap-3 border-b border-white/5 pb-6">
-                            <Beaker className="w-6 h-6 text-cyan-400" />
-                            <h3 className="text-base font-black text-white uppercase tracking-widest italic">Core Protocol Identity</h3>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">Official Protocol Title</label>
-                                <input 
-                                    type="text" 
-                                    name="title" 
-                                    value={formData.title} 
-                                    onChange={handleChange}
-                                    placeholder="e.g. Metabolic Biomarker Correlation (Phase II)"
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm text-white font-bold outline-none focus:border-cyan-500/50 transition-all placeholder:text-slate-700"
-                                />
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">Internal ID / Registry #</label>
-                                <input 
-                                    type="text" 
-                                    name="protocol_id" 
-                                    value={formData.protocol_id} 
-                                    onChange={handleChange}
-                                    placeholder="MB-2026-X1"
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm text-white font-mono outline-none focus:border-cyan-500/50 transition-all placeholder:text-slate-700"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">Sponsor Organization</label>
-                                <input 
-                                    type="text" 
-                                    name="sponsor_name" 
-                                    value={formData.sponsor_name} 
-                                    onChange={handleChange}
-                                    placeholder="Global BioPharma Ltd"
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm text-white font-bold outline-none focus:border-cyan-500/50 transition-all placeholder:text-slate-700"
-                                />
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">Primary Medical Indication</label>
-                                <input 
-                                    type="text" 
-                                    name="primary_indication" 
-                                    value={formData.primary_indication} 
-                                    onChange={handleChange}
-                                    placeholder="Type 2 Diabetes / Metabolic Syndrome"
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm text-white font-bold outline-none focus:border-cyan-500/50 transition-all placeholder:text-slate-700"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Section 2: Clinical Model & Methodology */}
-                    <div className="bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-10 space-y-8">
-                        <div className="flex items-center gap-3 border-b border-white/5 pb-6">
-                            <Activity className="w-6 h-6 text-indigo-400" />
-                            <h3 className="text-base font-black text-white uppercase tracking-widest italic">Clinical Design & Methodology</h3>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">Study Execution Type</label>
-                                <select 
-                                    name="study_type"
-                                    value={formData.study_type}
-                                    onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xs text-white font-black uppercase tracking-widest outline-none focus:border-cyan-500/50 appearance-none cursor-pointer"
-                                >
-                                    <option value="IN_PERSON">In-Person Clinical</option>
-                                    <option value="VIRTUAL">Virtual / Decentralized</option>
-                                    <option value="HYBRID">Hybrid (On-Site + Virtual)</option>
-                                </select>
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">Statistical Trial Model</label>
-                                <select 
-                                    name="trial_model"
-                                    value={formData.trial_model}
-                                    onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xs text-white font-black uppercase tracking-widest outline-none focus:border-cyan-500/50 appearance-none cursor-pointer"
-                                >
-                                    <option value="RCT">RCT (Randomized Controlled)</option>
-                                    <option value="OPEN_LABEL">Open Label</option>
-                                    <option value="IHUT">In-Home Use Test (IHUT)</option>
-                                    <option value="REGISTRY">Patient Registry</option>
-                                    <option value="OBSERVATIONAL">Observational</option>
-                                </select>
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">Recruitment Limit</label>
-                                <input 
-                                    type="number" 
-                                    name="participantLimit"
-                                    value={formData.participantLimit}
-                                    onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xl text-white font-black italic outline-none focus:border-cyan-500/50 transition-all font-mono"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-                            <label className="flex items-center gap-4 bg-white/5 border border-white/10 p-5 rounded-2xl cursor-pointer group hover:bg-white/10 transition-all">
-                                <input 
-                                    type="checkbox" 
-                                    name="is_double_blind"
-                                    checked={formData.is_double_blind}
-                                    onChange={handleChange}
-                                    className="w-6 h-6 accent-cyan-500"
-                                />
-                                <div className="space-y-1">
-                                    <span className="text-xs font-black text-white uppercase tracking-widest">Double Blind</span>
-                                    <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest italic leading-tight">Masked assignment logic</p>
-                                </div>
-                            </label>
-                            <label className="flex items-center gap-4 bg-white/5 border border-white/10 p-5 rounded-2xl cursor-pointer group hover:bg-white/10 transition-all">
-                                <input 
-                                    type="checkbox" 
-                                    name="has_placebo_control"
-                                    checked={formData.has_placebo_control}
-                                    onChange={handleChange}
-                                    className="w-6 h-6 accent-cyan-500"
-                                />
-                                <div className="space-y-1">
-                                    <span className="text-xs font-black text-white uppercase tracking-widest">Placebo Control</span>
-                                    <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest italic leading-tight">Control arm integrated</p>
-                                </div>
-                            </label>
-                            <label className="flex items-center gap-4 bg-white/5 border border-white/10 p-5 rounded-2xl cursor-pointer group hover:bg-white/10 transition-all">
-                                <input 
-                                    type="checkbox" 
-                                    name="has_screening_log"
-                                    checked={formData.has_screening_log}
-                                    onChange={handleChange}
-                                    className="w-6 h-6 accent-cyan-500"
-                                />
-                                <div className="space-y-1">
-                                    <span className="text-xs font-black text-white uppercase tracking-widest">Screening Log</span>
-                                    <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest italic leading-tight">Full audit trail enabled</p>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Right: Logistics & Compliance */}
-                <div className="space-y-10">
-                    
-                    {/* Section 3: Supply Chain */}
-                    <div className="bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-10 space-y-8">
-                        <div className="flex items-center gap-3 border-b border-white/5 pb-6">
-                            <Truck className="w-6 h-6 text-emerald-400" />
-                            <h3 className="text-base font-black text-white uppercase tracking-widest italic">Logistics & Supply</h3>
-                        </div>
-
-                        <div className="space-y-6">
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">Product Distribution Mode</label>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <button 
-                                        type="button"
-                                        onClick={() => setFormData({...formData, shipment_mode: 'CLINIC'})}
-                                        className={`py-4 rounded-xl text-xs font-black uppercase tracking-widest border transition-all ${
-                                            formData.shipment_mode === 'CLINIC' 
-                                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-lg' 
-                                            : 'bg-white/5 border-white/10 text-slate-500 hover:text-white'
-                                        }`}
-                                    >
-                                        Clinic Delivery
-                                    </button>
-                                    <button 
-                                        type="button"
-                                        onClick={() => setFormData({...formData, shipment_mode: 'DTP'})}
-                                        className={`py-4 rounded-xl text-xs font-black uppercase tracking-widest border transition-all ${
-                                            formData.shipment_mode === 'DTP' 
-                                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-lg' 
-                                            : 'bg-white/5 border-white/10 text-slate-500 hover:text-white'
-                                        }`}
-                                    >
-                                        Direct-to-Participant
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">Consent Framework</label>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <button 
-                                        type="button"
-                                        onClick={() => setFormData({...formData, consent_mode: 'PAPER'})}
-                                        className={`py-4 rounded-xl text-xs font-black uppercase tracking-widest border transition-all ${
-                                            formData.consent_mode === 'PAPER' 
-                                            ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30' 
-                                            : 'bg-white/5 border-white/10 text-slate-500 hover:text-white'
-                                        }`}
-                                    >
-                                        Paper Record
-                                    </button>
-                                    <button 
-                                        type="button"
-                                        onClick={() => setFormData({...formData, consent_mode: 'ECONSENT'})}
-                                        className={`py-4 rounded-xl text-xs font-black uppercase tracking-widest border transition-all ${
-                                            formData.consent_mode === 'ECONSENT' 
-                                            ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 shadow-lg' 
-                                            : 'bg-white/5 border-white/10 text-slate-500 hover:text-white'
-                                        }`}
-                                    >
-                                        eConsent (Digital)
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Section 4: Operational Dates */}
-                    <div className="bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-10 space-y-8">
-                        <div className="flex items-center gap-3 border-b border-white/5 pb-6">
-                            <Calendar className="w-6 h-6 text-amber-400" />
-                            <h3 className="text-base font-black text-white uppercase tracking-widest italic">Operational Window</h3>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">FPI (First In)</label>
-                                <input 
-                                    type="date" 
-                                    name="startDate"
-                                    value={formData.startDate}
-                                    onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white font-mono outline-none" 
-                                />
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">LPO (Last Out)</label>
-                                <input 
-                                    type="date" 
-                                    name="endDate"
-                                    value={formData.endDate}
-                                    onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white font-mono outline-none" 
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Section 5: Team Assignments */}
-                    <div className="bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-10 space-y-8">
-                        <div className="flex items-center gap-3 border-b border-white/5 pb-6">
-                            <Users className="w-6 h-6 text-indigo-400" />
-                            <h3 className="text-base font-black text-white uppercase tracking-widest italic">Clinical Supervision</h3>
-                        </div>
-
-                        <div className="space-y-6">
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">Principal Investigator</label>
-                                <select 
-                                    name="pi_id"
-                                    value={formData.pi_id}
-                                    onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xs text-white font-black uppercase tracking-widest outline-none transition-all"
-                                >
-                                    <option value="">-- Unassigned --</option>
-                                    {availablePIs.map(pi => (
-                                        <option key={pi.id} value={pi.id}>{pi.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-4">Lead Site Coordinator</label>
-                                <select 
-                                    name="coordinator_id"
-                                    value={formData.coordinator_id}
-                                    onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xs text-white font-black uppercase tracking-widest outline-none transition-all"
-                                >
-                                    <option value="">-- Unassigned --</option>
-                                    {availableCoordinators.map(c => (
-                                        <option key={c.id} value={c.id}>{c.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </motion.div>
+        </div>
     );
-}
+};
+
+const LaunchStudyForm = React.memo(LaunchStudyFormRoot);
+export default LaunchStudyForm;

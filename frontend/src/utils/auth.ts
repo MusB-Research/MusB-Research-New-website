@@ -7,89 +7,107 @@
 
 const API = import.meta.env.VITE_API_URL || '';
 
-/** Role is stored in sessionStorage (not sensitive — it's in the JWT payload too). */
-export const getToken = () => sessionStorage.getItem('access') || localStorage.getItem('access') || localStorage.getItem('token');
-export const getRole = () => sessionStorage.getItem('role') || localStorage.getItem('role');
+/** 
+ * getToken is now VOLATILE.
+ * We use sessionStorage exclusively so that closing the tab 
+ * or "cutting" the session automatically clears the token.
+ */
+export const getToken = () => sessionStorage.getItem('access');
+export const getRole = () => (sessionStorage.getItem('role') || '').toUpperCase();
 
-/** Keep the user object in sessionStorage for quick access. */
+/** Keep the user object in sessionStorage ONLY. */
 export const getUser = () => {
     try {
-        const raw = sessionStorage.getItem('user') || localStorage.getItem('user');
+        const raw = sessionStorage.getItem('user');
         return raw ? JSON.parse(raw) : null;
     } catch { return null; }
 };
 
 /**
- * Called after a successful login/google-login/refresh response.
- * Tokens are already in HttpOnly cookies set by the server.
- * We only store non-sensitive session info here.
+ * Called after a successful login. 
+ * We use sessionStorage to ensure the session dies with the tab.
  */
 export const saveToken = (token: string, role: string, modules?: string) => {
-    // Store token for use in Authorization header fallback (when cookies are blocked)
+    // Clear any persistent keys to enforce new session-only rule
+    localStorage.clear(); 
+    
     if (token) {
-        localStorage.setItem('access', token);
         sessionStorage.setItem('access', token);
     }
+    
     sessionStorage.setItem('role', role);
-    localStorage.setItem('role', role);
     if (modules) sessionStorage.setItem('modules', modules);
 };
 
-export const saveUser = (user: Record<string, unknown>) => {
-    sessionStorage.setItem('user', JSON.stringify(user));
+export const saveUser = (user: any) => {
+    const userStr = JSON.stringify(user);
+    sessionStorage.setItem('user', userStr);
+    window.dispatchEvent(new Event('storage'));
 };
 
 export const clearToken = async () => {
-    // Fix #4 — call /logout/ so backend blacklists the JTI
     try {
         await fetch(`${API}/api/auth/logout/`, {
             method: 'POST',
-            credentials: 'include',  // sends the HttpOnly cookie
+            credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
         });
-    } catch { /* ignore network errors on logout */ }
+    } catch (e) { console.warn("Logout ping failed", e); }
+
     sessionStorage.clear();
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    localStorage.removeItem('modules');
-    localStorage.removeItem('user');
-    localStorage.removeItem('access');
-    localStorage.removeItem('refresh');
+    localStorage.clear();
+
+    // Clear session cookies
+    document.cookie = "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+    document.cookie = "refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
 };
 
-/** True if the user has an active session (checks sessionStorage role as proxy). */
+export const performLogout = async () => {
+    const role = getRole();
+    await clearToken();
+    if (role === 'SUPER_ADMIN') {
+        window.location.href = '/mainframe/restricted-auth';
+    } else {
+        window.location.href = '/signin';
+    }
+};
+
 export const isLoggedIn = () => !!getRole();
 
 export const redirectToLogin = () => {
-    window.location.href = '/signin';
+    if (window.location.pathname.startsWith('/mainframe') || window.location.pathname.includes('/super-admin')) {
+        window.location.href = '/mainframe/restricted-auth';
+    } else {
+        window.location.href = '/signin';
+    }
 };
 
-/**
- * Authenticated fetch — attaches HttpOnly cookies automatically via credentials:'include'.
- * Falls back to Bearer token from localStorage for backward compatibility.
- */
 export const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
-    const token = sessionStorage.getItem('access') || localStorage.getItem('access');
+    const token = getToken();
     const authHeaders: Record<string, string> = {
-        'Content-Type': 'application/json',
         ...options.headers as Record<string, string>,
     };
     
+    if (!(options.body instanceof FormData) && !authHeaders['Content-Type']) {
+        authHeaders['Content-Type'] = 'application/json';
+    }
+    
+    // Attach Bearer token ONLY if it exists locally. 
+    // If not, we rely entirely on the HttpOnly cookie attached via credentials:'include'.
     if (token && !authHeaders['Authorization']) {
         authHeaders['Authorization'] = `Bearer ${token}`;
     }
 
     const response = await fetch(url, {
         ...options,
-        credentials: 'include',   // Fix #1 — send HttpOnly cookies
+        credentials: 'include',
         headers: authHeaders,
     });
 
-    // Fix #2 — If 401 or 403, attempt token refresh then retry once
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
         const refreshed = await attemptTokenRefresh();
         if (refreshed) {
-            const newToken = localStorage.getItem('access') || sessionStorage.getItem('access');
+            const newToken = getToken();
             if (newToken) authHeaders['Authorization'] = `Bearer ${newToken}`;
             
             return fetch(url, {
@@ -98,7 +116,6 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
                 headers: authHeaders,
             });
         }
-        // Refresh failed — clear and redirect to login
         await clearToken();
         redirectToLogin();
     }
@@ -106,7 +123,6 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
     return response;
 };
 
-/** Attempt to refresh the access token using the refresh token cookie. */
 export const attemptTokenRefresh = async (): Promise<boolean> => {
     try {
         const res = await fetch(`${API}/api/auth/refresh/`, {

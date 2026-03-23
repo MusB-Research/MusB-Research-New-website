@@ -13,12 +13,14 @@ from .serializers import (
 
 class ContactPageSettingsView(generics.RetrieveAPIView):
     serializer_class = ContactPageSettingsSerializer
+    permission_classes = [permissions.AllowAny]
     
     def get_object(self):
         return ContactPageSettings.load()
 
 class ContactFormConfigView(generics.RetrieveAPIView):
     serializer_class = ContactFormConfigurationSerializer
+    permission_classes = [permissions.AllowAny]
     
     def get_object(self):
         return ContactFormConfiguration.load()
@@ -26,6 +28,7 @@ class ContactFormConfigView(generics.RetrieveAPIView):
 class InquiryTypeListView(generics.ListAPIView):
     queryset = InquiryType.objects.filter(is_active=True)
     serializer_class = InquiryTypeSerializer
+    permission_classes = [permissions.AllowAny]
 
 import resend
 import os

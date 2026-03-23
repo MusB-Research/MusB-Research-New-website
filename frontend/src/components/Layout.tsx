@@ -36,7 +36,7 @@ export default function Layout({ children }: LayoutProps) {
         userRole === 'SUPER_ADMIN' ? '/dashboard/super-admin'
             : userRole === 'ADMIN' ? '/dashboard/admin'
                 : userRole === 'PARTICIPANT' ? '/dashboard/participant'
-                    : userRole === 'PI' ? '/dashboard/pi'
+                    : (userRole === 'PI' || userRole === 'COORDINATOR' || userRole === 'ONSITE') ? '/dashboard/pi'
                         : userRole === 'SPONSOR' ? '/dashboard/sponsor'
                             : '/dashboard';
 
@@ -102,6 +102,16 @@ export default function Layout({ children }: LayoutProps) {
         }
     }, [location]);
 
+    const [isScrolled, setIsScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setIsScrolled(window.scrollY > 20);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
     const isDashboard = location.pathname.startsWith('/dashboard');
     if (isDashboard) {
         return <>{children}</>;
@@ -109,23 +119,21 @@ export default function Layout({ children }: LayoutProps) {
 
     return (
         <div className="min-h-screen flex flex-col font-sans text-slate-100 relative">
-            {/* Animated Mesh Background */}
-            <AnimatedBackground />
-
             {/* Sticky Header */}
-            <header className="fixed top-0 left-0 right-0 z-50 glass-nav h-20 md:h-24 transition-all duration-500">
-                <div className="max-w-[1800px] mx-auto px-4 md:px-6 2xl:px-12 h-full flex items-center justify-between gap-4 xl:gap-8">
-                    {/* Logo - Acts as Home button opening in new tab */}
-                    <a
-                        href="/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-shrink-0 flex items-center gap-4 group"
-                    >
-                        <div className="h-16 md:h-[4.5rem] bg-black backdrop-blur-md rounded-2xl shadow-xl border border-black group-hover:scale-105 transition-all duration-300 flex items-center justify-center overflow-hidden">
-                            <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain brightness-100" />
-                        </div>
-                    </a>
+            <header className="fixed top-0 left-0 right-0 z-50 h-20 md:h-24 bg-white/95 backdrop-blur-md border-b border-slate-200">
+                <div className="w-full h-full">
+                    <nav className="h-full flex items-center justify-between px-6 md:px-12">
+                        {/* Logo - Acts as Home button opening in new tab */}
+                        <Link
+                            to="/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-shrink-0 flex items-center group py-2"
+                        >
+                            <div className="h-11 md:h-16 bg-white rounded-xl md:rounded-2xl border border-slate-200/80 flex items-center justify-center overflow-hidden px-3 md:px-2 shadow-sm hover:scale-105 hover:shadow-md transition-all duration-300">
+                                <img src="/logo.jpg" alt="MusB™ Research" className="h-[90%] w-auto object-contain brightness-100" />
+                            </div>
+                        </Link>
 
                     {/* Right-aligned Navigation Group */}
                     <div className="hidden xl:flex items-center gap-4 2xl:gap-12 ml-auto">
@@ -158,35 +166,16 @@ export default function Layout({ children }: LayoutProps) {
                                         </Link>
                                     )}
 
-                                    {/* Dropdown Menu */}
-                                    {item.children && (
-                                        <div className={`absolute top-full left-1/2 -translate-x-1/2 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200 p-2 transition-all duration-300 transform origin-top ${openDropdown === item.label ? 'opacity-100 scale-100 pointer-events-auto translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-2'
-                                            }`}>
-                                            <div className="space-y-1">
-                                                {item.children.map((child) => (
-                                                    <Link
-                                                        key={child.path + child.label}
-                                                        to={child.path}
-                                                        onClick={() => setOpenDropdown(null)}
-                                                        className="block px-5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-cyan-600 transition-all"
-                                                    >
-                                                        {child.label}
-                                                    </Link>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </nav>
-
-                        {/* CTA Buttons */}
-                        <div className="flex items-center gap-2 2xl:gap-4">
-                            {isTrialsPage ? (
-                                <>
-                                    <Link
-                                        to="/trials#current-studies"
-                                        className="bg-cyan-500 text-slate-900 px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-white hover:-translate-y-0.5 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
+                        {/* Right-aligned Navigation Group */}
+                        <div className="hidden xl:flex items-center gap-4 2xl:gap-12 ml-auto">
+                            {/* Desktop Navigation Links */}
+                            <div className="flex items-center gap-3 2xl:gap-8">
+                                {navItems.map((item) => (
+                                    <div
+                                        key={item.label}
+                                        className="relative group/nav"
+                                        onMouseEnter={() => item.children && setOpenDropdown(item.label)}
+                                        onMouseLeave={() => setOpenDropdown(null)}
                                     >
                                         Check Eligibility
                                         <ArrowRight className="w-4 h-4" />
@@ -261,103 +250,242 @@ export default function Layout({ children }: LayoutProps) {
                                         <div className="space-y-1">
                                             <div className="px-4 py-3 text-xs font-black uppercase tracking-[0.2em] text-cyan-600/60 mt-4 first:mt-0">
                                                 {item.label}
+                                                <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${openDropdown === item.label ? 'rotate-180' : ''}`} />
+                                                <span className={`absolute bottom-6 left-0 w-full h-0.5 bg-cyan-600 transform origin-left transition-transform duration-300 ${openDropdown === item.label ? 'scale-x-100' : 'scale-x-0 group-hover/nav:scale-x-100'}`}></span>
                                             </div>
-                                            {item.children.map((child) => (
-                                                <Link
-                                                    key={child.path + child.label}
-                                                    to={child.path}
-                                                    onClick={() => setIsMenuOpen(false)}
-                                                    className={`block p-4 rounded-xl text-base font-bold uppercase tracking-widest border border-transparent ${location.pathname === child.path
-                                                        ? 'bg-slate-100 text-cyan-600 border-slate-200'
-                                                        : 'text-slate-700 hover:bg-slate-50'
-                                                        }`}
-                                                >
-                                                    {child.label}
-                                                </Link>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <Link
-                                            to={item.path}
-                                            onClick={() => setIsMenuOpen(false)}
-                                            className={`block p-4 rounded-xl text-base font-bold uppercase tracking-widest border border-transparent ${location.pathname === item.path
-                                                ? 'bg-slate-100 text-cyan-600 border-slate-200'
-                                                : 'text-slate-700 hover:bg-slate-50'
-                                                }`}
-                                        >
-                                            {item.label}
-                                        </Link>
-                                    )}
-                                </div>
-                            ))}
-                            <div className="pt-6 space-y-3">
+                                        ) : (
+                                            <Link
+                                                to={item.path}
+                                                className={`text-[11px] font-black tracking-[0.12em] uppercase transition-colors hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 whitespace-nowrap ${location.pathname === item.path ? 'text-cyan-600' : 'text-slate-900'}`}
+                                            >
+                                                {item.label}
+                                                {item.children && <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${openDropdown === item.label ? 'rotate-180' : ''}`} />}
+                                                <span className={`absolute bottom-6 left-0 w-full h-0.5 bg-cyan-600 transform origin-left transition-transform duration-300 ${location.pathname === item.path ? 'scale-x-100' : 'scale-x-0 group-hover/nav:scale-x-100'}`}></span>
+                                            </Link>
+                                        )}
+
+                                        {/* Dropdown Menu */}
+                                        {item.children && (
+                                            <div className={`absolute top-full left-1/2 -translate-x-1/2 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200 p-2 transition-all duration-300 transform origin-top ${openDropdown === item.label ? 'opacity-100 scale-100 pointer-events-auto translate-y-0' : 'opacity-0 scale-95 pointer-events-none -translate-y-2'
+                                                }`}>
+                                                <div className="space-y-1">
+                                                    {item.children.map((child) => (
+                                                        <Link
+                                                            key={child.path + child.label}
+                                                            to={child.path}
+                                                            onClick={() => setOpenDropdown(null)}
+                                                            className="block px-5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-cyan-600 transition-all"
+                                                        >
+                                                            {child.label}
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* CTA Buttons */}
+                            <div className="flex items-center gap-2 2xl:gap-4">
                                 {isTrialsPage ? (
                                     <>
                                         <Link
                                             to="/trials#current-studies"
-                                            onClick={() => setIsMenuOpen(false)}
-                                            className="block w-full text-center bg-cyan-500 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2"
+                                            className="bg-cyan-500 text-slate-900 px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-white hover:-translate-y-0.5 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
                                         >
                                             Check Eligibility
                                             <ArrowRight className="w-4 h-4" />
                                         </Link>
+                                        <a
+                                            href="tel:+18134190781"
+                                            className="border-2 border-slate-200 text-slate-900 px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-slate-900 hover:text-white transition-all backdrop-blur-md whitespace-nowrap"
+                                        >
+                                            Call / Text Us
+                                        </a>
                                     </>
                                 ) : (
                                     <>
-
                                         <Link
                                             to="/trials"
-                                            onClick={() => setIsMenuOpen(false)}
-                                            className="block w-full text-center bg-cyan-500 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2"
+                                            className="bg-cyan-500 text-slate-900 px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-white hover:-translate-y-0.5 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
                                         >
-                                            Join Study
+                                            Join a Study
                                             <ArrowRight className="w-4 h-4" />
                                         </Link>
+
                                     </>
                                 )}
                                 {!isLoggedIn() ? (
                                     <button
                                         onClick={redirectToLogin}
-                                        className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-cyan-500 hover:text-slate-900 transition-all flex items-center justify-center gap-2"
+                                        className="bg-slate-900 text-white px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-cyan-600 transition-all shadow-md flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
                                     >
-                                        <LogIn className="w-5 h-5" />
+                                        <LogIn className="w-4 h-4" />
                                         Sign In
                                     </button>
                                 ) : (
-                                    <div className="space-y-3">
+                                    <>
                                         <Link
                                             to={dashboardLink}
-                                            onClick={() => setIsMenuOpen(false)}
-                                            className="w-full flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-200 transition-all hover:bg-slate-100"
+                                            className="flex items-center gap-2 group ml-2 md:ml-4"
                                         >
-                                            <div className="w-12 h-12 rounded-2xl border-2 border-cyan-400 overflow-hidden flex items-center justify-center bg-white shrink-0 shadow-sm">
+                                            <div className="text-right hidden sm:flex flex-col justify-center">
+                                                <div className="text-[10px] font-black uppercase tracking-[0.05em] leading-tight text-slate-900">DASHBOARD</div>
+                                                <div className="text-[#00d8ff] text-[18px] font-black leading-tight tracking-tight group-hover:text-[#00c4e8] transition-colors">{userName}</div>
+                                            </div>
+                                            <div className="w-[42px] h-[42px] rounded-[14px] border-[2px] border-[#00d8ff] overflow-hidden flex items-center justify-center bg-white shadow-sm group-hover:scale-105 transition-transform shrink-0">
                                                 {userObj?.profile_image ? (
                                                     <img src={userObj.profile_image} alt={userName} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <User className="w-6 h-6 text-cyan-500" />
+                                                    <User className="w-[22px] h-[22px] text-[#00d8ff]" strokeWidth={2.5} />
                                                 )}
-                                            </div>
-                                            <div className="flex-1 text-left">
-                                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 leading-none mb-1">DASHBOARD</div>
-                                                <div className="text-cyan-500 text-base font-black capitalize leading-none">{userName}</div>
-                                            </div>
-                                            <div className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
-                                                <ArrowRight className="w-4 h-4" />
                                             </div>
                                         </Link>
                                         <button
-                                            onClick={() => { clearToken(); window.location.href = "/"; }}
-                                            className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl border-2 border-slate-200 text-slate-600 font-black text-sm uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all shadow-sm group"
+                                            onClick={async () => { await performLogout(); }}
+                                            className="w-[42px] h-[42px] rounded-full border-[1.5px] border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50 transition-all shrink-0 ml-1 md:ml-3"
+                                            title="Logout"
                                         >
-                                            <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                            Logout
+                                            <LogOut className="w-[20px] h-[20px] translate-x-[1.5px]" strokeWidth={2} />
                                         </button>
-                                    </div>
+                                    </>
                                 )}
                             </div>
                         </div>
-                    </div>
-                )}
+
+                        {/* Mobile Menu Toggle */}
+                        <button
+                            className="xl:hidden p-2 md:p-3 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100 transition-all flex items-center justify-center"
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        >
+                            {isMenuOpen ? <X className="w-5 h-5 md:w-6 md:h-6" /> : <Menu className="w-5 h-5 md:w-6 md:h-6" />}
+                        </button>
+
+                    </nav>
+                </div>
+
+                {/* Mobile Menu */}
+                <AnimatePresence>
+                    {isMenuOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="xl:hidden absolute top-full left-4 right-4 md:left-6 md:right-6 bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl z-40 overflow-hidden border border-slate-200 max-h-[calc(100vh-6rem)] overflow-y-auto mt-4"
+                        >
+                            <div className="p-4 space-y-2">
+                                {navItems.map((item) => (
+                                    <div key={item.label}>
+                                        {item.children ? (
+                                            <div className="space-y-1">
+                                                <div className="px-4 py-3 text-xs font-black uppercase tracking-[0.2em] text-cyan-600/60 mt-4 first:mt-0">
+                                                    {item.label}
+                                                </div>
+                                                {item.children.map((child) => (
+                                                    <Link
+                                                        key={child.path + child.label}
+                                                        to={child.path}
+                                                        onClick={() => setIsMenuOpen(false)}
+                                                        className={`block p-4 rounded-xl text-base font-bold uppercase tracking-widest border border-transparent ${location.pathname === child.path
+                                                            ? 'bg-slate-100 text-cyan-600 border-slate-200'
+                                                            : 'text-slate-700 hover:bg-slate-50'
+                                                            }`}
+                                                    >
+                                                        {child.label}
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <Link
+                                                to={item.path}
+                                                onClick={() => setIsMenuOpen(false)}
+                                                className={`block p-4 rounded-xl text-base font-bold uppercase tracking-widest border border-transparent ${location.pathname === item.path
+                                                    ? 'bg-slate-100 text-cyan-600 border-slate-200'
+                                                    : 'text-slate-700 hover:bg-slate-50'
+                                                    }`}
+                                            >
+                                                {item.label}
+                                            </Link>
+                                        )}
+                                    </div>
+                                ))}
+                                <div className="pt-6 space-y-3">
+                                    {isTrialsPage ? (
+                                        <>
+                                            <a
+                                                href="tel:+18134190781"
+                                                onClick={() => setIsMenuOpen(false)}
+                                                className="block w-full text-center border-2 border-slate-200 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all"
+                                            >
+                                                Call / Text Us
+                                            </a>
+                                            <Link
+                                                to="/trials#current-studies"
+                                                onClick={() => setIsMenuOpen(false)}
+                                                className="block w-full text-center bg-cyan-500 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2"
+                                            >
+                                                Check Eligibility
+                                                <ArrowRight className="w-4 h-4" />
+                                            </Link>
+                                        </>
+                                    ) : (
+                                        <>
+
+                                            <Link
+                                                to="/trials"
+                                                onClick={() => setIsMenuOpen(false)}
+                                                className="block w-full text-center bg-cyan-500 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2"
+                                            >
+                                                Join Study
+                                                <ArrowRight className="w-4 h-4" />
+                                            </Link>
+                                        </>
+                                    )}
+                                    {!isLoggedIn() ? (
+                                        <button
+                                            onClick={redirectToLogin}
+                                            className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-cyan-500 hover:text-slate-900 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <LogIn className="w-5 h-5" />
+                                            Sign In
+                                        </button>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <Link
+                                                to={dashboardLink}
+                                                onClick={() => setIsMenuOpen(false)}
+                                                className="w-full flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-200 transition-all hover:bg-slate-100"
+                                            >
+                                                <div className="w-12 h-12 rounded-2xl border-2 border-cyan-400 overflow-hidden flex items-center justify-center bg-white shrink-0 shadow-sm">
+                                                    {userObj?.profile_image ? (
+                                                        <img src={userObj.profile_image} alt={userName} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <User className="w-6 h-6 text-cyan-500" />
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 text-left">
+                                                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 leading-none mb-1">DASHBOARD</div>
+                                                    <div className="text-cyan-500 text-base font-black capitalize leading-none">{userName}</div>
+                                                </div>
+                                                <div className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
+                                                    <ArrowRight className="w-4 h-4" />
+                                                </div>
+                                            </Link>
+                                            <button
+                                                onClick={async () => { await performLogout(); }}
+                                                className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl border-2 border-slate-200 text-slate-600 font-black text-sm uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all shadow-sm group"
+                                            >
+                                                <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                                Logout
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </header>
 
             {/* Main Content */}
@@ -372,7 +500,7 @@ export default function Layout({ children }: LayoutProps) {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-x-6 gap-y-16 mb-20">
                         {/* Branding & Contact */}
                         <div className="lg:col-span-3 space-y-10">
-                            <Link to="/" className="inline-block group">
+                            <Link to="/" target="_blank" rel="noopener noreferrer" className="inline-block group">
                                 <div className="h-24 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 group-hover:border-cyan-500/30 transition-all duration-500 flex items-center justify-center shadow-2xl overflow-hidden">
                                     <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain brightness-110 contrast-125" />
                                 </div>

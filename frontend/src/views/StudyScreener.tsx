@@ -66,8 +66,13 @@ export default function StudyScreener() {
                     const formRes = await authFetch(`${apiUrl}/api/forms/?study_id=${data.id}`);
                     if (formRes.ok) {
                         const forms = await formRes.json();
-                        if (forms.length > 0) {
-                            setDynamicForm(forms[0]);
+                        // Filter for correct title and sort by most recent to ensure we don't load zombie/duplicate forms
+                        const relevantForm = forms
+                            .filter((f: any) => f.title === 'Screener Form')
+                            .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+                        
+                        if (relevantForm) {
+                            setDynamicForm(relevantForm);
                         }
                     }
                 } else {
@@ -145,7 +150,11 @@ export default function StudyScreener() {
         }
         if (step === 'STEP2') {
             if (dynamicForm) {
-                return dynamicForm.schema.questions?.every((q: any) => !!formData[q.key]) ?? true;
+                const questions = Array.isArray(dynamicForm.schema) ? dynamicForm.schema : (dynamicForm.schema.questions || []);
+                return questions.every((q: any) => {
+                    if (!q.required) return true;
+                    return !!formData[q.id || q.key];
+                });
             } else {
                 return formData.trialsInLast30Days && formData.healthConditions.length > 0;
             }
@@ -207,8 +216,8 @@ export default function StudyScreener() {
         if (ageNum < 18 || !formData.location) {
             finalOutcome = 'NOT_ELIGIBLE';
         } else if (dynamicForm) {
-            const questions = dynamicForm.schema.questions || [];
-            if (questions.some((q: any) => formData[q.key] === '')) {
+            const questions = Array.isArray(dynamicForm.schema) ? dynamicForm.schema : (dynamicForm.schema.questions || []);
+            if (questions.some((q: any) => q.required && !formData[q.id || q.key])) {
                 finalOutcome = 'MAYBE';
             }
         } else {
@@ -339,34 +348,71 @@ export default function StudyScreener() {
                                         {step === 'STEP2' && (
                                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
                                                 {dynamicForm ? (
-                                                    <div className="space-y-6">
-                                                        <p className="text-sm text-slate-400 font-medium leading-relaxed italic border-l-2 border-cyan-500 pl-4 bg-cyan-500/5 py-4 rounded-r-xl mb-8">
-                                                            This study uses a custom research protocol questionnaire.
-                                                        </p>
-                                                        <div className="space-y-6">
-                                                            {dynamicForm.schema.questions?.map((q: any, i: number) => (
-                                                                <div key={i} className="space-y-3">
-                                                                    <label className={`text-sm font-black uppercase tracking-widest transition-colors ${isFieldMissing(q.key) ? 'text-red-500' : 'text-slate-300'}`}>{q.label}</label>
-                                                                    {q.type === 'text' && (
-                                                                        <input
-                                                                            type="text"
-                                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isFieldMissing(q.key) ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
-                                                                            value={formData[q.key] || ''}
-                                                                            onChange={(e) => setFormData({ ...formData, [q.key]: e.target.value })}
-                                                                        />
-                                                                    )}
-                                                                    {q.type === 'select' && (
-                                                                        <select
-                                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none appearance-none transition-all ${isFieldMissing(q.key) ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
-                                                                            value={formData[q.key] || ''}
-                                                                            onChange={(e) => setFormData({ ...formData, [q.key]: e.target.value })}
-                                                                        >
-                                                                            <option value="">Select...</option>
-                                                                            {q.options?.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                                                        </select>
-                                                                    )}
-                                                                </div>
-                                                            ))}
+                                                    <div className="space-y-8">
+                                                        <div className="flex items-center gap-4 text-sm text-cyan-400 font-bold uppercase tracking-[0.2em] bg-cyan-500/5 py-4 px-6 rounded-2xl border border-cyan-500/20 mb-10">
+                                                            <Clock className="w-5 h-5" /> Protocol Synchronization Active
+                                                        </div>
+                                                        <div className="space-y-12">
+                                                            {(Array.isArray(dynamicForm.schema) ? dynamicForm.schema : (dynamicForm.schema.questions || [])).map((q: any, i: number) => {
+                                                                const fieldId = q.id || q.key;
+                                                                const isMissing = q.required && isAttemptingSubmit && !formData[fieldId];
+
+                                                                return (
+                                                                    <div key={i} className="space-y-4">
+                                                                        <label className={`text-sm font-black uppercase tracking-widest transition-colors flex items-center gap-3 ${isMissing ? 'text-red-500' : 'text-slate-300'}`}>
+                                                                            {q.label}
+                                                                            {q.required && <span className="text-cyan-500 text-[10px]">*</span>}
+                                                                        </label>
+                                                                        
+                                                                        {(q.type === 'text' || q.type === 'file') && (
+                                                                            <input
+                                                                                type={q.type === 'text' ? "text" : "file"}
+                                                                                placeholder="Enter response..."
+                                                                                className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isMissing ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
+                                                                                value={q.type === 'text' ? (formData[fieldId] || '') : undefined}
+                                                                                onChange={(e) => setFormData({ ...formData, [fieldId]: e.target.value })}
+                                                                            />
+                                                                        )}
+
+                                                                        {q.type === 'date' && (
+                                                                            <input
+                                                                                type="date"
+                                                                                className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isMissing ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
+                                                                                value={formData[fieldId] || ''}
+                                                                                onChange={(e) => setFormData({ ...formData, [fieldId]: e.target.value })}
+                                                                            />
+                                                                        )}
+
+                                                                        {q.type === 'yesno' && (
+                                                                            <div className="flex gap-4">
+                                                                                {['Yes', 'No'].map(opt => (
+                                                                                    <button
+                                                                                        key={opt}
+                                                                                        onClick={() => setFormData({ ...formData, [fieldId]: opt })}
+                                                                                        className={`flex-1 py-5 rounded-2xl border text-xs font-black uppercase tracking-widest transition-all ${formData[fieldId] === opt ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-white/5 border-white/10 text-slate-500 hover:border-white/30'}`}
+                                                                                    >
+                                                                                        {opt}
+                                                                                    </button>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+
+                                                                        {(q.type === 'choice' || q.type === 'dropdown') && (
+                                                                            <div className="grid grid-cols-1 gap-3">
+                                                                                {(q.options || ['Option 1', 'Option 2']).map((opt: string) => (
+                                                                                    <button
+                                                                                        key={opt}
+                                                                                        onClick={() => setFormData({ ...formData, [fieldId]: opt })}
+                                                                                        className={`w-full p-5 rounded-2xl border text-left text-xs font-black uppercase tracking-widest transition-all ${formData[fieldId] === opt ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-400' : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'}`}
+                                                                                    >
+                                                                                        {opt}
+                                                                                    </button>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })}
                                                         </div>
                                                     </div>
                                                 ) : (

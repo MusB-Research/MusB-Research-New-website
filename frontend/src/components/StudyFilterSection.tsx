@@ -80,11 +80,13 @@ export default function StudyFilterSection() {
                 </div>
 
                 {/* Study Cards Grid */}
-                <div className="grid md:grid-cols-3 gap-8 mb-16 min-h-[400px]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8 mb-16 min-h-[400px]">
+
                     {isLoading ? (
-                        <div className="col-span-3 flex items-center justify-center py-20">
+                        <div className="col-span-1 sm:col-span-2 xl:col-span-3 flex items-center justify-center py-20">
                             <div className="w-12 h-12 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin"></div>
                         </div>
+
                     ) : displayedStudies.length > 0 ? (
                         displayedStudies.map((study) => (
                             <div key={study.id} className="group relative bg-white/5 backdrop-blur-xl rounded-[3rem] p-10 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.7)] hover:shadow-[0_50px_100px_-20px_rgba(6,182,212,0.25)] hover:bg-white/10 border border-white/5 transition-all duration-500 flex flex-col items-start gap-8">
@@ -137,7 +139,8 @@ export default function StudyFilterSection() {
                             </div>
                         ))
                     ) : (
-                        <div className="col-span-3 py-20 text-center space-y-4">
+                        <div className="col-span-1 sm:col-span-2 xl:col-span-3 py-20 text-center space-y-4">
+
                             <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mx-auto text-slate-500 mb-4 border border-white/5">
                                 <Search className="w-10 h-10" />
                             </div>

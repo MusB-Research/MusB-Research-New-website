@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, User, ShieldCheck, ArrowRight, Lock, Key, CheckCircle2, AlertCircle, ChevronLeft, LogIn, PhoneCall } from 'lucide-react';
+import { Mail, User, ShieldCheck, ArrowRight, Lock, Key, CheckCircle2, AlertCircle, ChevronLeft, LogIn, PhoneCall, Eye, EyeOff } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { Link, useNavigate } from 'react-router-dom';
-import { saveToken } from '../../utils/auth';
+import { saveToken, saveUser } from '../../utils/auth';
 
 type AuthMode = 'LOGIN' | 'REGISTER' | 'FORGOT';
 type AuthStep = 'INFO' | 'OTP' | 'PASSWORD' | 'SUCCESS';
@@ -24,6 +24,8 @@ export default function SignIn() {
     const [phoneOtp, setPhoneOtp] = useState(['', '', '', '', '', '']);
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [captchaToken, setCaptchaToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -193,10 +195,14 @@ export default function SignIn() {
         setError(null);
         try {
             console.log("Google response received, verifying with backend...");
+            const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/google-login/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ credential: response.credential }),
+                body: JSON.stringify({ 
+                    credential: response.credential,
+                    timezone: detectedTimezone 
+                }),
                 credentials: 'include'
             });
             const data = await res.json();
@@ -204,8 +210,13 @@ export default function SignIn() {
 
 
 
-            saveToken(data.access, data.user.role);
-            localStorage.setItem('user', JSON.stringify(data.user));
+            const userRole = (data.user.role || '').toUpperCase();
+            if (userRole === 'SUPER_ADMIN') {
+                 throw new Error('RESTRICTED_ACCESS: Super Admin accounts must use the Restricted Portal for login.');
+            }
+
+            saveToken(data.access, userRole);
+            saveUser(data.user);
 
             if (data.user.must_reset) {
                 navigate('/auth/reset-forced');
@@ -331,10 +342,11 @@ export default function SignIn() {
         setIsLoading(true);
         setError(null);
         try {
+            const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ email, password, timezone: detectedTimezone }),
                 credentials: 'include'
             });
 
@@ -349,12 +361,14 @@ export default function SignIn() {
             if (!response.ok) throw new Error(data.error || 'Login failed');
 
             // RBAC Redirection Logic
-            const userRole = data.user.role;
+            const userRole = (data.user.role || '').toUpperCase();
 
-
+            if (userRole === 'SUPER_ADMIN') {
+                throw new Error('RESTRICTED_ACCESS: Please use the dedicated Admin Portal for Super Admin login.');
+            }
 
             saveToken(data.access, userRole);
-            localStorage.setItem('user', JSON.stringify(data.user));
+            saveUser(data.user);
 
             if (data.user.must_reset) {
                 navigate('/auth/reset-forced');
@@ -366,6 +380,7 @@ export default function SignIn() {
             }
 
             switch (userRole) {
+                case 'SUPER_ADMIN': navigate('/dashboard/super-admin'); break;
                 case 'ADMIN':
                 case 'COORDINATOR': navigate('/dashboard/admin'); break;
                 case 'SPONSOR': navigate('/dashboard/sponsor'); break;
@@ -441,7 +456,7 @@ export default function SignIn() {
 
                     {/* Branding Section */}
                     <div className="flex flex-col items-center mb-12 relative z-10">
-                        <Link to="/">
+                        <Link to="/" target="_blank" rel="noopener noreferrer">
                             <motion.div 
                                 whileHover={{ scale: 1.05 }}
                                 className="bg-white rounded-3xl shadow-2xl border border-white/20 mb-8 flex items-center justify-center overflow-hidden h-16 md:h-20"
@@ -449,24 +464,26 @@ export default function SignIn() {
                                 <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain" />
                             </motion.div>
                         </Link>
-                        <div className="text-center space-y-2">
+                        <div className="text-center space-y-4">
                             <AnimatePresence mode="wait">
                                 <motion.h1
                                     key={mode}
                                     initial={{ opacity: 0, y: -10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: 10 }}
-                                    className="text-4xl md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none"
+                                    className="text-5xl md:text-7xl font-black text-white italic uppercase tracking-tighter leading-[0.85] flex flex-col items-center"
                                 >
-                                    {mode === 'LOGIN' ? 'Welcome ' : 'Start '}<span className="text-cyan-400">{mode === 'LOGIN' ? 'Back' : 'Journey'}</span>
+                                    <span>{mode === 'LOGIN' ? 'Welcome' : 'Start'}</span>
+                                    <span className="text-cyan-400">{mode === 'LOGIN' ? 'Back' : 'Journey'}</span>
                                 </motion.h1>
                             </AnimatePresence>
-                            <p className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-500 flex items-center justify-center gap-2">
-                                <span className="w-1 h-1 rounded-full bg-cyan-500/50"></span>
-                                {mode === 'LOGIN' ? 'Enter your credentials to continue' : 'Participant Enrollment'}
-                                <span className="w-1 h-1 rounded-full bg-cyan-500/50"></span>
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center justify-center gap-3">
+                                <span className="w-1.5 h-[1px] bg-cyan-500/30"></span>
+                                {mode === 'LOGIN' ? 'Enter credentials to access MusB' : 'Participant Enrollment'}
+                                <span className="w-1.5 h-[1px] bg-cyan-500/30"></span>
                             </p>
                         </div>
+
                     </div>
 
                     {/* Step Progress Bar (Only for Register flow) */}
@@ -613,37 +630,47 @@ export default function SignIn() {
                                     onSubmit={handleLogin}
                                     className="space-y-6"
                                 >
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-6">Email Address</label>
-                                        <div className="relative group">
-                                            <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
-                                            <input
-                                                type="email"
-                                                required
-                                                placeholder="name@example.com"
-                                                value={email}
-                                                onChange={e => setEmail(e.target.value)}
-                                                className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-6 py-5 text-white placeholder:text-slate-700 outline-none transition-all font-bold text-sm ${isFieldMissing('email') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
-                                            />
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Email or User ID</label>
+                                            <div className="relative group">
+                                                <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    placeholder="Email or User ID"
+                                                    value={email}
+                                                    onChange={e => setEmail(e.target.value)}
+                                                    className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-6 py-5 text-white placeholder:text-slate-700 outline-none transition-all font-bold text-sm ${isFieldMissing('email') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
+                                                />
+                                            </div>
+                                        </div>
+ 
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Password</label>
+                                            <div className="relative group">
+                                                <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
+                                                <input
+                                                    type={showPassword ? "text" : "password"}
+                                                    required
+                                                    placeholder="••••••••••••"
+                                                    value={password}
+                                                    onChange={e => setPassword(e.target.value)}
+                                                    className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-14 py-5 text-white placeholder:text-slate-800 outline-none transition-all font-bold text-sm tracking-widest ${isFieldMissing('password') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPassword(!showPassword)}
+                                                    className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-cyan-400 transition-colors"
+                                                >
+                                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-6">Password</label>
-                                        <div className="relative group">
-                                            <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
-                                            <input
-                                                type="password"
-                                                required
-                                                placeholder="••••••••••••"
-                                                value={password}
-                                                onChange={e => setPassword(e.target.value)}
-                                                className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-6 py-5 text-white placeholder:text-slate-800 outline-none transition-all font-bold text-sm tracking-widest ${isFieldMissing('password') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
-                                            />
-                                        </div>
-                                    </div>
 
-                                    <div className="flex justify-end pr-4">
+                                    <div className="flex justify-end px-2">
                                         <button
                                             type="button"
                                             onClick={() => { setMode('FORGOT'); setStep('INFO'); setError(null); }}
@@ -652,6 +679,7 @@ export default function SignIn() {
                                             Forgot Password?
                                         </button>
                                     </div>
+
 
                                     <button
                                         type="submit"
@@ -787,7 +815,7 @@ export default function SignIn() {
                                                     <div className="relative group">
                                                         <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400" />
                                                         <input
-                                                            type="password"
+                                                            type={showPassword ? "text" : "password"}
                                                             required
                                                             placeholder="••••••••••••"
                                                             value={password}
@@ -795,8 +823,15 @@ export default function SignIn() {
                                                                 setPassword(e.target.value);
                                                                 validatePasswordComplexity(e.target.value);
                                                             }}
-                                                            className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-6 py-5 text-white placeholder:text-slate-800 outline-none transition-all font-bold tracking-widest text-sm ${isFieldMissing('password') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
+                                                            className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-14 py-5 text-white placeholder:text-slate-800 outline-none transition-all font-bold tracking-widest text-sm ${isFieldMissing('password') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
                                                         />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowPassword(!showPassword)}
+                                                            className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-cyan-400 transition-colors"
+                                                        >
+                                                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                                        </button>
                                                     </div>
 
                                                     {/* Strength Indicator */}
@@ -838,13 +873,20 @@ export default function SignIn() {
                                                     <div className="relative group">
                                                         <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400" />
                                                         <input
-                                                            type="password"
+                                                            type={showConfirmPassword ? "text" : "password"}
                                                             required
                                                             placeholder="••••••••••••"
                                                             value={confirmPassword}
                                                             onChange={e => setConfirmPassword(e.target.value)}
-                                                            className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-6 py-5 text-white placeholder:text-slate-800 outline-none transition-all font-bold tracking-widest text-sm ${isFieldMissing('confirmPassword') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
+                                                            className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-14 py-5 text-white placeholder:text-slate-800 outline-none transition-all font-bold tracking-widest text-sm ${isFieldMissing('confirmPassword') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
                                                         />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                            className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-cyan-400 transition-colors"
+                                                        >
+                                                            {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>

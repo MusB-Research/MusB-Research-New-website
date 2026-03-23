@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, XCircle, Clock, Search, Filter, ShieldCheck, Loader2, Megaphone, Calendar, Briefcase, Eye, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Search, Filter, ShieldCheck, Loader2, Megaphone, Calendar, Briefcase, Eye, AlertCircle, FileText, Sparkles } from 'lucide-react';
 import { authFetch } from '../../utils/auth';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export default function WorkflowModerationPanel() {
-    const [activeTab, setActiveTab] = useState<'news' | 'events' | 'studies'>('news');
+    const [activeTab, setActiveTab] = useState<'news' | 'events' | 'studies' | 'partnerships' | 'publications' | 'education'>('news');
     const [content, setContent] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState<string | null>(null);
@@ -60,6 +60,9 @@ export default function WorkflowModerationPanel() {
             case 'news': return <Megaphone className="w-4 h-4" />;
             case 'events': return <Calendar className="w-4 h-4" />;
             case 'studies': return <Briefcase className="w-4 h-4" />;
+            case 'partnerships': return <Briefcase className="w-4 h-4" />;
+            case 'publications': return <FileText className="w-4 h-4" />;
+            case 'education': return <Sparkles className="w-4 h-4" />;
             default: return <ShieldCheck className="w-4 h-4" />;
         }
     };
@@ -92,7 +95,7 @@ export default function WorkflowModerationPanel() {
             <div className="bg-[#0f1133] border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl bg-gradient-to-br from-[#0f1133] to-[#0a0b1a]">
                 {/* Tab Navigation */}
                 <div className="p-2 border-b border-white/5 bg-white/[0.02] flex flex-wrap gap-2">
-                    {['news', 'events', 'studies'].map((tab) => (
+                    {['news', 'events', 'studies', 'partnerships', 'publications', 'education'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab as any)}

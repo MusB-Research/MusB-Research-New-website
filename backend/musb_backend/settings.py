@@ -24,6 +24,19 @@ try:
 except ImportError:
     pass
 
+# Patch Django Model hash to fix "Model instances without primary key value are unhashable"
+# This is required for Django 6.x with MongoDB backends during migration/setup
+import django.db.models as django_models
+def _safe_model_hash(self):
+    pk = getattr(self, 'pk', None)
+    if pk is None:
+        return id(self)
+    try:
+        return hash(str(pk))
+    except Exception:
+        return id(self)
+django_models.Model.__hash__ = _safe_model_hash
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -54,6 +67,7 @@ INSTALLED_APPS = [
     'api',
     'contact',
     'authentication',
+    'careers',
 ]
 
 AUTH_USER_MODEL = 'authentication.User'
@@ -68,6 +82,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'authentication.middleware.OnboardingEnforcementMiddleware',
 ]
 
 ROOT_URLCONF = 'musb_backend.urls'
@@ -98,11 +113,8 @@ import certifi
 DATABASES = {
     'default': {
         'ENGINE': 'django_mongodb_backend',
-        'HOST': os.getenv('MONGO_URI', 'mongodb://localhost:27017/musb_research'),
+        'HOST': os.getenv('MONGO_URI'),
         'NAME': 'musb_research',
-        'OPTIONS': {
-            'tlsCAFile': certifi.where(),
-        },
     }
 }
 
@@ -129,6 +141,11 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'authentication.backends.DualAuthBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
@@ -147,6 +164,8 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
@@ -165,17 +184,20 @@ CORS_ALLOW_CREDENTIALS = True
 BASE_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
 if DEBUG:
-    CORS_ALLOWED_ORIGINS = BASE_ORIGINS
+    CORS_ALLOW_ALL_ORIGINS = True
     CSRF_TRUSTED_ORIGINS = BASE_ORIGINS
+    # Ensure local development uses the correct Vite port
+    FRONTEND_URL = os.getenv('FRONTEND_URL', "http://localhost:5173")
 else:
+    # PRODUCTION: Strictly pull from environment or default to primary domain
     CORS_ALLOWED_ORIGINS = os.getenv(
         'CORS_ALLOWED_ORIGINS',
-        'http://localhost:3000,https://musbresearchnewwebsite.vercel.app,https://musbhealth.com,https://www.musbhealth.com,https://musb-research-new-website.onrender.com,https://musb-backend.onrender.com'
+        'https://musbhealth.com,https://www.musbhealth.com,https://musbresearchnewwebsite.vercel.app,https://musb-research-new-website.onrender.com,https://musb-backend.onrender.com'
     ).split(',')
-    CSRF_TRUSTED_ORIGINS = os.getenv(
-        'CSRF_TRUSTED_ORIGINS',
-        'https://musbresearchnewwebsite.vercel.app,https://musbhealth.com,https://www.musbhealth.com,https://musb-research-new-website.onrender.com,https://musb-backend.onrender.com'
-    ).split(',')
+    CSRF_TRUSTED_ORIGINS = [o for o in CORS_ALLOWED_ORIGINS]
+    
+    # Use the primary website domain for emails/links if FRONTEND_URL environment variable is missing
+    FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://musbhealth.com')
 
 CORS_ALLOW_HEADERS = [
     "authorization",
@@ -187,16 +209,19 @@ CORS_ALLOW_HEADERS = [
 DEFAULT_AUTO_FIELD = 'django_mongodb_backend.fields.ObjectIdAutoField'
 
 # Email Settings
-if DEBUG:
+DEFAULT_FROM_EMAIL = os.getenv('ADMIN_EMAIL', 'MusB Research <noreply@musbhealth.com>')
+
+# Allow SMTP in development if configured, otherwise fallback to Console
+EMAIL_HOST = os.getenv('SMTP_HOST')
+if DEBUG and not EMAIL_HOST:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = os.getenv('EMAIL_HOST')
-    EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
-    EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS') == 'True'
-    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-    DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
+    EMAIL_HOST = EMAIL_HOST or 'smtp.gmail.com'
+    EMAIL_PORT = int(os.getenv('SMTP_PORT', 587))
+    EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
+    EMAIL_HOST_USER = os.getenv('SMTP_EMAIL')
+    EMAIL_HOST_PASSWORD = os.getenv('SMTP_PASSWORD')
 
 # Production Security Settings
 if not DEBUG:
@@ -216,6 +241,11 @@ else:
     # Development security
     CSRF_COOKIE_HTTPONLY = True
     SESSION_COOKIE_HTTPONLY = True
+    # Ensure local development allows cross-port cookies for auth
+    CSRF_COOKIE_SAMESITE = 'None'
+    SESSION_COOKIE_SAMESITE = 'None'
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False
 
 # Django REST Framework settings
 REST_FRAMEWORK = {
@@ -227,6 +257,14 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '5/minute',  # Strict limit for login attempts
+        'user': '1000/day',  # Generous limit for active PI users
+    }
 }
 
 # Essential for HttpOnly cookies

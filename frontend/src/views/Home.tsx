@@ -1407,7 +1407,8 @@ export default function Home() {
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden bg-transparent">
 
             {/* Slider Container */}
-            <div className="relative h-auto md:h-[95vh] min-h-[450px] md:min-h-[800px] w-full flex items-center overflow-hidden bg-transparent z-10">
+            <div className="relative h-auto md:h-[95vh] min-h-[600px] md:min-h-[800px] w-full flex items-center overflow-hidden bg-transparent z-10">
+
                 {/* Global Background Effect */}
                 <div className="absolute inset-0 z-0">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.12)_0%,transparent_70%)]"></div>
@@ -1434,24 +1435,29 @@ export default function Home() {
                                         <div className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-transparent to-slate-950/80"></div>
                                     </div>
 
-                                    <div className={`relative z-10 h-full max-w-[1800px] mx-auto px-6 md:px-12 w-full flex flex-col items-center justify-center pt-16 md:pt-32 transform transition-all duration-1000 ${isActive ? 'scale-100 -translate-y-8 md:-translate-y-12' : 'scale-95 translate-y-12'}`}>
+                                    <div className={`relative z-10 h-full max-w-[1800px] mx-auto px-6 md:px-12 w-full flex flex-col items-center justify-start lg:justify-center pt-36 pb-32 md:pt-32 md:pb-12 transform transition-all duration-1000 ${isActive ? 'scale-100 -translate-y-8 md:-translate-y-12' : 'scale-95 translate-y-12'}`}>
+
+
+
                                         {/* Content (Centered) */}
                                         <div className="space-y-12 flex flex-col items-center text-center">
-                                            <div className="space-y-8 max-w-5xl relative">
+                                            <div className="space-y-6 md:space-y-8 max-w-5xl relative">
                                                 <div className="animate-fade-in-up">
-                                                    <span className="text-[13px] md:text-sm font-black uppercase tracking-[0.2em] md:tracking-[0.6em] text-white whitespace-normal md:whitespace-nowrap block md:inline-block px-4 md:px-0">
+                                                    <span className="text-[11px] md:text-sm font-black uppercase tracking-[0.2em] md:tracking-[0.6em] text-white whitespace-normal md:whitespace-nowrap block md:inline-block px-4 md:px-0">
                                                         Bench to Bedside. Discovery to Validation.
                                                     </span>
+
                                                 </div>
-                                                <h1 className="text-2xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-white leading-[1.1] md:leading-[1.05] tracking-tighter drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)] animate-fade-in-up whitespace-pre-line px-4 break-words">
+                                                <h1 className="text-2xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-white leading-[1.2] md:leading-[1.05] tracking-tighter drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)] animate-fade-in-up whitespace-pre-line px-4 break-words">
+
                                                     {slide.headline}
                                                 </h1>
-                                                <div className="flex justify-center w-full px-4">
-                                                    <ul className="list-none m-0 p-0 text-left animate-fade-in-up stagger-1">
+                                                <div className="flex justify-center w-full px-6">
+                                                    <ul className="list-none m-0 p-0 text-left animate-fade-in-up stagger-1 space-y-4">
                                                         {slide.subtext.map((line: string, i: number) => (
-                                                            <li key={i} className="flex items-start justify-start gap-4 group mb-3 last:mb-0">
+                                                            <li key={i} className="flex items-start justify-start gap-4 group">
                                                                 <div className="w-2 h-2 rounded-full bg-cyan-400 shrink-0 group-hover:scale-150 transition-all duration-300 shadow-[0_0_15px_rgba(34,211,238,1)] mt-2"></div>
-                                                                <p className="text-slate-100 text-sm md:text-base lg:text-lg font-medium leading-tight max-w-3xl drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] group-hover:text-white transition-colors m-0">
+                                                                <p className="text-slate-100 text-[13px] md:text-base lg:text-lg font-medium leading-relaxed max-w-3xl drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] group-hover:text-white transition-colors">
                                                                     {line}
                                                                 </p>
                                                             </li>
@@ -1460,22 +1466,23 @@ export default function Home() {
                                                 </div>
                                             </div>
 
-                                            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6 animate-fade-in-up stagger-2 w-full px-6">
+                                            <div className="flex flex-col sm:flex-row items-center justify-center gap-5 md:gap-6 animate-fade-in-up stagger-2 w-full px-6">
                                                 <Link
                                                     to="/trials"
-                                                    className="w-full sm:w-auto bg-cyan-500 text-slate-900 px-6 md:px-8 py-3 md:py-4 rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-2 transition-all shadow-[0_20px_50px_-10px_rgba(6,182,212,0.6)] flex items-center justify-center gap-3 group"
+                                                    className="w-full sm:w-auto bg-cyan-500 text-slate-900 px-6 md:px-8 py-4 md:py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-2 transition-all shadow-[0_20px_50px_-10px_rgba(6,182,212,0.6)] flex items-center justify-center gap-3 group"
                                                 >
                                                     {slide.primaryCTA}
                                                     <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
                                                 </Link>
                                                 <Link
                                                     to="/contact"
-                                                    className="w-full sm:w-auto bg-white/10 border border-white/20 text-white px-6 md:px-8 py-3 md:py-4 rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-[0.2em] hover:bg-white/20 hover:-translate-y-2 transition-all backdrop-blur-xl group overflow-hidden relative flex items-center justify-center"
+                                                    className="w-full sm:w-auto bg-white/5 border-2 border-white/20 text-white px-6 md:px-8 py-4 md:py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-white hover:text-slate-900 hover:-translate-y-2 transition-all backdrop-blur-xl group overflow-hidden relative flex items-center justify-center"
                                                 >
                                                     <span className="relative z-10">{slide.secondaryCTA}</span>
                                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer"></div>
                                                 </Link>
                                             </div>
+
                                         </div>
 
                                     </div>
@@ -1499,8 +1506,10 @@ export default function Home() {
                         {/* Scroll Down Indicator */}
                         <div className="flex flex-col items-center gap-2 opacity-40 animate-float">
                             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white">Scroll</span>
-                            <div className="w-0.5 h-12 bg-gradient-to-b from-cyan-400 to-transparent"></div>
+                            <div className="w-0.5 h-8 md:h-12 bg-gradient-to-b from-cyan-400 to-transparent"></div>
                         </div>
+
+
                     </div>
                 </div>
             </div>
