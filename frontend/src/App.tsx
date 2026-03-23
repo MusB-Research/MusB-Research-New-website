@@ -8,6 +8,7 @@ import Team from './views/Team';
 import Contact from './views/Contact';
 import Innovations from './views/Innovations';
 import News from './views/News';
+import NewsDetail from './views/NewsDetail';
 import Careers from './views/Careers';
 import Facilities from './views/Facilities';
 import Trials from './views/Trials';
@@ -45,6 +46,7 @@ function AppContent() {
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/innovations" element={<Innovations />} />
                     <Route path="/news" element={<News />} />
+                    <Route path="/news/:id" element={<NewsDetail />} />
                     <Route path="/careers" element={<Careers />} />
                     <Route path="/careers/:id" element={<JobDetail />} />
                     <Route path="/facilities" element={<Facilities />} />

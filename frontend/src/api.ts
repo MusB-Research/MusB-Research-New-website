@@ -70,6 +70,7 @@ export const fetchNews = (type?: string, search?: string) => {
     return apiFetch<any[]>(`/api/news/${qs}`);
 };
 export const fetchNewsDetail = (id: string) => apiFetch<any>(`/api/news/${id}/`);
+export const fetchEventDetail = (id: string) => apiFetch<any>(`/api/events/${id}/`);
 
 // ---- Careers ----
 
@@ -118,17 +119,17 @@ export const submitSponsorInquiry = (data: Record<string, any>) =>
         body: JSON.stringify(data),
     });
 export const submitBookletDownload = (data: Record<string, any>) =>
-    apiFetch<any>('/api/innovation/booklet-download/', {
+    apiFetch<any>('/api/booklet-download/', {
         method: 'POST',
         body: JSON.stringify(data),
     });
 
 // ---- Newsletter ----
 
-export const subscribeNewsletter = (email: string) =>
+export const subscribeNewsletter = (email: string, userType: string) =>
     apiFetch<any>('/api/newsletter/subscribe/', {
         method: 'POST',
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, userType }),
     });
 
 // ============================================================

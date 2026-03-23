@@ -36,7 +36,7 @@ export default function About() {
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.03)_0%,transparent_100%)]"></div>
             </div>
 
-            <div className="relative z-10 min-h-screen flex items-center justify-center py-20 px-6">
+            <div className="relative z-10 min-h-screen pt-40 pb-24 px-6 flex flex-col items-center justify-start">
                 <div className="max-w-6xl mx-auto w-full">
                     {/* Header */}
                     <div className="text-center mb-20">

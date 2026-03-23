@@ -494,15 +494,24 @@ export default function Team() {
                     </div>
 
                     <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-                        {ADVISORS_DATA.map((advisor, index) => (
-                            <AdvisorCard key={index} advisor={advisor} />
-                        ))}
+                        {ADVISORS_DATA.map((advisor, index) => {
+                            if (index === 4) {
+                                return (
+                                    <div key={index} className="lg:col-span-2 flex justify-center w-full">
+                                        <div className="w-full lg:w-[calc(50%-1.25rem)]">
+                                            <AdvisorCard advisor={advisor} />
+                                        </div>
+                                    </div>
+                                );
+                            }
+                            return <AdvisorCard key={index} advisor={advisor} />;
+                        })}
                     </div>
                 </div>
             </section>
 
             {/* SECTION 3: Clinical Collaborators */}
-            <section className="relative z-10 py-20 px-6">
+            <section className="relative z-10 pt-20 pb-8 px-6">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 border-b border-white/10 pb-12">
                         <div className="space-y-4">
@@ -581,7 +590,7 @@ export default function Team() {
             </section>
 
             {/* SECTION 4: Staff */}
-            <section className="relative z-10 py-20 px-6">
+            <section className="relative z-10 pt-8 pb-20 px-6">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 border-b border-white/10 pb-12">
                         <div className="space-y-4">

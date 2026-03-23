@@ -78,6 +78,7 @@ const HARDCODED_JOBS: JobOpening[] = [
 
 export default function JobDetail() {
     const { id } = useParams<{ id: string }>();
+
     const jobOpenings = HARDCODED_JOBS;
 
 
@@ -104,6 +105,10 @@ export default function JobDetail() {
             </div>
         );
     }
+
+    const mailSubject = encodeURIComponent(`Application for ${job.title} - musbhealth`);
+    const mailBody = encodeURIComponent(`Hello,\r\n\r\nI would like to apply for the ${job.title} role. My resume is attached.`);
+    const mailtoLink = `mailto:info@musbresearch.com?subject=${mailSubject}&body=${mailBody}`;
 
     return (
         <div className="min-h-screen text-slate-200 relative overflow-x-hidden">
@@ -208,18 +213,25 @@ export default function JobDetail() {
                             </p>
 
                             <div className="space-y-4 pt-4">
+                                <a 
+                                    href="https://docs.google.com/forms/d/e/1FAIpQLSenHSuSVQaIxKA40tsub0PwR91haXYBorPcmH2RZp0hsf6LyA/viewform?usp=publish-editor"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block text-center w-full bg-cyan-500 text-slate-950 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-cyan-400 transition-all shadow-xl shadow-cyan-500/20"
+                                >
+                                    Submit Your Resume
+                                </a>
                                 <a
-                                    href="mailto:careers@musbresearch.com"
-                                    className="flex items-center justify-center gap-3 w-full bg-cyan-500 text-slate-950 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-white transition-all shadow-lg"
+                                    href={mailtoLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center justify-center gap-3 w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-500 transition-all shadow-lg"
                                 >
                                     <Send className="w-5 h-5" /> Email Application
                                 </a>
-                                <div className="text-center">
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">Or apply via</span>
-                                </div>
-                                <button className="w-full bg-white/5 border border-white/10 text-white py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-white/10 transition-all">
-                                    LinkedIn
-                                </button>
+                                <p className="text-xs text-slate-400 text-center italic mt-2">
+                                    Please remember to attach your CV/Resume to the email before hitting send!
+                                </p>
                             </div>
 
                             <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest text-center pt-4">
@@ -229,6 +241,8 @@ export default function JobDetail() {
                     </div>
                 </div>
             </section>
+
+
         </div>
     );
 }

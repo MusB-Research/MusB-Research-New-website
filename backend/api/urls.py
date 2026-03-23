@@ -1,5 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from django.views.decorators.csrf import csrf_exempt
 from . import views
 
 router = DefaultRouter()
@@ -23,5 +24,9 @@ router.register(r'news', views.NewsViewSet)
 router.register(r'events', views.EventViewSet)
 
 urlpatterns = [
+    path('apply/', csrf_exempt(views.CandidateApplyView.as_view({'post': 'apply'})), name='candidate-apply'),
+    path('facilities-inquiry/', views.FacilityInquiryView.as_view(), name='facilities-inquiry'),
+    path('newsletter/subscribe/', views.SubscribeNewsletterView.as_view(), name='newsletter-subscribe'),
+    path('booklet-download/', views.BookletDownloadRequestCreateView.as_view(), name='booklet-download'),
     path('', include(router.urls)),
 ]

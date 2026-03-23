@@ -88,12 +88,7 @@ const Capabilities: React.FC = () => {
                       <h3 className="text-xl font-black text-white uppercase group-hover:text-cyan-400 transition-colors leading-tight">{cap.title}</h3>
                       <p className="text-slate-400 text-sm font-medium leading-relaxed">{cap.description}</p>
                     </div>
-                    <div className="mt-auto pt-6 border-t border-white/5 w-full flex items-center text-cyan-400 font-black text-[10px] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-500 relative z-10">
-                      Learn More
-                      <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
+
                   </div>
                 );
               })}
@@ -107,7 +102,7 @@ const Capabilities: React.FC = () => {
             <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-500"></div>
             <h2 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tight leading-tight">Ready to start your research journey?</h2>
             <p className="text-xl text-slate-400 font-medium max-w-2xl mx-auto leading-relaxed">Our team is standing by to provide a custom project proposal tailored to your specific scientific and regulatory needs.</p>
-            <Link to="/contact" className="inline-block px-12 py-6 bg-cyan-500 text-slate-900 font-black uppercase tracking-widest text-lg rounded-3xl shadow-xl shadow-cyan-500/20 hover:bg-white hover:scale-105 transition-all">
+            <Link to="/contact?type=general" className="inline-block px-12 py-6 bg-cyan-500 text-slate-900 font-black uppercase tracking-widest text-lg rounded-3xl shadow-xl shadow-cyan-500/20 hover:bg-white hover:scale-105 transition-all">
               Request a Consultation
             </Link>
           </div>

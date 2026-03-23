@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from django.contrib import admin
-from .models import Study, StudyAssignment, Participant, Visit, Kit, Form, FormResponse
+from .models import Study, StudyAssignment, Participant, Visit, Kit, Form, FormResponse, BookletDownloadRequest
 
 class StudyAssignmentInline(admin.TabularInline):
     model = StudyAssignment
@@ -24,3 +24,4 @@ admin.site.register(Visit)
 admin.site.register(Kit)
 admin.site.register(Form)
 admin.site.register(FormResponse)
+admin.site.register(BookletDownloadRequest)

@@ -1,10 +1,12 @@
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, parsers
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import (
     Study, StudyAssignment, Participant, Form, FormResponse, Task, 
     ParticipantTask, Consent, Lead, CommunicationLog, 
-    Compensation, LabResult, DataAuditLog, News, Event
+    Compensation, LabResult, DataAuditLog,
+    News, Event, FacilityInquiry, Candidate, NewsletterSubscriber, 
+    BookletDownloadRequest
 )
 from .serializers import (
     StudySerializer, StudyAssignmentSerializer, ParticipantSerializer, 
@@ -12,7 +14,8 @@ from .serializers import (
     FormResponseSerializer, TaskSerializer, ParticipantTaskSerializer, 
     ConsentSerializer, LeadSerializer, CommunicationLogSerializer,
     CompensationSerializer, LabResultSerializer, DataAuditLogSerializer,
-    NewsSerializer, EventSerializer
+    NewsSerializer, EventSerializer, FacilityInquirySerializer, CandidateSerializer,
+    NewsletterSubscriberSerializer, BookletDownloadRequestSerializer
 )
 from authentication.models import User
 
@@ -101,13 +104,13 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated:
-            return Study.objects.filter(status__in=['RECRUITING', 'ACTIVE'], approval_status='approved')
+            return Study.objects.filter(status__in=['RECRUITING', 'ACTIVE'], approval_status='approved').order_by('-created_at')
             
         if user.role in ['ADMIN', 'SUPER_ADMIN']:
-            return Study.objects.all()
+            return Study.objects.all().order_by('-created_at')
         
         # Sponsors, Coordinators, and PIs only see assigned studies
-        return Study.objects.filter(assignments__user=user)
+        return Study.objects.filter(assignments__user=user).order_by('-created_at')
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -138,7 +141,7 @@ class PublicStudyViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         # Public only sees approved studies that are recruiting or active
-        return Study.objects.filter(approval_status='approved', status__in=['RECRUITING', 'ACTIVE'])
+        return Study.objects.filter(approval_status='approved', status__in=['RECRUITING', 'ACTIVE']).order_by('-created_at')
 
 class SponsorViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.filter(role='SPONSOR')
@@ -278,21 +281,71 @@ class UserViewSet(viewsets.ModelViewSet):
             return User.objects.all()
         return User.objects.filter(id=user.id)
 
-
-
-
-class NewsViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
-    queryset = News.objects.all().order_by('-created_at')
+class NewsViewSet(viewsets.ModelViewSet):
+    queryset = News.objects.all()
     serializer_class = NewsSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.AllowAny]
 
-    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
-    def success_stories(self, request):
-        qs = self.queryset.filter(status='approved', is_success_story=True)
-        serializer = self.get_serializer(qs, many=True)
-        return Response(serializer.data)
-
-class EventViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
-    queryset = Event.objects.all().order_by('-event_date')
+class EventViewSet(viewsets.ModelViewSet):
+    queryset = Event.objects.all()
     serializer_class = EventSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.AllowAny]
+
+from rest_framework.views import APIView
+
+class FacilityInquiryView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = FacilityInquirySerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class CandidateApplyView(viewsets.ViewSet):
+    permission_classes = [permissions.AllowAny]
+
+    @action(detail=False, methods=['post'])
+    def apply(self, request):
+        serializer = CandidateSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"status": "success", "message": "Application submitted successfully."}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class SubscribeNewsletterView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+        user_type = request.data.get('userType', 'BUSINESS') # frontend sends userType
+        
+        if not email:
+            return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        subscriber, created = NewsletterSubscriber.objects.get_or_create(
+            email=email,
+            defaults={'user_type': user_type.upper(), 'is_subscribed': True}
+        )
+        
+        if not created:
+            subscriber.user_type = user_type.upper()
+            subscriber.is_subscribed = True
+            subscriber.save()
+        else:
+            from api.utils.resend_utils import send_welcome_email
+            send_welcome_email(email)
+            
+        serializer = NewsletterSubscriberSerializer(subscriber)
+        return Response(serializer.data, status=status.HTTP_200_OK if not created else status.HTTP_201_CREATED)
+
+class BookletDownloadRequestCreateView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = BookletDownloadRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"status": "success", "message": "Download request logged."}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

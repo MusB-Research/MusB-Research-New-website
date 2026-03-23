@@ -23,6 +23,7 @@ import {
 import { Link } from 'react-router-dom';
 import { JobOpening, CareerCategory } from '@/types';
 
+
 const hiringProcess = [
     {
         id: '1',
@@ -110,6 +111,7 @@ const HARDCODED_JOBS: JobOpening[] = [
 export default function Careers() {
     const [activeDept, setActiveDept] = useState<string>('All');
     const [searchQuery, setSearchQuery] = useState('');
+
     const jobOpenings = HARDCODED_JOBS; const careerCategories = HARDCODED_CATEGORIES;
 
 
@@ -284,7 +286,7 @@ export default function Careers() {
             </section >
 
             {/* SECTION 5: OPEN POSITIONS */}
-            < section id="open-positions" className="bg-slate-900/50 py-20" >
+            < section id="open-positions" className="bg-slate-900/50 py-20 scroll-mt-24" >
                 <div className="max-w-[1400px] mx-auto px-6 md:px-12">
                     <div className="flex flex-col md:flex-row items-end justify-between gap-8 mb-16">
                         <div className="space-y-6">
@@ -339,9 +341,14 @@ export default function Careers() {
                                     <h3 className="text-3xl font-black text-white italic uppercase">No openings right now</h3>
                                     <p className="text-xl text-slate-500 font-medium max-w-lg">We don’t have any openings in this category, but we’re always interested in meeting talented people.</p>
                                 </div>
-                                <button className="bg-cyan-500 text-slate-950 px-12 py-5 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-cyan-500/20 whitespace-nowrap">
+                                <a 
+                                    href="https://docs.google.com/forms/d/e/1FAIpQLSenHSuSVQaIxKA40tsub0PwR91haXYBorPcmH2RZp0hsf6LyA/viewform?usp=publish-editor"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-block bg-cyan-500 text-slate-950 px-12 py-5 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-cyan-500/20 whitespace-nowrap"
+                                >
                                     Submit Your Resume
-                                </button>
+                                </a>
                             </div>
                         )}
                     </div>
@@ -383,18 +390,21 @@ export default function Careers() {
                             MusB™ Research actively supports students, trainees, and early-career scientists through internships and mentorship opportunities.
                         </p>
                     </div>
-                    <button className="bg-indigo-500 text-white px-12 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-white hover:text-slate-950 hover:scale-105 transition-all shadow-xl shadow-indigo-500/20 relative z-10">
+                    <button 
+                        onClick={() => document.getElementById('open-positions')?.scrollIntoView({ behavior: 'smooth' })}
+                        className="bg-indigo-500 text-white px-12 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-white hover:text-slate-950 hover:scale-105 transition-all shadow-xl shadow-indigo-500/20 relative z-10 inline-block"
+                    >
                         Explore Opportunities
                     </button>
                 </div>
             </section >
 
             {/* SECTION 8: EQUAL OPPORTUNITY */}
-            < section className="max-w-4xl mx-auto px-6 py-24 text-center" >
-                <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-600 leading-relaxed">
+            <section className="max-w-4xl mx-auto px-6 py-10 text-center">
+                <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-300 leading-relaxed">
                     MusB™ Research is an equal opportunity employer. We celebrate diversity and are committed to creating an inclusive environment for all employees.
                 </p>
-            </section >
+            </section>
 
             <section className="max-w-[1700px] mx-auto px-6 md:px-12 pb-32">
                 <div className="relative p-8 md:p-24 rounded-[4.5rem] bg-white/5 border border-white/10 backdrop-blur-3xl overflow-hidden group">
@@ -404,17 +414,20 @@ export default function Careers() {
                             <h2 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-none italic uppercase">Ready to make an impact?</h2>
                             <p className="text-xl font-bold text-slate-400">Your journey in clinical breakthroughs starts here.</p>
                         </div>
-                        <div className="flex flex-col gap-4 w-full lg:w-72">
-                            <button className="w-full px-8 py-5 rounded-2xl bg-cyan-500 text-slate-950 font-black uppercase tracking-wider hover:bg-white transition-all shadow-xl shadow-cyan-500/10">
+                        <div className="flex flex-col gap-4 w-full lg:w-auto">
+                            <button 
+                                onClick={() => document.getElementById('open-positions')?.scrollIntoView({ behavior: 'smooth' })}
+                                className="w-full px-16 py-8 rounded-2xl bg-cyan-500 text-slate-950 font-black uppercase tracking-wider hover:bg-white transition-all shadow-xl shadow-cyan-500/10 text-center block whitespace-nowrap"
+                            >
                                 View Open Positions
                             </button>
-                            <button className="w-full px-8 py-5 rounded-2xl bg-white/10 text-white font-black uppercase tracking-wider hover:bg-white/20 transition-all shadow-lg border border-white/10">
-                                Submit Your Resume
-                            </button>
+
                         </div>
                     </div>
                 </div>
             </section>
+            
+
         </div >
     );
 }

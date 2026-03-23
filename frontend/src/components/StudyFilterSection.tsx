@@ -16,7 +16,8 @@ export default function StudyFilterSection() {
         fetchStudies().then((data) => {
             let filtered: any[] = data;
             if (selectedCondition !== 'All') {
-                filtered = filtered.filter(s => s.condition === selectedCondition);
+                const normalizeCondition = (c: string) => (c || '').toLowerCase().replace(/['’]/g, '');
+                filtered = filtered.filter(s => normalizeCondition(s.condition) === normalizeCondition(selectedCondition));
             }
             if (selectedType === 'Paid Studies') {
                 filtered = filtered.filter(s => s.is_paid);

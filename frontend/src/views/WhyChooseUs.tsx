@@ -130,10 +130,10 @@ export default function WhyChooseUs() {
                                 {heroDesc}
                             </p>
                             <div className="flex flex-wrap gap-6 pt-4">
-                                <Link to="/facilities#lead-capture" className="grow-0 bg-cyan-500 text-slate-900 px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-2">
+                                <Link to="/contact" className="grow-0 bg-cyan-500 text-slate-900 px-6 py-3 md:px-8 md:py-4 rounded-xl font-black text-sm uppercase tracking-wide hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/20 inline-flex items-center gap-2">
                                     Start the Conversation <ArrowRight className="w-5 h-5" />
                                 </Link>
-                                <Link to="/capabilities" className="grow-0 bg-white/5 text-white border border-white/10 px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white/10 hover:-translate-y-1 transition-all flex items-center gap-2">
+                                <Link to="/capabilities" className="grow-0 bg-white/5 text-white border border-white/10 px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white/10 hover:-translate-y-1 transition-all inline-flex items-center gap-2">
                                     Explore Our Capabilities
                                 </Link>
                             </div>
@@ -155,7 +155,7 @@ export default function WhyChooseUs() {
                 {/* SECTION 2: Three Ways We Support Your Program */}
                 {/* ============================================================ */}
                 {true && (
-                    <section className="py-16 relative z-10 mb-16">
+                    <section className="py-16 relative z-10">
                         <div className="max-w-[1700px] mx-auto px-4 md:px-12">
                             <div className="text-center space-y-8 mb-24 max-w-7xl mx-auto">
                                 <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight leading-tight">
@@ -209,7 +209,7 @@ export default function WhyChooseUs() {
                 {/* SECTION 3: Our Story */}
                 {/* ============================================================ */}
                 {true && (
-                    <section className="py-32 relative z-10">
+                    <section className="pt-8 pb-32 relative z-10">
                         <div className="max-w-[1700px] mx-auto px-4 md:px-12">
                             <div className="grid lg:grid-cols-2 gap-20 items-center">
                                 <div className="space-y-8 animate-fade-in-up">
@@ -289,7 +289,7 @@ export default function WhyChooseUs() {
                 {/* SECTION 5: Mission & Vision */}
                 {/* ============================================================ */}
                 {true && (
-                    <section className="py-32 relative z-10">
+                    <section className="pt-32 pb-16 relative z-10">
                         <div className="max-w-[1700px] mx-auto px-4 md:px-12">
                             <div className="grid md:grid-cols-2 gap-12">
                                 {/* Mission */}
@@ -319,7 +319,7 @@ export default function WhyChooseUs() {
                 {/* SECTION 6: Core Values */}
                 {/* ============================================================ */}
                 {true && (
-                    <section className="py-24 relative z-10">
+                    <section className="pt-8 pb-24 relative z-10">
                         <div className="max-w-[1700px] mx-auto px-4 md:px-12">
                             <div className="text-center space-y-6 mb-20">
                                 <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight uppercase">Our Core Values</h2>
@@ -380,18 +380,18 @@ export default function WhyChooseUs() {
                 {/* ============================================================ */}
                 {true && (
                     <section className="max-w-[1700px] mx-auto px-4 md:px-12 text-center space-y-12 py-32">
-                        <div className="space-y-6">
-                            <p className="text-3xl md:text-4xl font-black text-white leading-[1.1] tracking-tighter">
+                        <div className="space-y-8">
+                            <p className="text-3xl md:text-5xl font-black text-white leading-[1.1] tracking-tighter">
                                 Choosing MusB™ Research means partnering with a leader <br className="hidden md:block" />
                                 in scientific innovation, flexibility, and <span className="text-cyan-400">execution excellence.</span>
                             </p>
-                            <p className="text-xl text-slate-400 font-medium max-w-3xl mx-auto leading-relaxed">
+                            <p className="text-lg md:text-xl text-slate-400 font-medium max-w-3xl mx-auto leading-relaxed">
                                 We deliver tailored, responsive, and cost-effective solutions—without compromising scientific rigor.
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-6 justify-center pt-4">
-                            <Link to="/contact" className="bg-cyan-500 text-slate-900 px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-2">
-                                Get In Touch <ArrowRight className="w-5 h-5" />
+                            <Link to="/contact?type=general" className="bg-cyan-500 text-slate-900 px-14 py-6 rounded-2xl font-black text-lg md:text-xl uppercase tracking-widest hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-3">
+                                Get In Touch <ArrowRight className="w-6 h-6" />
                             </Link>
                             <Link to="/trials" className="bg-white/5 text-white border border-white/10 px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white/10 hover:-translate-y-1 transition-all flex items-center gap-2">
                                 Join a Study

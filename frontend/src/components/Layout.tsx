@@ -2,6 +2,7 @@ import React, { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ArrowRight, Linkedin, Mail, MapPin, Phone, ChevronDown, Youtube, Facebook, Instagram, Send, Loader2, CheckCircle2, LogIn, LogOut, LayoutDashboard, User } from 'lucide-react';
 import { redirectToLogin, clearToken, isLoggedIn, getRole, getUser } from '../utils/auth';
+import { subscribeNewsletter } from '../api';
 import AnimatedBackground from './AnimatedBackground';
 
 interface LayoutProps {
@@ -43,7 +44,7 @@ export default function Layout({ children }: LayoutProps) {
         if (!email) return;
         setNewsletterStatus('loading');
         try {
-            await new Promise(resolve => setTimeout(resolve, 800));
+            await subscribeNewsletter(email, userType);
             setNewsletterStatus('success');
             setEmail('');
         } catch (err) {
@@ -129,7 +130,7 @@ export default function Layout({ children }: LayoutProps) {
                     {/* Right-aligned Navigation Group */}
                     <div className="hidden xl:flex items-center gap-4 2xl:gap-12 ml-auto">
                         {/* Desktop Navigation */}
-                        <nav className="flex items-center gap-3 2xl:gap-8">
+                        <nav className={`flex items-center ${isTrialsPage ? 'gap-8 2xl:gap-16' : 'gap-3 2xl:gap-8'}`}>
                             {navItems.map((item) => (
                                 <div
                                     key={item.label}
@@ -190,12 +191,6 @@ export default function Layout({ children }: LayoutProps) {
                                         Check Eligibility
                                         <ArrowRight className="w-4 h-4" />
                                     </Link>
-                                    <a
-                                        href="tel:+18134190781"
-                                        className="border-2 border-slate-200 text-slate-900 px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-slate-900 hover:text-white transition-all backdrop-blur-md whitespace-nowrap"
-                                    >
-                                        Call / Text Us
-                                    </a>
                                 </>
                             ) : (
                                 <>
@@ -298,13 +293,6 @@ export default function Layout({ children }: LayoutProps) {
                             <div className="pt-6 space-y-3">
                                 {isTrialsPage ? (
                                     <>
-                                        <a
-                                            href="tel:+18134190781"
-                                            onClick={() => setIsMenuOpen(false)}
-                                            className="block w-full text-center border-2 border-slate-200 text-slate-900 p-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all"
-                                        >
-                                            Call / Text Us
-                                        </a>
                                         <Link
                                             to="/trials#current-studies"
                                             onClick={() => setIsMenuOpen(false)}
@@ -539,7 +527,7 @@ export default function Layout({ children }: LayoutProps) {
                                     </div>
                                     {newsletterStatus === 'success' && (
                                         <p className="text-cyan-400 text-[10px] font-black uppercase tracking-[0.2em] animate-pulse text-center">
-                                            Successfully Subscribed
+                                            Subscribed successfully
                                         </p>
                                     )}
                                 </div>

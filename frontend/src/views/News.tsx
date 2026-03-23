@@ -142,8 +142,9 @@ export default function News() {
                     const newsData = await newsRes.json();
                     combined = [...combined, ...newsData.map((n: any) => ({
                         ...n,
-                        type: n.is_success_story ? 'Success Story' : 'News',
-                        date: new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        type: n.type || 'News',
+                        excerpt: n.content ? n.content.substring(0, 150) + '...' : '',
+                        date: new Date(n.published_at || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     }))];
                 }
 
@@ -152,7 +153,9 @@ export default function News() {
                     combined = [...combined, ...eventsData.map((e: any) => ({
                         ...e,
                         type: 'Event',
-                        date: new Date(e.event_date || e.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        content: e.description,
+                        excerpt: e.description ? e.description.substring(0, 150) + '...' : '',
+                        date: new Date(e.date || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     }))];
                 }
 
@@ -509,7 +512,7 @@ export default function News() {
                             <Users className="w-7 h-7" />
                         </div>
                         <h3 className="text-3xl font-black text-white leading-tight">Interested in collaborating or staying informed?</h3>
-                        <Link to="/contact" className="inline-flex items-center gap-3 text-sm font-black uppercase tracking-widest text-white border-b-2 border-cyan-500 pb-2 group-hover:gap-5 transition-all">
+                        <Link to="/contact?type=general" className="inline-flex items-center gap-3 text-sm font-black uppercase tracking-widest text-white border-b-2 border-cyan-500 pb-2 group-hover:gap-5 transition-all">
                             Contact Our Team <ArrowRight className="w-5 h-5 text-cyan-400" />
                         </Link>
                     </div>

@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { Sparkles, CheckCircle2, Zap, TrendingUp, FlaskConical, Shield, ArrowRight, Target, FileText, BookOpen, Newspaper, Paperclip, Mail, X, Stethoscope, Microscope, Pill, ChevronLeft, ChevronRight, Verified } from 'lucide-react';
+import { submitBookletDownload } from '../api';
 
 const defaultTechnologies = [
     {
@@ -162,6 +163,17 @@ export default function Innovations() {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const showcaseRef = useRef<HTMLElement>(null);
 
+    useEffect(() => {
+        if (activeTech || showBookletForm) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [activeTech, showBookletForm]);
+
     const handleBookletOpen = (techName: string) => {
         setBookletTechName(techName);
         setBookletForm({ first_name: '', last_name: '', company: '', designation: '', email: '', phone: '', nda_agreed: false });
@@ -178,16 +190,21 @@ export default function Innovations() {
         setBookletSubmitting(true);
         setBookletError('');
         try {
-            await new Promise(resolve => setTimeout(resolve, 800)); // Mock API call
+            await submitBookletDownload({
+                ...bookletForm,
+                technology_name: bookletTechName,
+            });
             console.log('Booklet form submitted', bookletForm);
             setShowBookletForm(false);
-            // Trigger download — placeholder PDF for now
+            // Trigger download
             const link = document.createElement('a');
-            link.href = `/booklets/${bookletTechName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}_booklet.pdf`;
+            link.href = `/booklets/${bookletTechName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}_booklet.pdf`;
             link.download = `${bookletTechName}_Technical_Booklet.pdf`;
+            document.body.appendChild(link);
             link.click();
-        } catch {
-            setBookletError('Something went wrong. Please try again.');
+            document.body.removeChild(link);
+        } catch (err: any) {
+            setBookletError(err.message || 'Something went wrong. Please try again.');
         } finally {
             setBookletSubmitting(false);
         }

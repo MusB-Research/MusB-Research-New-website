@@ -19,10 +19,9 @@ import {
     SearchCheck,
     CalendarCheck,
     Stethoscope,
-    AlertCircle
+    DollarSign
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { authFetch } from '../utils/auth';
 
 
@@ -34,17 +33,6 @@ export default function Trials() {
     const [openFaq, setOpenFaq] = useState<number | null>(null);
     const [studies, setStudies] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-
-    // Form State
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        phone: '',
-        ageRange: '',
-        interests: [] as string[],
-        participation: ''
-    });
-    const [formStatus, setFormStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
     useEffect(() => {
         const getStudies = async () => {
@@ -63,22 +51,26 @@ export default function Trials() {
                     'COMPLETED': 'Completed'
                 };
 
-                const mappedStudies = data.map((s: any) => ({
-                    id: s.protocol_id || s.id,
-                    title: s.title,
-                    description: s.primary_indication || "Standard research protocol",
-                    condition: s.primary_indication || "Other",
-                    type: s.study_type === 'VIRTUAL' ? 'Virtual' : (s.study_type === 'IN_PERSON' ? 'On-site' : 'Hybrid'),
-                    status: statusMap[s.status] || 'Paused',
-                    benefit: s.trial_model === 'RCT' ? 'Placebo-Controlled' : 'Standard Product',
-                    duration: "4-12 Weeks", // Simulated field
-                    tags: [s.trial_model, s.study_type]
-                }));
+                const mappedStudies = data.map((s: any) => {
+                    const mappedType = s.study_type === 'VIRTUAL' ? 'Virtual' : (s.study_type === 'IN_PERSON' ? 'On-site' : 'Hybrid');
+                    return {
+                        id: s.protocol_id || s.id,
+                        title: s.title,
+                        description: s.description || s.primary_indication || "Standard research protocol",
+                        condition: s.condition || s.primary_indication || "Other",
+                        type: mappedType,
+                        status: statusMap[s.status] || 'Paused',
+                        benefit: s.benefit || (s.trial_model === 'RCT' ? 'Placebo-Controlled' : 'Standard Product'),
+                        duration: s.duration || s.time_commitment || "4-12 Weeks",
+                        compensation: s.compensation || "Varies by study",
+                        tags: [s.trial_model, mappedType].filter(Boolean)
+                    };
+                });
 
                 setStudies(mappedStudies);
             } catch (err) {
-                console.error("Error fetching studies:", err);
-                setStudies([]); // Fallback to empty on error
+                console.error("Error loading studies:", err);
+                setStudies([]);
             } finally {
                 setLoading(false);
             }
@@ -91,7 +83,8 @@ export default function Trials() {
     const types = ["All", "Virtual", "On-site", "Hybrid"];
 
     const filteredStudies = studies.filter((study: any) => {
-        const matchesCondition = selectedCondition === 'All' || study.condition === selectedCondition;
+        const normalizeCondition = (c: string) => (c || '').toLowerCase().replace(/['’]/g, '');
+        const matchesCondition = selectedCondition === 'All' || normalizeCondition(study.condition) === normalizeCondition(selectedCondition);
         const matchesType = selectedType === 'All' || study.type === selectedType;
         const matchesSearch = (study.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
             (study.description || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -124,41 +117,6 @@ export default function Trials() {
             a: "Our studies focus on scientific rigor, participant convenience, and real-world relevance— using both onsite and virtual participation and validated products."
         }
     ];
-    const handleFormSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setFormStatus('submitting');
-
-        const message = `
-            Study Matching Request:
-            Name: ${formData.name}
-            Phone: ${formData.phone}
-            Age Range: ${formData.ageRange}
-            Interests: ${formData.interests.join(', ')}
-            Preferred Participation: ${formData.participation}
-        `;
-
-        try {
-            await new Promise(resolve => setTimeout(resolve, 800));
-            console.log('Study Matching Form Submitted', {
-                name: formData.name,
-                email: formData.email,
-                subject: 'Study Matching Request',
-                message: message
-            });
-            setFormStatus('success');
-            setFormData({
-                name: '',
-                email: '',
-                phone: '',
-                ageRange: '',
-                interests: [],
-                participation: ''
-            });
-        } catch (error) {
-            console.error('Submission failed:', error);
-            setFormStatus('error');
-        }
-    };
 
     return (
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden bg-transparent">
@@ -381,13 +339,23 @@ export default function Trials() {
                                     </div>
                                     <p className="text-slate-400 font-medium mb-10 flex-grow leading-relaxed">{study.description}</p>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-                                        <div className="bg-white/2 rounded-2xl p-4 border border-white/5">
-                                            <div className="text-[9px] font-black uppercase tracking-widest text-slate-600 mb-1">Benefit</div>
-                                            <div className="text-sm font-bold text-white">{study.benefit}</div>
+                                        <div className="bg-white/2 rounded-2xl p-4 border border-white/5 flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-cyan-400 transition-colors shrink-0">
+                                                <DollarSign className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <div className="text-[9px] font-black uppercase tracking-widest text-slate-600 mb-1">Compensation</div>
+                                                <div className="text-sm font-bold text-white">{study.compensation}</div>
+                                            </div>
                                         </div>
-                                        <div className="bg-white/2 rounded-2xl p-4 border border-white/5">
-                                            <div className="text-[9px] font-black uppercase tracking-widest text-slate-600 mb-1">Duration</div>
-                                            <div className="text-sm font-bold text-white">{study.duration}</div>
+                                        <div className="bg-white/2 rounded-2xl p-4 border border-white/5 flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-cyan-400 transition-colors shrink-0">
+                                                <Clock className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <div className="text-[9px] font-black uppercase tracking-widest text-slate-600 mb-1">Duration</div>
+                                                <div className="text-sm font-bold text-white">{study.duration}</div>
+                                            </div>
                                         </div>
                                     </div>
                                     {study.status === 'Recruiting' ? (
@@ -442,149 +410,6 @@ export default function Trials() {
                     </div>
                 </section >
 
-                {/* FINAL CTA + CONTACT FORM */}
-                <section id="contact" className="py-24 max-w-[1400px] mx-auto px-4 md:px-12" >
-                    <div className="grid lg:grid-cols-2 gap-16">
-                        <div className="space-y-8 lg:pt-12">
-                            <h2 className="text-5xl font-black text-white leading-tight uppercase">Get Matched to a Clinical Study</h2>
-                            <p className="text-xl text-slate-400 font-medium max-w-lg">Not sure which study fits you? We will match you based on your interests and eligibility.</p>
-                            <div className="space-y-6 pt-8">
-                                <div className="flex items-center gap-4 group">
-                                    <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
-                                        <ShieldCheck className="w-5 h-5" />
-                                    </div>
-                                    <span className="text-xs font-black uppercase tracking-widest text-slate-400 transition-colors group-hover:text-white">Confidential. Secure.</span>
-                                </div>
-                                <div className="flex items-center gap-4 group">
-                                    <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
-                                        <HeartPulse className="w-5 h-5" />
-                                    </div>
-                                    <span className="text-xs font-black uppercase tracking-widest text-slate-400 transition-colors group-hover:text-white">Participant-first approach.</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="bg-white/5 backdrop-blur-3xl p-10 md:p-12 rounded-[4rem] border border-white/10 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8)]">
-                            <form className="space-y-6" onSubmit={handleFormSubmit}>
-                                <div className="grid md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Full Name</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={formData.name}
-                                            onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                            className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-4 text-white outline-none focus:border-cyan-500 transition-all"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Email Address</label>
-                                        <input
-                                            type="email"
-                                            required
-                                            value={formData.email}
-                                            onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                            className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-4 text-white outline-none focus:border-cyan-500 transition-all"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="grid md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Phone Number</label>
-                                        <input
-                                            type="tel"
-                                            value={formData.phone}
-                                            onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                                            className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-4 text-white outline-none focus:border-cyan-500 transition-all"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Age Range</label>
-                                        <select
-                                            value={formData.ageRange}
-                                            onChange={e => setFormData({ ...formData, ageRange: e.target.value })}
-                                            className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-4 text-white outline-none focus:border-cyan-500 transition-all appearance-none cursor-pointer"
-                                        >
-                                            <option value="">Select age range</option>
-                                            <option>18-24</option>
-                                            <option>25-34</option>
-                                            <option>35-44</option>
-                                            <option>45-54</option>
-                                            <option>55-64</option>
-                                            <option>65+</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="space-y-4">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Health Interests (Check all that apply)</label>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 p-6 bg-slate-950/30 rounded-3xl border border-white/5">
-                                        {["Gut Health", "Aging", "Metabolic", "Cognition", "Women's Health", "Skin"].map(interest => (
-                                            <label key={interest} className="flex items-center gap-3 cursor-pointer group">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={formData.interests.includes(interest)}
-                                                    onChange={e => {
-                                                        const newInterests = e.target.checked
-                                                            ? [...formData.interests, interest]
-                                                            : formData.interests.filter(i => i !== interest);
-                                                        setFormData({ ...formData, interests: newInterests });
-                                                    }}
-                                                    className="w-4 h-4 rounded border-white/10 bg-white/5 checked:bg-cyan-500 transition-all cursor-pointer"
-                                                />
-                                                <span className="text-xs font-bold text-slate-400 group-hover:text-white transition-colors">{interest}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-4">Preferred Participation</label>
-                                    <div className="flex gap-4">
-                                        {["Virtual", "On-site", "Either"].map(mode => (
-                                            <label key={mode} className="flex-1">
-                                                <input
-                                                    type="radio"
-                                                    name="participation"
-                                                    value={mode}
-                                                    checked={formData.participation === mode}
-                                                    onChange={e => setFormData({ ...formData, participation: e.target.value })}
-                                                    className="sr-only peer"
-                                                />
-                                                <div className="w-full text-center py-3 rounded-xl border border-white/10 bg-white/5 text-[10px] font-black uppercase tracking-widest text-slate-500 peer-checked:bg-cyan-500 peer-checked:text-slate-950 peer-checked:border-cyan-500 cursor-pointer transition-all hover:bg-white/10">{mode}</div>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-                                <button
-                                    type="submit"
-                                    disabled={formStatus === 'submitting'}
-                                    className={`w-full py-5 bg-cyan-500 text-slate-900 rounded-[2rem] font-black text-lg uppercase tracking-widest hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/20 active:translate-y-0 mt-8 ${formStatus === 'submitting' ? 'opacity-70 cursor-wait' : ''}`}
-                                >
-                                    {formStatus === 'submitting' ? 'Submitting...' : 'Get Matched'}
-                                </button>
-                                {formStatus === 'success' && (
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.9 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        className="mt-8 p-6 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-4 text-emerald-400 text-xs font-black uppercase tracking-widest"
-                                    >
-                                        <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-                                        Successfully submitted! We will be in touch shortly.
-                                    </motion.div>
-                                )}
-                                {formStatus === 'error' && (
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.9 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        className="mt-8 p-6 rounded-3xl bg-red-500/10 border border-red-500/20 flex items-center gap-4 text-red-500 text-xs font-black uppercase tracking-widest animate-pulse"
-                                    >
-                                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                                        Failed to submit. Please try again or contact support.
-                                    </motion.div>
-                                )}
-                            </form>
-                        </div>
-                    </div>
-                </section>
             </div>
         </div>
     );

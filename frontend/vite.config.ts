@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite'
+// restart triggered
 import react from '@vitejs/plugin-react'
 import * as path from 'path';
 

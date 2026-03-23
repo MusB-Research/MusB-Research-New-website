@@ -2,7 +2,9 @@ from rest_framework import serializers
 from .models import (
     Study, StudyAssignment, Participant, Visit, Kit, Form, FormResponse, 
     Task, ParticipantTask, Consent, Lead, CommunicationLog, 
-    Compensation, LabResult, DataAuditLog, InterventionArm, News, Event
+    Compensation, LabResult, DataAuditLog, InterventionArm,
+    News, Event, FacilityInquiry, Candidate, NewsletterSubscriber,
+    BookletDownloadRequest
 )
 from authentication.models import User
 from authentication.security import decrypt_data
@@ -16,6 +18,15 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
                 if isinstance(value, str):
                     data[key] = sanitize_html(value)
         return super().to_internal_value(data)
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        for key, value in ret.items():
+            if type(value).__name__ == 'ObjectId':
+                ret[key] = str(value)
+            elif isinstance(value, list):
+                ret[key] = [str(item) if type(item).__name__ == 'ObjectId' else item for item in value]
+        return ret
 
 class UserSerializer(SanitizedModelSerializer):
     id = serializers.CharField(read_only=True)
@@ -102,7 +113,7 @@ class ParticipantSerializer(SanitizedModelSerializer):
     def get_gender(self, obj):
         return obj.decrypted_gender
 
-class DeIdentifiedParticipantSerializer(serializers.ModelSerializer):
+class DeIdentifiedParticipantSerializer(SanitizedModelSerializer):
     """Restricted view for Sponsors (No PII)"""
     id = serializers.CharField(read_only=True)
     # Mask DOB to just age or year
@@ -142,7 +153,7 @@ class LabResultSerializer(SanitizedModelSerializer):
         model = LabResult
         fields = '__all__'
 
-class DataAuditLogSerializer(serializers.ModelSerializer):
+class DataAuditLogSerializer(SanitizedModelSerializer):
     user_email = serializers.EmailField(source='user.email', read_only=True)
     class Meta:
         model = DataAuditLog
@@ -194,11 +205,34 @@ class ConsentSerializer(SanitizedModelSerializer):
         read_only_fields = ['agreed_at', 'ip_address']
 
 class NewsSerializer(SanitizedModelSerializer):
+    id = serializers.CharField(read_only=True)
     class Meta:
         model = News
         fields = '__all__'
 
 class EventSerializer(SanitizedModelSerializer):
+    id = serializers.CharField(read_only=True)
     class Meta:
         model = Event
+        fields = '__all__'
+
+class FacilityInquirySerializer(SanitizedModelSerializer):
+    class Meta:
+        model = FacilityInquiry
+        fields = '__all__'
+
+class CandidateSerializer(SanitizedModelSerializer):
+    class Meta:
+        model = Candidate
+        fields = '__all__'
+
+class NewsletterSubscriberSerializer(SanitizedModelSerializer):
+    id = serializers.CharField(read_only=True)
+    class Meta:
+        model = NewsletterSubscriber
+        fields = '__all__'
+
+class BookletDownloadRequestSerializer(SanitizedModelSerializer):
+    class Meta:
+        model = BookletDownloadRequest
         fields = '__all__'

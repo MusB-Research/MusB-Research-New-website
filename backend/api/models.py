@@ -114,6 +114,34 @@ class Study(models.Model):
     def __str__(self):
         return f"{self.protocol_id} - {self.title}"
 
+class News(models.Model):
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    type = models.CharField(max_length=50, blank=True)
+    published_at = models.DateTimeField(auto_now_add=True)
+
+class Event(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    date = models.DateTimeField()
+
+class FacilityInquiry(models.Model):
+    name = models.CharField(max_length=255)
+    email = models.EmailField()
+    phone = models.CharField(max_length=50, blank=True)
+    company = models.CharField(max_length=255, blank=True)
+    inquiry_type = models.CharField(max_length=100, blank=True)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class Candidate(models.Model):
+    name = models.CharField(max_length=255)
+    email = models.EmailField()
+    phone = models.CharField(max_length=50)
+    password = models.CharField(max_length=128)
+    resume = models.FileField(upload_to='resumes/')
+    applied_at = models.DateTimeField(auto_now_add=True)
+
 class StudyAssignment(models.Model):
     """Links Users to Studies with specific hierarchy/access roles"""
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='assignments')
@@ -449,35 +477,41 @@ class PermissionMatrix(models.Model):
     class Meta:
         unique_together = ('role', 'capability')
 
-class News(models.Model):
-    title = models.CharField(max_length=255)
-    content = models.TextField()
-    image = models.URLField(max_length=1024, blank=True, null=True)
-    is_success_story = models.BooleanField(default=False)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='authored_news')
-    status = models.CharField(max_length=20, choices=[
-        ('pending', 'Pending'),
-        ('approved', 'Approved'),
-        ('rejected', 'Rejected')
-    ], default='pending')
+class NewsletterSubscriber(models.Model):
+    email = models.EmailField(unique=True)
+    user_type = models.CharField(max_length=20, choices=[('BUSINESS', 'Business'), ('INDIVIDUAL', 'Individual')], default='BUSINESS')
+    is_subscribed = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.title} ({self.status})"
+        return f"{self.email} ({self.user_type})"
 
-class Event(models.Model):
-    title = models.CharField(max_length=255)
-    description = models.TextField()
-    event_date = models.DateTimeField()
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='authored_events')
-    status = models.CharField(max_length=20, choices=[
-        ('pending', 'Pending'),
-        ('approved', 'Approved'),
-        ('rejected', 'Rejected')
-    ], default='pending')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+# --- Signals for Notifications ---
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from .utils.resend_utils import send_newsletter_update
+
+@receiver(post_save, sender=News)
+def notify_subscribers_on_news(sender, instance, created, **kwargs):
+    if created:
+        subject = f"New Update from MusB Research: {instance.title}"
+        content = f"<p>A new research update has been posted.</p><h2>{instance.title}</h2><p>{instance.content[:200]}...</p><p><a href='https://musbresearch.com/news'>Read More at musbresearch.com</a></p>"
+        # Run safely
+        try:
+            send_newsletter_update(subject, content)
+        except Exception as e:
+            print(f"Error triggering newsletter update: {e}")
+
+class BookletDownloadRequest(models.Model):
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    company = models.CharField(max_length=255)
+    designation = models.CharField(max_length=255)
+    email = models.EmailField()
+    phone = models.CharField(max_length=50)
+    technology_name = models.CharField(max_length=100)
+    nda_agreed = models.BooleanField(default=False)
+    downloaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.title} - {self.event_date.strftime('%Y-%m-%d')}"
+        return f"{self.first_name} {self.last_name} - {self.technology_name}"

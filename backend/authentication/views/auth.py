@@ -227,9 +227,15 @@ def google_login(request):
         full_name = id_info.get('name', 'Google User')
         picture = id_info.get('picture', '')
 
+        import uuid
         user, created = User.objects.get_or_create(
             email=email,
-            defaults={'full_name': full_name, 'role': 'PARTICIPANT', 'profile_picture': picture}
+            defaults={
+                'full_name': full_name, 
+                'role': 'PARTICIPANT', 
+                'profile_picture': picture,
+                'username': str(uuid.uuid4())
+            }
         )
         
         needs_save = False
@@ -265,6 +271,8 @@ def google_login(request):
 
         response = Response({
             'message': 'Login successful',
+            'access': access_token,
+            'refresh': refresh_token,
             'user': {
                 'email':        user.email,
                 'full_name':    user.decrypted_name,
@@ -277,5 +285,7 @@ def google_login(request):
         })
         return _set_auth_cookies(response, access_token, refresh_token)
     except Exception as e:
-        logger.error(f"Google login error: {e}")
-        return Response({'error': 'Google authentication failed'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        import traceback
+        logger.error(f"Google login error: {e}\n{traceback.format_exc()}")
+        return Response({'error': f"{e} - {traceback.format_exc()}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

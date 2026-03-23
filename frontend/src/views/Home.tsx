@@ -762,7 +762,22 @@ const EXPERTISE_DATA = [
         icon: NeurodegenerationIcon,
         color: 'text-cyan-400',
         glow: 'shadow-[0_0_15px_rgba(34,211,238,0.4)]',
-        description: 'In-depth studies on neuroprotective pathways and strategies to mitigate age-related cognitive decline.'
+        description: 'In-depth studies on neuroprotective pathways and strategies to mitigate age-related cognitive decline.',
+        content: [
+            { type: 'title', text: "Establish the Potential of Your Products for Neuroprotective and Neuromodulator Effects in Mammalian Cells" },
+            { type: 'paragraph', text: "Neurodegenerative diseases such as Alzheimer’s, Parkinson’s, ALS, and others significantly impact human health. Understanding how your products or ingredients can prevent, or slow neurodegeneration is vital for developing effective treatments." },
+            { type: 'question', text: "Want to know if your products or ingredients impact Neurodegeneration and Neuromodulation?" },
+            {
+                type: 'list', items: [
+                    "Our Testing Services - Large Scale Screening: Our neuronal cell assays can determine how your products or ingredients affect neurodegeneration process. This data can be crucial for developing indications related to brain health related Alzheimer’s disease, Parkinson, ALS and other neurodegenerative conditions.",
+                    "Dose, Time Scales, and Toxicity Profiles: Our assays test various doses, treatment times, and other measures, including toxicity profiles, to better understand the effects of your compounds.",
+                    "Neurotransmitter Production: Determine whether your products influence neurotransmitter production, which is essential for brain function and health.",
+                    "Detailed Reporting: Obtain comprehensive reports on the protective effects of your products on neurodegeneration, substantiating your claims with robust scientific data.",
+                    "Future Recommendations and Consulting: Get expert advice on further studies in animal models and humans to maximize your product’s market potential."
+                ]
+            },
+            { type: 'cta', text: "Contact us today to get started on your project!" }
+        ]
     },
     {
         label: 'Muscle Health',
@@ -1555,7 +1570,7 @@ export default function Home() {
                                         'Retrieval and chain-of-custody documentation'
                                     ]}
                                     footerText="Our biorepository protects the long-term value of your samples and supports future discovery and regulatory needs."
-                                    linkTo="/facilities#lead-capture"
+                                    linkTo="/contact?type=biorepository"
                                     linkText="Explore Biorepository Support"
                                     accentColor="blue"
                                 />
@@ -1601,15 +1616,15 @@ export default function Home() {
                                     </div>
                                     <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 md:gap-6 pt-4">
                                         <Link
-                                            to="/facilities#lead-capture"
-                                            className="bg-cyan-500 text-slate-900 px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/20 flex items-center justify-center gap-2"
+                                            to="/contact"
+                                            className="bg-cyan-500 text-slate-900 px-6 py-3 md:px-8 md:py-4 rounded-xl font-black text-xs md:text-sm uppercase tracking-wide hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/20 inline-flex items-center justify-center gap-2"
                                         >
                                             Start the Conversation
                                             <ArrowRight className="w-5 h-5" />
                                         </Link>
                                         <Link
                                             to="/capabilities"
-                                            className="bg-white/5 text-white border border-white/10 px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-white/10 hover:-translate-y-1 transition-all flex items-center justify-center gap-2"
+                                            className="bg-white/5 text-white border border-white/10 px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-white/10 hover:-translate-y-1 transition-all inline-flex items-center justify-center gap-2"
                                         >
                                             Explore Our Capabilities
                                         </Link>
@@ -1680,8 +1695,8 @@ export default function Home() {
 
                             <div className="flex justify-center mt-20 animate-fade-in-up stagger-3">
                                 <Link
-                                    to="/facilities#lead-capture"
-                                    className="px-12 py-5 bg-cyan-500 text-slate-900 rounded-2xl font-black text-sm uppercase tracking-[0.3em] hover:bg-white hover:-translate-y-2 transition-all shadow-[0_20px_50px_-10px_rgba(6,182,212,0.5)] flex items-center gap-3 group"
+                                    to="/contact"
+                                    className="px-6 py-3 md:px-8 md:py-4 bg-cyan-500 text-slate-900 rounded-xl font-black text-sm uppercase tracking-wide hover:bg-white hover:-translate-y-2 transition-all shadow-[0_20px_50px_-10px_rgba(6,182,212,0.5)] inline-flex items-center justify-center gap-3 group"
                                 >
                                     Start the Conversation
                                     <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
@@ -1727,7 +1742,7 @@ export default function Home() {
 
                                 <div className="flex gap-4 pt-4">
                                     <Link to="/facilities" className="bg-white/5 text-white px-8 py-5 rounded-xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-white/10 transition-all border border-white/10">View Our Facilities</Link>
-                                    <Link to="/facilities#lead-capture" className="bg-cyan-400 text-slate-900 px-8 py-5 rounded-xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-white transition-all">Start the Conversation</Link>
+                                    <Link to="/contact" className="bg-cyan-400 text-slate-900 px-6 py-3 md:px-8 md:py-4 rounded-xl font-black text-xs md:text-sm uppercase tracking-wide hover:bg-white transition-all">Start the Conversation</Link>
                                 </div>
                             </div>
 

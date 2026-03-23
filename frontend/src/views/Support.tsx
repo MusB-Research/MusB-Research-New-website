@@ -133,9 +133,9 @@ const Support: React.FC = () => {
                 </div>
             )}
 
-            <div className="relative z-10 pt-24 pb-24 animate-in fade-in duration-1000">
+            <div className="relative z-10 pt-16 pb-12 animate-in fade-in duration-1000">
                 {/* Section 1: Hero */}
-                <section className="relative overflow-hidden min-h-[80vh] flex items-center">
+                <section className="relative overflow-hidden min-h-[50vh] flex items-center">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.12)_0%,transparent_70%)]"></div>
                     <div className="max-w-[1700px] mx-auto px-4 md:px-12 relative z-10 w-full">
                         <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -158,24 +158,24 @@ const Support: React.FC = () => {
                                         ))}
                                     </div>
                                 </div>
-                                <div className="flex flex-col sm:flex-row items-center justify-start gap-8 pt-6">
+                                <div className="flex flex-col sm:flex-row items-center justify-start gap-8 pt-8">
                                     <Link
                                         to="/facilities#lead-capture"
-                                        className="w-full sm:w-auto bg-cyan-500 text-slate-900 px-12 py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-1 transition-all shadow-2xl shadow-cyan-500/30 flex items-center justify-center gap-4 group"
+                                        className="bg-cyan-500 text-slate-900 px-8 py-4 md:px-10 md:py-5 rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-white hover:-translate-y-1 transition-all shadow-2xl shadow-cyan-500/30 inline-flex items-center justify-center gap-4 group"
                                     >
                                         Start the Conversation
-                                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                        <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                                     </Link>
-                                    <Link to="/capabilities" className="text-white hover:text-cyan-400 font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-2 transition-colors group">
-                                        Explore Our Capabilities <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                    <Link to="/capabilities" className="text-white hover:text-cyan-400 font-black text-xs md:text-sm uppercase tracking-[0.2em] flex items-center gap-3 transition-colors group">
+                                        Explore Our Capabilities <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                                     </Link>
                                 </div>
                             </div>
 
                             {/* Right Visual */}
-                            <div className="relative group hidden lg:block">
+                            <div className="relative group hidden lg:block lg:w-4/5 lg:justify-self-end mt-12 lg:mt-16">
                                 <div className="relative z-10 rounded-[3rem] overflow-hidden border border-white/10 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] transform transition-transform duration-700">
-                                    <div className="w-full aspect-[4/5] bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 transition-all duration-700"></div>
+                                    <div className="w-full aspect-square lg:aspect-[4.5/5] bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 transition-all duration-700"></div>
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60"></div>
                                     <div className="absolute bottom-12 left-12 right-12 space-y-2">
                                         <p className="text-cyan-400 font-black text-[10px] uppercase tracking-[0.4em]">Integrated Research</p>
@@ -193,7 +193,7 @@ const Support: React.FC = () => {
                     </div>
                 </section>
                 {/* Section 2: 3 Ways We Support */}
-                <section className="pt-24 pb-8 relative z-10" id="pillars">
+                <section className="pt-12 pb-8 relative z-10" id="pillars">
                     <div className="max-w-[1700px] mx-auto px-4 md:px-12">
                         <div className="text-center space-y-8 mb-24 max-w-6xl mx-auto">
                             <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight leading-tight uppercase italic">
@@ -356,9 +356,9 @@ const Support: React.FC = () => {
                 </section>
 
                 {/* Section 5: Our Approach */}
-                <section className="py-24 relative z-10">
+                <section className="pt-8 pb-24 relative z-10">
                     <div className="max-w-[1700px] mx-auto px-4 md:px-12 text-center">
-                        <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight leading-tight mb-24">Our Approach</h2>
+                        <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight leading-tight mb-16">Our Approach</h2>
                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-16 mb-24 text-left">
                             {[
                                 { title: "Collaborative Partnerships", desc: "Transparent communication and aligned milestones" },
@@ -379,7 +379,7 @@ const Support: React.FC = () => {
                                 </div>
                             ))}
                         </div>
-                        <Link to="/facilities#lead-capture" className="bg-cyan-500 text-slate-900 px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-1 transition-all shadow-2xl flex items-center justify-center gap-4 mx-auto group">
+                        <Link to="/facilities#lead-capture" className="bg-cyan-500 text-slate-900 px-6 py-3 md:px-8 md:py-4 rounded-xl font-black text-sm uppercase tracking-wide hover:bg-white hover:-translate-y-1 transition-all shadow-2xl inline-flex items-center justify-center gap-4 mx-auto group">
                             Start the Conversation
                             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </Link>
@@ -427,18 +427,18 @@ const Support: React.FC = () => {
                 {/* Section 7: Strategic Closing */}
                 <section className="py-24 relative z-10 overflow-hidden">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-cyan-500/5 blur-[180px] rounded-full pointer-events-none"></div>
-                    <div className="max-w-7xl mx-auto px-4 md:px-12 text-center space-y-16">
+                    <div className="max-w-[1400px] mx-auto px-6 text-center space-y-16 relative">
                         <div className="space-y-8 animate-fade-in-up">
-                            <h2 className="text-3xl md:text-5xl font-black text-white leading-[1.1] tracking-tighter">
-                                Choosing MusB™ Research means partnering with a leader <br className="hidden md:block" />
+                            <p className="text-3xl md:text-5xl font-black text-white leading-[1.1] tracking-tighter">
+                                Choosing MusB™ Research means partnering with a leader <br />
                                 in scientific innovation, flexibility, and <span className="text-cyan-400">execution excellence.</span>
-                            </h2>
+                            </p>
                             <p className="text-xl md:text-2xl text-slate-400 font-medium max-w-3xl mx-auto leading-relaxed">
                                 We help you achieve your research objectives through tailored, responsive, and cost-effective solutions—without compromising scientific rigor.
                             </p>
                         </div>
                         <div className="flex flex-col items-center gap-6">
-                            <Link to="/contact" className="bg-cyan-500 text-slate-900 px-12 py-6 rounded-3xl font-black text-lg uppercase tracking-widest hover:bg-white hover:scale-105 transition-all shadow-xl">
+                            <Link to="/contact?type=business" className="bg-cyan-500 text-slate-900 px-12 py-6 rounded-3xl font-black text-lg uppercase tracking-widest hover:bg-white hover:scale-105 transition-all shadow-xl">
                                 Request a Consultation
                             </Link>
                             <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">

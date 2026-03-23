@@ -5,7 +5,7 @@ import {
     ClipboardCheck, Users, Lock, Zap, Handshake
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
+import { submitFacilityInquiry } from '../api';
 
 const HARDCODED_DATA = {
     settings: {
@@ -63,7 +63,7 @@ export default function Facilities() {
     // Form State
     const [formState, setFormState] = useState({
         name: '', email: '', company: '', role: '',
-        interest: 'Research', stage: 'Concept'
+        interest: 'Research', stage: 'Concept', concept: ''
     });
     const [formStatus, setFormStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
@@ -76,9 +76,9 @@ export default function Facilities() {
         e.preventDefault();
         setFormStatus('submitting');
         try {
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Mocked API call
+            await submitFacilityInquiry(formState);
             setFormStatus('success');
-            setFormState({ name: '', email: '', company: '', role: '', interest: 'Research', stage: 'Concept' });
+            setFormState({ name: '', email: '', company: '', role: '', interest: 'Research', stage: 'Concept', concept: '' });
         } catch (err) {
             setFormStatus('error');
         }
@@ -162,7 +162,7 @@ export default function Facilities() {
             <section className="relative z-20 mt-12 lg:-mt-10 px-6 pb-16">
                 <div className="max-w-[90rem] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {/* Card 1 */}
-                    <Link to="#research" onClick={(e) => { e.preventDefault(); const el = document.getElementById('research'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: 'smooth' }); }} className="group bg-slate-900/80 backdrop-blur-md border border-slate-800 hover:border-cyan-500/50 p-8 rounded-3xl transition-all hover:-translate-y-2 hover:shadow-2xl hover:shadow-cyan-900/20">
+                    <Link to="#research" onClick={(e) => { e.preventDefault(); const el = document.getElementById('research'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' }); }} className="group bg-slate-900/80 backdrop-blur-md border border-slate-800 hover:border-cyan-500/50 p-8 rounded-3xl transition-all hover:-translate-y-2 hover:shadow-2xl hover:shadow-cyan-900/20">
                         <div className="w-14 h-14 bg-cyan-900/30 rounded-2xl flex items-center justify-center text-cyan-400 mb-6 group-hover:bg-cyan-500 group-hover:text-slate-900 transition-colors">
                             <Microscope className="w-7 h-7" />
                         </div>
@@ -174,7 +174,7 @@ export default function Facilities() {
                     </Link>
 
                     {/* Card 2 */}
-                    <Link to="#lead-capture" onClick={(e) => { e.preventDefault(); const el = document.getElementById('lead-capture'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: 'smooth' }); }} className="group bg-slate-900/80 backdrop-blur-md border border-slate-800 hover:border-indigo-500/50 p-8 rounded-3xl transition-all hover:-translate-y-2 hover:shadow-2xl hover:shadow-indigo-900/20">
+                    <Link to="#lead-capture" onClick={(e) => { e.preventDefault(); const el = document.getElementById('lead-capture'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' }); }} className="group bg-slate-900/80 backdrop-blur-md border border-slate-800 hover:border-indigo-500/50 p-8 rounded-3xl transition-all hover:-translate-y-2 hover:shadow-2xl hover:shadow-indigo-900/20">
                         <div className="w-14 h-14 bg-indigo-900/30 rounded-2xl flex items-center justify-center text-indigo-400 mb-6 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
                             <Beaker className="w-7 h-7" />
                         </div>
@@ -186,7 +186,7 @@ export default function Facilities() {
                     </Link>
 
                     {/* Card 3 */}
-                    <Link to="#bio" onClick={(e) => { e.preventDefault(); const el = document.getElementById('bio'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: 'smooth' }); }} className="group bg-slate-900/80 backdrop-blur-md border border-slate-800 hover:border-purple-500/50 p-8 rounded-3xl transition-all hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-900/20">
+                    <Link to="#bio" onClick={(e) => { e.preventDefault(); const el = document.getElementById('bio'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' }); }} className="group bg-slate-900/80 backdrop-blur-md border border-slate-800 hover:border-purple-500/50 p-8 rounded-3xl transition-all hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-900/20">
                         <div className="w-14 h-14 bg-purple-900/30 rounded-2xl flex items-center justify-center text-purple-400 mb-6 group-hover:bg-purple-500 group-hover:text-white transition-colors">
                             <Archive className="w-7 h-7" />
                         </div>
@@ -265,12 +265,12 @@ export default function Facilities() {
 
                     {/* Pillar CTA Strip */}
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-12 border-t border-slate-900/50 mt-12">
-                        <Link to="/contact" className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-8 py-4 rounded-xl font-bold uppercase tracking-wide transition-all shadow-lg shadow-cyan-500/20">
+                        <Link to="/contact?type=general" className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-8 py-4 rounded-xl font-bold uppercase tracking-wide transition-all shadow-lg shadow-cyan-500/20">
                             Start a Research Project
                         </Link>
-                        <button className="flex items-center gap-2 px-8 py-4 rounded-xl border border-slate-700 hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-all font-bold text-cyan-400 uppercase tracking-wide">
+                        <Link to="#lead-capture" onClick={(e) => { e.preventDefault(); const el = document.getElementById('lead-capture'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' }); }} className="flex items-center justify-center gap-2 px-8 py-4 rounded-xl border border-slate-700 hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-all font-bold text-cyan-400 uppercase tracking-wide">
                             Request a Feasibility Call
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </section>
@@ -330,12 +330,12 @@ export default function Facilities() {
 
                     {/* Pillar CTA Strip */}
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-12 border-t border-slate-900/50 mt-12">
-                        <Link to="/contact" className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-xl font-bold uppercase tracking-wide transition-all shadow-lg shadow-indigo-500/20">
+                        <Link to="/contact?type=general" className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-xl font-bold uppercase tracking-wide transition-all shadow-lg shadow-indigo-500/20">
                             Get a Testing Quote
                         </Link>
-                        <button className="flex items-center gap-2 px-8 py-4 rounded-xl border border-slate-700 hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all font-bold text-indigo-400 uppercase tracking-wide">
+                        <Link to="#lead-capture" onClick={(e) => { e.preventDefault(); const el = document.getElementById('lead-capture'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' }); }} className="flex items-center justify-center gap-2 px-8 py-4 rounded-xl border border-slate-700 hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all font-bold text-indigo-400 uppercase tracking-wide">
                             Speak With Lab Director
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </section>
@@ -391,7 +391,7 @@ export default function Facilities() {
 
                     {/* Pillar CTA Strip */}
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-12 border-t border-slate-900/50 mt-12">
-                        <Link to="/contact" className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-xl font-bold uppercase tracking-wide transition-all shadow-lg shadow-purple-500/20">
+                        <Link to="/contact?type=general" className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-4 rounded-xl font-bold uppercase tracking-wide transition-all shadow-lg shadow-purple-500/20">
                             Schedule a Storage Consult
                         </Link>
                     </div>
@@ -413,7 +413,7 @@ export default function Facilities() {
                         })}
                     </div>
                     <div>
-                        <Link to="#lead-capture" onClick={(e) => { e.preventDefault(); const el = document.getElementById('lead-capture'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: 'smooth' }); }} className="inline-flex items-center justify-center px-8 py-4 text-sm font-bold tracking-widest text-slate-900 uppercase transition-all bg-cyan-400 rounded-xl hover:bg-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.3)]">
+                        <Link to="#lead-capture" onClick={(e) => { e.preventDefault(); const el = document.getElementById('lead-capture'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' }); }} className="inline-flex items-center justify-center px-8 py-4 text-sm font-bold tracking-widest text-slate-900 uppercase transition-all bg-cyan-400 rounded-xl hover:bg-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.3)]">
                             Talk to a Scientist
                         </Link>
                     </div>
@@ -438,7 +438,7 @@ export default function Facilities() {
                     })}
                 </div>
                 <div className="text-center mt-6">
-                    <Link to="#lead-capture" onClick={(e) => { e.preventDefault(); const el = document.getElementById('lead-capture'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: 'smooth' }); }} className="inline-flex items-center justify-center px-8 py-4 text-sm font-bold tracking-widest text-white uppercase transition-all bg-indigo-600 rounded-xl hover:bg-indigo-500 shadow-lg shadow-indigo-500/25">
+                    <Link to="#lead-capture" onClick={(e) => { e.preventDefault(); const el = document.getElementById('lead-capture'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' }); }} className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 text-sm font-bold tracking-wide text-white uppercase transition-all bg-indigo-600 rounded-xl hover:bg-indigo-500 shadow-lg shadow-indigo-500/25">
                         Start the Conversation
                     </Link>
                 </div>
@@ -448,12 +448,12 @@ export default function Facilities() {
             < section id="lead-capture" className="py-12 md:py-16 px-6 bg-gradient-to-br from-slate-900 to-slate-950 border-t border-slate-800" >
                 <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12">
                     <div className="space-y-8">
-                        <h2 className="text-3xl md:text-5xl font-black text-white leading-tight">Ready to Move Faster With Better Evidence?</h2>
-                        <p className="text-lg md:text-xl text-slate-400">We can support research, testing, and biospecimen management—individually or as an integrated program.</p>
-                        <ul className="space-y-4 pt-4">
+                        <h2 className="text-4xl md:text-6xl font-black text-white leading-tight">Ready to Move Faster With Better Evidence?</h2>
+                        <p className="text-xl md:text-2xl text-slate-400 font-medium">We can support research, testing, and biospecimen management—individually or as an integrated program.</p>
+                        <ul className="space-y-6 pt-6">
                             {['Integrated Preclinical & Clinical', 'Sponsor-Ready Reporting', 'Regulatory Compliance'].map(item => (
-                                <li key={item} className="flex items-center gap-3 font-bold text-slate-300">
-                                    <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center"><ShieldCheck className="w-4 h-4" /></div>
+                                <li key={item} className="flex items-center gap-4 font-bold text-slate-300 text-lg">
+                                    <div className="w-8 h-8 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0"><ShieldCheck className="w-5 h-5" /></div>
                                     {item}
                                 </li>
                             ))}
@@ -532,6 +532,21 @@ export default function Facilities() {
                                             className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500 placeholder-slate-600"
                                             placeholder="BioTech Inc."
                                         />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Concept Explanation (Optional)</label>
+                                    <textarea
+                                        value={formState.concept}
+                                        onChange={e => setFormState({ ...formState, concept: e.target.value })}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500 placeholder-slate-600 resize-none"
+                                        placeholder="Briefly explain your concept..."
+                                        rows={4}
+                                        maxLength={5000}
+                                    />
+                                    <div className="text-right text-xs text-slate-500 font-medium">
+                                        {formState.concept.length} / 5000 chars
                                     </div>
                                 </div>
 
