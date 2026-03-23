@@ -317,7 +317,8 @@ export default function Innovations() {
                             <div className="text-center space-y-4 md:space-y-6 max-w-4xl mx-auto">
                                 <span className="text-cyan-400 font-black text-[10px] md:text-sm uppercase tracking-[0.4em]">INNOVATE WITH US – INDUSTRY-SPONSORED RESEARCH</span>
                                 <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight uppercase">
-                                    Bring Your Product. <span className="text-cyan-400">We Bring the Science.</span>
+                                    Bring Your Product. <br />
+                                    <span className="text-cyan-400">We Bring the Science.</span>
                                 </h2>
                                 <p className="text-xl text-slate-300 font-medium leading-relaxed">
                                     MusB Research invites industry sponsors, biotech companies, ingredient manufacturers, and brands to conduct high-quality preclinical and clinical research under one integrated ecosystem.
@@ -442,14 +443,14 @@ export default function Innovations() {
                     <div className="bg-[#0A0F1C]/60 backdrop-blur-2xl rounded-[5rem] p-8 md:p-24 border border-white/5 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] relative overflow-hidden text-center">
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-500/10 blur-[180px] rounded-full"></div>
 
-                        <div className="relative z-10 space-y-10 max-w-4xl mx-auto">
+                        <div className="relative z-10 space-y-10 max-w-6xl mx-auto">
                             <div className="space-y-4 md:space-y-6">
                                 <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight uppercase">
                                     Science <span className="text-cyan-400">You Can Build On.</span>
                                 </h2>
                                 <div className="space-y-6">
                                     <p className="text-2xl text-slate-300 font-medium leading-relaxed">
-                                        MusB Research develops proprietary, scientifically proven technologies and invites brands and partners to collaborate, license, or co-develop products backed by rigorous research.
+                                        MusB Research develops proprietary, scientifically proven technologies and invites brands and partners to <br className="hidden lg:block" /> collaborate, license, or co-develop products backed by rigorous research.
                                     </p>
                                     <p className="text-xl text-slate-400 font-medium leading-relaxed">
                                         Each technology page includes open, transparent access to supporting data and updates.
@@ -849,16 +850,16 @@ export default function Innovations() {
                     </div>
                 </section>
                 {/* FINAL CALL TO ACTION */}
-                <section className="max-w-[1700px] mx-auto px-4 md:px-12 pb-20">
-                    <div className="bg-gradient-to-br from-[#0D121F]/80 to-[#070B14]/80 backdrop-blur-3xl rounded-[5rem] p-8 md:p-32 border border-white/10 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9)] relative overflow-hidden text-center group">
+                <section className="max-w-[1700px] mx-auto px-4 md:px-8 pb-20 overflow-hidden">
+                    <div className="bg-gradient-to-br from-[#0D121F]/80 to-[#070B14]/80 backdrop-blur-3xl rounded-[5rem] py-12 px-2 md:py-24 md:px-6 lg:px-12 xl:px-16 border border-white/10 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.9)] relative text-center group">
                         <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
                         <div className="absolute -top-24 -right-24 w-96 h-96 bg-cyan-500/10 blur-[120px] rounded-full"></div>
                         <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-500/10 blur-[120px] rounded-full"></div>
 
-                        <div className="relative z-10 space-y-12 max-w-5xl mx-auto">
-                            <div className="space-y-6">
+                        <div className="relative z-10 space-y-12 w-full mx-auto">
+                            <div className="space-y-6 flex flex-col items-center">
                                 <span className="text-cyan-400 font-black text-[10px] md:text-sm uppercase tracking-[0.4em]">Final Call to Action</span>
-                                <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.1] uppercase">
+                                <h2 className="text-[17px] sm:text-[22px] md:text-[28px] lg:text-[36px] xl:text-[42px] 2xl:text-[52px] font-black text-white tracking-tighter leading-none uppercase w-full whitespace-nowrap">
                                     Innovation <span className="text-cyan-400">Without Evidence</span> is Speculation.
                                 </h2>
                                 <p className="text-2xl text-slate-300 font-medium leading-relaxed">

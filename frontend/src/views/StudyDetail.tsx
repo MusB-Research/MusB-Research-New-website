@@ -17,6 +17,85 @@ import { fetchStudies, Study } from '../data/studies';
 import { motion } from 'framer-motion';
 import { authFetch } from '../utils/auth';
 
+const customStudyContent: Record<string, any> = {
+    'beat the bloat': {
+        title: 'Beat the Bloat Study',
+        description: 'A simple, non-invasive study to improve everyday digestive comfort and reduce bloating.',
+        overviewBullets: [
+            'Evaluating a natural formulation targeting bloating, gas, and indigestion',
+            'Focus on common gastrointestinal symptoms in everyday life',
+            'Non-invasive testing using breath-based gas measurements',
+            'No blood draw or complex procedures required',
+            'Short-duration study with minimal time commitment'
+        ],
+        benefitsBullets: [
+            'Receive $150 compensation upon completion',
+            'Access to free digestive health assessment',
+            'Try a natural formulation at no cost',
+            'No invasive testing—simple and comfortable participation',
+            'Contribute to improving gut health solutions'
+        ],
+        ctaText: 'Participate in innovative, community-driven clinical research and take an active role in advancing health science—while gaining valuable insights into your own health.'
+    },
+    'vital-age': {
+        title: 'Vital-Age Study',
+        description: 'Supporting healthy aging through microbiome-driven innovation.',
+        overviewBullets: [
+            'Evaluates a probiotic/postbiotic intervention for healthy aging and metabolic function',
+            'Focus on improving energy, metabolism, and overall wellness',
+            'Includes multiple assessments across a structured timeline',
+            'Designed for adults seeking to maintain vitality with age',
+            'Integrates microbiome and metabolic health insights'
+        ],
+        benefitsBullets: [
+            'Receive $200 compensation upon completion',
+            'Access to advanced health and metabolic testing',
+            'Free study product designed for healthy aging',
+            'Gain insights into your personal health markers',
+            'Contribute to cutting-edge aging research'
+        ],
+        ctaText: 'Participate in innovative, community-driven clinical research and take an active role in advancing health science—while gaining valuable insights into your own health.'
+    },
+    'sam study': {
+        title: 'SAM Study (Supporting Active Menopause)',
+        description: 'Improving comfort and quality of life during menopause through natural interventions.',
+        overviewBullets: [
+            'Evaluates a herbal formulation for menopause-related symptoms',
+            'Focus on hot flashes, mood changes, and overall well-being',
+            'Includes hormone-related assessments and symptom tracking',
+            'Designed for women aged 40–65 years',
+            'Supports evidence-based solutions for women’s health'
+        ],
+        benefitsBullets: [
+            'Receive $300 compensation upon completion',
+            'Access to free hormone testing',
+            'Try a natural menopause-support formulation',
+            'Monitor improvements in symptoms and well-being',
+            'Contribute to advancing women’s health research'
+        ],
+        ctaText: 'Participate in innovative, community-driven clinical research and take an active role in advancing health science—while gaining valuable insights into your own health.'
+    },
+    'renew study': {
+        title: 'RENEW Study',
+        description: 'A next-generation study focused on restoring health through targeted nutrition and microbiome support.',
+        overviewBullets: [
+            'Investigates the impact of a novel intervention on metabolic and overall health',
+            'Focus on restoring balance in gut, metabolism, and systemic wellness',
+            'Combines lifestyle, nutrition, and microbiome-based approaches',
+            'Includes structured follow-up and health monitoring',
+            'Designed to generate real-world evidence for wellness innovation'
+        ],
+        benefitsBullets: [
+            'Receive compensation for participation',
+            'Access to free health evaluations and testing',
+            'Try innovative, science-backed interventions',
+            'Gain personalized insights into your health',
+            'Be part of next-generation clinical research'
+        ],
+        ctaText: 'Participate in innovative, community-driven clinical research and take an active role in advancing health science—while gaining valuable insights into your own health.'
+    }
+};
+
 export default function StudyDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -35,6 +114,9 @@ export default function StudyDetail() {
     }, [id, navigate]);
 
     if (!study) return null;
+
+    const studyKey = Object.keys(customStudyContent).find(key => study.title.toLowerCase().includes(key));
+    const customContent = studyKey ? customStudyContent[studyKey] : null;
 
     return (
         <div className="min-h-screen pt-40 pb-24 px-4 md:px-12 bg-transparent text-slate-200">
@@ -87,10 +169,10 @@ export default function StudyDetail() {
                                 className="space-y-4"
                             >
                                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white uppercase tracking-tight leading-none mb-3">
-                                    {study.title}
+                                    {customContent ? customContent.title : study.title}
                                 </h1>
                                 <p className="text-lg md:text-xl text-slate-400 font-bold leading-snug max-w-2xl">
-                                    {study.description}
+                                    {customContent ? customContent.description : study.description}
                                 </p>
                             </motion.div>
                         </div>
@@ -111,11 +193,66 @@ export default function StudyDetail() {
                                     </div>
                                     Overview
                                 </h2>
-                                <p className="text-slate-300 text-lg leading-relaxed font-medium">
-                                    {study.overview}
-                                </p>
+                                {customContent ? (
+                                    <ul className="space-y-3 text-slate-300 text-lg leading-relaxed font-medium list-disc pl-5">
+                                        {customContent.overviewBullets.map((bullet: string, idx: number) => (
+                                            <li key={idx}>{bullet}</li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-slate-300 text-lg leading-relaxed font-medium">
+                                        {study.overview}
+                                    </p>
+                                )}
                             </div>
                         </motion.section>
+
+                        {/* Additional info for custom studies */}
+                        {customContent && (
+                            <>
+                                <motion.section 
+                                    initial={{ opacity: 0, y: 30 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.3 }}
+                                    className="bg-[#0f172a]/40 backdrop-blur-[40px] rounded-[3.5rem] p-10 md:p-14 border border-white/10 shadow-2xl relative overflow-hidden group"
+                                >
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 blur-[80px] rounded-full -mr-20 -mt-20"></div>
+                                    <div className="relative z-10 space-y-8">
+                                        <h2 className="text-2xl font-black text-white uppercase italic tracking-tight flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+                                                <CheckCircle2 className="w-5 h-5 text-cyan-400" />
+                                            </div>
+                                            Benefits for Participants
+                                        </h2>
+                                        <ul className="space-y-3 text-slate-300 text-lg leading-relaxed font-medium list-disc pl-5">
+                                            {customContent.benefitsBullets.map((bullet: string, idx: number) => (
+                                                <li key={idx}>{bullet}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </motion.section>
+
+                                <motion.section 
+                                    initial={{ opacity: 0, y: 30 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.4 }}
+                                    className="bg-[#0f172a]/40 backdrop-blur-[40px] rounded-[3.5rem] p-10 md:p-14 border border-white/10 shadow-2xl relative overflow-hidden group"
+                                >
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 blur-[80px] rounded-full -mr-20 -mt-20"></div>
+                                    <div className="relative z-10 space-y-8">
+                                        <h2 className="text-2xl font-black text-white uppercase italic tracking-tight flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+                                                <Microscope className="w-5 h-5 text-cyan-400" />
+                                            </div>
+                                            Join a MusB Research Study Today
+                                        </h2>
+                                        <p className="text-slate-300 text-lg leading-relaxed font-medium">
+                                            {customContent.ctaText}
+                                        </p>
+                                    </div>
+                                </motion.section>
+                            </>
+                        )}
                     </div>
 
                     {/* Right Column: CTA Sidebar */}

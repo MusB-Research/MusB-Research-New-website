@@ -262,7 +262,7 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '60/minute',    # Raised: refresh calls are anonymous — 3 concurrent refreshes was hitting the old limit of 5
+        'anon': '100/minute',  # Increased limit for public API endpoints
         'user': '2000/day',
         'login': '10/minute',   # Scoped throttle for login endpoint only
         'refresh': '30/minute', # Scoped throttle for token refresh
