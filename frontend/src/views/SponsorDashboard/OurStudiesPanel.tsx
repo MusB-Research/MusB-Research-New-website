@@ -83,15 +83,15 @@ export default function OurStudiesPanel({ protocols, setProtocols, addToast, win
       color: '#f1f5f9', 
       animation: 'fadeIn 0.5s ease-out' 
     }}>
-      <div style={{ position: 'sticky', top: 57, background: '#020617', zIndex: 40, paddingBottom: 24, paddingTop: 16, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+      <div style={{ paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 20 }}>
         <div style={{ display: 'flex', flexDirection: windowWidth > 768 ? 'row' : 'column', justifyContent: 'space-between', alignItems: windowWidth > 768 ? 'center' : 'flex-start', gap: 16 }}>
           <div>
-            <h1 style={{ margin: 0, fontWeight: 900, fontSize: windowWidth > 768 ? 52 : 32, color: '#f1f5f9', letterSpacing: '-0.04em', lineHeight: 1.1 }}>Strategic Portfolio</h1>
+            <h1 style={{ margin: 0, fontWeight: 900, fontSize: windowWidth > 768 ? 36 : 26, color: '#f1f5f9', letterSpacing: '-0.04em', lineHeight: 1.1 }}>Strategic Portfolio</h1>
             <div style={{ fontSize: windowWidth > 768 ? 20 : 16, color: '#94a3b8', marginTop: 12, fontWeight: 600 }}>Sponsor Dashboard → <span style={{ color: '#2563eb' }}>Our Studies</span></div>
           </div>
         </div>
-              <div style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(10px)', borderRadius: 28, padding: windowWidth > 768 ? 32 : 20, marginTop: windowWidth > 768 ? 40 : 20, display: 'flex', gap: windowWidth > 768 ? 20 : 12, flexWrap: 'wrap', alignItems: 'center', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
-          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search protocols..." style={{ flex: 1, minWidth: windowWidth > 768 ? 350 : '100%', background: 'rgba(15, 23, 42, 0.6)', border: '2px solid rgba(255,255,255,0.1)', color: '#f1f5f9', padding: windowWidth > 768 ? '20px 28px' : '16px 20px', borderRadius: 20, outline: 'none', fontSize: windowWidth > 768 ? 20 : 16, fontWeight: 500 }} />
+              <div style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(10px)', borderRadius: 20, padding: windowWidth > 768 ? 16 : 12, marginTop: 16, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search protocols..." style={{ flex: 1, minWidth: windowWidth > 768 ? 200 : '100%', background: 'rgba(15, 23, 42, 0.6)', border: '2px solid rgba(255,255,255,0.1)', color: '#f1f5f9', padding: '12px 16px', borderRadius: 14, outline: 'none', fontSize: 15, fontWeight: 500 }} />
           <div style={{ position: 'relative', flex: windowWidth > 768 ? 'none' : 1 }}>
             <select 
               value={filterStatus} 
@@ -102,11 +102,10 @@ export default function OurStudiesPanel({ protocols, setProtocols, addToast, win
                 backdropFilter: 'blur(10px)',
                 border: '2px solid rgba(255,255,255,0.1)', 
                 color: '#f1f5f9', 
-                padding: windowWidth > 768 ? '20px 48px 20px 28px' : '16px 40px 16px 20px', 
-                borderRadius: 20, 
-                outline: 'none', 
-                fontSize: windowWidth > 768 ? 18 : 14, 
-                fontWeight: 700, 
+                padding: '12px 36px 12px 16px',
+                borderRadius: 14,
+                fontSize: 14,
+                fontWeight: 700,
                 cursor: 'pointer',
                 appearance: 'none',
                 textTransform: 'uppercase',
