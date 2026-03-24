@@ -1767,7 +1767,7 @@ export default function SuperAdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#07091e] font-sans text-slate-300 flex overflow-hidden lg:static">
+    <div className="h-screen bg-[#07091e] font-sans text-slate-300 flex overflow-hidden lg:static">
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
         {isSidebarOpen && (
@@ -1782,7 +1782,7 @@ export default function SuperAdminDashboard() {
       </AnimatePresence>
 
       {/* ────────────────────────────────────────── Sidebar ────────────────────────────────────────── */}
-      <aside className={`fixed inset-y-0 left-0 w-80 bg-[#0a0b1b] border-r border-white/5 z-[70] flex flex-col transition-transform duration-500 lg:static lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed inset-y-0 left-0 w-80 h-screen bg-[#0a0b1b] border-r border-white/5 z-[70] flex flex-col transition-transform duration-500 lg:static lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-8 flex items-center justify-between border-b border-white/5">
           <Link to="/" target="_blank" rel="noopener noreferrer" className="group">
             <div className="flex items-center gap-4">
