@@ -125,9 +125,9 @@ export default function Facilities() {
                             <Link to="/contact" className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-8 py-4 rounded-xl font-bold uppercase tracking-wide transition-all shadow-lg shadow-cyan-500/20">
                                 Start a Project
                             </Link>
-                            <button className="flex items-center gap-2 px-8 py-4 rounded-xl border border-slate-700 hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-all font-bold text-cyan-400 uppercase tracking-wide">
+                            <a href="/booklets/capabilities_deck.pdf" download="Capabilities_Deck.pdf" className="flex items-center gap-2 px-8 py-4 rounded-xl border border-slate-700 hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-all font-bold text-cyan-400 uppercase tracking-wide">
                                 <FileText className="w-5 h-5" /> Download Capabilities Deck (PDF)
-                            </button>
+                            </a>
                         </div>
                     </div>
 

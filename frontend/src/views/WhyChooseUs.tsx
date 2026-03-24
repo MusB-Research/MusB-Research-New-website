@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import {
     ArrowRight, Microscope, Brain, GraduationCap, Database, Workflow, HeartPulse,
     FlaskConical, Beaker, ShieldCheck, Zap, Target, Users, RefreshCcw, Lightbulb,
-    Globe, Award, BookOpen, Layers, CheckCircle2, Sparkles, Eye, Heart
+    Globe, Award, BookOpen, Layers, CheckCircle2, Sparkles, Eye, Heart,
+    Star, Flame, Handshake, Shield
 } from 'lucide-react';
 
 // Icon lookup map for dynamic rendering from backend data
@@ -14,6 +15,7 @@ const iconMap: Record<string, React.ElementType> = {
     zap: Zap, target: Target, users: Users, 'refresh-ccw': RefreshCcw,
     lightbulb: Lightbulb, globe: Globe, award: Award, 'book-open': BookOpen,
     layers: Layers, sparkles: Sparkles, eye: Eye, heart: Heart,
+    star: Star, flame: Flame, handshake: Handshake, shield: Shield, 'check-circle': CheckCircle2
 };
 
 const getIcon = (name: string) => iconMap[name] || Globe;
@@ -54,13 +56,13 @@ const defaultThreeWays = [
 
 // Default core values
 const defaultCoreValues = [
-    { icon: 'star', name: 'Excellence', description: 'We pursue the highest standards to ensure exceptional quality and reliability.' },
+    { icon: 'award', name: 'Excellence', description: 'We pursue the highest standards to ensure exceptional quality and reliability.' },
     { icon: 'shield-check', name: 'Integrity', description: 'We uphold ethical research practices built on transparency and trust.' },
-    { icon: 'zap', name: 'Innovation', description: 'We embrace cutting-edge technologies and forward-thinking approaches.' },
+    { icon: 'lightbulb', name: 'Innovation', description: 'We embrace cutting-edge technologies and forward-thinking approaches.' },
     { icon: 'users', name: 'Collaboration', description: 'We work closely with our partners to drive shared success.' },
     { icon: 'heart', name: 'Commitment', description: 'We are dedicated to advancing public health through rigorous science.' },
     { icon: 'target', name: 'Client Focus', description: 'We deliver personalized, tailored solutions aligned with your goals.' },
-    { icon: 'refresh-cw', name: 'Continuous Improvement', description: 'We constantly refine our methods through learning and evaluation.' },
+    { icon: 'refresh-ccw', name: 'Continuous Improvement', description: 'We constantly refine our methods through learning and evaluation.' },
     { icon: 'globe', name: 'Responsibility', description: 'We ensure our research contributes positively to society and global health.' },
     { icon: 'flame', name: 'Passion', description: 'We are driven by a deep passion for science and innovation.' },
     { icon: 'check-circle', name: 'Quality', description: 'We ensure excellence through meticulous attention to detail and quality control.' }
@@ -325,11 +327,11 @@ export default function WhyChooseUs() {
                                 <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight uppercase">Our Core Values</h2>
                                 <div className="h-1.5 w-24 bg-cyan-500 mx-auto rounded-full"></div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-8">
                                 {coreValues.map((value: any, idx: number) => {
                                     const IconComp = getIcon(value.icon);
                                     return (
-                                        <div key={idx} className="p-8 rounded-[2.5rem] bg-white/5 border border-white/5 hover:bg-white/10 hover:border-cyan-500/30 transition-all duration-500 group flex flex-col gap-5">
+                                        <div key={idx} className={`col-span-1 md:col-span-2 lg:col-span-2 ${idx === 9 ? 'lg:col-start-3' : ''} p-8 rounded-[2.5rem] bg-white/5 border border-white/5 hover:bg-white/10 hover:border-cyan-500/30 transition-all duration-500 group flex flex-col gap-5`}>
                                             <div className="w-14 h-14 rounded-2xl bg-cyan-400/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-slate-900 transition-all duration-500">
                                                 <IconComp className="w-7 h-7" />
                                             </div>
