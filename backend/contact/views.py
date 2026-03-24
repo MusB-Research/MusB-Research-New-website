@@ -42,18 +42,20 @@ class SubmissionCreateView(generics.CreateAPIView):
         
         # 1. ADMIN NOTIFICATION: Send all details to info@musbresearch.com
         admin_recipient = "info@musbresearch.com"
-        admin_subject = f"Alert: New Screening Submission - {submission.name}"
+        admin_subject = f"Alert: New Contact Submission - {submission.name}"
         
         admin_html = f"""
         <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #0ea5e9;">MusB Research: New Screening Submission</h2>
-            <p>A participant has completed a screening form. Below are the full details:</p>
+            <h2 style="color: #0ea5e9;">MusB Research: New Contact Submission</h2>
+            <p>A participant has completed the contact form. Below are the full details:</p>
             <div style="background: #f9fafb; padding: 15px; border-radius: 8px;">
                 <p><strong>Name:</strong> {submission.name}</p>
                 <p><strong>Email:</strong> {submission.email}</p>
                 <p><strong>Phone:</strong> {submission.phone or 'N/A'}</p>
-                <div style="margin-top: 15px; border-top: 1px solid #ddd; pt-10px;">
-                    <p><strong>Screening Data:</strong></p>
+                <p><strong>Company:</strong> {submission.company or 'N/A'}</p>
+                <p><strong>Inquiry Type:</strong> {submission.inquiry_type.label if submission.inquiry_type else 'N/A'}</p>
+                <div style="margin-top: 15px; border-top: 1px solid #ddd; padding-top: 10px;">
+                    <p><strong>Message / Details:</strong></p>
                     <pre style="white-space: pre-wrap; font-size: 13px; color: #374151;">{submission.message}</pre>
                 </div>
             </div>
@@ -62,7 +64,7 @@ class SubmissionCreateView(generics.CreateAPIView):
         """
         
         # 2. PARTICIPANT CONFIRMATION: Send a "revert" message to the participant
-        participant_subject = f"Screening Confirmation for {submission.name} - MusB Research"
+        participant_subject = f"Contact Confirmation for {submission.name} - MusB Research"
         participant_html = f"""
         <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: auto; padding: 40px; border: 1px solid #e2e8f0; border-radius: 24px; background-color: #ffffff;">
             <div style="text-align: center; margin-bottom: 30px;">
@@ -73,14 +75,14 @@ class SubmissionCreateView(generics.CreateAPIView):
             <div style="background: #f8fafc; padding: 30px; border-radius: 16px; border: 1px solid #f1f5f9; color: #1e293b;">
                 <h2 style="font-size: 18px; font-weight: 800; margin-top: 0;">Submission Confirmed</h2>
                 <p style="font-size: 15px; line-height: 1.6;">Hello {submission.name},</p>
-                <p style="font-size: 15px; line-height: 1.6;">Thank you for filling out the eligibility form.</p>
-                <p style="font-size: 15px; line-height: 1.6;">Our clinical tracking team has received your information securely. Our team member will connect with you shortly regarding your next steps.</p>
+                <p style="font-size: 15px; line-height: 1.6;">Thank you for reaching out to us.</p>
+                <p style="font-size: 15px; line-height: 1.6;">Our team has received your information securely. A team member will connect with you shortly regarding your inquiry.</p>
                 
                 <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
                     <p style="font-size: 13px; font-weight: 701; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">What's next?</p>
                     <ul style="font-size: 14px; margin: 0; padding-left: 20px; color: #475569;">
                         <li>Team Review: 24-48 Hours</li>
-                        <li>Follow-up: Eligibility Discussion</li>
+                        <li>Follow-up: Inquiry Discussion</li>
                     </ul>
                 </div>
             </div>
