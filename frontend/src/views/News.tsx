@@ -39,67 +39,7 @@ const sectionDefinitions: { type: NewsType; label: string; accent: string }[] = 
 ];
 
 
-const HARDCODED_NEWS: NewsItem[] = [
-    {
-        id: '1',
-        title: 'MusB Research Announces New Partnership for Microbiome Analysis',
-        excerpt: 'A groundbreaking collaboration to advance the understanding of the gut microbiome and its impact on metabolic health.',
-        content: '',
-        date: 'Oct 24, 2023',
-        type: 'Partnership',
-        imageUrl: '/news_partnership.png',
-        isFeatured: true,
-        publishStatus: 'Published'
-    },
-    {
-        id: '2',
-        title: 'Upcoming Webinar: Innovations in Anti-Aging Research',
-        excerpt: 'Join our lead researchers as they discuss the latest findings in cellular senescence and novel interventions.',
-        content: '',
-        date: 'Nov 15, 2023',
-        type: 'Event',
-        imageUrl: '/news_webinar.png',
-        locationType: 'Virtual',
-        startTime: '10:00 AM',
-        endTime: '11:30 AM EST',
-        registrationLink: '#',
-        isFeatured: false,
-        publishStatus: 'Published'
-    },
-    {
-        id: '3',
-        title: 'Recent Publication on Cognitive Decline Biomarkers',
-        excerpt: 'Our team has identified potential early indicators of cognitive decline in a recent longitudinal study published in the Journal of Aging Sciences.',
-        content: '',
-        date: 'Sep 10, 2023',
-        type: 'Publication',
-        imageUrl: '/news_publication.png',
-        isFeatured: false,
-        publishStatus: 'Published'
-    },
-    {
-        id: '4',
-        title: 'Launch of the Center for Clinical Excellence',
-        excerpt: 'We are expanding our facilities to accommodate a broader range of clinical trials and multi-center studies.',
-        content: '',
-        date: 'Aug 05, 2023',
-        type: 'News',
-        imageUrl: '/news_facility.png',
-        isFeatured: false,
-        publishStatus: 'Published'
-    },
-    {
-        id: '5',
-        title: 'Understanding Biotics: Educational Resource Guide',
-        excerpt: 'A comprehensive overview of prebiotics, probiotics, and postbiotics for healthcare professionals.',
-        content: '',
-        date: 'Jul 20, 2023',
-        type: 'Educational Material',
-        imageUrl: '/news_education.png',
-        isFeatured: false,
-        publishStatus: 'Published'
-    }
-];
+const HARDCODED_NEWS: NewsItem[] = [];
 
 export default function News() {
     const [activeCategory, setActiveCategory] = useState<NewsType | 'All'>('All');
@@ -313,57 +253,59 @@ export default function News() {
             </section>
 
             {/* SECTION 2: FILTER & SEARCH BAR */}
-            <section className="sticky top-20 z-40 bg-slate-950/80 backdrop-blur-md border-y border-white/5 py-6">
-                <div className="max-w-[1700px] mx-auto px-4 md:px-12 flex flex-col lg:flex-row items-center justify-between gap-8">
-                    {/* Filter Chips */}
-                    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3">
-                        {categories.map((cat) => (
-                            <button
-                                key={cat}
-                                onClick={() => setActiveCategory(cat)}
-                                className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all border ${activeCategory === cat
-                                    ? 'bg-cyan-500 border-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20'
-                                    : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-white'
-                                    }`}
-                            >
-                                {cat}
-                            </button>
-                        ))}
-                    </div>
+            {newsItems.length > 0 ? (
+                <>
+                    <section className="sticky top-20 z-40 bg-slate-950/80 backdrop-blur-md border-y border-white/5 py-6">
+                        <div className="max-w-[1700px] mx-auto px-4 md:px-12 flex flex-col lg:flex-row items-center justify-between gap-8">
+                            {/* Filter Chips */}
+                            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3">
+                                {categories.map((cat) => (
+                                    <button
+                                        key={cat}
+                                        onClick={() => setActiveCategory(cat)}
+                                        className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all border ${activeCategory === cat
+                                            ? 'bg-cyan-500 border-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20'
+                                            : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-white'
+                                            }`}
+                                    >
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
 
-                    {/* Search & Toggle */}
-                    <div className="flex items-center gap-4 w-full lg:w-auto">
-                        <div className="relative flex-grow lg:flex-grow-0 lg:w-80">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                            <input
-                                type="text"
-                                placeholder="Search news & events..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-sm font-medium focus:outline-none focus:border-cyan-500/50 transition-all text-white placeholder:text-slate-600"
-                            />
+                            {/* Search & Toggle */}
+                            <div className="flex items-center gap-4 w-full lg:w-auto">
+                                <div className="relative flex-grow lg:flex-grow-0 lg:w-80">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search news & events..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-sm font-medium focus:outline-none focus:border-cyan-500/50 transition-all text-white placeholder:text-slate-600"
+                                    />
+                                </div>
+                                <div className="flex bg-white/5 border border-white/10 rounded-2xl p-1">
+                                    <button
+                                        onClick={() => setViewMode('grid')}
+                                        className={`p-2 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-cyan-500 text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                                        title="Grid View"
+                                    >
+                                        <Grid className="w-5 h-5" />
+                                    </button>
+                                    <button
+                                        onClick={() => setViewMode('calendar')}
+                                        className={`p-2 rounded-xl transition-all ${viewMode === 'calendar' ? 'bg-cyan-500 text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                                        title="Calendar View"
+                                    >
+                                        <Calendar className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div className="flex bg-white/5 border border-white/10 rounded-2xl p-1">
-                            <button
-                                onClick={() => setViewMode('grid')}
-                                className={`p-2 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-cyan-500 text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white'}`}
-                                title="Grid View"
-                            >
-                                <Grid className="w-5 h-5" />
-                            </button>
-                            <button
-                                onClick={() => setViewMode('calendar')}
-                                className={`p-2 rounded-xl transition-all ${viewMode === 'calendar' ? 'bg-cyan-500 text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white'}`}
-                                title="Calendar View"
-                            >
-                                <Calendar className="w-5 h-5" />
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </section>
+                    </section>
 
-            <main className="max-w-[1700px] mx-auto px-4 md:px-12 py-16">
+                    <main className="max-w-[1700px] mx-auto px-4 md:px-12 py-16">
                 {viewMode === 'grid' ? (
                     <div className="space-y-20">
                         {/* SECTION 3: FEATURED STORY */}
@@ -539,8 +481,22 @@ export default function News() {
                             </div>
                         )}
                     </div>
-                )}
-            </main>
+                        )}
+                    </main>
+                </>
+            ) : (
+                <main className="max-w-[1700px] mx-auto px-4 md:px-12 py-32 min-h-[40vh] flex flex-col items-center justify-center text-center">
+                    <div className="w-24 h-24 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-8">
+                        <Clock className="w-12 h-12" />
+                    </div>
+                    <h2 className="text-5xl md:text-7xl font-black text-white tracking-widest uppercase italic">
+                        COMING SOON
+                    </h2>
+                    <p className="text-xl text-slate-400 font-medium mt-6">
+                        We are preparing exciting news and events. Stay tuned!
+                    </p>
+                </main>
+            )}
 
             {/* SECTION 6: CALL TO ACTION (Contextual) */}
             <section className="max-w-[1700px] mx-auto px-4 md:px-12 py-16">

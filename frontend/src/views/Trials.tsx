@@ -145,13 +145,13 @@ export default function Trials() {
                                 </li>
                             </ul>
                             <div className="flex flex-wrap gap-4 pt-4">
-                                <Link
-                                    to="#current-studies"
+                                <a
+                                    href="#current-studies"
                                     className="bg-cyan-500 text-slate-900 px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-2"
                                 >
                                     Check Eligibility
                                     <ArrowRight className="w-5 h-5" />
-                                </Link>
+                                </a>
                             </div>
                             <div className="flex items-center gap-8 pt-6">
                                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -211,7 +211,7 @@ export default function Trials() {
                             </div>
                             <h3 className="text-3xl font-black text-white mb-4">No-Cost Study Product</h3>
                             <p className="text-slate-400 font-medium leading-relaxed mb-8">Receive a 2-6-week supply when eligible and participate in groundbreaking health research.</p>
-                            <Link to="#current-studies" className="bg-cyan-500 text-slate-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest inline-block hover:bg-white transition-colors">Check Eligibility</Link>
+                            <a href="#current-studies" className="bg-cyan-500 text-slate-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest inline-block hover:bg-white transition-colors">Check Eligibility</a>
                         </div>
                         <div className="group bg-slate-900/40 backdrop-blur-3xl p-8 md:p-12 rounded-[4rem] border border-white/5 hover:border-indigo-500/30 transition-all shadow-2xl">
                             <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-8 group-hover:scale-110 transition-transform">
@@ -219,7 +219,7 @@ export default function Trials() {
                             </div>
                             <h3 className="text-3xl font-black text-white mb-4">Contribute to Science</h3>
                             <p className="text-slate-400 font-medium leading-relaxed mb-8">Help validate natural health products for real people and shape the future of medicine.</p>
-                            <Link to="#current-studies" className="bg-indigo-500 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest inline-block hover:bg-white hover:text-slate-900 transition-all">Check Eligibility</Link>
+                            <a href="#current-studies" className="bg-indigo-500 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest inline-block hover:bg-white hover:text-slate-900 transition-all">Check Eligibility</a>
                         </div>
                     </div>
                 </section >
@@ -407,7 +407,7 @@ export default function Trials() {
                         ))}
                     </div>
                     <div className="mt-16 text-center">
-                        <Link to="#current-studies" className="text-cyan-400 font-black text-sm uppercase tracking-[0.2em] border-b-2 border-cyan-400/30 pb-2 hover:border-cyan-400 hover:text-white transition-all">Check Eligibility</Link>
+                        <a href="#current-studies" className="text-cyan-400 font-black text-sm uppercase tracking-[0.2em] border-b-2 border-cyan-400/30 pb-2 hover:border-cyan-400 hover:text-white transition-all">Check Eligibility</a>
                     </div>
                 </section >
 

@@ -185,11 +185,11 @@ export default function Careers() {
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.12)_0%,transparent_70%)]"></div>
                 <div className="max-w-[1700px] mx-auto px-6 md:px-12 grid lg:grid-cols-2 gap-16 items-center relative z-10">
                     <div className="space-y-8">
-                        <span className="text-cyan-400 font-black text-xs uppercase tracking-[0.4em]">Join Our Mission</span>
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[0.9] uppercase italic">
+                        <span className="text-cyan-400 font-black text-[10px] uppercase tracking-[0.4em]">Join Our Mission</span>
+                        <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[0.9] uppercase italic">
                             Build the <span className="text-cyan-400 italic">Future</span> of Health Science
                         </h1>
-                        <p className="text-lg md:text-xl text-slate-400 leading-relaxed font-medium max-w-xl">
+                        <p className="text-base md:text-lg text-slate-400 leading-relaxed font-medium max-w-xl">
                             Join a mission-driven research organization advancing microbiome, aging, metabolic, and clinical science.
                             Work alongside world-class scientists in an environment built on integrity, innovation, and collaboration.
                         </p>
@@ -209,8 +209,8 @@ export default function Careers() {
                             <div className="w-full h-full bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 group-hover:scale-105 transition-transform duration-1000"></div>
                             <div className="absolute bottom-8 left-8 right-8 bg-slate-950/80 backdrop-blur-xl p-8 rounded-3xl border border-white/10 flex items-center justify-between">
                                 <div className="space-y-1">
-                                    <div className="text-white font-black text-lg uppercase tracking-widest">Science. Integrity. Impact.</div>
-                                    <div className="text-slate-400 text-xs font-bold">Leading clinical breakthroughs in Tampa Bay.</div>
+                                    <div className="text-white font-black text-base uppercase tracking-widest">Science. Integrity. Impact.</div>
+                                    <div className="text-slate-400 text-[10px] font-bold">Leading clinical breakthroughs in Tampa Bay.</div>
                                 </div>
                                 <div className="w-12 h-12 rounded-full bg-cyan-500 flex items-center justify-center text-slate-950">
                                     <Star className="w-6 h-6 fill-current" />
@@ -225,9 +225,9 @@ export default function Careers() {
             < section id="why-musb" className="max-w-[1700px] mx-auto px-6 md:px-12 py-20 border-t border-white/5" >
                 <div className="grid lg:grid-cols-3 gap-16 items-start">
                     <div className="space-y-8 lg:sticky lg:top-32">
-                        <span className="text-cyan-400 font-black text-xs uppercase tracking-[0.4em]">Excellence & Growth</span>
-                        <h2 className="text-5xl md:text-7xl font-black text-white leading-[0.9] uppercase">Why Work at <span className="text-slate-500">MusB™</span></h2>
-                        <p className="text-xl text-slate-400 font-medium leading-relaxed">
+                        <span className="text-cyan-400 font-black text-[10px] uppercase tracking-[0.4em]">Excellence & Growth</span>
+                        <h2 className="text-4xl md:text-6xl font-black text-white leading-[0.9] uppercase">Why Work at <span className="text-slate-500">MusB™</span></h2>
+                        <p className="text-lg text-slate-400 font-medium leading-relaxed">
                             Discover a career that combines scientific rigor with meaningful human impact.
                         </p>
                     </div>
@@ -237,7 +237,7 @@ export default function Careers() {
                                 <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-slate-950 transition-all">
                                     <CheckCircle2 className="w-6 h-6" />
                                 </div>
-                                <div className="text-xl font-black text-white/90 leading-tight uppercase group-hover:text-cyan-400 transition-colors pt-2">{point}</div>
+                                <div className="text-lg font-black text-white/90 leading-tight uppercase group-hover:text-cyan-400 transition-colors pt-2">{point}</div>
                             </div>
                         ))}
                     </div>
@@ -252,23 +252,23 @@ export default function Careers() {
                         <div className="grid lg:grid-cols-2 gap-20 relative z-10">
                             <div className="space-y-10">
                                 <div className="space-y-6">
-                                    <h2 className="text-5xl md:text-6xl font-black text-white uppercase italic tracking-tighter">Our Culture</h2>
-                                    <p className="text-2xl text-slate-400 leading-relaxed font-medium">
+                                    <h2 className="text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter">Our Culture</h2>
+                                    <p className="text-xl text-slate-400 leading-relaxed font-medium">
                                         At MusB™ Research, we believe great science is built by empowered people. We foster a collaborative, ethical, and inclusive culture where curiosity, accountability, and innovation thrive.
                                     </p>
                                 </div>
                                 <div className="flex gap-12 text-center border-t border-white/10 pt-10">
                                     <div>
-                                        <div className="text-4xl font-black text-white">100%</div>
-                                        <div className="text-xs font-black uppercase tracking-widest text-slate-500 mt-2">Data Integrity</div>
+                                        <div className="text-3xl font-black text-white">100%</div>
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">Data Integrity</div>
                                     </div>
                                     <div>
-                                        <div className="text-4xl font-black text-white">15+</div>
-                                        <div className="text-xs font-black uppercase tracking-widest text-slate-500 mt-2">Yrs Experience</div>
+                                        <div className="text-3xl font-black text-white">15+</div>
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">Yrs Experience</div>
                                     </div>
                                     <div>
-                                        <div className="text-4xl font-black text-white">FL-TN</div>
-                                        <div className="text-xs font-black uppercase tracking-widest text-slate-500 mt-2">Regional Reach</div>
+                                        <div className="text-3xl font-black text-white">FL-TN</div>
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">Regional Reach</div>
                                     </div>
                                 </div>
                             </div>
@@ -276,7 +276,7 @@ export default function Careers() {
                                 {cultureValues.map((val) => (
                                     <div key={val.name} className="bg-white/5 border border-white/10 p-8 rounded-3xl flex flex-col items-center justify-center text-center space-y-4 hover:border-cyan-500 transition-all group">
                                         <val.icon className="w-10 h-10 text-cyan-400 group-hover:scale-110 transition-all" />
-                                        <div className="text-sm font-black uppercase tracking-widest text-white">{val.name}</div>
+                                        <div className="text-xs font-black uppercase tracking-widest text-white">{val.name}</div>
                                     </div>
                                 ))}
                             </div>
@@ -288,8 +288,8 @@ export default function Careers() {
             {/* SECTION 4: CAREER PATHS */}
             < section className="max-w-[1700px] mx-auto px-6 md:px-12 py-20" >
                 <div className="text-center space-y-6 mb-16">
-                    <span className="text-cyan-400 font-black text-xs uppercase tracking-[0.4em]">Diverse Opportunities</span>
-                    <h2 className="text-5xl md:text-7xl font-black text-white uppercase italic tracking-tighter">Career Paths</h2>
+                    <span className="text-cyan-400 font-black text-[10px] uppercase tracking-[0.4em]">Diverse Opportunities</span>
+                    <h2 className="text-4xl md:text-6xl font-black text-white uppercase italic tracking-tighter">Career Paths</h2>
                 </div>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {careerCategories.map((cat: CareerCategory) => {
@@ -301,9 +301,9 @@ export default function Careers() {
                                     <div className="w-16 h-16 rounded-[1.5rem] bg-slate-900 border border-white/10 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform shadow-lg group-hover:bg-cyan-500 group-hover:text-slate-950">
                                         <Icon className="w-8 h-8" />
                                     </div>
-                                    <h3 className="text-2xl font-black text-white leading-tight uppercase group-hover:text-cyan-400 transition-colors italic">{cat.name}</h3>
-                                    <p className="text-lg text-slate-400 leading-relaxed font-medium">{cat.description}</p>
-                                    <a href="#open-positions" className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-white border-b-2 border-cyan-500 pb-1 hover:gap-3 transition-all pt-2 group-hover:text-cyan-400">
+                                    <h3 className="text-xl font-black text-white leading-tight uppercase group-hover:text-cyan-400 transition-colors italic">{cat.name}</h3>
+                                    <p className="text-base text-slate-400 leading-relaxed font-medium">{cat.description}</p>
+                                    <a href="#open-positions" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white border-b-2 border-cyan-500 pb-1 hover:gap-3 transition-all pt-2 group-hover:text-cyan-400">
                                         See Open Roles <ChevronRight className="w-4 h-4" />
                                     </a>
                                 </div>
@@ -318,15 +318,15 @@ export default function Careers() {
                 <div className="max-w-[1400px] mx-auto px-6 md:px-12">
                     <div className="flex flex-col md:flex-row items-end justify-between gap-8 mb-16">
                         <div className="space-y-6">
-                            <span className="text-cyan-400 font-black text-xs uppercase tracking-[0.4em]">Current Vacancies</span>
-                            <h2 className="text-5xl md:text-7xl font-black text-white uppercase italic tracking-tighter">Open Positions</h2>
+                            <span className="text-cyan-400 font-black text-[10px] uppercase tracking-[0.4em]">Current Vacancies</span>
+                            <h2 className="text-4xl md:text-6xl font-black text-white uppercase italic tracking-tighter">Open Positions</h2>
                         </div>
                         <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/10 flex-wrap">
                             {departments.map(dept => (
                                 <button
                                     key={dept}
                                     onClick={() => setActiveDept(dept)}
-                                    className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeDept === dept ? 'bg-cyan-500 text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white'
+                                    className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeDept === dept ? 'bg-cyan-500 text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white'
                                         }`}
                                 >
                                     {dept}
@@ -339,7 +339,7 @@ export default function Careers() {
                         {loading ? (
                             <div className="py-24 flex flex-col items-center justify-center space-y-4">
                                 <div className="w-12 h-12 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
-                                <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] animate-pulse">Syncing Openings...</p>
+                                <p className="text-slate-500 font-bold uppercase tracking-widest text-[9px] animate-pulse">Syncing Openings...</p>
                             </div>
                         ) : filteredJobs.length > 0 ? (
                             filteredJobs.map((job: JobOpening) => (
@@ -347,12 +347,12 @@ export default function Careers() {
                                     <div className="flex-grow space-y-4">
                                         <div className="flex flex-wrap gap-4 items-center">
                                             {job.isFeatured && (
-                                                <span className="px-3 py-1 rounded-lg bg-cyan-500 text-slate-950 text-[10px] font-black uppercase tracking-widest">Featured</span>
+                                                <span className="px-3 py-1 rounded-lg bg-cyan-500 text-slate-950 text-[9px] font-black uppercase tracking-widest">Featured</span>
                                             )}
-                                            <span className="text-xs font-black uppercase tracking-widest text-slate-500">{job.department}</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{job.department}</span>
                                         </div>
-                                        <h3 className="text-3xl font-black text-white uppercase group-hover:text-cyan-400 transition-colors italic">{job.title}</h3>
-                                        <div className="flex flex-wrap gap-6 text-sm font-bold text-slate-400 uppercase tracking-widest">
+                                        <h3 className="text-2xl font-black text-white uppercase group-hover:text-cyan-400 transition-colors italic">{job.title}</h3>
+                                        <div className="flex flex-wrap gap-6 text-xs font-bold text-slate-400 uppercase tracking-widest">
                                             <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-cyan-400" /> {job.location}</div>
                                             <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-cyan-400" /> {job.type}</div>
                                             <div className="flex items-center gap-2"><Briefcase className="w-4 h-4 text-cyan-400" /> {job.experienceLevel}</div>
@@ -361,7 +361,7 @@ export default function Careers() {
                                     </div>
                                     <Link
                                         to={`/careers/${job.id}`}
-                                        className="w-full lg:w-auto px-10 py-5 rounded-2xl bg-white text-slate-950 font-black uppercase tracking-widest text-sm hover:bg-cyan-500 transition-all text-center shadow-xl shadow-white/5 whitespace-nowrap"
+                                        className="w-full lg:w-auto px-10 py-5 rounded-2xl bg-white text-slate-950 font-black uppercase tracking-widest text-xs hover:bg-cyan-500 transition-all text-center shadow-xl shadow-white/5 whitespace-nowrap"
                                     >
                                         Details & Apply
                                     </Link>
@@ -371,8 +371,8 @@ export default function Careers() {
                             <div className="py-24 bg-white/5 border border-white/5 rounded-[3rem] flex flex-col items-center text-center space-y-8 animate-in fade-in zoom-in duration-700">
                                 <SearchX className="w-24 h-24 text-slate-800" />
                                 <div className="space-y-4">
-                                    <h3 className="text-4xl font-black text-white italic uppercase tracking-tighter">Current Node Empty</h3>
-                                    <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-xs max-w-md mx-auto leading-relaxed">We don’t have any active openings in this sector at the moment. Please synchronize later or submit a general application.</p>
+                                    <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">Current Node Empty</h3>
+                                    <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px] max-w-md mx-auto leading-relaxed">We don’t have any active openings in this sector at the moment. Please synchronize later or submit a general application.</p>
                                 </div>
                                 <a
                                     href="https://docs.google.com/forms/d/e/1FAIpQLSenHSuSVQaIxKA40tsub0PwR91haXYBorPcmH2RZp0hsf6LyA/viewform?usp=publish-editor"
@@ -391,7 +391,7 @@ export default function Careers() {
             {/* SECTION 6: HOW TO APPLY */}
             < section className="max-w-[1700px] mx-auto px-6 md:px-12 py-20" >
                 <div className="text-center mb-24">
-                    <h2 className="text-5xl md:text-7xl font-black text-white uppercase italic tracking-tighter">Our Hiring Process</h2>
+                    <h2 className="text-4xl md:text-6xl font-black text-white uppercase italic tracking-tighter">Our Hiring Process</h2>
                 </div>
                 <div className="grid md:grid-cols-3 gap-16 relative">
                     <div className="hidden md:block absolute top-1/2 left-[15%] right-[15%] h-px bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-y-1/2"></div>
@@ -399,10 +399,10 @@ export default function Careers() {
                         <div key={step.id} className="relative z-10 flex flex-col items-center text-center space-y-8 group">
                             <div className="w-24 h-24 rounded-[2rem] bg-slate-900 border border-white/10 flex items-center justify-center text-cyan-400 shadow-2xl group-hover:bg-cyan-500 group-hover:text-slate-950 transition-all duration-500">
                                 <step.icon className="w-10 h-10" />
-                                <div className="absolute -top-4 -right-4 w-10 h-10 rounded-full bg-slate-950 border-2 border-cyan-500 flex items-center justify-center text-[10px] font-black text-white group-hover:bg-white group-hover:text-slate-950 transition-colors">{i + 1}</div>
+                                <div className="absolute -top-4 -right-4 w-10 h-10 rounded-full bg-slate-950 border-2 border-cyan-500 flex items-center justify-center text-[9px] font-black text-white group-hover:bg-white group-hover:text-slate-950 transition-colors">{i + 1}</div>
                             </div>
                             <div className="space-y-4">
-                                <h3 className="text-2xl font-black text-white uppercase italic tracking-tight">{step.title}</h3>
+                                <h3 className="text-xl font-black text-white uppercase italic tracking-tight">{step.title}</h3>
                                 <p className="text-slate-400 font-medium leading-relaxed max-w-[250px]">{step.desc}</p>
                             </div>
                         </div>
@@ -418,8 +418,8 @@ export default function Careers() {
                         <GraduationCap className="w-10 h-10" />
                     </div>
                     <div className="space-y-4 relative z-10">
-                        <h2 className="text-4xl md:text-6xl font-black text-white uppercase italic tracking-tighter">Students & Internships</h2>
-                        <p className="text-xl text-slate-400 font-medium max-w-2xl mx-auto leading-relaxed">
+                        <h2 className="text-3xl md:text-5xl font-black text-white uppercase italic tracking-tighter">Students & Internships</h2>
+                        <p className="text-lg text-slate-400 font-medium max-w-2xl mx-auto leading-relaxed">
                             MusB™ Research actively supports students, trainees, and early-career scientists through internships and mentorship opportunities.
                         </p>
                     </div>
@@ -434,7 +434,7 @@ export default function Careers() {
 
             {/* SECTION 8: EQUAL OPPORTUNITY */}
             <section className="max-w-4xl mx-auto px-6 py-10 text-center">
-                <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-300 leading-relaxed">
+                <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-300 leading-relaxed">
                     MusB™ Research is an equal opportunity employer. We celebrate diversity and are committed to creating an inclusive environment for all employees.
                 </p>
             </section>
@@ -444,8 +444,8 @@ export default function Careers() {
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(6,182,212,0.1)_0%,transparent_50%)]"></div>
                     <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12">
                         <div className="text-center lg:text-left space-y-4">
-                            <h2 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-none italic uppercase">Ready to make an impact?</h2>
-                            <p className="text-xl font-bold text-slate-400">Your journey in clinical breakthroughs starts here.</p>
+                            <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-none italic uppercase">Ready to make an impact?</h2>
+                            <p className="text-lg font-bold text-slate-400">Your journey in clinical breakthroughs starts here.</p>
                         </div>
                         <div className="flex flex-col gap-4 w-full lg:w-auto">
                             <button
