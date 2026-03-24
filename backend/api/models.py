@@ -539,7 +539,15 @@ class NewsletterSubscriber(models.Model):
 # --- Signals for Notifications ---
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .utils.resend_utils import send_newsletter_update
+from .utils.resend_utils import send_newsletter_update, send_facility_inquiry_email
+
+@receiver(post_save, sender=FacilityInquiry)
+def notify_team_on_facility_inquiry(sender, instance, created, **kwargs):
+    if created:
+        try:
+            send_facility_inquiry_email(instance)
+        except Exception as e:
+            print(f"Error triggering facility inquiry email: {e}")
 
 @receiver(post_save, sender=News)
 def notify_subscribers_on_news(sender, instance, created, **kwargs):

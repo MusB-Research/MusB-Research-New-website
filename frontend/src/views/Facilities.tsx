@@ -88,10 +88,18 @@ export default function Facilities() {
         e.preventDefault();
         setFormStatus('submitting');
         try {
-            await submitFacilityInquiry(formState);
+            const payload = {
+                name: formState.name,
+                email: formState.email,
+                company: formState.company,
+                inquiry_type: `${formState.interest} | Stage: ${formState.stage}`,
+                message: formState.concept || "Not provided",
+            };
+            await submitFacilityInquiry(payload);
             setFormStatus('success');
             setFormState({ name: '', email: '', company: '', role: '', interest: 'Research', stage: 'Concept', concept: '' });
         } catch (err) {
+            console.error(err);
             setFormStatus('error');
         }
     };
