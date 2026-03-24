@@ -76,10 +76,10 @@ export default function SponsorDashboard() {
             id: d.protocol_id || `ID-${d.pk}`,
             enrollment: { current: d.actual_randomized || 0, target: d.target_randomized || d.target_screened || 100 },
             lastUpdated: 'Recently updated',
-            kpis: d.kpis || { enrolled: d.actual_randomized||0, targetEnrolled: d.target_randomized||100, completed: d.actual_completed||0, targetCompleted: d.target_completed||90 },
+            kpis: d.kpis || { enrolled: d.actual_randomized || 0, targetEnrolled: d.target_randomized || 100, completed: d.actual_completed || 0, targetCompleted: d.target_completed || 90 },
             status: d.status === 'PAUSED' ? 'Under Review' : d.status === 'RECRUITING' ? 'Recruiting' : d.status === 'ACTIVE' ? 'Active' : d.status
           }));
-          setProtocols(mapped); 
+          setProtocols(mapped);
         }
       }
     } catch (e) { console.error(e); }
@@ -112,18 +112,17 @@ export default function SponsorDashboard() {
 
   const getMenuBtnStyle = (id: string, isWhiteText = false) => ({
     ...menuBtnBase,
-    color: activeModule === id || isWhiteText ? 'white' : '#64748b',
-    background: activeModule === id ? 'rgba(30, 41, 59, 0.8)' : 'transparent',
-    boxShadow: activeModule === id ? 'inset 0 0 0 1px rgba(255,255,255,0.05), 0 12px 24px rgba(0,0,0,0.4)' : 'none',
-    border: activeModule === id ? '1px solid rgba(255,255,255,0.1)' : 'none'
+    color: activeModule === id || isWhiteText ? 'white' : THEME.body,
+    background: activeModule === id ? '#0f172a' : 'transparent',
+    boxShadow: activeModule === id ? 'inset 0 0 0 1px rgba(255,255,255,0.05), 0 4px 12px rgba(0,0,0,0.2)' : 'none'
   });
 
   return (
     <div style={{ display: 'flex', height: '100vh', backgroundColor: THEME.bg, color: 'white', fontFamily: 'Inter, system-ui, sans-serif', overflow: 'hidden', position: 'relative' }}>
-      
+
       {/* ANIMATED BACKGROUND */}
-      <div style={{ 
-        position: 'absolute', inset: 0, 
+      <div style={{
+        position: 'absolute', inset: 0,
         background: 'radial-gradient(circle at 20% 20%, rgba(37, 99, 235, 0.08) 0%, transparent 40%), radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 40%)',
         animation: 'bgMove 20s ease-infinite alternate',
         zIndex: 0, pointerEvents: 'none'
@@ -141,8 +140,8 @@ export default function SponsorDashboard() {
       <aside style={{ width: '300px', backgroundColor: THEME.sidebar, borderRight: `1px solid ${THEME.border}`, display: 'flex', flexDirection: 'column', padding: '24px 16px', overflowY: 'auto', zIndex: 100 }}>
 
         {/* LOGO AREA */}
-        <div style={{ background: 'white', borderRadius: '32px', padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '56px', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
-          <img src="/logo_new.png" alt="MusB Research" style={{ height: '44px', width: 'auto', objectFit: 'contain' }} />
+        <div style={{ background: 'white', borderRadius: '24px', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '48px', boxShadow: '0 8px 32px rgba(6, 182, 212, 0.2)', border: '2px solid rgba(255,255,255,0.1)' }}>
+          <img src="/logo_new.png" alt="MusB Research" style={{ height: '48px', width: 'auto', objectFit: 'contain' }} />
         </div>
 
         {/* MENU */}
@@ -150,49 +149,44 @@ export default function SponsorDashboard() {
 
           {/* GROUP 1: OVERVIEW */}
           <div>
-            <div style={{ fontSize: '14px', fontWeight: 900, color: 'white', letterSpacing: '0.15em', marginBottom: '24px', paddingLeft: '16px' }}>OVERVIEW</div>
+            <div style={{ fontSize: '12px', fontWeight: 900, color: 'white', textShadow: '0 0 10px rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginBottom: '16px', paddingLeft: '16px' }}>OVERVIEW</div>
 
-            <button onClick={() => window.open('/', '_blank')} style={{ ...menuBtnBase, color: '#64748b', fontSize: '15px' }}>
-              <span style={{ fontSize: '20px', opacity: 0.7 }}>🌐</span>
-              <span style={{ flex: 1, textAlign: 'left', fontWeight: 900 }}>MAIN WEBSITE</span>
+            <button onClick={() => window.location.href = '/'} style={{ ...menuBtnBase, color: THEME.body }}>
+              <span style={{ fontSize: '18px', opacity: 0.6 }}>🌐</span>
+              <span style={{ flex: 1, textAlign: 'left' }}>MAIN WEBSITE</span>
               <span style={{ opacity: 0.5 }}>↗</span>
             </button>
-            <button onClick={() => setActiveModule('DASHBOARD')} style={{ ...getMenuBtnStyle('DASHBOARD', true), padding: '20px' }}>
-              <span style={{ fontSize: '24px', color: activeModule === 'DASHBOARD' ? '#60a5fa' : '#64748b' }}>⚏</span>
-              <span style={{ flex: 1, textAlign: 'left', fontWeight: 900, fontSize: '15px' }}>DASHBOARD (OVERVIEW)</span>
+            <button onClick={() => setActiveModule('DASHBOARD')} style={getMenuBtnStyle('DASHBOARD', true)}>
+              <span style={{ fontSize: '20px', color: activeModule === 'DASHBOARD' ? '#a5b4fc' : THEME.body }}>⚏</span>
+              <span style={{ flex: 1, textAlign: 'left', lineHeight: '1.4', fontSize: '16px' }}>DASHBOARD<br /><span style={{ fontSize: '12px', opacity: 0.7 }}>(PORTFOLIO OVERVIEW)</span></span>
             </button>
           </div>
 
           {/* GROUP 2: CORE MANAGEMENT */}
           <div>
-            <div style={{ fontSize: '14px', fontWeight: 900, color: 'white', letterSpacing: '0.15em', marginBottom: '24px', paddingLeft: '16px' }}>CORE MANAGEMENT</div>
+            <div style={{ fontSize: '12px', fontWeight: 900, color: 'white', textShadow: '0 0 10px rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginBottom: '16px', paddingLeft: '16px' }}>CORE MANAGEMENT</div>
 
-            <button onClick={() => setActiveModule('STUDIES')} style={{ ...getMenuBtnStyle('STUDIES'), padding: '20px' }}>
-              <span style={{ fontSize: '24px', opacity: activeModule === 'STUDIES' ? 1 : 0.6 }}>📁</span>
-              <span style={{ flex: 1, textAlign: 'left', fontWeight: 900, fontSize: '15px' }}>MY STUDIES</span>
+            <button onClick={() => setActiveModule('STUDIES')} style={getMenuBtnStyle('STUDIES')}>
+              <span style={{ fontSize: '18px', opacity: activeModule === 'STUDIES' ? 1 : 0.6 }}>📁</span>
+              <span style={{ flex: 1, textAlign: 'left' }}>OUR STUDIES</span>
             </button>
-            <button onClick={() => addToast({ type:'info', message:'Recruitment analytics coming soon.' })} style={{ ...menuBtnBase, color: '#64748b', padding: '20px' }}>
-              <span style={{ fontSize: '24px', opacity: 0.6 }}>📈</span>
-              <span style={{ flex: 1, textAlign: 'left', fontWeight: 900, fontSize: '15px' }}>RECRUITMENT PROGRESS</span>
-              <div style={{ width: 8, height: 8, background: '#ec4899', borderRadius: '50%', boxShadow: '0 0 10px #ec4899' }} />
+            <button onClick={() => setActiveModule('PARTICIPANTS')} style={getMenuBtnStyle('PARTICIPANTS')}>
+              <span style={{ fontSize: '18px', opacity: activeModule === 'PARTICIPANTS' ? 1 : 0.6 }}>👥</span>
+              <span style={{ flex: 1, textAlign: 'left', lineHeight: '1.4' }}>PARTICIPANT PROGRESS REPORT</span>
             </button>
-            <button onClick={() => addToast({ type:'info', message:'Participant raw data access is restricted.' })} style={{ ...menuBtnBase, color: '#64748b', padding: '20px' }}>
-              <span style={{ fontSize: '24px', opacity: 0.6 }}>👥</span>
-              <span style={{ flex: 1, textAlign: 'left', fontWeight: 900, fontSize: '15px' }}>PARTICIPANT DATA</span>
+            <button onClick={() => setActiveModule('TEAM')} style={getMenuBtnStyle('TEAM')}>
+              <span style={{ fontSize: '18px', opacity: activeModule === 'TEAM' ? 1 : 0.6 }}>🤝</span>
+              <span style={{ flex: 1, textAlign: 'left' }}>TEAM MANAGEMENT</span>
             </button>
           </div>
 
           {/* GROUP 3: REPORTS & DATA */}
           <div>
-            <div style={{ fontSize: '14px', fontWeight: 900, color: 'white', letterSpacing: '0.15em', marginBottom: '24px', paddingLeft: '16px' }}>REPORTS & DATA</div>
+            <div style={{ fontSize: '12px', fontWeight: 900, color: 'white', textShadow: '0 0 10px rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginBottom: '16px', paddingLeft: '16px' }}>REPORTS & DATA</div>
 
-            <button onClick={() => setActiveModule('PARTICIPANTS')} style={{ ...getMenuBtnStyle('PARTICIPANTS'), padding: '20px' }}>
-              <span style={{ fontSize: '24px', opacity: activeModule === 'PARTICIPANTS' ? 1 : 0.6 }}>📊</span>
-              <span style={{ flex: 1, textAlign: 'left', fontWeight: 900, fontSize: '15px' }}>PARTICIPANT PROGRESS REPORT</span>
-            </button>
-            <button onClick={() => setActiveModule('DOCUMENTS')} style={{ ...getMenuBtnStyle('DOCUMENTS'), padding: '20px' }}>
-              <span style={{ fontSize: '24px', opacity: activeModule === 'DOCUMENTS' ? 1 : 0.6 }}>📄</span>
-              <span style={{ flex: 1, textAlign: 'left', fontWeight: 900, fontSize: '15px' }}>PARTICIPANT LEVEL DATA</span>
+            <button onClick={() => setActiveModule('DOCUMENTS')} style={getMenuBtnStyle('DOCUMENTS')}>
+              <span style={{ fontSize: '18px', opacity: activeModule === 'DOCUMENTS' ? 1 : 0.6 }}>📄</span>
+              <span style={{ flex: 1, textAlign: 'left', lineHeight: '1.4' }}>PARTICIPANT LEVEL DATA</span>
             </button>
           </div>
 

@@ -117,6 +117,7 @@ export default function SuperAdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
   const [studies, setStudies] = useState<any[]>([]);
   const [participants, setParticipants] = useState<any[]>([]);
+  const [studyInquiries, setStudyInquiries] = useState<any[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -152,10 +153,11 @@ export default function SuperAdminDashboard() {
     try {
       const apiUrl = API || 'http://localhost:8000';
 
-      const [uRes, sRes, pRes] = await Promise.all([
+      const [uRes, sRes, pRes, iRes] = await Promise.all([
         authFetch(`${apiUrl}/api/users/`),
         authFetch(`${apiUrl}/api/studies/`),
         authFetch(`${apiUrl}/api/participants/`),
+        authFetch(`${apiUrl}/api/study-inquiries/`),
       ]);
 
       if (uRes.ok) {
@@ -173,6 +175,7 @@ export default function SuperAdminDashboard() {
       }
       if (sRes.ok) setStudies(await sRes.json());
       if (pRes.ok) setParticipants(await pRes.json());
+      if (iRes.ok) setStudyInquiries(await iRes.json());
 
       // Fetch Live Audit Logs
       try {
@@ -1086,10 +1089,7 @@ export default function SuperAdminDashboard() {
     );
   };
 
-  // --- Page: Sponsor Leads ---
   const SponsorLeadsPage = () => {
-    const [leads, setLeads] = useState<any[]>([]);
-
     return (
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex justify-between items-end">
@@ -1101,38 +1101,35 @@ export default function SuperAdminDashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {[
-            { name: 'AstraNova Biopharm', focus: 'Pulmonary Trials', type: 'Clinical Partnership', date: '2h ago', priority: 'High' },
-            { name: 'GeneStream Labs', focus: 'Oncology Phase II', type: 'Facility Inquiry', date: '5h ago', priority: 'Medium' },
-            { name: 'Vanguard Health', focus: 'Decentralized Trials', type: 'Software Demo', date: '1d ago', priority: 'Low' }
-          ].map((lead, i) => (
-            <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-8 space-y-6 hover:border-amber-500/30 transition-all group">
-              <div className="flex justify-between items-start">
-                <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500">
-                  <Building className="w-6 h-6" />
+          {studyInquiries.length === 0 ? (
+            <div className="col-span-full py-12 text-center opacity-30 text-[10px] font-black uppercase tracking-[0.3em]">No Prospecting Data Available</div>
+          ) : (
+            studyInquiries.map((iq, i) => (
+              <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-8 space-y-6 hover:border-amber-500/30 transition-all group">
+                <div className="flex justify-between items-start">
+                  <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500">
+                    <Building className="w-6 h-6" />
+                  </div>
+                  <span className="px-3 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[9px] font-black uppercase tracking-widest border border-amber-500/10 italic">{(iq.needs || [])[0] || 'Inquiry'}</span>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest italic ${lead.priority === 'High' ? 'bg-red-500/10 text-red-400' : 'bg-slate-500/10 text-slate-400'
-                  }`}>
-                  {lead.priority} Priority
-                </span>
-              </div>
-              <div>
-                <h4 className="text-lg font-black text-white uppercase italic group-hover:text-amber-400 transition-colors">{lead.name}</h4>
-                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-2">{lead.type}</p>
-              </div>
-              <div className="pt-6 border-t border-white/5 flex flex-col gap-3">
-                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-[#555a7a]">
-                  <span>Inquiry Focus</span>
-                  <span className="text-white italic">{lead.focus}</span>
+                <div>
+                  <h4 className="text-lg font-black text-white uppercase italic group-hover:text-amber-400 transition-colors truncate">{iq.product_name}</h4>
+                  <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-2">{iq.legal_name || 'Anonymous'}</p>
                 </div>
-                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-[#555a7a]">
-                  <span>Detected</span>
-                  <span className="text-amber-500/50 italic">{lead.date}</span>
+                <div className="pt-6 border-t border-white/5 flex flex-col gap-3">
+                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-[#555a7a]">
+                    <span>Inquiry Focus</span>
+                    <span className="text-white italic">{iq.primary_focus}</span>
+                  </div>
+                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-[#555a7a]">
+                    <span>Status</span>
+                    <span className="text-amber-500/50 italic">{iq.status}</span>
+                  </div>
                 </div>
+                <button onClick={() => setCurrentPage('INQUIRIES')} className="w-full py-4 bg-white/5 border border-white/5 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-amber-500 hover:text-slate-950 transition-all">View Details</button>
               </div>
-              <button className="w-full py-4 bg-white/5 border border-white/5 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-amber-500 hover:text-slate-950 transition-all">Initialize Dialogue</button>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     );
@@ -1219,7 +1216,7 @@ export default function SuperAdminDashboard() {
         { id: 'METRICS', label: 'Visitor Analytics', icon: Globe },
         { id: 'SPONSOR_LEADS', label: 'Sponsor Leads', icon: BarChart2 },
         { id: 'TEAM', label: 'MUSB Team', icon: Users },
-        { id: 'INQUIRIES', label: 'Platform Inquiries', icon: Bell },
+        { id: 'INQUIRIES', label: 'Platform Inquiries', icon: Bell, hasNotify: studyInquiries.length > 0 },
       ]
     },
     {
@@ -1282,59 +1279,134 @@ export default function SuperAdminDashboard() {
   );
 
   const InquiriesPage = () => {
+    const [subTab, setSubTab] = useState<'study_queries' | 'authorizations'>('study_queries');
     const pendingStudies = (studies || []).filter(s => s.approval_status === 'pending');
 
     return (
-      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="flex justify-between items-end">
+      <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-500">
+        <div className="flex flex-col lg:flex-row justify-between lg:items-end gap-6">
           <div>
-            <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Platform <span className="text-[#f472b6]">Inquiries</span></h1>
-            <p className="text-xs text-slate-500 font-black uppercase tracking-[0.2em] mt-3">Study proposals awaiting feasibility review and approval</p>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#f472b6] shadow-[0_0_10px_#f472b6]" />
+              <span className="text-[10px] font-black text-[#f472b6] uppercase tracking-[0.3em]">Platform Terminal</span>
+            </div>
+            <h1 className="text-5xl font-black text-white italic uppercase tracking-tighter leading-none">Global <span className="text-[#f472b6]">Inquiries</span></h1>
+            <p className="text-sm text-[#555a7a] font-black uppercase tracking-[0.1em] mt-4 max-w-xl">Central capture point for clinical study queries, protocol authorizations, and feasibility packets.</p>
           </div>
-          <div className="px-6 py-3 bg-[#f472b6]/10 border border-[#f472b6]/20 text-[#f472b6] rounded-xl text-[10px] font-black uppercase tracking-widest">
-            {pendingStudies.length.toString().padStart(2, '0')} Pending Proposals
+          <div className="flex bg-[#0a0b1a] p-1.5 rounded-2xl border border-white/5 shadow-2xl">
+            <button 
+              onClick={() => setSubTab('study_queries')}
+              className={`px-8 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${subTab === 'study_queries' ? 'bg-[#f472b6] text-white shadow-lg' : 'text-[#555a7a] hover:text-white'}`}
+            >
+              Study Queries ({studyInquiries.length})
+            </button>
+            <button 
+              onClick={() => setSubTab('authorizations')}
+              className={`px-8 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${subTab === 'authorizations' ? 'bg-[#f472b6] text-white shadow-lg' : 'text-[#555a7a] hover:text-white'}`}
+            >
+              Authorizations ({pendingStudies.length})
+            </button>
           </div>
         </div>
 
-        {pendingStudies.length === 0 ? (
-          <div className="min-h-[50vh] flex flex-col items-center justify-center bg-[#0f1133] border border-white/5 rounded-[3rem] p-20 text-center">
-            <Server className="w-16 h-16 text-[#555a7a] mb-8 animate-pulse" />
-            <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-4">Secure Buffer Empty</h3>
-            <p className="max-w-md mx-auto text-[10px] text-[#555a7a] font-black uppercase tracking-[0.3em] leading-relaxed">No pending inquiry packets detected in the cross-region encrypted buffer at this synchronization cycle.</p>
+        {subTab === 'study_queries' ? (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            {studyInquiries.length === 0 ? (
+              <div className="col-span-full py-20 bg-[#0f1133] rounded-[3rem] border border-white/5 text-center">
+                 <Server className="w-12 h-12 text-[#555a7a] mx-auto mb-6 animate-pulse" />
+                 <p className="text-[10px] text-[#555a7a] font-black uppercase tracking-[0.3em]">No incoming study queries at this node</p>
+              </div>
+            ) : (
+              studyInquiries.map((iq, i) => (
+                <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-10 hover:border-[#f472b6]/40 transition-all group overflow-hidden relative">
+                  <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-110 transition-transform">
+                     <Globe className="w-32 h-32 text-white" />
+                  </div>
+                  
+                  <div className="flex justify-between items-start mb-8 relative z-10">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-[#f472b6]/10 flex items-center justify-center text-[#f472b6] border border-[#f472b6]/20">
+                         <Mail className="w-7 h-7" />
+                      </div>
+                      <div>
+                         <p className="text-[9px] font-black text-[#f472b6] uppercase tracking-widest mb-1 italic">{iq.category} INQUIRY</p>
+                         <h4 className="text-xl font-black text-white italic uppercase tracking-tight">{iq.product_name}</h4>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                       <p className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest mb-1">{new Date(iq.created_at).toLocaleDateString()}</p>
+                       <span className="px-3 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[9px] font-black uppercase tracking-widest border border-amber-500/10 italic">{iq.status}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 mb-10 relative z-10">
+                    <div className="flex justify-between items-center text-[11px] font-black uppercase tracking-widest">
+                       <span className="text-[#555a7a]">Legal Entity</span>
+                       <span className="text-white italic">{iq.legal_name || 'Anonymous Sponsor'}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[11px] font-black uppercase tracking-widest">
+                       <span className="text-[#555a7a]">Clinical Needs</span>
+                       <span className="text-indigo-400 italic">{(iq.needs || []).join(', ')}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[11px] font-black uppercase tracking-widest">
+                       <span className="text-[#555a7a]">Primary Health Focus</span>
+                       <span className="text-emerald-400 italic">{iq.primary_focus}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[11px] font-black uppercase tracking-widest">
+                       <span className="text-[#555a7a]">NDA Pref</span>
+                       <span className={`italic ${iq.nda_preference === 'YES' ? 'text-emerald-500' : 'text-slate-500'}`}>{iq.nda_preference}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 relative z-10">
+                    <button className="flex-1 py-4 bg-[#f472b6] text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] italic shadow-xl shadow-[#f472b6]/20 transition-all hover:scale-[1.02]">Engage Lead</button>
+                    <button className="px-6 py-4 bg-white/5 border border-white/5 text-[#555a7a] hover:text-white rounded-2xl transition-all"><Eye className="w-5 h-5" /></button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6">
-            {pendingStudies.map((s, i) => (
-              <div key={i} className="bg-[#0f1133] border border-white/5 rounded-3xl p-8 flex items-center justify-between group hover:bg-white/[0.01] transition-all hover:border-[#f472b6]/30">
-                <div className="flex items-center gap-8">
-                  <div className="w-16 h-16 bg-[#f472b6]/10 rounded-2xl flex items-center justify-center text-[#f472b6] border border-[#f472b6]/20 group-hover:scale-110 transition-transform">
-                    <FileText className="w-8 h-8" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-4 mb-2">
-                       <h4 className="text-xl font-black text-white uppercase italic tracking-tight">{s.title}</h4>
-                       <span className="px-3 py-1 bg-[#f472b6]/10 text-[#f472b6] rounded-full text-[9px] font-black uppercase tracking-widest border border-[#f472b6]/20 italic">Feasibility Review</span>
-                    </div>
-                    <div className="flex items-center gap-6 text-[10px] font-black uppercase tracking-widest text-[#555a7a]">
-                      <span className="flex items-center gap-2"><Building className="w-3 h-3" /> {s.sponsor_name || 'Anonymous Sponsor'}</span>
-                      <span>•</span>
-                      <span className="flex items-center gap-2"><Calendar className="w-3 h-3" /> Submitted {new Date(s.created_at).toLocaleDateString()}</span>
-                      <span>•</span>
-                      <span className="flex items-center gap-2"><Users className="w-3 h-3" /> Target: {s.target_screened}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <button 
-                     onClick={() => { setSelectedStudy(s); setCurrentPage('LAUNCH_STUDY'); }}
-                     className="px-6 py-4 bg-[#f472b6] text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] italic hover:bg-pink-600 transition-all shadow-lg shadow-pink-900/20"
-                  >
-                    Review & Authorize
-                  </button>
-                  <button className="p-4 bg-white/5 border border-white/5 text-slate-600 hover:text-white rounded-2xl transition-all"><MoreVertical className="w-5 h-5" /></button>
-                </div>
+          <div className="grid grid-cols-1 gap-8">
+            {pendingStudies.length === 0 ? (
+              <div className="min-h-[50vh] flex flex-col items-center justify-center bg-[#0f1133] border border-white/5 rounded-[3rem] p-20 text-center">
+                <Server className="w-16 h-16 text-[#555a7a] mb-8 animate-pulse" />
+                <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-4">Authorization Buffer Clear</h3>
+                <p className="max-w-md mx-auto text-[10px] text-[#555a7a] font-black uppercase tracking-[0.3em] leading-relaxed">No protocols are currently awaiting secure authorization keys.</p>
               </div>
-            ))}
+            ) : (
+              pendingStudies.map((s, i) => (
+                <div key={i} className="bg-[#0f1133] border border-white/5 rounded-3xl p-8 flex items-center justify-between group hover:bg-white/[0.01] transition-all hover:border-[#f472b6]/30 shadow-2xl">
+                  <div className="flex items-center gap-8">
+                    <div className="w-16 h-16 bg-[#f472b6]/10 rounded-2xl flex items-center justify-center text-[#f472b6] border border-[#f472b6]/20 group-hover:scale-110 transition-transform shadow-inner shadow-[#f472b6]/5">
+                      <FileText className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-4 mb-2">
+                         <h4 className="text-xl font-black text-white uppercase italic tracking-tight">{s.title}</h4>
+                         <span className="px-3 py-1 bg-[#f472b6]/10 text-[#f472b6] rounded-full text-[9px] font-black uppercase tracking-widest border border-[#f472b6]/20 italic">Feasibility Review</span>
+                      </div>
+                      <div className="flex items-center gap-6 text-[10px] font-black uppercase tracking-widest text-[#555a7a]">
+                        <span className="flex items-center gap-2"><Building className="w-3 h-3" /> {s.sponsor_name || 'Anonymous Sponsor'}</span>
+                        <span>•</span>
+                        <span className="flex items-center gap-2"><Calendar className="w-3 h-3" /> Submitted {new Date(s.created_at).toLocaleDateString()}</span>
+                        <span>•</span>
+                        <span className="flex items-center gap-2"><Users className="w-3 h-3" /> Target: {s.target_screened}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <button 
+                       onClick={() => { setSelectedStudy(s); setCurrentPage('LAUNCH_STUDY'); }}
+                       className="px-10 py-5 bg-white text-slate-950 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] italic hover:bg-[#f472b6] hover:text-white transition-all shadow-xl shadow-black/40"
+                    >
+                      Process Authorization
+                    </button>
+                    <button className="p-4 bg-white/5 border border-white/5 text-slate-600 hover:text-white rounded-2xl transition-all"><MoreVertical className="w-5 h-5" /></button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         )}
       </div>
