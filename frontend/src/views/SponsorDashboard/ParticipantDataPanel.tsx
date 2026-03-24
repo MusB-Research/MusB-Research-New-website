@@ -37,6 +37,14 @@ const FunnelChart = ({ study }: any) => {
 export default function ParticipantDataPanel({ protocols, addToast, windowWidth, currentUser }: any) {
   const [selectedStudyId, setSelectedStudyId] = useState<any>(null);
   const [studySelectValue, setStudySelectValue] = useState('');
+  
+  useEffect(() => {
+    if (!selectedStudyId && protocols && protocols.length > 0) {
+      setSelectedStudyId(protocols[0].id);
+      setStudySelectValue(protocols[0].id);
+      fetchDataForStudy(protocols[0].id);
+    }
+  }, [protocols, selectedStudyId]);
   const [activeTab, setActiveTab] = useState('table');
   const [participants, setParticipants] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');

@@ -193,10 +193,10 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
       </div>
 
       <div style={{ fontSize: 14, color: '#64748b', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 20 }}>CONTROL PANEL</div>
-      <div style={{ display: 'grid', gridTemplateColumns: windowWidth > 1200 ? 'repeat(4,1fr)' : windowWidth > 900 ? 'repeat(2,1fr)' : '1fr', gap: windowWidth > 768 ? 32 : 20, marginBottom: 56 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: windowWidth > 1200 ? 'repeat(4,1fr)' : windowWidth > 900 ? 'repeat(2,1fr)' : '1fr', gap: windowWidth > 768 ? 20 : 12, marginBottom: 32 }}>
         
         {/* Box 1 */}
-        <div onClick={() => setOverviewModalOpen(true)} style={{ background: 'rgba(30, 41, 59, 0.6)', backdropFilter: 'blur(10px)', borderRadius: 28, padding: 40, border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', transition: 'all 0.3s' }}>
+        <div onClick={() => setOverviewModalOpen(true)} style={{ background: 'rgba(30, 41, 59, 0.6)', backdropFilter: 'blur(10px)', borderRadius: 28, padding: '24px', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', transition: 'all 0.3s' }}>
           <div style={{ fontSize: 48, marginBottom: 24 }}>📊</div>
           <h3 style={{ margin: '0 0 16px 0', fontSize: 32, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.02em' }}>Overview</h3>
           <div style={{ fontSize: 22, color: '#94a3b8', lineHeight: 1.6, marginBottom: 32, fontWeight: 500 }}>
@@ -206,7 +206,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
         </div>
 
         {/* Box 2 */}
-        <div onClick={() => setPortfolioModalOpen(true)} style={{ background: '#1e293b', borderRadius: 24, padding: 32, border: '1px solid #334155', cursor: 'pointer', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', transition: 'all 0.3s' }}>
+        <div onClick={() => setPortfolioModalOpen(true)} style={{ background: '#1e293b', borderRadius: 24, padding: '24px', border: '1px solid #334155', cursor: 'pointer', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', transition: 'all 0.3s' }}>
           <div style={{ fontSize: 44, marginBottom: 20 }}>📁</div>
           <h3 style={{ margin: '0 0 12px 0', fontSize: 26, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.02em' }}>Protocol Portfolio</h3>
           <div style={{ fontSize: 18, color: '#94a3b8', lineHeight: 1.6, marginBottom: 24, fontWeight: 500 }}>
@@ -216,7 +216,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
         </div>
 
         {/* Box 3 */}
-        <div onClick={() => { setReportsStudyFilter(null); setReportsModalOpen(true); }} style={{ background: '#1e293b', borderRadius: 24, padding: 32, border: '1px solid #334155', cursor: 'pointer', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', transition: 'all 0.3s' }}>
+        <div onClick={() => { setReportsStudyFilter(null); setReportsModalOpen(true); }} style={{ background: '#1e293b', borderRadius: 24, padding: '24px', border: '1px solid #334155', cursor: 'pointer', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', transition: 'all 0.3s' }}>
           <div style={{ fontSize: 40, marginBottom: 20 }}>📋</div>
           <h3 style={{ margin: '0 0 12px 0', fontSize: 24, fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.01em' }}>Study Reports</h3>
           <div style={{ fontSize: 17, color: '#94a3b8', lineHeight: 1.6, marginBottom: 24 }}>
@@ -226,7 +226,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
         </div>
 
         {/* Box 4 */}
-        <div onClick={() => setTeamModalOpen(true)} style={{ background: '#1e293b', borderRadius: 24, padding: 32, border: '1px solid #334155', cursor: 'pointer', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', transition: 'all 0.3s' }}>
+        <div onClick={() => setTeamModalOpen(true)} style={{ background: '#1e293b', borderRadius: 24, padding: '24px', border: '1px solid #334155', cursor: 'pointer', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', transition: 'all 0.3s' }}>
           <div style={{ fontSize: 40, marginBottom: 20 }}>👥</div>
           <h3 style={{ margin: '0 0 12px 0', fontSize: 24, fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.01em' }}>Team Access</h3>
           <div style={{ fontSize: 17, color: '#94a3b8', lineHeight: 1.6, marginBottom: 24 }}>
@@ -302,7 +302,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: windowWidth > 1200 ? 'repeat(3,1fr)' : windowWidth > 800 ? 'repeat(2,1fr)' : '1fr', gap: 40, marginBottom: 80 }}>
           {filteredProtocols.map((p: any) => (
-            <div key={p.id} style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(8px)', borderRadius: 32, padding: 40, border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', transition: 'transform 0.3s ease' }}>
+            <div key={p.id} style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(8px)', borderRadius: 24, padding: '24px', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', transition: 'transform 0.3s ease' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
                 <h3 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.02em', lineHeight: 1.2 }}>{p.title}</h3>
                 <StatusBadge status={p.status} />
@@ -923,6 +923,38 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {studyDetailTab === 'Enrollment' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+                  <div style={{ background: '#0f172a', padding: 24, borderRadius: 16, border: '1px solid #334155', textAlign: 'center' }}>
+                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: 12 }}>Current Enrolled</div>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: '#2563eb' }}>{selectedStudyDetail.enrollment.current}</div>
+                  </div>
+                  <div style={{ background: '#0f172a', padding: 24, borderRadius: 16, border: '1px solid #334155', textAlign: 'center' }}>
+                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: 12 }}>Target Goal</div>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: '#f1f5f9' }}>{selectedStudyDetail.enrollment.target}</div>
+                  </div>
+                  <div style={{ background: '#0f172a', padding: 24, borderRadius: 16, border: '1px solid #334155', textAlign: 'center' }}>
+                    <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: 12 }}>Completion</div>
+                    <div style={{ fontSize: 32, fontWeight: 900, color: '#10b981' }}>{Math.round((selectedStudyDetail.enrollment.current / selectedStudyDetail.enrollment.target) * 100)}%</div>
+                  </div>
+                </div>
+
+                <div style={{ background: '#0f172a', padding: 32, borderRadius: 20, border: '1px solid #334155' }}>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                      <h4 style={{ margin: 0, fontSize: 16, color: '#f1f5f9' }}>Enrollment Progress Bar</h4>
+                      <span style={{ fontSize: 14, color: '#94a3b8' }}>{selectedStudyDetail.enrollment.current} / {selectedStudyDetail.enrollment.target} subjects</span>
+                   </div>
+                   <div style={{ width: '100%', height: 20, background: '#1e293b', borderRadius: 999, overflow: 'hidden' }}>
+                      <div style={{ width: `${(selectedStudyDetail.enrollment.current / selectedStudyDetail.enrollment.target) * 100}%`, height: '100%', background: 'linear-gradient(90deg, #2563eb, #60a5fa)', borderRadius: 999 }} />
+                   </div>
+                   <div style={{ marginTop: 24, fontSize: 14, color: '#64748b', lineHeight: 1.6 }}>
+                      Subject recruitment is currently <strong>{selectedStudyDetail.status === 'Active' ? 'on track' : 'paused'}</strong>. {selectedStudyDetail.enrollment.target - selectedStudyDetail.enrollment.current} subjects remaining to reach enrollment target.
+                   </div>
+                </div>
               </div>
             )}
 

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { PillButton, StatusBadge, Modal, ConfirmModal, downloadFile } from './SponsorDashboardShared';
 
 export default function DocumentCenterPanel({ protocols, addToast }: any) {
@@ -8,6 +8,14 @@ export default function DocumentCenterPanel({ protocols, addToast }: any) {
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [pdfMeta, setPdfMeta] = useState<any>(null);
   const [confirmModal, setConfirmModal] = useState<any>(null);
+  
+  // Auto-select first study if data arrives late
+  useEffect(() => {
+    if (!selectedStudyId && protocols && protocols.length > 0) {
+      setSelectedStudyId(protocols[0].id);
+      setStudySelectValue(protocols[0].id);
+    }
+  }, [protocols, selectedStudyId]);
 
   const selectedStudy = useMemo(() => protocols.find((p:any) => p.id === selectedStudyId), [protocols, selectedStudyId]);
 

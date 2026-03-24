@@ -7,6 +7,7 @@ import OurStudiesPanel from './OurStudiesPanel';
 import ParticipantDataPanel from './ParticipantDataPanel';
 import DocumentCenterPanel from './DocumentCenterPanel';
 import TeamManagementPanel from './TeamManagementPanel';
+import ReportsPanel from './ReportsPanel';
 
 // === CONSTANTS ===
 const THEME = {
@@ -134,15 +135,9 @@ export default function SponsorDashboard() {
   });
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: THEME.bg, color: 'white', fontFamily: 'Inter, system-ui, sans-serif', overflow: 'hidden', position: 'relative' }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: 'transparent', color: 'white', fontFamily: 'Inter, system-ui, sans-serif', overflow: 'hidden', position: 'relative' }}>
 
-      {/* ANIMATED BACKGROUND */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: 'radial-gradient(circle at 20% 20%, rgba(37, 99, 235, 0.08) 0%, transparent 40%), radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 40%)',
-        animation: 'bgMove 20s ease-infinite alternate',
-        zIndex: 0, pointerEvents: 'none'
-      }} />
+      {/* ANIMATED BACKGROUND IS HANDLED BY APP.TSX, JUST ENSURE NO SOLID OVERLAY */}
 
       <style>{`
         @keyframes bgMove {
@@ -163,11 +158,12 @@ export default function SponsorDashboard() {
       {/* SIDEBAR */}
       <aside style={{
         width: '300px',
-        backgroundColor: THEME.sidebar,
+        backgroundColor: 'rgba(2, 6, 23, 0.4)',
+        backdropFilter: 'blur(16px)',
         borderRight: `1px solid ${THEME.border}`,
         display: 'flex',
         flexDirection: 'column',
-        padding: '24px 16px',
+        padding: '0',
         overflowY: 'auto',
         zIndex: 100,
         position: isMobile ? 'absolute' : 'relative',
@@ -177,16 +173,16 @@ export default function SponsorDashboard() {
       }}>
 
         {/* LOGO AREA */}
-        <div style={{ background: 'white', borderRadius: '24px', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '48px', boxShadow: '0 8px 32px rgba(6, 182, 212, 0.2)', border: '2px solid rgba(255,255,255,0.1)' }}>
-          <img src="/logo_new.png" alt="MusB Research" style={{ height: '48px', width: 'auto', objectFit: 'contain' }} />
+        <div style={{ background: 'white', margin: '10px', padding: '0', borderRadius: '10px', overflow: 'hidden', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <img src="/logo_new.png" alt="MusB Research" style={{ width: '90%', height: 'auto', display: 'block' }} />
         </div>
 
         {/* MENU */}
-        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '32px' }}>
+        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
           {/* GROUP 1: OVERVIEW */}
           <div>
-            <div style={{ fontSize: '12px', fontWeight: 900, color: 'white', textShadow: '0 0 10px rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginBottom: '16px', paddingLeft: '16px' }}>OVERVIEW</div>
+            <div style={{ fontSize: '12px', fontWeight: 900, color: 'white', textShadow: '0 0 10px rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginBottom: '8px', paddingLeft: '16px' }}>OVERVIEW</div>
 
             <button onClick={() => window.location.href = '/'} style={{ ...menuBtnBase, color: THEME.body }}>
               <span style={{ fontSize: '18px', opacity: 0.6 }}>🌐</span>
@@ -201,7 +197,7 @@ export default function SponsorDashboard() {
 
           {/* GROUP 2: CORE MANAGEMENT */}
           <div>
-            <div style={{ fontSize: '12px', fontWeight: 900, color: 'white', textShadow: '0 0 10px rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginBottom: '16px', paddingLeft: '16px' }}>CORE MANAGEMENT</div>
+            <div style={{ fontSize: '12px', fontWeight: 900, color: 'white', textShadow: '0 0 10px rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginBottom: '8px', paddingLeft: '16px' }}>CORE MANAGEMENT</div>
 
             <button onClick={() => setActiveModule('STUDIES')} style={getMenuBtnStyle('STUDIES')}>
               <span style={{ fontSize: '18px', opacity: activeModule === 'STUDIES' ? 1 : 0.6 }}>📁</span>
@@ -219,18 +215,18 @@ export default function SponsorDashboard() {
 
           {/* GROUP 3: REPORTS & DATA */}
           <div>
-            <div style={{ fontSize: '12px', fontWeight: 900, color: 'white', textShadow: '0 0 10px rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginBottom: '16px', paddingLeft: '16px' }}>REPORTS & DATA</div>
+            <div style={{ fontSize: '12px', fontWeight: 900, color: 'white', textShadow: '0 0 10px rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginBottom: '8px', paddingLeft: '16px' }}>REPORTS & DATA</div>
 
-            <button onClick={() => setActiveModule('DOCUMENTS')} style={getMenuBtnStyle('DOCUMENTS')}>
-              <span style={{ fontSize: '18px', opacity: activeModule === 'DOCUMENTS' ? 1 : 0.6 }}>📄</span>
-              <span style={{ flex: 1, textAlign: 'left', lineHeight: '1.4' }}>DOCUMENT CENTER</span>
+            <button onClick={() => setActiveModule('REPORTS')} style={getMenuBtnStyle('REPORTS')}>
+              <span style={{ fontSize: '18px', opacity: activeModule === 'REPORTS' ? 1 : 0.6 }}>📈</span>
+              <span style={{ flex: 1, textAlign: 'left', lineHeight: '1.4' }}>PARTICIPANT PROGRESS REPORTS</span>
             </button>
           </div>
 
         </nav>
 
         {/* BOTTOM TEAM PANEL */}
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${THEME.border}`, borderRadius: '28px', padding: '24px', marginTop: '32px' }}>
+        <div style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${THEME.border}`, borderRadius: '28px', padding: '16px', marginTop: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <div style={{ width: '56px', height: '56px', background: 'rgba(15, 23, 42, 1)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6', fontWeight: 900, fontSize: '18px', boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.5)' }}>{initials}</div>
             <div>
@@ -244,7 +240,7 @@ export default function SponsorDashboard() {
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <main style={{ flex: 1, overflowY: 'auto', backgroundColor: THEME.bg, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+      <main style={{ flex: 1, overflowY: 'auto', backgroundColor: 'transparent', position: 'relative', display: 'flex', flexDirection: 'column' }}>
 
         {/* TOP HEADER CONTROLS */}
         <header style={{
@@ -325,6 +321,7 @@ export default function SponsorDashboard() {
         {activeModule === 'STUDIES' && <OurStudiesPanel protocols={protocols} setProtocols={setProtocols} addToast={addToast} windowWidth={windowWidth} />}
         {activeModule === 'PARTICIPANTS' && <ParticipantDataPanel protocols={protocols} addToast={addToast} windowWidth={windowWidth} currentUser={currentUser} />}
         {activeModule === 'DOCUMENTS' && <DocumentCenterPanel protocols={protocols} addToast={addToast} />}
+        {activeModule === 'REPORTS' && <ReportsPanel protocols={protocols} addToast={addToast} />}
         {activeModule === 'TEAM' && <TeamManagementPanel addToast={addToast} />}
       </main>
 
