@@ -278,7 +278,7 @@ export default function Innovations() {
                                 </div>
                             </div>
                             <div className="flex flex-col sm:flex-row gap-4 md:gap-6">
-                                <Link to="/contact" className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-xs md:text-base uppercase tracking-widest shadow-[0_0_30px_rgba(6,182,212,0.4)] border border-cyan-400/30 hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] transition-all duration-300 hover:scale-105 flex items-center justify-center text-center">
+                                <Link to="/contact?type=research" className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-xs md:text-base uppercase tracking-widest shadow-[0_0_30px_rgba(6,182,212,0.4)] border border-cyan-400/30 hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] transition-all duration-300 hover:scale-105 flex items-center justify-center text-center">
                                     Start an Innovation Discussion
                                 </Link>
                                 <button
@@ -367,7 +367,7 @@ export default function Innovations() {
                             </div>
 
                             <div className="text-center">
-                                <Link to="/contact" className="inline-block bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-12 py-6 rounded-2xl font-black text-lg uppercase tracking-widest shadow-[0_0_30px_rgba(6,182,212,0.4)] border border-cyan-400/30 hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] transition-all duration-300 hover:scale-105">
+                                <Link to="/facilities?stage=run_study#lead-capture" className="inline-block bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-12 py-6 rounded-2xl font-black text-lg uppercase tracking-widest shadow-[0_0_30px_rgba(6,182,212,0.4)] border border-cyan-400/30 hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] transition-all duration-300 hover:scale-105">
                                     Run a Study With MusB Research
                                 </Link>
                             </div>
@@ -430,7 +430,7 @@ export default function Innovations() {
                             </div>
 
                             <div className="text-center">
-                                <Link to="/contact" className="inline-block bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-12 py-6 rounded-2xl font-black text-lg uppercase tracking-widest shadow-[0_0_30px_rgba(6,182,212,0.4)] border border-cyan-400/30 hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] transition-all duration-300 hover:scale-105">
+                                <Link to="/contact?type=research" className="inline-block bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-12 py-6 rounded-2xl font-black text-lg uppercase tracking-widest shadow-[0_0_30px_rgba(6,182,212,0.4)] border border-cyan-400/30 hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] transition-all duration-300 hover:scale-105">
                                     Submit Your Concept
                                 </Link>
                             </div>
@@ -882,10 +882,10 @@ export default function Innovations() {
                             <div className="space-y-10">
                                 <p className="text-3xl font-black text-white uppercase tracking-tight">We are ready to collaborate.</p>
                                 <div className="flex flex-wrap justify-center gap-6">
-                                    <Link to="/contact" className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-12 py-6 rounded-2xl font-black text-lg uppercase tracking-widest shadow-[0_0_30px_rgba(6,182,212,0.4)] border border-cyan-400/30 hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] transition-all duration-300 hover:scale-105 active:scale-95">
+                                    <Link to="/contact?type=research" className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-12 py-6 rounded-2xl font-black text-lg uppercase tracking-widest shadow-[0_0_30px_rgba(6,182,212,0.4)] border border-cyan-400/30 hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] transition-all duration-300 hover:scale-105 active:scale-95">
                                         Start an Innovation Discussion
                                     </Link>
-                                    <Link to="/contact" className="border-2 border-cyan-400/40 bg-cyan-400/10 text-white px-12 py-6 rounded-2xl font-black text-lg uppercase tracking-widest hover:bg-cyan-400/20 hover:border-cyan-400/60 transition-all duration-300">
+                                    <Link to="/contact?type=research" className="border-2 border-cyan-400/40 bg-cyan-400/10 text-white px-12 py-6 rounded-2xl font-black text-lg uppercase tracking-widest hover:bg-cyan-400/20 hover:border-cyan-400/60 transition-all duration-300">
                                         Contact Our Innovation Team
                                     </Link>
                                 </div>

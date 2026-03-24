@@ -319,38 +319,16 @@ const Support: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="grid md:grid-cols-3 gap-8">
-                            {[
-                                {
-                                    title: "Micronutrient Efficacy Validation",
-                                    tag: "Clinical",
-                                    desc: "Demonstrated 30% improved bioavailability through our preclinical-to-clinical workflow.",
-                                    img: "/story_micronutrient.png"
-                                },
-                                {
-                                    title: "Microbiome Signature Discovery",
-                                    tag: "Research",
-                                    desc: "Identified novel biomarkers for a biotech startup's lead ingredient validation.",
-                                    img: "/story_microbiome.png"
-                                },
-                                {
-                                    title: "Multi-Year Biospecimen Security",
-                                    tag: "Biorepository",
-                                    desc: "Managed 50,000+ aliquots with 100% chain-of-custody integrity for aging studies.",
-                                    img: "/story_biorepository.png"
-                                }
-                            ].map((story, i) => (
-                                <div key={i} className="group relative bg-white/5 backdrop-blur-xl rounded-[3rem] overflow-hidden border border-white/5 hover:border-cyan-500/30 transition-all duration-500 flex flex-col">
-                                    <div className="aspect-video bg-slate-800/50 overflow-hidden">
-                                        <div className="w-full h-full bg-gradient-to-br from-cyan-500/10 to-indigo-500/10 group-hover:scale-110 transition-transform duration-700"></div>
-                                    </div>
-                                    <div className="p-6 md:p-10 space-y-6 flex-grow">
-                                        <span className="px-4 py-2 rounded-xl bg-cyan-500/10 text-cyan-400 text-[10px] font-black uppercase tracking-widest">{story.tag}</span>
-                                        <h3 className="text-2xl font-black text-white leading-tight">{story.title}</h3>
-                                        <p className="text-slate-400 font-medium leading-relaxed">{story.desc}</p>
-                                    </div>
-                                </div>
-                            ))}
+                        <div className="py-20 flex flex-col items-center justify-center text-center">
+                            <div className="w-24 h-24 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-8 border border-cyan-500/20">
+                                <Hourglass className="w-10 h-10" />
+                            </div>
+                            <h3 className="text-4xl md:text-5xl font-black text-white tracking-widest uppercase italic">
+                                COMING SOON
+                            </h3>
+                            <p className="text-lg md:text-xl text-slate-400 font-medium mt-6">
+                                We are preparing exciting success stories. Stay tuned!
+                            </p>
                         </div>
                     </div>
                 </section>
@@ -417,9 +395,9 @@ const Support: React.FC = () => {
                             </div>
                         </div>
                         <div className="flex flex-wrap justify-center gap-6">
-                            <button onClick={() => setShowRouter(true)} className="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all">Discuss Research</button>
-                            <button onClick={() => setShowRouter(true)} className="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all">Request Testing</button>
-                            <button onClick={() => setShowRouter(true)} className="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all">Biorepository Support</button>
+                            <button onClick={() => setShowRouter(true)} className="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white hover:text-slate-900 transition-all">Discuss Research</button>
+                            <button onClick={() => setShowRouter(true)} className="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white hover:text-slate-900 transition-all">Request Testing</button>
+                            <button onClick={() => setShowRouter(true)} className="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white hover:text-slate-900 transition-all">Biorepository Support</button>
                         </div>
                     </div>
                 </section>

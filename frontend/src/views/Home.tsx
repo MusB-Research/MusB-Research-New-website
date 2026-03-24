@@ -1407,7 +1407,7 @@ export default function Home() {
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden bg-transparent">
 
             {/* Slider Container */}
-            <div className="relative h-auto md:h-[95vh] min-h-[600px] md:min-h-[800px] w-full flex items-center overflow-hidden bg-transparent z-10">
+            <div className="relative h-[100svh] md:h-[95vh] min-h-[750px] md:min-h-[800px] w-full flex items-center overflow-hidden bg-transparent z-10">
 
                 {/* Global Background Effect */}
                 <div className="absolute inset-0 z-0">
@@ -1435,7 +1435,7 @@ export default function Home() {
                                         <div className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-transparent to-slate-950/80"></div>
                                     </div>
 
-                                    <div className={`relative z-10 h-full max-w-[1800px] mx-auto px-6 md:px-12 w-full flex flex-col items-center justify-start lg:justify-center pt-36 pb-32 md:pt-32 md:pb-12 transform transition-all duration-1000 ${isActive ? 'scale-100 -translate-y-8 md:-translate-y-12' : 'scale-95 translate-y-12'}`}>
+                                    <div className={`relative z-10 h-full max-w-[1800px] mx-auto px-6 md:px-12 w-full flex flex-col items-center justify-start lg:justify-center pt-36 pb-48 md:pt-48 lg:pt-32 md:pb-12 transform transition-all duration-1000 ${isActive ? 'scale-100 -translate-y-6 md:-translate-y-8 lg:-translate-y-12' : 'scale-95 translate-y-12'}`}>
 
 
 
@@ -1625,7 +1625,7 @@ export default function Home() {
                                     </div>
                                     <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 md:gap-6 pt-4">
                                         <Link
-                                            to="/contact"
+                                            to="/contact?type=general"
                                             className="bg-cyan-500 text-slate-900 px-6 py-3 md:px-8 md:py-4 rounded-xl font-black text-xs md:text-sm uppercase tracking-wide hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/20 inline-flex items-center justify-center gap-2"
                                         >
                                             Start the Conversation
@@ -1704,7 +1704,7 @@ export default function Home() {
 
                             <div className="flex justify-center mt-20 animate-fade-in-up stagger-3">
                                 <Link
-                                    to="/contact"
+                                    to="/contact?type=general"
                                     className="px-6 py-3 md:px-8 md:py-4 bg-cyan-500 text-slate-900 rounded-xl font-black text-sm uppercase tracking-wide hover:bg-white hover:-translate-y-2 transition-all shadow-[0_20px_50px_-10px_rgba(6,182,212,0.5)] inline-flex items-center justify-center gap-3 group"
                                 >
                                     Start the Conversation
@@ -1751,7 +1751,7 @@ export default function Home() {
 
                                 <div className="flex gap-4 pt-4">
                                     <Link to="/facilities" className="bg-white/5 text-white px-8 py-5 rounded-xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-white/10 transition-all border border-white/10">View Our Facilities</Link>
-                                    <Link to="/contact" className="bg-cyan-400 text-slate-900 px-6 py-3 md:px-8 md:py-4 rounded-xl font-black text-xs md:text-sm uppercase tracking-wide hover:bg-white transition-all">Start the Conversation</Link>
+                                    <Link to="/contact?type=general" className="bg-cyan-400 text-slate-900 px-6 py-3 md:px-8 md:py-4 rounded-xl font-black text-xs md:text-sm uppercase tracking-wide hover:bg-white transition-all">Start the Conversation</Link>
                                 </div>
                             </div>
 
@@ -1889,7 +1889,7 @@ export default function Home() {
                                     <h3 className="text-3xl md:text-4xl font-black text-white leading-[1.1] tracking-tighter">Need high-quality research, <br />testing, or biorepository support?</h3>
                                 </div>
                                 <div className="pt-6 animate-fade-in-up stagger-2">
-                                    <Link to="/contact" className="bg-white text-slate-900 px-14 py-6 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-cyan-500 hover:-translate-y-2 transition-all shadow-xl inline-block">Start a Project</Link>
+                                    <Link to="/contact?type=business" className="bg-white text-slate-900 px-14 py-6 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-cyan-500 hover:-translate-y-2 transition-all shadow-xl inline-block">Start a Project</Link>
                                 </div>
                             </div>
                         </div>

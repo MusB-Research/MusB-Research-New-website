@@ -388,7 +388,7 @@ export default function Contact() {
                     {[
                         { label: 'Find a Clinical Study', path: '/trials' },
                         { label: 'For Businesses', path: '/support' },
-                        { label: 'Our Capabilities', path: '/innovations' },
+                        { label: 'Our Capabilities', path: '/capabilities' },
                         { label: 'Careers', path: '/careers' },
                         { label: 'News & Events', path: '/news' }
                     ].map((link) => (

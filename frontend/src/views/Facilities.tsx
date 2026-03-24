@@ -4,7 +4,7 @@ import {
     FileText, Activity, Layers, Database,
     ClipboardCheck, Users, Lock, Zap, Handshake
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { submitFacilityInquiry } from '../api';
 
 const HARDCODED_DATA = {
@@ -66,10 +66,22 @@ export default function Facilities() {
         interest: 'Research', stage: 'Concept', concept: ''
     });
     const [formStatus, setFormStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+    const location = useLocation();
 
     useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        const stageParam = searchParams.get('stage');
+        
+        if (stageParam === 'run_study') {
+            setFormState(prev => ({ ...prev, stage: 'Run a study' }));
+            setTimeout(() => {
+                const el = document.getElementById('lead-capture');
+                if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' });
+            }, 100);
+        }
+        
         setLoading(false);
-    }, []);
+    }, [location.search]);
 
 
     const handleFormSubmit = async (e: React.FormEvent) => {
@@ -174,7 +186,7 @@ export default function Facilities() {
                     </Link>
 
                     {/* Card 2 */}
-                    <Link to="#lead-capture" onClick={(e) => { e.preventDefault(); const el = document.getElementById('lead-capture'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' }); }} className="group bg-slate-900/80 backdrop-blur-md border border-slate-800 hover:border-indigo-500/50 p-8 rounded-3xl transition-all hover:-translate-y-2 hover:shadow-2xl hover:shadow-indigo-900/20">
+                    <Link to="#lab" onClick={(e) => { e.preventDefault(); const el = document.getElementById('lab'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' }); }} className="group bg-slate-900/80 backdrop-blur-md border border-slate-800 hover:border-indigo-500/50 p-8 rounded-3xl transition-all hover:-translate-y-2 hover:shadow-2xl hover:shadow-indigo-900/20">
                         <div className="w-14 h-14 bg-indigo-900/30 rounded-2xl flex items-center justify-center text-indigo-400 mb-6 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
                             <Beaker className="w-7 h-7" />
                         </div>
@@ -500,6 +512,7 @@ export default function Facilities() {
                                             <option>Preclinical</option>
                                             <option>Clinical</option>
                                             <option>Post-Market / Commercial</option>
+                                            <option>Run a study</option>
                                         </select>
                                     </div>
                                 </div>

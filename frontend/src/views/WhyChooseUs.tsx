@@ -132,7 +132,7 @@ export default function WhyChooseUs() {
                                 {heroDesc}
                             </p>
                             <div className="flex flex-wrap gap-6 pt-4">
-                                <Link to="/contact" className="grow-0 bg-cyan-500 text-slate-900 px-6 py-3 md:px-8 md:py-4 rounded-xl font-black text-sm uppercase tracking-wide hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/20 inline-flex items-center gap-2">
+                                <Link to="/contact?type=general" className="grow-0 bg-cyan-500 text-slate-900 px-6 py-3 md:px-8 md:py-4 rounded-xl font-black text-sm uppercase tracking-wide hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/20 inline-flex items-center gap-2">
                                     Start the Conversation <ArrowRight className="w-5 h-5" />
                                 </Link>
                                 <Link to="/capabilities" className="grow-0 bg-white/5 text-white border border-white/10 px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white/10 hover:-translate-y-1 transition-all inline-flex items-center gap-2">
@@ -381,7 +381,7 @@ export default function WhyChooseUs() {
                 {/* SECTION 8: Final Call to Action */}
                 {/* ============================================================ */}
                 {true && (
-                    <section className="max-w-[1700px] mx-auto px-4 md:px-12 text-center space-y-12 py-32">
+                    <section className="max-w-[1700px] mx-auto px-4 md:px-12 text-center space-y-12 pt-24 pb-8">
                         <div className="space-y-8">
                             <p className="text-3xl md:text-5xl font-black text-white leading-[1.1] tracking-tighter">
                                 Choosing MusB™ Research means partnering with a leader <br className="hidden md:block" />
