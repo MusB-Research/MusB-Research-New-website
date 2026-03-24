@@ -22,6 +22,7 @@ from .serializers import (
 )
 from authentication.models import User, AuditLog
 from django.db.models import Q
+from django.utils.timezone import now
 
 class IsAdminOrCoordinator(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -100,7 +101,7 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return Study.objects.filter(status__in=['RECRUITING', 'ACTIVE'], approval_status='approved').order_by('-created_at')
-        if user.role in ['ADMIN', 'SUPER_ADMIN']:
+        if (user.role or '').strip().upper() in ['ADMIN', 'SUPER_ADMIN']:
             return Study.objects.all().order_by('-created_at')
         return Study.objects.filter(assignments__user=user).order_by('-created_at')
 
@@ -175,6 +176,7 @@ class ParticipantViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated: return Participant.objects.none()
+        if user.role.upper() == 'SUPER_ADMIN': return Participant.objects.all()
         return Participant.objects.filter(study__assignments__user=user)
 
 class LeadViewSet(viewsets.ModelViewSet):
@@ -184,6 +186,7 @@ class LeadViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated: return Lead.objects.none()
+        if user.role.upper() == 'SUPER_ADMIN': return Lead.objects.all()
         return Lead.objects.filter(study__assignments__user=user)
 
 class CommunicationLogViewSet(viewsets.ModelViewSet):
@@ -373,6 +376,99 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
         inquiry.routing_target = target
         inquiry.save()
         AuditLog.log('STUDY_INQUIRY', user_email=user.email, request=self.request, detail=f"Inquiry for {inquiry.product_name} created. Routed to {target}")
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def engage(self, request, pk=None):
+        """
+        Engage a lead: 
+        1. Marks inquiry as QUALIFIED
+        2. Auto-creates a study approved by Super Admin
+        3. Assigns the inquiry sponsor as the Study sponsor
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        if request.user.role.upper() not in ['SUPER_ADMIN', 'ADMIN']:
+            return Response({'error': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            inquiry = self.get_object()
+            inquiry.status = 'QUALIFIED'
+            inquiry.save()
+
+            if inquiry.sponsor_user:
+                # Use a safer protocol ID generation
+                iq_id_str = str(inquiry.id)
+                pid_suffix = iq_id_str[-4:] if iq_id_str else "0000"
+                prod_name = str(inquiry.product_name)
+                safe_name = "".join(filter(str.isalnum, prod_name))[:3].upper()
+                protocol_suggested = f"MUSB-{safe_name}-{pid_suffix}"
+                
+                existing_study = Study.objects.filter(protocol_id=protocol_suggested).first()
+                
+                if not existing_study:
+                    study = Study.objects.create(
+                        title=f"Clinical Evaluation of {inquiry.product_name}",
+                        full_title=inquiry.project_description or f"A comprehensive study for {inquiry.product_name}",
+                        description=inquiry.project_description,
+                        sponsor_name=inquiry.legal_name or inquiry.product_name,
+                        sponsor=inquiry.sponsor_user,
+                        status='DRAFT',
+                        approval_status='approved',
+                        protocol_id=protocol_suggested,
+                        primary_indication=inquiry.primary_focus,
+                        condition=inquiry.primary_focus,
+                        created_by=request.user
+                    )
+                    
+                    StudyAssignment.objects.get_or_create(
+                        study=study, 
+                        user=inquiry.sponsor_user, 
+                        role='SPONSOR_ADMIN'
+                    )
+                    
+                    AuditLog.log('UPDATE_STUDY', user_email=request.user.email, request=request, detail=f"Auto-created study {study.title}")
+                    return Response({
+                        'status': 'Engagement initialized. Study auto-created.', 
+                        'id': study.protocol_id
+                    }, status=status.HTTP_201_CREATED)
+                
+            return Response({'status': 'Lead engaged', 'message': 'Inquiry status updated to Qualified.'})
+        except Exception as e:
+            import traceback
+            err_msg = traceback.format_exc()
+            with open("api_debug.log", "a") as f:
+                f.write(f"\n--- ERROR AT ENGAGE {now()} ---\n{err_msg}\n")
+            return Response({
+                'error': 'Internal server error during lead engagement.', 
+                'details': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def reject(self, request, pk=None):
+        """Allows super admin to reject an inquiry lead."""
+        if request.user.role.upper() not in ['SUPER_ADMIN', 'ADMIN']:
+            return Response({'error': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        inquiry = self.get_object()
+        inquiry.status = 'REJECTED'
+        inquiry.save()
+        AuditLog.log('STUDY_INQUIRY', user_email=request.user.email, request=request, detail=f"Inquiry for {inquiry.product_name} REJECTED by admin.")
+        return Response({'status': 'Inquiry rejected successfully'}, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        """Restricts deletion to Super Admin only."""
+        user_role = (request.user.role or '').upper()
+        
+        # LOGGING FOR DEBUGGING
+        with open("api_debug.log", "a") as f:
+            f.write(f"\n[DELETE] Request by: {request.user.email}, Role: {user_role}, Target ID: {kwargs.get('pk')}\n")
+            
+        if user_role != 'SUPER_ADMIN':
+            return Response({'error': f'Only Super Admin can delete inquiries. Your role: {user_role}'}, status=status.HTTP_403_FORBIDDEN)
+            
+        AuditLog.log('DELETE_RECORD', user_email=request.user.email, request=request, detail=f"Study inquiry record deleted.")
+        return super().destroy(request, *args, **kwargs)
 
 class InterventionArmViewSet(viewsets.ModelViewSet):
     queryset = InterventionArm.objects.all()

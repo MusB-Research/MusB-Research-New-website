@@ -12,10 +12,14 @@ class DualAuthBackend(ModelBackend):
             return None
             
         try:
-            # Check for either email (USERNAME_FIELD) or username (ID)
-            user = User.objects.filter(
-                Q(email__iexact=username) | Q(username__iexact=username)
-            ).first()
+            # OPTIMIZATION: Try case-sensitive exact email first (index-optimized)
+            user = User.objects.filter(email=username).first()
+            
+            # If fail, try case-insensitive email or username lookup
+            if not user:
+                user = User.objects.filter(
+                    Q(email__iexact=username) | Q(username__iexact=username)
+                ).first()
             
             if user and user.check_password(password):
                 return user

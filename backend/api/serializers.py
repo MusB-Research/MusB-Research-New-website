@@ -30,15 +30,28 @@ class ObjectIdField(serializers.Field):
 
 class SanitizedModelSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
-        """Handle MongoDB ObjectId serialization and user fields."""
+        """Handle MongoDB ObjectId serialization and authorized decryption (SUPER_ADMIN, etc.)."""
+        from authentication.security import decrypt_data
         ret = super().to_representation(instance)
+        request = self.context.get('request')
+        user = request.user if request else None
         
-        # Ensure we don't leak raw ObjectIds in JSON responses
+        # Only decrypt for authorized clinical/admin roles
+        is_authorized = user and user.is_authenticated and (user.role.upper() in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR'])
+        
+        # Ensure we don't leak raw ObjectIds and handle decryption
         for key, value in ret.items():
             if type(value).__name__ == 'ObjectId':
                 ret[key] = str(value)
             elif isinstance(value, list):
                 ret[key] = [str(item) if type(item).__name__ == 'ObjectId' else item for item in value]
+            elif isinstance(value, str) and (val_str := str(value)).startswith('gAAAA'):
+                # Automatically decrypt ONLY for authorized roles
+                if is_authorized or (user and hasattr(instance, 'user') and instance.user == user):
+                    try:
+                        ret[key] = decrypt_data(val_str)
+                    except Exception:
+                        pass
         
         # If created_by is present and is a User instance, show its ID or email
         if 'created_by' in ret and hasattr(instance, 'created_by') and instance.created_by:
@@ -354,3 +367,4 @@ class StudyInquirySerializer(SanitizedModelSerializer):
     class Meta:
         model = StudyInquiry
         fields = '__all__'
+        read_only_fields = ['sponsor_user', 'routing_target']

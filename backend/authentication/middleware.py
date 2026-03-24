@@ -40,6 +40,7 @@ class OnboardingEnforcementMiddleware:
         re.compile(r'^/api/auth/list-team-members/?'),
         re.compile(r'^/api/participants/?'),
         re.compile(r'^/api/studies/?'),
+        re.compile(r'^/api/study-inquiries/?'),
     ]
 
     def __init__(self, get_response):

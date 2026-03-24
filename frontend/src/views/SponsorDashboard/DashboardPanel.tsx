@@ -26,14 +26,39 @@ const SVGBarChart = ({ data }: any) => {
   );
 };
 
-export default function DashboardPanel({ protocols, setProtocols, addToast, windowWidth }: any) {
+// --- Inquiry Logic Helpers ---
+const CATEGORY_MAP: Record<string, string> = {
+  'Probiotic / Postbiotic': 'PROBIOTIC',
+  'Nutraceutical': 'NUTRACEUTICAL',
+  'Botanical': 'BOTANICAL',
+  'Functional Food': 'FUNCTIONAL_FOOD',
+  'Pharmaceutical': 'PHARMACEUTICAL',
+  'Device': 'DEVICE',
+  'Other': 'OTHER'
+};
+
+const STAGE_MAP: Record<string, string> = {
+  'Concept': 'CONCEPT',
+  'Preclinical Complete': 'PRECLINICAL',
+  'Ready for Clinical': 'READY',
+  'Marketed Product Seeking Data': 'MARKETED'
+};
+
+const BUDGET_MAP: Record<string, string> = {
+  '<$100K': 'UNDER_100K',
+  '$100K–$250K': '100K_250K',
+  '$250K–$500K': '250K_500K',
+  '$500K+': 'OVER_500K',
+  'Prefer to Discuss': 'DISCUSS'
+};
+
+export default function DashboardPanel({ protocols, team, inquiries, setProtocols, addToast, windowWidth, setActiveModule }: any) {
   const [protocolFilter, setProtocolFilter] = useState('All');
   const [overviewModalOpen, setOverviewModalOpen] = useState(false);
   const [portfolioModalOpen, setPortfolioModalOpen] = useState(false);
   const [reportsModalOpen, setReportsModalOpen] = useState(false);
   const [reportsStudyFilter, setReportsStudyFilter] = useState<any>(null);
   const [teamModalOpen, setTeamModalOpen] = useState(false);
-  const [teamLocal, setTeamLocal] = useState(MOCK_TEAM);
   const [inviteFormVisible, setInviteFormVisible] = useState(false);
   const [inviteForm, setInviteForm] = useState({ email:'', role:'Regulatory Affairs' });
   const [studyDetailModalOpen, setStudyDetailModalOpen] = useState(false);
@@ -74,8 +99,12 @@ export default function DashboardPanel({ protocols, setProtocols, addToast, wind
   const stats = useMemo(() => ({
     total: protocols.length,
     active: protocols.filter((p:any) => p.status==='Active'||p.status==='Recruiting').length,
-    completed: protocols.filter((p:any) => p.status==='Completed').length
-  }), [protocols]);
+    completed: protocols.filter((p:any) => p.status==='Completed').length,
+    submitted: (inquiries?.length || 0) + protocols.filter((p:any)=>p.status==='Under Review').length,
+    progressReports: protocols.filter((p:any) => p.status === 'PROGRESS_REPORT_DRAFT' || (p.status_human && p.status_human.includes('Progress'))).length,
+    finalReports: protocols.filter((p:any) => p.status === 'FINAL_REPORT_SENT').length,
+    documents: protocols.reduce((acc: number, p: any) => acc + (p.documents?.length || 0), 0)
+  }), [protocols, inquiries]);
 
   const filteredProtocols = useMemo(() =>
     protocolFilter === 'All' ? protocols : protocols.filter((p:any) => p.status === protocolFilter)
@@ -103,21 +132,68 @@ export default function DashboardPanel({ protocols, setProtocols, addToast, wind
   ];
 
   return (
-    <div style={{ padding: '40px 60px', maxWidth: '100%', margin: '0 auto', color: '#f1f5f9' }}>
+    <div style={{ 
+      padding: windowWidth > 1024 ? '40px 60px' : windowWidth > 768 ? '30px 40px' : '20px 16px', 
+      maxWidth: '100%', 
+      margin: '0 auto', 
+      color: '#f1f5f9' 
+    }}>
       
       {/* Primary Action Banner */}
-      <div style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)', borderRadius: 32, padding: '80px 100px', marginBottom: 64, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 48, boxShadow: '0 40px 80px rgba(0, 0, 0, 0.4)', border: '1px solid rgba(255,255,255,0.1)' }}>
+      <div style={{ 
+        background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)', 
+        borderRadius: windowWidth > 768 ? 32 : 24, 
+        padding: windowWidth > 1024 ? '80px 100px' : windowWidth > 768 ? '60px 80px' : '40px 24px', 
+        marginBottom: windowWidth > 768 ? 64 : 32, 
+        display: 'flex', 
+        flexDirection: windowWidth > 1024 ? 'row' : 'column',
+        justifyContent: 'space-between', 
+        alignItems: windowWidth > 1024 ? 'center' : 'flex-start', 
+        gap: windowWidth > 768 ? 48 : 32, 
+        boxShadow: '0 40px 80px rgba(0, 0, 0, 0.4)', 
+        border: '1px solid rgba(255,255,255,0.1)' 
+      }}>
         <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
-          <h1 style={{ margin: 0, fontWeight: 900, fontSize: 64, color: 'white', letterSpacing: '-0.04em', lineHeight: 1.1 }}>Elevate Your <span style={{ color: '#60a5fa' }}>Research</span><br/>Network.</h1>
-          <p style={{ margin: '32px 0 0 0', color: 'rgba(255,255,255,0.9)', fontSize: 28, lineHeight: 1.6, maxWidth: '950px', fontWeight: 500 }}>Partner with MusB's elite clinical network to accelerate your protocol deployment with state-of-the-art monitoring.</p>
+          <h1 style={{ 
+            margin: 0, 
+            fontWeight: 900, 
+            fontSize: windowWidth > 1024 ? 48 : windowWidth > 768 ? 35 : 28, 
+            color: 'white', 
+            letterSpacing: '-0.04em', 
+            lineHeight: 1.1 
+          }}>
+            Elevate Your <span style={{ color: '#60a5fa' }}>Research</span><br/>Network.
+          </h1>
+          <p style={{ 
+            margin: '24px 0 0 0', 
+            color: 'rgba(255,255,255,0.9)', 
+            fontSize: windowWidth > 1024 ? 20 : windowWidth > 768 ? 17 : 13, 
+            lineHeight: 1.6, 
+            maxWidth: '950px', 
+            fontWeight: 500 
+          }}>
+            Partner with MusB's elite clinical network to accelerate your protocol deployment.
+          </p>
         </div>
-        <button onClick={() => setInquiryModalOpen(true)} style={{ background: 'white', color: '#1e3a8a', fontWeight: 900, border: 'none', padding: '28px 56px', borderRadius: 24, cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', fontSize: 22, boxShadow: '0 20px 40px rgba(0,0,0,0.2)', transform: 'translateY(0)' }}>
+        <button onClick={() => setInquiryModalOpen(true)} style={{ 
+          background: 'white', 
+          color: '#1e3a8a', 
+          fontWeight: 900, 
+          border: 'none', 
+          padding: windowWidth > 768 ? '28px 56px' : '20px 40px', 
+          borderRadius: 24, 
+          cursor: 'pointer', 
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
+          fontSize: windowWidth > 768 ? 18 : 15, 
+          boxShadow: '0 20px 40px rgba(0,0,0,0.2)', 
+          width: windowWidth > 1024 ? 'auto' : '100%'
+        }}>
           + Launch New Inquiry
         </button>
       </div>
 
       <div style={{ fontSize: 14, color: '#64748b', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 20 }}>CONTROL PANEL</div>
-      <div style={{ display: 'grid', gridTemplateColumns: windowWidth > 1200 ? 'repeat(4,1fr)' : windowWidth > 800 ? 'repeat(2,1fr)' : '1fr', gap: 32, marginBottom: 56 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: windowWidth > 1200 ? 'repeat(4,1fr)' : windowWidth > 900 ? 'repeat(2,1fr)' : '1fr', gap: windowWidth > 768 ? 32 : 20, marginBottom: 56 }}>
         
         {/* Box 1 */}
         <div onClick={() => setOverviewModalOpen(true)} style={{ background: 'rgba(30, 41, 59, 0.6)', backdropFilter: 'blur(10px)', borderRadius: 28, padding: 40, border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', transition: 'all 0.3s' }}>
@@ -134,7 +210,7 @@ export default function DashboardPanel({ protocols, setProtocols, addToast, wind
           <div style={{ fontSize: 44, marginBottom: 20 }}>📁</div>
           <h3 style={{ margin: '0 0 12px 0', fontSize: 26, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.02em' }}>Protocol Portfolio</h3>
           <div style={{ fontSize: 18, color: '#94a3b8', lineHeight: 1.6, marginBottom: 24, fontWeight: 500 }}>
-            Submitted: <span style={{ color: '#6366f1', fontWeight: 700 }}>{protocols.filter((p:any)=>p.status==='Under Review').length}</span><br/>Active: <span style={{ color: '#60a5fa', fontWeight: 700 }}>{stats.active}</span><br/>Completed: <span style={{ color: '#10b981', fontWeight: 700 }}>{stats.completed}</span>
+            Submitted: <span style={{ color: '#6366f1', fontWeight: 700 }}>{stats.submitted}</span><br/>Active: <span style={{ color: '#60a5fa', fontWeight: 700 }}>{stats.active}</span><br/>Completed: <span style={{ color: '#10b981', fontWeight: 700 }}>{stats.completed}</span>
           </div>
           <div style={{ color: '#6366f1', fontSize: 17, fontWeight: 800 }}>→ View All Protocols</div>
         </div>
@@ -144,7 +220,7 @@ export default function DashboardPanel({ protocols, setProtocols, addToast, wind
           <div style={{ fontSize: 40, marginBottom: 20 }}>📋</div>
           <h3 style={{ margin: '0 0 12px 0', fontSize: 24, fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.01em' }}>Study Reports</h3>
           <div style={{ fontSize: 17, color: '#94a3b8', lineHeight: 1.6, marginBottom: 24 }}>
-            Progress Reports: 2<br/>Final Reports: 1<br/>Downloadable: 3
+            Progress Reports: <span style={{ color: '#10b981', fontWeight: 700 }}>{stats.progressReports}</span><br/>Final Reports: <span style={{ color: '#6366f1', fontWeight: 700 }}>{stats.finalReports}</span><br/>Downloadable: <span style={{ color: '#f1f5f9', fontWeight: 700 }}>{stats.documents}</span>
           </div>
           <div style={{ color: '#10b981', fontSize: 16, fontWeight: 700 }}>→ Access Reports</div>
         </div>
@@ -154,22 +230,67 @@ export default function DashboardPanel({ protocols, setProtocols, addToast, wind
           <div style={{ fontSize: 40, marginBottom: 20 }}>👥</div>
           <h3 style={{ margin: '0 0 12px 0', fontSize: 24, fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.01em' }}>Team Access</h3>
           <div style={{ fontSize: 17, color: '#94a3b8', lineHeight: 1.6, marginBottom: 24 }}>
-            Team Members: {teamLocal.length}<br/>Roles Assigned: {new Set(teamLocal.map(t=>t.role)).size}<br/>Pending Invitations: {teamLocal.filter(t=>t.status==='Pending Invitation').length}
+            Team Members: <span style={{ color: '#f59e0b', fontWeight: 700 }}>{team?.length || 0}</span><br/>Roles Assigned: <span style={{ color: '#f1f5f9', fontWeight: 700 }}>{team ? new Set(team.map((t:any)=>t.role)).size : 0}</span><br/>Pending Invitations: <span style={{ color: '#94a3b8', fontWeight: 700 }}>{team ? team.filter((t:any)=>t.status==='PENDING').length : 0}</span>
           </div>
           <div style={{ color: '#f59e0b', fontSize: 16, fontWeight: 700 }}>→ Manage Access</div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 40 }}>
-        <div style={{ fontSize: 56, color: '#f1f5f9', fontWeight: 900, letterSpacing: '-0.03em' }}>Strategic Protocol Portfolio</div>
-        <button onClick={() => setPortfolioModalOpen(true)} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: 24, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>Explore Full Portfolio <span>→</span></button>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: windowWidth > 768 ? 'row' : 'column',
+        justifyContent: 'space-between', 
+        alignItems: windowWidth > 768 ? 'flex-end' : 'flex-start', 
+        marginBottom: 40,
+        gap: 20
+      }}>
+        <div style={{ 
+          fontSize: windowWidth > 768 ? 56 : 36, 
+          color: '#f1f5f9', 
+          fontWeight: 900, 
+          letterSpacing: '-0.03em' 
+        }}>
+          Strategic Protocol Portfolio
+        </div>
+        <button onClick={() => setPortfolioModalOpen(true)} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: windowWidth > 768 ? 24 : 18, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>Explore Full Portfolio <span>→</span></button>
       </div>
       
-      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 16 }}>
-        {['All', 'Recruiting', 'Active', 'Completed', 'Under Review', 'Attention Needed'].map(f => (
-          <PillButton key={f} active={protocolFilter === f} onClick={() => setProtocolFilter(f)}>{f}</PillButton>
-        ))}
-      </div>
+      {windowWidth > 768 ? (
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 16 }}>
+          {['All', 'Recruiting', 'Active', 'Completed', 'Under Review', 'Attention Needed'].map(f => (
+            <PillButton key={f} active={protocolFilter === f} onClick={() => setProtocolFilter(f)}>{f}</PillButton>
+          ))}
+        </div>
+      ) : (
+        <div style={{ position: 'relative', marginBottom: 24 }}>
+          <select 
+            value={protocolFilter} 
+            onChange={(e) => setProtocolFilter(e.target.value)}
+            style={{
+              width: '100%',
+              background: 'rgba(30, 41, 59, 0.8)',
+              backdropFilter: 'blur(10px)',
+              color: '#f1f5f9',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 16,
+              padding: '14px 20px',
+              fontSize: 15,
+              fontWeight: 800,
+              appearance: 'none',
+              cursor: 'pointer',
+              outline: 'none',
+              boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}
+          >
+            {['All', 'Recruiting', 'Active', 'Completed', 'Under Review', 'Attention Needed'].map(f => (
+              <option key={f} value={f} style={{ background: '#0f172a', color: '#f1f5f9' }}>{f} Status</option>
+            ))}
+          </select>
+          <div style={{ position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#6366f1', fontSize: 14, fontWeight: 900 }}>▼</div>
+        </div>
+      )}
 
       {filteredProtocols.length === 0 ? (
         <div style={{ background: '#1e293b', borderRadius: 12, padding: 48, textAlign: 'center', border: '1px solid #334155' }}>
@@ -320,13 +441,11 @@ export default function DashboardPanel({ protocols, setProtocols, addToast, wind
                 <option>Sponsor Lead</option>
               </select>
               <button onClick={() => {
-                if(!inviteForm.email) return addToast({ type: 'error', message: 'Email required' });
-                setTeamLocal([...teamLocal, { id: `t${Date.now()}`, name: inviteForm.email.split('@')[0], role: inviteForm.role, status: 'Pending Invitation', lastActive: '—' }]);
-                addToast({ type: 'success', message: 'Invitation sent' });
-                setInviteForm({ email: '', role: 'Regulatory Affairs' });
-                setInviteFormVisible(false);
+                setActiveModule('TEAM');
+                setTeamModalOpen(false);
+                addToast({ type: 'info', message: 'Opening Team Management for detailed controls.' });
               }} style={{ background: '#10b981', color: 'white', border: 'none', padding: '10px 20px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>
-                Send Invitation
+                Open Team Manager
               </button>
             </div>
           </div>
@@ -344,20 +463,16 @@ export default function DashboardPanel({ protocols, setProtocols, addToast, wind
               </tr>
             </thead>
             <tbody>
-              {teamLocal.map(m => (
+               {(team || []).map((m: any) => (
                 <tr key={m.id} style={{ borderBottom: '1px solid #334155' }}>
-                  <td style={{ padding: '16px', fontSize: 14, color: '#f1f5f9', fontWeight: 600 }}>{m.name}</td>
-                  <td style={{ padding: '16px', fontSize: 13, color: '#94a3b8' }}>{m.role}</td>
-                  <td style={{ padding: '16px' }}><StatusBadge status={m.status==='Active' ? 'Active' : 'Pending'} /></td>
-                  <td style={{ padding: '16px', fontSize: 13, color: '#64748b' }}>{m.lastActive}</td>
+                  <td style={{ padding: '16px', fontSize: 14, color: '#f1f5f9', fontWeight: 600 }}>{m.name || m.email?.split('@')[0]}</td>
+                  <td style={{ padding: '16px', fontSize: 13, color: '#94a3b8' }}>{m.role?.replace('_', ' ').toUpperCase()}</td>
+                  <td style={{ padding: '16px' }}><StatusBadge status={m.status==='ACTIVE' || m.status==='Active' ? 'Active' : 'Pending'} /></td>
+                  <td style={{ padding: '16px', fontSize: 13, color: '#64748b' }}>{m.lastActive || 'N/A'}</td>
                   <td style={{ padding: '16px' }}>
                     <button onClick={() => {
-                      setConfirmModal({
-                        title: 'Remove Team Member', message: `Are you sure you want to remove ${m.name}?`,
-                        confirmLabel: 'Remove', confirmColor: '#ef4444',
-                        onConfirm: () => { setTeamLocal(prev => prev.filter(x => x.id !== m.id)); addToast({ type: 'success', message: 'Member removed' }); }
-                      });
-                    }} style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: 600, cursor: 'pointer' }}>Remove</button>
+                      addToast({ type: 'info', message: 'Use the Team Management module to manage members.' });
+                    }} style={{ background: 'none', border: 'none', color: '#64748b', fontWeight: 600, cursor: 'pointer' }}>Manage</button>
                   </td>
                 </tr>
               ))}
@@ -570,8 +685,8 @@ export default function DashboardPanel({ protocols, setProtocols, addToast, wind
                       method: 'POST',
                       body: JSON.stringify({
                         product_name: inquiryForm.productName,
-                        category: inquiryForm.category.toUpperCase().replace(/ /g, '_'),
-                        development_stage: inquiryForm.developmentStage.toUpperCase().replace(/ /g, '_'),
+                        category: CATEGORY_MAP[inquiryForm.category] || 'OTHER',
+                        development_stage: STAGE_MAP[inquiryForm.developmentStage] || 'CONCEPT',
                         needs: inquiryForm.needs,
                         primary_focus: inquiryForm.primaryFocus,
                         timeline: inquiryForm.timeline.includes('Immediate') ? 'IMMEDIATE' : inquiryForm.timeline.includes('3–6') ? '3_6_MONTHS' : inquiryForm.timeline.includes('6–12') ? '6_12_MONTHS' : 'EXPLORING',
@@ -583,10 +698,23 @@ export default function DashboardPanel({ protocols, setProtocols, addToast, wind
                         status: 'NDA_REQUESTED'
                       })
                     });
-                    if(res.ok) setInquiryStep(5);
-                    else addToast({ type: 'error', message: 'Failed to submit' });
+                    if(res.ok) {
+                      setInquiryStep(5);
+                    } else {
+                      const errorData = await res.json().catch(() => ({}));
+                      let msg = errorData.detail || errorData.error || '';
+                      if (!msg && typeof errorData === 'object') {
+                        msg = Object.entries(errorData)
+                          .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+                          .join(' | ');
+                      }
+                      addToast({ 
+                        type: 'error', 
+                        message: msg || 'Check all required fields and try again.' 
+                      });
+                    }
                   } catch (e) {
-                    addToast({ type: 'error', message: 'Connection error' });
+                    addToast({ type: 'error', message: 'Connection error - please check your internet.' });
                   }
                 }} 
                 style={{ background: '#2563eb', color: 'white', border: 'none', padding: '18px 48px', borderRadius: 16, fontWeight: 900, cursor: 'pointer', fontSize: 18 }}
@@ -662,23 +790,38 @@ export default function DashboardPanel({ protocols, setProtocols, addToast, wind
                       method: 'POST',
                       body: JSON.stringify({
                         product_name: inquiryForm.productName,
-                        category: inquiryForm.category.toUpperCase().replace(/ /g, '_'),
-                        development_stage: inquiryForm.developmentStage.toUpperCase().replace(/ /g, '_'),
+                        category: CATEGORY_MAP[inquiryForm.category] || 'OTHER',
+                        development_stage: STAGE_MAP[inquiryForm.developmentStage] || 'CONCEPT',
                         needs: inquiryForm.needs,
                         primary_focus: inquiryForm.primaryFocus,
                         timeline: inquiryForm.timeline.includes('Immediate') ? 'IMMEDIATE' : inquiryForm.timeline.includes('3–6') ? '3_6_MONTHS' : inquiryForm.timeline.includes('6–12') ? '6_12_MONTHS' : 'EXPLORING',
                         nda_preference: 'NO',
                         study_type_needed: inquiryForm.studyTypeNeeded,
                         target_population: inquiryForm.targetPopulation,
-                        budget_range: inquiryForm.budgetRange.replace(/<\$|K|\$|–|>|\+/g, '').replace(/ /g, '_').toUpperCase(),
+                        budget_range: BUDGET_MAP[inquiryForm.budgetRange] || 'DISCUSS',
                         services_needed: inquiryForm.servicesNeeded,
                         project_description: inquiryForm.projectDescription,
                         status: 'QUALIFIED'
                       })
                     });
-                    if(res.ok) setInquiryStep(5);
-                    else addToast({ type: 'error', message: 'Submission failed' });
-                  } catch (e) { addToast({ type: 'error', message: 'Connection error' }); }
+                    if(res.ok) {
+                      setInquiryStep(5);
+                    } else {
+                      const errorData = await res.json().catch(() => ({}));
+                      let msg = errorData.detail || errorData.error || '';
+                      if (!msg && typeof errorData === 'object') {
+                        msg = Object.entries(errorData)
+                          .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+                          .join(' | ');
+                      }
+                      addToast({ 
+                        type: 'error', 
+                        message: msg || 'Submission failed. Please check your inputs.' 
+                      });
+                    }
+                  } catch (e) { 
+                    addToast({ type: 'error', message: 'Connection error - please check your internet.' }); 
+                  }
                 }} 
                 style={{ background: '#10b981', color: 'white', border: 'none', padding: '20px 48px', borderRadius: 16, fontWeight: 900, cursor: 'pointer', fontSize: 18, boxShadow: '0 10px 30px rgba(16,185,129,0.3)' }}
               >

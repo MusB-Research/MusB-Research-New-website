@@ -64,10 +64,37 @@ def invite_team_member(request):
     admin = request.user
     target_email = request.data.get('email')
     role = request.data.get('role', 'sponsor')
-    organization = request.data.get('organization') or admin.organization
+    # Prevent IntegrityError by ensuring organization is never None
+    organization = request.data.get('organization') or admin.organization or getattr(admin, 'affiliation', None) or 'MusB'
     
     if not target_email:
         return Response({'error': 'Target email is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # CHECK IF ALREADY INVITED (PENDING) - IF SO, REDIRECT TO RESEND LOGIC
+    existing_invite = Invitation.objects.filter(email=target_email, is_accepted=False).first()
+    if existing_invite:
+        # Update existing invite instead of creating new one (acts as a resend)
+        existing_invite.token = str(uuid.uuid4())
+        existing_invite.expires_at = now() + timedelta(days=7)
+        existing_invite.role = role
+        existing_invite.organization = organization
+        existing_invite.save()
+        
+        setup_link = f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/setup-credentials?token={existing_invite.token}"
+        html_content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #1e293b; border-radius: 10px; background-color: #0B101B; color: white;">
+            <h2 style="color: #f59e0b;">MusB Research - Team Invitation (Updated)</h2>
+            <p>You have been re-invited to join <strong>{organization}</strong> as a <strong>{role}</strong> on the MusB Research Platform.</p>
+            <p>Click the button below to set up your secure login credentials and access your dashboard.</p>
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{setup_link}" style="background-color: #f59e0b; color: #0B101B; padding: 12px 24px; border-radius: 5px; text-decoration: none; font-weight: bold;">Set Up Credentials</a>
+            </div>
+            <p style="color: #64748b; font-size: 11px;">This invitation expires on {existing_invite.expires_at.strftime('%Y-%m-%d')}.</p>
+        </div>
+        """
+        if send_resend_email(target_email, f"Invitation to join {organization} - MusB Research", html_content):
+            return Response({'message': 'Existing invitation updated and resent successfully', 'token': existing_invite.token})
+        return Response({'message': 'Invitation updated but email failed', 'setup_link': setup_link})
 
     token = str(uuid.uuid4())
     expires_at = now() + timedelta(days=7)

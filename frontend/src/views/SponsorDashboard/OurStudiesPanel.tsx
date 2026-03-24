@@ -42,7 +42,7 @@ const getChartData = (study: any, tab: string) => {
   return <div style={{ color: '#64748b' }}>No visual insights data available</div>;
 };
 
-export default function OurStudiesPanel({ protocols, setProtocols, addToast }: any) {
+export default function OurStudiesPanel({ protocols, setProtocols, addToast, windowWidth }: any) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [sortMode, setSortMode] = useState('Latest First');
@@ -76,25 +76,80 @@ export default function OurStudiesPanel({ protocols, setProtocols, addToast }: a
   const activeReportsStudy = useMemo(() => protocols.find((p:any) => p.id === reportsStudyId), [protocols, reportsStudyId]);
 
   return (
-    <div style={{ padding: '48px 64px', maxWidth: '100%', margin: '0 auto', color: '#f1f5f9', animation: 'fadeIn 0.5s ease-out' }}>
+    <div style={{ 
+      padding: windowWidth > 1024 ? '48px 64px' : windowWidth > 768 ? '32px 40px' : '20px 16px', 
+      maxWidth: '100%', 
+      margin: '0 auto', 
+      color: '#f1f5f9', 
+      animation: 'fadeIn 0.5s ease-out' 
+    }}>
       <div style={{ position: 'sticky', top: 57, background: '#020617', zIndex: 40, paddingBottom: 24, paddingTop: 16, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: windowWidth > 768 ? 'row' : 'column', justifyContent: 'space-between', alignItems: windowWidth > 768 ? 'center' : 'flex-start', gap: 16 }}>
           <div>
-            <h1 style={{ margin: 0, fontWeight: 900, fontSize: 52, color: '#f1f5f9', letterSpacing: '-0.04em', lineHeight: 1.1 }}>Strategic Portfolio</h1>
-            <div style={{ fontSize: 20, color: '#94a3b8', marginTop: 12, fontWeight: 600 }}>Sponsor Dashboard → <span style={{ color: '#2563eb' }}>Our Studies</span></div>
+            <h1 style={{ margin: 0, fontWeight: 900, fontSize: windowWidth > 768 ? 52 : 32, color: '#f1f5f9', letterSpacing: '-0.04em', lineHeight: 1.1 }}>Strategic Portfolio</h1>
+            <div style={{ fontSize: windowWidth > 768 ? 20 : 16, color: '#94a3b8', marginTop: 12, fontWeight: 600 }}>Sponsor Dashboard → <span style={{ color: '#2563eb' }}>Our Studies</span></div>
           </div>
         </div>
-              <div style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(10px)', borderRadius: 28, padding: 32, marginTop: 40, display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
-          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search protocols..." style={{ flex: 1, minWidth: 350, background: 'rgba(15, 23, 42, 0.6)', border: '2px solid rgba(255,255,255,0.1)', color: '#f1f5f9', padding: '20px 28px', borderRadius: 20, outline: 'none', fontSize: 20, fontWeight: 500 }} />
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ background: 'rgba(15, 23, 42, 0.6)', border: '2px solid rgba(255,255,255,0.1)', color: '#f1f5f9', padding: '20px 28px', borderRadius: 20, outline: 'none', fontSize: 18, fontWeight: 700, cursor: 'pointer' }}>
-            {['All', 'Active', 'Recruiting', 'Completed', 'On Hold', 'Cancelled', 'Under Review'].map(s => <option key={s} value={s}>{s} Status</option>)}
-          </select>
-          <select value={sortMode} onChange={e => setSortMode(e.target.value)} style={{ background: 'rgba(15, 23, 42, 0.6)', border: '2px solid rgba(255,255,255,0.1)', color: '#f1f5f9', padding: '20px 28px', borderRadius: 20, outline: 'none', fontSize: 18, fontWeight: 700, cursor: 'pointer' }}>
-            <option>Latest First</option><option>Oldest First</option><option>A–Z</option><option>By Enrollment %</option>
-          </select>
-          <div style={{ background: 'rgba(255,255,255,0.1)', width: 2, height: 40, margin: '0 12px' }} />
-          <button onClick={() => setExpandedCards(new Set(filteredStudies.map((p:any)=>p.id)))} style={{ background: 'transparent', border: '2px solid rgba(255,255,255,0.1)', color: '#f1f5f9', padding: '20px 40px', borderRadius: 20, fontWeight: 800, cursor: 'pointer', fontSize: 18 }}>Expand All</button>
-        <button onClick={() => setExpandedCards(new Set())} style={{ background: 'transparent', border: 'none', color: '#94a3b8', padding: '18px', fontWeight: 700, cursor: 'pointer', fontSize: 17 }}>Collapse All</button>
+              <div style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(10px)', borderRadius: 28, padding: windowWidth > 768 ? 32 : 20, marginTop: windowWidth > 768 ? 40 : 20, display: 'flex', gap: windowWidth > 768 ? 20 : 12, flexWrap: 'wrap', alignItems: 'center', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
+          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search protocols..." style={{ flex: 1, minWidth: windowWidth > 768 ? 350 : '100%', background: 'rgba(15, 23, 42, 0.6)', border: '2px solid rgba(255,255,255,0.1)', color: '#f1f5f9', padding: windowWidth > 768 ? '20px 28px' : '16px 20px', borderRadius: 20, outline: 'none', fontSize: windowWidth > 768 ? 20 : 16, fontWeight: 500 }} />
+          <div style={{ position: 'relative', flex: windowWidth > 768 ? 'none' : 1 }}>
+            <select 
+              value={filterStatus} 
+              onChange={e => setFilterStatus(e.target.value)} 
+              style={{ 
+                width: '100%',
+                background: 'rgba(15, 23, 42, 0.6)', 
+                backdropFilter: 'blur(10px)',
+                border: '2px solid rgba(255,255,255,0.1)', 
+                color: '#f1f5f9', 
+                padding: windowWidth > 768 ? '20px 48px 20px 28px' : '16px 40px 16px 20px', 
+                borderRadius: 20, 
+                outline: 'none', 
+                fontSize: windowWidth > 768 ? 18 : 14, 
+                fontWeight: 700, 
+                cursor: 'pointer',
+                appearance: 'none',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}
+            >
+              {['All', 'Active', 'Recruiting', 'Completed', 'On Hold', 'Cancelled', 'Under Review'].map(s => <option key={s} value={s} style={{ background: '#0f172a' }}>{s} Status</option>)}
+            </select>
+            <div style={{ position: 'absolute', right: windowWidth > 768 ? 20 : 16, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#2563eb', fontSize: 14, fontWeight: 900 }}>▼</div>
+          </div>
+          <div style={{ position: 'relative', flex: windowWidth > 768 ? 'none' : 1 }}>
+            <select 
+              value={sortMode} 
+              onChange={e => setSortMode(e.target.value)} 
+              style={{ 
+                width: '100%',
+                background: 'rgba(15, 23, 42, 0.6)', 
+                backdropFilter: 'blur(10px)',
+                border: '2px solid rgba(255,255,255,0.1)', 
+                color: '#f1f5f9', 
+                padding: windowWidth > 768 ? '20px 48px 20px 28px' : '16px 40px 16px 20px', 
+                borderRadius: 20, 
+                outline: 'none', 
+                fontSize: windowWidth > 768 ? 18 : 14, 
+                fontWeight: 700, 
+                cursor: 'pointer',
+                appearance: 'none',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}
+            >
+              <option value="Latest First" style={{ background: '#0f172a' }}>Latest First</option>
+              <option value="Oldest First" style={{ background: '#0f172a' }}>Oldest First</option>
+              <option value="A–Z" style={{ background: '#0f172a' }}>A–Z</option>
+              <option value="By Enrollment %" style={{ background: '#0f172a' }}>By Enrollment %</option>
+            </select>
+            <div style={{ position: 'absolute', right: windowWidth > 768 ? 20 : 16, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#2563eb', fontSize: 14, fontWeight: 900 }}>▼</div>
+          </div>
+          {windowWidth > 768 && <div style={{ background: 'rgba(255,255,255,0.1)', width: 2, height: 40, margin: '0 12px' }} />}
+          <div style={{ display: 'flex', gap: 12, width: windowWidth > 768 ? 'auto' : '100%', justifyContent: 'center' }}>
+            <button onClick={() => setExpandedCards(new Set(filteredStudies.map((p:any)=>p.id)))} style={{ background: 'transparent', border: '2px solid rgba(255,255,255,0.1)', color: '#f1f5f9', padding: windowWidth > 768 ? '20px 40px' : '12px 20px', borderRadius: 20, fontWeight: 800, cursor: 'pointer', fontSize: windowWidth > 768 ? 18 : 14 }}>Expand All</button>
+            <button onClick={() => setExpandedCards(new Set())} style={{ background: 'transparent', border: 'none', color: '#94a3b8', padding: '18px', fontWeight: 700, cursor: 'pointer', fontSize: 17 }}>Collapse All</button>
+          </div>
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16 }}>

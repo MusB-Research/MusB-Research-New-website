@@ -112,19 +112,20 @@ export default function TeamManagementPanel({ addToast }: any) {
   };
 
   return (
-    <div style={{ padding: '48px 64px', maxWidth: '100%', margin: '0 auto', animation: 'fadeIn 0.5s ease-out' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '56px' }}>
-        <div>
-          <h1 style={{ fontSize: '52px', fontWeight: 900, margin: 0, letterSpacing: '-0.04em', color: THEME.text, lineHeight: 1.1 }}>Our Elite Team</h1>
-          <p style={{ color: THEME.muted, marginTop: '16px', fontSize: '20px', fontWeight: 500 }}>Securely manage your high-performance clinical research team.</p>
+    <div className="team-management-panel" style={{ padding: '48px 64px', maxWidth: '100%', margin: '0 auto', animation: 'fadeIn 0.5s ease-out' }}>
+      <header className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '56px', gap: '32px', flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 300px' }}>
+          <h1 style={{ fontSize: 'clamp(32px, 8vw, 52px)', fontWeight: 900, margin: 0, letterSpacing: '-0.04em', color: THEME.text, lineHeight: 1.1 }}>Our Elite Team</h1>
+          <p style={{ color: THEME.muted, marginTop: '16px', fontSize: 'clamp(14px, 4vw, 20px)', fontWeight: 500, maxWidth: '600px' }}>Securely manage your high-performance clinical research team.</p>
         </div>
         <button 
           onClick={() => setShowInviteModal(true)}
+          className="invite-button"
           style={{ 
             background: THEME.primary, 
             color: 'white', 
             border: 'none', 
-            padding: '20px 40px', 
+            padding: '16px 32px', 
             borderRadius: '20px', 
             fontWeight: 800, 
             cursor: 'pointer',
@@ -132,8 +133,9 @@ export default function TeamManagementPanel({ addToast }: any) {
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
-            fontSize: '18px',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            fontSize: '16px',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            whiteSpace: 'nowrap'
           }}
         >
           <span style={{ fontSize: '24px' }}>+</span> Invite Member
@@ -141,18 +143,18 @@ export default function TeamManagementPanel({ addToast }: any) {
       </header>
 
       {/* STAT CARDS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '32px', marginBottom: '64px' }}>
-        <div style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(8px)', padding: '40px', borderRadius: '32px', border: `1px solid ${THEME.border}`, boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
-          <div style={{ color: THEME.muted, fontSize: '15px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Total Members</div>
-          <div style={{ fontSize: '52px', fontWeight: 900, marginTop: '20px', color: THEME.text, letterSpacing: '-0.02em' }}>{members.length}</div>
+      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '32px', marginBottom: '64px' }}>
+        <div style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(8px)', padding: '32px', borderRadius: '32px', border: `1px solid ${THEME.border}`, boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
+          <div style={{ color: THEME.muted, fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Total Members</div>
+          <div style={{ fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 900, marginTop: '20px', color: THEME.text, letterSpacing: '-0.02em' }}>{members.length}</div>
         </div>
-        <div style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(8px)', padding: '40px', borderRadius: '32px', border: `1px solid ${THEME.border}`, boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
-          <div style={{ color: THEME.muted, fontSize: '15px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Active</div>
-          <div style={{ fontSize: '52px', fontWeight: 900, marginTop: '20px', color: THEME.success, letterSpacing: '-0.02em' }}>{members.filter(m => m.status === 'ACTIVE').length}</div>
+        <div style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(8px)', padding: '32px', borderRadius: '32px', border: `1px solid ${THEME.border}`, boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
+          <div style={{ color: THEME.muted, fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Active</div>
+          <div style={{ fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 900, marginTop: '20px', color: THEME.success, letterSpacing: '-0.02em' }}>{members.filter(m => m.status === 'ACTIVE').length}</div>
         </div>
-        <div style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(8px)', padding: '40px', borderRadius: '32px', border: `1px solid ${THEME.border}`, boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
-          <div style={{ color: THEME.muted, fontSize: '15px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Pending</div>
-          <div style={{ fontSize: '52px', fontWeight: 900, marginTop: '20px', color: '#f59e0b', letterSpacing: '-0.02em' }}>{members.filter(m => m.status === 'PENDING').length}</div>
+        <div style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(8px)', padding: '32px', borderRadius: '32px', border: `1px solid ${THEME.border}`, boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
+          <div style={{ color: THEME.muted, fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Pending</div>
+          <div style={{ fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 900, marginTop: '20px', color: '#f59e0b', letterSpacing: '-0.02em' }}>{members.filter(m => m.status === 'PENDING').length}</div>
         </div>
       </div>
 
@@ -301,6 +303,38 @@ export default function TeamManagementPanel({ addToast }: any) {
           0% { opacity: 0.3; }
           50% { opacity: 0.6; }
           100% { opacity: 0.3; }
+        }
+
+        @media (max-width: 768px) {
+          .team-management-panel {
+            padding: 24px 20px !important;
+          }
+          .panel-header {
+            margin-bottom: 32px !important;
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 24px !important;
+          }
+          .invite-button {
+            width: 100%;
+            justify-content: center;
+          }
+          .stats-grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+            margin-bottom: 32px !important;
+          }
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.02);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 4px;
         }
       `}</style>
     </div>

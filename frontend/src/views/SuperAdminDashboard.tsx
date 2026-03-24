@@ -121,11 +121,26 @@ export default function SuperAdminDashboard() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [notifications] = useState([
-    { id: 1, text: 'New login from unknown IP: 182.16.0.4', time: '2m ago', unread: true },
-    { id: 2, text: 'Sponsor Lead "AstraZen" requested proposal', time: '1h ago', unread: true },
-    { id: 3, text: 'System backup completed successfully', time: '4h ago', unread: false },
-  ]);
+  const notifications = useMemo(() => {
+    const list = [
+      { id: 's1', text: 'New login from unknown IP: 182.16.0.4', time: '2m ago', unread: true },
+      { id: 's3', text: 'System backup completed successfully', time: '4h ago', unread: false },
+    ];
+    
+    // Add real inquiries to notifications
+    (studyInquiries || []).slice(0, 5).forEach((iq, i) => {
+      if (iq.status === 'NDA_REQUESTED' || iq.status === 'PRELIMINARY') {
+        list.unshift({
+          id: `iq-${iq.id || i}`,
+          text: `Sponsor Lead "${iq.product_name}" requested proposal`,
+          time: 'New',
+          unread: true
+        });
+      }
+    });
+
+    return list;
+  }, [studyInquiries]);
 
   const formatName = useCallback((name: string) => {
     if (!name) return 'Unknown User';
@@ -1280,7 +1295,74 @@ export default function SuperAdminDashboard() {
 
   const InquiriesPage = () => {
     const [subTab, setSubTab] = useState<'study_queries' | 'authorizations'>('study_queries');
+    const [isEngaging, setIsEngaging] = useState<string | null>(null);
+    const [viewingInquiry, setViewingInquiry] = useState<any | null>(null);
     const pendingStudies = (studies || []).filter(s => s.approval_status === 'pending');
+
+    const handleRejectLead = async (iqId: string) => {
+      if (!window.confirm("Are you sure you want to REJECT this inquiry?")) return;
+      try {
+        const res = await authFetch(`${API}/api/study-inquiries/${iqId}/reject/`, {
+          method: 'POST'
+        });
+        if (res.ok) {
+          alert("❌ LEAD REJECTED");
+          fetchData();
+        } else {
+          const err = await res.json().catch(() => ({}));
+          alert(`Failed to reject lead: ${err.error || err.detail || res.statusText}`);
+        }
+      } catch (err) {
+        alert("System error. Injection failed.");
+      }
+    };
+
+    const handleDeleteLead = async (iqId: string) => {
+      if (!window.confirm("CRITICAL: Permanent deletion requested. Proceed with record erasure?")) return;
+      try {
+        const fetchUrl = `${API}/api/study-inquiries/${iqId}/`;
+        const res = await authFetch(fetchUrl, {
+          method: 'DELETE'
+        });
+        if (res.ok) {
+          alert("🗑️ RECORD ERASED FROM CORE");
+          fetchData();
+        } else {
+          const err = await res.json().catch(() => ({}));
+          alert(`❌ Erasure failed: ${err.error || err.detail || res.statusText}`);
+        }
+      } catch (err) {
+        alert("Critical failure in deletion sub-routine.");
+      }
+    };
+
+    const handleEngageLead = async (iqId: string) => {
+      setIsEngaging(iqId);
+      try {
+        const res = await authFetch(`${API}/api/study-inquiries/${iqId}/engage/`, {
+          method: 'POST'
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          alert(`✅ LEAD ENGAGED & AUTHORIZED\n\nStudy ID: ${data.id || 'N/A'}\n\nThe study has been auto-created and assigned to the sponsor. They can now see it on their dashboard.`);
+          fetchData(); 
+        } else {
+          let errorMsg = 'Failed to engage lead';
+          try {
+            const err = await res.json();
+            errorMsg = err.error || err.details || errorMsg;
+          } catch (e) {
+            errorMsg = `Server error (${res.status}): The terminal returned an invalid response.`;
+          }
+          alert(`❌ PROTOCOL ERROR: ${errorMsg}`);
+        }
+      } catch (err) {
+        alert("❌ CRITICAL INTERFACE FAILURE: Connection refused or high-latency interference detected.");
+      } finally {
+        setIsEngaging(null);
+      }
+    };
 
     return (
       <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-500">
@@ -1318,9 +1400,9 @@ export default function SuperAdminDashboard() {
               </div>
             ) : (
               studyInquiries.map((iq, i) => (
-                <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-10 hover:border-[#f472b6]/40 transition-all group overflow-hidden relative">
-                  <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-110 transition-transform">
-                     <Globe className="w-32 h-32 text-white" />
+                <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-12 hover:border-[#f472b6]/40 transition-all group overflow-hidden relative shadow-2xl">
+                  <div className="absolute top-0 right-0 p-10 opacity-[0.03] group-hover:scale-110 transition-transform">
+                     <Globe className="w-40 h-40 text-white" />
                   </div>
                   
                   <div className="flex justify-between items-start mb-8 relative z-10">
@@ -1359,8 +1441,23 @@ export default function SuperAdminDashboard() {
                   </div>
 
                   <div className="flex gap-4 relative z-10">
-                    <button className="flex-1 py-4 bg-[#f472b6] text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] italic shadow-xl shadow-[#f472b6]/20 transition-all hover:scale-[1.02]">Engage Lead</button>
-                    <button className="px-6 py-4 bg-white/5 border border-white/5 text-[#555a7a] hover:text-white rounded-2xl transition-all"><Eye className="w-5 h-5" /></button>
+                    <button 
+                      onClick={() => handleEngageLead(iq.id)}
+                      disabled={isEngaging === iq.id || iq.status === 'QUALIFIED' || iq.status === 'REJECTED'}
+                      className={`flex-[3] py-4 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] italic shadow-xl transition-all hover:scale-[1.02] ${iq.status === 'QUALIFIED' ? 'bg-emerald-500 shadow-emerald-500/20 grayscale' : iq.status === 'REJECTED' ? 'bg-slate-700 gray-scale' : 'bg-[#f472b6] shadow-[#f472b6]/20'}`}
+                    >
+                      {isEngaging === iq.id ? 'Processing...' : iq.status === 'QUALIFIED' ? 'Lead Engaged' : iq.status === 'REJECTED' ? 'Inquiry Rejected' : 'Engage Lead'}
+                    </button>
+                    
+                    {iq.status !== 'QUALIFIED' && iq.status !== 'REJECTED' && (
+                      <button 
+                        onClick={() => handleRejectLead(iq.id)}
+                        className="flex-1 py-4 bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all"
+                      >Reject</button>
+                    )}
+                    
+                    <button onClick={() => handleDeleteLead(iq.id)} className="px-6 py-4 bg-white/5 border border-white/5 text-red-900/40 hover:text-red-500 rounded-2xl transition-all"><X className="w-5 h-5" /></button>
+                    <button onClick={() => setViewingInquiry(iq)} className="px-6 py-4 bg-white/5 border border-white/5 text-[#555a7a] hover:text-white rounded-2xl transition-all"><Eye className="w-5 h-5" /></button>
                   </div>
                 </div>
               ))
@@ -1409,9 +1506,84 @@ export default function SuperAdminDashboard() {
             )}
           </div>
         )}
+
+        {/* INQUIRY DETAIL MODAL */}
+        {viewingInquiry && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 backdrop-blur-3xl bg-black/80">
+            <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} className="bg-[#0f1133] border border-white/10 w-full max-w-4xl rounded-[3rem] p-12 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+              <button onClick={() => setViewingInquiry(null)} className="absolute top-8 right-8 p-4 hover:bg-white/5 rounded-2xl transition-all"><X className="w-6 h-6 text-[#555a7a]" /></button>
+              
+              <div className="flex items-center gap-6 mb-12">
+                <div className="w-20 h-20 bg-[#f472b6]/10 rounded-3xl flex items-center justify-center text-[#f472b6] border border-[#f472b6]/20 shadow-inner">
+                   <Mail className="w-10 h-10" />
+                </div>
+                <div>
+                  <p className="text-[12px] font-black text-[#f472b6] uppercase tracking-[0.2em] mb-2">Detailed Feasibility Analysis</p>
+                  <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">{viewingInquiry.product_name}</h2>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <div className="space-y-8">
+                  <h3 className="text-sm font-black text-[#555a7a] uppercase tracking-widest border-b border-white/5 pb-4 italic">Core Information</h3>
+                  <div className="space-y-4">
+                    <DetailRow label="Category" value={viewingInquiry.category} />
+                    <DetailRow label="Dev Stage" value={viewingInquiry.development_stage} />
+                    <DetailRow label="Health Focus" value={viewingInquiry.primary_focus} color="text-emerald-400" />
+                    <DetailRow label="Timeline" value={viewingInquiry.timeline} />
+                  </div>
+
+                  <h3 className="text-sm font-black text-[#555a7a] uppercase tracking-widest border-b border-white/5 pb-4 pt-4 italic">Corporate & NDA</h3>
+                  <div className="space-y-4">
+                    <DetailRow label="Legal Name" value={viewingInquiry.legal_name || 'Anonymous'} />
+                    <DetailRow label="Signatory" value={`${viewingInquiry.signatory_name || 'N/A'} (${viewingInquiry.signatory_title || '-'})`} />
+                    <DetailRow label="NDA Pref" value={viewingInquiry.nda_preference} color={viewingInquiry.nda_preference === 'YES' ? 'text-emerald-500' : ''} />
+                    <DetailRow label="Address" value={viewingInquiry.corporate_address || 'Not Provided'} multiline />
+                  </div>
+                </div>
+
+                <div className="space-y-8">
+                  <h3 className="text-sm font-black text-[#555a7a] uppercase tracking-widest border-b border-white/5 pb-4 italic">Study Requirements</h3>
+                  <div className="space-y-4">
+                    <DetailRow label="Target Pop" value={viewingInquiry.target_population || 'N/A'} multiline />
+                    <DetailRow label="Budget Range" value={viewingInquiry.budget_range || 'Not Defined'} />
+                    <DetailRow label="Services" value={(viewingInquiry.services_needed || []).join(', ') || 'N/A'} />
+                  </div>
+
+                  <h3 className="text-sm font-black text-[#555a7a] uppercase tracking-widest border-b border-white/5 pb-4 pt-4 italic">Project Description</h3>
+                  <div className="bg-[#0a0b1a] p-8 rounded-3xl border border-white/5 font-mono text-sm text-indigo-200/60 leading-relaxed whitespace-pre-wrap min-h-[120px]">
+                    {viewingInquiry.project_description || 'No detailed scope provided by the sponsor.'}
+                  </div>
+                  
+                  {viewingInquiry.supporting_files && (
+                    <button className="w-full py-4 bg-white/5 border border-white/5 text-[#f472b6] rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-[#f472b6] hover:text-white transition-all shadow-xl">
+                      Download Supporting Protocol
+                    </button>
+                  ) || <div className="text-[9px] text-center text-[#555a7a] font-black uppercase tracking-widest opacity-50 italic">No supporting documents attached</div>}
+                </div>
+              </div>
+              
+              <div className="mt-12 pt-12 border-t border-white/5 flex gap-4">
+                 <button 
+                   onClick={() => { handleEngageLead(viewingInquiry.id); setViewingInquiry(null); }}
+                   disabled={isEngaging === viewingInquiry.id || viewingInquiry.status === 'QUALIFIED' || viewingInquiry.status === 'REJECTED'}
+                   className="flex-[2] py-5 bg-[#f472b6] text-white rounded-2xl font-black uppercase tracking-widest italic shadow-xl shadow-[#f472b6]/20"
+                 >Authorize Engagement</button>
+                 <button onClick={() => setViewingInquiry(null)} className="flex-1 py-5 bg-white/5 text-[#555a7a] rounded-2xl font-black uppercase tracking-widest">Close View</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </div>
     );
   };
+
+  const DetailRow = ({ label, value, color = "text-white", multiline = false }: any) => (
+    <div className={`flex ${multiline ? 'flex-col gap-2' : 'justify-between items-center'} py-1`}>
+      <span className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic">{label}</span>
+      <span className={`${multiline ? 'text-[13px] leading-relaxed' : 'text-sm'} font-black italic uppercase tracking-tight ${color}`}>{value}</span>
+    </div>
+  );
 
   // --- Modal: Create User ---
   const CreateUserModal = () => {
