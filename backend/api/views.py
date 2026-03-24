@@ -375,6 +375,35 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
             elif "New Clinical Study" in needs: target = "sales@musbresearch.com"
         inquiry.routing_target = target
         inquiry.save()
+        
+        # SEND EMAIL NOTIFICATION VIA RESEND
+        try:
+            from .utils.resend_utils import send_inquiry_notification
+            notification_data = {
+                'product_name': inquiry.product_name,
+                'category': inquiry.get_category_display(),
+                'development_stage': inquiry.get_development_stage_display(),
+                'primary_focus': inquiry.primary_focus,
+                'timeline': inquiry.get_timeline_display(),
+                'nda_preference': inquiry.nda_preference,
+                'legal_name': inquiry.legal_name,
+                'signatory_name': inquiry.signatory_name,
+                'signatory_title': inquiry.signatory_title,
+                'street_address': inquiry.street_address,
+                'city': inquiry.city,
+                'state': inquiry.state,
+                'zip_code': inquiry.zip_code,
+                'country': inquiry.country,
+                'needs': inquiry.needs,
+                'project_description': inquiry.project_description,
+                'sponsor_email': user.email
+            }
+            send_inquiry_notification(notification_data, target)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send inquiry notification: {e}")
+
         AuditLog.log('STUDY_INQUIRY', user_email=user.email, request=self.request, detail=f"Inquiry for {inquiry.product_name} created. Routed to {target}")
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])

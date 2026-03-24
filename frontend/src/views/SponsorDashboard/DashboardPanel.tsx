@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { authFetch, API } from '../../utils/auth';
-import { SPONSOR, MOCK_TEAM, MOCK_REPORTS, StatusBadge, Modal, ConfirmModal, PillButton, ProgressRing, downloadCSV, downloadFile } from './SponsorDashboardShared';
+import { SPONSOR, MOCK_TEAM, MOCK_REPORTS, MOCK_PROTOCOLS, StatusBadge, Modal, ConfirmModal, PillButton, ProgressRing, downloadCSV, downloadFile } from './SponsorDashboardShared';
 
 // Pure SVG Bar Chart
 const SVGBarChart = ({ data }: any) => {
-  if(!data || !data.length) return null;
+  if (!data || !data.length) return null;
   const max = Math.max(...data.map((d: any) => d.count)) || 1;
   const w = 400 / data.length;
   return (
@@ -60,7 +60,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
   const [reportsStudyFilter, setReportsStudyFilter] = useState<any>(null);
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [inviteFormVisible, setInviteFormVisible] = useState(false);
-  const [inviteForm, setInviteForm] = useState({ email:'', role:'Regulatory Affairs' });
+  const [inviteForm, setInviteForm] = useState({ email: '', role: 'Regulatory Affairs' });
   const [studyDetailModalOpen, setStudyDetailModalOpen] = useState(false);
   const [studyDetailId, setStudyDetailId] = useState<any>(null);
   const [studyDetailTab, setStudyDetailTab] = useState('Overview');
@@ -80,7 +80,11 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
     legalName: '',
     signatoryName: '',
     signatoryTitle: '',
-    corporateAddress: '',
+    streetAddress: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    country: 'USA',
     // Step 2
     studyTypeNeeded: [] as string[],
     targetPopulation: '',
@@ -92,32 +96,52 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
   });
   const [composeModalOpen, setComposeModalOpen] = useState(false);
   const [composeStudyContext, setComposeStudyContext] = useState<any>(null);
-  const [composeForm, setComposeForm] = useState({ to:'', subject:'', message:'' });
+  const [composeForm, setComposeForm] = useState({ to: '', subject: '', message: '' });
   const [confirmModal, setConfirmModal] = useState<any>(null);
   const [inquiryCounter, setInquiryCounter] = useState(1001);
 
   const stats = useMemo(() => ({
     total: protocols.length,
-    active: protocols.filter((p:any) => p.status==='Active'||p.status==='Recruiting').length,
-    completed: protocols.filter((p:any) => p.status==='Completed').length,
-    submitted: (inquiries?.length || 0) + protocols.filter((p:any)=>p.status==='Under Review').length,
-    progressReports: protocols.filter((p:any) => p.status === 'PROGRESS_REPORT_DRAFT' || (p.status_human && p.status_human.includes('Progress'))).length,
-    finalReports: protocols.filter((p:any) => p.status === 'FINAL_REPORT_SENT').length,
+    active: protocols.filter((p: any) => p.status === 'Active' || p.status === 'Recruiting').length,
+    completed: protocols.filter((p: any) => p.status === 'Completed').length,
+    submitted: (inquiries?.length || 0) + protocols.filter((p: any) => p.status === 'Under Review').length,
+    progressReports: protocols.filter((p: any) => p.status === 'PROGRESS_REPORT_DRAFT' || (p.status_human && p.status_human.includes('Progress'))).length,
+    finalReports: protocols.filter((p: any) => p.status === 'FINAL_REPORT_SENT').length,
     documents: protocols.reduce((acc: number, p: any) => acc + (p.documents?.length || 0), 0)
   }), [protocols, inquiries]);
 
   const filteredProtocols = useMemo(() =>
-    protocolFilter === 'All' ? protocols : protocols.filter((p:any) => p.status === protocolFilter)
-  , [protocols, protocolFilter]);
+    protocolFilter === 'All' ? protocols : protocols.filter((p: any) => p.status === protocolFilter)
+    , [protocols, protocolFilter]);
 
   const toggleSite = (site: string) => {
-    setInquiryForm((prev:any) => ({
+    setInquiryForm((prev: any) => ({
       ...prev,
-      sites: prev.sites.includes(site) ? prev.sites.filter((s:any) => s !== site) : [...prev.sites, site]
+      sites: prev.sites.includes(site) ? prev.sites.filter((s: any) => s !== site) : [...prev.sites, site]
     }));
   };
 
-  const selectedStudyDetail = useMemo(() => protocols.find((p:any) => p.id === studyDetailId), [protocols, studyDetailId]);
+  const selectedStudyDetail = useMemo(() => {
+    const found = protocols.find((p: any) => p.id === studyDetailId);
+    if (!found) return null;
+    // Merge with MOCK_PROTOCOLS fallback for fields the backend may not return
+    const mock = MOCK_PROTOCOLS.find((m: any) => m.id === studyDetailId) || MOCK_PROTOCOLS[0];
+    return {
+      ...mock,
+      ...found,
+      milestones: found.milestones?.length ? found.milestones : mock.milestones,
+      documents: found.documents?.length ? found.documents : mock.documents,
+      team: found.team?.length ? found.team : mock.team,
+      enrollment: found.enrollment || mock.enrollment,
+      pi: found.pi || mock.pi,
+      site: found.site || mock.site,
+      studyType: found.studyType || mock.studyType,
+      researchArea: found.researchArea || mock.researchArea,
+      irbStatus: found.irbStatus || mock.irbStatus,
+      startDate: found.startDate || mock.startDate,
+      endDate: found.endDate || mock.endDate,
+    };
+  }, [protocols, studyDetailId]);
   const activeReports = useMemo(() => {
     let reps = MOCK_REPORTS;
     if (reportsStudyFilter) reps = reps.filter(r => r.study === reportsStudyFilter);
@@ -125,136 +149,136 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
   }, [reportsStudyFilter]);
 
   const barChartData = [
-    { label: 'Recruiting', count: protocols.filter((p:any)=>p.status==='Recruiting').length, color: '#10b981' },
-    { label: 'Active', count: protocols.filter((p:any)=>p.status==='Active').length, color: '#3b82f6' },
-    { label: 'Completed', count: protocols.filter((p:any)=>p.status==='Completed').length, color: '#94a3b8' },
-    { label: 'Under Review', count: protocols.filter((p:any)=>p.status==='Under Review').length, color: '#6366f1' },
+    { label: 'Recruiting', count: protocols.filter((p: any) => p.status === 'Recruiting').length, color: '#10b981' },
+    { label: 'Active', count: protocols.filter((p: any) => p.status === 'Active').length, color: '#3b82f6' },
+    { label: 'Completed', count: protocols.filter((p: any) => p.status === 'Completed').length, color: '#94a3b8' },
+    { label: 'Under Review', count: protocols.filter((p: any) => p.status === 'Under Review').length, color: '#6366f1' },
   ];
 
   return (
-    <div style={{ 
-      padding: windowWidth > 1024 ? '40px 60px' : windowWidth > 768 ? '30px 40px' : '20px 16px', 
-      maxWidth: '100%', 
-      margin: '0 auto', 
-      color: '#f1f5f9' 
+    <div style={{
+      padding: windowWidth > 1024 ? '40px 60px' : windowWidth > 768 ? '30px 40px' : '20px 16px',
+      maxWidth: '100%',
+      margin: '0 auto',
+      color: '#f1f5f9'
     }}>
-      
+
       {/* Primary Action Banner */}
-      <div style={{ 
-        background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)', 
-        borderRadius: windowWidth > 768 ? 32 : 24, 
-        padding: windowWidth > 1024 ? '80px 100px' : windowWidth > 768 ? '60px 80px' : '40px 24px', 
-        marginBottom: windowWidth > 768 ? 64 : 32, 
-        display: 'flex', 
+      <div style={{
+        background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
+        borderRadius: windowWidth > 768 ? 32 : 24,
+        padding: windowWidth > 1024 ? '80px 100px' : windowWidth > 768 ? '60px 80px' : '40px 24px',
+        marginBottom: windowWidth > 768 ? 64 : 32,
+        display: 'flex',
         flexDirection: windowWidth > 1024 ? 'row' : 'column',
-        justifyContent: 'space-between', 
-        alignItems: windowWidth > 1024 ? 'center' : 'flex-start', 
-        gap: windowWidth > 768 ? 48 : 32, 
-        boxShadow: '0 40px 80px rgba(0, 0, 0, 0.4)', 
-        border: '1px solid rgba(255,255,255,0.1)' 
+        justifyContent: 'space-between',
+        alignItems: windowWidth > 1024 ? 'center' : 'flex-start',
+        gap: windowWidth > 768 ? 48 : 32,
+        boxShadow: '0 40px 80px rgba(0, 0, 0, 0.4)',
+        border: '1px solid rgba(255,255,255,0.1)'
       }}>
         <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
-          <h1 style={{ 
-            margin: 0, 
-            fontWeight: 900, 
-            fontSize: windowWidth > 1024 ? 48 : windowWidth > 768 ? 35 : 28, 
-            color: 'white', 
-            letterSpacing: '-0.04em', 
-            lineHeight: 1.1 
+          <h1 style={{
+            margin: 0,
+            fontWeight: 900,
+            fontSize: windowWidth > 960 ? 48 : windowWidth > 768 ? 35 : 28,
+            color: 'white',
+            letterSpacing: '-0.04em',
+            lineHeight: 1.1
           }}>
-            Elevate Your <span style={{ color: '#60a5fa' }}>Research</span><br/>Network.
+            Elevate Your <span style={{ color: '#60a5fa' }}>Research</span><br />Network.
           </h1>
-          <p style={{ 
-            margin: '24px 0 0 0', 
-            color: 'rgba(255,255,255,0.9)', 
-            fontSize: windowWidth > 1024 ? 20 : windowWidth > 768 ? 17 : 13, 
-            lineHeight: 1.6, 
-            maxWidth: '950px', 
-            fontWeight: 500 
+          <p style={{
+            margin: '24px 0 0 0',
+            color: 'rgba(255,255,255,0.9)',
+            fontSize: windowWidth > 1024 ? 20 : windowWidth > 768 ? 17 : 13,
+            lineHeight: 1.6,
+            maxWidth: '950px',
+            fontWeight: 500
           }}>
             Partner with MusB's elite clinical network to accelerate your protocol deployment.
           </p>
         </div>
-        <button onClick={() => setInquiryModalOpen(true)} style={{ 
-          background: 'white', 
-          color: '#1e3a8a', 
-          fontWeight: 900, 
-          border: 'none', 
-          padding: windowWidth > 768 ? '28px 56px' : '20px 40px', 
-          borderRadius: 24, 
-          cursor: 'pointer', 
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
-          fontSize: windowWidth > 768 ? 18 : 15, 
-          boxShadow: '0 20px 40px rgba(0,0,0,0.2)', 
+        <button onClick={() => setInquiryModalOpen(true)} style={{
+          background: 'white',
+          color: '#1e3a8a',
+          fontWeight: 900,
+          border: 'none',
+          padding: windowWidth > 768 ? '28px 56px' : '20px 40px',
+          borderRadius: 24,
+          cursor: 'pointer',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          fontSize: windowWidth > 768 ? 18 : 15,
+          boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
           width: windowWidth > 1024 ? 'auto' : '100%'
         }}>
-          + Launch New Inquiry
+          + Inquiry A Study
         </button>
       </div>
 
       <div style={{ fontSize: 14, color: '#64748b', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 20 }}>CONTROL PANEL</div>
-      <div style={{ display: 'grid', gridTemplateColumns: windowWidth > 1200 ? 'repeat(4,1fr)' : windowWidth > 900 ? 'repeat(2,1fr)' : '1fr', gap: windowWidth > 768 ? 20 : 12, marginBottom: 32 }}>
-        
+      <div style={{ display: 'grid', gridTemplateColumns: windowWidth > 1200 ? 'repeat(4,1fr)' : windowWidth > 900 ? 'repeat(2,1fr)' : '1fr', gap: windowWidth > 768 ? 20 : 12, marginBottom: 32, alignItems: 'stretch' }}>
+
         {/* Box 1 */}
-        <div onClick={() => setOverviewModalOpen(true)} style={{ background: 'rgba(30, 41, 59, 0.6)', backdropFilter: 'blur(10px)', borderRadius: 28, padding: '24px', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', transition: 'all 0.3s' }}>
-          <div style={{ fontSize: 48, marginBottom: 24 }}>📊</div>
-          <h3 style={{ margin: '0 0 16px 0', fontSize: 32, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.02em' }}>Overview</h3>
-          <div style={{ fontSize: 22, color: '#94a3b8', lineHeight: 1.6, marginBottom: 32, fontWeight: 500 }}>
-            Total Studies: <span style={{ color: '#f1f5f9', fontWeight: 700 }}>{stats.total}</span><br/>Active: <span style={{ color: '#60a5fa', fontWeight: 700 }}>{stats.active}</span><br/>Completed: <span style={{ color: '#10b981', fontWeight: 700 }}>{stats.completed}</span>
+        <div onClick={() => setOverviewModalOpen(true)} style={{ background: 'rgba(30, 41, 59, 0.6)', backdropFilter: 'blur(10px)', borderRadius: 24, padding: '28px 24px', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', transition: 'all 0.3s', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>📊</div>
+          <h3 style={{ margin: '0 0 14px 0', fontSize: 22, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>Overview</h3>
+          <div style={{ fontSize: 16, color: '#94a3b8', lineHeight: 1.8, marginBottom: 20, fontWeight: 500, flex: 1 }}>
+            Total Studies: <span style={{ color: '#f1f5f9', fontWeight: 700 }}>{stats.total}</span><br />Active: <span style={{ color: '#60a5fa', fontWeight: 700 }}>{stats.active}</span><br />Completed: <span style={{ color: '#10b981', fontWeight: 700 }}>{stats.completed}</span>
           </div>
-          <div style={{ color: '#2563eb', fontSize: 20, fontWeight: 800 }}>→ View Insights</div>
+          <div style={{ color: '#2563eb', fontSize: 15, fontWeight: 800 }}>→ View Insights</div>
         </div>
 
         {/* Box 2 */}
-        <div onClick={() => setPortfolioModalOpen(true)} style={{ background: '#1e293b', borderRadius: 24, padding: '24px', border: '1px solid #334155', cursor: 'pointer', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', transition: 'all 0.3s' }}>
-          <div style={{ fontSize: 44, marginBottom: 20 }}>📁</div>
-          <h3 style={{ margin: '0 0 12px 0', fontSize: 26, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.02em' }}>Protocol Portfolio</h3>
-          <div style={{ fontSize: 18, color: '#94a3b8', lineHeight: 1.6, marginBottom: 24, fontWeight: 500 }}>
-            Submitted: <span style={{ color: '#6366f1', fontWeight: 700 }}>{stats.submitted}</span><br/>Active: <span style={{ color: '#60a5fa', fontWeight: 700 }}>{stats.active}</span><br/>Completed: <span style={{ color: '#10b981', fontWeight: 700 }}>{stats.completed}</span>
+        <div onClick={() => setPortfolioModalOpen(true)} style={{ background: '#1e293b', borderRadius: 24, padding: '28px 24px', border: '1px solid #334155', cursor: 'pointer', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', transition: 'all 0.3s', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>📁</div>
+          <h3 style={{ margin: '0 0 14px 0', fontSize: 22, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>Protocol Portfolio</h3>
+          <div style={{ fontSize: 16, color: '#94a3b8', lineHeight: 1.8, marginBottom: 20, fontWeight: 500, flex: 1 }}>
+            Submitted: <span style={{ color: '#6366f1', fontWeight: 700 }}>{stats.submitted}</span><br />Active: <span style={{ color: '#60a5fa', fontWeight: 700 }}>{stats.active}</span><br />Completed: <span style={{ color: '#10b981', fontWeight: 700 }}>{stats.completed}</span>
           </div>
-          <div style={{ color: '#6366f1', fontSize: 17, fontWeight: 800 }}>→ View All Protocols</div>
+          <div style={{ color: '#6366f1', fontSize: 15, fontWeight: 800 }}>→ View All Protocols</div>
         </div>
 
         {/* Box 3 */}
-        <div onClick={() => { setReportsStudyFilter(null); setReportsModalOpen(true); }} style={{ background: '#1e293b', borderRadius: 24, padding: '24px', border: '1px solid #334155', cursor: 'pointer', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', transition: 'all 0.3s' }}>
-          <div style={{ fontSize: 40, marginBottom: 20 }}>📋</div>
-          <h3 style={{ margin: '0 0 12px 0', fontSize: 24, fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.01em' }}>Study Reports</h3>
-          <div style={{ fontSize: 17, color: '#94a3b8', lineHeight: 1.6, marginBottom: 24 }}>
-            Progress Reports: <span style={{ color: '#10b981', fontWeight: 700 }}>{stats.progressReports}</span><br/>Final Reports: <span style={{ color: '#6366f1', fontWeight: 700 }}>{stats.finalReports}</span><br/>Downloadable: <span style={{ color: '#f1f5f9', fontWeight: 700 }}>{stats.documents}</span>
+        <div onClick={() => { setReportsStudyFilter(null); setReportsModalOpen(true); }} style={{ background: '#1e293b', borderRadius: 24, padding: '28px 24px', border: '1px solid #334155', cursor: 'pointer', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', transition: 'all 0.3s', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>📋</div>
+          <h3 style={{ margin: '0 0 14px 0', fontSize: 22, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>Study Reports</h3>
+          <div style={{ fontSize: 16, color: '#94a3b8', lineHeight: 1.8, marginBottom: 20, fontWeight: 500, flex: 1 }}>
+            Progress Reports: <span style={{ color: '#10b981', fontWeight: 700 }}>{stats.progressReports}</span><br />Final Reports: <span style={{ color: '#6366f1', fontWeight: 700 }}>{stats.finalReports}</span><br />Downloadable: <span style={{ color: '#f1f5f9', fontWeight: 700 }}>{stats.documents}</span>
           </div>
-          <div style={{ color: '#10b981', fontSize: 16, fontWeight: 700 }}>→ Access Reports</div>
+          <div style={{ color: '#10b981', fontSize: 15, fontWeight: 800 }}>→ Access Reports</div>
         </div>
 
         {/* Box 4 */}
-        <div onClick={() => setTeamModalOpen(true)} style={{ background: '#1e293b', borderRadius: 24, padding: '24px', border: '1px solid #334155', cursor: 'pointer', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', transition: 'all 0.3s' }}>
-          <div style={{ fontSize: 40, marginBottom: 20 }}>👥</div>
-          <h3 style={{ margin: '0 0 12px 0', fontSize: 24, fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.01em' }}>Team Access</h3>
-          <div style={{ fontSize: 17, color: '#94a3b8', lineHeight: 1.6, marginBottom: 24 }}>
-            Team Members: <span style={{ color: '#f59e0b', fontWeight: 700 }}>{team?.length || 0}</span><br/>Roles Assigned: <span style={{ color: '#f1f5f9', fontWeight: 700 }}>{team ? new Set(team.map((t:any)=>t.role)).size : 0}</span><br/>Pending Invitations: <span style={{ color: '#94a3b8', fontWeight: 700 }}>{team ? team.filter((t:any)=>t.status==='PENDING').length : 0}</span>
+        <div onClick={() => setTeamModalOpen(true)} style={{ background: '#1e293b', borderRadius: 24, padding: '28px 24px', border: '1px solid #334155', cursor: 'pointer', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', transition: 'all 0.3s', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>👥</div>
+          <h3 style={{ margin: '0 0 14px 0', fontSize: 22, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>Team Access</h3>
+          <div style={{ fontSize: 16, color: '#94a3b8', lineHeight: 1.8, marginBottom: 20, fontWeight: 500, flex: 1 }}>
+            Team Members: <span style={{ color: '#f59e0b', fontWeight: 700 }}>{team?.length || 0}</span><br />Roles Assigned: <span style={{ color: '#f1f5f9', fontWeight: 700 }}>{team ? new Set(team.map((t: any) => t.role)).size : 0}</span><br />Pending Invitations: <span style={{ color: '#94a3b8', fontWeight: 700 }}>{team ? team.filter((t: any) => t.status === 'PENDING').length : 0}</span>
           </div>
-          <div style={{ color: '#f59e0b', fontSize: 16, fontWeight: 700 }}>→ Manage Access</div>
+          <div style={{ color: '#f59e0b', fontSize: 15, fontWeight: 800 }}>→ Manage Access</div>
         </div>
       </div>
 
-      <div style={{ 
-        display: 'flex', 
+      <div style={{
+        display: 'flex',
         flexDirection: windowWidth > 768 ? 'row' : 'column',
-        justifyContent: 'space-between', 
-        alignItems: windowWidth > 768 ? 'flex-end' : 'flex-start', 
+        justifyContent: 'space-between',
+        alignItems: windowWidth > 768 ? 'flex-end' : 'flex-start',
         marginBottom: 40,
         gap: 20
       }}>
-        <div style={{ 
-          fontSize: windowWidth > 768 ? 56 : 36, 
-          color: '#f1f5f9', 
-          fontWeight: 900, 
-          letterSpacing: '-0.03em' 
+        <div style={{
+          fontSize: windowWidth > 768 ? 56 : 36,
+          color: '#f1f5f9',
+          fontWeight: 900,
+          letterSpacing: '-0.03em'
         }}>
           Strategic Protocol Portfolio
         </div>
         <button onClick={() => setPortfolioModalOpen(true)} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: windowWidth > 768 ? 24 : 18, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>Explore Full Portfolio <span>→</span></button>
       </div>
-      
+
       {windowWidth > 768 ? (
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 16 }}>
           {['All', 'Recruiting', 'Active', 'Completed', 'Under Review', 'Attention Needed'].map(f => (
@@ -263,8 +287,8 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
         </div>
       ) : (
         <div style={{ position: 'relative', marginBottom: 24 }}>
-          <select 
-            value={protocolFilter} 
+          <select
+            value={protocolFilter}
             onChange={(e) => setProtocolFilter(e.target.value)}
             style={{
               width: '100%',
@@ -308,22 +332,22 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
                 <StatusBadge status={p.status} />
               </div>
               <div style={{ fontFamily: 'monospace', fontSize: 16, color: '#64748b', marginBottom: 32, fontWeight: 600 }}>{p.id}</div>
-              
+
               <div style={{ marginBottom: 32, flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 17, color: '#94a3b8', marginBottom: 12 }}>
                   <span>Enrollment</span>
-                  <span style={{ color: '#f1f5f9', fontWeight: 800 }}>{p.enrollment.current} / {p.enrollment.target} ({(p.enrollment.current/p.enrollment.target*100).toFixed(0)}%)</span>
+                  <span style={{ color: '#f1f5f9', fontWeight: 800 }}>{p.enrollment.current} / {p.enrollment.target} ({(p.enrollment.current / p.enrollment.target * 100).toFixed(0)}%)</span>
                 </div>
                 <div style={{ background: '#334155', height: 12, borderRadius: 999 }}>
-                  <div style={{ background: '#2563eb', height: 12, borderRadius: 999, width: `${Math.min(100, (p.enrollment.current/p.enrollment.target*100))}%`, boxShadow: '0 0 10px rgba(37, 99, 235, 0.5)' }} />
+                  <div style={{ background: '#2563eb', height: 12, borderRadius: 999, width: `${Math.min(100, (p.enrollment.current / p.enrollment.target * 100))}%`, boxShadow: '0 0 10px rgba(37, 99, 235, 0.5)' }} />
                 </div>
                 <div style={{ fontSize: 14, color: '#64748b', marginTop: 16 }}>Last updated: {p.lastUpdated}</div>
               </div>
- 
+
               <div style={{ display: 'flex', alignItems: 'center', gap: 24, paddingTop: 28, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                 <button onClick={() => { setStudyDetailId(p.id); setStudyDetailTab('Overview'); setStudyDetailModalOpen(true); }} style={{ background: 'none', border: 'none', color: '#3b82f6', fontWeight: 800, fontSize: 17, cursor: 'pointer', padding: 0 }}>View Study →</button>
                 <button onClick={() => { setReportsStudyFilter(p.id); setReportsModalOpen(true); }} style={{ background: 'none', border: 'none', color: '#94a3b8', fontWeight: 800, fontSize: 17, cursor: 'pointer', padding: 0 }}>Reports</button>
-                <button onClick={() => { setComposeStudyContext(p); setComposeForm({ to:`Study Team — ${p.title}`, subject:`Re: ${p.title}`, message:'' }); setComposeModalOpen(true); }} style={{ background: 'none', border: 'none', color: '#94a3b8', fontWeight: 800, fontSize: 17, cursor: 'pointer', padding: 0, marginLeft: 'auto' }}>Message</button>
+                <button onClick={() => { setComposeStudyContext(p); setComposeForm({ to: `Study Team — ${p.title}`, subject: `Re: ${p.title}`, message: '' }); setComposeModalOpen(true); }} style={{ background: 'none', border: 'none', color: '#94a3b8', fontWeight: 800, fontSize: 17, cursor: 'pointer', padding: 0, marginLeft: 'auto' }}>Message</button>
               </div>
             </div>
           ))}
@@ -335,18 +359,49 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
       <Modal open={overviewModalOpen} onClose={() => setOverviewModalOpen(false)} title="Dashboard Insights" width="680px">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 16, marginBottom: 24 }}>
           {['Total', 'Active', 'Recruiting', 'Completed'].map(s => {
-            const getVal = () => {
-              if(s==='Total') return protocols.length;
-              if(s==='Active') return protocols.filter((p:any)=>p.status==='Active').length;
-              if(s==='Recruiting') return protocols.filter((p:any)=>p.status==='Recruiting').length;
-              if(s==='Completed') return protocols.filter((p:any)=>p.status==='Completed').length;
-              return 0;
+            const statusMap: any = { Total: 'All', Active: 'Active', Recruiting: 'Recruiting', Completed: 'Completed' };
+            const filtered = s === 'Total' ? protocols : protocols.filter((p: any) => p.status === s);
+            const count = filtered.length;
+            const cols: any = { Total: '#38bdf8', Active: '#60a5fa', Recruiting: '#10b981', Completed: '#94a3b8' };
+            const handleClick = () => {
+              if (count === 0) return;
+              setOverviewModalOpen(false);
+              if (count === 1) {
+                // Go directly to the single study
+                setStudyDetailId(filtered[0].id);
+                setStudyDetailTab('Overview');
+                setStudyDetailModalOpen(true);
+              } else {
+                // Open portfolio filtered by status
+                setProtocolFilter(statusMap[s]);
+                setPortfolioModalOpen(true);
+              }
             };
-            const cols:any = { Total:'#38bdf8', Active:'#60a5fa', Recruiting:'#10b981', Completed:'#94a3b8' };
             return (
-              <div key={s} style={{ background: '#0f172a', borderRadius: 10, padding: 18, textAlign: 'center', border: '1px solid #334155' }}>
-                <div style={{ fontSize: 48, fontWeight: 800, color: cols[s] }}>{getVal()}</div>
-                <div style={{ fontSize: 14, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, marginTop: 4 }}>{s} Studies</div>
+              <div
+                key={s}
+                onClick={handleClick}
+                style={{
+                  background: '#0f172a',
+                  borderRadius: 14,
+                  padding: '24px 20px',
+                  textAlign: 'center',
+                  border: `1px solid ${count > 0 ? cols[s] + '44' : '#334155'}`,
+                  cursor: count > 0 ? 'pointer' : 'default',
+                  transition: 'all 0.2s',
+                  position: 'relative',
+                  boxShadow: count > 0 ? `0 4px 20px ${cols[s]}18` : 'none',
+                }}
+                onMouseEnter={e => { if (count > 0) (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'; }}
+              >
+                <div style={{ fontSize: 52, fontWeight: 900, color: cols[s], lineHeight: 1 }}>{count}</div>
+                <div style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, marginTop: 8, letterSpacing: '0.06em' }}>{s} Studies</div>
+                {count > 0 && (
+                  <div style={{ fontSize: 12, color: cols[s], fontWeight: 700, marginTop: 10, opacity: 0.8 }}>
+                    {count === 1 ? 'View Study →' : `View All ${count} →`}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -363,21 +418,21 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ background: '#1e293b', borderBottom: '1px solid #334155' }}>
               <tr>
-                <th style={{ padding: '16px 20px', fontSize: 16, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Study ID</th>
-                <th style={{ padding: '16px 20px', fontSize: 16, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Title</th>
-                <th style={{ padding: '16px 20px', fontSize: 16, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
-                <th style={{ padding: '16px 20px', fontSize: 16, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Enrollment</th>
-                <th style={{ padding: '16px 20px', fontSize: 16, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Last Updated</th>
+                <th style={{ padding: '18px 20px', fontSize: 13, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Study ID</th>
+                <th style={{ padding: '18px 20px', fontSize: 13, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Title</th>
+                <th style={{ padding: '18px 20px', fontSize: 13, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Status</th>
+                <th style={{ padding: '18px 20px', fontSize: 13, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Enrollment</th>
+                <th style={{ padding: '18px 20px', fontSize: 13, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Last Updated</th>
               </tr>
             </thead>
             <tbody>
-              {protocols.map((p:any) => (
+              {protocols.map((p: any) => (
                 <tr key={p.id} onClick={() => { setStudyDetailId(p.id); setStudyDetailModalOpen(true); setPortfolioModalOpen(false); }} style={{ borderBottom: '1px solid #334155', cursor: 'pointer', transition: 'background 0.2s' }}>
-                  <td style={{ padding: '20px', fontSize: 17, fontFamily: 'monospace', color: '#94a3b8', fontWeight: 600 }}>{p.id}</td>
-                  <td style={{ padding: '20px', fontSize: 20, color: '#f1f5f9', fontWeight: 900, letterSpacing: '-0.01em' }}>{p.title}</td>
-                  <td style={{ padding: '20px' }}><StatusBadge status={p.status} /></td>
-                  <td style={{ padding: '20px', fontSize: 18, color: '#f1f5f9', fontWeight: 800 }}>{p.enrollment.current} <span style={{ color: '#64748b', fontSize: 16 }}>/ {p.enrollment.target}</span></td>
-                  <td style={{ padding: '20px', fontSize: 17, color: '#64748b', fontWeight: 500 }}>{p.lastUpdated}</td>
+                  <td style={{ padding: '22px 20px', fontSize: 15, fontFamily: 'monospace', color: '#94a3b8', fontWeight: 700 }}>{p.id}</td>
+                  <td style={{ padding: '22px 20px', fontSize: 18, color: '#f1f5f9', fontWeight: 900, letterSpacing: '-0.01em' }}>{p.title}</td>
+                  <td style={{ padding: '22px 20px' }}><StatusBadge status={p.status} /></td>
+                  <td style={{ padding: '22px 20px', fontSize: 18, color: '#f1f5f9', fontWeight: 800 }}>{p.enrollment.current} <span style={{ color: '#64748b', fontSize: 16 }}>/ {p.enrollment.target}</span></td>
+                  <td style={{ padding: '22px 20px', fontSize: 16, color: '#64748b', fontWeight: 500 }}>{p.lastUpdated}</td>
                 </tr>
               ))}
             </tbody>
@@ -393,28 +448,38 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
             <button onClick={() => setReportsStudyFilter(null)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}>×</button>
           </div>
         )}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {activeReports.map(r => (
-            <div key={r.id} style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 12, padding: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
-                  <h4 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.01em' }}>{r.name}</h4>
+            <div key={r.id} style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 16, padding: windowWidth > 600 ? '28px 32px' : '20px 18px', display: 'flex', flexDirection: windowWidth > 600 ? 'row' : 'column', justifyContent: 'space-between', alignItems: windowWidth > 600 ? 'center' : 'flex-start', gap: 16, transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
+                  <h4 style={{ margin: 0, fontSize: windowWidth > 600 ? 22 : 18, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.01em' }}>{r.name}</h4>
                   <StatusBadge status={r.type} />
                 </div>
-                <div style={{ fontSize: 14, color: '#64748b', fontWeight: 500 }}>{r.study} • Generated on <span style={{ color: '#94a3b8', fontWeight: 800 }}>{r.date}</span></div>
+                <div style={{ fontSize: windowWidth > 600 ? 16 : 14, color: '#64748b', fontWeight: 500 }}>{r.study} • Generated on <span style={{ color: '#94a3b8', fontWeight: 800 }}>{r.date}</span></div>
               </div>
-              <button onClick={() => {
-                setConfirmModal({
-                  title: 'Select Download Format',
-                  message: `How would you like to download "${r.name}"?`,
-                  buttons: [
-                    { label: 'Download PDF', color: '#2563eb', onClick: () => { downloadFile(`PDF Content: ${r.name}`, `${r.name}.pdf`, 'application/pdf'); addToast({ type: 'success', message: 'PDF generated successfully.' }); } },
-                    { label: 'Download CSV', color: '#10b981', onClick: () => { downloadFile(`CSV Content: ${r.name}`, `${r.name}.csv`, 'text/csv'); addToast({ type: 'success', message: 'CSV generated successfully.' }); } }
-                  ]
-                });
-              }} style={{ background: 'transparent', border: '2px solid #334155', color: '#f1f5f9', padding: '12px 24px', borderRadius: 10, fontWeight: 800, fontSize: 15, cursor: 'pointer', transition: 'all 0.2s' }}>
-                ⬇ Download
-              </button>
+              <div style={{ display: 'flex', gap: 10, flexShrink: 0, width: windowWidth > 600 ? 'auto' : '100%' }}>
+                <button
+                  onClick={() => {
+                    const pdfContent = `MusB Research \u2014 ${r.name}\n${'='.repeat(60)}\nStudy ID: ${r.study}\nReport Type: ${r.type}\nGenerated: ${r.date}\n\nEXECUTIVE SUMMARY\n${'-'.repeat(40)}\nThis report summarizes the clinical progress, enrollment data,\nand safety findings for the referenced study period.\n\nKEY FINDINGS\n- Enrollment is progressing as planned\n- No serious adverse events reported\n- Participant compliance rate: 94.2%\n- Primary endpoint trending positive\n\nENROLLMENT METRICS\n- Enrolled to date: 65 / 100\n- Screen failures: 12\n- Dropout rate: 3.1%\n\nSAFETY SUMMARY\n- Total AEs: 4 (mild, unrelated)\n- SAEs: 0\n- Protocol deviations: 2 (minor)\n\nNEXT STEPS\n- Continue recruitment through Q2 2026\n- Interim analysis scheduled for June 2026\n- Final report expected Q3 2026\n\n${'-'.repeat(60)}\nConfidential \u2014 MusB Research Platform`;
+                    downloadFile(pdfContent, `${r.name}.pdf`, 'application/pdf');
+                    addToast({ type: 'success', message: 'PDF downloaded successfully.' });
+                  }}
+                  style={{ background: '#2563eb', color: 'white', border: 'none', padding: '14px 24px', borderRadius: 12, fontWeight: 800, fontSize: 16, cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap', flex: windowWidth > 600 ? 'none' : 1 }}
+                >
+                  ⬇ PDF
+                </button>
+                <button
+                  onClick={() => {
+                    const csvContent = `Report Name,Study ID,Type,Date\n"${r.name}",${r.study},${r.type},${r.date}\n\nParticipantID,Arm,Status,Compliance,AEs,LastVisit\n2024-001,Intervention,Active,96%,0,2026-02-10\n2024-002,Control,Active,91%,0,2026-02-12\n2024-003,Intervention,Completed,100%,1,2026-01-28\n2024-004,Control,Active,88%,0,2026-02-15\n2024-005,Intervention,Active,95%,0,2026-02-08\n2024-006,Control,Screening,N/A,0,2026-02-20\n2024-007,Intervention,Active,93%,0,2026-02-11`;
+                    downloadFile(csvContent, `${r.name}.csv`, 'text/csv');
+                    addToast({ type: 'success', message: 'CSV downloaded successfully.' });
+                  }}
+                  style={{ background: '#10b981', color: 'white', border: 'none', padding: '14px 24px', borderRadius: 12, fontWeight: 800, fontSize: 16, cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap', flex: windowWidth > 600 ? 'none' : 1 }}
+                >
+                  ⬇ CSV
+                </button>
+              </div>
             </div>
           ))}
           {activeReports.length === 0 && <div style={{ color: '#64748b', fontSize: 14 }}>No reports found.</div>}
@@ -428,13 +493,13 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
             + Invite Member
           </button>
         </div>
-        
+
         {inviteFormVisible && (
           <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 12, padding: 20, marginBottom: 24 }}>
             <h4 style={{ margin: '0 0 16px 0', color: '#f1f5f9' }}>Invite Team Member</h4>
             <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-              <input type="email" placeholder="Email address" value={inviteForm.email} onChange={e => setInviteForm({...inviteForm, email: e.target.value})} style={{ flex: 1, background: '#1e293b', border: '1px solid #334155', color: '#f1f5f9', padding: '10px 14px', borderRadius: 8, outline: 'none' }} />
-              <select value={inviteForm.role} onChange={e => setInviteForm({...inviteForm, role: e.target.value})} style={{ background: '#1e293b', border: '1px solid #334155', color: '#f1f5f9', padding: '10px 14px', borderRadius: 8, outline: 'none' }}>
+              <input type="email" placeholder="Email address" value={inviteForm.email} onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })} style={{ flex: 1, background: '#1e293b', border: '1px solid #334155', color: '#f1f5f9', padding: '10px 14px', borderRadius: 8, outline: 'none' }} />
+              <select value={inviteForm.role} onChange={e => setInviteForm({ ...inviteForm, role: e.target.value })} style={{ background: '#1e293b', border: '1px solid #334155', color: '#f1f5f9', padding: '10px 14px', borderRadius: 8, outline: 'none' }}>
                 <option>Regulatory Affairs</option>
                 <option>Data Monitor</option>
                 <option>Study Coordinator</option>
@@ -451,7 +516,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
           </div>
         )}
 
-        <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 12, overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ background: '#1e293b', borderBottom: '1px solid #334155' }}>
               <tr>
@@ -463,11 +528,11 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
               </tr>
             </thead>
             <tbody>
-               {(team || []).map((m: any) => (
+              {(team || []).map((m: any) => (
                 <tr key={m.id} style={{ borderBottom: '1px solid #334155' }}>
                   <td style={{ padding: '16px', fontSize: 14, color: '#f1f5f9', fontWeight: 600 }}>{m.name || m.email?.split('@')[0]}</td>
                   <td style={{ padding: '16px', fontSize: 13, color: '#94a3b8' }}>{m.role?.replace('_', ' ').toUpperCase()}</td>
-                  <td style={{ padding: '16px' }}><StatusBadge status={m.status==='ACTIVE' || m.status==='Active' ? 'Active' : 'Pending'} /></td>
+                  <td style={{ padding: '16px' }}><StatusBadge status={m.status === 'ACTIVE' || m.status === 'Active' ? 'Active' : 'Pending'} /></td>
                   <td style={{ padding: '16px', fontSize: 13, color: '#64748b' }}>{m.lastActive || 'N/A'}</td>
                   <td style={{ padding: '16px' }}>
                     <button onClick={() => {
@@ -482,25 +547,25 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
       </Modal>
 
       {/* Inquiry Modal - Enhanced Multi-Step Flow */}
-      <Modal 
-        open={inquiryModalOpen} 
-        onClose={() => { setInquiryModalOpen(false); setInquiryStep(1); }} 
+      <Modal
+        open={inquiryModalOpen}
+        onClose={() => { setInquiryModalOpen(false); setInquiryStep(1); }}
         title={
           inquiryStep === 1 ? "🧪 Quick Project Check" :
-          inquiryStep === 2 ? "🔐 NDA Preference" :
-          inquiryStep === 3 ? "🏢 Company Details" :
-          inquiryStep === 4 ? "📊 Project Details" :
-          "🚀 Inquiry Submitted"
-        } 
+            inquiryStep === 2 ? "🔐 NDA Preference" :
+              inquiryStep === 3 ? "🏢 Company Details" :
+                inquiryStep === 4 ? "📊 Project Details" :
+                  "🚀 Inquiry Submitted"
+        }
         width={inquiryStep === 5 ? "500px" : "800px"}
       >
         <div style={{ display: 'flex', gap: 12, marginBottom: 40, alignItems: 'center' }}>
           {[1, 2, 4].map(step => (
             <React.Fragment key={step}>
-              <div style={{ 
-                width: 40, height: 40, borderRadius: '50%', 
-                background: inquiryStep >= step ? '#2563eb' : '#334155', 
-                color: 'white', display: 'flex', alignItems: 'center', 
+              <div style={{
+                width: 40, height: 40, borderRadius: '50%',
+                background: inquiryStep >= step ? '#2563eb' : '#334155',
+                color: 'white', display: 'flex', alignItems: 'center',
                 justifyContent: 'center', fontWeight: 900, fontSize: 16,
                 boxShadow: inquiryStep >= step ? '0 0 15px rgba(37,99,235,0.4)' : 'none'
               }}>
@@ -516,23 +581,23 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
           <div style={{ animation: 'fadeIn 0.4s ease-out' }}>
             <h2 style={{ fontSize: 32, fontWeight: 900, marginBottom: 12, color: 'white' }}>Let’s Explore Your Study Concept</h2>
             <p style={{ color: '#94a3b8', fontSize: 18, marginBottom: 40 }}>Tell us a little about your project. Our team will guide the rest.</p>
-            
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, marginBottom: 32 }}>
               <div style={{ gridColumn: 'span 2' }}>
                 <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 12, textTransform: 'uppercase' }}>1. Product / Ingredient Name*</label>
-                <input 
-                  value={inquiryForm.productName} 
-                  onChange={e => setInquiryForm({...inquiryForm, productName: e.target.value})} 
+                <input
+                  value={inquiryForm.productName}
+                  onChange={e => setInquiryForm({ ...inquiryForm, productName: e.target.value })}
                   placeholder="e.g. MusB-99 Probiotic Blend"
-                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '20px', borderRadius: 16, fontSize: 18, outline: 'none' }} 
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '20px', borderRadius: 16, fontSize: 18, outline: 'none' }}
                 />
               </div>
-              
+
               <div>
                 <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 12, textTransform: 'uppercase' }}>2. Product Category*</label>
-                <select 
-                  value={inquiryForm.category} 
-                  onChange={e => setInquiryForm({...inquiryForm, category: e.target.value})}
+                <select
+                  value={inquiryForm.category}
+                  onChange={e => setInquiryForm({ ...inquiryForm, category: e.target.value })}
                   style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '20px', borderRadius: 16, fontSize: 18, outline: 'none' }}
                 >
                   {['Probiotic / Postbiotic', 'Nutraceutical', 'Botanical', 'Functional Food', 'Pharmaceutical', 'Device', 'Other'].map(cat => <option key={cat}>{cat}</option>)}
@@ -541,9 +606,9 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
 
               <div>
                 <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 12, textTransform: 'uppercase' }}>3. Stage of Development*</label>
-                <select 
-                  value={inquiryForm.developmentStage} 
-                  onChange={e => setInquiryForm({...inquiryForm, developmentStage: e.target.value})}
+                <select
+                  value={inquiryForm.developmentStage}
+                  onChange={e => setInquiryForm({ ...inquiryForm, developmentStage: e.target.value })}
                   style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '20px', borderRadius: 16, fontSize: 18, outline: 'none' }}
                 >
                   {['Concept', 'Preclinical Complete', 'Ready for Clinical', 'Marketed Product Seeking Data'].map(stg => <option key={stg}>{stg}</option>)}
@@ -556,10 +621,10 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 16 }}>
                 {['New Clinical Study', 'Preclinical Validation', 'Biomarker / Lab Support', 'Biorepository', 'Not Sure – Need Guidance'].map(need => (
                   <label key={need} style={{ display: 'flex', alignItems: 'center', gap: 12, background: inquiryForm.needs.includes(need) ? 'rgba(37,99,235,0.1)' : 'rgba(30,41,59,0.5)', padding: '16px 20px', borderRadius: 14, border: `2px solid ${inquiryForm.needs.includes(need) ? '#2563eb' : '#334155'}`, cursor: 'pointer', transition: 'all 0.2s' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={inquiryForm.needs.includes(need)} 
-                      onChange={() => setInquiryForm({ ...inquiryForm, needs: inquiryForm.needs.includes(need) ? inquiryForm.needs.filter(n => n!==need) : [...inquiryForm.needs, need] })} 
+                    <input
+                      type="checkbox"
+                      checked={inquiryForm.needs.includes(need)}
+                      onChange={() => setInquiryForm({ ...inquiryForm, needs: inquiryForm.needs.includes(need) ? inquiryForm.needs.filter(n => n !== need) : [...inquiryForm.needs, need] })}
                       style={{ width: 20, height: 20 }}
                     />
                     <span style={{ fontSize: 16, fontWeight: 600, color: inquiryForm.needs.includes(need) ? 'white' : '#94a3b8' }}>{need}</span>
@@ -571,9 +636,9 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, marginBottom: 40 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 12, textTransform: 'uppercase' }}>5. Primary Health Focus*</label>
-                <select 
-                  value={inquiryForm.primaryFocus} 
-                  onChange={e => setInquiryForm({...inquiryForm, primaryFocus: e.target.value})}
+                <select
+                  value={inquiryForm.primaryFocus}
+                  onChange={e => setInquiryForm({ ...inquiryForm, primaryFocus: e.target.value })}
                   style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '20px', borderRadius: 16, fontSize: 18, outline: 'none' }}
                 >
                   {['Gut', 'Metabolic', 'Brain', 'Aging', 'Women’s Health', 'Environmental', 'Liver / Behavioral', 'Other'].map(f => <option key={f}>{f}</option>)}
@@ -581,9 +646,9 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 12, textTransform: 'uppercase' }}>6. Estimated Timeline</label>
-                <select 
-                  value={inquiryForm.timeline} 
-                  onChange={e => setInquiryForm({...inquiryForm, timeline: e.target.value})}
+                <select
+                  value={inquiryForm.timeline}
+                  onChange={e => setInquiryForm({ ...inquiryForm, timeline: e.target.value })}
                   style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '20px', borderRadius: 16, fontSize: 18, outline: 'none' }}
                 >
                   {['Immediate (0–3 months)', '3–6 months', '6–12 months', 'Exploring Options'].map(t => <option key={t}>{t}</option>)}
@@ -592,11 +657,11 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button 
+              <button
                 onClick={() => {
-                  if(!inquiryForm.productName || inquiryForm.needs.length === 0) return addToast({ type: 'error', message: 'Please complete required fields' });
+                  if (!inquiryForm.productName || inquiryForm.needs.length === 0) return addToast({ type: 'error', message: 'Please complete required fields' });
                   setInquiryStep(2);
-                }} 
+                }}
                 style={{ background: '#2563eb', color: 'white', border: 'none', padding: '20px 48px', borderRadius: 16, fontWeight: 900, cursor: 'pointer', fontSize: 18, boxShadow: '0 10px 30px rgba(37,99,235,0.4)' }}
               >
                 Continue →
@@ -611,19 +676,19 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
             <div style={{ fontSize: 64, marginBottom: 24 }}>🔒</div>
             <h2 style={{ fontSize: 32, fontWeight: 900, marginBottom: 16, color: 'white' }}>NDA Preference</h2>
             <p style={{ color: '#94a3b8', fontSize: 18, lineHeight: 1.6, maxWidth: 600, margin: '0 auto 40px' }}>
-              We understand that your concept, formulation, or data may be confidential. 
+              We understand that your concept, formulation, or data may be confidential.
               If you prefer, we can execute a mutual NDA before reviewing detailed project materials.
             </p>
 
             <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginBottom: 40 }}>
-              <button 
+              <button
                 onClick={() => setInquiryForm({ ...inquiryForm, ndaPreference: 'YES' })}
                 style={{ flex: 1, padding: '32px', borderRadius: 24, background: inquiryForm.ndaPreference === 'YES' ? 'rgba(37,99,235,0.1)' : '#0f172a', border: `2px solid ${inquiryForm.ndaPreference === 'YES' ? '#2563eb' : '#334155'}`, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}
               >
                 <div style={{ fontSize: 32, opacity: inquiryForm.ndaPreference === 'YES' ? 1 : 0.4 }}>✅</div>
                 <div style={{ fontWeight: 800, fontSize: 20, color: inquiryForm.ndaPreference === 'YES' ? 'white' : '#94a3b8' }}>Yes — Send NDA First</div>
               </button>
-              <button 
+              <button
                 onClick={() => setInquiryForm({ ...inquiryForm, ndaPreference: 'NO' })}
                 style={{ flex: 1, padding: '32px', borderRadius: 24, background: inquiryForm.ndaPreference === 'NO' ? 'rgba(37,185,129,0.1)' : '#0f172a', border: `2px solid ${inquiryForm.ndaPreference === 'NO' ? '#10b981' : '#334155'}`, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}
               >
@@ -634,9 +699,9 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
 
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <button onClick={() => setInquiryStep(1)} style={{ background: 'transparent', color: '#94a3b8', border: 'none', fontWeight: 800, fontSize: 18, cursor: 'pointer' }}>← Back</button>
-              <button 
+              <button
                 onClick={() => {
-                  if(!inquiryForm.ndaPreference) return addToast({ type: 'error', message: 'Please select an option' });
+                  if (!inquiryForm.ndaPreference) return addToast({ type: 'error', message: 'Please select an option' });
                   setInquiryStep(inquiryForm.ndaPreference === 'YES' ? 3 : 4);
                 }}
                 disabled={!inquiryForm.ndaPreference}
@@ -654,31 +719,69 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
             <h2 style={{ fontSize: 32, fontWeight: 900, marginBottom: 16, color: 'white' }}>Company Details for NDA</h2>
             <p style={{ color: '#94a3b8', fontSize: 17, marginBottom: 32 }}>We'll use this information to populate the Mutual NDA template for signature.</p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
-              <div style={{ gridColumn: 'span 2' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: windowWidth > 640 ? '1fr 1fr' : '1fr', gap: 24, marginBottom: 32 }}>
+              <div style={{ gridColumn: windowWidth > 640 ? 'span 2' : 'auto' }}>
                 <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Legal Name of Company*</label>
-                <input value={inquiryForm.legalName} onChange={e => setInquiryForm({...inquiryForm, legalName: e.target.value})} style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none' }} />
+                <input value={inquiryForm.legalName} onChange={e => setInquiryForm({ ...inquiryForm, legalName: e.target.value })} style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Authorized Signatory Name*</label>
-                <input value={inquiryForm.signatoryName} onChange={e => setInquiryForm({...inquiryForm, signatoryName: e.target.value})} style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none' }} />
+                <input value={inquiryForm.signatoryName} onChange={e => setInquiryForm({ ...inquiryForm, signatoryName: e.target.value })} style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Title*</label>
-                <input value={inquiryForm.signatoryTitle} onChange={e => setInquiryForm({...inquiryForm, signatoryTitle: e.target.value})} style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none' }} />
+                <input value={inquiryForm.signatoryTitle} onChange={e => setInquiryForm({ ...inquiryForm, signatoryTitle: e.target.value })} style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} />
               </div>
-              <div style={{ gridColumn: 'span 2' }}>
-                <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Corporate Address*</label>
-                <textarea value={inquiryForm.corporateAddress} onChange={e => setInquiryForm({...inquiryForm, corporateAddress: e.target.value})} rows={3} style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', resize: 'none' }} />
+              <div style={{ gridColumn: windowWidth > 640 ? 'span 2' : 'auto' }}>
+                <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Corporate Street Address*</label>
+                <textarea 
+                  value={inquiryForm.streetAddress} 
+                  onChange={e => setInquiryForm({ ...inquiryForm, streetAddress: e.target.value })} 
+                  rows={2} 
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', resize: 'none', fontSize: 18 }} 
+                  placeholder="Street name and number"
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>City*</label>
+                <input 
+                  value={inquiryForm.city} 
+                  onChange={e => setInquiryForm({ ...inquiryForm, city: e.target.value })} 
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} 
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>State / Province*</label>
+                <input 
+                  value={inquiryForm.state} 
+                  onChange={e => setInquiryForm({ ...inquiryForm, state: e.target.value })} 
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} 
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>ZIP / Postal Code*</label>
+                <input 
+                  value={inquiryForm.zipCode} 
+                  onChange={e => setInquiryForm({ ...inquiryForm, zipCode: e.target.value })} 
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} 
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Country*</label>
+                <input 
+                  value={inquiryForm.country} 
+                  onChange={e => setInquiryForm({ ...inquiryForm, country: e.target.value })} 
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} 
+                />
               </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <button onClick={() => setInquiryStep(2)} style={{ background: 'transparent', color: '#94a3b8', border: 'none', fontWeight: 800, fontSize: 18, cursor: 'pointer' }}>← Back</button>
-              <button 
+              <button
                 onClick={async () => {
-                  if(!inquiryForm.legalName || !inquiryForm.signatoryName) return addToast({ type: 'error', message: 'Please complete required fields' });
-                  
+                  if (!inquiryForm.legalName || !inquiryForm.signatoryName) return addToast({ type: 'error', message: 'Please complete required fields' });
+
                   // Submit initial inquiry with NDA request and stop
                   try {
                     const res = await authFetch(`${API}/api/study-inquiries/`, {
@@ -694,11 +797,15 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
                         legal_name: inquiryForm.legalName,
                         signatory_name: inquiryForm.signatoryName,
                         signatory_title: inquiryForm.signatoryTitle,
-                        corporate_address: inquiryForm.corporateAddress,
+                        street_address: inquiryForm.streetAddress,
+                        city: inquiryForm.city,
+                        state: inquiryForm.state,
+                        zip_code: inquiryForm.zipCode,
+                        country: inquiryForm.country,
                         status: 'NDA_REQUESTED'
                       })
                     });
-                    if(res.ok) {
+                    if (res.ok) {
                       setInquiryStep(5);
                     } else {
                       const errorData = await res.json().catch(() => ({}));
@@ -708,15 +815,15 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
                           .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
                           .join(' | ');
                       }
-                      addToast({ 
-                        type: 'error', 
-                        message: msg || 'Check all required fields and try again.' 
+                      addToast({
+                        type: 'error',
+                        message: msg || 'Check all required fields and try again.'
                       });
                     }
                   } catch (e) {
                     addToast({ type: 'error', message: 'Connection error - please check your internet.' });
                   }
-                }} 
+                }}
                 style={{ background: '#2563eb', color: 'white', border: 'none', padding: '18px 48px', borderRadius: 16, fontWeight: 900, cursor: 'pointer', fontSize: 18 }}
               >
                 Request NDA
@@ -737,21 +844,21 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
                   {['Pilot Study', 'Randomized Controlled Trial', 'Mechanistic Study', 'Observational', 'Not Sure'].map(t => (
                     <label key={t} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#0f172a', padding: '12px 16px', borderRadius: 12, border: '1px solid #334155', cursor: 'pointer' }}>
-                      <input type="checkbox" checked={inquiryForm.studyTypeNeeded.includes(t)} onChange={() => setInquiryForm({...inquiryForm, studyTypeNeeded: inquiryForm.studyTypeNeeded.includes(t) ? inquiryForm.studyTypeNeeded.filter(x => x!==t) : [...inquiryForm.studyTypeNeeded, t]})} />
+                      <input type="checkbox" checked={inquiryForm.studyTypeNeeded.includes(t)} onChange={() => setInquiryForm({ ...inquiryForm, studyTypeNeeded: inquiryForm.studyTypeNeeded.includes(t) ? inquiryForm.studyTypeNeeded.filter(x => x !== t) : [...inquiryForm.studyTypeNeeded, t] })} />
                       <span style={{ fontSize: 15, color: '#f1f5f9' }}>{t}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: windowWidth > 640 ? '1fr 1fr' : '1fr', gap: 24, marginBottom: 32 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Target Population</label>
-                  <input value={inquiryForm.targetPopulation} onChange={e => setInquiryForm({...inquiryForm, targetPopulation: e.target.value})} placeholder="e.g. Healthy Adults, Type 2 Diabetics" style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '14px', borderRadius: 10, outline: 'none' }} />
+                  <input value={inquiryForm.targetPopulation} onChange={e => setInquiryForm({ ...inquiryForm, targetPopulation: e.target.value })} placeholder="e.g. Healthy Adults, Type 2 Diabetics" style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '14px', borderRadius: 10, outline: 'none', fontSize: 18 }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Estimated Budget Range</label>
-                  <select value={inquiryForm.budgetRange} onChange={e => setInquiryForm({...inquiryForm, budgetRange: e.target.value})} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '14px', borderRadius: 10, outline: 'none' }}>
+                  <select value={inquiryForm.budgetRange} onChange={e => setInquiryForm({ ...inquiryForm, budgetRange: e.target.value })} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '14px', borderRadius: 10, outline: 'none', fontSize: 18 }}>
                     {['<$100K', '$100K–$250K', '$250K–$500K', '$500K+', 'Prefer to Discuss'].map(b => <option key={b}>{b}</option>)}
                   </select>
                 </div>
@@ -761,13 +868,13 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
                 <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 16, textTransform: 'uppercase' }}>Services Needed</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
                   {[
-                    'Study Design & Protocol Development', 'IRB & Regulatory Support', 
-                    'Participant Recruitment', 'Clinical Site Execution', 
-                    'Central Laboratory Services', 'Microbiome / Omics Analysis', 
+                    'Study Design & Protocol Development', 'IRB & Regulatory Support',
+                    'Participant Recruitment', 'Clinical Site Execution',
+                    'Central Laboratory Services', 'Microbiome / Omics Analysis',
                     'Biostatistics', 'End-to-End Study Management'
                   ].map(s => (
                     <label key={s} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#0f172a', padding: '12px 16px', borderRadius: 12, border: '1px solid #334155', cursor: 'pointer' }}>
-                      <input type="checkbox" checked={inquiryForm.servicesNeeded.includes(s)} onChange={() => setInquiryForm({...inquiryForm, servicesNeeded: inquiryForm.servicesNeeded.includes(s) ? inquiryForm.servicesNeeded.filter(x => x!==s) : [...inquiryForm.servicesNeeded, s]})} />
+                      <input type="checkbox" checked={inquiryForm.servicesNeeded.includes(s)} onChange={() => setInquiryForm({ ...inquiryForm, servicesNeeded: inquiryForm.servicesNeeded.includes(s) ? inquiryForm.servicesNeeded.filter(x => x !== s) : [...inquiryForm.servicesNeeded, s] })} />
                       <span style={{ fontSize: 14, color: '#f1f5f9' }}>{s}</span>
                     </label>
                   ))}
@@ -776,15 +883,15 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
 
               <div>
                 <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Project Description (Short Paragraph)*</label>
-                <textarea value={inquiryForm.projectDescription} onChange={e => setInquiryForm({...inquiryForm, projectDescription: e.target.value})} rows={4} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none' }} />
+                <textarea value={inquiryForm.projectDescription} onChange={e => setInquiryForm({ ...inquiryForm, projectDescription: e.target.value })} rows={4} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} />
               </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <button onClick={() => setInquiryStep(2)} style={{ background: 'transparent', color: '#94a3b8', border: 'none', fontWeight: 800, fontSize: 18, cursor: 'pointer' }}>← Back</button>
-              <button 
+              <button
                 onClick={async () => {
-                  if(!inquiryForm.projectDescription) return addToast({ type: 'error', message: 'Project description is required' });
+                  if (!inquiryForm.projectDescription) return addToast({ type: 'error', message: 'Project description is required' });
                   try {
                     const res = await authFetch(`${API}/api/study-inquiries/`, {
                       method: 'POST',
@@ -801,10 +908,15 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
                         budget_range: BUDGET_MAP[inquiryForm.budgetRange] || 'DISCUSS',
                         services_needed: inquiryForm.servicesNeeded,
                         project_description: inquiryForm.projectDescription,
+                        street_address: inquiryForm.streetAddress,
+                        city: inquiryForm.city,
+                        state: inquiryForm.state,
+                        zip_code: inquiryForm.zipCode,
+                        country: inquiryForm.country,
                         status: 'QUALIFIED'
                       })
                     });
-                    if(res.ok) {
+                    if (res.ok) {
                       setInquiryStep(5);
                     } else {
                       const errorData = await res.json().catch(() => ({}));
@@ -814,15 +926,15 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
                           .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
                           .join(' | ');
                       }
-                      addToast({ 
-                        type: 'error', 
-                        message: msg || 'Submission failed. Please check your inputs.' 
+                      addToast({
+                        type: 'error',
+                        message: msg || 'Submission failed. Please check your inputs.'
                       });
                     }
-                  } catch (e) { 
-                    addToast({ type: 'error', message: 'Connection error - please check your internet.' }); 
+                  } catch (e) {
+                    addToast({ type: 'error', message: 'Connection error - please check your internet.' });
                   }
-                }} 
+                }}
                 style={{ background: '#10b981', color: 'white', border: 'none', padding: '20px 48px', borderRadius: 16, fontWeight: 900, cursor: 'pointer', fontSize: 18, boxShadow: '0 10px 30px rgba(16,185,129,0.3)' }}
               >
                 🚀 Request Consultation
@@ -837,20 +949,20 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
             <div style={{ fontSize: 80, marginBottom: 32 }}>🎊</div>
             <h2 style={{ fontSize: 36, fontWeight: 900, marginBottom: 16, color: 'white' }}>Submission Received!</h2>
             <p style={{ color: '#94a3b8', fontSize: 19, lineHeight: 1.6, marginBottom: 40 }}>
-              {inquiryForm.ndaPreference === 'YES' 
+              {inquiryForm.ndaPreference === 'YES'
                 ? "Our legal team will send the Mutual NDA within 1–2 business days. Once executed, we will proceed with the detailed project review."
                 : "Our clinical development team will review your project and contact you within 2–3 business days."}
             </p>
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <button 
+              <button
                 onClick={() => { window.open('https://calendly.com/musbresearch', '_blank'); }}
                 style={{ width: '100%', background: '#2563eb', color: 'white', border: 'none', padding: '20px', borderRadius: 16, fontWeight: 800, fontSize: 18, cursor: 'pointer' }}
               >
                 👉 Schedule a Discovery Call Now
               </button>
-              <button 
-                onClick={() => { setInquiryModalOpen(false); setInquiryStep(1); }} 
+              <button
+                onClick={() => { setInquiryModalOpen(false); setInquiryStep(1); }}
                 style={{ width: '100%', background: 'rgba(255,255,255,0.05)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)', padding: '16px', borderRadius: 16, fontWeight: 700, fontSize: 16, cursor: 'pointer' }}
               >
                 Return to Dashboard
@@ -870,15 +982,15 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
             <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 6 }}>To</label>
-            <input value={composeForm.to} onChange={e => setComposeForm({...composeForm, to: e.target.value})} placeholder="Email address" style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '12px', borderRadius: 8, outline: 'none', boxSizing: 'border-box' }} />
+            <input value={composeForm.to} onChange={e => setComposeForm({ ...composeForm, to: e.target.value })} placeholder="Email address" style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '12px', borderRadius: 8, outline: 'none', boxSizing: 'border-box' }} />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 6 }}>Subject</label>
-            <input value={composeForm.subject} onChange={e => setComposeForm({...composeForm, subject: e.target.value})} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '12px', borderRadius: 8, outline: 'none', boxSizing: 'border-box' }} />
+            <input value={composeForm.subject} onChange={e => setComposeForm({ ...composeForm, subject: e.target.value })} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '12px', borderRadius: 8, outline: 'none', boxSizing: 'border-box' }} />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 6 }}>Message</label>
-            <textarea value={composeForm.message} onChange={e => setComposeForm({...composeForm, message: e.target.value})} rows={6} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '12px', borderRadius: 8, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
+            <textarea value={composeForm.message} onChange={e => setComposeForm({ ...composeForm, message: e.target.value })} rows={6} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '12px', borderRadius: 8, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
             <button onClick={() => {
@@ -895,34 +1007,35 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
           <div>
             <div style={{ display: 'flex', gap: 24, borderBottom: '1px solid #334155', marginBottom: 24 }}>
               {['Overview', 'Timeline', 'Enrollment', 'Documents', 'Team'].map(tab => (
-                <button key={tab} onClick={() => setStudyDetailTab(tab)} style={{ background: 'none', border: 'none', padding: '0 0 12px 0', borderBottom: studyDetailTab === tab ? '2px solid #2563eb' : '2px solid transparent', color: studyDetailTab === tab ? '#2563eb' : '#94a3b8', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+                <button key={tab} onClick={() => setStudyDetailTab(tab)} style={{ background: 'none', border: 'none', padding: '0 0 16px 0', borderBottom: studyDetailTab === tab ? '3px solid #2563eb' : '3px solid transparent', color: studyDetailTab === tab ? '#2563eb' : '#64748b', fontWeight: 800, fontSize: 20, cursor: 'pointer', transition: 'all 0.2s' }}>
                   {tab}
                 </button>
               ))}
             </div>
-            
+
             {studyDetailTab === 'Overview' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px 40px' }}>
-                <div><div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600, marginBottom: 4 }}>Principal Investigator</div><div style={{ fontSize: 14, color: '#f1f5f9' }}>{selectedStudyDetail.pi}</div></div>
-                <div><div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600, marginBottom: 4 }}>Assigned Site(s)</div><div style={{ fontSize: 14, color: '#f1f5f9' }}>{selectedStudyDetail.site}</div></div>
-                <div><div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600, marginBottom: 4 }}>Study Type & Area</div><div style={{ fontSize: 14, color: '#f1f5f9' }}>{selectedStudyDetail.studyType} • {selectedStudyDetail.researchArea}</div></div>
-                <div><div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600, marginBottom: 4 }}>IRB Status</div><div><StatusBadge status={selectedStudyDetail.irbStatus} /></div></div>
-                <div><div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600, marginBottom: 4 }}>Start Date</div><div style={{ fontSize: 14, color: '#f1f5f9' }}>{selectedStudyDetail.startDate}</div></div>
-                <div><div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600, marginBottom: 4 }}>Estimated End Date</div><div style={{ fontSize: 14, color: '#f1f5f9' }}>{selectedStudyDetail.endDate}</div></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '36px 56px' }}>
+                <div><div style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12, letterSpacing: '0.08em' }}>Principal Investigator</div><div style={{ fontSize: 26, color: '#f1f5f9', fontWeight: 700 }}>{selectedStudyDetail.pi}</div></div>
+                <div><div style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12, letterSpacing: '0.08em' }}>Assigned Site(s)</div><div style={{ fontSize: 26, color: '#f1f5f9', fontWeight: 700 }}>{selectedStudyDetail.site}</div></div>
+                <div><div style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12, letterSpacing: '0.08em' }}>Study Type & Area</div><div style={{ fontSize: 26, color: '#f1f5f9', fontWeight: 700 }}>{selectedStudyDetail.studyType} • {selectedStudyDetail.researchArea}</div></div>
+                <div><div style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12, letterSpacing: '0.08em' }}>IRB Status</div><div style={{ marginTop: 4 }}><StatusBadge status={selectedStudyDetail.irbStatus} /></div></div>
+                <div><div style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12, letterSpacing: '0.08em' }}>Start Date</div><div style={{ fontSize: 26, color: '#f1f5f9', fontWeight: 700 }}>{selectedStudyDetail.startDate}</div></div>
+                <div><div style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 12, letterSpacing: '0.08em' }}>Estimated End Date</div><div style={{ fontSize: 26, color: '#f1f5f9', fontWeight: 700 }}>{selectedStudyDetail.endDate}</div></div>
               </div>
             )}
 
             {studyDetailTab === 'Timeline' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                {selectedStudyDetail.milestones.map((m:any, i:number) => (
-                  <div key={i} style={{ display: 'flex', gap: 16 }}>
-                    <div style={{ width: 12, height: 12, borderRadius: '50%', background: m.status === 'completed' ? '#10b981' : '#334155', border: `4px solid ${m.status==='completed'?'rgba(16,185,129,0.2)':'transparent'}`, marginTop: 2, flexShrink:0 }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '8px 0' }}>
+                {(selectedStudyDetail.milestones || []).map((m: any, i: number) => (
+                  <div key={i} style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+                    <div style={{ width: 14, height: 14, flexShrink: 0, borderRadius: '50%', background: m.status === 'completed' ? '#10b981' : '#334155', border: `4px solid ${m.status === 'completed' ? 'rgba(16,185,129,0.25)' : 'rgba(51,65,85,0.4)'}`, marginTop: 4 }} />
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: m.status === 'completed' ? '#f1f5f9' : '#94a3b8' }}>{m.label}</div>
-                      <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{m.date} {m.notes && `• ${m.notes}`}</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: m.status === 'completed' ? '#f1f5f9' : '#94a3b8' }}>{m.label}</div>
+                      <div style={{ fontSize: 15, color: '#64748b', marginTop: 4, fontWeight: 500 }}>{m.date}{m.notes ? ` • ${m.notes}` : ''}</div>
                     </div>
                   </div>
                 ))}
+                {!(selectedStudyDetail.milestones?.length) && <div style={{ color: '#64748b', fontSize: 15 }}>No timeline data available.</div>}
               </div>
             )}
 
@@ -944,30 +1057,31 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
                 </div>
 
                 <div style={{ background: '#0f172a', padding: 32, borderRadius: 20, border: '1px solid #334155' }}>
-                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                      <h4 style={{ margin: 0, fontSize: 16, color: '#f1f5f9' }}>Enrollment Progress Bar</h4>
-                      <span style={{ fontSize: 14, color: '#94a3b8' }}>{selectedStudyDetail.enrollment.current} / {selectedStudyDetail.enrollment.target} subjects</span>
-                   </div>
-                   <div style={{ width: '100%', height: 20, background: '#1e293b', borderRadius: 999, overflow: 'hidden' }}>
-                      <div style={{ width: `${(selectedStudyDetail.enrollment.current / selectedStudyDetail.enrollment.target) * 100}%`, height: '100%', background: 'linear-gradient(90deg, #2563eb, #60a5fa)', borderRadius: 999 }} />
-                   </div>
-                   <div style={{ marginTop: 24, fontSize: 14, color: '#64748b', lineHeight: 1.6 }}>
-                      Subject recruitment is currently <strong>{selectedStudyDetail.status === 'Active' ? 'on track' : 'paused'}</strong>. {selectedStudyDetail.enrollment.target - selectedStudyDetail.enrollment.current} subjects remaining to reach enrollment target.
-                   </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                    <h4 style={{ margin: 0, fontSize: 16, color: '#f1f5f9' }}>Enrollment Progress Bar</h4>
+                    <span style={{ fontSize: 14, color: '#94a3b8' }}>{selectedStudyDetail.enrollment.current} / {selectedStudyDetail.enrollment.target} subjects</span>
+                  </div>
+                  <div style={{ width: '100%', height: 20, background: '#1e293b', borderRadius: 999, overflow: 'hidden' }}>
+                    <div style={{ width: `${(selectedStudyDetail.enrollment.current / selectedStudyDetail.enrollment.target) * 100}%`, height: '100%', background: 'linear-gradient(90deg, #2563eb, #60a5fa)', borderRadius: 999 }} />
+                  </div>
+                  <div style={{ marginTop: 24, fontSize: 14, color: '#64748b', lineHeight: 1.6 }}>
+                    Subject recruitment is currently <strong>{selectedStudyDetail.status === 'Active' ? 'on track' : 'paused'}</strong>. {selectedStudyDetail.enrollment.target - selectedStudyDetail.enrollment.current} subjects remaining to reach enrollment target.
+                  </div>
                 </div>
               </div>
             )}
 
             {studyDetailTab === 'Documents' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {selectedStudyDetail.documents.length === 0 ? <div style={{ color: '#64748b' }}>No documents uploaded.</div> : 
-                  selectedStudyDetail.documents.map((d:any) => (
-                    <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0f172a', padding: 16, borderRadius: 8, border: '1px solid #334155' }}>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: 14, color: '#f1f5f9' }}>{d.type} <span style={{ color: '#64748b', fontWeight: 400 }}>v{d.version}</span></div>
-                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{d.title} • {d.date}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {!(selectedStudyDetail.documents?.length)
+                  ? <div style={{ color: '#64748b', fontSize: 16, fontWeight: 500 }}>No documents uploaded.</div>
+                  : selectedStudyDetail.documents.map((d: any) => (
+                    <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0f172a', padding: '20px 24px', borderRadius: 12, border: '1px solid #334155', gap: 16 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 18, color: '#f1f5f9' }}>{d.type} <span style={{ color: '#64748b', fontWeight: 400 }}>v{d.version}</span></div>
+                        <div style={{ fontSize: 15, color: '#64748b', marginTop: 4 }}>{d.title} • {d.date}</div>
                       </div>
-                      <button onClick={() => { downloadFile(`Content of ${d.title}`, `${d.title}.txt`); addToast({ type: 'success', message: 'Download started' }); }} style={{ background: 'transparent', border: '1px solid #334155', color: '#f1f5f9', padding: '6px 12px', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: 12 }}>Download</button>
+                      <button onClick={() => { downloadFile(`Content of ${d.title}`, `${d.title}.txt`); addToast({ type: 'success', message: 'Download started' }); }} style={{ background: 'transparent', border: '2px solid #334155', color: '#f1f5f9', padding: '10px 20px', borderRadius: 10, fontWeight: 700, cursor: 'pointer', fontSize: 16, flexShrink: 0 }}>Download</button>
                     </div>
                   ))
                 }
@@ -976,17 +1090,20 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
 
             {studyDetailTab === 'Team' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {selectedStudyDetail.team.map((t:any, i:number) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#334155', color: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
-                      {t.name.split(' ').map((n:string)=>n[0]).join('').substring(0,2)}
+                {!(selectedStudyDetail.team?.length)
+                  ? <div style={{ color: '#64748b', fontSize: 15 }}>No team members listed.</div>
+                  : selectedStudyDetail.team.map((t: any, i: number) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'rgba(255,255,255,0.02)', padding: '16px 20px', borderRadius: 14, border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div style={{ width: 48, height: 48, borderRadius: 14, background: 'linear-gradient(135deg, #1e293b, #0f172a)', border: '1px solid #334155', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 16, flexShrink: 0 }}>
+                        {t.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 18, color: '#f1f5f9' }}>{t.name}</div>
+                        <div style={{ fontSize: 15, color: '#94a3b8', marginTop: 2 }}>{t.role}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: 14, color: '#f1f5f9' }}>{t.name}</div>
-                      <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.role}</div>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                }
               </div>
             )}
 
@@ -1002,7 +1119,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
                     <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Target</div>
                   </div>
                   <div style={{ flex: 1, background: '#0f172a', border: '1px solid #334155', borderRadius: 8, padding: 16, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <ProgressRing pct={selectedStudyDetail.enrollment.current/selectedStudyDetail.enrollment.target*100} width={36} stroke={3} />
+                    <ProgressRing pct={selectedStudyDetail.enrollment.current / selectedStudyDetail.enrollment.target * 100} width={36} stroke={3} />
                     <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600, marginTop: 4 }}>Progress</div>
                   </div>
                 </div>

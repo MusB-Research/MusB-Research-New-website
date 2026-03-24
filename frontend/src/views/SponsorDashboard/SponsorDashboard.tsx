@@ -124,7 +124,7 @@ export default function SponsorDashboard() {
   const menuBtnBase = {
     width: '100%', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px',
     background: 'none', border: 'none', cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', borderRadius: '20px',
-    fontSize: '16px', fontWeight: 800, letterSpacing: '0.05em'
+    fontSize: '12px', fontWeight: 800, letterSpacing: '0.05em'
   };
 
   const getMenuBtnStyle = (id: string, isWhiteText = false) => ({
@@ -185,13 +185,13 @@ export default function SponsorDashboard() {
             <div style={{ fontSize: '12px', fontWeight: 900, color: 'white', textShadow: '0 0 10px rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginBottom: '8px', paddingLeft: '16px' }}>OVERVIEW</div>
 
             <button onClick={() => window.location.href = '/'} style={{ ...menuBtnBase, color: THEME.body }}>
-              <span style={{ fontSize: '18px', opacity: 0.6 }}>🌐</span>
+              <span style={{ fontSize: '14px', opacity: 0.6 }}>🌐</span>
               <span style={{ flex: 1, textAlign: 'left' }}>MAIN WEBSITE</span>
               <span style={{ opacity: 0.5 }}>↗</span>
             </button>
             <button onClick={() => setActiveModule('DASHBOARD')} style={getMenuBtnStyle('DASHBOARD', true)}>
-              <span style={{ fontSize: '20px', color: activeModule === 'DASHBOARD' ? '#a5b4fc' : THEME.body }}>⚏</span>
-              <span style={{ flex: 1, textAlign: 'left', lineHeight: '1.4', fontSize: '16px' }}>DASHBOARD<br /><span style={{ fontSize: '12px', opacity: 0.7 }}>(PORTFOLIO OVERVIEW)</span></span>
+              <span style={{ fontSize: '14px', color: activeModule === 'DASHBOARD' ? '#a5b4fc' : THEME.body }}>⚏</span>
+              <span style={{ flex: 1, textAlign: 'left', lineHeight: '1.4', fontSize: '12px' }}>DASHBOARD<br /><span style={{ fontSize: '10px', opacity: 0.7 }}>(PORTFOLIO OVERVIEW)</span></span>
             </button>
           </div>
 
@@ -200,15 +200,15 @@ export default function SponsorDashboard() {
             <div style={{ fontSize: '12px', fontWeight: 900, color: 'white', textShadow: '0 0 10px rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginBottom: '8px', paddingLeft: '16px' }}>CORE MANAGEMENT</div>
 
             <button onClick={() => setActiveModule('STUDIES')} style={getMenuBtnStyle('STUDIES')}>
-              <span style={{ fontSize: '18px', opacity: activeModule === 'STUDIES' ? 1 : 0.6 }}>📁</span>
+              <span style={{ fontSize: '14px', opacity: activeModule === 'STUDIES' ? 1 : 0.6 }}>📁</span>
               <span style={{ flex: 1, textAlign: 'left' }}>OUR STUDIES</span>
             </button>
             <button onClick={() => setActiveModule('PARTICIPANTS')} style={getMenuBtnStyle('PARTICIPANTS')}>
-              <span style={{ fontSize: '18px', opacity: activeModule === 'PARTICIPANTS' ? 1 : 0.6 }}>👥</span>
+              <span style={{ fontSize: '14px', opacity: activeModule === 'PARTICIPANTS' ? 1 : 0.6 }}>👥</span>
               <span style={{ flex: 1, textAlign: 'left', lineHeight: '1.4' }}>PARTICIPANT DATA</span>
             </button>
             <button onClick={() => setActiveModule('TEAM')} style={getMenuBtnStyle('TEAM')}>
-              <span style={{ fontSize: '18px', opacity: activeModule === 'TEAM' ? 1 : 0.6 }}>🤝</span>
+              <span style={{ fontSize: '14px', opacity: activeModule === 'TEAM' ? 1 : 0.6 }}>🤝</span>
               <span style={{ flex: 1, textAlign: 'left' }}>TEAM MANAGEMENT</span>
             </button>
           </div>
@@ -218,7 +218,7 @@ export default function SponsorDashboard() {
             <div style={{ fontSize: '12px', fontWeight: 900, color: 'white', textShadow: '0 0 10px rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginBottom: '8px', paddingLeft: '16px' }}>REPORTS & DATA</div>
 
             <button onClick={() => setActiveModule('REPORTS')} style={getMenuBtnStyle('REPORTS')}>
-              <span style={{ fontSize: '18px', opacity: activeModule === 'REPORTS' ? 1 : 0.6 }}>📈</span>
+              <span style={{ fontSize: '14px', opacity: activeModule === 'REPORTS' ? 1 : 0.6 }}>📈</span>
               <span style={{ flex: 1, textAlign: 'left', lineHeight: '1.4' }}>PARTICIPANT PROGRESS REPORTS</span>
             </button>
           </div>

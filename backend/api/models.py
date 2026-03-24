@@ -679,7 +679,19 @@ class StudyInquiry(BaseMongoModel):
     legal_name = models.CharField(max_length=255, blank=True)
     signatory_name = models.CharField(max_length=255, blank=True)
     signatory_title = models.CharField(max_length=255, blank=True)
-    corporate_address = models.TextField(blank=True)
+    corporate_address_deprecated = models.TextField(null=True, blank=True, db_column='corporate_address', default='') # Keep old column name for data safety during migration if needed
+    street_address = models.TextField(null=True, blank=True, default='')
+    city = models.CharField(max_length=100, null=True, blank=True, default='')
+    state = models.CharField(max_length=100, null=True, blank=True, default='')
+    zip_code = models.CharField(max_length=20, null=True, blank=True, default='')
+    country = models.CharField(max_length=100, null=True, blank=True, default='')
+    country_code = models.CharField(max_length=10, null=True, blank=True, default='')
+
+    @property
+    def corporate_address(self):
+        """Unified address string for display/legacy use."""
+        parts = [self.street_address, self.city, self.state, self.zip_code, self.country]
+        return ", ".join(filter(None, parts)) or self.corporate_address_deprecated
     
     # Step 2 Fields
     study_type_needed = models.JSONField(default=list) # Pilot, RCT, etc.

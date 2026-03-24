@@ -659,8 +659,12 @@ export default function StudyScreener() {
                                     </div>
                                     <div className="grid gap-4">
                                         <button
-                                            onClick={() => navigate(`/studies/${study.id}/consent`, {
-                                                state: { email: formData.email, fullName: formData.fullName }
+                                            onClick={() => navigate('/signin', {
+                                                state: { 
+                                                    redirectTo: `/studies/${study.id}/consent`,
+                                                    email: formData.email,
+                                                    fullName: formData.fullName
+                                                }
                                             })}
                                             className="w-full py-6 bg-cyan-500 text-slate-950 rounded-2xl font-black text-base uppercase tracking-widest hover:bg-white transition-all shadow-xl shadow-cyan-500/20 cursor-pointer active:scale-[0.98]"
                                         >

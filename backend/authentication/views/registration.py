@@ -292,7 +292,8 @@ def complete_profile(request):
 def list_team_members(request):
     """Retrieve all users and pending invites for the sponsor's organization."""
     admin = request.user
-    org = admin.organization
+    # Use SAME fallback logic as invite_team_member
+    org = admin.organization or getattr(admin, 'affiliation', None) or 'MusB'
     
     if not org:
         return Response([], status=200)

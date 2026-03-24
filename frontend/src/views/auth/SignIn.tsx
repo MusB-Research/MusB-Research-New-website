@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, User, ShieldCheck, ArrowRight, Lock, Key, CheckCircle2, AlertCircle, ChevronLeft, LogIn, PhoneCall, Eye, EyeOff } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { saveToken, saveUser, API } from '../../utils/auth';
 
 type AuthMode = 'LOGIN' | 'REGISTER' | 'FORGOT';
@@ -34,6 +34,8 @@ export default function SignIn() {
     const googleInitRef = useRef(false);
 
     const navigate = useNavigate();
+    const location = useLocation();
+    const redirectTo = (location.state as any)?.redirectTo || null;
     const recaptchaRef = useRef<ReCAPTCHA>(null);
     const googleButtonRef = useRef<HTMLDivElement>(null);
 
@@ -373,7 +375,7 @@ export default function SignIn() {
                 case 'COORDINATOR': navigate('/dashboard/admin'); break;
                 case 'SPONSOR': navigate('/dashboard/sponsor'); break;
                 case 'PI': navigate('/dashboard/pi'); break;
-                default: navigate('/dashboard/participant');
+                default: navigate(redirectTo || '/dashboard/participant');
             }
         } catch (err: any) {
             setError(err.message);

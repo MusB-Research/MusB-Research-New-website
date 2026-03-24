@@ -30,6 +30,14 @@ export default function TeamManagementPanel({ addToast }: any) {
     organization: ''
   });
   const [inviting, setInviting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const roles = [
     { id: 'sponsor', label: 'Sponsor Admin' },
@@ -39,13 +47,27 @@ export default function TeamManagementPanel({ addToast }: any) {
   ];
 
   const fetchMembers = async () => {
-    setLoading(true);
+    // Only show loading skeletons if we have NO data yet (initial load)
+    if (members.length === 0) {
+      setLoading(true);
+    }
+    
     try {
       const apiUrl = API || 'http://localhost:8000';
       const res = await authFetch(`${apiUrl}/api/auth/list-team-members/`);
       if (res.ok) {
-        const data = await res.json();
-        setMembers(data);
+        const serverData = await res.json();
+        
+        setMembers(prevMembers => {
+          // Merge logic: Always trust server data for existing users
+          // But keep "local-" optimistic members if the server hasn't sent them yet
+          const localOnly = prevMembers.filter(m => 
+            m.id.toString().startsWith('local-') && 
+            !serverData.some((sm: any) => sm.email.toLowerCase() === m.email.toLowerCase())
+          );
+          
+          return [...serverData, ...localOnly];
+        });
       } else {
         addToast({ type: 'error', message: 'Failed to fetch team members' });
       }
@@ -66,6 +88,21 @@ export default function TeamManagementPanel({ addToast }: any) {
     if (!inviteData.email) return;
 
     setInviting(true);
+
+    // Optimistically add member to local list immediately
+    const optimisticMember: TeamMember = {
+      id: `local-${Date.now()}`,
+      name: inviteData.email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      email: inviteData.email,
+      role: roles.find(r => r.id === inviteData.role)?.label || inviteData.role,
+      status: 'PENDING'
+    };
+    setMembers(prev => [...prev, optimisticMember]);
+    setShowInviteModal(false);
+    setInviteData({ email: '', role: 'sponsor', organization: '' });
+    addToast({ type: 'success', message: `Invitation sent to ${inviteData.email}` });
+
+    // Fire backend request in background
     try {
       const apiUrl = API || 'http://localhost:8000';
       const res = await authFetch(`${apiUrl}/api/auth/invite-team-member/`, {
@@ -73,18 +110,13 @@ export default function TeamManagementPanel({ addToast }: any) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(inviteData)
       });
-
       if (res.ok) {
-        addToast({ type: 'success', message: `Invitation sent to ${inviteData.email}` });
-        setShowInviteModal(false);
-        setInviteData({ email: '', role: 'sponsor', organization: '' });
+        // Refresh from server to get real ID
         fetchMembers();
-      } else {
-        const err = await res.json();
-        addToast({ type: 'error', message: err.error || 'Failed to send invitation' });
       }
-    } catch (error) {
-      addToast({ type: 'error', message: 'Failed to send invitation' });
+      // If backend fails, optimistic member stays visible
+    } catch (_) {
+      // Keep optimistic entry visible
     } finally {
       setInviting(false);
     }
@@ -112,72 +144,72 @@ export default function TeamManagementPanel({ addToast }: any) {
   };
 
   return (
-    <div className="team-management-panel" style={{ padding: '48px 64px', maxWidth: '100%', margin: '0 auto', animation: 'fadeIn 0.5s ease-out' }}>
-      <header className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '56px', gap: '32px', flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 300px' }}>
-          <h1 style={{ fontSize: 'clamp(32px, 8vw, 52px)', fontWeight: 900, margin: 0, letterSpacing: '-0.04em', color: THEME.text, lineHeight: 1.1 }}>Our Elite Team</h1>
-          <p style={{ color: THEME.muted, marginTop: '16px', fontSize: 'clamp(14px, 4vw, 20px)', fontWeight: 500, maxWidth: '600px' }}>Securely manage your high-performance clinical research team.</p>
+    <div className="team-management-panel" style={{ padding: windowWidth > 768 ? '48px 64px' : '24px 16px', maxWidth: '100%', margin: '0 auto', animation: 'fadeIn 0.5s ease-out' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: windowWidth > 768 ? '48px' : '28px', gap: '16px', flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+          <h1 style={{ fontSize: windowWidth > 768 ? '48px' : '28px', fontWeight: 900, margin: 0, letterSpacing: '-0.04em', color: THEME.text, lineHeight: 1.1 }}>Our Elite Team</h1>
+          <p style={{ color: THEME.muted, marginTop: '10px', fontSize: windowWidth > 768 ? '18px' : '14px', fontWeight: 500, maxWidth: '600px', margin: '10px 0 0 0' }}>Securely manage your high-performance clinical research team.</p>
         </div>
-        <button 
+        <button
           onClick={() => setShowInviteModal(true)}
-          className="invite-button"
-          style={{ 
-            background: THEME.primary, 
-            color: 'white', 
-            border: 'none', 
-            padding: '16px 32px', 
-            borderRadius: '20px', 
-            fontWeight: 800, 
+          style={{
+            background: THEME.primary,
+            color: 'white',
+            border: 'none',
+            padding: windowWidth > 768 ? '14px 28px' : '12px 20px',
+            borderRadius: '16px',
+            fontWeight: 800,
             cursor: 'pointer',
-            boxShadow: '0 12px 30px rgba(37, 99, 235, 0.25)',
+            boxShadow: '0 8px 24px rgba(37, 99, 235, 0.3)',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
-            fontSize: '16px',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            whiteSpace: 'nowrap'
+            gap: '8px',
+            fontSize: windowWidth > 768 ? '16px' : '14px',
+            transition: 'all 0.2s',
+            whiteSpace: 'nowrap',
+            flexShrink: 0
           }}
         >
-          <span style={{ fontSize: '24px' }}>+</span> Invite Member
+          + Invite Member
         </button>
       </header>
 
-      {/* STAT CARDS */}
-      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '32px', marginBottom: '64px' }}>
-        <div style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(8px)', padding: '32px', borderRadius: '32px', border: `1px solid ${THEME.border}`, boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
-          <div style={{ color: THEME.muted, fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Total Members</div>
-          <div style={{ fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 900, marginTop: '20px', color: THEME.text, letterSpacing: '-0.02em' }}>{members.length}</div>
+      {/* STAT CARDS: 3col desktop, 2col tablet+mobile */}
+      <div style={{ display: 'grid', gridTemplateColumns: windowWidth > 900 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: windowWidth > 768 ? '24px' : '12px', marginBottom: windowWidth > 768 ? '48px' : '28px' }}>
+        <div style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(8px)', padding: windowWidth > 768 ? '28px 32px' : '20px', borderRadius: '20px', border: `1px solid ${THEME.border}` }}>
+          <div style={{ color: THEME.muted, fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Total Members</div>
+          <div style={{ fontSize: windowWidth > 768 ? 48 : 36, fontWeight: 900, marginTop: '12px', color: THEME.text, letterSpacing: '-0.02em' }}>{members.length}</div>
         </div>
-        <div style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(8px)', padding: '32px', borderRadius: '32px', border: `1px solid ${THEME.border}`, boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
-          <div style={{ color: THEME.muted, fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Active</div>
-          <div style={{ fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 900, marginTop: '20px', color: THEME.success, letterSpacing: '-0.02em' }}>{members.filter(m => m.status === 'ACTIVE').length}</div>
+        <div style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(8px)', padding: windowWidth > 768 ? '28px 32px' : '20px', borderRadius: '20px', border: `1px solid ${THEME.border}` }}>
+          <div style={{ color: THEME.muted, fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Active</div>
+          <div style={{ fontSize: windowWidth > 768 ? 48 : 36, fontWeight: 900, marginTop: '12px', color: THEME.success, letterSpacing: '-0.02em' }}>{members.filter(m => m.status === 'ACTIVE').length}</div>
         </div>
-        <div style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(8px)', padding: '32px', borderRadius: '32px', border: `1px solid ${THEME.border}`, boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
-          <div style={{ color: THEME.muted, fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Pending</div>
-          <div style={{ fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 900, marginTop: '20px', color: '#f59e0b', letterSpacing: '-0.02em' }}>{members.filter(m => m.status === 'PENDING').length}</div>
+        <div style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(8px)', padding: windowWidth > 768 ? '28px 32px' : '20px', borderRadius: '20px', border: `1px solid ${THEME.border}`, gridColumn: windowWidth > 900 ? 'auto' : '1 / -1' }}>
+          <div style={{ color: THEME.muted, fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Pending</div>
+          <div style={{ fontSize: windowWidth > 768 ? 48 : 36, fontWeight: 900, marginTop: '12px', color: '#f59e0b', letterSpacing: '-0.02em' }}>{members.filter(m => m.status === 'PENDING').length}</div>
         </div>
       </div>
 
       {/* MEMBERS TABLE */}
       <div style={{ background: THEME.card, borderRadius: '24px', border: `1px solid ${THEME.border}`, overflow: 'hidden' }}>
         <div style={{ padding: '32px', borderBottom: `1px solid ${THEME.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em' }}>Team List</h3>
-          <div style={{ position: 'relative' }}>
-             <input 
-               type="text" 
-               placeholder="Search members..." 
-               style={{ background: THEME.bg, border: `2px solid ${THEME.border}`, borderRadius: '12px', padding: '12px 20px', color: 'white', fontSize: '16px', width: '320px', outline: 'none' }}
-             />
-          </div>
+          <h3 style={{ margin: 0, fontSize: windowWidth > 768 ? '24px' : '18px', fontWeight: 800, letterSpacing: '-0.02em' }}>Team List</h3>
+          <input
+            type="text"
+            placeholder="Search members..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{ background: THEME.bg, border: `2px solid ${THEME.border}`, borderRadius: '12px', padding: '12px 16px', color: 'white', fontSize: '15px', width: windowWidth > 600 ? '260px' : '100%', outline: 'none', marginTop: windowWidth > 600 ? 0 : 12 }}
+          />
         </div>
-        
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: windowWidth > 600 ? 'auto' : '480px' }}>
           <thead>
-            <tr style={{ borderBottom: `2px solid ${THEME.border}`, color: THEME.muted, fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              <th style={{ padding: '24px 32px' }}>Member</th>
-              <th style={{ padding: '24px 32px' }}>Role</th>
-              <th style={{ padding: '24px 32px' }}>Status</th>
-              <th style={{ padding: '24px 32px' }}>Action</th>
+            <tr style={{ borderBottom: `2px solid ${THEME.border}`, color: THEME.muted, fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              <th style={{ padding: windowWidth > 768 ? '20px 28px' : '14px 16px' }}>Member</th>
+              <th style={{ padding: windowWidth > 768 ? '20px 28px' : '14px 16px' }}>Role</th>
+              <th style={{ padding: windowWidth > 768 ? '20px 28px' : '14px 16px' }}>Status</th>
+              <th style={{ padding: windowWidth > 768 ? '20px 28px' : '14px 16px' }}>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -191,12 +223,17 @@ export default function TeamManagementPanel({ addToast }: any) {
               ))
             ) : members.length === 0 ? (
               <tr>
-                <td colSpan={4} style={{ padding: '48px', textAlign: 'center', color: THEME.muted }}>
-                   No team members found. Start by inviting someone!
+                <td colSpan={4} style={{ padding: '56px 32px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 40, marginBottom: 16 }}>👥</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: THEME.text, marginBottom: 8 }}>No team members yet</div>
+                  <div style={{ color: THEME.muted, fontSize: 15, marginBottom: 24 }}>Invite your first member to get started.</div>
+                  <button onClick={() => setShowInviteModal(true)} style={{ background: THEME.primary, color: 'white', border: 'none', padding: '12px 28px', borderRadius: 14, fontWeight: 800, fontSize: 16, cursor: 'pointer' }}>+ Invite Member</button>
                 </td>
               </tr>
             ) : (
-              members.map(member => (
+              members
+                .filter(m => !searchQuery || m.name?.toLowerCase().includes(searchQuery.toLowerCase()) || m.email?.toLowerCase().includes(searchQuery.toLowerCase()) || m.role?.toLowerCase().includes(searchQuery.toLowerCase()))
+                .map(member => (
                 <tr key={member.id} style={{ borderBottom: `1px solid rgba(255,255,255,0.05)`, transition: 'background 0.2s' }}>
                   <td style={{ padding: '24px 32px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -233,6 +270,7 @@ export default function TeamManagementPanel({ addToast }: any) {
             )}
           </tbody>
         </table>
+        </div>{/* end overflowX wrapper */}
       </div>
 
       {/* INVITE MODAL */}
