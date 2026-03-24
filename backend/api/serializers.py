@@ -4,12 +4,14 @@ from .models import (
     Task, ParticipantTask, Consent, Lead, CommunicationLog, 
     Compensation, LabResult, DataAuditLog, InterventionArm,
     News, Event, FacilityInquiry, Candidate, NewsletterSubscriber,
-    BookletDownloadRequest, Partnership, Publication, EducationMaterial
+    BookletDownloadRequest, Partnership, Publication, EducationMaterial,
+    StudyInquiry
 )
 from authentication.models import User
 from authentication.security import decrypt_data
 from .utils.sanitizers import sanitize_html
 import bson
+import os
 
 class ObjectIdField(serializers.Field):
     """Custom field to handle MongoDB ObjectId serialization."""
@@ -33,8 +35,10 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
         
         # Ensure we don't leak raw ObjectIds in JSON responses
         for key, value in ret.items():
-            if isinstance(value, bson.ObjectId):
+            if type(value).__name__ == 'ObjectId':
                 ret[key] = str(value)
+            elif isinstance(value, list):
+                ret[key] = [str(item) if type(item).__name__ == 'ObjectId' else item for item in value]
         
         # If created_by is present and is a User instance, show its ID or email
         if 'created_by' in ret and hasattr(instance, 'created_by') and instance.created_by:
@@ -44,7 +48,6 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
 
     def to_internal_value(self, data):
         # Sanitize all incoming string data.
-        # data may be an immutable QueryDict (multipart upload) – copy it first.
         try:
             mutable_data = data.dict() if hasattr(data, 'dict') else dict(data)
         except Exception:
@@ -56,15 +59,6 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
                     mutable_data[key] = sanitize_html(value)
 
         return super().to_internal_value(mutable_data)
-
-    def to_representation(self, instance):
-        ret = super().to_representation(instance)
-        for key, value in ret.items():
-            if type(value).__name__ == 'ObjectId':
-                ret[key] = str(value)
-            elif isinstance(value, list):
-                ret[key] = [str(item) if type(item).__name__ == 'ObjectId' else item for item in value]
-        return ret
 
 class UserSerializer(SanitizedModelSerializer):
     id = ObjectIdField(read_only=True)
@@ -170,67 +164,6 @@ class StudySerializer(SanitizedModelSerializer):
             'contract_status', 'sponsor_contact_name', 'sponsor_contact_email'
         ]
 
-    def create(self, validated_data):
-        pi_ids = validated_data.pop('pi_ids', [])
-        coordinator_ids = validated_data.pop('coordinator_ids', [])
-        
-        study = super().create(validated_data)
-        
-        # Create assignments
-        for user in pi_ids:
-            StudyAssignment.objects.get_or_create(study=study, user=user, role='PI')
-        
-        # Ensure lead PI is also in assignments
-        if study.pi:
-            StudyAssignment.objects.get_or_create(study=study, user=study.pi, role='PI')
-
-        for user in coordinator_ids:
-            StudyAssignment.objects.get_or_create(study=study, user=user, role='COORDINATOR')
-        
-        # Ensure lead coordinator is also in assignments
-        if study.coordinator:
-            StudyAssignment.objects.get_or_create(study=study, user=study.coordinator, role='COORDINATOR')
-            
-        return study
-
-    def update(self, instance, validated_data):
-        pi_ids = validated_data.pop('pi_ids', None)
-        coordinator_ids = validated_data.pop('coordinator_ids', None)
-        
-        study = super().update(instance, validated_data)
-        
-        # Update PI assignments if provided
-        if pi_ids is not None:
-            instance.assignments.filter(role='PI').delete()
-            for user in pi_ids:
-                StudyAssignment.objects.get_or_create(study=instance, user=user, role='PI')
-            
-            # Sync back to primary PI field if it's null and we have PIs
-            if not study.pi and pi_ids:
-                study.pi = pi_ids[0]
-                study.save()
-        elif 'pi' in validated_data:
-            # If ONLY lead PI was updated, ensure it's in the assignments list
-            if study.pi:
-                StudyAssignment.objects.get_or_create(study=instance, user=study.pi, role='PI')
-
-        # Update Coordinator assignments if provided
-        if coordinator_ids is not None:
-            instance.assignments.filter(role='COORDINATOR').delete()
-            for user in coordinator_ids:
-                StudyAssignment.objects.get_or_create(study=instance, user=user, role='COORDINATOR')
-            
-            # Sync back to primary coordinator field if it's null and we have coords
-            if not study.coordinator and coordinator_ids:
-                study.coordinator = coordinator_ids[0]
-                study.save()
-        elif 'coordinator' in validated_data:
-            # If ONLY lead coordinator was updated, ensure it's in the assignments list
-            if study.coordinator:
-                StudyAssignment.objects.get_or_create(study=instance, user=study.coordinator, role='COORDINATOR')
-                
-        return study
-
 class InterventionArmSerializer(SanitizedModelSerializer):
     class Meta:
         model = InterventionArm
@@ -262,7 +195,6 @@ class ParticipantSerializer(SanitizedModelSerializer):
 class DeIdentifiedParticipantSerializer(SanitizedModelSerializer):
     """Restricted view for Sponsors (No PII)"""
     id = serializers.CharField(read_only=True)
-    # Mask DOB to just age or year
     age = serializers.SerializerMethodField()
     gender = serializers.SerializerMethodField()
     
@@ -356,14 +288,6 @@ class NewsSerializer(SanitizedModelSerializer):
         model = News
         fields = '__all__'
 
-    def get_image_url(self, obj):
-        if not obj.image:
-            return None
-        request = self.context.get('request')
-        if request:
-            return request.build_absolute_uri(obj.image.url)
-        return obj.image.url
-
 class EventSerializer(SanitizedModelSerializer):
     id = serializers.CharField(read_only=True)
     class Meta:
@@ -424,3 +348,9 @@ class EducationMaterialSerializer(SanitizedModelSerializer):
         request = self.context.get('request')
         if request: return request.build_absolute_uri(obj.file.url)
         return obj.file.url
+
+class StudyInquirySerializer(SanitizedModelSerializer):
+    id = ObjectIdField(read_only=True)
+    class Meta:
+        model = StudyInquiry
+        fields = '__all__'

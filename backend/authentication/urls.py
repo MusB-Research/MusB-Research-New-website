@@ -19,6 +19,7 @@ urlpatterns = [
     path('register/', registration.register, name='register'),
     path('invite-team-member/', registration.invite_team_member, name='invite-team-member'),
     path('list-team-members/', registration.list_team_members, name='list-team-members'),
+    path('resend-invitation/<str:invitation_id>/', registration.resend_invitation, name='resend-invitation'),
     path('setup-credentials/', registration.setup_credentials, name='setup_credentials'),
     path('complete-profile/', registration.complete_profile, name='complete_profile'),
     

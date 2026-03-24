@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { authFetch, API } from '../../utils/auth';
 import { SPONSOR, MOCK_TEAM, MOCK_REPORTS, StatusBadge, Modal, ConfirmModal, PillButton, ProgressRing, downloadCSV, downloadFile } from './SponsorDashboardShared';
 
 // Pure SVG Bar Chart
@@ -40,7 +41,30 @@ export default function DashboardPanel({ protocols, setProtocols, addToast, wind
   const [studyDetailTab, setStudyDetailTab] = useState('Overview');
   const [inquiryModalOpen, setInquiryModalOpen] = useState(false);
   const [inquiryStep, setInquiryStep] = useState(1);
-  const [inquiryForm, setInquiryForm] = useState({ title:'', researchArea:'Aging', studyType:'Clinical Trial', description:'', participants:'', startDate:'', duration:'6 months', budget:'$50K–$200K', sites:[] as string[], contactName:SPONSOR.contact, contactEmail:SPONSOR.email, phone:'', notes:'', files:[] });
+  const [inquiryForm, setInquiryForm] = useState({
+    // Step 1
+    productName: '',
+    category: 'Probiotic / Postbiotic',
+    developmentStage: 'Concept',
+    needs: [] as string[],
+    primaryFocus: 'Gut',
+    timeline: 'Immediate (0–3 months)',
+    // NDA Choice
+    ndaPreference: '' as 'YES' | 'NO' | '',
+    // NDA Details
+    legalName: '',
+    signatoryName: '',
+    signatoryTitle: '',
+    corporateAddress: '',
+    // Step 2
+    studyTypeNeeded: [] as string[],
+    targetPopulation: '',
+    budgetRange: 'Prefer to Discuss',
+    servicesNeeded: [] as string[],
+    projectDescription: '',
+    contactName: SPONSOR.contact,
+    contactEmail: SPONSOR.email,
+  });
   const [composeModalOpen, setComposeModalOpen] = useState(false);
   const [composeStudyContext, setComposeStudyContext] = useState<any>(null);
   const [composeForm, setComposeForm] = useState({ to:'', subject:'', message:'' });
@@ -79,66 +103,66 @@ export default function DashboardPanel({ protocols, setProtocols, addToast, wind
   ];
 
   return (
-    <div style={{ padding: 24, maxWidth: 1280, margin: '0 auto', color: '#f1f5f9' }}>
+    <div style={{ padding: '40px 60px', maxWidth: '100%', margin: '0 auto', color: '#f1f5f9' }}>
       
       {/* Primary Action Banner */}
-      <div style={{ background: 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)', borderRadius: 12, padding: '28px 32px', marginBottom: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-        <div>
-          <h1 style={{ margin: 0, fontWeight: 700, fontSize: 20, color: 'white' }}>Start a New Research Collaboration</h1>
-          <p style={{ margin: '4px 0 0 0', color: 'rgba(255,255,255,0.82)', fontSize: 14 }}>Collaborate with our research network for rapid deployment and expert clinical monitoring.</p>
+      <div style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)', borderRadius: 32, padding: '80px 100px', marginBottom: 64, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 48, boxShadow: '0 40px 80px rgba(0, 0, 0, 0.4)', border: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
+          <h1 style={{ margin: 0, fontWeight: 900, fontSize: 64, color: 'white', letterSpacing: '-0.04em', lineHeight: 1.1 }}>Elevate Your <span style={{ color: '#60a5fa' }}>Research</span><br/>Network.</h1>
+          <p style={{ margin: '32px 0 0 0', color: 'rgba(255,255,255,0.9)', fontSize: 28, lineHeight: 1.6, maxWidth: '950px', fontWeight: 500 }}>Partner with MusB's elite clinical network to accelerate your protocol deployment with state-of-the-art monitoring.</p>
         </div>
-        <button onClick={() => setInquiryModalOpen(true)} style={{ background: 'white', color: '#2563eb', fontWeight: 700, border: 'none', padding: '12px 24px', borderRadius: 8, cursor: 'pointer', transition: 'all 0.2s' }}>
-          + Inquire a New Study
+        <button onClick={() => setInquiryModalOpen(true)} style={{ background: 'white', color: '#1e3a8a', fontWeight: 900, border: 'none', padding: '28px 56px', borderRadius: 24, cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', fontSize: 22, boxShadow: '0 20px 40px rgba(0,0,0,0.2)', transform: 'translateY(0)' }}>
+          + Launch New Inquiry
         </button>
       </div>
 
-      <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 12 }}>CONTROL PANEL</div>
-      <div style={{ display: 'grid', gridTemplateColumns: windowWidth > 1024 ? 'repeat(4,1fr)' : windowWidth > 640 ? 'repeat(2,1fr)' : '1fr', gap: 16, marginBottom: 32 }}>
+      <div style={{ fontSize: 14, color: '#64748b', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 20 }}>CONTROL PANEL</div>
+      <div style={{ display: 'grid', gridTemplateColumns: windowWidth > 1200 ? 'repeat(4,1fr)' : windowWidth > 800 ? 'repeat(2,1fr)' : '1fr', gap: 32, marginBottom: 56 }}>
         
         {/* Box 1 */}
-        <div onClick={() => setOverviewModalOpen(true)} style={{ background: '#1e293b', borderRadius: 12, padding: 20, border: '1px solid #334155', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', transition: 'all 0.2s' }}>
-          <div style={{ fontSize: 24, marginBottom: 12 }}>📊</div>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>Overview</h3>
-          <div style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.5, marginBottom: 16 }}>
-            Total Studies: {stats.total}<br/>Active: {stats.active}<br/>Completed: {stats.completed}
+        <div onClick={() => setOverviewModalOpen(true)} style={{ background: 'rgba(30, 41, 59, 0.6)', backdropFilter: 'blur(10px)', borderRadius: 28, padding: 40, border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', transition: 'all 0.3s' }}>
+          <div style={{ fontSize: 48, marginBottom: 24 }}>📊</div>
+          <h3 style={{ margin: '0 0 16px 0', fontSize: 32, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.02em' }}>Overview</h3>
+          <div style={{ fontSize: 22, color: '#94a3b8', lineHeight: 1.6, marginBottom: 32, fontWeight: 500 }}>
+            Total Studies: <span style={{ color: '#f1f5f9', fontWeight: 700 }}>{stats.total}</span><br/>Active: <span style={{ color: '#60a5fa', fontWeight: 700 }}>{stats.active}</span><br/>Completed: <span style={{ color: '#10b981', fontWeight: 700 }}>{stats.completed}</span>
           </div>
-          <div style={{ color: '#2563eb', fontSize: 13, fontWeight: 600 }}>→ View Dashboard Insights</div>
+          <div style={{ color: '#2563eb', fontSize: 20, fontWeight: 800 }}>→ View Insights</div>
         </div>
 
         {/* Box 2 */}
-        <div onClick={() => setPortfolioModalOpen(true)} style={{ background: '#1e293b', borderRadius: 12, padding: 20, border: '1px solid #334155', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', transition: 'all 0.2s' }}>
-          <div style={{ fontSize: 24, marginBottom: 12 }}>📁</div>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>Protocol Portfolio</h3>
-          <div style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.5, marginBottom: 16 }}>
-            Submitted: {protocols.filter((p:any)=>p.status==='Under Review').length}<br/>Active: {stats.active}<br/>Completed: {stats.completed}
+        <div onClick={() => setPortfolioModalOpen(true)} style={{ background: '#1e293b', borderRadius: 24, padding: 32, border: '1px solid #334155', cursor: 'pointer', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', transition: 'all 0.3s' }}>
+          <div style={{ fontSize: 44, marginBottom: 20 }}>📁</div>
+          <h3 style={{ margin: '0 0 12px 0', fontSize: 26, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.02em' }}>Protocol Portfolio</h3>
+          <div style={{ fontSize: 18, color: '#94a3b8', lineHeight: 1.6, marginBottom: 24, fontWeight: 500 }}>
+            Submitted: <span style={{ color: '#6366f1', fontWeight: 700 }}>{protocols.filter((p:any)=>p.status==='Under Review').length}</span><br/>Active: <span style={{ color: '#60a5fa', fontWeight: 700 }}>{stats.active}</span><br/>Completed: <span style={{ color: '#10b981', fontWeight: 700 }}>{stats.completed}</span>
           </div>
-          <div style={{ color: '#6366f1', fontSize: 13, fontWeight: 600 }}>→ View All Protocols</div>
+          <div style={{ color: '#6366f1', fontSize: 17, fontWeight: 800 }}>→ View All Protocols</div>
         </div>
 
         {/* Box 3 */}
-        <div onClick={() => { setReportsStudyFilter(null); setReportsModalOpen(true); }} style={{ background: '#1e293b', borderRadius: 12, padding: 20, border: '1px solid #334155', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', transition: 'all 0.2s' }}>
-          <div style={{ fontSize: 24, marginBottom: 12 }}>📋</div>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>Study Reports</h3>
-          <div style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.5, marginBottom: 16 }}>
+        <div onClick={() => { setReportsStudyFilter(null); setReportsModalOpen(true); }} style={{ background: '#1e293b', borderRadius: 24, padding: 32, border: '1px solid #334155', cursor: 'pointer', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', transition: 'all 0.3s' }}>
+          <div style={{ fontSize: 40, marginBottom: 20 }}>📋</div>
+          <h3 style={{ margin: '0 0 12px 0', fontSize: 24, fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.01em' }}>Study Reports</h3>
+          <div style={{ fontSize: 17, color: '#94a3b8', lineHeight: 1.6, marginBottom: 24 }}>
             Progress Reports: 2<br/>Final Reports: 1<br/>Downloadable: 3
           </div>
-          <div style={{ color: '#10b981', fontSize: 13, fontWeight: 600 }}>→ Access Reports</div>
+          <div style={{ color: '#10b981', fontSize: 16, fontWeight: 700 }}>→ Access Reports</div>
         </div>
 
         {/* Box 4 */}
-        <div onClick={() => setTeamModalOpen(true)} style={{ background: '#1e293b', borderRadius: 12, padding: 20, border: '1px solid #334155', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', transition: 'all 0.2s' }}>
-          <div style={{ fontSize: 24, marginBottom: 12 }}>👥</div>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>Team Access</h3>
-          <div style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.5, marginBottom: 16 }}>
+        <div onClick={() => setTeamModalOpen(true)} style={{ background: '#1e293b', borderRadius: 24, padding: 32, border: '1px solid #334155', cursor: 'pointer', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', transition: 'all 0.3s' }}>
+          <div style={{ fontSize: 40, marginBottom: 20 }}>👥</div>
+          <h3 style={{ margin: '0 0 12px 0', fontSize: 24, fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.01em' }}>Team Access</h3>
+          <div style={{ fontSize: 17, color: '#94a3b8', lineHeight: 1.6, marginBottom: 24 }}>
             Team Members: {teamLocal.length}<br/>Roles Assigned: {new Set(teamLocal.map(t=>t.role)).size}<br/>Pending Invitations: {teamLocal.filter(t=>t.status==='Pending Invitation').length}
           </div>
-          <div style={{ color: '#f59e0b', fontSize: 13, fontWeight: 600 }}>→ Manage Access</div>
+          <div style={{ color: '#f59e0b', fontSize: 16, fontWeight: 700 }}>→ Manage Access</div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 }}>
-        <div style={{ fontSize: 20, color: '#f1f5f9', fontWeight: 700 }}>Active Protocols</div>
-        <button onClick={() => setPortfolioModalOpen(true)} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>View All →</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 40 }}>
+        <div style={{ fontSize: 56, color: '#f1f5f9', fontWeight: 900, letterSpacing: '-0.03em' }}>Strategic Protocol Portfolio</div>
+        <button onClick={() => setPortfolioModalOpen(true)} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: 24, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>Explore Full Portfolio <span>→</span></button>
       </div>
       
       <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 16 }}>
@@ -155,46 +179,36 @@ export default function DashboardPanel({ protocols, setProtocols, addToast, wind
           <button onClick={() => setInquiryModalOpen(true)} style={{ background: '#2563eb', color: 'white', border: 'none', padding: '10px 20px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>+ Submit New Protocol Inquiry</button>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: windowWidth > 900 ? 'repeat(3,1fr)' : windowWidth > 600 ? 'repeat(2,1fr)' : '1fr', gap: 16, marginBottom: 40 }}>
-          {filteredProtocols.map((p:any) => (
-            <div key={p.id} style={{ background: '#1e293b', borderRadius: 12, padding: 20, border: '1px solid #334155', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>{p.title}</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: windowWidth > 1200 ? 'repeat(3,1fr)' : windowWidth > 800 ? 'repeat(2,1fr)' : '1fr', gap: 40, marginBottom: 80 }}>
+          {filteredProtocols.map((p: any) => (
+            <div key={p.id} style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(8px)', borderRadius: 32, padding: 40, border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', transition: 'transform 0.3s ease' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+                <h3 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.02em', lineHeight: 1.2 }}>{p.title}</h3>
                 <StatusBadge status={p.status} />
               </div>
-              <div style={{ fontFamily: 'monospace', fontSize: 11, color: '#64748b', marginBottom: 16 }}>{p.id}</div>
+              <div style={{ fontFamily: 'monospace', fontSize: 16, color: '#64748b', marginBottom: 32, fontWeight: 600 }}>{p.id}</div>
               
-              <div style={{ marginBottom: 16, flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>
+              <div style={{ marginBottom: 32, flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 17, color: '#94a3b8', marginBottom: 12 }}>
                   <span>Enrollment</span>
-                  <span>{p.enrollment.current} / {p.enrollment.target} ({(p.enrollment.current/p.enrollment.target*100).toFixed(0)}%)</span>
+                  <span style={{ color: '#f1f5f9', fontWeight: 800 }}>{p.enrollment.current} / {p.enrollment.target} ({(p.enrollment.current/p.enrollment.target*100).toFixed(0)}%)</span>
                 </div>
-                <div style={{ background: '#334155', height: 6, borderRadius: 999 }}>
-                  <div style={{ background: '#2563eb', height: 6, borderRadius: 999, width: `${Math.min(100, (p.enrollment.current/p.enrollment.target*100))}%` }} />
+                <div style={{ background: '#334155', height: 12, borderRadius: 999 }}>
+                  <div style={{ background: '#2563eb', height: 12, borderRadius: 999, width: `${Math.min(100, (p.enrollment.current/p.enrollment.target*100))}%`, boxShadow: '0 0 10px rgba(37, 99, 235, 0.5)' }} />
                 </div>
-                <div style={{ fontSize: 11, color: '#64748b', marginTop: 8 }}>Last updated: {p.lastUpdated}</div>
+                <div style={{ fontSize: 14, color: '#64748b', marginTop: 16 }}>Last updated: {p.lastUpdated}</div>
               </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, paddingTop: 16, borderTop: '1px solid #334155' }}>
-                <button onClick={() => { setStudyDetailId(p.id); setStudyDetailTab('Overview'); setStudyDetailModalOpen(true); }} style={{ background: 'none', border: 'none', color: '#3b82f6', fontWeight: 600, fontSize: 13, cursor: 'pointer', padding: 0 }}>View Study →</button>
-                <button onClick={() => { setReportsStudyFilter(p.id); setReportsModalOpen(true); }} style={{ background: 'none', border: 'none', color: '#94a3b8', fontWeight: 600, fontSize: 13, cursor: 'pointer', padding: 0 }}>View Reports</button>
-                <button onClick={() => { setComposeStudyContext(p); setComposeForm({ to:`Study Team — ${p.title}`, subject:`Re: ${p.title}`, message:'' }); setComposeModalOpen(true); }} style={{ background: 'none', border: 'none', color: '#94a3b8', fontWeight: 600, fontSize: 13, cursor: 'pointer', padding: 0, marginLeft: 'auto' }}>Message Team</button>
+ 
+              <div style={{ display: 'flex', alignItems: 'center', gap: 24, paddingTop: 28, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                <button onClick={() => { setStudyDetailId(p.id); setStudyDetailTab('Overview'); setStudyDetailModalOpen(true); }} style={{ background: 'none', border: 'none', color: '#3b82f6', fontWeight: 800, fontSize: 17, cursor: 'pointer', padding: 0 }}>View Study →</button>
+                <button onClick={() => { setReportsStudyFilter(p.id); setReportsModalOpen(true); }} style={{ background: 'none', border: 'none', color: '#94a3b8', fontWeight: 800, fontSize: 17, cursor: 'pointer', padding: 0 }}>Reports</button>
+                <button onClick={() => { setComposeStudyContext(p); setComposeForm({ to:`Study Team — ${p.title}`, subject:`Re: ${p.title}`, message:'' }); setComposeModalOpen(true); }} style={{ background: 'none', border: 'none', color: '#94a3b8', fontWeight: 800, fontSize: 17, cursor: 'pointer', padding: 0, marginLeft: 'auto' }}>Message</button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* New Protocol Banner Bottom */}
-      <div style={{ background: 'linear-gradient(135deg, #1e293b 0%, #1e3a5f 100%)', borderLeft: '4px solid #2563eb', borderRadius: 12, padding: '28px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-        <div>
-          <h2 style={{ margin: 0, fontWeight: 700, fontSize: 18, color: '#f1f5f9' }}>Start a New Research Protocol</h2>
-          <p style={{ margin: '4px 0 0 0', color: '#94a3b8', fontSize: 14 }}>Submit your study design for rapid feasibility review.</p>
-        </div>
-        <button onClick={() => setInquiryModalOpen(true)} style={{ background: '#2563eb', color: 'white', fontWeight: 700, border: 'none', padding: '12px 24px', borderRadius: 8, cursor: 'pointer', transition: 'all 0.2s' }}>
-          Submit New Protocol Inquiry
-        </button>
-      </div>
 
       {/* Overview Modal */}
       <Modal open={overviewModalOpen} onClose={() => setOverviewModalOpen(false)} title="Dashboard Insights" width="680px">
@@ -210,8 +224,8 @@ export default function DashboardPanel({ protocols, setProtocols, addToast, wind
             const cols:any = { Total:'#38bdf8', Active:'#60a5fa', Recruiting:'#10b981', Completed:'#94a3b8' };
             return (
               <div key={s} style={{ background: '#0f172a', borderRadius: 10, padding: 18, textAlign: 'center', border: '1px solid #334155' }}>
-                <div style={{ fontSize: 36, fontWeight: 800, color: cols[s] }}>{getVal()}</div>
-                <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600, marginTop: 4 }}>{s} Studies</div>
+                <div style={{ fontSize: 48, fontWeight: 800, color: cols[s] }}>{getVal()}</div>
+                <div style={{ fontSize: 14, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, marginTop: 4 }}>{s} Studies</div>
               </div>
             );
           })}
@@ -228,21 +242,21 @@ export default function DashboardPanel({ protocols, setProtocols, addToast, wind
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ background: '#1e293b', borderBottom: '1px solid #334155' }}>
               <tr>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Study ID</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Title</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Status</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Enrollment</th>
-                <th style={{ padding: '12px 16px', fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Last Updated</th>
+                <th style={{ padding: '16px 20px', fontSize: 16, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Study ID</th>
+                <th style={{ padding: '16px 20px', fontSize: 16, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Title</th>
+                <th style={{ padding: '16px 20px', fontSize: 16, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</th>
+                <th style={{ padding: '16px 20px', fontSize: 16, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Enrollment</th>
+                <th style={{ padding: '16px 20px', fontSize: 16, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Last Updated</th>
               </tr>
             </thead>
             <tbody>
               {protocols.map((p:any) => (
-                <tr key={p.id} onClick={() => { setStudyDetailId(p.id); setStudyDetailModalOpen(true); setPortfolioModalOpen(false); }} style={{ borderBottom: '1px solid #334155', cursor: 'pointer' }}>
-                  <td style={{ padding: '16px', fontSize: 13, fontFamily: 'monospace', color: '#94a3b8' }}>{p.id}</td>
-                  <td style={{ padding: '16px', fontSize: 14, color: '#f1f5f9', fontWeight: 600 }}>{p.title}</td>
-                  <td style={{ padding: '16px' }}><StatusBadge status={p.status} /></td>
-                  <td style={{ padding: '16px', fontSize: 13, color: '#f1f5f9' }}>{p.enrollment.current} / {p.enrollment.target}</td>
-                  <td style={{ padding: '16px', fontSize: 13, color: '#64748b' }}>{p.lastUpdated}</td>
+                <tr key={p.id} onClick={() => { setStudyDetailId(p.id); setStudyDetailModalOpen(true); setPortfolioModalOpen(false); }} style={{ borderBottom: '1px solid #334155', cursor: 'pointer', transition: 'background 0.2s' }}>
+                  <td style={{ padding: '20px', fontSize: 17, fontFamily: 'monospace', color: '#94a3b8', fontWeight: 600 }}>{p.id}</td>
+                  <td style={{ padding: '20px', fontSize: 20, color: '#f1f5f9', fontWeight: 900, letterSpacing: '-0.01em' }}>{p.title}</td>
+                  <td style={{ padding: '20px' }}><StatusBadge status={p.status} /></td>
+                  <td style={{ padding: '20px', fontSize: 18, color: '#f1f5f9', fontWeight: 800 }}>{p.enrollment.current} <span style={{ color: '#64748b', fontSize: 16 }}>/ {p.enrollment.target}</span></td>
+                  <td style={{ padding: '20px', fontSize: 17, color: '#64748b', fontWeight: 500 }}>{p.lastUpdated}</td>
                 </tr>
               ))}
             </tbody>
@@ -260,18 +274,24 @@ export default function DashboardPanel({ protocols, setProtocols, addToast, wind
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {activeReports.map(r => (
-            <div key={r.id} style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 10, padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div key={r.id} style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 12, padding: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-                  <h4 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#f1f5f9' }}>{r.name}</h4>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
+                  <h4 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.01em' }}>{r.name}</h4>
                   <StatusBadge status={r.type} />
                 </div>
-                <div style={{ fontSize: 13, color: '#64748b' }}>{r.study} • Generated on {r.date}</div>
+                <div style={{ fontSize: 14, color: '#64748b', fontWeight: 500 }}>{r.study} • Generated on <span style={{ color: '#94a3b8', fontWeight: 800 }}>{r.date}</span></div>
               </div>
               <button onClick={() => {
-                downloadFile(`Report: ${r.name}\nDate: ${r.date}\nStudy: ${r.study}`, `${r.name}.txt`);
-                addToast({ type: 'success', message: `Downloading "${r.name}"...` });
-              }} style={{ background: 'transparent', border: '1px solid #334155', color: '#f1f5f9', padding: '8px 16px', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+                setConfirmModal({
+                  title: 'Select Download Format',
+                  message: `How would you like to download "${r.name}"?`,
+                  buttons: [
+                    { label: 'Download PDF', color: '#2563eb', onClick: () => { downloadFile(`PDF Content: ${r.name}`, `${r.name}.pdf`, 'application/pdf'); addToast({ type: 'success', message: 'PDF generated successfully.' }); } },
+                    { label: 'Download CSV', color: '#10b981', onClick: () => { downloadFile(`CSV Content: ${r.name}`, `${r.name}.csv`, 'text/csv'); addToast({ type: 'success', message: 'CSV generated successfully.' }); } }
+                  ]
+                });
+              }} style={{ background: 'transparent', border: '2px solid #334155', color: '#f1f5f9', padding: '12px 24px', borderRadius: 10, fontWeight: 800, fontSize: 15, cursor: 'pointer', transition: 'all 0.2s' }}>
                 ⬇ Download
               </button>
             </div>
@@ -346,140 +366,352 @@ export default function DashboardPanel({ protocols, setProtocols, addToast, wind
         </div>
       </Modal>
 
-      {/* Inquiry Modal */}
-      <Modal open={inquiryModalOpen} onClose={() => setInquiryModalOpen(false)} title="New Study Inquiry" width="680px">
-        <div style={{ display: 'flex', gap: 8, marginBottom: 32, alignItems: 'center' }}>
-          {[1, 2, 3].map(step => (
+      {/* Inquiry Modal - Enhanced Multi-Step Flow */}
+      <Modal 
+        open={inquiryModalOpen} 
+        onClose={() => { setInquiryModalOpen(false); setInquiryStep(1); }} 
+        title={
+          inquiryStep === 1 ? "🧪 Quick Project Check" :
+          inquiryStep === 2 ? "🔐 NDA Preference" :
+          inquiryStep === 3 ? "🏢 Company Details" :
+          inquiryStep === 4 ? "📊 Project Details" :
+          "🚀 Inquiry Submitted"
+        } 
+        width={inquiryStep === 5 ? "500px" : "800px"}
+      >
+        <div style={{ display: 'flex', gap: 12, marginBottom: 40, alignItems: 'center' }}>
+          {[1, 2, 4].map(step => (
             <React.Fragment key={step}>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: inquiryStep >= step ? '#2563eb' : '#334155', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14 }}>
-                {step}
+              <div style={{ 
+                width: 40, height: 40, borderRadius: '50%', 
+                background: inquiryStep >= step ? '#2563eb' : '#334155', 
+                color: 'white', display: 'flex', alignItems: 'center', 
+                justifyContent: 'center', fontWeight: 900, fontSize: 16,
+                boxShadow: inquiryStep >= step ? '0 0 15px rgba(37,99,235,0.4)' : 'none'
+              }}>
+                {step === 4 ? 3 : step}
               </div>
-              {step < 3 && <div style={{ flex: 1, height: 2, background: inquiryStep > step ? '#2563eb' : '#334155' }} />}
+              {step < 4 && <div style={{ flex: 1, height: 4, background: inquiryStep > step ? '#2563eb' : '#334155', borderRadius: 2 }} />}
             </React.Fragment>
           ))}
         </div>
 
+        {/* STEP 1: QUICK PROJECT CHECK */}
         {inquiryStep === 1 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 6 }}>Study Title *</label>
-              <input value={inquiryForm.title} onChange={e => setInquiryForm({...inquiryForm, title: e.target.value})} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '12px', borderRadius: 8, outline: 'none', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 6 }}>Description *</label>
-              <textarea value={inquiryForm.description} onChange={e => setInquiryForm({...inquiryForm, description: e.target.value})} rows={4} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '12px', borderRadius: 8, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ animation: 'fadeIn 0.4s ease-out' }}>
+            <h2 style={{ fontSize: 32, fontWeight: 900, marginBottom: 12, color: 'white' }}>Let’s Explore Your Study Concept</h2>
+            <p style={{ color: '#94a3b8', fontSize: 18, marginBottom: 40 }}>Tell us a little about your project. Our team will guide the rest.</p>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, marginBottom: 32 }}>
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 12, textTransform: 'uppercase' }}>1. Product / Ingredient Name*</label>
+                <input 
+                  value={inquiryForm.productName} 
+                  onChange={e => setInquiryForm({...inquiryForm, productName: e.target.value})} 
+                  placeholder="e.g. MusB-99 Probiotic Blend"
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '20px', borderRadius: 16, fontSize: 18, outline: 'none' }} 
+                />
+              </div>
+              
               <div>
-                <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 6 }}>Research Area</label>
-                <select value={inquiryForm.researchArea} onChange={e => setInquiryForm({...inquiryForm, researchArea: e.target.value})} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '12px', borderRadius: 8, outline: 'none', boxSizing: 'border-box' }}>
-                  <option>Aging</option><option>Gut Health</option><option>Neurology</option><option>Oncology</option>
+                <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 12, textTransform: 'uppercase' }}>2. Product Category*</label>
+                <select 
+                  value={inquiryForm.category} 
+                  onChange={e => setInquiryForm({...inquiryForm, category: e.target.value})}
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '20px', borderRadius: 16, fontSize: 18, outline: 'none' }}
+                >
+                  {['Probiotic / Postbiotic', 'Nutraceutical', 'Botanical', 'Functional Food', 'Pharmaceutical', 'Device', 'Other'].map(cat => <option key={cat}>{cat}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 12, textTransform: 'uppercase' }}>3. Stage of Development*</label>
+                <select 
+                  value={inquiryForm.developmentStage} 
+                  onChange={e => setInquiryForm({...inquiryForm, developmentStage: e.target.value})}
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '20px', borderRadius: 16, fontSize: 18, outline: 'none' }}
+                >
+                  {['Concept', 'Preclinical Complete', 'Ready for Clinical', 'Marketed Product Seeking Data'].map(stg => <option key={stg}>{stg}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 32 }}>
+              <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 16, textTransform: 'uppercase' }}>4. What best describes your need?*</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 16 }}>
+                {['New Clinical Study', 'Preclinical Validation', 'Biomarker / Lab Support', 'Biorepository', 'Not Sure – Need Guidance'].map(need => (
+                  <label key={need} style={{ display: 'flex', alignItems: 'center', gap: 12, background: inquiryForm.needs.includes(need) ? 'rgba(37,99,235,0.1)' : 'rgba(30,41,59,0.5)', padding: '16px 20px', borderRadius: 14, border: `2px solid ${inquiryForm.needs.includes(need) ? '#2563eb' : '#334155'}`, cursor: 'pointer', transition: 'all 0.2s' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={inquiryForm.needs.includes(need)} 
+                      onChange={() => setInquiryForm({ ...inquiryForm, needs: inquiryForm.needs.includes(need) ? inquiryForm.needs.filter(n => n!==need) : [...inquiryForm.needs, need] })} 
+                      style={{ width: 20, height: 20 }}
+                    />
+                    <span style={{ fontSize: 16, fontWeight: 600, color: inquiryForm.needs.includes(need) ? 'white' : '#94a3b8' }}>{need}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, marginBottom: 40 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 12, textTransform: 'uppercase' }}>5. Primary Health Focus*</label>
+                <select 
+                  value={inquiryForm.primaryFocus} 
+                  onChange={e => setInquiryForm({...inquiryForm, primaryFocus: e.target.value})}
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '20px', borderRadius: 16, fontSize: 18, outline: 'none' }}
+                >
+                  {['Gut', 'Metabolic', 'Brain', 'Aging', 'Women’s Health', 'Environmental', 'Liver / Behavioral', 'Other'].map(f => <option key={f}>{f}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 6 }}>Participants</label>
-                <input type="number" value={inquiryForm.participants} onChange={e => setInquiryForm({...inquiryForm, participants: e.target.value})} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '12px', borderRadius: 8, outline: 'none', boxSizing: 'border-box' }} />
+                <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 12, textTransform: 'uppercase' }}>6. Estimated Timeline</label>
+                <select 
+                  value={inquiryForm.timeline} 
+                  onChange={e => setInquiryForm({...inquiryForm, timeline: e.target.value})}
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '20px', borderRadius: 16, fontSize: 18, outline: 'none' }}
+                >
+                  {['Immediate (0–3 months)', '3–6 months', '6–12 months', 'Exploring Options'].map(t => <option key={t}>{t}</option>)}
+                </select>
               </div>
             </div>
-            <div>
-               <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 6 }}>Study Type</label>
-               <div style={{ display: 'flex', gap: 8 }}>
-                 {['Clinical Trial', 'Observational', 'Preclinical', 'Survey'].map(t => (
-                   <PillButton key={t} active={inquiryForm.studyType === t} onClick={() => setInquiryForm({...inquiryForm, studyType: t})}>{t}</PillButton>
-                 ))}
-               </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-              <button onClick={() => {
-                if(!inquiryForm.title || !inquiryForm.description) return addToast({ type: 'error', message: 'Title and Description are required' });
-                setInquiryStep(2);
-              }} style={{ background: '#2563eb', color: 'white', border: 'none', padding: '12px 24px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>Next →</button>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => {
+                  if(!inquiryForm.productName || inquiryForm.needs.length === 0) return addToast({ type: 'error', message: 'Please complete required fields' });
+                  setInquiryStep(2);
+                }} 
+                style={{ background: '#2563eb', color: 'white', border: 'none', padding: '20px 48px', borderRadius: 16, fontWeight: 900, cursor: 'pointer', fontSize: 18, boxShadow: '0 10px 30px rgba(37,99,235,0.4)' }}
+              >
+                Continue →
+              </button>
             </div>
           </div>
         )}
 
+        {/* STEP 2: NDA CHOICE */}
         {inquiryStep === 2 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 6 }}>Proposed Start Date</label>
-                <input type="date" value={inquiryForm.startDate} onChange={e => setInquiryForm({...inquiryForm, startDate: e.target.value})} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '12px', borderRadius: 8, outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 6 }}>Duration</label>
-                <select value={inquiryForm.duration} onChange={e => setInquiryForm({...inquiryForm, duration: e.target.value})} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '12px', borderRadius: 8, outline: 'none', boxSizing: 'border-box' }}>
-                  <option>3 months</option><option>6 months</option><option>12 months</option><option>18+ months</option>
-                </select>
-              </div>
+          <div style={{ animation: 'fadeIn 0.4s ease-out', textAlign: 'center', padding: '20px 0' }}>
+            <div style={{ fontSize: 64, marginBottom: 24 }}>🔒</div>
+            <h2 style={{ fontSize: 32, fontWeight: 900, marginBottom: 16, color: 'white' }}>NDA Preference</h2>
+            <p style={{ color: '#94a3b8', fontSize: 18, lineHeight: 1.6, maxWidth: 600, margin: '0 auto 40px' }}>
+              We understand that your concept, formulation, or data may be confidential. 
+              If you prefer, we can execute a mutual NDA before reviewing detailed project materials.
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginBottom: 40 }}>
+              <button 
+                onClick={() => setInquiryForm({ ...inquiryForm, ndaPreference: 'YES' })}
+                style={{ flex: 1, padding: '32px', borderRadius: 24, background: inquiryForm.ndaPreference === 'YES' ? 'rgba(37,99,235,0.1)' : '#0f172a', border: `2px solid ${inquiryForm.ndaPreference === 'YES' ? '#2563eb' : '#334155'}`, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}
+              >
+                <div style={{ fontSize: 32, opacity: inquiryForm.ndaPreference === 'YES' ? 1 : 0.4 }}>✅</div>
+                <div style={{ fontWeight: 800, fontSize: 20, color: inquiryForm.ndaPreference === 'YES' ? 'white' : '#94a3b8' }}>Yes — Send NDA First</div>
+              </button>
+              <button 
+                onClick={() => setInquiryForm({ ...inquiryForm, ndaPreference: 'NO' })}
+                style={{ flex: 1, padding: '32px', borderRadius: 24, background: inquiryForm.ndaPreference === 'NO' ? 'rgba(37,185,129,0.1)' : '#0f172a', border: `2px solid ${inquiryForm.ndaPreference === 'NO' ? '#10b981' : '#334155'}`, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}
+              >
+                <div style={{ fontSize: 32, opacity: inquiryForm.ndaPreference === 'NO' ? 1 : 0.4 }}>⚡</div>
+                <div style={{ fontWeight: 800, fontSize: 20, color: inquiryForm.ndaPreference === 'NO' ? 'white' : '#94a3b8' }}>No — Continue Direct</div>
+              </button>
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 6 }}>Budget Range</label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {['<$50K', '$50K–$200K', '$200K–$500K', '$500K+'].map(t => (
-                  <PillButton key={t} active={inquiryForm.budget === t} onClick={() => setInquiryForm({...inquiryForm, budget: t})}>{t}</PillButton>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 6 }}>Preferred Sites (Remote is automatically selected for Virtual trials)</label>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {['Tampa', 'Miami', 'Orlando', 'Remote'].map(t => (
-                  <PillButton key={t} active={inquiryForm.sites.includes(t)} onClick={() => toggleSite(t)}>{t}</PillButton>
-                ))}
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
-              <button onClick={() => setInquiryStep(1)} style={{ background: 'transparent', color: '#94a3b8', border: '1px solid #334155', padding: '12px 24px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>← Back</button>
-              <button onClick={() => setInquiryStep(3)} style={{ background: '#2563eb', color: 'white', border: 'none', padding: '12px 24px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>Next →</button>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <button onClick={() => setInquiryStep(1)} style={{ background: 'transparent', color: '#94a3b8', border: 'none', fontWeight: 800, fontSize: 18, cursor: 'pointer' }}>← Back</button>
+              <button 
+                onClick={() => {
+                  if(!inquiryForm.ndaPreference) return addToast({ type: 'error', message: 'Please select an option' });
+                  setInquiryStep(inquiryForm.ndaPreference === 'YES' ? 3 : 4);
+                }}
+                disabled={!inquiryForm.ndaPreference}
+                style={{ background: '#2563eb', color: 'white', border: 'none', padding: '16px 40px', borderRadius: 16, fontWeight: 900, cursor: 'pointer', fontSize: 18, opacity: !inquiryForm.ndaPreference ? 0.5 : 1 }}
+              >
+                Proceed →
+              </button>
             </div>
           </div>
         )}
 
+        {/* STEP 3: NDA DETAILS */}
         {inquiryStep === 3 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 6 }}>Sponsor Contact Name</label>
-                <input value={inquiryForm.contactName} onChange={e => setInquiryForm({...inquiryForm, contactName: e.target.value})} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '12px', borderRadius: 8, outline: 'none', boxSizing: 'border-box' }} />
+          <div style={{ animation: 'fadeIn 0.4s ease-out' }}>
+            <h2 style={{ fontSize: 32, fontWeight: 900, marginBottom: 16, color: 'white' }}>Company Details for NDA</h2>
+            <p style={{ color: '#94a3b8', fontSize: 17, marginBottom: 32 }}>We'll use this information to populate the Mutual NDA template for signature.</p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Legal Name of Company*</label>
+                <input value={inquiryForm.legalName} onChange={e => setInquiryForm({...inquiryForm, legalName: e.target.value})} style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 6 }}>Contact Email</label>
-                <input type="email" value={inquiryForm.contactEmail} onChange={e => setInquiryForm({...inquiryForm, contactEmail: e.target.value})} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '12px', borderRadius: 8, outline: 'none', boxSizing: 'border-box' }} />
+                <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Authorized Signatory Name*</label>
+                <input value={inquiryForm.signatoryName} onChange={e => setInquiryForm({...inquiryForm, signatoryName: e.target.value})} style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Title*</label>
+                <input value={inquiryForm.signatoryTitle} onChange={e => setInquiryForm({...inquiryForm, signatoryTitle: e.target.value})} style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none' }} />
+              </div>
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Corporate Address*</label>
+                <textarea value={inquiryForm.corporateAddress} onChange={e => setInquiryForm({...inquiryForm, corporateAddress: e.target.value})} rows={3} style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', resize: 'none' }} />
               </div>
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 6 }}>Additional Notes</label>
-              <textarea value={inquiryForm.notes} onChange={e => setInquiryForm({...inquiryForm, notes: e.target.value})} rows={3} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '12px', borderRadius: 8, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
-              <button onClick={() => setInquiryStep(2)} style={{ background: 'transparent', color: '#94a3b8', border: '1px solid #334155', padding: '12px 24px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>← Back</button>
-              <button onClick={() => {
-                setConfirmModal({
-                  title: 'Submit Study Inquiry?', message: 'A MusB coordinator will contact you within 2 business days to discuss next steps.',
-                  confirmLabel: 'Submit', confirmColor: '#10b981',
-                  onConfirm: () => {
-                    const newId = `INQ-${inquiryCounter}`;
-                    setInquiryCounter(c => c+1);
-                    const newProtocol = {
-                      id: newId, title: inquiryForm.title, status: 'Under Review',
-                      enrollment: { current:0, target:parseInt(inquiryForm.participants)||0 },
-                      lastUpdated: 'Just now', pi: 'TBD', site: inquiryForm.sites.join(', ')||'TBD',
-                      startDate: inquiryForm.startDate||'TBD', endDate: 'TBD', studyType: inquiryForm.studyType,
-                      researchArea: inquiryForm.researchArea, irbStatus: 'Pending', studyMode: 'TBD',
-                      documents: [], team: [{name:SPONSOR.contact, role:'Sponsor Contact'}],
-                      milestones: [{label:'Inquiry Submitted', date:new Date().toISOString().split('T')[0], status:'completed', notes:''}],
-                      enrollmentHistory: [], completionData: [], questionnaires: [], samples: [], reports: [],
-                      kpis: { enrolled:0, targetEnrolled:parseInt(inquiryForm.participants)||0, completed:0, targetCompleted:0, recruitmentCompleted:false, analysisStatus:'Not Started', latestReport:'Pending' },
-                      reportStats: { progressReportsAvailable:0, latestReport:'Pending', participantDataAvailable:false }
-                    };
-                    setProtocols((prev:any) => [newProtocol, ...prev]);
-                    setInquiryModalOpen(false);
-                    setInquiryStep(1);
-                    setInquiryForm({ title:'', researchArea:'Aging', studyType:'Clinical Trial', description:'', participants:'', startDate:'', duration:'6 months', budget:'$50K–$200K', sites:[], contactName:SPONSOR.contact, contactEmail:SPONSOR.email, phone:'', notes:'', files:[] });
-                    addToast({ type: 'success', message: `Inquiry submitted! ID: ${newId}` });
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button onClick={() => setInquiryStep(2)} style={{ background: 'transparent', color: '#94a3b8', border: 'none', fontWeight: 800, fontSize: 18, cursor: 'pointer' }}>← Back</button>
+              <button 
+                onClick={async () => {
+                  if(!inquiryForm.legalName || !inquiryForm.signatoryName) return addToast({ type: 'error', message: 'Please complete required fields' });
+                  
+                  // Submit initial inquiry with NDA request and stop
+                  try {
+                    const res = await authFetch(`${API}/api/study-inquiries/`, {
+                      method: 'POST',
+                      body: JSON.stringify({
+                        product_name: inquiryForm.productName,
+                        category: inquiryForm.category.toUpperCase().replace(/ /g, '_'),
+                        development_stage: inquiryForm.developmentStage.toUpperCase().replace(/ /g, '_'),
+                        needs: inquiryForm.needs,
+                        primary_focus: inquiryForm.primaryFocus,
+                        timeline: inquiryForm.timeline.includes('Immediate') ? 'IMMEDIATE' : inquiryForm.timeline.includes('3–6') ? '3_6_MONTHS' : inquiryForm.timeline.includes('6–12') ? '6_12_MONTHS' : 'EXPLORING',
+                        nda_preference: 'YES',
+                        legal_name: inquiryForm.legalName,
+                        signatory_name: inquiryForm.signatoryName,
+                        signatory_title: inquiryForm.signatoryTitle,
+                        corporate_address: inquiryForm.corporateAddress,
+                        status: 'NDA_REQUESTED'
+                      })
+                    });
+                    if(res.ok) setInquiryStep(5);
+                    else addToast({ type: 'error', message: 'Failed to submit' });
+                  } catch (e) {
+                    addToast({ type: 'error', message: 'Connection error' });
                   }
-                });
-              }} style={{ background: '#10b981', color: 'white', border: 'none', padding: '12px 24px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>Submit Inquiry</button>
+                }} 
+                style={{ background: '#2563eb', color: 'white', border: 'none', padding: '18px 48px', borderRadius: 16, fontWeight: 900, cursor: 'pointer', fontSize: 18 }}
+              >
+                Request NDA
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 4: PROJECT DETAILS (FULL QUALIFICATION) */}
+        {inquiryStep === 4 && (
+          <div style={{ animation: 'fadeIn 0.4s ease-out' }}>
+            <h2 style={{ fontSize: 32, fontWeight: 900, marginBottom: 12, color: 'white' }}>Tell Us More About Your Study</h2>
+            <p style={{ color: '#94a3b8', fontSize: 17, marginBottom: 32 }}>Expanded qualification to help our team prepare a detailed proposal.</p>
+
+            <div style={{ height: '450px', overflowY: 'auto', paddingRight: '12px', marginBottom: 32 }} className="custom-scroll">
+              <div style={{ marginBottom: 32 }}>
+                <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 16, textTransform: 'uppercase' }}>Study Type Needed</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
+                  {['Pilot Study', 'Randomized Controlled Trial', 'Mechanistic Study', 'Observational', 'Not Sure'].map(t => (
+                    <label key={t} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#0f172a', padding: '12px 16px', borderRadius: 12, border: '1px solid #334155', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={inquiryForm.studyTypeNeeded.includes(t)} onChange={() => setInquiryForm({...inquiryForm, studyTypeNeeded: inquiryForm.studyTypeNeeded.includes(t) ? inquiryForm.studyTypeNeeded.filter(x => x!==t) : [...inquiryForm.studyTypeNeeded, t]})} />
+                      <span style={{ fontSize: 15, color: '#f1f5f9' }}>{t}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Target Population</label>
+                  <input value={inquiryForm.targetPopulation} onChange={e => setInquiryForm({...inquiryForm, targetPopulation: e.target.value})} placeholder="e.g. Healthy Adults, Type 2 Diabetics" style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '14px', borderRadius: 10, outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Estimated Budget Range</label>
+                  <select value={inquiryForm.budgetRange} onChange={e => setInquiryForm({...inquiryForm, budgetRange: e.target.value})} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '14px', borderRadius: 10, outline: 'none' }}>
+                    {['<$100K', '$100K–$250K', '$250K–$500K', '$500K+', 'Prefer to Discuss'].map(b => <option key={b}>{b}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 32 }}>
+                <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 16, textTransform: 'uppercase' }}>Services Needed</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
+                  {[
+                    'Study Design & Protocol Development', 'IRB & Regulatory Support', 
+                    'Participant Recruitment', 'Clinical Site Execution', 
+                    'Central Laboratory Services', 'Microbiome / Omics Analysis', 
+                    'Biostatistics', 'End-to-End Study Management'
+                  ].map(s => (
+                    <label key={s} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#0f172a', padding: '12px 16px', borderRadius: 12, border: '1px solid #334155', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={inquiryForm.servicesNeeded.includes(s)} onChange={() => setInquiryForm({...inquiryForm, servicesNeeded: inquiryForm.servicesNeeded.includes(s) ? inquiryForm.servicesNeeded.filter(x => x!==s) : [...inquiryForm.servicesNeeded, s]})} />
+                      <span style={{ fontSize: 14, color: '#f1f5f9' }}>{s}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Project Description (Short Paragraph)*</label>
+                <textarea value={inquiryForm.projectDescription} onChange={e => setInquiryForm({...inquiryForm, projectDescription: e.target.value})} rows={4} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none' }} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button onClick={() => setInquiryStep(2)} style={{ background: 'transparent', color: '#94a3b8', border: 'none', fontWeight: 800, fontSize: 18, cursor: 'pointer' }}>← Back</button>
+              <button 
+                onClick={async () => {
+                  if(!inquiryForm.projectDescription) return addToast({ type: 'error', message: 'Project description is required' });
+                  try {
+                    const res = await authFetch(`${API}/api/study-inquiries/`, {
+                      method: 'POST',
+                      body: JSON.stringify({
+                        product_name: inquiryForm.productName,
+                        category: inquiryForm.category.toUpperCase().replace(/ /g, '_'),
+                        development_stage: inquiryForm.developmentStage.toUpperCase().replace(/ /g, '_'),
+                        needs: inquiryForm.needs,
+                        primary_focus: inquiryForm.primaryFocus,
+                        timeline: inquiryForm.timeline.includes('Immediate') ? 'IMMEDIATE' : inquiryForm.timeline.includes('3–6') ? '3_6_MONTHS' : inquiryForm.timeline.includes('6–12') ? '6_12_MONTHS' : 'EXPLORING',
+                        nda_preference: 'NO',
+                        study_type_needed: inquiryForm.studyTypeNeeded,
+                        target_population: inquiryForm.targetPopulation,
+                        budget_range: inquiryForm.budgetRange.replace(/<\$|K|\$|–|>|\+/g, '').replace(/ /g, '_').toUpperCase(),
+                        services_needed: inquiryForm.servicesNeeded,
+                        project_description: inquiryForm.projectDescription,
+                        status: 'QUALIFIED'
+                      })
+                    });
+                    if(res.ok) setInquiryStep(5);
+                    else addToast({ type: 'error', message: 'Submission failed' });
+                  } catch (e) { addToast({ type: 'error', message: 'Connection error' }); }
+                }} 
+                style={{ background: '#10b981', color: 'white', border: 'none', padding: '20px 48px', borderRadius: 16, fontWeight: 900, cursor: 'pointer', fontSize: 18, boxShadow: '0 10px 30px rgba(16,185,129,0.3)' }}
+              >
+                🚀 Request Consultation
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 5: SUCCESS / CONFIRMATION */}
+        {inquiryStep === 5 && (
+          <div style={{ animation: 'scaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)', textAlign: 'center', padding: '40px 0' }}>
+            <div style={{ fontSize: 80, marginBottom: 32 }}>🎊</div>
+            <h2 style={{ fontSize: 36, fontWeight: 900, marginBottom: 16, color: 'white' }}>Submission Received!</h2>
+            <p style={{ color: '#94a3b8', fontSize: 19, lineHeight: 1.6, marginBottom: 40 }}>
+              {inquiryForm.ndaPreference === 'YES' 
+                ? "Our legal team will send the Mutual NDA within 1–2 business days. Once executed, we will proceed with the detailed project review."
+                : "Our clinical development team will review your project and contact you within 2–3 business days."}
+            </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <button 
+                onClick={() => { window.open('https://calendly.com/musbresearch', '_blank'); }}
+                style={{ width: '100%', background: '#2563eb', color: 'white', border: 'none', padding: '20px', borderRadius: 16, fontWeight: 800, fontSize: 18, cursor: 'pointer' }}
+              >
+                👉 Schedule a Discovery Call Now
+              </button>
+              <button 
+                onClick={() => { setInquiryModalOpen(false); setInquiryStep(1); }} 
+                style={{ width: '100%', background: 'rgba(255,255,255,0.05)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)', padding: '16px', borderRadius: 16, fontWeight: 700, fontSize: 16, cursor: 'pointer' }}
+              >
+                Return to Dashboard
+              </button>
             </div>
           </div>
         )}

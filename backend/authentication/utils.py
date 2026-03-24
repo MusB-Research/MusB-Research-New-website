@@ -33,26 +33,36 @@ from django.utils.html import strip_tags
 
 def send_resend_email(to_email, subject, html_content):
     """
-    Sends an email using Django's standard email system.
-    This works with any provider (Resend, SendGrid, SMTP) via settings.py.
-    In DEBUG mode, it prints to the console. In production, it uses SMTP.
+    Sends an email using the Resend API directly.
+    In DEBUG mode, it still prints to the console if no API KEY is found,
+    but primarily uses the resend library for production/staging.
     """
     try:
-        from_email = settings.DEFAULT_FROM_EMAIL
-        plain_message = strip_tags(html_content)
-        
-        send_mail(
-            subject=subject,
-            message=plain_message,
-            from_email=from_email,
-            recipient_list=[to_email],
-            html_message=html_content,
-            fail_silently=False,
-        )
+        if not resend.api_key:
+            logger.warning("RESEND_API_KEY not configured. Falling back to Django mail console/SMTP.")
+            from_email = settings.DEFAULT_FROM_EMAIL
+            plain_message = strip_tags(html_content)
+            send_mail(
+                subject=subject,
+                message=plain_message,
+                from_email=from_email,
+                recipient_list=[to_email],
+                html_message=html_content,
+                fail_silently=False,
+            )
+            return True
+
+        params = {
+            "from": settings.DEFAULT_FROM_EMAIL,
+            "to": [to_email],
+            "subject": subject,
+            "html": html_content,
+        }
+
+        resend.Emails.send(params)
         return True
     except Exception as e:
-        logger.error(f"Failed to send email to {to_email}: {str(e)}")
-        # In DEBUG mode, even with the console backend, errors can occur if settings are corrupt.
+        logger.error(f"Resend API error sending email to {to_email}: {str(e)}")
         return False
 
 def generate_token():

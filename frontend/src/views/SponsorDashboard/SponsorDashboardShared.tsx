@@ -194,7 +194,11 @@ export const downloadFile = (content: string, filename: string, type='text/plain
   const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = filename; a.click();
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
 };
 
@@ -239,10 +243,10 @@ export const Modal = ({ open, onClose, title, subtitle, children, width='680px' 
         style={{ background:'#1e293b', borderRadius:16, border:'1px solid #334155', maxHeight:'90vh', display:'flex', flexDirection:'column', width, maxWidth:'95vw' }} 
         onClick={e => e.stopPropagation()}
       >
-        <div style={{ padding:'20px 24px', borderBottom:'1px solid #334155', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+        <div style={{ padding:'32px 40px', borderBottom:'1px solid #334155', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <div>
-            <h3 style={{ margin:0, fontSize:18, fontWeight:700, color:'#f1f5f9' }}>{title}</h3>
-            {subtitle && <p style={{ margin:'4px 0 0 0', fontSize:13, color:'#94a3b8' }}>{subtitle}</p>}
+            <h3 style={{ margin:0, fontSize:32, fontWeight:900, color:'#f1f5f9', letterSpacing: '-0.04em', lineHeight: 1.1 }}>{title}</h3>
+            {subtitle && <p style={{ margin:'12px 0 0 0', fontSize:18, color:'#94a3b8', fontWeight: 600 }}>{subtitle}</p>}
           </div>
           <button onClick={onClose} style={{ background:'none', border:'none', color:'#64748b', cursor:'pointer', fontSize:24 }}>×</button>
         </div>
@@ -255,13 +259,38 @@ export const Modal = ({ open, onClose, title, subtitle, children, width='680px' 
 export const ConfirmModal = ({ confirmModal, setConfirmModal }: any) => {
   if (!confirmModal) return null;
   return (
-    <Modal open={true} onClose={() => setConfirmModal(null)} title={confirmModal.title || "Confirm Action"} width="440px">
-      <p style={{ margin:'0 0 24px 0', fontSize:14, color:'#94a3b8' }}>{confirmModal.message}</p>
-      <div style={{ display:'flex', justifyContent:'flex-end', gap:10 }}>
-        <button onClick={() => setConfirmModal(null)} style={{ background:'transparent', border:'1px solid #334155', color:'#f1f5f9', borderRadius:8, padding:'8px 16px', fontWeight:600, cursor:'pointer' }}>Cancel</button>
-        <button onClick={() => { confirmModal.onConfirm(); setConfirmModal(null); }} style={{ background:confirmModal.confirmColor || '#2563eb', border:'none', color:'white', borderRadius:8, padding:'8px 16px', fontWeight:600, cursor:'pointer' }}>{confirmModal.confirmLabel || 'Confirm'}</button>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: 20 }}>
+      <div style={{ background: '#1e293b', width: '100%', maxWidth: 440, borderRadius: 24, padding: 32, border: '1px solid #334155', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+        <h3 style={{ margin: '0 0 12px 0', fontSize: 24, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.02em' }}>{confirmModal.title}</h3>
+        <p style={{ margin: '0 0 32px 0', color: '#94a3b8', lineHeight: 1.6, fontSize: 16, fontWeight: 500 }}>{confirmModal.message}</p>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          {confirmModal.buttons ? (
+            <>
+              {confirmModal.buttons.map((btn: any, i: number) => (
+                <button 
+                  key={i} 
+                  onClick={() => { btn.onClick(); setConfirmModal(null); }} 
+                  style={{ background: btn.color || 'transparent', border: btn.color ? 'none' : '1px solid #334155', color: btn.color ? 'white' : '#94a3b8', padding: '12px 24px', borderRadius: 12, cursor: 'pointer', fontWeight: 700, fontSize: 15, transition: 'all 0.2s' }}
+                >
+                  {btn.label}
+                </button>
+              ))}
+              <button onClick={() => setConfirmModal(null)} style={{ background: 'transparent', border: '1px solid #334155', color: '#94a3b8', padding: '12px 24px', borderRadius: 12, cursor: 'pointer', fontWeight: 700, fontSize: 15 }}>Cancel</button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => setConfirmModal(null)} style={{ background: 'transparent', border: '1px solid #334155', color: '#94a3b8', padding: '12px 24px', borderRadius: 12, cursor: 'pointer', fontWeight: 700, fontSize: 15 }}>Cancel</button>
+              <button 
+                onClick={() => { confirmModal.onConfirm?.(); setConfirmModal(null); }} 
+                style={{ background: confirmModal.confirmColor || '#2563eb', color: 'white', border: 'none', padding: '12px 24px', borderRadius: 12, cursor: 'pointer', fontWeight: 700, fontSize: 15, boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}
+              >
+                {confirmModal.confirmLabel || 'Confirm'}
+              </button>
+            </>
+          )}
+        </div>
       </div>
-    </Modal>
+    </div>
   );
 };
 
@@ -283,7 +312,7 @@ export const statusColors: Record<string, {bg:string, color:string}> = {
 export const StatusBadge = ({ status }: { status: string }) => {
   const s = statusColors[status] || { bg:'rgba(100,116,139,0.15)', color:'#94a3b8' };
   return (
-    <span style={{ background:s.bg, color:s.color, padding:'4px 10px', borderRadius:999, fontSize:11, fontWeight:600, whiteSpace:'nowrap' }}>
+    <span style={{ background:s.bg, color:s.color, padding:'6px 14px', borderRadius:999, fontSize:13, fontWeight:800, whiteSpace:'nowrap', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
       {status}
     </span>
   );
@@ -308,9 +337,9 @@ export const ProgressRing = ({ pct, width=40, stroke=4 }: any) => {
 
 export const PillButton = ({ active, children, onClick }: any) => (
   <button onClick={onClick} style={{ 
-    background: active ? '#2563eb' : 'transparent', color: active ? '#fff' : '#64748b',
+    background: active ? '#2563eb' : 'transparent', color: active ? '#fff' : '#94a3b8',
     border: active ? '1px solid #2563eb' : '1px solid #334155',
-    borderRadius: 999, padding: '5px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
+    borderRadius: 999, padding: '8px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', letterSpacing: '0.02em'
   }}>{children}</button>
 );
 

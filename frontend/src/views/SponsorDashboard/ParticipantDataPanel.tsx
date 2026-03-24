@@ -44,6 +44,7 @@ export default function ParticipantDataPanel({ protocols, addToast, windowWidth 
   const [drawerParticipantId, setDrawerParticipantId] = useState<any>(null);
   const [drawerTab, setDrawerTab] = useState('Overview');
   const [reportFormat, setReportFormat] = useState('PDF');
+  const [confirmModal, setConfirmModal] = useState<any>(null);
 
   const selectedStudy = useMemo(() => protocols.find((p:any) => p.id === selectedStudyId), [protocols, selectedStudyId]);
 
@@ -75,20 +76,22 @@ export default function ParticipantDataPanel({ protocols, addToast, windowWidth 
 
   if (!selectedStudyId) {
     return (
-      <div style={{ padding: 24, maxWidth: 1280, margin: '0 auto', color: '#f1f5f9', minHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ borderBottom: '1px solid #334155', paddingBottom: 16, marginBottom: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1 style={{ margin: 0, fontWeight: 800, fontSize: 24, color: '#f1f5f9' }}>Participant Progress Report</h1>
-            <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Sponsor Portal → Participant Progress Report</div>
-          </div>
-          <div style={{ background: 'rgba(255,255,255,0.05)', padding: '6px 16px', borderRadius: 999, fontSize: 13, fontWeight: 700 }}>{SPONSOR.id}</div>
+      <div style={{ padding: '48px 64px', maxWidth: '100%', margin: '0 auto', color: '#f1f5f9', animation: 'fadeIn 0.5s ease-out' }}>
+      
+      {/* Header Section */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 56 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 48, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.03em' }}>Participant Insights</h1>
+          <p style={{ margin: '16px 0 0 0', color: '#cbd5e1', fontSize: 20, fontWeight: 500 }}>Real-time recruitment tracking and de-identified subject data.</p>
+        </div>
+          <div style={{ background: '#1e293b', border: '2px solid #334155', padding: '12px 24px', borderRadius: 16, fontSize: 15, fontWeight: 800, color: '#94a3b8', letterSpacing: '0.05em' }}>{SPONSOR.id}</div>
         </div>
         
-        <div style={{ margin: 'auto', background: '#1e293b', borderRadius: 16, border: '1px solid #334155', padding: 40, textAlign: 'center', maxWidth: 480, width: '100%' }}>
-          <div style={{ fontSize: 64, color: '#2563eb', marginBottom: 24 }}>📈</div>
-          <h2 style={{ margin: '0 0 8px 0', fontWeight: 700, fontSize: 20 }}>Select a Study to View Data</h2>
-          <p style={{ color: '#94a3b8', fontSize: 14, margin: '0 0 32px 0' }}>Access de-identified participant datasets and visual analytics for your active protocols.</p>
-          <select value={studySelectValue} onChange={e => setStudySelectValue(e.target.value)} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '14px', borderRadius: 8, outline: 'none', marginBottom: 24, boxSizing: 'border-box' }}>
+        <div style={{ margin: 'auto', background: '#1e293b', borderRadius: 32, border: '1px solid #334155', padding: '80px 64px', textAlign: 'center', maxWidth: 720, width: '100%', boxShadow: '0 30px 60px rgba(0,0,0,0.4)' }}>
+          <div style={{ fontSize: 100, color: '#2563eb', marginBottom: 40 }}>📈</div>
+          <h2 style={{ margin: '0 0 24px 0', fontWeight: 900, fontSize: 42, letterSpacing: '-0.03em', color: '#f1f5f9' }}>Select a Study to View Data</h2>
+          <p style={{ color: '#94a3b8', fontSize: 22, margin: '0 0 56px 0', lineHeight: 1.6, fontWeight: 500 }}>Access de-identified participant datasets and visual analytics for your active protocols.</p>
+          <select value={studySelectValue} onChange={e => setStudySelectValue(e.target.value)} style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: '#f1f5f9', padding: '24px 32px', borderRadius: 20, outline: 'none', marginBottom: 40, boxSizing: 'border-box', fontSize: 20, fontWeight: 700, cursor: 'pointer', appearance: 'none' }}>
             <option value="">-- Choose a Study --</option>
             {protocols.map((p:any) => <option key={p.id} value={p.id}>{p.id} — {p.title}</option>)}
           </select>
@@ -97,8 +100,8 @@ export default function ParticipantDataPanel({ protocols, addToast, windowWidth 
             setSelectedStudyId(studySelectValue);
             setParticipants(generateParticipants(studySelectValue));
             setCurrentPage(1);
-          }} style={{ width: '100%', background: '#2563eb', color: 'white', border: 'none', padding: '14px', borderRadius: 8, fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>View Participant Data</button>
-          <div style={{ marginTop: 24, fontSize: 11, color: '#64748b' }}>🔒 All data is de-identified in compliance with HIPAA.</div>
+          }} style={{ width: '100%', background: '#2563eb', color: 'white', border: 'none', padding: '24px', borderRadius: 20, fontWeight: 900, fontSize: 22, cursor: 'pointer', transition: 'all 0.4s', boxShadow: '0 15px 40px rgba(37, 99, 235, 0.3)', transform: 'translateY(0)' }}>View Participant Data →</button>
+          <div style={{ marginTop: 48, fontSize: 15, color: '#64748b', fontWeight: 800, letterSpacing: '0.02em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>🔒 <span style={{ opacity: 0.8 }}>All data is de-identified in compliance with HIPAA.</span></div>
         </div>
       </div>
     );
@@ -107,32 +110,32 @@ export default function ParticipantDataPanel({ protocols, addToast, windowWidth 
   const pDetail = participants.find(p => p.id === drawerParticipantId);
 
   return (
-    <div style={{ padding: 24, maxWidth: 1280, margin: '0 auto', color: '#f1f5f9', position: 'relative' }}>
+    <div style={{ padding: '40px 60px', maxWidth: '100%', margin: '0 auto', color: '#f1f5f9', position: 'relative' }}>
       
       {/* Sticky Header */}
-      <div style={{ position: 'sticky', top: 57, background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: '16px 24px', zIndex: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      <div style={{ position: 'sticky', top: 57, background: '#1e293b', border: '1px solid #334155', borderRadius: 20, padding: '24px 32px', zIndex: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32, boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
         <div>
-          <h2 style={{ margin: 0, fontWeight: 800, fontSize: 20 }}>{selectedStudy.title}</h2>
-          <div style={{ fontFamily: 'monospace', fontSize: 13, color: '#64748b', marginTop: 4 }}>{selectedStudy.id}</div>
+          <h2 style={{ margin: 0, fontWeight: 800, fontSize: 26, color: '#f1f5f9', letterSpacing: '-0.02em' }}>{selectedStudy.title}</h2>
+          <div style={{ fontFamily: 'monospace', fontSize: 15, color: '#64748b', marginTop: 8 }}>{selectedStudy.id}</div>
         </div>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600, marginBottom: 6 }}>Enrolled: {selectedStudy.enrollment.current} / {selectedStudy.enrollment.target}</div>
-          <div style={{ width: 140, height: 6, background: '#334155', borderRadius: 999 }}>
-            <div style={{ background: '#2563eb', height: 6, width: `${(selectedStudy.enrollment.current/selectedStudy.enrollment.target)*100}%`, borderRadius: 999 }} />
+          <div style={{ fontSize: 14, color: '#94a3b8', fontWeight: 700, marginBottom: 10 }}>Enrolled: {selectedStudy.enrollment.current} / {selectedStudy.enrollment.target}</div>
+          <div style={{ width: 220, height: 10, background: '#334155', borderRadius: 999 }}>
+            <div style={{ background: '#2563eb', height: 10, width: `${(selectedStudy.enrollment.current/selectedStudy.enrollment.target)*100}%`, borderRadius: 999 }} />
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
           <StatusBadge status={selectedStudy.status} />
-          <button onClick={() => { setSelectedStudyId(null); setParticipants([]); }} style={{ background: 'none', border: 'none', color: '#3b82f6', fontWeight: 600, cursor: 'pointer', padding: 0 }}>← Change Study</button>
+          <button onClick={() => { setSelectedStudyId(null); setParticipants([]); }} style={{ background: 'none', border: 'none', color: '#3b82f6', fontWeight: 800, cursor: 'pointer', padding: 0, fontSize: 15 }}>← Change Study</button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '1px solid #334155', paddingBottom: 12 }}>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 48, borderBottom: '2px solid #334155', paddingBottom: 20 }}>
         {['Table View', 'Visual Insights', 'Export & Report'].map(t => {
           const id = t.toLowerCase().split(' ')[0];
           return (
-            <button key={id} onClick={() => setActiveTab(id)} style={{ background: activeTab === id ? '#2563eb' : 'transparent', color: activeTab === id ? 'white' : '#64748b', border: 'none', padding: '10px 20px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>
+            <button key={id} onClick={() => setActiveTab(id)} style={{ background: activeTab === id ? '#2563eb' : 'transparent', color: activeTab === id ? 'white' : '#94a3b8', border: 'none', padding: '16px 32px', borderRadius: 16, fontWeight: 900, cursor: 'pointer', fontSize: 17, transition: 'all 0.2s' }}>
               {t}
             </button>
           )
@@ -141,25 +144,32 @@ export default function ParticipantDataPanel({ protocols, addToast, windowWidth 
 
       {activeTab === 'table' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, padding: 16, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search ID..." style={{ flex: 1, minWidth: 150, background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '10px 14px', borderRadius: 8, outline: 'none' }} />
-            <select value={filterArm} onChange={e => setFilterArm(e.target.value)} style={{ background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '10px 14px', borderRadius: 8, outline: 'none' }}>
-               <option>All</option><option>Intervention</option><option>Control</option><option>Placebo</option>
+          <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 20, padding: 24, display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
+            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search by Participant ID..." style={{ flex: 1, minWidth: 250, background: '#0f172a', border: '2px solid #334155', color: '#f1f5f9', padding: '16px 20px', borderRadius: 14, outline: 'none', fontSize: 17, fontWeight: 500 }} />
+            <select value={filterArm} onChange={e => setFilterArm(e.target.value)} style={{ background: '#0f172a', border: '2px solid #334155', color: '#f1f5f9', padding: '16px 20px', borderRadius: 14, outline: 'none', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
+               <option>All Arms</option><option>Intervention</option><option>Control</option><option>Placebo</option>
             </select>
-            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '10px 14px', borderRadius: 8, outline: 'none' }}>
-               <option>All</option><option>Active</option><option>Screening</option><option>Completed</option><option>Withdrawn</option>
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ background: '#0f172a', border: '2px solid #334155', color: '#f1f5f9', padding: '16px 20px', borderRadius: 14, outline: 'none', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
+               <option>All Statuses</option><option>Active</option><option>Screening</option><option>Completed</option><option>Withdrawn</option>
             </select>
-            <div style={{ background: '#334155', width: 1, height: 24, margin: '0 4px' }} />
+            <div style={{ background: '#334155', width: 2, height: 32, margin: '0 8px' }} />
             <button onClick={() => {
-              const csv = 'Participant ID,Age,Gender,Study Arm,Status,Visits Completed,Compliance %,Last Visit\n' + 
-                filteredParticipants.map(p => `${p.id},${p.age},${p.gender},${p.arm},${p.status},${p.visitsCompleted}/${p.totalVisits},${p.compliance}%,${p.lastVisit}`).join('\n');
-              downloadCSV(csv, `${selectedStudyId}_participants.csv`);
-              addToast({ type: 'success', message: 'CSV exported successfully' });
-            }} style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)', padding: '10px 16px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>Export CSV</button>
-            <button onClick={() => {
-              downloadFile('HTML PDF PLACEHOLDER CONTENT', `${selectedStudyId}_report.txt`);
-              addToast({ type: 'success', message: 'PDF report triggered' });
-            }} style={{ background: 'rgba(37,99,235,0.1)', color: '#60a5fa', border: '1px solid rgba(37,99,235,0.3)', padding: '10px 16px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>Export PDF</button>
+              setConfirmModal({
+                title: 'Export Participant Data',
+                message: 'Select the primary format for the participant dataset export.',
+                buttons: [
+                  { label: 'Export PDF', color: '#2563eb', onClick: () => { downloadFile('PDF Data', `${selectedStudyId}_participants.pdf`, 'application/pdf'); addToast({ type: 'success', message: 'PDF generated' }); } },
+                  { label: 'Export CSV', color: '#10b981', onClick: () => { 
+                    const csv = 'Participant ID,Age,Gender,Study Arm,Status,Visits Completed,Compliance %,Last Visit\n' + 
+                      filteredParticipants.map(p => `${p.id},${p.age},${p.gender},${p.arm},${p.status},${p.visitsCompleted}/${p.totalVisits},${p.compliance}%,${p.lastVisit}`).join('\n');
+                    downloadCSV(csv, `${selectedStudyId}_participants.csv`);
+                    addToast({ type: 'success', message: 'CSV exported successfully' });
+                  } }
+                ]
+              });
+            }} style={{ background: '#2563eb', color: 'white', border: 'none', padding: '16px 32px', borderRadius: 14, fontWeight: 900, cursor: 'pointer', fontSize: 16, boxShadow: '0 8px 20px rgba(37,99,235,0.2)' }}>
+              Export Dataset →
+            </button>
           </div>
 
           <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 12, overflow: 'hidden' }}>
@@ -169,7 +179,7 @@ export default function ParticipantDataPanel({ protocols, addToast, windowWidth 
                   {['Participant ID', 'Age', 'Gender', 'Study Arm', 'Status', 'Visits Completed', 'Compliance %', 'Last Visit'].map((h, i) => {
                     const col = ['id', 'age', 'gender', 'arm', 'status', 'visitsCompleted', 'compliance', 'lastVisit'][i];
                     return (
-                      <th key={col} onClick={() => handleSort(col)} style={{ padding: '14px 16px', fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                      <th key={col} onClick={() => handleSort(col)} style={{ padding: '18px 24px', fontSize: 14, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.05em' }}>
                         {h} {sortColumn === col ? (sortDir === 'asc' ? '▲' : '▼') : ''}
                       </th>
                     )
@@ -178,15 +188,15 @@ export default function ParticipantDataPanel({ protocols, addToast, windowWidth 
               </thead>
               <tbody>
                 {paginatedParticipants.map((p:any) => (
-                  <tr key={p.id} onClick={() => { setDrawerParticipantId(p.id); setDrawerTab('Overview'); setDrawerOpen(true); }} style={{ borderBottom: '1px solid #334155', cursor: 'pointer' }}>
-                    <td style={{ padding: '14px 16px', fontSize: 13, fontFamily: 'monospace', color: '#f1f5f9' }}>{p.id}</td>
-                    <td style={{ padding: '14px 16px', fontSize: 14 }}>{p.age}</td>
-                    <td style={{ padding: '14px 16px', fontSize: 13, color: '#94a3b8' }}>{p.gender}</td>
-                    <td style={{ padding: '14px 16px', fontSize: 13, color: '#f1f5f9' }}>{p.arm}</td>
-                    <td style={{ padding: '14px 16px' }}><StatusBadge status={p.status} /></td>
-                    <td style={{ padding: '14px 16px', fontSize: 13 }}>{p.visitsCompleted} / {p.totalVisits}</td>
-                    <td style={{ padding: '14px 16px', fontSize: 13, color: p.compliance >= 80 ? '#10b981' : p.compliance >= 60 ? '#f59e0b' : '#ef4444', fontWeight: 600 }}>{p.compliance}%</td>
-                    <td style={{ padding: '14px 16px', fontSize: 13, color: '#64748b' }}>{p.lastVisit}</td>
+                  <tr key={p.id} onClick={() => { setDrawerParticipantId(p.id); setDrawerTab('Overview'); setDrawerOpen(true); }} style={{ borderBottom: '1px solid #334155', cursor: 'pointer', transition: 'background 0.2s' }}>
+                    <td style={{ padding: '18px 24px', fontSize: 18, fontFamily: 'monospace', color: '#f1f5f9', fontWeight: 600 }}>{p.id}</td>
+                    <td style={{ padding: '18px 24px', fontSize: 18 }}>{p.age}</td>
+                    <td style={{ padding: '18px 24px', fontSize: 18, color: '#94a3b8' }}>{p.gender}</td>
+                    <td style={{ padding: '18px 24px', fontSize: 18, color: '#f1f5f9', fontWeight: 600 }}>{p.arm}</td>
+                    <td style={{ padding: '18px 24px' }}><StatusBadge status={p.status} /></td>
+                    <td style={{ padding: '18px 24px', fontSize: 18, fontWeight: 600 }}>{p.visitsCompleted} / {p.totalVisits}</td>
+                    <td style={{ padding: '18px 24px', fontSize: 18, color: p.compliance >= 80 ? '#10b981' : p.compliance >= 60 ? '#f59e0b' : '#ef4444', fontWeight: 800 }}>{p.compliance}%</td>
+                    <td style={{ padding: '18px 24px', fontSize: 17, color: '#64748b' }}>{p.lastVisit}</td>
                   </tr>
                 ))}
               </tbody>
@@ -284,50 +294,50 @@ export default function ParticipantDataPanel({ protocols, addToast, windowWidth 
       {drawerOpen && pDetail && (
         <React.Fragment>
           <div onClick={() => setDrawerOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 490 }} />
-          <div style={{ position: 'fixed', right: 0, top: 0, height: '100vh', width: 420, overflowY: 'auto', background: '#1e293b', borderLeft: '1px solid #334155', zIndex: 500, boxShadow: '-4px 0 24px rgba(0,0,0,0.5)' }}>
+          <div style={{ position: 'fixed', right: 0, top: 0, height: '100vh', width: 480, overflowY: 'auto', background: '#1e293b', borderLeft: '1px solid #334155', zIndex: 500, boxShadow: '-4px 0 24px rgba(0,0,0,0.5)' }}>
             
-            <div style={{ padding: 24, borderBottom: '1px solid #334155', position: 'sticky', top: 0, background: '#1e293b', zIndex: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <h3 style={{ margin: 0, fontSize: 20, color: '#f1f5f9', fontFamily: 'monospace' }}>{pDetail.id}</h3>
-                <button onClick={() => setDrawerOpen(false)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 24, cursor: 'pointer' }}>×</button>
+            <div style={{ padding: 32, borderBottom: '1px solid #334155', position: 'sticky', top: 0, background: '#1e293b', zIndex: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h3 style={{ margin: 0, fontSize: 24, color: '#f1f5f9', fontFamily: 'monospace', fontWeight: 700 }}>{pDetail.id}</h3>
+                <button onClick={() => setDrawerOpen(false)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 32, cursor: 'pointer', lineHeight: 1 }}>×</button>
               </div>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
                 <StatusBadge status={pDetail.status} />
-                <span style={{ background: '#334155', color: '#f1f5f9', padding: '4px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600 }}>{pDetail.arm}</span>
+                <span style={{ background: '#334155', color: '#f1f5f9', padding: '6px 14px', borderRadius: 999, fontSize: 13, fontWeight: 800, textTransform: 'uppercase' }}>{pDetail.arm}</span>
               </div>
-              <div style={{ background: 'rgba(245,158,11,0.1)', borderLeft: '3px solid #f59e0b', padding: '8px 12px', borderRadius: 4, fontSize: 12, color: '#fcd34d', fontWeight: 600 }}>
-                🔒 De-identified view — no personal identifiers displayed
+              <div style={{ background: 'rgba(245,158,11,0.1)', borderLeft: '4px solid #f59e0b', padding: '12px 16px', borderRadius: 8, fontSize: 14, color: '#fcd34d', fontWeight: 800 }}>
+                🔒 De-identified view — HIPAA Compliant
               </div>
             </div>
 
-            <div style={{ display: 'flex', borderBottom: '1px solid #334155' }}>
+            <div style={{ display: 'flex', borderBottom: '2px solid #334155' }}>
               {['Overview', 'Visits', 'Questionnaires'].map(tab => (
-                <button key={tab} onClick={() => setDrawerTab(tab)} style={{ flex: 1, background: 'none', border: 'none', padding: '14px', borderBottom: drawerTab === tab ? '2px solid #2563eb' : '2px solid transparent', color: drawerTab === tab ? '#2563eb' : '#94a3b8', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>{tab}</button>
+                <button key={tab} onClick={() => setDrawerTab(tab)} style={{ flex: 1, background: 'none', border: 'none', padding: '18px', borderBottom: drawerTab === tab ? '3px solid #2563eb' : '3px solid transparent', color: drawerTab === tab ? '#2563eb' : '#94a3b8', fontWeight: 800, fontSize: 15, cursor: 'pointer', transition: 'all 0.2s' }}>{tab}</button>
               ))}
             </div>
 
-            <div style={{ padding: 24 }}>
+            <div style={{ padding: 32 }}>
               {drawerTab === 'Overview' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <div><div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Age</div><div style={{ color: '#f1f5f9', fontWeight: 600 }}>{pDetail.age}</div></div>
-                    <div><div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Gender</div><div style={{ color: '#f1f5f9', fontWeight: 600 }}>{pDetail.gender}</div></div>
-                    <div><div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Enrollment Date</div><div style={{ color: '#f1f5f9', fontWeight: 600 }}>{pDetail.enrollmentDate}</div></div>
-                    <div><div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Assigned Site</div><div style={{ color: '#f1f5f9', fontWeight: 600 }}>{pDetail.site}</div></div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                    <div><div style={{ fontSize: 13, color: '#64748b', marginBottom: 6, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Age</div><div style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 18 }}>{pDetail.age}</div></div>
+                    <div><div style={{ fontSize: 13, color: '#64748b', marginBottom: 6, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Gender</div><div style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 18 }}>{pDetail.gender}</div></div>
+                    <div><div style={{ fontSize: 13, color: '#64748b', marginBottom: 6, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Enrollment Date</div><div style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 18 }}>{pDetail.enrollmentDate}</div></div>
+                    <div><div style={{ fontSize: 13, color: '#64748b', marginBottom: 6, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Assigned Site</div><div style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 18 }}>{pDetail.site}</div></div>
                   </div>
 
                   {pDetail.aeCount > 0 && (
-                    <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid #ef4444', color: '#ef4444', padding: '12px', borderRadius: 8, fontSize: 13, fontWeight: 600 }}>
-                      ⚠ {pDetail.aeCount} Adverse Event(s) Reported
+                    <div style={{ background: 'rgba(239,68,68,0.1)', border: '2px solid #ef4444', color: '#ef4444', padding: '16px', borderRadius: 12, fontSize: 15, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 12 }}>
+                      ⚠ <span>{pDetail.aeCount} Adverse Event(s) Reported</span>
                     </div>
                   )}
 
-                  <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, padding: 16 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#94a3b8', marginBottom: 8, fontWeight: 600 }}>
-                      <span>Protocol Compliance</span>
+                  <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 12, padding: 24 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: '#94a3b8', marginBottom: 12, fontWeight: 800, letterSpacing: '0.05em' }}>
+                      <span>PROTOCOL COMPLIANCE</span>
                       <span style={{ color: pDetail.compliance >= 80 ? '#10b981' : '#f59e0b' }}>{pDetail.compliance}%</span>
                     </div>
-                    <div style={{ height: 6, background: '#1e293b', borderRadius: 999 }}>
+                    <div style={{ height: 10, background: '#1e293b', borderRadius: 999 }}>
                       <div style={{ width: `${pDetail.compliance}%`, height: '100%', background: pDetail.compliance >= 80 ? '#10b981' : '#f59e0b', borderRadius: 999 }} />
                     </div>
                   </div>
@@ -335,34 +345,34 @@ export default function ParticipantDataPanel({ protocols, addToast, windowWidth 
                   <button onClick={() => {
                      downloadCSV(`Data for ${pDetail.id}\nAge,${pDetail.age}`, `${pDetail.id}_data.csv`);
                      addToast({ type: 'success', message: 'Participant data exported' });
-                  }} style={{ width: '100%', background: 'transparent', border: '1px solid #334155', color: '#f1f5f9', padding: '12px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>Export Participant Summary (CSV)</button>
+                  }} style={{ width: '100%', background: 'transparent', border: '2px solid #334155', color: '#f1f5f9', padding: '16px', borderRadius: 12, fontWeight: 800, cursor: 'pointer', fontSize: 15, transition: 'all 0.2s' }}>Export Participant Summary (CSV)</button>
                 </div>
               )}
 
               {drawerTab === 'Visits' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                   {pDetail.visits.map((v:any, i:number) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16, borderBottom: '1px solid #334155', paddingBottom: 16 }}>
-                      <div style={{ width: 12, height: 12, borderRadius: '50%', background: v.status === 'Completed' ? '#10b981' : v.status === 'Missed' ? '#ef4444' : '#f59e0b' }} />
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 20, borderBottom: '1px solid #334155', paddingBottom: 20 }}>
+                      <div style={{ width: 14, height: 14, borderRadius: '50%', background: v.status === 'Completed' ? '#10b981' : v.status === 'Missed' ? '#ef4444' : '#f59e0b', boxShadow: `0 0 10px ${v.status==='Completed'?'rgba(16,185,129,0.3)':'transparent'}` }} />
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, color: '#f1f5f9', fontSize: 14 }}>{v.name}</div>
-                        <div style={{ color: '#94a3b8', fontSize: 13 }}>{v.date}</div>
+                        <div style={{ fontWeight: 800, color: '#f1f5f9', fontSize: 17 }}>{v.name}</div>
+                        <div style={{ color: '#64748b', fontSize: 14, fontWeight: 500, marginTop: 4 }}>{v.date}</div>
                       </div>
-                      <span style={{ fontSize: 12, color: v.status === 'Completed' ? '#10b981' : '#ef4444', fontWeight: 600 }}>{v.status}</span>
+                      <span style={{ fontSize: 13, color: v.status === 'Completed' ? '#10b981' : '#ef4444', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{v.status}</span>
                     </div>
                   ))}
                 </div>
               )}
 
               {drawerTab === 'Questionnaires' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                   {pDetail.scores.map((q:any, i:number) => (
-                    <div key={i} style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, padding: 16 }}>
-                      <div style={{ fontWeight: 600, color: '#f1f5f9', marginBottom: 12 }}>{q.name}</div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#94a3b8' }}>
-                         <div>Baseline: <strong style={{color:'#f1f5f9'}}>{q.baseline}</strong></div>
-                         <div>Latest: <strong style={{color:'#f1f5f9'}}>{q.latest}</strong></div>
-                         <div>Δ <strong style={{color:'#2563eb'}}>{(q.latest - q.baseline).toFixed(1)}</strong></div>
+                    <div key={i} style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 12, padding: 20 }}>
+                      <div style={{ fontWeight: 900, color: '#f1f5f9', marginBottom: 16, fontSize: 16, letterSpacing: '-0.01em' }}>{q.name}</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: '#94a3b8', fontWeight: 700 }}>
+                         <div>Baseline: <strong style={{color:'#f1f5f9', fontSize: 16}}>{q.baseline}</strong></div>
+                         <div>Latest: <strong style={{color:'#f1f5f9', fontSize: 16}}>{q.latest}</strong></div>
+                         <div style={{ background: 'rgba(37,99,235,0.1)', padding: '4px 10px', borderRadius: 6 }}>Δ <strong style={{color:'#60a5fa', fontSize: 16}}>{(q.latest - q.baseline).toFixed(1)}</strong></div>
                       </div>
                     </div>
                   ))}
@@ -373,6 +383,7 @@ export default function ParticipantDataPanel({ protocols, addToast, windowWidth 
         </React.Fragment>
       )}
 
+      <ConfirmModal confirmModal={confirmModal} setConfirmModal={setConfirmModal} />
     </div>
   );
 }

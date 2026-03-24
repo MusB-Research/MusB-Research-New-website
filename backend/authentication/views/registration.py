@@ -63,7 +63,7 @@ def invite_team_member(request):
     """Invite for specific roles like Sponsor Manager, PI, Coordinator etc."""
     admin = request.user
     target_email = request.data.get('email')
-    role = request.data.get('role', 'SPONSOR_MANAGER')
+    role = request.data.get('role', 'sponsor')
     organization = request.data.get('organization') or admin.organization
     
     if not target_email:
@@ -274,18 +274,18 @@ def list_team_members(request):
     users = User.objects.filter(organization=org).exclude(id=admin.id)
     
     # Get pending invitations
-    invites = Invitation.objects.filter(organization=org, is_used=False)
+    invites = Invitation.objects.filter(organization=org, is_accepted=False)
 
     members = []
     
     # Add active users
     for u in users:
         members.append({
-            'name': f"{u.first_name} {u.last_name}".strip() if (u.first_name or u.last_name) else u.email.split('@')[0],
+            'name': f"{decrypt_data(u.first_name)} {decrypt_data(u.last_name)}".strip() if (u.first_name or u.last_name) else u.email.split('@')[0],
             'email': u.email,
             'role': u.role or 'Sponsor Member',
             'status': 'ACTIVE',
-            'id': u.id
+            'id': str(u.id)
         })
         
     # Add pending invites
@@ -299,3 +299,39 @@ def list_team_members(request):
         })
         
     return Response(members)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def resend_invitation(request, invitation_id):
+    """Resend a pending invitation."""
+    admin = request.user
+    org = admin.organization
+    
+    if invitation_id.startswith('inv-'):
+        invitation_id = invitation_id[4:]
+        
+    invitation = Invitation.objects.filter(id=invitation_id, organization=org, is_accepted=False).first()
+    if not invitation:
+        return Response({'error': 'Invitation not found or already accepted'}, status=status.HTTP_404_NOT_FOUND)
+        
+    invitation.token = str(uuid.uuid4())
+    invitation.expires_at = now() + timedelta(days=7)
+    invitation.save()
+    
+    setup_link = f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/setup-credentials?token={invitation.token}"
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #1e293b; border-radius: 10px; background-color: #0B101B; color: white;">
+        <h2 style="color: #f59e0b;">MusB Research - Team Invitation (Resent)</h2>
+        <p>This is a reminder that you have been invited to join <strong>{org}</strong> as a <strong>{invitation.role}</strong> on the MusB Research Platform.</p>
+        <p>Click the button below to set up your secure login credentials and access your dashboard.</p>
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{setup_link}" style="background-color: #f59e0b; color: #0B101B; padding: 12px 24px; border-radius: 5px; text-decoration: none; font-weight: bold;">Set Up Credentials</a>
+        </div>
+        <p style="color: #64748b; font-size: 11px;">This invitation expires on {invitation.expires_at.strftime('%Y-%m-%d')}.</p>
+    </div>
+    """
+    
+    if send_resend_email(invitation.email, f"Invitation (Resent) to join {org} - MusB Research", html_content):
+        return Response({'message': 'Invitation resent successfully'})
+    else:
+        return Response({'error': 'Failed to send email'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

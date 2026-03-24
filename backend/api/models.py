@@ -618,3 +618,82 @@ class EducationMaterial(BaseMongoModel):
 
     def __str__(self):
         return f"{self.title} ({self.status})"
+
+class StudyInquiry(BaseMongoModel):
+    """Sponsor-initiated inquiries for new clinical studies"""
+    INQUIRY_STATUS = [
+        ('PRELIMINARY', 'Preliminary Lead'),
+        ('NDA_REQUESTED', 'NDA Requested'),
+        ('NDA_SENT', 'NDA Sent'),
+        ('NDA_EXECUTED', 'NDA Executed'),
+        ('QUALIFIED', 'Qualified Lead'),
+        ('PROPOSAL_STAGE', 'Proposal Stage'),
+        ('CLOSED_LOST', 'Closed / Lost'),
+    ]
+
+    PRODUCT_CATEGORIES = [
+        ('PROBIOTIC', 'Probiotic / Postbiotic'),
+        ('NUTRACEUTICAL', 'Nutraceutical'),
+        ('BOTANICAL', 'Botanical'),
+        ('FUNCTIONAL_FOOD', 'Functional Food'),
+        ('PHARMACEUTICAL', 'Pharmaceutical'),
+        ('DEVICE', 'Device'),
+        ('OTHER', 'Other'),
+    ]
+
+    DEVELOPMENT_STAGES = [
+        ('CONCEPT', 'Concept'),
+        ('PRECLINICAL', 'Preclinical Complete'),
+        ('READY', 'Ready for Clinical'),
+        ('MARKETED', 'Marketed Product Seeking Data'),
+    ]
+
+    TIMELINE_CHOICES = [
+        ('IMMEDIATE', 'Immediate (0–3 months)'),
+        ('3_6_MONTHS', '3–6 months'),
+        ('6_12_MONTHS', '6–12 months'),
+        ('EXPLORING', 'Exploring Options'),
+    ]
+
+    BUDGET_CHOICES = [
+        ('UNDER_100K', '<$100K'),
+        ('100K_250K', '$100K–$250K'),
+        ('250K_500K', '$250K–$500K'),
+        ('OVER_500K', '$500K+'),
+        ('DISCUSS', 'Prefer to Discuss'),
+    ]
+
+    # Links
+    sponsor_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='study_inquiries')
+    
+    # Step 1 Fields
+    product_name = models.CharField(max_length=255)
+    category = models.CharField(max_length=50, choices=PRODUCT_CATEGORIES)
+    development_stage = models.CharField(max_length=50, choices=DEVELOPMENT_STAGES)
+    needs = models.JSONField(default=list) # List of strings: New Study, Preclinical, etc.
+    primary_focus = models.CharField(max_length=100)
+    timeline = models.CharField(max_length=50, choices=TIMELINE_CHOICES)
+    
+    # NDA Fields
+    nda_preference = models.CharField(max_length=10, choices=[('YES', 'Yes'), ('NO', 'No')], default='NO')
+    legal_name = models.CharField(max_length=255, blank=True)
+    signatory_name = models.CharField(max_length=255, blank=True)
+    signatory_title = models.CharField(max_length=255, blank=True)
+    corporate_address = models.TextField(blank=True)
+    
+    # Step 2 Fields
+    study_type_needed = models.JSONField(default=list) # Pilot, RCT, etc.
+    target_population = models.TextField(blank=True)
+    budget_range = models.CharField(max_length=50, choices=BUDGET_CHOICES, blank=True)
+    services_needed = models.JSONField(default=list) # Recruitment, Lab, etc.
+    project_description = models.TextField(blank=True)
+    supporting_files = models.FileField(upload_to='inquiry_docs/', null=True, blank=True)
+    
+    status = models.CharField(max_length=30, choices=INQUIRY_STATUS, default='PRELIMINARY')
+    routing_target = models.CharField(max_length=100, blank=True) # sales@, lab@, etc.
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Inquiry: {self.product_name} ({self.legal_name or self.sponsor_user.email if self.sponsor_user else 'Unknown'})"

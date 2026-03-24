@@ -7,6 +7,7 @@ export default function DocumentCenterPanel({ protocols, addToast }: any) {
   const [filterCategory, setFilterCategory] = useState('All');
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [pdfMeta, setPdfMeta] = useState<any>(null);
+  const [confirmModal, setConfirmModal] = useState<any>(null);
 
   const selectedStudy = useMemo(() => protocols.find((p:any) => p.id === selectedStudyId), [protocols, selectedStudyId]);
 
@@ -20,67 +21,67 @@ export default function DocumentCenterPanel({ protocols, addToast }: any) {
 
   if (!selectedStudyId) {
     return (
-      <div style={{ padding: 24, maxWidth: 1280, margin: '0 auto', color: '#f1f5f9', minHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ borderBottom: '1px solid #334155', paddingBottom: 16, marginBottom: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ padding: '48px 64px', maxWidth: '100%', margin: '0 auto', color: '#f1f5f9', minHeight: '90vh', animation: 'fadeIn 0.5s ease-out' }}>
+        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 24, marginBottom: 56, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h1 style={{ margin: 0, fontWeight: 800, fontSize: 24, color: '#f1f5f9' }}>Participant Level Data</h1>
-            <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Sponsor Portal → Participant Level Data</div>
+            <h1 style={{ margin: 0, fontWeight: 900, fontSize: 52, color: '#f1f5f9', letterSpacing: '-0.04em', lineHeight: 1.1 }}>Document Vault</h1>
+            <div style={{ fontSize: 20, color: '#94a3b8', marginTop: 12, fontWeight: 600 }}>Sponsor Dashboard → <span style={{ color: '#2563eb' }}>Participant Level Data</span></div>
           </div>
         </div>
-        <div style={{ margin: 'auto', background: '#1e293b', borderRadius: 16, border: '1px solid #334155', padding: 40, textAlign: 'center', maxWidth: 480, width: '100%' }}>
-          <div style={{ fontSize: 64, color: '#6366f1', marginBottom: 24 }}>📄</div>
-          <h2 style={{ margin: '0 0 8px 0', fontWeight: 700, fontSize: 20 }}>Select a Study to View Documents</h2>
-          <p style={{ color: '#94a3b8', fontSize: 14, margin: '0 0 32px 0' }}>Access approved protocols, consent forms, and regulatory letters.</p>
-          <select value={studySelectValue} onChange={e => setStudySelectValue(e.target.value)} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '14px', borderRadius: 8, outline: 'none', marginBottom: 24, boxSizing: 'border-box' }}>
+        <div style={{ margin: 'auto', background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(10px)', borderRadius: 36, border: '1px solid rgba(255,255,255,0.1)', padding: '100px 80px', textAlign: 'center', maxWidth: 850, width: '100%', boxShadow: '0 40px 80px rgba(0,0,0,0.4)' }}>
+          <div style={{ fontSize: 120, color: '#2563eb', marginBottom: 48 }}>📖</div>
+          <h2 style={{ margin: '0 0 24px 0', fontWeight: 900, fontSize: 48, letterSpacing: '-0.03em', color: '#f1f5f9' }}>Select a Protocol</h2>
+          <p style={{ color: '#94a3b8', fontSize: 24, margin: '0 0 64px 0', lineHeight: 1.6, fontWeight: 500 }}>Access your study's secure document repository for de-identified datasets and regulatory files.</p>
+          <select value={studySelectValue} onChange={e => setStudySelectValue(e.target.value)} style={{ width: '100%', background: 'rgba(15, 23, 42, 0.6)', border: '2px solid rgba(255,255,255,0.1)', color: '#f1f5f9', padding: '24px 32px', borderRadius: 24, outline: 'none', marginBottom: 48, boxSizing: 'border-box', fontSize: 22, fontWeight: 700, appearance: 'none', cursor: 'pointer' }}>
             <option value="">-- Choose a Study --</option>
             {protocols.map((p:any) => <option key={p.id} value={p.id}>{p.id} — {p.title}</option>)}
           </select>
-          <button onClick={() => setSelectedStudyId(studySelectValue)} style={{ width: '100%', background: '#6366f1', color: 'white', border: 'none', padding: '14px', borderRadius: 8, fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>View Participant Level Data</button>
+          <button onClick={() => setSelectedStudyId(studySelectValue)} style={{ width: '100%', background: '#2563eb', color: 'white', border: 'none', padding: '28px', borderRadius: 24, fontWeight: 900, fontSize: 24, cursor: 'pointer', transition: 'all 0.3s', boxShadow: '0 15px 40px rgba(37, 99, 235, 0.3)' }}>Open Document Vault →</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: 24, maxWidth: 1280, margin: '0 auto', color: '#f1f5f9' }}>
+    <div style={{ padding: '48px 64px', maxWidth: '100%', margin: '0 auto', color: '#f1f5f9' }}>
       
       {/* Sticky Top Bar - Read Only Indicator */}
-      <div style={{ position: 'sticky', top: 57, background: '#1e293b', borderRadius: 12, border: '1px solid #334155', padding: '16px 24px', zIndex: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700, border: '1px solid rgba(245,158,11,0.2)' }}>
+      <div style={{ position: 'sticky', top: 57, background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(16px)', borderRadius: 28, border: '1px solid rgba(255,255,255,0.05)', padding: '32px 48px', zIndex: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 48, boxShadow: '0 20px 50px rgba(0,0,0,0.2)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
+          <div style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b', padding: '10px 20px', borderRadius: 14, fontSize: 15, fontWeight: 900, border: '2px solid rgba(245,158,11,0.2)', letterSpacing: '0.05em' }}>
             🔒 READ-ONLY ACCESS
           </div>
           <div>
-            <h2 style={{ margin: 0, fontWeight: 800, fontSize: 18 }}>{selectedStudy.title}</h2>
-            <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#64748b', marginTop: 2 }}>{selectedStudy.id}</div>
+            <h2 style={{ margin: 0, fontWeight: 900, fontSize: 32, color: '#f1f5f9', letterSpacing: '-0.02em' }}>{selectedStudy.title}</h2>
+            <div style={{ fontFamily: 'monospace', fontSize: 17, color: '#64748b', marginTop: 8, fontWeight: 600 }}>Protocol ID: <span style={{ color: '#6366f1' }}>{selectedStudy.id}</span></div>
           </div>
         </div>
-        <select value={selectedStudyId} onChange={e => setSelectedStudyId(e.target.value)} style={{ background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '10px 14px', borderRadius: 8, outline: 'none', fontWeight: 600 }}>
+        <select value={selectedStudyId} onChange={e => setSelectedStudyId(e.target.value)} style={{ background: '#0f172a', border: '2px solid #334155', color: '#f1f5f9', padding: '18px 24px', borderRadius: 16, outline: 'none', fontWeight: 800, fontSize: 18, cursor: 'pointer' }}>
           {protocols.map((p:any) => <option key={p.id} value={p.id}>{p.id}</option>)}
         </select>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24, overflowX: 'auto', paddingBottom: 8 }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 32, overflowX: 'auto', paddingBottom: 16 }}>
         {['All', 'Protocol', 'Consent', 'Regulatory', 'Reports'].map(c => (
-          <PillButton key={c} active={filterCategory === c} onClick={() => setFilterCategory(c)}>{c}</PillButton>
+          <PillButton key={c} active={filterCategory === c} onClick={() => setFilterCategory(c)} style={{ padding: '12px 24px', fontSize: 15, fontWeight: 800 }}>{c}</PillButton>
         ))}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20 }}>
         {filteredDocs.map((d:any) => (
-          <div key={d.id} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '20px 24px', flex: 1 }}>
-               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                 <div style={{ background: '#0f172a', color: '#94a3b8', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{d.category}</div>
-                 <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>v{d.version}</div>
+          <div key={d.id} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
+            <div style={{ padding: '32px', flex: 1 }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+                 <div style={{ background: '#0f172a', color: '#94a3b8', padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{d.category}</div>
+                 <div style={{ color: '#64748b', fontSize: 14, fontWeight: 700 }}>v{d.version}</div>
                </div>
-               <h3 style={{ margin: '0 0 8px 0', fontSize: 16, fontWeight: 700, color: '#f1f5f9', lineHeight: 1.4 }}>{d.title}</h3>
-               <p style={{ margin: 0, fontSize: 13, color: '#94a3b8', lineHeight: 1.5 }}>{d.description}</p>
+               <h3 style={{ margin: '0 0 12px 0', fontSize: 20, fontWeight: 800, color: '#f1f5f9', lineHeight: 1.4, letterSpacing: '-0.02em' }}>{d.title}</h3>
+               <p style={{ margin: 0, fontSize: 15, color: '#94a3b8', lineHeight: 1.6 }}>{d.description}</p>
                
-               <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                    <span style={{ color: '#64748b' }}>Date Added</span>
-                    <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{d.date}</span>
+               <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                    <span style={{ color: '#64748b', fontWeight: 600 }}>Date Added</span>
+                    <span style={{ color: '#f1f5f9', fontWeight: 800 }}>{d.date}</span>
                   </div>
                   {d.expiryDate && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
@@ -94,9 +95,18 @@ export default function DocumentCenterPanel({ protocols, addToast }: any) {
                   </div>
                </div>
             </div>
-            <div style={{ background: '#0f172a', padding: '16px 24px', borderTop: '1px solid #334155', display: 'flex', gap: 12 }}>
-              <button onClick={() => { setPdfMeta(d); setPdfModalOpen(true); }} style={{ flex: 1, background: '#2563eb', color: 'white', border: 'none', padding: '10px', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>View PDF</button>
-              <button onClick={() => { downloadFile(`Content of ${d.title}`, `${d.title}.pdf`); addToast({type:'success', message:`Downloaded ${d.title}`}); }} style={{ flex: 1, background: 'transparent', border: '1px solid #334155', color: '#f1f5f9', padding: '10px', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Download</button>
+            <div style={{ background: '#0f172a', padding: '24px 32px', borderTop: '1px solid #334155', display: 'flex', gap: 16 }}>
+              <button onClick={() => { setPdfMeta(d); setPdfModalOpen(true); }} style={{ flex: 1, background: '#2563eb', color: 'white', border: 'none', padding: '16px', borderRadius: 14, fontWeight: 900, fontSize: 16, cursor: 'pointer', transition: 'all 0.3s' }}>View Preview</button>
+              <button onClick={() => {
+                setConfirmModal({
+                  title: 'Secure Download Request',
+                  message: `How would you like to export "${d.title}"?`,
+                  buttons: [
+                    { label: 'Download PDF', color: '#6366f1', onClick: () => { downloadFile(`PDF Data for ${d.title}`, `${d.title}.pdf`, 'application/pdf'); addToast({ type: 'success', message: 'PDF generated' }); } },
+                    { label: 'Download CSV', color: '#10b981', onClick: () => { downloadFile(`CSV Data for ${d.title}`, `${d.title}.csv`, 'text/csv'); addToast({ type: 'success', message: 'CSV generated' }); } }
+                  ]
+                });
+              }} style={{ flex: 1, background: 'transparent', border: '2px solid #334155', color: '#f1f5f9', padding: '16px', borderRadius: 14, fontWeight: 900, fontSize: 16, cursor: 'pointer', transition: 'all 0.3s' }}>Download ↓</button>
             </div>
           </div>
         ))}
@@ -161,6 +171,21 @@ export default function DocumentCenterPanel({ protocols, addToast }: any) {
         </div>
       </Modal>
 
+      <ConfirmModal confirmModal={confirmModal} setConfirmModal={setConfirmModal} />
+      
+      <style>{`
+        @keyframes bgMove {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .animated-bg {
+          background: linear-gradient(-45deg, #0f172a, #1e293b, #0f172a, #161e2e);
+          background-size: 400% 400%;
+          animation: bgMove 15s ease infinite;
+          min-height: 100vh;
+        }
+      `}</style>
     </div>
   );
 }

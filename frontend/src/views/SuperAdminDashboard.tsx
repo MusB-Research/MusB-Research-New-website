@@ -1281,16 +1281,65 @@ export default function SuperAdminDashboard() {
     </div>
   );
 
-  const InquiriesPage = () => (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Platform <span className="text-[#f472b6]">Inquiries</span></h1>
-      <div className="min-h-[50vh] flex flex-col items-center justify-center bg-[#0f1133] border border-white/5 rounded-[3rem] p-20 text-center">
-        <Server className="w-16 h-16 text-[#555a7a] mb-8 animate-pulse" />
-        <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-4">Secure Buffer Empty</h3>
-        <p className="max-w-md mx-auto text-[10px] text-[#555a7a] font-black uppercase tracking-[0.3em] leading-relaxed">No pending inquiry packets detected in the cross-region encrypted buffer at this synchronization cycle.</p>
+  const InquiriesPage = () => {
+    const pendingStudies = (studies || []).filter(s => s.approval_status === 'pending');
+
+    return (
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex justify-between items-end">
+          <div>
+            <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Platform <span className="text-[#f472b6]">Inquiries</span></h1>
+            <p className="text-xs text-slate-500 font-black uppercase tracking-[0.2em] mt-3">Study proposals awaiting feasibility review and approval</p>
+          </div>
+          <div className="px-6 py-3 bg-[#f472b6]/10 border border-[#f472b6]/20 text-[#f472b6] rounded-xl text-[10px] font-black uppercase tracking-widest">
+            {pendingStudies.length.toString().padStart(2, '0')} Pending Proposals
+          </div>
+        </div>
+
+        {pendingStudies.length === 0 ? (
+          <div className="min-h-[50vh] flex flex-col items-center justify-center bg-[#0f1133] border border-white/5 rounded-[3rem] p-20 text-center">
+            <Server className="w-16 h-16 text-[#555a7a] mb-8 animate-pulse" />
+            <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-4">Secure Buffer Empty</h3>
+            <p className="max-w-md mx-auto text-[10px] text-[#555a7a] font-black uppercase tracking-[0.3em] leading-relaxed">No pending inquiry packets detected in the cross-region encrypted buffer at this synchronization cycle.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6">
+            {pendingStudies.map((s, i) => (
+              <div key={i} className="bg-[#0f1133] border border-white/5 rounded-3xl p-8 flex items-center justify-between group hover:bg-white/[0.01] transition-all hover:border-[#f472b6]/30">
+                <div className="flex items-center gap-8">
+                  <div className="w-16 h-16 bg-[#f472b6]/10 rounded-2xl flex items-center justify-center text-[#f472b6] border border-[#f472b6]/20 group-hover:scale-110 transition-transform">
+                    <FileText className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-4 mb-2">
+                       <h4 className="text-xl font-black text-white uppercase italic tracking-tight">{s.title}</h4>
+                       <span className="px-3 py-1 bg-[#f472b6]/10 text-[#f472b6] rounded-full text-[9px] font-black uppercase tracking-widest border border-[#f472b6]/20 italic">Feasibility Review</span>
+                    </div>
+                    <div className="flex items-center gap-6 text-[10px] font-black uppercase tracking-widest text-[#555a7a]">
+                      <span className="flex items-center gap-2"><Building className="w-3 h-3" /> {s.sponsor_name || 'Anonymous Sponsor'}</span>
+                      <span>•</span>
+                      <span className="flex items-center gap-2"><Calendar className="w-3 h-3" /> Submitted {new Date(s.created_at).toLocaleDateString()}</span>
+                      <span>•</span>
+                      <span className="flex items-center gap-2"><Users className="w-3 h-3" /> Target: {s.target_screened}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <button 
+                     onClick={() => { setSelectedStudy(s); setCurrentPage('LAUNCH_STUDY'); }}
+                     className="px-6 py-4 bg-[#f472b6] text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] italic hover:bg-pink-600 transition-all shadow-lg shadow-pink-900/20"
+                  >
+                    Review & Authorize
+                  </button>
+                  <button className="p-4 bg-white/5 border border-white/5 text-slate-600 hover:text-white rounded-2xl transition-all"><MoreVertical className="w-5 h-5" /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   // --- Modal: Create User ---
   const CreateUserModal = () => {

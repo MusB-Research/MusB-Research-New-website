@@ -76,29 +76,25 @@ export default function OurStudiesPanel({ protocols, setProtocols, addToast }: a
   const activeReportsStudy = useMemo(() => protocols.find((p:any) => p.id === reportsStudyId), [protocols, reportsStudyId]);
 
   return (
-    <div style={{ padding: 24, maxWidth: 1280, margin: '0 auto', color: '#f1f5f9' }}>
-      <div style={{ position: 'sticky', top: 57, background: '#0f172a', zIndex: 40, paddingBottom: 16, paddingTop: 16, borderBottom: '1px solid #334155' }}>
+    <div style={{ padding: '48px 64px', maxWidth: '100%', margin: '0 auto', color: '#f1f5f9', animation: 'fadeIn 0.5s ease-out' }}>
+      <div style={{ position: 'sticky', top: 57, background: '#020617', zIndex: 40, paddingBottom: 24, paddingTop: 16, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h1 style={{ margin: 0, fontWeight: 800, fontSize: 24, color: '#f1f5f9' }}>Our Studies</h1>
-            <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Sponsor Portal → Our Studies</div>
+            <h1 style={{ margin: 0, fontWeight: 900, fontSize: 52, color: '#f1f5f9', letterSpacing: '-0.04em', lineHeight: 1.1 }}>Strategic Portfolio</h1>
+            <div style={{ fontSize: 20, color: '#94a3b8', marginTop: 12, fontWeight: 600 }}>Sponsor Dashboard → <span style={{ color: '#2563eb' }}>Our Studies</span></div>
           </div>
-          <button onClick={() => addToast({type:'info', message:'New Inquiry form mapped to Dashboard panel.'})} style={{ background: '#2563eb', color: 'white', border: 'none', padding: '10px 20px', borderRadius: 8, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>
-            + New Study Inquiry
-          </button>
         </div>
-        
-        <div style={{ background: '#1e293b', borderRadius: 12, padding: 14, marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', border: '1px solid #334155' }}>
-          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search by study name or ID..." style={{ flex: 1, minWidth: 200, background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '10px 14px', borderRadius: 8, outline: 'none' }} />
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '10px 14px', borderRadius: 8, outline: 'none' }}>
+              <div style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(10px)', borderRadius: 28, padding: 32, marginTop: 40, display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
+          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search protocols..." style={{ flex: 1, minWidth: 350, background: 'rgba(15, 23, 42, 0.6)', border: '2px solid rgba(255,255,255,0.1)', color: '#f1f5f9', padding: '20px 28px', borderRadius: 20, outline: 'none', fontSize: 20, fontWeight: 500 }} />
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ background: 'rgba(15, 23, 42, 0.6)', border: '2px solid rgba(255,255,255,0.1)', color: '#f1f5f9', padding: '20px 28px', borderRadius: 20, outline: 'none', fontSize: 18, fontWeight: 700, cursor: 'pointer' }}>
             {['All', 'Active', 'Recruiting', 'Completed', 'On Hold', 'Cancelled', 'Under Review'].map(s => <option key={s} value={s}>{s} Status</option>)}
           </select>
-          <select value={sortMode} onChange={e => setSortMode(e.target.value)} style={{ background: '#0f172a', border: '1px solid #334155', color: '#f1f5f9', padding: '10px 14px', borderRadius: 8, outline: 'none' }}>
+          <select value={sortMode} onChange={e => setSortMode(e.target.value)} style={{ background: 'rgba(15, 23, 42, 0.6)', border: '2px solid rgba(255,255,255,0.1)', color: '#f1f5f9', padding: '20px 28px', borderRadius: 20, outline: 'none', fontSize: 18, fontWeight: 700, cursor: 'pointer' }}>
             <option>Latest First</option><option>Oldest First</option><option>A–Z</option><option>By Enrollment %</option>
           </select>
-          <div style={{ background: '#334155', width: 1, height: 24, margin: '0 8px' }} />
-          <button onClick={() => setExpandedCards(new Set(filteredStudies.map((p:any)=>p.id)))} style={{ background: 'transparent', border: '1px solid #334155', color: '#f1f5f9', padding: '10px 14px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>Expand All</button>
-          <button onClick={() => setExpandedCards(new Set())} style={{ background: 'transparent', border: 'none', color: '#94a3b8', padding: '10px', fontWeight: 600, cursor: 'pointer' }}>Collapse All</button>
+          <div style={{ background: 'rgba(255,255,255,0.1)', width: 2, height: 40, margin: '0 12px' }} />
+          <button onClick={() => setExpandedCards(new Set(filteredStudies.map((p:any)=>p.id)))} style={{ background: 'transparent', border: '2px solid rgba(255,255,255,0.1)', color: '#f1f5f9', padding: '20px 40px', borderRadius: 20, fontWeight: 800, cursor: 'pointer', fontSize: 18 }}>Expand All</button>
+        <button onClick={() => setExpandedCards(new Set())} style={{ background: 'transparent', border: 'none', color: '#94a3b8', padding: '18px', fontWeight: 700, cursor: 'pointer', fontSize: 17 }}>Collapse All</button>
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16 }}>
@@ -125,22 +121,22 @@ export default function OurStudiesPanel({ protocols, setProtocols, addToast }: a
           return (
             <div key={study.id} style={{ background: '#1e293b', borderRadius: 16, border: '1px solid #334155', overflow: 'hidden', boxShadow: isExpanded ? '0 8px 32px rgba(0,0,0,0.5)' : 'none', transition: 'all 0.3s' }}>
               
-              <div onClick={() => {
+                <div onClick={() => {
                 const newSet = new Set(expandedCards);
                 if(isExpanded) newSet.delete(study.id); else newSet.add(study.id);
                 setExpandedCards(newSet);
-              }} style={{ padding: '20px 24px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: isExpanded ? 'rgba(255,255,255,0.02)' : 'transparent' }}>
+              }} style={{ padding: '48px 56px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: isExpanded ? 'rgba(255,255,255,0.03)' : 'transparent' }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#f1f5f9' }}>{study.title}</h3>
-                    {study.indication && <span style={{ background: '#334155', color: '#cbd5e1', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>{study.indication}</span>}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+                    <h3 style={{ margin: 0, fontSize: 36, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.03em' }}>{study.title}</h3>
+                    {study.indication && <span style={{ background: 'rgba(37, 99, 235, 0.1)', color: '#60a5fa', padding: '8px 18px', borderRadius: 12, fontSize: 16, fontWeight: 800, border: '1px solid rgba(37, 99, 235, 0.2)' }}>{study.indication}</span>}
                   </div>
-                  <div style={{ fontFamily: 'monospace', fontSize: 12, color: '#64748b', marginTop: 4 }}>{study.id}</div>
+                  <div style={{ fontFamily: 'monospace', fontSize: 18, color: '#64748b', marginTop: 12, fontWeight: 600 }}>{study.id}</div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: study.studyMode === 'Virtual' ? '#60a5fa' : study.studyMode === 'Hybrid' ? '#10b981' : '#a5b4fc', padding: '4px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.05)' }}>{study.studyMode}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
+                  <span style={{ fontSize: 17, fontWeight: 800, color: study.studyMode === 'Virtual' ? '#60a5fa' : study.studyMode === 'Hybrid' ? '#10b981' : '#a5b4fc', padding: '10px 24px', borderRadius: 14, background: 'rgba(255,255,255,0.05)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>{study.studyMode}</span>
                   <StatusBadge status={study.status} />
-                  <div style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', color: '#64748b' }}>▼</div>
+                  <div style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', color: '#64748b', fontSize: 24 }}>▼</div>
                 </div>
               </div>
 
@@ -158,46 +154,46 @@ export default function OurStudiesPanel({ protocols, setProtocols, addToast }: a
                 <div style={{ borderTop: '1px solid #334155' }}>
                   
                   {/* Row 1 - Basics */}
-                  <div style={{ padding: '16px 24px', borderBottom: '1px solid #334155' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.05em', marginBottom: 12 }}>STUDY DETAILS</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
-                      <div><div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>Principal Investigator</div><div style={{ fontSize: 13, color: '#f1f5f9' }}>{study.pi}</div></div>
-                      <div><div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>Assigned Site</div><div style={{ fontSize: 13, color: '#f1f5f9' }}>{study.site}</div></div>
-                      <div><div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>Study Timeline</div><div style={{ fontSize: 13, color: '#f1f5f9' }}>{study.startDate} — {study.endDate}</div></div>
-                      <div><div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>IRB Status</div><div><StatusBadge status={study.irbStatus} /></div></div>
+                  <div style={{ padding: '32px 48px', borderBottom: '1px solid #334155' }}>
+                    <div style={{ fontSize: 15, fontWeight: 900, color: '#64748b', letterSpacing: '0.15em', marginBottom: 24, textTransform: 'uppercase' }}>STUDY DETAILS</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 40 }}>
+                      <div><div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 10, fontWeight: 600 }}>Principal Investigator</div><div style={{ fontSize: 20, color: '#f1f5f9', fontWeight: 700, letterSpacing: '-0.01em' }}>{study.pi}</div></div>
+                      <div><div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 10, fontWeight: 600 }}>Assigned Site</div><div style={{ fontSize: 20, color: '#f1f5f9', fontWeight: 700, letterSpacing: '-0.01em' }}>{study.site}</div></div>
+                      <div><div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 10, fontWeight: 600 }}>Study Timeline</div><div style={{ fontSize: 20, color: '#f1f5f9', fontWeight: 700, letterSpacing: '-0.01em' }}>{study.startDate} — {study.endDate}</div></div>
+                      <div><div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 10, fontWeight: 600 }}>IRB Status</div><div><StatusBadge status={study.irbStatus} /></div></div>
                     </div>
                   </div>
 
                   {/* Row 2 - KPIs */}
-                  <div style={{ padding: '16px 24px', borderBottom: '1px solid #334155', overflowX: 'auto' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.05em', marginBottom: 12 }}>KEY PERFORMANCE INDICATORS</div>
-                    <div style={{ display: 'flex', gap: 12 }}>
-                      <div style={{ minWidth: 140, background: '#0f172a', border: '1px solid #334155', borderRadius: 10, padding: 14 }}>
-                        <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8 }}>Status</div>
+                  <div style={{ padding: '32px 48px', borderBottom: '1px solid #334155', overflowX: 'auto' }}>
+                    <div style={{ fontSize: 15, fontWeight: 900, color: '#64748b', letterSpacing: '0.15em', marginBottom: 24, textTransform: 'uppercase' }}>KEY PERFORMANCE INDICATORS</div>
+                    <div style={{ display: 'flex', gap: 24 }}>
+                      <div style={{ minWidth: 200, background: '#0f172a', border: '1px solid #334155', borderRadius: 20, padding: 24 }}>
+                        <div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 16, fontWeight: 600 }}>Status</div>
                         <StatusBadge status={study.status} />
                       </div>
-                      <div style={{ minWidth: 140, background: '#0f172a', border: '1px solid #334155', borderRadius: 10, padding: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ minWidth: 240, background: '#0f172a', border: '1px solid #334155', borderRadius: 20, padding: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div>
-                          <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>Enrolled</div>
-                          <div style={{ fontSize: 20, fontWeight: 800, color: '#3b82f6' }}>{study.enrollment.current}</div>
-                          <div style={{ fontSize: 10, color: '#64748b' }}>/ {study.enrollment.target} TARGET</div>
+                          <div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 10, fontWeight: 600 }}>Enrolled</div>
+                          <div style={{ fontSize: 36, fontWeight: 900, color: '#3b82f6', letterSpacing: '-0.02em' }}>{study.enrollment.current}</div>
+                          <div style={{ fontSize: 14, color: '#64748b', fontWeight: 800, letterSpacing: '0.02em' }}>/ {study.enrollment.target} TARGET</div>
                         </div>
-                        <ProgressRing pct={study.enrollment.current/study.enrollment.target*100} width={36} stroke={4} />
+                        <ProgressRing pct={study.enrollment.current/study.enrollment.target*100} width={56} stroke={6} />
                       </div>
-                      <div style={{ minWidth: 140, background: '#0f172a', border: '1px solid #334155', borderRadius: 10, padding: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ minWidth: 240, background: '#0f172a', border: '1px solid #334155', borderRadius: 20, padding: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div>
-                          <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>Completed</div>
-                          <div style={{ fontSize: 20, fontWeight: 800, color: '#10b981' }}>{study.kpis.completed}</div>
-                          <div style={{ fontSize: 10, color: '#64748b' }}>/ {study.kpis.targetCompleted} TARGET</div>
+                          <div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 10, fontWeight: 600 }}>Completed</div>
+                          <div style={{ fontSize: 36, fontWeight: 900, color: '#10b981', letterSpacing: '-0.02em' }}>{study.kpis.completed}</div>
+                          <div style={{ fontSize: 14, color: '#64748b', fontWeight: 800, letterSpacing: '0.02em' }}>/ {study.kpis.targetCompleted} TARGET</div>
                         </div>
-                        <ProgressRing pct={study.kpis.completed/study.kpis.targetCompleted*100} width={36} stroke={4} />
+                        <ProgressRing pct={study.kpis.completed/study.kpis.targetCompleted*100} width={56} stroke={6} />
                       </div>
-                      <div style={{ minWidth: 140, background: '#0f172a', border: '1px solid #334155', borderRadius: 10, padding: 14 }}>
-                        <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8 }}>Recruitment Complete</div>
-                        <div style={{ color: study.kpis.recruitmentCompleted ? '#10b981' : '#f59e0b', fontWeight: 600, fontSize: 14 }}>{study.kpis.recruitmentCompleted ? 'Yes' : 'No'}</div>
+                      <div style={{ minWidth: 200, background: '#0f172a', border: '1px solid #334155', borderRadius: 20, padding: 24 }}>
+                        <div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 16, fontWeight: 600 }}>Recruitment Complete</div>
+                        <div style={{ color: study.kpis.recruitmentCompleted ? '#10b981' : '#f59e0b', fontWeight: 900, fontSize: 22, letterSpacing: '0.02em' }}>{study.kpis.recruitmentCompleted ? 'YES' : 'NO'}</div>
                       </div>
-                      <div style={{ minWidth: 140, background: '#0f172a', border: '1px solid #334155', borderRadius: 10, padding: 14 }}>
-                        <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8 }}>Latest Report</div>
+                      <div style={{ minWidth: 200, background: '#0f172a', border: '1px solid #334155', borderRadius: 20, padding: 24 }}>
+                        <div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 16, fontWeight: 600 }}>Latest Report</div>
                         <StatusBadge status={study.kpis.latestReport} />
                       </div>
                     </div>
@@ -219,18 +215,18 @@ export default function OurStudiesPanel({ protocols, setProtocols, addToast }: a
                   </div>
 
                   {/* Row 4 - Actions */}
-                  <div style={{ padding: '14px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', gap: 12 }}>
-                      <button onClick={() => { setStudyDetailId(study.id); setStudyDetailOpen(true); }} style={{ background: '#2563eb', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>View Detailed Study →</button>
-                      <button onClick={() => { setReportsStudyId(study.id); setReportsModalOpen(true); }} style={{ background: 'transparent', color: '#6366f1', border: '1px solid #334155', padding: '8px 16px', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>View Reports →</button>
+                  <div style={{ padding: '32px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)' }}>
+                    <div style={{ display: 'flex', gap: 20 }}>
+                      <button onClick={() => { setStudyDetailId(study.id); setStudyDetailOpen(true); }} style={{ background: '#2563eb', color: 'white', border: 'none', padding: '16px 32px', borderRadius: 14, fontWeight: 900, fontSize: 17, cursor: 'pointer', transition: 'all 0.3s', boxShadow: '0 8px 20px rgba(37, 99, 235, 0.2)' }}>View Detailed Study →</button>
+                      <button onClick={() => { setReportsStudyId(study.id); setReportsModalOpen(true); }} style={{ background: 'transparent', color: '#6366f1', border: '2px solid #334155', padding: '16px 32px', borderRadius: 14, fontWeight: 900, fontSize: 17, cursor: 'pointer', transition: 'all 0.3s' }}>View Reports →</button>
                     </div>
-                    <div style={{ display: 'flex', gap: 12 }}>
+                    <div style={{ display: 'flex', gap: 20 }}>
                       <button onClick={() => {
                         const csv = 'ParticipantID,Arm,Status\n' + generateParticipants(study.id).map(p => `${p.id},${p.arm},${p.status}`).join('\n');
                         downloadCSV(csv, `${study.id}_Export.csv`);
                         addToast({type:'success', message:'Downloaded de-identified CSV'});
-                      }} style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', padding: '8px 16px', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>⬇ Download CSV Menu</button>
-                      <button onClick={() => { setComposeStudyContext(study); setComposeMsg({to:`${study.title} Team`, subject:'', message:''}); setComposeModalOpen(true); }} style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '8px 16px', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Message Study Team</button>
+                      }} style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '2px solid rgba(16,185,129,0.2)', padding: '16px 32px', borderRadius: 14, fontWeight: 900, fontSize: 17, cursor: 'pointer', transition: 'all 0.3s' }}>⬇ Download CSV Menu</button>
+                      <button onClick={() => { setComposeStudyContext(study); setComposeMsg({to:`${study.title} Team`, subject:'', message:''}); setComposeModalOpen(true); }} style={{ background: 'transparent', color: '#94a3b8', border: 'none', padding: '16px', borderRadius: 14, fontWeight: 800, fontSize: 17, cursor: 'pointer' }}>Message Study Team</button>
                     </div>
                   </div>
 
@@ -253,9 +249,21 @@ export default function OurStudiesPanel({ protocols, setProtocols, addToast }: a
       <Modal open={reportsModalOpen} onClose={() => setReportsModalOpen(false)} title={`Study Reports — ${activeReportsStudy?.title || ''}`}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {activeReportsStudy?.reports?.map((r:any, i:number) => (
-            <div key={i} style={{ background: '#0f172a', padding: 16, borderRadius: 8, border: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div><div style={{ fontWeight: 600, color: '#f1f5f9' }}>{r.name}</div><div style={{ fontSize: 12, color: '#64748b' }}>{r.date} • {r.status}</div></div>
-              <button onClick={() => { downloadFile(r.name, `${r.name}.txt`); addToast({type:'success', message:`Downloaded ${r.name}`}) }} style={{ background: 'transparent', border: '1px solid #334155', color: '#f1f5f9', padding: '6px 12px', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: 12 }}>Download</button>
+            <div key={i} style={{ background: '#0f172a', padding: 24, borderRadius: 12, border: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+              <div>
+                <div style={{ fontWeight: 800, color: '#f1f5f9', fontSize: 18, letterSpacing: '-0.01em' }}>{r.name}</div>
+                <div style={{ fontSize: 14, color: '#64748b', marginTop: 4, fontWeight: 500 }}>{r.date} • <span style={{ color: '#10b981', fontWeight: 800 }}>{r.status.toUpperCase()}</span></div>
+              </div>
+              <button onClick={() => {
+                setConfirmModal({
+                  title: 'Select Download Format',
+                  message: `How would you like to download "${r.name}"?`,
+                  buttons: [
+                    { label: 'Download PDF', color: '#2563eb', onClick: () => { downloadFile(`PDF Content: ${r.name}`, `${r.name}.pdf`, 'application/pdf'); addToast({ type: 'success', message: 'PDF generated successfully.' }); } },
+                    { label: 'Download CSV', color: '#10b981', onClick: () => { downloadFile(`CSV Content: ${r.name}`, `${r.name}.csv`, 'text/csv'); addToast({ type: 'success', message: 'CSV generated successfully.' }); } }
+                  ]
+                });
+              }} style={{ background: 'transparent', border: '2px solid #334155', color: '#f1f5f9', padding: '12px 24px', borderRadius: 10, fontWeight: 800, cursor: 'pointer', fontSize: 15, transition: 'all 0.2s' }}>⬇ Download</button>
             </div>
           ))}
           {!activeReportsStudy?.reports?.length && <div style={{ color: '#64748b' }}>No reports generated yet.</div>}
@@ -273,6 +281,111 @@ export default function OurStudiesPanel({ protocols, setProtocols, addToast }: a
               <button onClick={() => { addToast({type:'success', message:'Message sent successfully.'}); setComposeModalOpen(false); }} style={{ background: '#2563eb', color: 'white', border: 'none', padding: '12px 24px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>Send Message</button>
             </div>
           </div>
+      </Modal>
+
+      <Modal open={studyDetailOpen} onClose={() => setStudyDetailOpen(false)} title="Study Details" width="860px">
+        {activeStudyForDetail && (
+          <div>
+            <div style={{ display: 'flex', gap: 32, borderBottom: '1px solid #334155', marginBottom: 32 }}>
+              {['Overview', 'Timeline', 'Enrollment', 'Documents', 'Team'].map(tab => (
+                <button key={tab} onClick={() => setCardChartTabs({...cardChartTabs, [`detail_${activeStudyForDetail.id}`]: tab})} style={{ background: 'none', border: 'none', padding: '0 0 16px 0', borderBottom: (cardChartTabs[`detail_${activeStudyForDetail.id}`] || 'Overview') === tab ? '3px solid #2563eb' : '3px solid transparent', color: (cardChartTabs[`detail_${activeStudyForDetail.id}`] || 'Overview') === tab ? '#2563eb' : '#64748b', fontWeight: 800, fontSize: 16, cursor: 'pointer', transition: 'all 0.2s' }}>
+                  {tab}
+                </button>
+              ))}
+            </div>
+            
+            {(cardChartTabs[`detail_${activeStudyForDetail.id}`] || 'Overview') === 'Overview' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px 56px' }}>
+                <div><div style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 8, letterSpacing: '0.05em' }}>Principal Investigator</div><div style={{ fontSize: 18, color: '#f1f5f9', fontWeight: 700 }}>{activeStudyForDetail.pi}</div></div>
+                <div><div style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 8, letterSpacing: '0.05em' }}>Assigned Site</div><div style={{ fontSize: 18, color: '#f1f5f9', fontWeight: 700 }}>{activeStudyForDetail.site}</div></div>
+                <div><div style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 8, letterSpacing: '0.05em' }}>Study Type & Area</div><div style={{ fontSize: 18, color: '#f1f5f9', fontWeight: 700 }}>{activeStudyForDetail.studyType} • {activeStudyForDetail.researchArea}</div></div>
+                <div><div style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 8, letterSpacing: '0.05em' }}>IRB Status</div><div><StatusBadge status={activeStudyForDetail.irbStatus} /></div></div>
+                <div><div style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 8, letterSpacing: '0.05em' }}>Start Date</div><div style={{ fontSize: 18, color: '#f1f5f9', fontWeight: 700 }}>{activeStudyForDetail.startDate}</div></div>
+                <div><div style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 8, letterSpacing: '0.05em' }}>Estimated End Date</div><div style={{ fontSize: 18, color: '#f1f5f9', fontWeight: 700 }}>{activeStudyForDetail.endDate}</div></div>
+              </div>
+            )}
+
+            {(cardChartTabs[`detail_${activeStudyForDetail.id}`] || 'Overview') === 'Timeline' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '8px 0' }}>
+                {activeStudyForDetail.milestones.map((m:any, i:number) => (
+                  <div key={i} style={{ display: 'flex', gap: 24 }}>
+                    <div style={{ width: 14, height: 14, borderRadius: '50%', background: m.status === 'completed' ? '#10b981' : '#334155', border: `4px solid ${m.status==='completed'?'rgba(16,185,129,0.2)':'transparent'}`, marginTop: 4, flexShrink:0 }} />
+                    <div>
+                      <div style={{ fontSize: 17, fontWeight: 800, color: m.status === 'completed' ? '#f1f5f9' : '#94a3b8' }}>{m.label}</div>
+                      <div style={{ fontSize: 14, color: '#64748b', marginTop: 4, fontWeight: 500 }}>{m.date} {m.notes && `• ${m.notes}`}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {(cardChartTabs[`detail_${activeStudyForDetail.id}`] || 'Overview') === 'Documents' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {!activeStudyForDetail.documents?.length ? <div style={{ color: '#64748b', fontSize: 16, fontWeight: 500 }}>No documents uploaded.</div> : 
+                  activeStudyForDetail.documents.map((d:any) => (
+                    <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0f172a', padding: 20, borderRadius: 12, border: '1px solid #334155' }}>
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: 16, color: '#f1f5f9' }}>{d.type} <span style={{ color: '#64748b', fontWeight: 500, fontSize: 14 }}>v{d.version}</span></div>
+                        <div style={{ fontSize: 14, color: '#64748b', marginTop: 4, fontWeight: 500 }}>{d.title} • {d.date}</div>
+                      </div>
+                      <button onClick={() => {
+                setConfirmModal({
+                  title: 'Select Download Format',
+                  message: `How would you like to download "${d.title}"?`,
+                  buttons: [
+                    { label: 'Download PDF', color: '#2563eb', onClick: () => { downloadFile(`PDF Content: ${d.title}`, `${d.title}.pdf`, 'application/pdf'); addToast({ type: 'success', message: 'PDF generated successfully.' }); } },
+                    { label: 'Download CSV', color: '#10b981', onClick: () => { downloadFile(`CSV Content: ${d.title}`, `${d.title}.csv`, 'text/csv'); addToast({ type: 'success', message: 'CSV generated successfully.' }); } }
+                  ]
+                });
+              }} style={{ background: 'transparent', border: '2px solid #334155', color: '#f1f5f9', padding: '12px 24px', borderRadius: 10, fontWeight: 800, fontSize: 15, cursor: 'pointer', transition: 'all 0.2s' }}>
+                ⬇ Download
+              </button>
+            </div>
+                  ))
+                }
+              </div>
+            )}
+
+            {(cardChartTabs[`detail_${activeStudyForDetail.id}`] || 'Overview') === 'Team' && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 24 }}>
+                {activeStudyForDetail.team.map((t:any, i:number) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 20, background: 'rgba(255,255,255,0.02)', padding: 16, borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ width: 52, height: 52, borderRadius: 16, background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', border: '1px solid rgba(255,255,255,0.1)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 16, boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+                      {t.name.split(' ').map((n:string)=>n[0]).join('').substring(0,2).toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 17, color: '#f1f5f9', letterSpacing: '-0.01em' }}>{t.name}</div>
+                      <div style={{ fontSize: 14, color: '#64748b', fontWeight: 600, marginTop: 2, letterSpacing: '0.02em', textTransform: 'uppercase' }}>{t.role}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {(cardChartTabs[`detail_${activeStudyForDetail.id}`] || 'Overview') === 'Enrollment' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+                <div style={{ display: 'flex', gap: 24 }}>
+                  <div style={{ flex: 1, background: '#0f172a', border: '1px solid #334155', borderRadius: 16, padding: 24, textAlign: 'center' }}>
+                    <div style={{ fontSize: 42, fontWeight: 900, color: '#3b82f6', letterSpacing: '-0.02em' }}>{activeStudyForDetail.enrollment.current}</div>
+                    <div style={{ fontSize: 14, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.05em', marginTop: 4 }}>Enrolled</div>
+                  </div>
+                  <div style={{ flex: 1, background: '#0f172a', border: '1px solid #334155', borderRadius: 16, padding: 24, textAlign: 'center' }}>
+                    <div style={{ fontSize: 42, fontWeight: 900, color: '#94a3b8', letterSpacing: '-0.02em' }}>{activeStudyForDetail.enrollment.target}</div>
+                    <div style={{ fontSize: 14, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.05em', marginTop: 4 }}>Target</div>
+                  </div>
+                  <div style={{ flex: 1, background: '#0f172a', border: '1px solid #334155', borderRadius: 16, padding: 24, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <ProgressRing pct={activeStudyForDetail.enrollment.current/activeStudyForDetail.enrollment.target*100} width={64} stroke={6} />
+                    <div style={{ fontSize: 14, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.05em', marginTop: 12 }}>Overall Progress</div>
+                  </div>
+                </div>
+                <div style={{ height: 260, background: '#0f172a', borderRadius: 16, border: '1px solid #334155', padding: 24 }}>
+                   <div style={{ fontSize: 13, fontWeight: 800, color: '#64748b', letterSpacing: '0.1em', marginBottom: 20, textTransform: 'uppercase' }}>ENROLLMENT HISTORY</div>
+                   <LineChart data={activeStudyForDetail.enrollmentHistory} target={activeStudyForDetail.enrollment.target} />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
 
       <ConfirmModal confirmModal={confirmModal} setConfirmModal={setConfirmModal} />
