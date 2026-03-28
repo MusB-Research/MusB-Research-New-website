@@ -572,26 +572,35 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
             inquiryStep === 2 ? "🔐 NDA Preference" :
               inquiryStep === 3 ? "🏢 Company Details" :
                 inquiryStep === 4 ? "📊 Project Details" :
+                  inquiryStep === 5 ? "📅 Schedule Discovery Call" :
                   "🚀 Inquiry Submitted"
         }
-        width={inquiryStep === 5 ? "500px" : "800px"}
+        width={inquiryStep === 6 ? "500px" : "800px"}
       >
-        <div style={{ display: 'flex', gap: 12, marginBottom: 40, alignItems: 'center' }}>
-          {[1, 2, 4].map(step => (
-            <React.Fragment key={step}>
-              <div style={{
-                width: 40, height: 40, borderRadius: '50%',
-                background: inquiryStep >= step ? '#2563eb' : '#334155',
-                color: 'white', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', fontWeight: 900, fontSize: 16,
-                boxShadow: inquiryStep >= step ? '0 0 15px rgba(37,99,235,0.4)' : 'none'
-              }}>
-                {step === 4 ? 3 : step}
-              </div>
-              {step < 4 && <div style={{ flex: 1, height: 4, background: inquiryStep > step ? '#2563eb' : '#334155', borderRadius: 2 }} />}
-            </React.Fragment>
-          ))}
-        </div>
+        {inquiryStep < 6 && (
+          <div style={{ display: 'flex', gap: 12, marginBottom: 40, alignItems: 'center' }}>
+            {[1, 2, 3].map(step => {
+              // Map display step to actual inquiryStep thresholds
+              // Display 1 = inquiryStep 1, Display 2 = inquiryStep 2, Display 3 = steps 3/4/5
+              const isActive = step === 1 ? inquiryStep >= 1 : step === 2 ? inquiryStep >= 2 : inquiryStep >= 3;
+              const isPast = step === 1 ? inquiryStep > 1 : step === 2 ? inquiryStep > 2 : false;
+              return (
+                <React.Fragment key={step}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: '50%',
+                    background: isActive ? '#2563eb' : '#334155',
+                    color: 'white', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', fontWeight: 900, fontSize: 16,
+                    boxShadow: isActive ? '0 0 15px rgba(37,99,235,0.4)' : 'none'
+                  }}>
+                    {step}
+                  </div>
+                  {step < 3 && <div style={{ flex: 1, height: 4, background: isPast ? '#2563eb' : '#334155', borderRadius: 2 }} />}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        )}
 
         {/* STEP 1: QUICK PROJECT CHECK */}
         {inquiryStep === 1 && (
@@ -1401,24 +1410,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
               </div>
             )}
 
-            {studyDetailTab === 'Enrollment' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                <div style={{ display: 'flex', gap: 16 }}>
-                  <div style={{ flex: 1, background: '#0f172a', border: '1px solid #334155', borderRadius: 8, padding: 16, textAlign: 'center' }}>
-                    <div style={{ fontSize: 28, fontWeight: 800, color: '#38bdf8' }}>{selectedStudyDetail.enrollment.current}</div>
-                    <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Enrolled</div>
-                  </div>
-                  <div style={{ flex: 1, background: '#0f172a', border: '1px solid #334155', borderRadius: 8, padding: 16, textAlign: 'center' }}>
-                    <div style={{ fontSize: 28, fontWeight: 800, color: '#94a3b8' }}>{selectedStudyDetail.enrollment.target}</div>
-                    <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Target</div>
-                  </div>
-                  <div style={{ flex: 1, background: '#0f172a', border: '1px solid #334155', borderRadius: 8, padding: 16, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <ProgressRing pct={selectedStudyDetail.enrollment.current / selectedStudyDetail.enrollment.target * 100} width={36} stroke={3} />
-                    <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600, marginTop: 4 }}>Progress</div>
-                  </div>
-                </div>
-              </div>
-            )}
+
           </div>
         )}
       </Modal>

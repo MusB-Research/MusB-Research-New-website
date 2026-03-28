@@ -238,7 +238,7 @@ export default function TeamManagementPanel({ addToast }: any) {
                   <td style={{ padding: '24px 32px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                       <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(37, 99, 235, 0.1)', color: THEME.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '18px' }}>
-                        {member.name.substring(0,2).toUpperCase()}
+                        {(member.name || member.email || '?').substring(0,2).toUpperCase()}
                       </div>
                       <div>
                         <div style={{ fontWeight: 800, fontSize: '17px', color: THEME.text }}>{member.name}</div>
@@ -247,7 +247,7 @@ export default function TeamManagementPanel({ addToast }: any) {
                     </div>
                   </td>
                   <td style={{ padding: '24px 32px' }}>
-                    <span style={{ fontSize: '15px', fontWeight: 700, color: '#e2e8f0', letterSpacing: '0.02em' }}>{member.role.replace('_', ' ').toUpperCase()}</span>
+                    <span style={{ fontSize: '15px', fontWeight: 700, color: '#e2e8f0', letterSpacing: '0.02em' }}>{(member.role || '').replace('_', ' ').toUpperCase()}</span>
                   </td>
                   <td style={{ padding: '24px 32px' }}>
                     <StatusBadge status={member.status} />

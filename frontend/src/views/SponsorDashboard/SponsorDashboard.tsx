@@ -40,6 +40,19 @@ export default function SponsorDashboard() {
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const closeDropdowns = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-dropdown]')) {
+        setNotifDropdownOpen(false);
+        setProfileDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', closeDropdowns);
+    return () => document.removeEventListener('mousedown', closeDropdowns);
+  }, []);
+
   const isMobile = windowWidth < 1024;
 
   // Auth Reactivity
@@ -266,7 +279,7 @@ export default function SponsorDashboard() {
           ) : <div />}
 
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '24px' }}>
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative' }} data-dropdown="true">
               <button onClick={() => { setNotifDropdownOpen(!notifDropdownOpen); setProfileDropdownOpen(false); }} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', position: 'relative' }}>
                 🔔
                 {notifications.some(n => !n.read) && <div style={{ position: 'absolute', top: -4, right: -4, width: '8px', height: '8px', background: '#ef4444', borderRadius: '50%' }} />}
@@ -294,7 +307,7 @@ export default function SponsorDashboard() {
               </div>
             )}
 
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative' }} data-dropdown="true">
               <button onClick={() => { setProfileDropdownOpen(!profileDropdownOpen); setNotifDropdownOpen(false); }} style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#1e293b', border: `1px solid ${THEME.border}`, color: 'white', fontWeight: 700, cursor: 'pointer' }}>{initials}</button>
               {profileDropdownOpen && (
                 <div style={{ position: 'absolute', top: 48, right: 0, width: 200, background: '#1e293b', border: '1px solid #334155', borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.5)', overflow: 'hidden' }}>

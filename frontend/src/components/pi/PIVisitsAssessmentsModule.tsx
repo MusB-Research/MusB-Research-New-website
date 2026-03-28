@@ -198,7 +198,7 @@ export default function PIVisitsAssessmentsModule() {
         setConfirmModal({
             message: "Mark this visit as complete? This will lock all assessments and protocol checklists.",
             onConfirm: () => {
-                handleUpdateVisit(activeVisitId, { status: 'Completed', locked: true, piApproved: true });
+                if (activeVisitId) handleUpdateVisit(activeVisitId, { status: 'Completed', locked: true, piApproved: true });
                 setConfirmModal(null);
                 addToast('Visit Signed-Off Successfully');
                 logAudit(`Visit ${activeVisitId} Locked & Signed-Off`);

@@ -122,9 +122,10 @@ interface StatCardProps {
     value: string;
     label: string;
     iconBg: string;
+    onClick?: () => void;
 }
-const StatCard = ({ icon, value, label, iconBg }: StatCardProps) => (
-    <div className="flex items-center gap-4 bg-[#0d1525]/60 border border-white/[0.06] rounded-2xl p-4 sm:p-5 hover:border-cyan-500/20 transition-all group w-full">
+const StatCard = ({ icon, value, label, iconBg, onClick }: StatCardProps) => (
+    <div className={`flex items-center gap-4 bg-[#0d1525]/60 border border-white/[0.06] rounded-2xl p-4 sm:p-5 hover:border-cyan-500/20 transition-all group w-full${onClick ? ' cursor-pointer' : ''}`} onClick={onClick}>
         <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg} group-hover:scale-110 transition-transform shadow-lg`}>
             {icon}
         </div>
