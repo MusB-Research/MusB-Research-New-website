@@ -25,7 +25,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Submission
-        fields = ['id', 'name', 'email', 'company', 'phone', 'inquiry_type', 'inquiry_type_slug', 'message', 'submitted_at']
+        fields = ['id', 'name', 'email', 'company', 'phone', 'inquiry_type', 'inquiry_type_slug', 'message', 'metadata', 'submitted_at']
         read_only_fields = ['submitted_at', 'inquiry_type']
 
     def create(self, validated_data):

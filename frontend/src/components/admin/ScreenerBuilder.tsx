@@ -49,9 +49,11 @@ export default function ScreenerBuilder() {
       const res = await authFetch(`${apiUrl}/api/forms/?study_id=${selectedStudy}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.length > 0) {
-          setFormId(data[0].id);
-          setFields(data[0].schema);
+        // Specifically look for the screener form
+        const existingScreener = data.find((f: any) => f.title === 'Screener Form');
+        if (existingScreener) {
+          setFormId(existingScreener.id);
+          setFields(existingScreener.schema);
         } else {
           setFormId(null);
           setFields([]);
@@ -68,8 +70,11 @@ export default function ScreenerBuilder() {
 
     const payload = {
       study: selectedStudy,
-      title: `${selectedStudy} Recruitment Screener`,
-      schema: fields
+      title: 'Screener Form', // Must match StudyScreener.tsx filter
+      description: `Dynamic screener for protocol: ${selectedStudy}`,
+      schema: fields,
+      is_published: true,
+      version: 1
     };
 
     try {

@@ -6,6 +6,7 @@ import {
     AlertCircle, ChevronRight, HelpCircle, FileText, 
     ArrowUpRight, Filter, ChevronDown, Bell, Lock, Globe
 } from 'lucide-react';
+import { authFetch, API } from '../../utils/auth';
 
 // --- TYPES ---
 interface Message {
@@ -183,8 +184,8 @@ const KNOWLEDGE_BASE: FAQ[] = [
 // --- COMPONENT ---
 export default function PIHelpSupportModule() {
     // State
-    const [tickets, setTickets] = useState<Ticket[]>(MOCK_TICKETS);
-    const [activeTicketId, setActiveTicketId] = useState('TCK-1023');
+    const [tickets, setTickets] = useState<Ticket[]>([]);
+    const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('All');
     const [sortMode, setSortMode] = useState('recent');
@@ -199,7 +200,7 @@ export default function PIHelpSupportModule() {
     const [newRequestForm, setNewRequestForm] = useState({ title: '', description: '', category: 'Technical Support', priority: 'Medium', study: '', participantId: '', visit: '', assignTo: 'auto', files: [] as File[] });
     const [toasts, setToasts] = useState<{ id: string, type: string, message: string }[]>([]);
     const [confirmModal, setConfirmModal] = useState<{ message: string, onConfirm: () => void, type?: string } | null>(null);
-    const [ticketCounter, setTicketCounter] = useState(1024);
+    const [loading, setLoading] = useState(true);
 
     const threadBottomRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -227,7 +228,56 @@ export default function PIHelpSupportModule() {
 
     const activeTicket = tickets.find(t => t.id === activeTicketId);
 
+    const fetchTickets = useCallback(async () => {
+        setLoading(true);
+        try {
+            const res = await authFetch(`${API}/api/support/tickets/`);
+            if (res.ok) {
+                const data = await res.json();
+                const mapped: Ticket[] = data.map((t: any) => ({
+                    id: t.id,
+                    ticketId: t.ticket_id,
+                    title: t.title,
+                    study: t.study_protocol || 'Global',
+                    category: t.category,
+                    priority: t.priority,
+                    status: t.status,
+                    assignedTo: t.assigned_to,
+                    createdBy: t.creator_name,
+                    createdAt: t.created_at,
+                    lastUpdated: 'Updated',
+                    unread: false,
+                    messages: t.messages.map((m: any) => ({
+                        id: m.id,
+                        sender: m.sender_name,
+                        role: m.user_role_label,
+                        text: m.content,
+                        time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        fromPI: m.user_role_label === 'PI'
+                    })),
+                    auditLog: t.audit_logs.map((a: any) => ({
+                        time: new Date(a.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        user: a.user,
+                        action: a.action
+                    }))
+                }));
+                setTickets(mapped);
+                if (mapped.length > 0 && !activeTicketId) {
+                    setActiveTicketId(mapped[0].id);
+                }
+            }
+        } catch (e) {
+            addToast('Synchronicity failure', 'error');
+        } finally {
+            setLoading(false);
+        }
+    }, [activeTicketId]);
+
     // Effects
+    useEffect(() => {
+        fetchTickets();
+    }, []);
+
     useEffect(() => {
         threadBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [activeTicket?.messages, showKnowledgeBase]);
@@ -245,28 +295,28 @@ export default function PIHelpSupportModule() {
         setTickets(prev => prev.map(t => t.id === id ? { ...t, unread: false } : t));
     };
 
-    const handleSendMessage = () => {
+    const handleSendMessage = async () => {
         if (!messageInput.trim() && !attachedFile) return;
-        const msg: Message = {
-            id: 'm-' + Date.now(),
-            sender: 'Dr. Yadav',
-            role: 'PI',
-            time: 'Just now',
-            text: messageInput,
-            tag: selectedTag,
-            attachment: attachedFile ? attachedFile.name : null,
-            fromPI: true
-        };
-        setTickets(prev => prev.map(t => t.id === activeTicketId ? {
-            ...t,
-            lastUpdated: 'Just now',
-            messages: [...t.messages, msg],
-            auditLog: [...t.auditLog, { time: 'Just now', user: 'Dr. Yadav', action: 'Message sent' }]
-        } : t));
-        setMessageInput('');
-        setAttachedFile(null);
-        setSelectedTag('General');
-        addToast('Message dispatched');
+        
+        try {
+            const res = await authFetch(`${API}/api/support/tickets/${activeTicketId}/add_message/`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    content: messageInput,
+                    tag: selectedTag
+                })
+            });
+
+            if (res.ok) {
+                fetchTickets(); // Refresh
+                setMessageInput('');
+                setAttachedFile(null);
+                setSelectedTag('General');
+                addToast('Message dispatched');
+            }
+        } catch (e) {
+            addToast('Transmission failure', 'error');
+        }
     };
 
     const executeStatusChange = (newStatus: string) => {
@@ -305,57 +355,52 @@ export default function PIHelpSupportModule() {
         }
     };
 
-    const handleNewRequest = () => {
+    const handleNewRequest = async () => {
         if (!newRequestForm.title || !newRequestForm.description) return addToast('Title and Description required', 'error');
-        const id = `TCK-${ticketCounter}`;
-        let autoAssign = 'Super Admin';
-        if (newRequestForm.category === 'Clinical Protocol') autoAssign = 'PI';
-        if (newRequestForm.category === 'Study Operations') autoAssign = 'Coordinator';
+        
+        try {
+            const res = await authFetch(`${API}/api/support/tickets/`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    title: newRequestForm.title,
+                    description: newRequestForm.description, // Note: backend viewset might need updates to handle initial description as first message
+                    category: newRequestForm.category,
+                    priority: newRequestForm.priority.toUpperCase()
+                })
+            });
 
-        const newTicket: Ticket = {
-            id,
-            title: newRequestForm.title,
-            study: newRequestForm.study || 'N/A',
-            participantId: newRequestForm.participantId,
-            category: newRequestForm.category,
-            priority: newRequestForm.priority,
-            status: 'Open',
-            assignedTo: newRequestForm.assignTo === 'auto' ? autoAssign : newRequestForm.assignTo,
-            createdBy: 'Dr. Yadav',
-            createdRole: 'PI',
-            createdAt: new Date().toLocaleString(),
-            lastUpdated: 'Now',
-            unread: false,
-            draft: '',
-            linkedRecords: [],
-            messages: [
-                { id: 'm0', sender: 'Dr. Yadav', role: 'PI', time: 'Now', text: newRequestForm.description, tag: 'General', attachment: null, fromPI: true }
-            ],
-            auditLog: [{ time: 'Now', user: 'Dr. Yadav', action: 'Ticket created' }]
-        };
+            if (res.ok) {
+                const data = await res.json();
+                // Add first message immediately if backend didn't
+                await authFetch(`${API}/api/support/tickets/${data.id}/add_message/`, {
+                    method: 'POST',
+                    body: JSON.stringify({ content: newRequestForm.description, tag: 'General' })
+                });
 
-        setTickets(prev => [newTicket, ...prev]);
-        setTicketCounter(prev => prev + 1);
-        setActiveTicketId(id);
-        setNewRequestOpen(false);
-        setNewRequestForm({ title: '', description: '', category: 'Technical Support', priority: 'Medium', study: '', participantId: '', visit: '', assignTo: 'auto', files: [] });
-        addToast(`Ticket ${id} initialized`);
+                fetchTickets();
+                setNewRequestOpen(false);
+                setNewRequestForm({ title: '', description: '', category: 'Technical Support', priority: 'Medium', study: '', participantId: '', visit: '', assignTo: 'auto', files: [] });
+                addToast(`Ticket initialized`);
+            }
+        } catch (e) {
+            addToast('Initialization failure', 'error');
+        }
     };
 
     // --- STYLES ---
     const G = {
         glass: { backgroundColor: COLORS.glass, backdropFilter: 'blur(12px)', border: `1px solid ${COLORS.border}` },
-        label: { fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.15em', color: COLORS.label },
+        label: { fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.15em', color: COLORS.label },
         title: { fontSize: '20px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' as const, color: 'white' },
         btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '0.6rem 1.25rem', borderRadius: '4px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' },
         btnGhost: { backgroundColor: 'transparent', color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: '0.6rem 1.25rem', borderRadius: '4px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' }
     };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', backgroundColor: COLORS.bg, color: 'white', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', backgroundColor: COLORS.bg, color: 'white', overflow: 'hidden' }}>
             
-            {/* STICKY TOP BAR */}
-            <header style={{ ...G.glass, padding: '1rem 3rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 100 }}>
+            {/* SUB-HEADER TOOLBAR (Adjusted for Dashboard Overlay) */}
+            <header style={{ ...G.glass, padding: '1.5rem 3rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10, marginTop: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <HelpCircle size={24} color={COLORS.accent} />
                     <h1 style={G.title}>Help & Support</h1>
@@ -398,7 +443,7 @@ export default function PIHelpSupportModule() {
                             <button 
                                 key={s} 
                                 onClick={() => setFilterStatus(s)}
-                                style={{ fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', padding: '0.3rem 0.6rem', borderRadius: '4px', border: `1px solid ${filterStatus === s ? COLORS.accent : COLORS.border}`, backgroundColor: filterStatus === s ? `${COLORS.accent}20` : 'transparent', color: filterStatus === s ? 'white' : COLORS.label, cursor: 'pointer' }}
+                                style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', padding: '0.4rem 0.8rem', borderRadius: '6px', border: `1px solid ${filterStatus === s ? COLORS.accent : COLORS.border}`, backgroundColor: filterStatus === s ? `${COLORS.accent}20` : 'transparent', color: filterStatus === s ? 'white' : COLORS.label, cursor: 'pointer' }}
                             >
                                 {s}
                             </button>
@@ -522,16 +567,16 @@ export default function PIHelpSupportModule() {
                                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', alignItems: 'center' }}>
                                     <div style={{ display: 'flex', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '4px', padding: '2px' }}>
                                         {['General', 'Technical', 'Clinical', 'Urgent'].map(t => (
-                                            <button key={t} onClick={() => setSelectedTag(t)} style={{ border: 'none', background: selectedTag === t ? `${COLORS.accent}20` : 'transparent', color: selectedTag === t ? 'white' : COLORS.label, padding: '0.3rem 0.8rem', fontSize: '10px', fontWeight: 900, borderRadius: '2px', cursor: 'pointer' }}>{t}</button>
+                                            <button key={t} onClick={() => setSelectedTag(t)} style={{ border: 'none', background: selectedTag === t ? `${COLORS.accent}20` : 'transparent', color: selectedTag === t ? 'white' : COLORS.label, padding: '0.5rem 1rem', fontSize: '12px', fontWeight: 900, borderRadius: '4px', cursor: 'pointer' }}>{t}</button>
                                         ))}
                                     </div>
                                     <div style={{ flex: 1 }} />
                                     <select 
-                                        style={{ ...G.btnGhost, textAlign: 'left', outline: 'none', fontSize: '10px', padding: '0.4rem 0.8rem', backgroundColor: '#0B101B' }}
+                                        style={{ ...G.btnGhost, textAlign: 'left', outline: 'none', fontSize: '12px', padding: '0.6rem 1rem', backgroundColor: '#0B101B', borderRadius: '8px' }}
                                         onChange={(e) => setMessageInput(e.target.value)}
                                     >
-                                        <option value="">Select Template...</option>
-                                        {TEMPLATES.map(t => <option key={t} value={t}>{t}</option>)}
+                                        <option value="" style={{ fontSize: '12px', fontWeight: 900 }}>Select Template...</option>
+                                        {TEMPLATES.map(t => <option key={t} value={t} style={{ fontSize: '12px', padding: '10px' }}>{t}</option>)}
                                     </select>
                                 </div>
                                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
@@ -625,7 +670,7 @@ export default function PIHelpSupportModule() {
                                 <label style={G.label}>Audit Trace</label>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
                                     {activeTicket.auditLog.map((log, i) => (
-                                        <div key={i} style={{ fontSize: '10px', color: COLORS.label }}>
+                                        <div key={i} style={{ fontSize: '12px', color: COLORS.label, lineHeight: 1.5 }}>
                                             <span style={{ fontWeight: 900, color: COLORS.accent }}>{log.time}</span> • {log.user}: {log.action}
                                         </div>
                                     ))}

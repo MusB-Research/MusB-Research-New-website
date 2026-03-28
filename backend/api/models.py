@@ -686,6 +686,18 @@ class StudyInquiry(BaseMongoModel):
     zip_code = models.CharField(max_length=20, null=True, blank=True, default='')
     country = models.CharField(max_length=100, null=True, blank=True, default='')
     country_code = models.CharField(max_length=10, null=True, blank=True, default='')
+    contact_email = models.EmailField(max_length=255, blank=True, null=True, default='')
+    contact_person_name = models.CharField(max_length=255, blank=True, null=True, default='')
+    contact_person_designation = models.CharField(max_length=255, blank=True, null=True, default='')
+    contact_mobile = models.CharField(max_length=50, blank=True, null=True, default='')
+
+    # Operational Address Fields
+    has_operational_address = models.BooleanField(default=False)
+    op_street_address = models.TextField(null=True, blank=True, default='')
+    op_city = models.CharField(max_length=100, null=True, blank=True, default='')
+    op_state = models.CharField(max_length=100, null=True, blank=True, default='')
+    op_zip_code = models.CharField(max_length=20, null=True, blank=True, default='')
+    op_country = models.CharField(max_length=100, null=True, blank=True, default='')
 
     @property
     def corporate_address(self):
@@ -701,6 +713,11 @@ class StudyInquiry(BaseMongoModel):
     project_description = models.TextField(blank=True)
     supporting_files = models.FileField(upload_to='inquiry_docs/', null=True, blank=True)
     
+    # Discovery Call Scheduling
+    discovery_call_date = models.DateField(null=True, blank=True, default=None)
+    discovery_call_time = models.TimeField(null=True, blank=True, default=None)
+    discovery_call_timezone = models.CharField(max_length=100, null=True, blank=True, default='')
+    
     status = models.CharField(max_length=30, choices=INQUIRY_STATUS, default='PRELIMINARY')
     routing_target = models.CharField(max_length=100, blank=True) # sales@, lab@, etc.
     
@@ -709,3 +726,46 @@ class StudyInquiry(BaseMongoModel):
 
     def __str__(self):
         return f"Inquiry: {self.product_name} ({self.legal_name or self.sponsor_user.email if self.sponsor_user else 'Unknown'})"
+
+class ClinicalConversation(BaseMongoModel):
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='conversations')
+    study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='clinical_conversations')
+    
+    status = models.CharField(max_length=30, choices=[
+        ('UNREAD', 'Unread'),
+        ('ACTION_REQUIRED', 'Action Required'),
+        ('RESOLVED', 'Resolved'),
+        ('OPEN', 'Open')
+    ], default='OPEN')
+    
+    is_flagged = models.BooleanField(default=False)
+    
+    last_message_preview = models.TextField(blank=True)
+    last_updated = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-last_updated']
+
+    def __str__(self):
+        return f"Conversation: {self.participant.participant_sid} ({self.study.protocol_id})"
+
+class ClinicalMessage(BaseMongoModel):
+    conversation = models.ForeignKey(ClinicalConversation, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    
+    text = models.TextField()
+    tag = models.CharField(max_length=20, choices=[
+        ('SAFETY', 'Safety'),
+        ('PROTOCOL', 'Protocol'),
+        ('ELIGIBILITY', 'Eligibility'),
+        ('GENERAL', 'General')
+    ], default='GENERAL')
+    
+    attachment = models.FileField(upload_to='clinical_attachments/', null=True, blank=True)
+    is_from_pi = models.BooleanField(default=False)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']

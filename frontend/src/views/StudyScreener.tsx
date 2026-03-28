@@ -52,23 +52,25 @@ export default function StudyScreener() {
             setIsLoading(true);
             const apiUrl = API;
             try {
-                // Try fetching real study from API first
-                const res = await authFetch(`${apiUrl}/api/studies/${id}/`);
+                // Use public-studies for recruitment/screening to avoid assignment restrictions
+                const res = await fetch(`${apiUrl}/api/public-studies/${id}/`);
                 if (res.ok) {
                     const data = await res.json();
                     setStudy({
                         ...data,
-                        id: data.protocol_id || data.id,
-                        duration: "4-12 Weeks" // Placeholder until model includes it
+                        id: data.id, 
+                        protocol_id: data.protocol_id,
+                        duration: data.duration || "4-12 Weeks"
                     });
 
                     // Try to fetch dynamic form for this study
-                    const formRes = await authFetch(`${apiUrl}/api/forms/?study_id=${data.id}`);
+                    // Use regular fetch as screeners are public (ReadOnly allowed on backend)
+                    const formRes = await fetch(`${apiUrl}/api/forms/?study_id=${data.id}`);
                     if (formRes.ok) {
                         const forms = await formRes.json();
                         // Filter for correct title and sort by most recent to ensure we don't load zombie/duplicate forms
                         const relevantForm = forms
-                            .filter((f: any) => f.title === 'Screener Form')
+                            .filter((f: any) => f.title === 'Screener Form' || f.is_published)
                             .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
                         
                         if (relevantForm) {
@@ -150,7 +152,11 @@ export default function StudyScreener() {
         }
         if (step === 'STEP2') {
             if (dynamicForm) {
-                const questions = Array.isArray(dynamicForm.schema) ? dynamicForm.schema : (dynamicForm.schema.questions || []);
+                const questions = Array.isArray(dynamicForm.schema) 
+                    ? dynamicForm.schema 
+                    : (dynamicForm.schema.sections 
+                        ? dynamicForm.schema.sections.flatMap((s: any) => s.questions || [])
+                        : (dynamicForm.schema.questions || []));
                 return questions.every((q: any) => {
                     if (!q.required) return true;
                     return !!formData[q.id || q.key];
@@ -239,7 +245,7 @@ export default function StudyScreener() {
                     email: formData.email || 'no-email@provided.com',
                     phone: formData.phone || 'N/A',
                     message: `
-                        Screening Results for ${study?.title}:
+                        Screening Results for ${study?.protocol_id || study?.title}:
                         Outcome: ${finalOutcome}
                         
                         PRIMARY DATA:
@@ -248,7 +254,14 @@ export default function StudyScreener() {
                         CONDITION DETAILS:
                         ${JSON.stringify(conditionDetails, null, 2)}
                     `,
-                    inquiry_type: 1
+                    inquiry_type: 1,
+                    study_id: study?.id,
+                    metadata: {
+                        study_protocol: study?.protocol_id,
+                        outcome: finalOutcome,
+                        formData: formData, // The full structured answers
+                        conditionDetails: conditionDetails
+                    }
                 })
             });
         } catch (e) {
@@ -353,9 +366,23 @@ export default function StudyScreener() {
                                                             <Clock className="w-5 h-5" /> Protocol Synchronization Active
                                                         </div>
                                                         <div className="space-y-12">
-                                                            {(Array.isArray(dynamicForm.schema) ? dynamicForm.schema : (dynamicForm.schema.questions || [])).map((q: any, i: number) => {
+                                                            {(Array.isArray(dynamicForm.schema) 
+                                                              ? dynamicForm.schema 
+                                                              : (dynamicForm.schema.sections 
+                                                                  ? dynamicForm.schema.sections.flatMap((s: any) => s.questions || [])
+                                                                  : (dynamicForm.schema.questions || []))
+                                                            ).map((q: any, i: number) => {
                                                                 const fieldId = q.id || q.key;
                                                                 const isMissing = q.required && isAttemptingSubmit && !formData[fieldId];
+                                                                
+                                                                // Normalize types from QuestionnaireBuilder
+                                                                const rawType = (q.type || '').toLowerCase();
+                                                                const type = rawType.includes('text') ? 'text' : 
+                                                                             rawType.includes('number') ? 'text' :
+                                                                             rawType.includes('date') ? 'date' :
+                                                                             rawType.includes('yesno') || rawType.includes('yes/no') ? 'yesno' :
+                                                                             rawType.includes('likert') || rawType.includes('choice') || rawType.includes('dropdown') ? 'choice' :
+                                                                             rawType;
 
                                                                 return (
                                                                     <div key={i} className="space-y-4">
@@ -364,17 +391,17 @@ export default function StudyScreener() {
                                                                             {q.required && <span className="text-cyan-500 text-[10px]">*</span>}
                                                                         </label>
                                                                         
-                                                                        {(q.type === 'text' || q.type === 'file') && (
+                                                                        {(type === 'text' || type === 'file') && (
                                                                             <input
-                                                                                type={q.type === 'text' ? "text" : "file"}
+                                                                                type={type === 'file' ? "file" : "text"}
                                                                                 placeholder="Enter response..."
                                                                                 className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isMissing ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
-                                                                                value={q.type === 'text' ? (formData[fieldId] || '') : undefined}
+                                                                                value={type === 'text' ? (formData[fieldId] || '') : undefined}
                                                                                 onChange={(e) => setFormData({ ...formData, [fieldId]: e.target.value })}
                                                                             />
                                                                         )}
 
-                                                                        {q.type === 'date' && (
+                                                                        {type === 'date' && (
                                                                             <input
                                                                                 type="date"
                                                                                 className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isMissing ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
@@ -383,7 +410,7 @@ export default function StudyScreener() {
                                                                             />
                                                                         )}
 
-                                                                        {q.type === 'yesno' && (
+                                                                        {type === 'yesno' && (
                                                                             <div className="flex gap-4">
                                                                                 {['Yes', 'No'].map(opt => (
                                                                                     <button
@@ -397,7 +424,7 @@ export default function StudyScreener() {
                                                                             </div>
                                                                         )}
 
-                                                                        {(q.type === 'choice' || q.type === 'dropdown') && (
+                                                                        {(type === 'choice' || type === 'dropdown') && (
                                                                             <div className="grid grid-cols-1 gap-3">
                                                                                 {(q.options || ['Option 1', 'Option 2']).map((opt: string) => (
                                                                                     <button

@@ -437,3 +437,21 @@ html {
   z-index: 10;
 }
 
+.custom-scrollbar-horizontal::-webkit-scrollbar {
+  height: 8px;
+}
+
+.custom-scrollbar-horizontal::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+}
+
+.custom-scrollbar-horizontal::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.3);
+  border-radius: 10px;
+  border: 2px solid #0B101B;
+}
+
+.custom-scrollbar-horizontal::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.6);
+}

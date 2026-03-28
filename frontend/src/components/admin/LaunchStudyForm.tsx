@@ -73,7 +73,9 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
         consent_collection: initialData?.consent_collection || ['ECONSENT'],
         assigned_pis: initialData?.assigned_pis || [] as string[],
         assigned_coordinators: initialData?.assigned_coordinators || [] as string[],
-        status: initialData?.status || 'DRAFT'
+        status: initialData?.status || 'DRAFT',
+        compensation: initialData?.compensation || '500',
+        compensation_currency: initialData?.compensation_currency || 'USD'
     });
 
     const [uploadedDocs, setUploadedDocs] = useState<DocumentFile[]>(() => [
@@ -125,7 +127,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
     }, []);
 
     const validation = useMemo(() => {
-        const required = ['sponsor_id', 'startDate', 'full_title', 'title', 'indication', 'brief_description', 'overview'];
+        const required = ['sponsor_id', 'startDate', 'full_title', 'title', 'indication', 'brief_description'];
         const missingFields = required.filter(f => !formData[f as keyof typeof formData]);
         const hasPI = Array.isArray(formData.assigned_pis) && formData.assigned_pis.length > 0;
         const hasCC = Array.isArray(formData.assigned_coordinators) && formData.assigned_coordinators.length > 0;
@@ -327,6 +329,38 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                         </div>
                                     </div>
                                 </div>
+
+                                <div className="pt-8 border-t border-white/5 space-y-8">
+                                    <label className="text-[15px] font-black text-slate-500 uppercase tracking-widest ml-2">Participant Financial Protocol</label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="bg-white/5 border border-white/5 rounded-2xl p-6">
+                                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3">Stipend Amount</p>
+                                            <div className="flex items-center gap-4">
+                                                {!isNaN(Number(formData.compensation)) && <span className="text-2xl font-black text-slate-500">$</span>}
+                                                <input 
+                                                    type="text" 
+                                                    name="compensation"
+                                                    value={formData.compensation}
+                                                    onChange={handleChange}
+                                                    className="bg-transparent border-none text-3xl font-black text-white italic focus:ring-0 w-full"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="bg-white/5 border border-white/5 rounded-2xl p-6">
+                                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3">Currency</p>
+                                            <select 
+                                                name="compensation_currency"
+                                                value={formData.compensation_currency}
+                                                onChange={handleChange}
+                                                className="bg-transparent border-none text-xl font-black text-white italic focus:ring-0 w-full appearance-none"
+                                            >
+                                                <option value="USD" className="bg-[#0B101B]">USD - US Dollar</option>
+                                                <option value="EUR" className="bg-[#0B101B]">EUR - Euro</option>
+                                                <option value="GBP" className="bg-[#0B101B]">GBP - British Pound</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </motion.div>
                     )}
@@ -452,7 +486,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                     <div className="space-y-12">
                                         <div className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-10 space-y-8">
                                             <h4 className="text-xs font-black text-indigo-400 uppercase tracking-widest flex items-center gap-3 italic"><Layers className="w-4 h-4" /> Identity Synopsis</h4>
-                                            <div className="grid grid-cols-2 gap-y-10">
+                                            <div className="grid grid-cols-2 gap-x-6 gap-y-10">
                                                 <div>
                                                     <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Protocol ID</p>
                                                     <p className="text-lg font-bold text-white mt-1 italic font-mono">{formData.protocol_id}</p>
@@ -460,6 +494,20 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                 <div>
                                                     <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Target Sample</p>
                                                     <p className="text-2xl font-black text-white mt-1 italic">{formData.target_subjects} Subjects</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Sponsor</p>
+                                                    <p className="text-sm font-black text-indigo-300 mt-1 uppercase italic truncate">{formData.sponsor_name || "NOT SELECTED"}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Indication</p>
+                                                    <p className="text-sm font-black text-emerald-400 mt-1 uppercase italic truncate">{formData.indication || "NOT SPECIFIED"}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Compensation</p>
+                                                    <p className="text-lg font-black text-emerald-400 mt-1 italic">
+                                                        {isNaN(Number(formData.compensation)) ? formData.compensation : `${formData.compensation_currency === 'USD' ? '$' : formData.compensation_currency}${formData.compensation}`}
+                                                    </p>
                                                 </div>
                                                 <div className="col-span-2">
                                                     <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Short Title Alias</p>
@@ -471,16 +519,21 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                             <h4 className="text-xs font-black text-pink-500 uppercase tracking-widest italic">Verification Status</h4>
                                             <div className="space-y-5">
                                                 {[
-                                                    { label: 'Primary Identity Mapped', check: validation?.missingFields?.length === 0 },
+                                                    { label: 'Primary Identity Mapped', check: validation?.missingFields?.length === 0, sub: validation?.missingFields?.length > 0 ? `Missing: ${validation?.missingFields?.join(', ').replace(/_/g, ' ')}` : null },
                                                     { label: 'Principal Investigator Synced', check: validation?.hasPI },
                                                     { label: 'Operational Support Assigned', check: validation?.hasCC },
                                                     { label: 'IRB Protocol Root Uploaded', check: validation?.hasProtocol }
                                                 ].map((item, i) => (
-                                                    <div key={i} className="flex items-center justify-between group">
-                                                        <span className={`text-xs font-black uppercase tracking-widest transition-all ${item.check ? 'text-slate-500 group-hover:text-slate-300' : 'text-red-400 italic underline'}`}>{item.label}</span>
-                                                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all ${item.check ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-red-500/20 border-red-500 text-red-500'}`}>
-                                                            {item.check ? <CheckSquare className="w-4 h-4 shadow-emerald-500/50" /> : <AlertCircle className="w-4 h-4" />}
+                                                    <div key={i} className="flex-col gap-1">
+                                                        <div className="flex items-center justify-between group">
+                                                            <span className={`text-xs font-black uppercase tracking-widest transition-all ${item.check ? 'text-slate-500 group-hover:text-slate-300' : 'text-red-400 italic underline'}`}>{item.label}</span>
+                                                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all ${item.check ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-red-500/20 border-red-500 text-red-500'}`}>
+                                                                {item.check ? <CheckSquare className="w-4 h-4 shadow-emerald-500/50" /> : <AlertCircle className="w-4 h-4" />}
+                                                            </div>
                                                         </div>
+                                                        {item.sub && (
+                                                            <p className="text-[9px] text-red-400 font-bold uppercase tracking-widest mt-1 ml-1 opacity-70 italic">{item.sub}</p>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </div>

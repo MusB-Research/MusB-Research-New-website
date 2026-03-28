@@ -1,9 +1,9 @@
 import os
 import resend
 from django.conf import settings
-from typing import List
+from typing import List, Optional
 
-def send_newsletter_update(subject: str, html_content: str, text_content: str = None):
+def send_newsletter_update(subject: str, html_content: str, text_content: Optional[str] = None):
     """
     Fetches all active Newsletter subscribers and sends them an email via Resend.
     """
@@ -32,12 +32,12 @@ def send_newsletter_update(subject: str, html_content: str, text_content: str = 
     chunk_size = 50
     chunks = [emails[i:i + chunk_size] for i in range(0, len(emails), chunk_size)]
     
-    success_count = 0
+    success_count: int = 0
     
     for chunk in chunks:
         try:
             params = {
-                "from": "MusB Research <noreply@musbresearch.com>", # Update 'noreply@musbresearch.com' to verified domain
+                "from": settings.DEFAULT_FROM_EMAIL,
                 "to": ["noreply@musbresearch.com"], # Required TO field
                 "bcc": chunk,
                 "subject": subject,
@@ -69,7 +69,7 @@ def send_welcome_email(to_email: str):
     
     try:
         email_response = resend.Emails.send({
-            "from": "MusB Research <noreply@musbresearch.com>",
+            "from": settings.DEFAULT_FROM_EMAIL,
             "to": [to_email],
             "subject": subject,
             "html": html_content
@@ -98,49 +98,86 @@ def send_inquiry_notification(inquiry_data: dict, target_email: str):
     
     # Build HTML summary
     html_content = f"""
-    <div style="font-family: sans-serif; max-width: 600px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #f8fafc;">
-        <h2 style="color: #1e3a8a; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;">New Study Inquiry Received</h2>
+    <div style="font-family: sans-serif; max-width: 650px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #f8fafc; color: #334155;">
+        <h2 style="color: #1e3a8a; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; margin-top: 0;">New Clinical Study Inquiry</h2>
         
-        <p>A new clinical study inquiry has been submitted via the Sponsor Dashboard.</p>
+        <p style="font-size: 16px; line-height: 1.5;">A detailed study inquiry has been submitted by <b>{legal_name}</b> via the Sponsor Dashboard.</p>
         
-        <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 20px;">
-            <h3 style="margin-top: 0; color: #334155;">Project Identification</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-                <tr><td style="padding: 8px 0; color: #64748b; width: 140px;"><b>Product Name:</b></td><td>{product}</td></tr>
-                <tr><td style="padding: 8px 0; color: #64748b;"><b>Category:</b></td><td>{inquiry_data.get('category')}</td></tr>
-                <tr><td style="padding: 8px 0; color: #64748b;"><b>Health Focus:</b></td><td>{inquiry_data.get('primary_focus')}</td></tr>
-                <tr><td style="padding: 8px 0; color: #64748b;"><b>Development:</b></td><td>{inquiry_data.get('development_stage')}</td></tr>
-                <tr><td style="padding: 8px 0; color: #64748b;"><b>Timeline:</b></td><td>{inquiry_data.get('timeline')}</td></tr>
+        <!-- Section 1: Contact Details -->
+        <div style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+            <h3 style="margin-top: 0; color: #1e3a8a; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 8px;">Contact Information</h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 15px;">
+                <tr><td style="padding: 6px 0; color: #64748b; width: 160px;"><b>Contact Name:</b></td><td>{inquiry_data.get('contact_person_name', 'Not Provided')}</td></tr>
+                <tr><td style="padding: 6px 0; color: #64748b;"><b>Designation:</b></td><td>{inquiry_data.get('contact_person_designation', 'Not Provided')}</td></tr>
+                <tr><td style="padding: 6px 0; color: #64748b;"><b>Email Address:</b></td><td><a href="mailto:{inquiry_data.get('contact_email')}" style="color: #2563eb;">{inquiry_data.get('contact_email')}</a></td></tr>
+                <tr><td style="padding: 6px 0; color: #64748b;"><b>Mobile No:</b></td><td>{inquiry_data.get('contact_mobile', 'Not Provided')}</td></tr>
+                <tr><td style="padding: 6px 0; color: #64748b;"><b>Legal Entity:</b></td><td>{legal_name}</td></tr>
             </table>
         </div>
 
-        <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 20px;">
-            <h3 style="margin-top: 0; color: #334155;">NDA & Legal Status</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-                <tr><td style="padding: 8px 0; color: #64748b; width: 140px;"><b>NDA Preferred:</b></td><td><span style="color: {'#e11d48' if nda.startswith('YES') else '#059669'}; font-weight: bold;">{nda}</span></td></tr>
-                <tr><td style="padding: 8px 0; color: #64748b;"><b>Legal Entity:</b></td><td>{legal_name}</td></tr>
-                <tr><td style="padding: 8px 0; color: #64748b;"><b>Signatory:</b></td><td>{inquiry_data.get('signatory_name')} ({inquiry_data.get('signatory_title')})</td></tr>
-                <tr><td style="padding: 8px 0; color: #64748b;"><b>Address:</b></td><td>{inquiry_data.get('street_address')}<br/>{inquiry_data.get('city')}, {inquiry_data.get('state')} {inquiry_data.get('zip_code')}<br/>{inquiry_data.get('country')}</td></tr>
+        <!-- Section 2: Address Details -->
+        <div style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+            <h3 style="margin-top: 0; color: #1e3a8a; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 8px;">Business Address</h3>
+            <div style="font-size: 15px; line-height: 1.6;">
+                <p style="margin: 0;"><b>Corporate HQ:</b><br/>{inquiry_data.get('street_address')}<br/>{inquiry_data.get('city')}, {inquiry_data.get('state')} {inquiry_data.get('zip_code')}, {inquiry_data.get('country')}</p>
+                {f'<p style="margin-top: 12px; margin-bottom: 0; padding: 10px; background: #eff6ff; border-radius: 6px; border-left: 4px solid #2563eb;"><b>Operational Address (Different):</b><br/>{inquiry_data.get("op_street_address")}<br/>{inquiry_data.get("op_city")}, {inquiry_data.get("op_state")} {inquiry_data.get("op_zip_code")}, {inquiry_data.get("op_country")}</p>' if inquiry_data.get('has_operational_address') else '<p style="margin-top: 10px; font-style: italic; color: #94a3b8;">Operational address is same as corporate HQ.</p>'}
+            </div>
+            {f'<div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid #eee;"><b>Signatory:</b> {inquiry_data.get("signatory_name")} ({inquiry_data.get("signatory_title")})</div>' if inquiry_data.get('signatory_name') else ''}
+        </div>
+
+        <!-- Section 3: Project Identification -->
+        <div style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+            <h3 style="margin-top: 0; color: #1e3a8a; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 8px;">Project & NDA Status</h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 15px;">
+                <tr><td style="padding: 6px 0; color: #64748b; width: 160px;"><b>Product Name:</b></td><td><b>{product}</b></td></tr>
+                <tr><td style="padding: 6px 0; color: #64748b;"><b>Category:</b></td><td>{inquiry_data.get('category', 'Not Specified')}</td></tr>
+                <tr><td style="padding: 6px 0; color: #64748b;"><b>Development:</b></td><td>{inquiry_data.get('development_stage', 'Not Specified')}</td></tr>
+                <tr><td style="padding: 6px 0; color: #64748b;"><b>Health Focus:</b></td><td>{inquiry_data.get('primary_focus', 'Not Specified')}</td></tr>
+                <tr><td style="padding: 6px 0; color: #64748b;"><b>Proposed Timeline:</b></td><td>{inquiry_data.get('timeline', 'Not Specified')}</td></tr>
+                <tr><td style="padding: 6px 0; color: #64748b;"><b>NDA Preference:</b></td><td><span style="color: {'#e11d48' if nda.startswith('YES') else '#059669'}; font-weight: bold;">{nda}</span></td></tr>
             </table>
         </div>
 
-        <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 20px;">
-            <h3 style="margin-top: 0; color: #334155;">Requirements</h3>
-            <p><b>Needs:</b> {", ".join(inquiry_data.get('needs', []))}</p>
-            <p><b>Description:</b> {inquiry_data.get('project_description', 'No additional description provided.')}</p>
+        <!-- Section 4: Clinical Requirements -->
+        <div style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+            <h3 style="margin-top: 0; color: #1e3a8a; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 8px;">Study Scope & Requirements</h3>
+            <div style="font-size: 15px; line-height: 1.6;">
+                <p><b>Needs:</b> {", ".join(inquiry_data.get('needs', [])) or 'None Specified'}</p>
+                <p><b>Study Type:</b> {", ".join(inquiry_data.get('study_type_needed', [])) or 'Not Specified'}</p>
+                <p><b>Services Requested:</b> {", ".join(inquiry_data.get('services_needed', [])) or 'Not Specified'}</p>
+                <p><b>Target Population:</b> {inquiry_data.get('target_population', 'General Population')}</p>
+                <p><b>Estimated Budget:</b> {inquiry_data.get('budget_range', 'Prefer to Discuss')}</p>
+                <div style="margin-top: 15px; padding: 15px; background: #fdfdfd; border: 1px solid #eee; border-radius: 6px;">
+                    <b>Project Description:</b><br/>
+                    <i style="color: #475569;">{inquiry_data.get('project_description', 'No description provided.')}</i>
+                </div>
+            </div>
         </div>
 
-        <p style="margin-top: 30px; font-size: 12px; color: #94a3b8; text-align: center;">
+        <!-- Section 5: Scheduling -->
+        <div style="background: #1e293b; padding: 20px; border-radius: 8px; color: #ffffff; margin-bottom: 20px;">
+            <h3 style="margin-top: 0; color: #3b82f6; font-size: 18px; border-bottom: 1px solid #334155; padding-bottom: 8px;">Requested Discovery Call</h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 15px;">
+                <tr><td style="padding: 6px 0; color: #94a3b8; width: 160px;"><b>Requested Date:</b></td><td>{inquiry_data.get('discovery_call_date') or 'Not Scheduled'}</td></tr>
+                <tr><td style="padding: 6px 0; color: #94a3b8;"><b>Sponsor Time:</b></td><td>{inquiry_data.get('discovery_call_time', 'N/A')} ({inquiry_data.get('discovery_call_timezone', 'N/A')})</td></tr>
+                <tr><td style="padding: 10px 0; border-top: 1px solid #334155; margin-top: 10px;"><b>EST Time (Site):</b></td><td style="padding: 10px 0; border-top: 1px solid #334155; font-size: 18px; font-weight: 900; color: #60a5fa;">{inquiry_data.get('est_discovery_call') or '---'}</td></tr>
+            </table>
+        </div>
+
+        <p style="margin-top: 30px; font-size: 11px; color: #94a3b8; text-align: center;">
             This inquiry was automatically routed to <b>{target_email}</b> based on the sponsor selection.<br/>
-            Sponsor User: {inquiry_data.get('sponsor_email', 'Unknown')}
+            Sponsor User Account: {inquiry_data.get('sponsor_email', 'Unknown')} | Inquiry System
         </p>
     </div>
     """
     
     try:
+        # Always include info@musbresearch.com as per user requirement
+        recipients = list(set([target_email, "info@musbresearch.com"]))
+        
         resend.Emails.send({
-            "from": "MusB Research System <noreply@musbresearch.com>",
-            "to": [target_email],
+            "from": settings.DEFAULT_FROM_EMAIL,
+            "to": recipients,
             "subject": subject,
             "html": html_content
         })

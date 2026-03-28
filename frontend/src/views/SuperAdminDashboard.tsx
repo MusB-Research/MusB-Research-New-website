@@ -783,14 +783,14 @@ export default function SuperAdminDashboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-white/[0.02] text-xs font-black text-[#555a7a] uppercase tracking-widest italic border-b border-white/5">
-                  <th className="px-8 py-5">Study Details</th>
-                  <th className="px-8 py-5">Sponsor</th>
-                  <th className="px-8 py-5">Medical Team</th>
-                  <th className="px-8 py-5">Phase / Type</th>
-                  <th className="px-8 py-5">Participants</th>
-                  <th className="px-8 py-5">Status</th>
-                  <th className="px-8 py-5 text-right">Master Control</th>
+                <tr className="bg-white/[0.02] text-sm font-black text-[#555a7a] uppercase tracking-widest italic border-b border-white/5">
+                  <th className="px-10 py-8">Study Details</th>
+                  <th className="px-8 py-8">Sponsor</th>
+                  <th className="px-8 py-8">Medical Team</th>
+                  <th className="px-8 py-8">Phase / Type</th>
+                  <th className="px-8 py-8">Participants</th>
+                  <th className="px-8 py-8">Status</th>
+                  <th className="px-10 py-8 text-right">Master Control</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -798,12 +798,12 @@ export default function SuperAdminDashboard() {
                   <tr key={study.id || i} className="hover:bg-white/[0.01] transition-colors group">
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center border border-white/5 bg-blue-500/10 text-blue-400">
-                          <Briefcase className="w-4 h-4" />
+                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center border border-white/5 bg-blue-500/10 text-blue-400">
+                          <Briefcase className="w-6 h-6" />
                         </div>
                         <div>
-                          <p className="text-sm font-black text-white italic group-hover:text-blue-400 transition-colors uppercase tracking-tight">{study.title}</p>
-                          <p className="text-[10px] text-[#555a7a] font-black uppercase tracking-widest mt-0.5">Protocol: {study.protocol_id}</p>
+                          <p className="text-base md:text-lg font-black text-white italic group-hover:text-blue-400 transition-colors uppercase tracking-tight">{study.title}</p>
+                          <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-widest mt-1">Protocol: {study.protocol_id}</p>
                         </div>
                       </div>
                     </td>
@@ -977,20 +977,20 @@ export default function SuperAdminDashboard() {
                         <option value="CLOSED_ARCHIVED" className="bg-[#0a0b1a]">Closed / Archived</option>
                       </select>
                     </td>
-                    <td className="px-8 py-5 text-right flex items-center justify-end gap-2">
+                    <td className="px-10 py-6 text-right flex items-center justify-end gap-3 min-w-[180px]">
                       <button
                         onClick={() => {
                           setSelectedStudy(study);
                           setCurrentPage('LAUNCH_STUDY');
                         }}
-                        className="p-2 text-slate-700 hover:text-white transition-all hover:bg-white/5 rounded-lg"
+                        className="p-3.5 text-slate-700 hover:text-white transition-all hover:bg-white/5 rounded-xl border border-transparent hover:border-white/10 shadow-lg"
                         title="Configure Protocol"
                       >
-                        <Settings className="w-4 h-4" />
+                        <Settings className="w-5 h-5" />
                       </button>
                       <button
                         onClick={async () => {
-                          const newStatus = study.status === 'ARCHIVED' ? 'RECRUITING' : 'ARCHIVED';
+                          const newStatus = study.status === 'CLOSED_ARCHIVED' ? 'RECRUITING' : 'CLOSED_ARCHIVED';
                           const apiUrl = API || 'http://localhost:8000';
                           try {
                             const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id || study.id}/`, {
@@ -1002,10 +1002,10 @@ export default function SuperAdminDashboard() {
                             alert("Archive state toggle failed");
                           }
                         }}
-                        className={`p-2 transition-all hover:bg-white/5 rounded-lg ${study.status === 'ARCHIVED' ? 'text-emerald-400' : 'text-amber-500/50 hover:text-amber-500'}`}
-                        title={study.status === 'ARCHIVED' ? 'Unarchive Study' : 'Archive Study'}
+                        className={`p-3.5 transition-all hover:bg-white/5 rounded-xl border border-transparent shadow-lg ${study.status === 'CLOSED_ARCHIVED' ? 'text-emerald-400 hover:border-emerald-500/30' : 'text-amber-500/50 hover:text-amber-500 hover:border-amber-500/30'}`}
+                        title={study.status === 'CLOSED_ARCHIVED' ? 'Unarchive Study' : 'Archive Study'}
                       >
-                        <Archive className="w-4 h-4" />
+                        <Archive className="w-5 h-5" />
                       </button>
                       <button
                         onClick={async () => {
@@ -1413,6 +1413,9 @@ export default function SuperAdminDashboard() {
                       <div>
                          <p className="text-[9px] font-black text-[#f472b6] uppercase tracking-widest mb-1 italic">{iq.category} INQUIRY</p>
                          <h4 className="text-xl font-black text-white italic uppercase tracking-tight">{iq.product_name}</h4>
+                         <span className={`inline-block mt-2 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${iq.nda_preference === 'YES' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                           {iq.nda_preference === 'YES' ? 'NDA Path' : 'Direct Path'}
+                         </span>
                       </div>
                     </div>
                     <div className="text-right">
@@ -1520,6 +1523,9 @@ export default function SuperAdminDashboard() {
                 <div>
                   <p className="text-[12px] font-black text-[#f472b6] uppercase tracking-[0.2em] mb-2">Detailed Feasibility Analysis</p>
                   <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">{viewingInquiry.product_name}</h2>
+                  <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${viewingInquiry.nda_preference === 'YES' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                    Submission Source: {viewingInquiry.nda_preference === 'YES' ? 'NDA Requested First' : 'Direct Full Disclosure'}
+                  </span>
                 </div>
               </div>
 
@@ -1531,6 +1537,7 @@ export default function SuperAdminDashboard() {
                     <DetailRow label="Dev Stage" value={viewingInquiry.development_stage} />
                     <DetailRow label="Health Focus" value={viewingInquiry.primary_focus} color="text-emerald-400" />
                     <DetailRow label="Timeline" value={viewingInquiry.timeline} />
+                    <DetailRow label="Preferred Email" value={viewingInquiry.contact_email || 'N/A'} color="text-indigo-400" />
                   </div>
 
                   <h3 className="text-sm font-black text-[#555a7a] uppercase tracking-widest border-b border-white/5 pb-4 pt-4 italic">Corporate & NDA</h3>

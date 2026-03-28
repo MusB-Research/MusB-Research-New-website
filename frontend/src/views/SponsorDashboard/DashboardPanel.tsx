@@ -52,6 +52,11 @@ const BUDGET_MAP: Record<string, string> = {
   'Prefer to Discuss': 'DISCUSS'
 };
 
+const TIMEZONES = [
+  'US/Eastern', 'US/Central', 'US/Mountain', 'US/Pacific',
+  'Europe/London', 'Europe/Paris', 'Asia/Tokyo', 'Asia/Singapore', 'Australia/Sydney', 'UTC'
+];
+
 export default function DashboardPanel({ protocols, team, inquiries, setProtocols, addToast, windowWidth, setActiveModule }: any) {
   const [protocolFilter, setProtocolFilter] = useState('All');
   const [overviewModalOpen, setOverviewModalOpen] = useState(false);
@@ -84,15 +89,27 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
     city: '',
     state: '',
     zipCode: '',
-    country: 'USA',
+    country: '',
     // Step 2
     studyTypeNeeded: [] as string[],
     targetPopulation: '',
     budgetRange: 'Prefer to Discuss',
     servicesNeeded: [] as string[],
     projectDescription: '',
-    contactName: SPONSOR.contact,
-    contactEmail: SPONSOR.email,
+    contactEmail: '',
+    contactPersonName: '',
+    contactPersonDesignation: '',
+    contactPersonMobile: '',
+    hasOperationalAddress: false,
+    opStreetAddress: '',
+    opCity: '',
+    opState: '',
+    opZipCode: '',
+    opCountry: '',
+    discoveryCallDate: '',
+    discoveryCallTime: '10:00',
+    discoveryCallTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'US/Eastern',
+    sites: [] as string[],
   });
   const [composeModalOpen, setComposeModalOpen] = useState(false);
   const [composeStudyContext, setComposeStudyContext] = useState<any>(null);
@@ -212,7 +229,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
           boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
           width: windowWidth > 1024 ? 'auto' : '100%'
         }}>
-          + Inquiry A Study
+          + Inquire A New Study
         </button>
       </div>
 
@@ -584,7 +601,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, marginBottom: 32 }}>
               <div style={{ gridColumn: 'span 2' }}>
-                <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 12, textTransform: 'uppercase' }}>1. Product / Ingredient Name*</label>
+                <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 12, textTransform: 'uppercase' }}>1. Project Name*</label>
                 <input
                   value={inquiryForm.productName}
                   onChange={e => setInquiryForm({ ...inquiryForm, productName: e.target.value })}
@@ -594,7 +611,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 12, textTransform: 'uppercase' }}>2. Product Category*</label>
+                <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 12, textTransform: 'uppercase' }}>2. Research Category*</label>
                 <select
                   value={inquiryForm.category}
                   onChange={e => setInquiryForm({ ...inquiryForm, category: e.target.value })}
@@ -605,7 +622,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 12, textTransform: 'uppercase' }}>3. Stage of Development*</label>
+                <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 12, textTransform: 'uppercase' }}>3. Development Stage*</label>
                 <select
                   value={inquiryForm.developmentStage}
                   onChange={e => setInquiryForm({ ...inquiryForm, developmentStage: e.target.value })}
@@ -635,17 +652,17 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, marginBottom: 40 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 12, textTransform: 'uppercase' }}>5. Primary Health Focus*</label>
+                <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 12, textTransform: 'uppercase' }}>5. Focus Of Reserach Area*</label>
                 <select
                   value={inquiryForm.primaryFocus}
                   onChange={e => setInquiryForm({ ...inquiryForm, primaryFocus: e.target.value })}
                   style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '20px', borderRadius: 16, fontSize: 18, outline: 'none' }}
                 >
-                  {['Gut', 'Metabolic', 'Brain', 'Aging', 'Women’s Health', 'Environmental', 'Liver / Behavioral', 'Other'].map(f => <option key={f}>{f}</option>)}
+                  {['Gut Health', 'Metabolic', 'Brain', 'Aging', 'Women’s Health', 'Environmental', 'Liver / Behavioral', 'Other'].map(f => <option key={f}>{f}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 12, textTransform: 'uppercase' }}>6. Estimated Timeline</label>
+                <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 12, textTransform: 'uppercase' }}>6. Timeline To Begin </label>
                 <select
                   value={inquiryForm.timeline}
                   onChange={e => setInquiryForm({ ...inquiryForm, timeline: e.target.value })}
@@ -734,44 +751,157 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
               </div>
               <div style={{ gridColumn: windowWidth > 640 ? 'span 2' : 'auto' }}>
                 <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Corporate Street Address*</label>
-                <textarea 
-                  value={inquiryForm.streetAddress} 
-                  onChange={e => setInquiryForm({ ...inquiryForm, streetAddress: e.target.value })} 
-                  rows={2} 
-                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', resize: 'none', fontSize: 18 }} 
+                <textarea
+                  value={inquiryForm.streetAddress}
+                  onChange={e => setInquiryForm({ ...inquiryForm, streetAddress: e.target.value })}
+                  rows={2}
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', resize: 'none', fontSize: 18 }}
                   placeholder="Street name and number"
                 />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>City*</label>
-                <input 
-                  value={inquiryForm.city} 
-                  onChange={e => setInquiryForm({ ...inquiryForm, city: e.target.value })} 
-                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} 
+                <input
+                  value={inquiryForm.city}
+                  onChange={e => setInquiryForm({ ...inquiryForm, city: e.target.value })}
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }}
                 />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>State / Province*</label>
-                <input 
-                  value={inquiryForm.state} 
-                  onChange={e => setInquiryForm({ ...inquiryForm, state: e.target.value })} 
-                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} 
+                <input
+                  value={inquiryForm.state}
+                  onChange={e => setInquiryForm({ ...inquiryForm, state: e.target.value })}
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }}
                 />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>ZIP / Postal Code*</label>
-                <input 
-                  value={inquiryForm.zipCode} 
-                  onChange={e => setInquiryForm({ ...inquiryForm, zipCode: e.target.value })} 
-                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} 
+                <input
+                  value={inquiryForm.zipCode}
+                  onChange={e => setInquiryForm({ ...inquiryForm, zipCode: e.target.value })}
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }}
                 />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Country*</label>
-                <input 
-                  value={inquiryForm.country} 
-                  onChange={e => setInquiryForm({ ...inquiryForm, country: e.target.value })} 
-                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} 
+                <input
+                  value={inquiryForm.country}
+                  onChange={e => setInquiryForm({ ...inquiryForm, country: e.target.value })}
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }}
+                />
+              </div>
+              <div style={{ gridColumn: windowWidth > 640 ? 'span 2' : 'auto' }}>
+                <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Company Contact Email*</label>
+                <input
+                  value={inquiryForm.contactEmail}
+                  onChange={e => setInquiryForm({ ...inquiryForm, contactEmail: e.target.value })}
+                  placeholder="The primary email for this inquiry"
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }}
+                />
+              </div>
+
+              {/* New Contact Person Fields */}
+              <div style={{ gridColumn: windowWidth > 640 ? 'span 2' : 'auto' }}>
+                <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Contact Person Name*</label>
+                <input
+                  value={inquiryForm.contactPersonName}
+                  onChange={e => setInquiryForm({ ...inquiryForm, contactPersonName: e.target.value })}
+                  placeholder="Full name of the primary contact"
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Designation*</label>
+                <input
+                  value={inquiryForm.contactPersonDesignation}
+                  onChange={e => setInquiryForm({ ...inquiryForm, contactPersonDesignation: e.target.value })}
+                  placeholder="e.g. Director of Clinical Operations"
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Mobile Number*</label>
+                <input
+                  value={inquiryForm.contactPersonMobile}
+                  onChange={e => setInquiryForm({ ...inquiryForm, contactPersonMobile: e.target.value })}
+                  placeholder="Primary contact phone number"
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }}
+                />
+              </div>
+
+              {/* Operational Address Toggle */}
+              <div style={{ gridColumn: windowWidth > 640 ? 'span 2' : 'auto', marginTop: 16 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', background: inquiryForm.hasOperationalAddress ? 'rgba(37,99,235,0.1)' : 'rgba(30,41,59,0.3)', borderRadius: 12, border: '1px solid #334155', cursor: 'pointer', transition: 'all 0.2s' }}>
+                  <input
+                    type="checkbox"
+                    checked={inquiryForm.hasOperationalAddress}
+                    onChange={e => setInquiryForm({ ...inquiryForm, hasOperationalAddress: e.target.checked })}
+                    style={{ width: 20, height: 20 }}
+                  />
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: inquiryForm.hasOperationalAddress ? 'white' : '#f1f5f9' }}>Operational Address is different</div>
+                    <div style={{ fontSize: 13, color: '#94a3b8' }}>Check this if the clinical operations take place at a different address.</div>
+                  </div>
+                </label>
+              </div>
+
+              {inquiryForm.hasOperationalAddress && (
+                <div style={{ gridColumn: windowWidth > 640 ? 'span 2' : 'auto', display: 'grid', gridTemplateColumns: windowWidth > 640 ? '1fr 1fr' : '1fr', gap: 24, animation: 'fadeIn 0.3s ease-out', padding: '24px', background: 'rgba(37,99,235,0.05)', borderRadius: 16, border: '1px dashed #2563eb' }}>
+                  <div style={{ gridColumn: windowWidth > 640 ? 'span 2' : 'auto' }}>
+                    <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Operational Street Address*</label>
+                    <textarea
+                      value={inquiryForm.opStreetAddress}
+                      onChange={e => setInquiryForm({ ...inquiryForm, opStreetAddress: e.target.value })}
+                      rows={2}
+                      style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', resize: 'none', fontSize: 18 }}
+                      placeholder="Street name and number"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>City*</label>
+                    <input
+                      value={inquiryForm.opCity}
+                      onChange={e => setInquiryForm({ ...inquiryForm, opCity: e.target.value })}
+                      style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>State / Province*</label>
+                    <input
+                      value={inquiryForm.opState}
+                      onChange={e => setInquiryForm({ ...inquiryForm, opState: e.target.value })}
+                      style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>ZIP / Postal Code*</label>
+                    <input
+                      value={inquiryForm.opZipCode}
+                      onChange={e => setInquiryForm({ ...inquiryForm, opZipCode: e.target.value })}
+                      style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Country*</label>
+                    <input
+                      value={inquiryForm.opCountry}
+                      onChange={e => setInquiryForm({ ...inquiryForm, opCountry: e.target.value })}
+                      style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }}
+                    />
+                  </div>
+                </div>
+              )}
+              <div style={{ gridColumn: windowWidth > 640 ? 'span 2' : 'auto' }}>
+                <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Brief Project Description (Confidential)*</label>
+                <textarea
+                  value={inquiryForm.projectDescription}
+                  onChange={e => setInquiryForm({ ...inquiryForm, projectDescription: e.target.value })}
+                  rows={3}
+                  style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', resize: 'none', fontSize: 18 }}
+                  placeholder="Describe your research goals..."
                 />
               </div>
             </div>
@@ -779,54 +909,13 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <button onClick={() => setInquiryStep(2)} style={{ background: 'transparent', color: '#94a3b8', border: 'none', fontWeight: 800, fontSize: 18, cursor: 'pointer' }}>← Back</button>
               <button
-                onClick={async () => {
+                onClick={() => {
                   if (!inquiryForm.legalName || !inquiryForm.signatoryName) return addToast({ type: 'error', message: 'Please complete required fields' });
-
-                  // Submit initial inquiry with NDA request and stop
-                  try {
-                    const res = await authFetch(`${API}/api/study-inquiries/`, {
-                      method: 'POST',
-                      body: JSON.stringify({
-                        product_name: inquiryForm.productName,
-                        category: CATEGORY_MAP[inquiryForm.category] || 'OTHER',
-                        development_stage: STAGE_MAP[inquiryForm.developmentStage] || 'CONCEPT',
-                        needs: inquiryForm.needs,
-                        primary_focus: inquiryForm.primaryFocus,
-                        timeline: inquiryForm.timeline.includes('Immediate') ? 'IMMEDIATE' : inquiryForm.timeline.includes('3–6') ? '3_6_MONTHS' : inquiryForm.timeline.includes('6–12') ? '6_12_MONTHS' : 'EXPLORING',
-                        nda_preference: 'YES',
-                        legal_name: inquiryForm.legalName,
-                        signatory_name: inquiryForm.signatoryName,
-                        signatory_title: inquiryForm.signatoryTitle,
-                        street_address: inquiryForm.streetAddress,
-                        city: inquiryForm.city,
-                        state: inquiryForm.state,
-                        zip_code: inquiryForm.zipCode,
-                        country: inquiryForm.country,
-                        status: 'NDA_REQUESTED'
-                      })
-                    });
-                    if (res.ok) {
-                      setInquiryStep(5);
-                    } else {
-                      const errorData = await res.json().catch(() => ({}));
-                      let msg = errorData.detail || errorData.error || '';
-                      if (!msg && typeof errorData === 'object') {
-                        msg = Object.entries(errorData)
-                          .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
-                          .join(' | ');
-                      }
-                      addToast({
-                        type: 'error',
-                        message: msg || 'Check all required fields and try again.'
-                      });
-                    }
-                  } catch (e) {
-                    addToast({ type: 'error', message: 'Connection error - please check your internet.' });
-                  }
+                  setInquiryStep(5); // Proceed to scheduling
                 }}
                 style={{ background: '#2563eb', color: 'white', border: 'none', padding: '18px 48px', borderRadius: 16, fontWeight: 900, cursor: 'pointer', fontSize: 18 }}
               >
-                Request NDA
+                Continue to Scheduling
               </button>
             </div>
           </div>
@@ -840,7 +929,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
 
             <div style={{ height: '450px', overflowY: 'auto', paddingRight: '12px', marginBottom: 32 }} className="custom-scroll">
               <div style={{ marginBottom: 32 }}>
-                <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 16, textTransform: 'uppercase' }}>Study Type Needed</label>
+                <label style={{ display: 'block', fontSize: 14, color: '#f1f5f9', fontWeight: 800, marginBottom: 16, textTransform: 'uppercase' }}>Observational Study</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
                   {['Pilot Study', 'Randomized Controlled Trial', 'Mechanistic Study', 'Observational', 'Not Sure'].map(t => (
                     <label key={t} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#0f172a', padding: '12px 16px', borderRadius: 12, border: '1px solid #334155', cursor: 'pointer' }}>
@@ -852,16 +941,127 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: windowWidth > 640 ? '1fr 1fr' : '1fr', gap: 24, marginBottom: 32 }}>
+                <div style={{ gridColumn: windowWidth > 640 ? 'span 2' : 'auto' }}>
+                  <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Legal Name of Company*</label>
+                  <input value={inquiryForm.legalName} onChange={e => setInquiryForm({ ...inquiryForm, legalName: e.target.value })} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} />
+                </div>
+                
+                <div style={{ gridColumn: windowWidth > 640 ? 'span 2' : 'auto' }}>
+                  <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Corporate Street Address*</label>
+                  <textarea
+                    value={inquiryForm.streetAddress}
+                    onChange={e => setInquiryForm({ ...inquiryForm, streetAddress: e.target.value })}
+                    rows={2}
+                    style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', resize: 'none', fontSize: 18 }}
+                    placeholder="Street name and number"
+                  />
+                </div>
                 <div>
+                  <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>City*</label>
+                  <input value={inquiryForm.city} onChange={e => setInquiryForm({ ...inquiryForm, city: e.target.value })} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>State / Province*</label>
+                  <input value={inquiryForm.state} onChange={e => setInquiryForm({ ...inquiryForm, state: e.target.value })} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>ZIP / Postal Code*</label>
+                  <input value={inquiryForm.zipCode} onChange={e => setInquiryForm({ ...inquiryForm, zipCode: e.target.value })} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Country*</label>
+                  <input value={inquiryForm.country} onChange={e => setInquiryForm({ ...inquiryForm, country: e.target.value })} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} />
+                </div>
+
+                <div style={{ gridColumn: windowWidth > 640 ? 'span 2' : 'auto' }}>
+                  <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Contact Person Name*</label>
+                  <input
+                    value={inquiryForm.contactPersonName}
+                    onChange={e => setInquiryForm({ ...inquiryForm, contactPersonName: e.target.value })}
+                    placeholder="Full name of primary contact"
+                    style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }}
+                  />
+                </div>
+
+                <div style={{ gridColumn: windowWidth > 640 ? 'span 2' : 'auto' }}>
+                  <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Company Contact Email*</label>
+                  <input
+                    value={inquiryForm.contactEmail}
+                    onChange={e => setInquiryForm({ ...inquiryForm, contactEmail: e.target.value })}
+                    placeholder="Official company email"
+                    style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Designation*</label>
+                  <input
+                    value={inquiryForm.contactPersonDesignation}
+                    onChange={e => setInquiryForm({ ...inquiryForm, contactPersonDesignation: e.target.value })}
+                    style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Mobile Number*</label>
+                  <input
+                    value={inquiryForm.contactPersonMobile}
+                    onChange={e => setInquiryForm({ ...inquiryForm, contactPersonMobile: e.target.value })}
+                    style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }}
+                  />
+                </div>
+
+                <div style={{ gridColumn: windowWidth > 640 ? 'span 2' : 'auto' }}>
                   <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Target Population</label>
-                  <input value={inquiryForm.targetPopulation} onChange={e => setInquiryForm({ ...inquiryForm, targetPopulation: e.target.value })} placeholder="e.g. Healthy Adults, Type 2 Diabetics" style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '14px', borderRadius: 10, outline: 'none', fontSize: 18 }} />
+                  <input value={inquiryForm.targetPopulation} onChange={e => setInquiryForm({ ...inquiryForm, targetPopulation: e.target.value })} placeholder="e.g. Healthy Adults, Type 2 Diabetics" style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} />
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Estimated Budget Range</label>
-                  <select value={inquiryForm.budgetRange} onChange={e => setInquiryForm({ ...inquiryForm, budgetRange: e.target.value })} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '14px', borderRadius: 10, outline: 'none', fontSize: 18 }}>
-                    {['<$100K', '$100K–$250K', '$250K–$500K', '$500K+', 'Prefer to Discuss'].map(b => <option key={b}>{b}</option>)}
-                  </select>
+
+                {/* Operational Address Toggle */}
+                <div style={{ gridColumn: windowWidth > 640 ? 'span 2' : 'auto' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', background: inquiryForm.hasOperationalAddress ? 'rgba(37,99,235,0.1)' : 'rgba(30,41,59,0.3)', borderRadius: 12, border: '1px solid #334155', cursor: 'pointer', transition: 'all 0.2s' }}>
+                    <input
+                      type="checkbox"
+                      checked={inquiryForm.hasOperationalAddress}
+                      onChange={e => setInquiryForm({ ...inquiryForm, hasOperationalAddress: e.target.checked })}
+                      style={{ width: 20, height: 20 }}
+                    />
+                    <div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: inquiryForm.hasOperationalAddress ? 'white' : '#f1f5f9' }}>Operational Address is different</div>
+                      <div style={{ fontSize: 13, color: '#94a3b8' }}>Check this if the clinical operations take place at a different address.</div>
+                    </div>
+                  </label>
                 </div>
+
+                {inquiryForm.hasOperationalAddress && (
+                  <div style={{ gridColumn: windowWidth > 640 ? 'span 2' : 'auto', display: 'grid', gridTemplateColumns: windowWidth > 640 ? '1fr 1fr' : '1fr', gap: 24, animation: 'fadeIn 0.3s ease-out', padding: '24px', background: 'rgba(37,99,235,0.05)', borderRadius: 16, border: '1px dashed #2563eb' }}>
+                    <div style={{ gridColumn: windowWidth > 640 ? 'span 2' : 'auto' }}>
+                      <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Operational Street Address*</label>
+                      <textarea
+                        value={inquiryForm.opStreetAddress}
+                        onChange={e => setInquiryForm({ ...inquiryForm, opStreetAddress: e.target.value })}
+                        rows={2}
+                        style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', resize: 'none', fontSize: 18 }}
+                        placeholder="Street name and number"
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>City*</label>
+                      <input value={inquiryForm.opCity} onChange={e => setInquiryForm({ ...inquiryForm, opCity: e.target.value })} style={{ width: '100%', background: '#0f172a', border: '2px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>State / Province*</label>
+                      <input value={inquiryForm.opState} onChange={e => setInquiryForm({ ...inquiryForm, opState: e.target.value })} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>ZIP / Postal Code*</label>
+                      <input value={inquiryForm.opZipCode} onChange={e => setInquiryForm({ ...inquiryForm, opZipCode: e.target.value })} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Country*</label>
+                      <input value={inquiryForm.opCountry} onChange={e => setInquiryForm({ ...inquiryForm, opCountry: e.target.value })} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div style={{ marginBottom: 32 }}>
@@ -871,7 +1071,8 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
                     'Study Design & Protocol Development', 'IRB & Regulatory Support',
                     'Participant Recruitment', 'Clinical Site Execution',
                     'Central Laboratory Services', 'Microbiome / Omics Analysis',
-                    'Biostatistics', 'End-to-End Study Management'
+                    'Biostatistics', 'End-to-End Study Management',
+                    'Biorepository', 'Central Lab', 'Others'
                   ].map(s => (
                     <label key={s} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#0f172a', padding: '12px 16px', borderRadius: 12, border: '1px solid #334155', cursor: 'pointer' }}>
                       <input type="checkbox" checked={inquiryForm.servicesNeeded.includes(s)} onChange={() => setInquiryForm({ ...inquiryForm, servicesNeeded: inquiryForm.servicesNeeded.includes(s) ? inquiryForm.servicesNeeded.filter(x => x !== s) : [...inquiryForm.servicesNeeded, s] })} />
@@ -888,38 +1089,134 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <button onClick={() => setInquiryStep(2)} style={{ background: 'transparent', color: '#94a3b8', border: 'none', fontWeight: 800, fontSize: 18, cursor: 'pointer' }}>← Back</button>
+              <button
+                onClick={() => setInquiryStep(2)}
+                style={{ background: 'transparent', color: '#94a3b8', border: 'none', fontWeight: 800, fontSize: 18, cursor: 'pointer' }}
+              >
+                ← Back
+              </button>
+              <button
+                onClick={() => {
+                  const { projectDescription, contactEmail, contactPersonName, legalName, streetAddress, city, state, zipCode, country } = inquiryForm;
+                  const required = [projectDescription, contactEmail, contactPersonName, legalName, streetAddress, city, state, zipCode, country];
+                  if (required.some(f => !f)) {
+                    return addToast({ type: 'error', message: 'Please complete all required company, address, and project details.' });
+                  }
+                  setInquiryStep(5); // Proceed to scheduling
+                }}
+                style={{ background: '#10b981', color: 'white', border: 'none', padding: '20px 48px', borderRadius: 16, fontWeight: 900, cursor: 'pointer', fontSize: 18, boxShadow: '0 10px 30px rgba(16,185,129,0.3)' }}
+              >
+                Proceed to Scheduling
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 5: DISCOVERY CALL SCHEDULING */}
+        {inquiryStep === 5 && (
+          <div style={{ animation: 'fadeIn 0.4s ease-out' }}>
+            <h2 style={{ fontSize: 32, fontWeight: 900, marginBottom: 12, color: 'white' }}>Schedule Discovery Call</h2>
+            <p style={{ color: '#94a3b8', fontSize: 17, marginBottom: 32 }}>Select a convenient time for our research team to connect with you.</p>
+
+            <div style={{ background: '#0f172a', padding: '32px', borderRadius: 20, border: '1px solid #334155', marginBottom: 32 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: windowWidth > 640 ? '1fr 1fr' : '1fr', gap: 24, marginBottom: 24 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Select Date*</label>
+                  <input
+                    type="date"
+                    min={new Date().toISOString().split('T')[0]}
+                    value={inquiryForm.discoveryCallDate}
+                    onChange={e => setInquiryForm({ ...inquiryForm, discoveryCallDate: e.target.value })}
+                    style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', color: 'white', padding: '14px', borderRadius: 10, outline: 'none', fontSize: 18 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Select Time*</label>
+                  <input
+                    type="time"
+                    value={inquiryForm.discoveryCallTime}
+                    onChange={e => setInquiryForm({ ...inquiryForm, discoveryCallTime: e.target.value })}
+                    style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', color: 'white', padding: '14px', borderRadius: 10, outline: 'none', fontSize: 18 }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Your Timezone*</label>
+                <select
+                  value={inquiryForm.discoveryCallTimezone}
+                  onChange={e => setInquiryForm({ ...inquiryForm, discoveryCallTimezone: e.target.value })}
+                  style={{ width: '100%', background: '#1e293b', border: '1px solid #334155', color: 'white', padding: '14px', borderRadius: 10, outline: 'none', fontSize: 18 }}
+                >
+                  {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
+                  {!TIMEZONES.includes(inquiryForm.discoveryCallTimezone) && <option value={inquiryForm.discoveryCallTimezone}>{inquiryForm.discoveryCallTimezone}</option>}
+                </select>
+                <p style={{ marginTop: 12, fontSize: 13, color: '#64748b' }}>Our team is based in EST. We will automatically convert this to our local time.</p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button
+                onClick={() => setInquiryStep(inquiryForm.ndaPreference === 'YES' ? 3 : 4)}
+                style={{ background: 'transparent', color: '#94a3b8', border: 'none', fontWeight: 800, fontSize: 18, cursor: 'pointer' }}
+              >
+                ← Back
+              </button>
               <button
                 onClick={async () => {
-                  if (!inquiryForm.projectDescription) return addToast({ type: 'error', message: 'Project description is required' });
+                  if (!inquiryForm.discoveryCallDate || !inquiryForm.discoveryCallTime) {
+                    return addToast({ type: 'error', message: 'Please select a date and time for the call.' });
+                  }
+
                   try {
+                    const submissionData = {
+                      product_name: inquiryForm.productName,
+                      category: CATEGORY_MAP[inquiryForm.category] || 'OTHER',
+                      development_stage: STAGE_MAP[inquiryForm.developmentStage] || 'CONCEPT',
+                      needs: inquiryForm.needs,
+                      primary_focus: inquiryForm.primaryFocus,
+                      timeline: inquiryForm.timeline.includes('Immediate') ? 'IMMEDIATE' : inquiryForm.timeline.includes('3–6') ? '3_6_MONTHS' : inquiryForm.timeline.includes('6–12') ? '6_12_MONTHS' : 'EXPLORING',
+                      nda_preference: inquiryForm.ndaPreference,
+                      legal_name: inquiryForm.legalName,
+                      signatory_name: inquiryForm.signatoryName,
+                      signatory_title: inquiryForm.signatoryTitle,
+                      street_address: inquiryForm.streetAddress,
+                      city: inquiryForm.city,
+                      state: inquiryForm.state,
+                      zip_code: inquiryForm.zipCode,
+                      country: inquiryForm.country,
+                      contact_email: inquiryForm.contactEmail,
+                      contact_person_name: inquiryForm.contactPersonName,
+                      contact_person_designation: inquiryForm.contactPersonDesignation,
+                      contact_mobile: inquiryForm.contactPersonMobile,
+                      has_operational_address: inquiryForm.hasOperationalAddress,
+                      op_street_address: inquiryForm.opStreetAddress,
+                      op_city: inquiryForm.opCity,
+                      op_state: inquiryForm.opState,
+                      op_zip_code: inquiryForm.opZipCode,
+                      op_country: inquiryForm.opCountry,
+                      project_description: inquiryForm.projectDescription,
+                      study_type_needed: inquiryForm.studyTypeNeeded,
+                      target_population: inquiryForm.targetPopulation,
+                      budget_range: BUDGET_MAP[inquiryForm.budgetRange] || 'DISCUSS',
+                      services_needed: inquiryForm.servicesNeeded,
+                      // Scheduling
+                      discovery_call_date: inquiryForm.discoveryCallDate,
+                      discovery_call_time: inquiryForm.discoveryCallTime,
+                      discovery_call_timezone: inquiryForm.discoveryCallTimezone,
+                      status: inquiryForm.ndaPreference === 'YES' ? 'NDA_REQUESTED' : 'QUALIFIED'
+                    };
+
                     const res = await authFetch(`${API}/api/study-inquiries/`, {
                       method: 'POST',
-                      body: JSON.stringify({
-                        product_name: inquiryForm.productName,
-                        category: CATEGORY_MAP[inquiryForm.category] || 'OTHER',
-                        development_stage: STAGE_MAP[inquiryForm.developmentStage] || 'CONCEPT',
-                        needs: inquiryForm.needs,
-                        primary_focus: inquiryForm.primaryFocus,
-                        timeline: inquiryForm.timeline.includes('Immediate') ? 'IMMEDIATE' : inquiryForm.timeline.includes('3–6') ? '3_6_MONTHS' : inquiryForm.timeline.includes('6–12') ? '6_12_MONTHS' : 'EXPLORING',
-                        nda_preference: 'NO',
-                        study_type_needed: inquiryForm.studyTypeNeeded,
-                        target_population: inquiryForm.targetPopulation,
-                        budget_range: BUDGET_MAP[inquiryForm.budgetRange] || 'DISCUSS',
-                        services_needed: inquiryForm.servicesNeeded,
-                        project_description: inquiryForm.projectDescription,
-                        street_address: inquiryForm.streetAddress,
-                        city: inquiryForm.city,
-                        state: inquiryForm.state,
-                        zip_code: inquiryForm.zipCode,
-                        country: inquiryForm.country,
-                        status: 'QUALIFIED'
-                      })
+                      body: JSON.stringify(submissionData)
                     });
+
                     if (res.ok) {
-                      setInquiryStep(5);
+                      setInquiryStep(6);
                     } else {
                       const errorData = await res.json().catch(() => ({}));
+                      console.error('Submission Error:', errorData);
                       let msg = errorData.detail || errorData.error || '';
                       if (!msg && typeof errorData === 'object') {
                         msg = Object.entries(errorData)
@@ -928,42 +1225,39 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
                       }
                       addToast({
                         type: 'error',
-                        message: msg || 'Submission failed. Please check your inputs.'
+                        message: msg || 'Validation failed. Please check all fields.'
                       });
                     }
                   } catch (e) {
-                    addToast({ type: 'error', message: 'Connection error - please check your internet.' });
+                    addToast({ type: 'error', message: 'Connection error during final submission.' });
                   }
                 }}
-                style={{ background: '#10b981', color: 'white', border: 'none', padding: '20px 48px', borderRadius: 16, fontWeight: 900, cursor: 'pointer', fontSize: 18, boxShadow: '0 10px 30px rgba(16,185,129,0.3)' }}
+                style={{ background: '#2563eb', color: 'white', border: 'none', padding: '20px 48px', borderRadius: 16, fontWeight: 900, cursor: 'pointer', fontSize: 20, boxShadow: '0 10px 30px rgba(37,99,235,0.4)' }}
               >
-                🚀 Request Consultation
+                Finish & Book Call
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP 5: SUCCESS / CONFIRMATION */}
-        {inquiryStep === 5 && (
+        {/* STEP 6: SUCCESS / CONFIRMATION */}
+        {inquiryStep === 6 && (
           <div style={{ animation: 'scaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)', textAlign: 'center', padding: '40px 0' }}>
-            <div style={{ fontSize: 80, marginBottom: 32 }}>🎊</div>
-            <h2 style={{ fontSize: 36, fontWeight: 900, marginBottom: 16, color: 'white' }}>Submission Received!</h2>
+            <div style={{ fontSize: 80, marginBottom: 32 }}>SUCCESS</div>
+            <h2 style={{ fontSize: 36, fontWeight: 900, marginBottom: 16, color: 'white' }}>Inquiry & Call Booked!</h2>
             <p style={{ color: '#94a3b8', fontSize: 19, lineHeight: 1.6, marginBottom: 40 }}>
+              Your inquiry details and requested discovery call have been received.
               {inquiryForm.ndaPreference === 'YES'
-                ? "Our legal team will send the Mutual NDA within 1–2 business days. Once executed, we will proceed with the detailed project review."
-                : "Our clinical development team will review your project and contact you within 2–3 business days."}
+                ? " Our legal team will reach out with the NDA shortly."
+                : " Our team will review your proposal and confirm the meeting time soon."}
+              <br /><br />
+              <strong>Scheduled for:</strong> {inquiryForm.discoveryCallDate} at {inquiryForm.discoveryCallTime} ({inquiryForm.discoveryCallTimezone})
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <button
-                onClick={() => { window.open('https://calendly.com/musbresearch', '_blank'); }}
-                style={{ width: '100%', background: '#2563eb', color: 'white', border: 'none', padding: '20px', borderRadius: 16, fontWeight: 800, fontSize: 18, cursor: 'pointer' }}
-              >
-                👉 Schedule a Discovery Call Now
-              </button>
-              <button
                 onClick={() => { setInquiryModalOpen(false); setInquiryStep(1); }}
-                style={{ width: '100%', background: 'rgba(255,255,255,0.05)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)', padding: '16px', borderRadius: 16, fontWeight: 700, fontSize: 16, cursor: 'pointer' }}
+                style={{ width: '100%', background: '#2563eb', color: 'white', border: 'none', padding: '20px', borderRadius: 16, fontWeight: 800, fontSize: 18, cursor: 'pointer' }}
               >
                 Return to Dashboard
               </button>

@@ -11,7 +11,8 @@ def api_root(request):
         "endpoints": {
             "auth": "/api/auth/",
             "studies": "/api/studies/",
-            "participants": "/api/participants/"
+            "participants": "/api/participants/",
+            "support": "/api/support/"
         }
     })
 
@@ -22,6 +23,7 @@ urlpatterns = [
     path('api/', include('api.urls')),
     path('api/contact/', include('contact.urls')),
     path('api/auth/', include('authentication.urls')),
+    path('api/support/', include('support.urls')),
 ]
 
 if settings.DEBUG:

@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     'contact',
     'authentication',
     'careers',
+    'support',
 ]
 
 AUTH_USER_MODEL = 'authentication.User'

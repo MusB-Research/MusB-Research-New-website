@@ -108,6 +108,7 @@ class Submission(models.Model):
     routed_to = models.EmailField(blank=True, help_text="Email address this was sent to")
     
     # Metadata
+    metadata = models.JSONField(default=dict, blank=True)
     submitted_at = models.DateTimeField(auto_now_add=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.TextField(blank=True)

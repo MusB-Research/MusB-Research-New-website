@@ -55,29 +55,46 @@ export default function StudyDocumentsModule() {
                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">Central Regulatory & Protocol Repository</p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <button className="px-6 py-3.5 bg-white/5 border border-white/10 text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:text-white transition-all">
+                    <button 
+                        onClick={() => window.open('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', '_blank')}
+                        className="px-6 py-3.5 bg-white/5 border border-white/10 text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-xl"
+                    >
                         Bulk Download (.zip)
                     </button>
-                    <button className="px-8 py-3.5 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.03] transition-all shadow-xl shadow-indigo-600/30 flex items-center gap-3">
-                        Upload Document <Folder className="w-4 h-4" />
-                    </button>
+                    <div className="relative">
+                        <input type="file" id="protocol-upload" className="hidden" onChange={(e) => {
+                            if (e.target.files?.length) alert(`Uploading Node: [${e.target.files[0].name}]... Initiating secure ingest.`);
+                        }} />
+                        <button 
+                            onClick={() => document.getElementById('protocol-upload')?.click()}
+                            className="px-8 py-3.5 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.03] hover:shadow-indigo-500/40 transition-all shadow-xl shadow-indigo-600/30 flex items-center gap-3 active:scale-95"
+                        >
+                            Upload Document <Folder className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {/* Quick Access Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
-                    { label: 'Core Protocol', count: 'v3.2 Final', icon: BookOpen, color: 'indigo' },
-                    { label: 'IB Edits', count: 'v12 Active', icon: FileCheck, color: 'emerald' },
-                    { label: 'IP Manual', count: 'v4.1 Draft', icon: Beaker, color: 'blue' },
-                    { label: 'Master Binder', count: '42 Files', icon: Shield, color: 'indigo' }
+                    { label: 'Core Protocol', count: 'v3.2 Final', icon: BookOpen, color: 'indigo', cat: 'Protocol' },
+                    { label: 'IB Edits', count: 'v12 Active', icon: FileCheck, color: 'emerald', cat: 'IB' },
+                    { label: 'IP Manual', count: 'v4.1 Draft', icon: Beaker, color: 'blue', cat: 'Pharmacy' },
+                    { label: 'Master Binder', count: '42 Files', icon: Shield, color: 'indigo', cat: 'All' }
                 ].map((q, i) => (
-                    <div key={i} className="bg-[#0B101B]/40 border border-white/5 rounded-[2.5rem] p-8 space-y-4 hover:border-indigo-500/20 transition-all group cursor-pointer relative overflow-hidden">
+                    <div 
+                        key={i} 
+                        onClick={() => setActiveCategory(q.cat as any)}
+                        className={`bg-[#0B101B]/40 border rounded-[2.5rem] p-8 space-y-4 hover:border-indigo-500/20 transition-all group cursor-pointer relative overflow-hidden ${
+                            activeCategory === q.cat ? 'border-indigo-500/40 bg-indigo-500/5' : 'border-white/5'
+                        }`}
+                    >
                         <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-125 transition-transform">
                             <q.icon className="w-16 h-16 text-white" />
                         </div>
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-white/5 border border-white/10 rounded-xl text-slate-500">
+                            <div className={`p-2 bg-white/5 border border-white/10 rounded-xl ${activeCategory === q.cat ? 'text-indigo-400' : 'text-slate-500'}`}>
                                 <q.icon className="w-4 h-4" />
                             </div>
                             <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{q.label}</p>
@@ -135,9 +152,17 @@ export default function StudyDocumentsModule() {
                                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Version {doc.version} • Effective {doc.effectiveDate} • {doc.category}</p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button className="p-3 bg-white/5 border border-white/5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all"><History className="w-4 h-4" /></button>
-                            <button className="px-6 py-3 bg-white text-slate-950 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-[1.03] transition-all">Download <Download className="w-4 h-4" /></button>
+                        <div className="flex items-center gap-4 transition-all">
+                            <button className="px-5 py-3 bg-white/5 border border-white/5 rounded-xl text-slate-500 hover:text-white hover:bg-white/10 transition-all flex items-center gap-3 active:scale-95 group/history shadow-lg">
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em] italic">Audit Trail</span>
+                                <History className="w-4 h-4 shadow-2xl" />
+                            </button>
+                            <button 
+                                onClick={() => window.open('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', '_blank')}
+                                className="px-6 py-3.5 bg-white text-[#0B101B] rounded-xl text-[10px] font-black uppercase tracking-[0.15em] flex items-center gap-3 hover:scale-[1.05] active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,255,255,0.1)] border border-white/20"
+                            >
+                                DOWNLOAD <Download className="w-4 h-4" />
+                            </button>
                         </div>
                     </motion.div>
                 ))}

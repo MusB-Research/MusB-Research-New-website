@@ -7,7 +7,7 @@ from .models import (
     Compensation, LabResult, DataAuditLog, InterventionArm,
     News, Event, FacilityInquiry, Candidate, NewsletterSubscriber, 
     BookletDownloadRequest, Partnership, Publication, EducationMaterial,
-    StudyInquiry
+    StudyInquiry, ClinicalConversation, ClinicalMessage
 )
 from .serializers import (
     StudySerializer, StudyAssignmentSerializer, ParticipantSerializer, 
@@ -18,11 +18,14 @@ from .serializers import (
     NewsSerializer, EventSerializer, FacilityInquirySerializer, CandidateSerializer,
     NewsletterSubscriberSerializer, BookletDownloadRequestSerializer,
     PartnershipSerializer, PublicationSerializer, EducationMaterialSerializer,
-    StudyInquirySerializer, InterventionArmSerializer
+    StudyInquirySerializer, InterventionArmSerializer,
+    ClinicalConversationSerializer, ClinicalMessageSerializer
 )
 from authentication.models import User, AuditLog
 from django.db.models import Q
 from django.utils.timezone import now
+import pytz
+from datetime import datetime
 
 class IsAdminOrCoordinator(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -97,6 +100,29 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     lookup_field = 'protocol_id'
 
+    def get_object(self):
+        queryset = self.filter_queryset(self.get_queryset())
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs[lookup_url_kwarg]
+        
+        # Try finding by protocol_id first
+        obj = queryset.filter(protocol_id=lookup_value).first()
+        if obj:
+            self.check_object_permissions(self.request, obj)
+            return obj
+            
+        # Try finding by hex ID (pk) if the value looks like a MongoDB ObjectId
+        import bson
+        if bson.ObjectId.is_valid(lookup_value):
+            obj = queryset.filter(pk=lookup_value).first()
+            if obj:
+                self.check_object_permissions(self.request, obj)
+                return obj
+        
+        # Fallback to standard behavior if neither found
+        from django.http import Http404
+        raise Http404("Study not found with provided ID or Protocol ID.")
+
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated:
@@ -152,7 +178,30 @@ class PublicStudyViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Study.objects.all()
     serializer_class = StudySerializer
     permission_classes = [permissions.AllowAny]
+    lookup_field = 'protocol_id'
+
+    def get_object(self):
+        queryset = self.filter_queryset(self.get_queryset())
+        lookup_value = self.kwargs[self.lookup_field]
+        
+        # 1. Try finding by protocol_id
+        obj = queryset.filter(protocol_id=lookup_value).first()
+        if obj: return obj
+            
+        # 2. Try finding by hex ID (pk) if the value looks like a MongoDB ObjectId
+        import bson
+        if bson.ObjectId.is_valid(lookup_value):
+            obj = queryset.filter(pk=lookup_value).first()
+            if obj: return obj
+        
+        from django.http import Http404
+        raise Http404("Study not found.")
+
     def get_queryset(self):
+        user = self.request.user
+        # Admins/Super Admins see everything (needed for building screeners before launch)
+        if user.is_authenticated and (user.role or '').strip().upper() in ['ADMIN', 'SUPER_ADMIN']:
+            return Study.objects.all().order_by('-created_at')
         return Study.objects.filter(approval_status='approved', status__in=['RECRUITING', 'ACTIVE']).order_by('-created_at')
 
 class SponsorViewSet(viewsets.ReadOnlyModelViewSet):
@@ -361,19 +410,32 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
     queryset = StudyInquiry.objects.all().order_by('-created_at')
     serializer_class = StudyInquirySerializer
     permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return StudyInquiry.objects.none()
+        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']:
+            return StudyInquiry.objects.all().order_by('-created_at')
+        return StudyInquiry.objects.filter(sponsor_user=user).order_by('-created_at')
+
     def perform_create(self, serializer):
         user = self.request.user
         inquiry = serializer.save(sponsor_user=user)
-        target = "sales@musbresearch.com"
+        target = "info@musbresearch.com"
         if inquiry.nda_preference == 'YES':
-            target = "info@musbresearch.com"
             inquiry.status = 'NDA_REQUESTED'
         else:
-            needs = inquiry.needs or []
-            if "Biorepository" in needs: target = "biorepository@musbresearch.com"
-            elif "Biomarker / Lab Support" in needs: target = "lab@musbresearch.com"
-            elif "New Clinical Study" in needs: target = "sales@musbresearch.com"
-        inquiry.routing_target = target
+            inquiry.status = 'QUALIFIED'
+        
+        # We still store the intended routing if we want to change back later, 
+        # but for now Resend only allows sending to the verified address.
+        needs = inquiry.needs or []
+        intended_target = "sales@musbresearch.com"
+        if "Biorepository" in needs: intended_target = "biorepository@musbresearch.com"
+        elif "Biomarker / Lab Support" in needs: intended_target = "lab@musbresearch.com"
+        
+        inquiry.routing_target = intended_target
         inquiry.save()
         
         # SEND EMAIL NOTIFICATION VIA RESEND
@@ -396,9 +458,41 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
                 'country': inquiry.country,
                 'needs': inquiry.needs,
                 'project_description': inquiry.project_description,
-                'sponsor_email': user.email
+                'sponsor_email': user.email,
+                'contact_email': inquiry.contact_email,
+                'contact_person_name': inquiry.contact_person_name,
+                'contact_person_designation': inquiry.contact_person_designation,
+                'contact_mobile': inquiry.contact_mobile,
+                'has_operational_address': inquiry.has_operational_address,
+                'op_street_address': inquiry.op_street_address,
+                'op_city': inquiry.op_city,
+                'op_state': inquiry.op_state,
+                'op_zip_code': inquiry.op_zip_code,
+                'op_country': inquiry.op_country,
+                'target_population': inquiry.target_population,
+                'budget_range': inquiry.get_budget_range_display() if inquiry.budget_range else 'Not Specified',
+                'services_needed': inquiry.services_needed,
+                'study_type_needed': inquiry.study_type_needed,
+                # Discovery Call Fields
+                'discovery_call_date': str(inquiry.discovery_call_date) if inquiry.discovery_call_date else None,
+                'discovery_call_time': str(inquiry.discovery_call_time) if inquiry.discovery_call_time else None,
+                'discovery_call_timezone': inquiry.discovery_call_timezone,
+                'est_discovery_call': None
             }
+
+            # Convert to EST if all parts are present
+            if inquiry.discovery_call_date and inquiry.discovery_call_time and inquiry.discovery_call_timezone:
+                try:
+                    local_tz = pytz.timezone(inquiry.discovery_call_timezone)
+                    local_dt = local_tz.localize(datetime.combine(inquiry.discovery_call_date, inquiry.discovery_call_time))
+                    est_tz = pytz.timezone('US/Eastern')
+                    est_dt = local_dt.astimezone(est_tz)
+                    notification_data['est_discovery_call'] = est_dt.strftime('%Y-%m-%d %I:%M %p EST')
+                except Exception as tz_err:
+                    logger.warning(f"Timezone conversion failed: {tz_err}")
+
             send_inquiry_notification(notification_data, target)
+
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
@@ -503,3 +597,65 @@ class InterventionArmViewSet(viewsets.ModelViewSet):
     queryset = InterventionArm.objects.all()
     serializer_class = InterventionArmSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+class ClinicalConversationViewSet(viewsets.ModelViewSet):
+    queryset = ClinicalConversation.objects.all()
+    serializer_class = ClinicalConversationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return ClinicalConversation.objects.none()
+        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']:
+            return ClinicalConversation.objects.all().order_by('-last_updated')
+        # PIs and Coordinators see conversations related to their assigned studies
+        return ClinicalConversation.objects.filter(study__assignments__user=user).order_by('-last_updated')
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+    @action(detail=True, methods=['post'])
+    def add_message(self, request, pk=None):
+        conv = self.get_object()
+        text = request.data.get('text')
+        tag = request.data.get('tag', 'GENERAL').upper()
+        # attachment = request.FILES.get('attachment')
+        
+        msg = ClinicalMessage.objects.create(
+            conversation=conv,
+            sender=request.user,
+            text=text,
+            tag=tag,
+            is_from_pi=(request.user.role.upper() == 'PI')
+        )
+        
+        conv.last_message_preview = text[:100] if text else "Attachment"
+        # If coordinator sends, maybe it moves to OPEN. If PI sends, maybe it stays OPEN or moves to ACTION_REQUIRED?
+        # Logic from screenshot: Red dot for action required.
+        conv.save()
+        
+        return Response(ClinicalMessageSerializer(msg).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'])
+    def toggle_flag(self, request, pk=None):
+        conv = self.get_object()
+        conv.is_flagged = not conv.is_flagged
+        conv.save()
+        return Response({'is_flagged': conv.is_flagged})
+
+    @action(detail=True, methods=['post'])
+    def resolve(self, request, pk=None):
+        conv = self.get_object()
+        conv.status = 'RESOLVED'
+        conv.save()
+        return Response({'status': 'RESOLVED'})
+
+    @action(detail=True, methods=['post'])
+    def set_status(self, request, pk=None):
+        conv = self.get_object()
+        status_val = request.data.get('status')
+        if status_val:
+            conv.status = status_val.upper().replace(' ', '_')
+            conv.save()
+        return Response({'status': conv.status})

@@ -5,6 +5,7 @@ import {
     Clock, Tag, Bookmark, ShieldAlert, FileText, ChevronRight, ChevronDown,
     ArrowUpRight, AlertCircle, Save, Layers, ListFilter
 } from 'lucide-react';
+import { authFetch, API } from '../../utils/auth';
 
 // --- TYPES ---
 interface Message {
@@ -107,8 +108,8 @@ const COORDINATORS = ['John Doe', 'Sarah Lee', 'Elena Rodriguez', 'Marcus Wilt']
 // --- COMPONENT ---
 export default function PIMessagesModule() {
     // State
-    const [conversations, setConversations] = useState<Conversation[]>(MOCK_CONVERSATIONS);
-    const [activeConvId, setActiveConvId] = useState('conv-1');
+    const [conversations, setConversations] = useState<Conversation[]>([]);
+    const [activeConvId, setActiveConvId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('All');
     const [sortMode, setSortMode] = useState<'recent' | 'priority' | 'unread'>('recent');
@@ -120,12 +121,58 @@ export default function PIMessagesModule() {
     const [confirmModal, setConfirmModal] = useState<{ message: string, onConfirm: () => void } | null>(null);
     const [actionPanelOpen, setActionPanelOpen] = useState(true);
     const [participantDrawerOpen, setParticipantDrawerOpen] = useState(false);
+    const [loading, setLoading] = useState(true);
     
     // Refs
     const threadEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const fetchConversations = async () => {
+        setLoading(true);
+        try {
+            const res = await authFetch(`${API}/api/clinical-conversations/`);
+            if (res.ok) {
+                const data = await res.json();
+                const mapped: Conversation[] = data.map((c: any) => ({
+                    id: c.id,
+                    participantId: c.participant_sid,
+                    study: c.study_protocol,
+                    sender: c.assigned_coordinator || 'N/A',
+                    senderRole: 'Coordinator',
+                    preview: c.last_message_preview,
+                    timestamp: new Date(c.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    status: c.status === 'ACTION_REQUIRED' ? 'Action Required' : c.status.charAt(0).toUpperCase() + c.status.slice(1).toLowerCase().replace('_', ' '),
+                    flagged: c.is_flagged,
+                    assignedCoordinator: c.assigned_coordinator,
+                    participantStatus: c.participant_status,
+                    draft: '',
+                    messages: c.messages.map((m: any) => ({
+                        id: m.id,
+                        sender: m.sender_name,
+                        role: m.user_role_label,
+                        time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        text: m.text,
+                        tag: m.tag.charAt(0).toUpperCase() + m.tag.slice(1).toLowerCase(),
+                        fromPI: m.is_from_pi
+                    }))
+                }));
+                setConversations(mapped);
+                if (mapped.length > 0 && !activeConvId) {
+                    setActiveConvId(mapped[0].id);
+                }
+            }
+        } catch (e) {
+            addToast('Synchronicity failure', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Auto-scroll on active conversation or messages change
+    useEffect(() => {
+        fetchConversations();
+    }, []);
+
     useEffect(() => {
         threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [activeConvId, conversations]);
@@ -167,32 +214,28 @@ export default function PIMessagesModule() {
     };
 
     // --- LOGIC: MESSAGE SENDING ---
-    const handleSendMessage = () => {
+    const handleSendMessage = async () => {
         if (!messageInput.trim() && !attachedFile) return;
 
-        const newMessage: Message = {
-            id: 'm-' + Date.now(),
-            sender: 'You',
-            role: 'PI',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            text: messageInput,
-            tag: selectedTag,
-            attachment: attachedFile ? attachedFile.name : null,
-            fromPI: true
-        };
+        try {
+            const res = await authFetch(`${API}/api/clinical-conversations/${activeConvId}/add_message/`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    text: messageInput,
+                    tag: selectedTag.toUpperCase()
+                })
+            });
 
-        setConversations(prev => prev.map(c => c.id === activeConvId ? {
-            ...c,
-            messages: [...c.messages, newMessage],
-            preview: messageInput || (attachedFile ? `File: ${attachedFile.name}` : ''),
-            timestamp: 'Just now',
-            draft: ''
-        } : c));
-
-        setMessageInput('');
-        setAttachedFile(null);
-        setSelectedTag('General');
-        addToast('Message dispatched');
+            if (res.ok) {
+                fetchConversations();
+                setMessageInput('');
+                setAttachedFile(null);
+                setSelectedTag('General');
+                addToast('Message dispatched');
+            }
+        } catch (e) {
+            addToast('Transmission failure', 'error');
+        }
     };
 
     const handleSaveDraft = () => {
@@ -202,14 +245,24 @@ export default function PIMessagesModule() {
     };
 
     // --- LOGIC: ACTIONS ---
-    const toggleFlag = (id: string) => {
-        setConversations(prev => prev.map(c => c.id === id ? { ...c, flagged: !c.flagged } : c));
-        addToast(activeConv?.flagged ? 'Flag removed' : 'Thread flagged for priority');
+    const toggleFlag = async (id: string) => {
+        try {
+            const res = await authFetch(`${API}/api/clinical-conversations/${id}/toggle_flag/`, { method: 'POST' });
+            if (res.ok) {
+                fetchConversations();
+                addToast('Priority status updated');
+            }
+        } catch (e) {}
     };
 
-    const markResolved = (id: string) => {
-        setConversations(prev => prev.map(c => c.id === id ? { ...c, status: 'Resolved' } : c));
-        addToast('Conversation marked as resolved', 'success');
+    const markResolved = async (id: string) => {
+        try {
+            const res = await authFetch(`${API}/api/clinical-conversations/${id}/resolve/`, { method: 'POST' });
+            if (res.ok) {
+                fetchConversations();
+                addToast('Resolved', 'success');
+            }
+        } catch (e) {}
     };
 
     const handleAction = (label: string, systemText: string, tag: any = 'General', escalation = false) => {

@@ -9,6 +9,7 @@ import logging
 import os
 import uuid
 from datetime import timedelta
+from typing import List
 
 from ..models import User, OTP, Invitation, RefreshToken, AuditLog
 from ..utils import send_resend_email, handle_credential_upload
@@ -182,7 +183,7 @@ def complete_profile(request):
         'place_of_origin', 'mobile_number'
     ]
     
-    missing = []
+    missing: List[str] = []
     for field in required_fields:
         val = data.get(field)
         if hasattr(user, field) and getattr(user, field):

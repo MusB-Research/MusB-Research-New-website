@@ -40,8 +40,9 @@ export const fetchStudies = async (): Promise<Study[]> => {
             'COMPLETED': 'Completed'
         };
 
-        return data.map((d: any) => ({
+        const results = data.map((d: any) => ({
             id: d.protocol_id || d.id,
+            original_db_id: d.id, // Store for sorting
             title: d.title,
             condition: d.condition || d.primary_indication || 'Other',
             type: d.study_type === 'VIRTUAL' ? 'Virtual' : (d.study_type === 'IN_PERSON' ? 'On-site' : 'Hybrid'),
@@ -64,6 +65,11 @@ export const fetchStudies = async (): Promise<Study[]> => {
             is_paid: true,
             is_free_testing: false
         }));
+
+        // Sort Chronologically: Oldest First based on Database ID (MongoDB ObjectIds are naturally chronological)
+        return results.sort((a: any, b: any) => 
+            (a.original_db_id || '').localeCompare(b.original_db_id || '')
+        );
     } catch (error) {
         console.error("Failed to fetch studies:", error);
         return [];

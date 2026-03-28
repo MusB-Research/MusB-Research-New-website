@@ -5,7 +5,7 @@ import {
     AlertTriangle, TrendingUp, User, Globe, Download, 
     X, AlertCircle, Plus, ChevronRight, ChevronDown, 
     MoreVertical, ArrowUpRight, ShieldAlert, Monitor, ArrowDown, ArrowUp,
-    Search, Layers, ListFilter, Bookmark, Send, Save, Trash2, Eye
+    Search, Layers, ListFilter, Bookmark, Send, Save, Trash2, Eye, ArrowLeft, Target
 } from 'lucide-react';
 
 // --- TYPES ---
@@ -400,18 +400,27 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
         <div style={S.panel}>
             {/* STICKY TOP HEADER */}
             <header style={S.header}>
-                <div>
-                    <div style={S.name}>{participantId} <span style={{ color: COLORS.text, fontWeight: 'normal', fontSize: '14px' }}>| {participant.study}</span></div>
-                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.6rem', alignItems: 'center' }}>
-                         <span style={{ fontSize: '10px', fontWeight: 900, color: COLORS.success, backgroundColor: `${COLORS.success}15`, padding: '0.25rem 0.6rem', borderRadius: '4px', border: `1px solid ${COLORS.success}30` }}>
-                             {participant.status.toUpperCase()} SUBJECT
-                         </span>
-                         <span style={{ fontSize: '11px', color: COLORS.info, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                             <Target size={12} /> {participant.arm} Arm
-                         </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+                    <button 
+                        onClick={() => window.dispatchEvent(new CustomEvent('nav-to-participants'))}
+                        style={{ ...S.btnGhost, padding: '0.6rem', borderRadius: '12px' }}
+                        title="Back to Participant Oversight"
+                    >
+                        <ArrowLeft size={20} />
+                    </button>
+                    <div>
+                        <div style={{ ...S.name, fontSize: '24px' }}>{participantId} <span style={{ color: COLORS.text, fontWeight: 'normal', fontSize: '16px' }}>| {participant.study}</span></div>
+                        <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.6rem', alignItems: 'center' }}>
+                             <span style={{ fontSize: '11px', fontWeight: 900, color: COLORS.success, backgroundColor: `${COLORS.success}15`, padding: '0.25rem 0.6rem', borderRadius: '4px', border: `1px solid ${COLORS.success}30` }}>
+                                 {participant.status.toUpperCase()} SUBJECT
+                             </span>
+                             <span style={{ fontSize: '11px', color: COLORS.info, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                 <Target size={12} /> {participant.arm} Arm
+                             </span>
+                        </div>
                     </div>
                 </div>
-                <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ display: 'flex', gap: '1.25rem' }}>
                     <button style={S.btnGhost} onClick={() => {
                         setParticipant(p => ({ ...p, flagged: !p.flagged }));
                         addToast(participant.flagged ? 'Protocol Flag Cleared' : 'Subject Flagged for Review', 'warning');
@@ -669,6 +678,3 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
     );
 }
 
-function Target({ size, color }: any) {
-    return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color || "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>;
-}

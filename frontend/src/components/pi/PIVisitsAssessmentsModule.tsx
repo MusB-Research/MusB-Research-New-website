@@ -9,6 +9,7 @@ import {
     Stethoscope, Pill, MessageSquare, Paperclip, 
     Eye, Lock, Unlock, X, RefreshCw
 } from 'lucide-react';
+import { API, authFetch } from '../../utils/auth';
 
 // --- TYPES ---
 interface ChecklistItem { label: string; checked: boolean; time?: string; by?: string; }
@@ -44,8 +45,11 @@ interface Visit {
 
 interface Participant {
     id: string;
+    name: string;
+    email?: string;
     study: string;
-    status: 'Screening' | 'Active' | 'Completed' | 'Withdrawn';
+    protocol_id?: string;
+    status: 'NEW' | 'CONTACTED' | 'INTERESTED' | 'SCREENING' | 'ELIGIBLE' | 'INELIGIBLE' | 'CONSENTED' | 'RANDOMIZED' | 'ACTIVE' | 'COMPLETED' | 'DROPPED';
     coordinator: string;
     compliance: number;
     visits: Visit[];
@@ -65,31 +69,15 @@ const COLORS = {
     border: 'rgba(255,255,255,0.06)'
 };
 
-const MOCK_PARTICIPANTS: Participant[] = [
-    {
-        id: 'BTB-023', study: 'Beat the Bloat', status: 'Active', coordinator: 'John Doe', compliance: 85,
-        visits: [
-            { id: 'v1', name: 'Screening', type: 'Screening', targetDate: '2025-11-01', windowDays: 3, scheduledDate: '2025-11-01', actualDate: '2025-11-01', status: 'Completed', location: 'Clinic', checklist: [{ label: 'Consent verified', checked: true, time: '10:00 AM', by: 'Dr. Yadav' }, { label: 'Inclusion/exclusion confirmed', checked: true, time: '10:15 AM', by: 'Dr. Yadav' }, { label: 'Vitals collected', checked: true, time: '10:30 AM', by: 'Dr. Yadav' }], assessments: [{ name: 'BTB Symptom Questionnaire', status: 'Completed' }, { name: 'Medical History', status: 'Completed' }], vitals: { weight: 82, height: 172, bp: '118/76', hr: 72, temp: 36.8 }, aes: [], notes: [], documents: [], deviations: [], samples: [], dispensing: [], piApproved: true },
-            { id: 'v2', name: 'Baseline', type: 'Baseline', targetDate: '2025-11-15', windowDays: 3, scheduledDate: '2025-11-15', actualDate: '2025-11-15', status: 'Completed', location: 'Clinic', checklist: [{ label: 'Consent verified', checked: true, time: '09:00 AM', by: 'John Doe' }, { label: 'Vitals collected', checked: true, time: '09:30 AM', by: 'John Doe' }], assessments: [{ name: 'BTB Symptom Questionnaire', status: 'Completed' }, { name: 'Adverse Event Check', status: 'Completed' }], vitals: { weight: 82, height: 172, bp: '122/80', hr: 74, temp: 36.6 }, aes: [], notes: [{ author: 'John Doe', role: 'Coordinator', time: '2025-11-15 14:00', text: 'BP slightly elevated, noted for monitoring.' }], documents: [], deviations: ['BP not rechecked after rest'], samples: [], dispensing: [], piApproved: false },
-            { id: 'v3', name: 'Week 4', type: 'Follow-up', targetDate: '2025-12-13', windowDays: 3, scheduledDate: '2025-12-13', actualDate: null, status: 'Scheduled', location: 'Clinic', checklist: [{ label: 'Consent verified', checked: false }, { label: 'Vitals collected', checked: false }, { label: 'Questionnaire completed', checked: false }], assessments: [{ name: 'BTB Symptom Questionnaire', status: 'Not Started' }, { name: 'Adverse Event Check', status: 'Not Started' }], vitals: { weight: '', height: '', bp: '', hr: '', temp: '' }, aes: [], notes: [], documents: [], deviations: [], samples: [], dispensing: [], piApproved: false }
-        ]
-    },
-    {
-        id: 'BTB-017', study: 'Beat the Bloat', status: 'Active', coordinator: 'Sarah Lee', compliance: 100,
-        visits: [
-            { id: 'v1', name: 'Screening', type: 'Screening', targetDate: '2025-10-20', windowDays: 3, scheduledDate: '2025-10-20', actualDate: '2025-10-20', status: 'Completed', location: 'Clinic', checklist: [{ label: 'Consent verified', checked: true }], assessments: [{ name: 'Medical History', status: 'Completed' }], vitals: { weight: 68, height: 165, bp: '115/75', hr: 68, temp: 36.5 }, aes: [], notes: [], documents: [], deviations: [], samples: [], dispensing: [], piApproved: true },
-            { id: 'v2', name: 'Baseline', type: 'Baseline', targetDate: '2025-11-03', windowDays: 3, scheduledDate: '2025-11-03', actualDate: null, status: 'Scheduled', location: 'Virtual', checklist: [{ label: 'Consent verified', checked: false }], assessments: [], vitals: { weight: '', height: '', bp: '', hr: '', temp: '' }, aes: [], notes: [], documents: [], deviations: [], samples: [], dispensing: [], piApproved: false }
-        ]
-    }
-];
-
 // --- COMPONENT ---
 export default function PIVisitsAssessmentsModule() {
     // State
-    const [participants, setParticipants] = useState<Participant[]>(MOCK_PARTICIPANTS);
+    const [participants, setParticipants] = useState<Participant[]>([]);
+    const [availableStudies, setAvailableStudies] = useState<string[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [selectedStudy, setSelectedStudy] = useState('All');
-    const [activeParticipantId, setActiveParticipantId] = useState('BTB-023');
-    const [activeVisitId, setActiveVisitId] = useState('v1');
+    const [activeParticipantId, setActiveParticipantId] = useState<string | null>(null);
+    const [activeVisitId, setActiveVisitId] = useState<string | null>(null);
     const [visitTypeFilter, setVisitTypeFilter] = useState('All');
     const [statusFilter, setStatusFilter] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
@@ -102,6 +90,49 @@ export default function PIVisitsAssessmentsModule() {
     const [confirmModal, setConfirmModal] = useState<{ message: string, onConfirm: () => void, type?: string } | null>(null);
     const [auditLog, setAuditLog] = useState<{ time: string, action: string }[]>([]);
 
+    const apiUrl = API || 'http://localhost:8000';
+
+    // Fetch Participants from API
+    useEffect(() => {
+        const loadInitialData = async () => {
+            setIsLoading(true);
+            try {
+                const [pRes, sRes] = await Promise.all([
+                    authFetch(`${apiUrl}/api/participants/`),
+                    authFetch(`${apiUrl}/api/studies/`)
+                ]);
+
+                if (pRes.ok) {
+                    const data = await pRes.json();
+                    const mapped: Participant[] = data.map((p: any) => ({
+                        id: p.id,
+                        name: p.user_details?.full_name || p.participant_sid || 'Unnamed Participant',
+                        email: p.user_details?.email,
+                        study: p.study_name || p.study, // Handle display name or ID
+                        protocol_id: p.protocol_id,
+                        status: p.status,
+                        coordinator: p.coordinator_name || 'Coordinator Unassigned',
+                        compliance: p.compliance || 100,
+                        visits: p.visits || [] // visits might need further mapping if schema differs
+                    }));
+                    setParticipants(mapped);
+                    if (mapped.length > 0) setActiveParticipantId(mapped[0].id);
+                }
+
+                if (sRes.ok) {
+                    const sData = await sRes.json();
+                    setAvailableStudies(sData.map((s: any) => s.title));
+                }
+            } catch (error) {
+                console.error("Failed to sync clinical data:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadInitialData();
+    }, []);
+
     // Derived Data
     const activeParticipant = participants.find(p => p.id === activeParticipantId);
     const activeVisit = activeParticipant?.visits.find(v => v.id === activeVisitId);
@@ -109,7 +140,8 @@ export default function PIVisitsAssessmentsModule() {
     const filteredParticipants = useMemo(() => {
         return participants.filter(p => {
             const matchesStudy = selectedStudy === 'All' || p.study === selectedStudy;
-            const matchesSearch = p.id.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                 p.id.toLowerCase().includes(searchQuery.toLowerCase());
             return matchesStudy && matchesSearch;
         });
     }, [participants, selectedStudy, searchQuery]);
@@ -237,8 +269,8 @@ export default function PIVisitsAssessmentsModule() {
                         value={selectedStudy}
                         onChange={e => setSelectedStudy(e.target.value)}
                     >
-                        <option>All Studies</option>
-                        {['Beat the Bloat', 'Menopause Study'].map(s => <option key={s}>{s}</option>)}
+                        <option value="All">All Studies</option>
+                        {availableStudies.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                     <div style={{ position: 'relative' }}>
                         <Search size={14} color={COLORS.label} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
@@ -279,17 +311,33 @@ export default function PIVisitsAssessmentsModule() {
                                     transition: 'all 0.2s'
                                 }}
                             >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                    <span style={{ fontSize: '15px', fontWeight: 900, fontStyle: 'italic', fontFamily: 'monospace' }}>{p.id}</span>
-                                    <span style={G.badge(p.status === 'Active' ? COLORS.success : COLORS.warning)}>{p.status}</span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                    <span style={{ fontSize: '13px', fontWeight: 900, color: 'white' }}>{p.name}</span>
+                                    <span style={G.badge(
+                                        p.status === 'ACTIVE' || p.status === 'RANDOMIZED' ? COLORS.success : 
+                                        ['SCREENING', 'CONSENTED', 'ELIGIBLE'].includes(p.status) ? COLORS.info :
+                                        ['NEW', 'CONTACTED', 'INTERESTED'].includes(p.status) ? COLORS.warning :
+                                        COLORS.danger
+                                    )}>{p.status}</span>
                                 </div>
-                                <div style={{ fontSize: '11px', color: COLORS.label, marginBottom: '0.75rem' }}>Coord: {p.coordinator}</div>
+                                <div style={{ fontSize: '10px', color: COLORS.label, fontFamily: 'monospace', marginBottom: '0.75rem' }}>ID: {p.id.slice(-8).toUpperCase()} • {p.study}</div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: p.compliance > 80 ? COLORS.success : COLORS.warning }} />
                                     <span style={{ fontSize: '11px', fontWeight: 'bold', color: COLORS.text }}>{p.compliance}% Compliance</span>
                                 </div>
                             </div>
                         ))}
+                        {filteredParticipants.length === 0 && !isLoading && (
+                            <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: COLORS.label, fontSize: '12px' }}>
+                                No participants found matching criteria.
+                            </div>
+                        )}
+                        {isLoading && (
+                            <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: COLORS.accent, fontSize: '11px', fontWeight: 900 }}>
+                                <RefreshCw size={16} className="animate-spin" style={{ margin: '0 auto 1rem' }} />
+                                SYNCING CLINICAL DATABASE...
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -377,11 +425,12 @@ export default function PIVisitsAssessmentsModule() {
                 <div style={{ width: '320px', borderLeft: `1px solid ${COLORS.border}`, display: 'flex', flexDirection: 'column', backgroundColor: 'rgba(255,255,255,0.01)', overflowY: 'auto' }} className="custom-scrollbar">
                     {activeVisit ? (
                         <>
-                            <div style={{ padding: '2rem 1.5rem', borderBottom: `1px solid ${COLORS.border}` }}>
-                                <div style={{ fontSize: '10px', fontWeight: 900, color: COLORS.accent, marginBottom: '0.4rem' }}>{activeParticipant?.id} • {activeParticipant?.study}</div>
-                                <h2 style={{ ...G.title, fontSize: '18px' }}>{activeVisit.name} Node</h2>
+                             <div style={{ padding: '2rem 1.5rem', borderBottom: `1px solid ${COLORS.border}` }}>
+                                <div style={{ fontSize: '10px', fontWeight: 900, color: COLORS.accent, marginBottom: '0.4rem' }}>STUDY: {activeParticipant?.study}</div>
+                                <h2 style={{ ...G.title, fontSize: '18px', color: 'white', fontStyle: 'normal' }}>{activeParticipant?.name}</h2>
+                                <div style={{ marginTop: '0.6rem', fontSize: '11px', color: COLORS.label }}>{activeParticipant?.email}</div>
                                 <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                    <div style={{ fontSize: '11px', color: COLORS.label }}>Target: {activeVisit.targetDate} (±{activeVisit.windowDays}d)</div>
+                                    <div style={{ fontSize: '11px', color: COLORS.label }}>Internal PID: {activeParticipant?.id}</div>
                                     <div style={G.badge(activeVisit.status === 'Completed' ? COLORS.success : COLORS.warning)}>{activeVisit.status}</div>
                                 </div>
                             </div>
@@ -514,7 +563,7 @@ export default function PIVisitsAssessmentsModule() {
                                     onChange={e => setSchedulePanelForm({...schedulePanelForm, participantId: e.target.value})}
                                 >
                                     <option value="">Select Participant...</option>
-                                    {participants.map(p => <option key={p.id} value={p.id}>{p.id} - {p.study}</option>)}
+                                    {participants.map(p => <option key={p.id} value={p.id}>{p.name} ({p.study})</option>)}
                                 </select>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>

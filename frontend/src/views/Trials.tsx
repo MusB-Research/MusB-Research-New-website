@@ -56,6 +56,7 @@ export default function Trials() {
                     const mappedType = s.study_type === 'VIRTUAL' ? 'Virtual' : (s.study_type === 'IN_PERSON' ? 'On-site' : 'Hybrid');
                     return {
                         id: s.protocol_id || s.id,
+                        db_id: s.id, // Needed for chronological sort
                         title: s.title,
                         description: s.description || s.primary_indication || "Standard research protocol",
                         condition: s.condition || s.primary_indication || "Other",
@@ -68,7 +69,11 @@ export default function Trials() {
                     };
                 });
 
-                setStudies(mappedStudies);
+                // Chronological (Oldest First): Sort strings (MongoDB IDs are naturally chronological)
+                const sortedStudies = mappedStudies.sort((a: any, b: any) => 
+                    (a.db_id || '').localeCompare(b.db_id || '')
+                );
+                setStudies(sortedStudies);
             } catch (err) {
                 console.error("Error loading studies:", err);
                 setStudies([]);

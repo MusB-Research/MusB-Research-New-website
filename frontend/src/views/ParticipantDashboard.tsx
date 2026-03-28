@@ -216,9 +216,10 @@ const DashboardView = ({ firstName, today, onAction, tasks, study, handleExportP
             />
             <StatCard 
                 icon={<Trophy className="w-5 h-5 text-amber-500" />} 
-                value="$0" 
+                value={study?.compensation ? (isNaN(Number(study.compensation)) ? study.compensation : `$${study.compensation}`) : "$0"} 
                 label="Protocol Earnings" 
                 iconBg="bg-amber-500/10" 
+                onClick={() => onAction('Compensation')}
             />
             <StatCard 
                 icon={<Target className="w-5 h-5 text-indigo-400" />} 
@@ -728,6 +729,116 @@ const ReportsView = ({ userName, handleExportPDF }: { userName: string, handleEx
     );
 };
 
+// 8. COMPENSATION VIEW
+const CompensationView = ({ study }: { study: any }) => (
+    <div className="space-y-8 max-w-[1400px]">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div>
+                <h2 className="text-4xl font-black italic tracking-tight text-white uppercase">Compensation Hub</h2>
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] mt-2 italic">
+                    Financial Protocol & Payout Tracking
+                </p>
+            </div>
+            <div className="flex items-center gap-4">
+                <div className="px-6 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black uppercase tracking-widest flex items-center gap-3">
+                    <ShieldCheck className="w-4 h-4" /> SECURE PAYMENTS ACTIVE
+                </div>
+            </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="bg-[#0a101f] border-white/5 p-8 flex flex-col justify-between group hover:border-[#00e676]/30 transition-all">
+                <div className="w-12 h-12 bg-[#00e676]/10 rounded-2xl flex items-center justify-center text-[#00e676] mb-6 border border-[#00e676]/20">
+                    <Trophy className="w-6 h-6" />
+                </div>
+                <div>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Allocated</p>
+                    <h3 className="text-5xl font-black text-white italic tracking-tighter mb-4">
+                        {study?.compensation && isNaN(Number(study.compensation)) ? study.compensation : `$${study.compensation || 0}`}
+                        <span className="text-xl text-slate-600 ml-2">{!study?.compensation || !isNaN(Number(study.compensation)) ? 'USD' : ''}</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed">Total stipend allocated for full protocol completion.</p>
+                </div>
+            </Card>
+
+            <Card className="bg-[#0a101f] border-white/5 p-8 flex flex-col justify-between group hover:border-cyan-500/30 transition-all">
+                <div className="w-12 h-12 bg-cyan-500/10 rounded-2xl flex items-center justify-center text-cyan-400 mb-6 border border-cyan-500/20">
+                    <TrendingUp className="w-6 h-6" />
+                </div>
+                <div>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Earned to Date</p>
+                    <h3 className="text-5xl font-black text-white italic tracking-tighter mb-4">
+                        $0
+                        <span className="text-xl text-slate-600 ml-2">USD</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed">Verified payments corresponding to completed milestones.</p>
+                </div>
+                <div className="w-full h-1.5 bg-white/5 rounded-full mt-6 overflow-hidden">
+                    <div className="h-full bg-cyan-500 w-0 transition-all duration-1000" />
+                </div>
+            </Card>
+
+            <Card className="bg-[#0a101f] border-white/5 p-8 flex flex-col justify-between group hover:hover:bg-white/[0.02] transition-all">
+                <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-slate-400 mb-6 border border-white/10">
+                    <Box className="w-6 h-6" />
+                </div>
+                <div>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Next Milestone</p>
+                    <h3 className="text-2xl font-black text-white italic tracking-tight mb-2 uppercase">Screening Visit</h3>
+                    <p className="text-[11px] text-indigo-400 font-black uppercase tracking-widest">$50.00 Payout Upon Verification</p>
+                </div>
+                <button className="w-full mt-8 py-4 bg-white/[0.03] border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 cursor-not-allowed group-hover:text-white transition-colors">
+                    Withdrawal Unavailable
+                </button>
+            </Card>
+        </div>
+
+        <Card className="bg-[#0a101f] border-white/5 p-0 overflow-hidden shadow-2xl">
+            <div className="px-8 py-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                <h3 className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-3">
+                    <ClipboardList className="w-4 h-4 text-cyan-400" /> Payment Transaction Registry
+                </h3>
+                <div className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Showing All Transactions</div>
+            </div>
+            <div className="p-12 text-center">
+                <div className="w-16 h-16 bg-white/[0.03] rounded-2xl border border-white/5 flex items-center justify-center mx-auto mb-6 opacity-40">
+                    <Lock className="w-6 h-6 text-slate-500" />
+                </div>
+                <h4 className="text-xl font-black text-white mb-2 uppercase italic tracking-tight">No Transactions Registered</h4>
+                <p className="text-[12px] text-slate-500 uppercase tracking-widest font-bold max-w-sm mx-auto leading-relaxed">
+                    Payments are triggered automatically upon coordinator verification of protocol tasks. 
+                    Please ensure your payout method is configured in Profile settings.
+                </p>
+            </div>
+        </Card>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="p-8 bg-[#0a101f] border-white/5 group hover:border-indigo-500/30 transition-all cursor-pointer">
+                <div className="flex items-center gap-6">
+                    <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400 border border-indigo-500/20 group-hover:bg-indigo-500 transition-all group-hover:text-white">
+                        <User className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h4 className="text-lg font-black text-white uppercase italic tracking-tight">Payout Configuration</h4>
+                        <p className="text-xs text-slate-500 font-medium mt-1">Manage your direct deposit or digital wallet credentials.</p>
+                    </div>
+                </div>
+            </Card>
+            <Card className="p-8 bg-[#0a101f] border-white/5 group hover:border-amber-500/30 transition-all cursor-pointer">
+                <div className="flex items-center gap-6">
+                    <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 border border-amber-500/20 group-hover:bg-amber-500 transition-all group-hover:text-white">
+                        <FileText className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h4 className="text-lg font-black text-white uppercase italic tracking-tight">Tax Documentation</h4>
+                        <p className="text-xs text-slate-500 font-medium mt-1">Securely upload and manage your mandatory W-9 / 1099-MISC forms.</p>
+                    </div>
+                </div>
+            </Card>
+        </div>
+    </div>
+);
+
 /* ─────────────────────────────────────────────────────────────────
    MAIN COMPONENT
 ───────────────────────────────────────────────────────────────── */
@@ -1128,6 +1239,11 @@ export default function ParticipantDashboard() {
     }, []);
 
     const openActionModal = (title: string) => {
+        if (title.toLowerCase().includes('compensation')) {
+            setActiveNav('Compensation');
+            return;
+        }
+
         let desc = `You are initiating the ${title} workflow. This module securely connects your input directly to your dedicated clinical coordinator. Please proceed with the form in the encrypted popup.`;
         let btn = "CONTINUE TO FORM";
 
@@ -1322,6 +1438,7 @@ export default function ParticipantDashboard() {
         { label: 'Messages', icon: MessageSquare },
         { label: 'Documents', icon: FileText },
         { label: 'Reports', icon: TrendingUp },
+        { label: 'Compensation', icon: Trophy },
         { label: 'Profile', icon: User },
         { label: 'Privacy & Data', icon: ShieldCheck },
     ];
@@ -1502,6 +1619,7 @@ export default function ParticipantDashboard() {
                             {activeNav === 'Messages' && <MessagesView />}
                             {activeNav === 'Documents' && <DocumentsView handleExportPDF={handleExportPDF} />}
                             {activeNav === 'Reports' && <ReportsView userName={userName} handleExportPDF={handleExportPDF} />}
+                            {activeNav === 'Compensation' && <CompensationView study={activeStudy} />}
                             {activeNav === 'Profile' && (
                                 <ProfileView 
                                     userName={userName} 

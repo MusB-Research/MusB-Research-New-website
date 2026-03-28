@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API, authFetch } from '../../utils/auth';
 import { 
     Plus, 
     Save, 
@@ -92,6 +93,85 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
     const [selectedQId, setSelectedQId] = useState<string | null>('q4');
     const [previewMode, setPreviewMode] = useState<'Desktop' | 'Mobile'>('Desktop');
     const [isFormulaOpen, setIsFormulaOpen] = useState(false);
+    const [studies, setStudies] = useState<any[]>([]);
+    const [selectedStudyId, setSelectedStudyId] = useState<string>('');
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [formTitle, setFormTitle] = useState("MusB-GI HyperImmunity Screening");
+    const [formulas, setFormulas] = useState([
+        { id: 'f1', label: 'GI Distress Total', val: 'SUM (q4 + q5 + q8)', status: 'ACTIVE', color: 'indigo' },
+        { id: 'f2', label: 'Symptom Slope', val: 'd(GI)/dt [Rolling 14d]', status: 'DRAFT', color: 'slate' },
+        { id: 'f3', label: 'BMI Analysis', val: 'Wt (kg) / Ht (m^2)', status: 'LOCKED', color: 'slate' },
+        { id: 'f4', label: 'Safety Threshold', val: 'MAX(AE) > 12.5', status: 'ACTIVE', color: 'red' }
+    ]);
+    const [selectedFormulaId, setSelectedFormulaId] = useState('f1');
+
+    const addFormula = () => {
+        const newF = {
+            id: `f-${Date.now()}`,
+            label: 'New Strategic Formula',
+            val: 'Enter algebraic logic...',
+            status: 'DRAFT',
+            color: 'slate'
+        };
+        setFormulas([...formulas, newF]);
+        setSelectedFormulaId(newF.id);
+    };
+
+    const selectedFormula = useMemo(() => formulas.find(f => f.id === selectedFormulaId), [formulas, selectedFormulaId]);
+    const [isStudyDropdownOpen, setIsStudyDropdownOpen] = useState(false);
+
+    useEffect(() => {
+        const fetchStudies = async () => {
+            try {
+                const res = await authFetch(`${API}/api/studies/`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setStudies(data);
+                    if (data.length > 0) setSelectedStudyId(data[0].id);
+                }
+            } catch (err) {
+                console.error("Failed to load studies", err);
+            }
+        };
+        fetchStudies();
+    }, []);
+
+    const handleSave = async (isPublished = false) => {
+        if (!selectedStudyId) {
+            alert("Please select a study to assign this screener to.");
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const payload = {
+                study: selectedStudyId,
+                title: 'Screener Form', // Must match StudyScreener.tsx filter
+                description: `Dynamic screener: ${formTitle}`,
+                schema: { sections },
+                is_published: isPublished,
+                version: 1
+            };
+
+            const res = await authFetch(`${API}/api/forms/`, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                alert(isPublished ? "Screener published and assigned successfully!" : "Screener saved as draft.");
+            } else {
+                const errData = await res.json();
+                alert(`Error saving screener: ${JSON.stringify(errData)}`);
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Connection error while saving screener.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const selectedQuestion = useMemo(() => {
         for (const s of sections) {
@@ -129,61 +209,99 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-14rem)] bg-[#0B101B] border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl relative">
+        <div className="flex flex-col h-auto 2xl:h-[calc(100vh-14rem)] bg-[#0B101B] border border-white/5 rounded-[1.5rem] lg:rounded-[2.5rem] overflow-hidden 2xl:overflow-hidden shadow-2xl relative mb-10 2xl:mb-0">
             {/* Top Tactical Header */}
             <div className="flex-shrink-0 bg-[#0B101B]/80 backdrop-blur-3xl border-b border-white/5 z-40">
-                <div className="px-6 lg:px-10 py-6 flex flex-wrap items-center justify-between gap-6">
-                    <div className="flex items-center gap-4 lg:gap-6 shrink-0">
-                        <DraftingCompass className="w-6 h-6 lg:w-8 lg:h-8 text-indigo-500" />
+                <div className="px-6 lg:px-12 py-8 lg:py-12 flex flex-col xl:flex-row items-center justify-between gap-10 xl:gap-8">
+                    <div className="flex items-start gap-6 lg:gap-10 shrink-0">
+                        <div className="w-16 h-16 lg:w-20 lg:h-20 bg-indigo-500/10 border border-indigo-500/20 rounded-[1.75rem] flex items-center justify-center text-indigo-400 shadow-2xl shadow-indigo-500/10 shrink-0 mt-1">
+                            <DraftingCompass className="w-10 h-10 lg:w-12 lg:h-12" />
+                        </div>
                         <div>
-                            <h2 className="text-xl lg:text-2xl font-black text-white italic uppercase tracking-tighter">Questionnaire Architect</h2>
-                            <p className="text-[8px] lg:text-[9px] text-indigo-400 font-black uppercase tracking-[0.2em] lg:tracking-[0.3em] mt-1 italic">Protocol Synchronized Data Collection Hub</p>
+                            <h2 className="text-3xl lg:text-5xl font-black text-white italic uppercase tracking-tighter leading-none mb-3">SCREENER BUILDER</h2>
+                            <p className="text-[10px] lg:text-[11px] text-indigo-400 font-bold uppercase tracking-[0.3em] lg:tracking-[0.4em] italic opacity-80 max-w-2xl">Design logical recruitment funnels with dynamic branching and integrated validation triggers.</p>
                         </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-3 lg:gap-4 ml-auto">
-                        <button className="px-4 lg:px-5 py-2.5 lg:py-3 bg-white/5 border border-white/10 text-slate-400 rounded-xl text-[8px] lg:text-[9px] font-black uppercase tracking-widest hover:text-white transition-all flex items-center gap-2 italic">
-                            <Save className="w-3.5 h-3.5" /> Save Draft
+
+                    <div className="w-full xl:w-auto flex flex-wrap lg:flex-row items-center gap-3 lg:gap-4 justify-center xl:justify-end">
+                        <button 
+                            onClick={() => handleSave(false)}
+                            disabled={isLoading}
+                            className="px-6 py-4 lg:py-5 bg-white/5 border border-white/10 text-slate-400 rounded-2xl hover:bg-white/10 hover:text-white transition-all flex items-center gap-4 group shadow-xl"
+                        >
+                            <Save className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                            <div className="text-left">
+                                <p className="text-[10px] font-black uppercase tracking-widest leading-none">SAVE</p>
+                                <p className="text-[9px] font-black uppercase tracking-widest leading-none mt-1 opacity-50">DRAFT</p>
+                            </div>
                         </button>
-                        <button className="px-4 lg:px-5 py-2.5 lg:py-3 bg-white/5 border border-white/10 text-slate-400 rounded-xl text-[8px] lg:text-[9px] font-black uppercase tracking-widest hover:text-white transition-all flex items-center gap-2 italic">
-                            <Eye className="w-3.5 h-3.5" /> Preview
+
+                        <button 
+                            onClick={() => setIsPreviewOpen(true)}
+                            className="px-6 py-4 lg:py-5 bg-white/5 border border-white/10 text-slate-400 rounded-2xl hover:bg-white/10 hover:text-white transition-all flex items-center gap-4 group shadow-xl"
+                        >
+                            <Eye className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                            <div className="text-left font-black uppercase tracking-widest text-[10px]">PREVIEW</div>
                         </button>
+
                         <button 
                             onClick={() => setIsFormulaOpen(true)}
-                            className="px-4 lg:px-5 py-2.5 lg:py-3 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl text-[8px] lg:text-[9px] font-black uppercase tracking-widest hover:bg-indigo-500 hover:text-white transition-all flex items-center gap-2 italic"
+                            className="px-6 py-4 lg:py-5 bg-indigo-500/5 border border-indigo-500/10 text-indigo-400/80 rounded-2xl hover:bg-indigo-500/10 hover:text-indigo-400 transition-all flex items-center gap-4 group shadow-xl"
                         >
-                            <Calculator className="w-3.5 h-3.5" /> Scoring Engine
+                            <Calculator className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                            <div className="text-left">
+                                <p className="text-[10px] font-black uppercase tracking-widest leading-none">SCORING</p>
+                                <p className="text-[9px] font-black uppercase tracking-widest leading-none mt-1 opacity-50">ENGINE</p>
+                            </div>
                         </button>
-                        <button className="px-6 lg:px-8 py-2.5 lg:py-3 bg-indigo-600 text-white rounded-xl text-[8px] lg:text-[9px] font-black uppercase tracking-widest shadow-xl shadow-indigo-900/40 hover:scale-[1.02] transition-all flex items-center gap-2 italic">
-                            <Rocket className="w-3.5 h-3.5" /> Publish & Assign
+
+                        <button 
+                            onClick={() => handleSave(true)}
+                            disabled={isLoading}
+                            className="px-8 py-4 lg:py-5 bg-indigo-600 text-white rounded-2xl shadow-2xl shadow-indigo-900/40 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4 border border-indigo-400/20 group outline-none"
+                        >
+                            <Rocket className="w-5 h-5 group-hover:animate-bounce" />
+                            <div className="text-left">
+                                <p className="text-[10px] font-black uppercase tracking-widest leading-none">{isLoading ? "SYNCING..." : "PUBLISH"}</p>
+                                <p className="text-[9px] font-black uppercase tracking-widest leading-none mt-1 opacity-80">& ASSIGN</p>
+                            </div>
                         </button>
                     </div>
                 </div>
 
 
-                <div className="px-10 flex gap-10">
+                <div className="px-6 lg:px-12 flex gap-8 lg:gap-12 overflow-x-auto custom-scrollbar-horizontal whitespace-nowrap bg-white/[0.02]">
                     {['My Questionnaires', 'Create New', 'Templates', 'Scoring & Formulas', 'Registry'].map(tab => (
                         <button 
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`pb-4 text-[9px] font-black uppercase tracking-[0.2em] transition-all relative ${
+                            className={`pb-5 pt-2 text-[10px] lg:text-[11px] font-bold uppercase tracking-[0.25em] transition-all relative ${
                                 activeTab === tab ? 'text-white italic' : 'text-slate-600 hover:text-slate-300'
                             }`}
                         >
                             {tab}
-                            {activeTab === tab && <motion.div layoutId="nav-ind" className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-500 rounded-t-full shadow-[0_-2px_10px_rgba(99,102,241,0.5)]" />}
+                            {activeTab === tab && <motion.div layoutId="nav-ind" className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-500 rounded-t-full shadow-[0_-2px_10px_rgba(99,102,241,0.5)]" />}
                         </button>
                     ))}
                 </div>
             </div>
 
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col 2xl:flex-row overflow-visible 2xl:overflow-hidden">
                 {/* Left Panel: Structure Orchestration */}
-                <div className="w-[340px] border-r border-white/5 flex flex-col overflow-hidden bg-white/[0.01]">
+                <div className="w-full 2xl:w-[340px] border-b 2xl:border-b-0 2xl:border-r border-white/5 flex flex-col overflow-hidden bg-[#0B101B]">
                     <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Protocol map</span>
+                        <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest italic">Protocol map</span>
                         <div className="flex gap-2">
-                            <button className="p-2 bg-white/5 rounded-lg text-slate-600 hover:text-white"><Plus className="w-3.5 h-3.5" /></button>
-                            <button className="p-2 bg-white/5 rounded-lg text-slate-600 hover:text-white"><Layers className="w-3.5 h-3.5" /></button>
+                            <button 
+                                onClick={() => {
+                                    const newS: Section = { id: `s-${Date.now()}`, title: 'New Research Section', questions: [] };
+                                    setSections([...sections, newS]);
+                                }}
+                                className="p-2 bg-white/5 rounded-lg text-slate-600 hover:text-white transition-colors"
+                            >
+                                <Plus className="w-4 h-4" />
+                            </button>
+                            <button className="p-2 bg-white/5 rounded-lg text-slate-600 hover:text-white transition-colors"><Layers className="w-4 h-4" /></button>
                         </div>
                     </div>
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
@@ -191,10 +309,10 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                             <div key={section.id} className="space-y-4">
                                 <div className="flex items-center justify-between group">
                                     <div className="flex items-center gap-3">
-                                        <ChevronDown className="w-3.5 h-3.5 text-slate-700" />
-                                        <h4 className="text-[10px] font-black text-white uppercase italic tracking-widest leading-tight w-40 truncate">{section.title}</h4>
+                                        <ChevronDown className="w-4 h-4 text-slate-700" />
+                                        <h4 className="text-[11px] font-black text-white uppercase italic tracking-widest leading-tight w-40 truncate">{section.title}</h4>
                                     </div>
-                                    <button onClick={() => addQuestion(section.id)} className="p-1 px-2 bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 rounded-md text-[8px] font-black uppercase opacity-0 group-hover:opacity-100 transition-opacity">Add</button>
+                                    <button onClick={() => addQuestion(section.id)} className="p-1 px-2 bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 rounded-md text-[10px] font-black uppercase opacity-0 group-hover:opacity-100 transition-opacity">Add</button>
                                 </div>
                                 <div className="pl-4 space-y-2 relative">
                                     <div className="absolute left-1.5 top-0 bottom-0 w-[1px] bg-white/5" />
@@ -204,13 +322,13 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                             onClick={() => setSelectedQId(q.id)}
                                             className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all relative ${
                                                 selectedQId === q.id 
-                                                ? 'bg-indigo-600/10 border-indigo-500/30 text-white' 
+                                                ? 'bg-indigo-600/10 border-indigo-500/30 text-white shadow-lg' 
                                                 : 'bg-transparent border-transparent text-slate-600 hover:text-slate-400'
                                             }`}
                                         >
-                                            <GripVertical className="w-3 h-3 text-slate-800" />
-                                            <span className="text-[9px] font-black uppercase tracking-tight truncate flex-1 text-left italic">{q.label}</span>
-                                            <XCircle className="w-3 h-3 text-red-900 opacity-0 hover:opacity-100 transition-opacity" onClick={(e: React.MouseEvent) => { e.stopPropagation(); deleteQuestion(q.id); }} />
+                                            <GripVertical className="w-3.5 h-3.5 text-slate-800" />
+                                            <span className="text-[11px] font-black uppercase tracking-tight truncate flex-1 text-left italic">{q.label}</span>
+                                            <XCircle className="w-4 h-4 text-red-900 opacity-0 group-hover:opacity-60 hover:opacity-100 transition-opacity" onClick={(e: React.MouseEvent) => { e.stopPropagation(); deleteQuestion(q.id); }} />
                                         </button>
                                     ))}
                                 </div>
@@ -219,30 +337,69 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                     </div>
                 </div>
                 {/* Center Panel: Architectural Canvas */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 xl:p-16 bg-[#0B101B]">
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 xl:p-16 bg-[#0B101B] min-h-[500px] 2xl:min-h-0 border-b 2xl:border-b-0 border-white/5">
                     <div className="max-w-5xl mx-auto space-y-12 lg:space-y-16">
-                        <section className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] lg:rounded-[3rem] p-6 lg:p-10 xl:p-12 shadow-2xl overflow-visible">
-                            <div className="grid grid-cols-1 2xl:grid-cols-12 gap-8 lg:gap-12 items-start overflow-visible">
-                                <div className="2xl:col-span-9 space-y-4 w-full overflow-visible">
-                                    <label className="text-[9px] text-slate-600 font-black uppercase tracking-widest italic shrink-0">Inventory Title</label>
-                                    <input 
-                                        type="text" 
-                                        placeholder="GI Health Assessment..." 
-                                        defaultValue="MusB-GI HyperImmunity Screening" 
-                                        className="w-full bg-transparent border-b border-white/5 py-2 lg:py-3 text-[11px] md:text-sm lg:text-base xl:text-lg font-black text-white italic uppercase placeholder-slate-900 outline-none focus:border-indigo-500/50 transition-all tracking-tight" 
-                                    />
-                                </div>
+                        <section className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] lg:rounded-[3rem] p-6 lg:p-10 xl:p-12 shadow-2xl relative overflow-visible group/header backdrop-blur-md">
+                            <div className="flex flex-col xl:flex-row gap-10 xl:gap-20 items-start">
+                                <div className="flex-1 min-w-0 space-y-6 w-full">
+                                     <div className="flex items-center gap-4">
+                                         <div className="w-1.5 h-6 bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
+                                         <label className="text-[11px] text-slate-600 font-black uppercase tracking-widest italic whitespace-nowrap">Inventory Strategic Title</label>
+                                     </div>
+                                     <input 
+                                         type="text" 
+                                         placeholder="Enter Protocol Title..." 
+                                         value={formTitle} 
+                                         onChange={(e) => setFormTitle(e.target.value)}
+                                         className="w-full bg-transparent border-b border-white/5 py-4 text-sm md:text-base lg:text-xl font-black text-white italic uppercase placeholder-slate-930 outline-none focus:border-indigo-500/50 transition-all tracking-tight leading-none" 
+                                     />
+                                 </div>
 
-                                <div className="2xl:col-span-3 flex flex-wrap 2xl:flex-col items-start gap-4 lg:gap-6 2xl:pt-8 w-full shrink-0">
-                                    <div className="flex-1 2xl:w-full min-w-[140px] space-y-3">
-                                        <label className="text-[8px] text-slate-700 font-black uppercase tracking-widest italic shrink-0 truncate">Study ID</label>
-                                        <div className="py-2.5 px-4 bg-white/5 border border-white/5 rounded-xl text-[9px] lg:text-[10px] font-black text-indigo-400 uppercase italic truncate">HI-202B</div>
-                                    </div>
-                                    <div className="flex-1 2xl:w-full min-w-[140px] space-y-3">
-                                        <label className="text-[8px] text-slate-700 font-black uppercase tracking-widest italic shrink-0 truncate">Version</label>
-                                        <div className="py-2.5 px-4 bg-white/5 border border-white/5 rounded-xl text-[9px] lg:text-[10px] font-black text-slate-500 uppercase italic truncate">v1.4.2 [DRAFT]</div>
-                                    </div>
-                                </div>
+                                 <div className="w-full xl:w-auto flex flex-row xl:flex-col items-center xl:items-start gap-8 shrink-0">
+                                     <div className="space-y-4 min-w-[240px] relative group/select">
+                                         <label className="text-[10px] text-slate-700 font-black uppercase tracking-widest italic">Target Study</label>
+                                         
+                                         {/* Custom Dropdown Button */}
+                                         <div className="relative">
+                                             <div 
+                                                onClick={() => setIsStudyDropdownOpen(!isStudyDropdownOpen)}
+                                                className="w-full py-4 px-6 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between cursor-pointer hover:border-indigo-500/50 transition-all shadow-lg select-none"
+                                             >
+                                                 <span className="text-[11px] font-black text-indigo-400 uppercase italic">
+                                                     {studies.find(s => s.id === selectedStudyId)?.protocol_id || (isLoading ? 'Loading...' : 'Select Study')}
+                                                 </span>
+                                                 <ChevronDown className={`w-4 h-4 text-indigo-400 transition-transform ${isStudyDropdownOpen ? 'rotate-180' : ''}`} />
+                                             </div>
+                                             
+                                             <AnimatePresence>
+                                                {isStudyDropdownOpen && (
+                                                    <motion.div 
+                                                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                                                        className="absolute top-full left-0 right-0 mt-2 bg-[#0F172A] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 backdrop-blur-xl"
+                                                    >
+                                                        {studies.map(s => (
+                                                            <div 
+                                                                key={s.id}
+                                                                onClick={() => {
+                                                                    setSelectedStudyId(s.id);
+                                                                    setIsStudyDropdownOpen(false);
+                                                                }}
+                                                                className="px-6 py-4 text-[11px] font-bold text-slate-300 uppercase italic hover:bg-indigo-600 hover:text-white cursor-pointer transition-colors border-b border-white/5 last:border-0"
+                                                            >
+                                                                {s.protocol_id}
+                                                            </div>
+                                                        ))}
+                                                        {studies.length === 0 && <div className="px-6 py-4 text-[11px] italic text-slate-500">No studies available</div>}
+                                                    </motion.div>
+                                                )}
+                                             </AnimatePresence>
+                                         </div>
+                                     </div>
+                                     <div className="space-y-4 min-w-[120px]">
+                                         <label className="text-[10px] text-slate-700 font-black uppercase tracking-widest italic">Version</label>
+                                         <div className="py-4 px-6 bg-white/5 border border-white/10 rounded-2xl text-[11px] font-black text-slate-500 uppercase italic shadow-lg">v1.0.0 [DRAFT]</div>
+                                     </div>
+                                 </div>
                             </div>
                         </section>
 
@@ -273,19 +430,33 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                                 }`}
                                             >
                                                 <div className="flex items-center justify-between mb-8">
-                                                    <span className={`text-[9px] font-black uppercase tracking-widest italic ${selectedQId === q.id ? 'text-indigo-200' : 'text-slate-600'}`}>
+                                                    <span className={`text-[11px] font-black uppercase tracking-widest italic ${selectedQId === q.id ? 'text-indigo-200' : 'text-slate-600'}`}>
                                                         {q.type} Field • ID-{q.id.split('-').pop()}
                                                     </span>
                                                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button className="p-2 bg-white/10 rounded-xl hover:bg-white/20"><Copy className="w-4 h-4 text-white" /></button>
-                                                        <button className="p-2 bg-red-500/20 rounded-xl hover:bg-red-500/40 text-red-500"><Trash2 className="w-4 h-4" /></button>
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const newQ = { ...q, id: `q-${Date.now()}` };
+                                                                setSections(prev => prev.map(s => s.questions.find(quest => quest.id === q.id) ? { ...s, questions: [...s.questions, newQ] } : s));
+                                                            }}
+                                                            className="p-2 bg-white/10 rounded-xl hover:bg-white/20"
+                                                        >
+                                                            <Copy className="w-4 h-4 text-white" />
+                                                        </button>
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); deleteQuestion(q.id); }}
+                                                            className="p-2 bg-red-500/20 rounded-xl hover:bg-red-500/40 text-red-500"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
                                                     </div>
                                                 </div>
                                                 <h5 className={`text-base font-black uppercase tracking-tight italic mb-8 ${selectedQId === q.id ? 'text-white' : 'text-slate-300'}`}>
                                                     {q.label} {q.required && <span className="text-red-500 ml-1">*</span>}
                                                 </h5>
                                                 
-                                                <div className="h-16 w-full bg-black/20 rounded-2xl border border-white/10 border-dashed flex items-center px-6 italic text-slate-800 uppercase tracking-widest text-[9px] font-black">
+                                                <div className="h-16 w-full bg-black/20 rounded-2xl border border-white/10 border-dashed flex items-center px-6 italic text-slate-800 uppercase tracking-widest text-[11px] font-black">
                                                     Interactive Participant Node Preview
                                                 </div>
                                                 
@@ -306,84 +477,130 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                             ))}
                         </div>
                     </div>
-                </div>
-
-                {/* Right Panel: Granular Intelligence & Behavioral Config */}
-                <div className="w-[420px] border-l border-white/5 flex flex-col overflow-hidden bg-white/[0.02]">
-                    <div className="p-8 border-b border-white/5 bg-white/[0.03] flex items-center justify-between">
-                        <div className="flex items-center gap-4">
+                </div>                {/* Right Panel: Granular Intelligence & Behavioral Config */}
+                <div className="w-full 2xl:w-[420px] border-t 2xl:border-t-0 2xl:border-l border-white/5 flex flex-col overflow-hidden bg-white/[0.02]">
+                    <div className="p-10 border-b border-white/5 bg-white/[0.03] flex items-center justify-between">
+                        <div className="flex items-center gap-6">
                             <Settings className="w-5 h-5 text-indigo-400" />
-                            <h4 className="text-[10px] font-black text-white uppercase italic tracking-widest">Question Intelligence</h4>
+                            <h4 className="text-[12px] font-black text-white uppercase italic tracking-[0.2em] leading-none">Question Intelligence</h4>
                         </div>
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-12">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]" />
+                    </div>                    <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-8 space-y-8 group/right-panel scroll-smooth pb-40">
                         {selectedQuestion ? (
-                            <>
-                                <section className="space-y-6">
-                                    <div className="space-y-3">
-                                        <label className="text-[8px] text-slate-700 font-black uppercase tracking-widest italic">Operational Label</label>
+                            <div className="space-y-8">
+                                {/* Section 1: Strategic Specs */}
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-4 px-2">
+                                        <div className="w-1 h-3 bg-indigo-500 rounded-full" />
+                                        <h5 className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.3em] italic">Strategic Specs</h5>
+                                    </div>
+                                    
+                                    {/* Card: Protocol Format */}
+                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-white/[0.03] border border-white/10 rounded-[2rem] shadow-xl group/card hover:bg-white/[0.05] transition-all">
+                                        <label className="text-[9px] text-slate-700 font-black uppercase tracking-widest italic mb-4 block">Question Format</label>
+                                        <div className="relative group/type">
+                                            <div className="w-full py-4 px-6 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between cursor-pointer hover:border-indigo-500/50 transition-all select-none">
+                                                <span className="text-[10px] font-black text-white uppercase italic tracking-widest">{selectedQuestion.type}</span>
+                                                <ChevronDown className="w-4 h-4 text-indigo-400 group-hover/type:rotate-180 transition-transform" />
+                                            </div>
+                                            <div className="absolute top-full left-0 right-0 mt-2 bg-slate-950 border border-white/10 rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden opacity-0 invisible group-hover/type:opacity-100 group-hover/type:visible transition-all z-[70] backdrop-blur-3xl translate-y-2 group-hover/type:translate-y-0 text-left">
+                                                {['Short Text', 'Likert Scale (1-7)', 'Dropdown', 'Number', 'Date'].map(type => (
+                                                    <div key={type} onClick={() => updateQuestion(selectedQuestion.id, { type })} className={`px-6 py-4 text-[9px] font-black uppercase italic transition-all cursor-pointer border-b border-white/5 last:border-0 hover:bg-indigo-600 hover:text-white ${selectedQuestion.type === type ? 'text-indigo-400' : 'text-slate-500'}`}>
+                                                        {type}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </motion.div>
+
+                                    {/* Card: Options Registry */}
+                                    {(selectedQuestion.type === 'Dropdown' || selectedQuestion.type.includes('Likert')) && (
+                                        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="p-6 bg-white/[0.03] border border-white/10 rounded-[2rem] shadow-xl">
+                                            <label className="text-[9px] text-slate-700 font-black uppercase tracking-widest italic mb-4 block">Options Registry</label>
+                                            <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                                                {(selectedQuestion.options || ['Option 1']).map((opt, i) => (
+                                                    <div key={i} className="flex items-center gap-3 p-3 bg-white/5 border border-white/5 rounded-xl group/opt hover:border-indigo-500/30 transition-all">
+                                                        <span className="text-[9px] font-black text-slate-800 w-3">{i + 1}</span>
+                                                        <input 
+                                                            value={opt}
+                                                            onChange={(e) => {
+                                                                const newOpts = [...(selectedQuestion.options || [])];
+                                                                newOpts[i] = e.target.value;
+                                                                updateQuestion(selectedQuestion.id, { options: newOpts });
+                                                            }}
+                                                            className="flex-1 bg-transparent border-none text-[10px] font-black text-white italic uppercase focus:outline-none placeholder-slate-900" 
+                                                        />
+                                                        <XCircle className="w-4 h-4 text-slate-900 group-hover/opt:text-red-500/50 hover:text-red-500 cursor-pointer transition-all" onClick={() => {
+                                                            const newOpts = (selectedQuestion.options || []).filter((_, idx) => idx !== i);
+                                                            updateQuestion(selectedQuestion.id, { options: newOpts });
+                                                        }} />
+                                                    </div>
+                                                ))}
+                                                <button onClick={() => updateQuestion(selectedQuestion.id, { options: [...(selectedQuestion.options || []), `New Node`] })} className="w-full py-3 border border-dashed border-indigo-500/10 rounded-xl text-[9px] font-black text-indigo-400/40 uppercase italic hover:bg-indigo-500/5 hover:text-indigo-400 transition-all">
+                                                    + Append Node
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </div>
+
+                                {/* Section 2: Narrative Config */}
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-4 px-2">
+                                        <div className="w-1 h-3 bg-slate-700 rounded-full" />
+                                        <h5 className="text-[10px] text-slate-700 font-black uppercase tracking-[0.3em] italic">Narrative Config</h5>
+                                    </div>
+                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-white/[0.03] border border-white/10 rounded-[2rem] shadow-xl">
                                         <textarea 
                                             value={selectedQuestion.label}
                                             onChange={(e) => updateQuestion(selectedQuestion.id, { label: e.target.value })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-[10px] font-black text-white italic uppercase outline-none focus:border-indigo-500/50 resize-none h-24" 
+                                            className="w-full bg-transparent border-none text-[11px] font-black text-white italic uppercase outline-none resize-none h-24 placeholder-slate-900" 
+                                            placeholder="Translate architectural requirements into question narrative..."
                                         />
+                                    </motion.div>
+                                </div>
+
+                                {/* Section 3: Field Architecture */}
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-4 px-2">
+                                        <div className="w-1 h-3 bg-indigo-500 rounded-full" />
+                                        <h5 className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.3em] italic">Architecture Logic</h5>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-3">
-                                            <label className="text-[8px] text-slate-700 font-black uppercase tracking-widest italic">Mandatory</label>
-                                            <button 
-                                                onClick={() => updateQuestion(selectedQuestion.id, { required: !selectedQuestion.required })}
-                                                className={`w-full py-3 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${
-                                                    selectedQuestion.required ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg' : 'bg-white/5 text-slate-600 border-white/5'
-                                                }`}
-                                            >
-                                                {selectedQuestion.required ? 'MANDATORY' : 'OPTIONAL'}
-                                            </button>
-                                        </div>
-                                        <div className="space-y-3">
-                                            <label className="text-[8px] text-slate-700 font-black uppercase tracking-widest italic">Display Logic</label>
-                                            <button className="w-full py-3 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black text-indigo-400 uppercase italic flex items-center justify-center gap-2">
-                                                <Share2 className="w-3 h-3" /> Branching
-                                            </button>
-                                        </div>
+                                        <button 
+                                            onClick={() => updateQuestion(selectedQuestion.id, { required: !selectedQuestion.required })}
+                                            className={`p-6 rounded-[2rem] border transition-all text-[10px] font-black uppercase tracking-widest italic flex flex-col items-center gap-3 ${
+                                                selectedQuestion.required ? 'bg-indigo-600 border-indigo-400 text-white shadow-indigo-500/20 shadow-xl' : 'bg-white/5 border-white/10 text-slate-700 hover:bg-white/10'
+                                            }`}
+                                        >
+                                            <CheckCircle2 className={`w-5 h-5 ${selectedQuestion.required ? 'text-white' : 'text-slate-800'}`} />
+                                            {selectedQuestion.required ? 'MANDATORY' : 'OPTIONAL'}
+                                        </button>
+                                        <button 
+                                            onClick={() => alert(`Logic Pathing Active for [${selectedQuestion.id}]`)}
+                                            className="p-6 bg-white/5 border border-white/10 rounded-[2rem] text-[10px] font-black text-indigo-400 uppercase italic flex flex-col items-center gap-3 hover:bg-white/10 transition-all shadow-xl"
+                                        >
+                                            <Share2 className="w-5 h-5 text-indigo-500/50" />
+                                            BRANCHING
+                                        </button>
                                     </div>
-                                </section>
+                                </div>
 
-                                <section>
-                                    <h5 className="text-[9px] font-black text-slate-600 uppercase tracking-[0.3em] mb-6 border-b border-white/5 pb-3 italic">Behavioral Specs</h5>
-                                    <div className="space-y-4">
-                                        {[
-                                            { label: 'Scoring Weight', val: '1.0x', icon: Calculator },
-                                            { label: 'Validation Rule', val: 'No Duplicates', icon: ShieldCheck },
-                                            { label: 'Audit Logging', val: 'Full Epoch', icon: Clock }
-                                        ].map((spec, i) => (
-                                            <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl">
-                                                <div className="flex items-center gap-3">
-                                                    <spec.icon className="w-3.5 h-3.5 text-slate-700" />
-                                                    <span className="text-[9px] font-black text-slate-600 uppercase italic">{spec.label}</span>
-                                                </div>
-                                                <span className="text-[9px] font-black text-indigo-400 uppercase italic">{spec.val}</span>
-                                            </div>
-                                        ))}
+                                {/* AI Diagnostic Card */}
+                                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="p-8 bg-indigo-500/[0.02] border border-indigo-500/10 rounded-[2.5rem] relative overflow-hidden group shadow-inner">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]" />
+                                        <h5 className="text-[10px] font-black text-indigo-400 uppercase italic tracking-widest leading-none">AI Structural Diagnostic</h5>
                                     </div>
-                                </section>
-
-                                <section className="p-8 bg-indigo-500/5 border border-indigo-500/20 rounded-[3rem] space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <h5 className="text-[10px] font-black text-indigo-400 uppercase italic tracking-widest">MusB Core AI Insight</h5>
-                                        <AlertCircle className="w-4 h-4 text-indigo-400" />
-                                    </div>
-                                    <p className="text-[9px] text-slate-500 font-black uppercase tracking-tight italic leading-relaxed">
-                                        "This question mirrors the GSRS-Validated scale. Changes to the label may impact subscale cross-analysis scoring."
+                                    <p className="text-[10px] text-slate-600 font-black uppercase tracking-tight italic leading-relaxed opacity-60">
+                                        High validation strength detected. Logic branch for node [{selectedQuestion.id.split('-').pop()}] is optimized for GSRS-Score aggregation.
                                     </p>
-                                </section>
-                            </>
+                                </motion.div>
+                            </div>
                         ) : (
                             <div className="h-full flex flex-col items-center justify-center text-center p-12 space-y-6 opacity-30">
-                                <Search className="w-12 h-12 text-slate-800" />
-                                <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Select an architectural node to modify its scientific properties</p>
+                                <Search className="w-16 h-16 text-slate-800" />
+                                <p className="text-[11px] font-black text-slate-600 uppercase tracking-widest italic">Select an architectural node to modify its properties</p>
                             </div>
                         )}
                     </div>
@@ -394,65 +611,164 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
             <AnimatePresence>
                 {isFormulaOpen && (
                     <>
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsFormulaOpen(false)} className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100]" />
                         <motion.div 
-                            initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
-                            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[1100px] h-[85vh] bg-[#0B101B] border border-white/10 rounded-[4rem] z-[101] flex flex-col overflow-hidden shadow-2xl"
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
+                            onClick={() => setIsFormulaOpen(false)} className="fixed inset-0 bg-black/95 backdrop-blur-3xl z-[100]" 
+                        />
+                        <motion.div 
+                            initial={{ y: 50, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 50, opacity: 0, scale: 0.95 }}
+                            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[1100px] h-[80vh] bg-[#0B101B] border border-white/10 rounded-[3rem] z-[101] flex flex-col overflow-hidden shadow-2xl"
                         >
-                            <div className="flex-shrink-0 p-12 bg-white/[0.03] border-b border-white/5 flex items-center justify-between">
+                            <div className="flex-shrink-0 p-10 bg-white/[0.03] border-b border-white/5 flex items-center justify-between">
                                 <div className="flex items-center gap-6">
-                                    <div className="w-16 h-16 rounded-3xl bg-indigo-600/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20">
-                                        <Calculator className="w-8 h-8" />
+                                    <div className="w-14 h-14 rounded-2xl bg-indigo-600/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20 shadow-inner">
+                                        <Calculator className="w-7 h-7" />
                                     </div>
                                     <div>
-                                        <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">Situational Scoring Engine</h3>
-                                        <p className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.3em] mt-3 italic">Calculated Endpoints and Risk Assessment Formulae</p>
+                                        <h3 className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter leading-none">Situational Scoring Engine</h3>
+                                        <p className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.3em] mt-3 italic opacity-70">Calculated Endpoints and Risk Assessment Formulae</p>
                                     </div>
                                 </div>
-                                <X className="w-10 h-10 text-slate-700 cursor-pointer hover:text-white" onClick={() => setIsFormulaOpen(false)} />
+                                <div className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 cursor-pointer transition-all active:scale-90" onClick={() => setIsFormulaOpen(false)}>
+                                    <X className="w-8 h-8 text-slate-500" />
+                                </div>
                             </div>
                             
-                            <div className="flex-1 grid grid-cols-2 gap-1 px-12 py-10 overflow-hidden">
-                                <div className="border-r border-white/5 p-8 overflow-y-auto custom-scrollbar space-y-12">
+                            <div className="flex-1 grid grid-cols-12 gap-0 overflow-hidden">
+                                {/* Left: Formulas List */}
+                                <div className="col-span-4 border-r border-white/5 p-8 overflow-y-auto custom-scrollbar space-y-8">
                                      <section>
-                                         <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-8 border-b border-white/5 pb-3 italic">Available Output Scores</h4>
+                                         <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-6 border-b border-white/5 pb-3 italic">Available Output Scores</h4>
                                          <div className="space-y-4">
-                                             {[
-                                                 { label: 'GI Distress Total', val: 'SUM (q4 + q5)', status: 'Active' },
-                                                 { label: 'Symptom Slope', val: 'Calculated Field-88', status: 'Draft' },
-                                                 { label: 'BMI Analysis', val: 'Wt / Ht^2', status: 'Locked' }
-                                             ].map((s, i) => (
-                                                 <div key={i} className="p-6 bg-white/5 border border-white/5 rounded-3xl flex items-center justify-between group cursor-pointer hover:border-indigo-500/30">
-                                                     <div>
-                                                         <p className="text-[11px] font-black text-white italic uppercase">{s.label}</p>
-                                                         <p className="text-[8px] text-slate-700 font-mono mt-2">{s.val}</p>
+                                             {formulas.map((s, i) => (
+                                                 <div 
+                                                     key={s.id} 
+                                                     onClick={() => setSelectedFormulaId(s.id)}
+                                                     className={`p-6 bg-white/5 border rounded-[1.75rem] flex items-center justify-between group cursor-pointer transition-all ${
+                                                         selectedFormulaId === s.id ? 'border-indigo-500 bg-indigo-500/5' : 
+                                                         s.status === 'ACTIVE' ? 'border-indigo-500/20 hover:border-indigo-500/50 hover:bg-indigo-500/5' : 'border-white/5 opacity-60 hover:opacity-100'
+                                                     }`}
+                                                 >
+                                                     <div className="space-y-1">
+                                                         <p className="text-base lg:text-lg font-black text-white italic uppercase tracking-tighter leading-none">{s.label}</p>
+                                                         <p className="text-[10px] text-slate-600 font-mono tracking-tight">{s.val}</p>
                                                      </div>
                                                      <div className="flex items-center gap-3">
-                                                         <span className="text-[7px] font-black uppercase text-slate-800">{s.status}</span>
-                                                         <ArrowRight className="w-4 h-4 text-slate-900 group-hover:text-indigo-400 transition-colors" />
+                                                         <span className={`text-[8px] font-black uppercase tracking-widest px-3 py-0.5 rounded-full border ${
+                                                             s.color === 'red' ? 'text-red-500 border-red-500/20' : 
+                                                             s.color === 'indigo' ? 'text-indigo-400 border-indigo-500/20' : 
+                                                             'text-slate-600 border-white/10'
+                                                         }`}>{s.status}</span>
+                                                         <ArrowRight className="w-4 h-4 text-slate-700 group-hover:text-white transition-all transform group-hover:translate-x-0.5" />
                                                      </div>
                                                  </div>
                                              ))}
                                          </div>
                                      </section>
-                                     <button className="w-full py-6 bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 rounded-[2rem] text-[9px] font-black uppercase italic tracking-widest">+ Define New Endpoint Formula</button>
+                                     <button 
+                                        onClick={addFormula}
+                                        className="w-full py-5 bg-indigo-600 text-white shadow-xl shadow-indigo-900/20 hover:bg-indigo-700 transition-all rounded-2xl text-[10px] font-black uppercase italic tracking-widest flex items-center justify-center gap-3"
+                                     >
+                                        <Plus className="w-4 h-4" /> Define New Endpoint Formula
+                                     </button>
                                 </div>
-                                <div className="p-8 flex flex-col items-center justify-center text-center space-y-8 bg-indigo-500/[0.02]">
-                                     <div className="w-24 h-24 bg-white/5 rounded-[2.5rem] flex items-center justify-center text-slate-800">
-                                         <PieChart className="w-10 h-10" />
+
+                                {/* Right panel: Analysis */}
+                                <div className="col-span-8 p-12 flex flex-col items-center justify-center text-center space-y-8 bg-indigo-500/[0.01]">
+                                     <div className="relative">
+                                         <div className="w-24 h-24 lg:w-32 lg:h-32 bg-white/5 rounded-[2.5rem] flex items-center justify-center text-slate-800 border border-white/5 shadow-2xl relative z-10">
+                                             <PieChart className="w-12 h-12 lg:w-16 lg:h-16" />
+                                         </div>
+                                         <div className="absolute inset-0 bg-indigo-600/10 blur-[60px] rounded-full animate-pulse" />
                                      </div>
-                                     <div className="max-w-xs space-y-4">
-                                         <h4 className="text-xl font-black text-white italic uppercase tracking-tighter">Formula Analysis Node</h4>
-                                         <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest leading-relaxed">
-                                             Select a score definition to modify algebraic weights, reverse-scoring logic, and risk categorization thresholds.
+                                     <div className="max-w-md space-y-6">
+                                         <h4 className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter leading-tight">{selectedFormula?.label || "Formula Analysis Node"}</h4>
+                                         <p className="text-[11px] lg:text-[12px] text-slate-500 font-bold uppercase tracking-[0.1em] lg:tracking-[0.2em] leading-relaxed italic opacity-80">
+                                             {selectedFormula ? `Current Logic: ${selectedFormula.val}` : "Select a strategic score definition from the registry to modify algebraic weights, reverse-scoring logic, and risk categorization thresholds in real-time."}
                                          </p>
+                                     </div>
+                                     <div className="grid grid-cols-3 gap-4 w-full max-w-xl pt-8 border-t border-white/5">
+                                         {['Algebraic Node', 'Logic Branch', 'Audit Trail'].map((t, i) => (
+                                             <div key={i} className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                                                 <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest">{t}</p>
+                                                 <div className="h-1 bg-white/5 rounded-full mt-3 overflow-hidden">
+                                                     <div className="h-full bg-indigo-500 w-1/2" />
+                                                 </div>
+                                             </div>
+                                         ))}
                                      </div>
                                 </div>
                             </div>
 
-                            <div className="flex-shrink-0 p-10 bg-[#0B101B]/95 border-t border-white/5 flex items-center justify-between">
-                                <p className="text-[9px] text-slate-700 font-black italic uppercase">Formula versioning tracked via Epoch-0992-X</p>
-                                <button onClick={() => setIsFormulaOpen(false)} className="px-14 py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest italic shadow-xl shadow-indigo-900/40">Synchronize Scoring Engine</button>
+                            <div className="flex-shrink-0 p-10 bg-[#0B101B]/95 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-6">
+                                <div className="flex items-center gap-4">
+                                    <ShieldCheck className="w-6 h-6 text-indigo-500" />
+                                    <div>
+                                        <p className="text-[10px] text-white font-black italic uppercase tracking-widest">Protocol Compliance Guaranteed</p>
+                                        <p className="text-[8px] text-slate-700 font-black italic uppercase tracking-widest mt-1">Formula versioning tracked via Epoch-0992-X [GSRS-AUDITED]</p>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={() => {
+                                        const btn = document.getElementById('sync-btn');
+                                        if (btn) btn.innerText = "SYNCHRONIZING...";
+                                        setTimeout(() => setIsFormulaOpen(false), 800);
+                                    }} 
+                                    id="sync-btn"
+                                    className="w-full sm:w-auto px-12 lg:px-20 py-4 lg:py-5 bg-indigo-600 text-white rounded-2xl text-[11px] lg:text-[12px] font-black uppercase tracking-[0.2em] italic shadow-xl shadow-indigo-900/40 hover:scale-[1.02] transition-all active:scale-95"
+                                >
+                                    Synchronize Scoring Engine
+                                </button>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+            {/* Preview Modal Overlay */}
+            <AnimatePresence>
+                {isPreviewOpen && (
+                    <>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsPreviewOpen(false)} className="fixed inset-0 bg-black/95 backdrop-blur-2xl z-[200]" />
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+                            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] md:w-[600px] h-[80vh] bg-[#0F172A] border border-white/10 rounded-[3rem] z-[201] flex flex-col overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)]"
+                        >
+                            <div className="p-10 border-b border-white/5 flex items-center justify-between bg-white/5">
+                                <div className="flex items-center gap-6">
+                                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner"><Eye className="w-6 h-6" /></div>
+                                    <div>
+                                        <h4 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none">Participant Experience</h4>
+                                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-2">{formTitle}</p>
+                                    </div>
+                                </div>
+                                <X className="w-10 h-10 text-slate-700 cursor-pointer hover:text-white transition-all hover:scale-110" onClick={() => setIsPreviewOpen(false)} />
+                            </div>
+                            
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-10 bg-slate-930/50">
+                                <div className="space-y-12">
+                                    {sections.map(section => (
+                                        <div key={section.id} className="space-y-6">
+                                            <h6 className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.3em] italic border-b border-indigo-500/10 pb-3">{section.title}</h6>
+                                            <div className="space-y-8">
+                                                {section.questions.map(q => (
+                                                    <div key={q.id} className="space-y-4">
+                                                        <label className="text-sm font-black text-white italic uppercase tracking-tight">{q.label} {q.required && <span className="text-red-500">*</span>}</label>
+                                                        <div className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center px-6 text-slate-700 text-[11px] font-black uppercase tracking-widest italic border-dashed">
+                                                            {q.type} Input Node
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            <div className="p-10 bg-white/5 border-t border-white/5 flex flex-col gap-4">
+                                <button className="w-full py-5 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest italic shadow-xl shadow-indigo-900/40 opacity-50 cursor-not-allowed">
+                                    SUBMIT PROTOCOL ENTRY (PREVIEW)
+                                </button>
+                                <p className="text-[9px] text-center text-slate-700 font-black uppercase tracking-[0.2em]">Validated via PhotoVault Behavioral Engine</p>
                             </div>
                         </motion.div>
                     </>

@@ -5,7 +5,7 @@ from .models import (
     Compensation, LabResult, DataAuditLog, InterventionArm,
     News, Event, FacilityInquiry, Candidate, NewsletterSubscriber,
     BookletDownloadRequest, Partnership, Publication, EducationMaterial,
-    StudyInquiry
+    StudyInquiry, ClinicalConversation, ClinicalMessage
 )
 from authentication.models import User
 from authentication.security import decrypt_data
@@ -368,3 +368,28 @@ class StudyInquirySerializer(SanitizedModelSerializer):
         model = StudyInquiry
         fields = '__all__'
         read_only_fields = ['sponsor_user', 'routing_target']
+
+class ClinicalMessageSerializer(SanitizedModelSerializer):
+    id = ObjectIdField(read_only=True)
+    sender_name = serializers.CharField(source='sender.decrypted_name', read_only=True)
+    user_role_label = serializers.CharField(source='sender.role', read_only=True)
+    
+    class Meta:
+        model = ClinicalMessage
+        fields = ['id', 'sender', 'sender_name', 'user_role_label', 'text', 'tag', 'attachment', 'is_from_pi', 'created_at']
+
+class ClinicalConversationSerializer(SanitizedModelSerializer):
+    id = ObjectIdField(read_only=True)
+    messages = ClinicalMessageSerializer(many=True, read_only=True)
+    participant_sid = serializers.CharField(source='participant.participant_sid', read_only=True)
+    study_protocol = serializers.CharField(source='study.protocol_id', read_only=True)
+    assigned_coordinator = serializers.CharField(source='study.coordinator.decrypted_name', read_only=True, allow_null=True)
+    participant_status = serializers.CharField(source='participant.status', read_only=True)
+
+    class Meta:
+        model = ClinicalConversation
+        fields = [
+            'id', 'participant', 'participant_sid', 'participant_status', 'study', 
+            'study_protocol', 'status', 'is_flagged', 'last_message_preview', 
+            'last_updated', 'created_at', 'messages', 'assigned_coordinator'
+        ]

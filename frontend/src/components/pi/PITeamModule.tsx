@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-    Users, Shield, CheckCircle2, Building2, AlertTriangle, 
-    Search, Edit2, Lock, Unlock, Trash2, Mail, Phone, 
+import {
+    Users, Shield, CheckCircle2, Building2, AlertTriangle,
+    Search, Edit2, Lock, Unlock, Trash2, Mail, Phone,
     ChevronRight, X, Upload, Check, FileText, AlertCircle,
-    ChevronDown, User, Briefcase, Database
+    ChevronDown, User, Briefcase, Database, MoreVertical
 } from 'lucide-react';
 
 // --- TYPES ---
@@ -44,20 +44,20 @@ interface ConfirmModal {
 
 // --- MOCK DATA ---
 const MOCK_MUSB: TeamMember[] = [
-    { 
-        id: 'm1', name: 'Dr. Sarah Chen', email: 's.chen@musb.network', phone: '(555) 012-3456', 
-        role: 'Senior Coordinator', type: 'MusB', status: 'Active', assignedStudies: ['HI-202B'], 
-        permissionLevel: 'Full', expertise: 'Neurology', documents: [] 
+    {
+        id: 'm1', name: 'Dr. Sarah Chen', email: 's.chen@musb.network', phone: '(555) 012-3456',
+        role: 'Senior Coordinator', type: 'MusB', status: 'Active', assignedStudies: ['HI-202B'],
+        permissionLevel: 'Full', expertise: 'Neurology', documents: []
     },
-    { 
-        id: 'm2', name: 'Marcus Rodriguez', email: 'm.rod@musb.network', phone: '(555) 012-3457', 
-        role: 'Clinical Lead', type: 'MusB', status: 'Active', assignedStudies: [], 
-        permissionLevel: 'Limited', expertise: 'Cardiology', documents: [] 
+    {
+        id: 'm2', name: 'Marcus Rodriguez', email: 'm.rod@musb.network', phone: '(555) 012-3457',
+        role: 'Clinical Lead', type: 'MusB', status: 'Active', assignedStudies: [],
+        permissionLevel: 'Limited', expertise: 'Cardiology', documents: []
     },
-    { 
-        id: 'm3', name: 'Elena Gilbert', email: 'e.gilbert@musb.network', phone: '(555) 012-3458', 
-        role: 'Data Manager', type: 'MusB', status: 'Inactive', assignedStudies: ['PT-901'], 
-        permissionLevel: 'Read-only', expertise: 'Oncology', documents: [] 
+    {
+        id: 'm3', name: 'Elena Gilbert', email: 'e.gilbert@musb.network', phone: '(555) 012-3458',
+        role: 'Data Manager', type: 'MusB', status: 'Inactive', assignedStudies: ['PT-901'],
+        permissionLevel: 'Read-only', expertise: 'Oncology', documents: []
     }
 ];
 
@@ -91,13 +91,35 @@ export default function PITeamModule() {
     const [activeTab, setActiveTab] = useState<'MusB' | 'Office' | 'All'>('MusB');
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('All');
-    
+
     // Panel/Modal State
     const [panelOpen, setPanelOpen] = useState(false);
     const [panelMode, setPanelMode] = useState<'add' | 'edit'>('add');
     const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
     const [editedMember, setEditedMember] = useState<Partial<TeamMember>>({});
-    
+    const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+    useEffect(() => {
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const isMobile = windowWidth < 768;
+    const isTablet = windowWidth < 1440;
+    const [activeRowMenu, setActiveRowMenu] = useState<string | null>(null);
+    const rowMenuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (rowMenuRef.current && !rowMenuRef.current.contains(e.target as Node)) {
+                setActiveRowMenu(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     const [toasts, setToasts] = useState<Toast[]>([]);
     const [confirmModal, setConfirmModal] = useState<ConfirmModal | null>(null);
     const [musbModalOpen, setMusbModalOpen] = useState(false);
@@ -153,7 +175,7 @@ export default function PITeamModule() {
             addToast('Cannot activate: Credentials incomplete', 'error');
             return;
         }
-        
+
         const activated = { ...editedMember, status: 'Active' as const };
         setOfficeTeam(prev => prev.map(m => m.id === editedMember.id ? { ...m, ...activated } as TeamMember : m));
         setEditedMember(activated); // Update local panel state too
@@ -182,7 +204,7 @@ export default function PITeamModule() {
 
     const handleInactivateToggle = (member: TeamMember) => {
         const newStatus = member.status === 'Active' ? 'Inactive' : 'Active';
-        const msg = newStatus === 'Inactive' 
+        const msg = newStatus === 'Inactive'
             ? "Access suspension will revoke all protocol-level edit permissions. Continue?"
             : `Restore access for ${member.name}?`;
 
@@ -204,13 +226,13 @@ export default function PITeamModule() {
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files?.[0] || !activeDocId.current) return;
-        
+
         const today = new Date().toISOString().split('T')[0];
         setEditedMember(prev => ({
             ...prev,
             documents: prev.documents?.map(d => d.id === activeDocId.current ? { ...d, status: 'Valid', uploadDate: today } : d)
         }));
-        
+
         addToast(`Document verified: ${e.target.files[0].name}`, 'success');
         activeDocId.current = null;
     };
@@ -222,7 +244,7 @@ export default function PITeamModule() {
             ...m,
             status: tempMusbSelected.includes(m.id) ? 'Active' : 'Inactive'
         } as TeamMember)));
-        
+
         addToast('MusB team updated', 'success');
         setMusbModalOpen(false);
     };
@@ -231,23 +253,23 @@ export default function PITeamModule() {
     const getVisibleTeam = () => {
         if (activeTab === 'MusB') {
             return musbTeam.filter(m => {
-                const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                    m.email.toLowerCase().includes(searchQuery.toLowerCase());
-                const matchesFilter = filterStatus === 'All' || 
-                                     (filterStatus === 'Available' && m.assignedStudies.length === 0) ||
-                                     (filterStatus === 'Assigned' && m.assignedStudies.length > 0) ||
-                                     (filterStatus === 'Active' && m.status === 'Active');
+                const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    m.email.toLowerCase().includes(searchQuery.toLowerCase());
+                const matchesFilter = filterStatus === 'All' ||
+                    (filterStatus === 'Available' && m.assignedStudies.length === 0) ||
+                    (filterStatus === 'Assigned' && m.assignedStudies.length > 0) ||
+                    (filterStatus === 'Active' && m.status === 'Active');
                 return matchesSearch && matchesFilter;
             });
         }
         if (activeTab === 'Office') {
-            return officeTeam.filter(m => 
-                m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            return officeTeam.filter(m =>
+                m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 m.email.toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
-        return [...officeTeam, ...musbTeam].filter(m => 
-            m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        return [...officeTeam, ...musbTeam].filter(m =>
+            m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             m.email.toLowerCase().includes(searchQuery.toLowerCase())
         );
     };
@@ -257,18 +279,20 @@ export default function PITeamModule() {
         container: {
             display: 'flex',
             flexDirection: 'column' as const,
-            height: '100vh',
+            height: isMobile ? 'auto' : '100vh',
             width: '100%',
             backgroundColor: 'transparent',
             color: 'white',
-            overflow: 'hidden',
+            overflow: isMobile ? 'visible' : 'hidden',
             fontFamily: 'system-ui, -apple-system, sans-serif'
         },
         header: {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '2.5rem 4rem',
+            padding: isMobile ? '1.5rem 1.5rem' : '1rem 2.5rem',
+            flexWrap: 'wrap',
+            gap: '1rem',
             borderBottom: '1px solid rgba(99, 102, 241, 0.15)',
             backgroundColor: 'rgba(7, 10, 19, 0.7)',
             backdropFilter: 'blur(40px)',
@@ -276,7 +300,7 @@ export default function PITeamModule() {
             boxShadow: 'inset 0 -1px 20px rgba(99, 102, 241, 0.05)'
         },
         title: {
-            fontSize: '2.5rem',
+            fontSize: isMobile ? '1.25rem' : '1.75rem',
             fontWeight: 900,
             fontStyle: 'italic',
             textTransform: 'uppercase' as const,
@@ -304,7 +328,7 @@ export default function PITeamModule() {
             border: '1px solid rgba(255,255,255,0.1)',
             padding: '1rem 2rem',
             borderRadius: '6px',
-            fontSize: '13px',
+            fontSize: '11px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             letterSpacing: '0.12em',
@@ -315,21 +339,24 @@ export default function PITeamModule() {
             display: 'flex',
             backgroundColor: 'rgba(255,255,255,0.02)',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
+            flexWrap: isMobile ? 'nowrap' as const : 'wrap' as const,
+            overflowX: isMobile ? 'auto' as const : 'visible' as const,
             flexShrink: 0,
             backdropFilter: 'blur(10px)'
         },
         kpiItem: {
-            flex: 1,
+            flex: isMobile ? '0 0 auto' : isTablet ? '1 1 30%' : '1',
             display: 'flex',
             alignItems: 'center',
-            gap: '2rem',
-            padding: '2rem 3rem',
+            padding: '1rem 1.75rem',
+            gap: '1rem',
             borderRight: '1px solid rgba(99, 102, 241, 0.15)',
+            borderBottom: isTablet ? '1px solid rgba(99, 102, 241, 0.15)' : 'none',
             backgroundColor: 'rgba(255, 255, 255, 0.01)',
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
         },
         kpiValue: {
-            fontSize: '48px',
+            fontSize: '22px',
             fontFamily: 'monospace',
             fontWeight: 900,
             fontStyle: 'italic',
@@ -338,7 +365,7 @@ export default function PITeamModule() {
             textShadow: '0 0 30px rgba(99, 102, 241, 0.3)'
         },
         kpiLabel: {
-            fontSize: '14px',
+            fontSize: '11px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             letterSpacing: '0.25em',
@@ -347,19 +374,20 @@ export default function PITeamModule() {
         },
         navRow: {
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '1rem 2.5rem',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            padding: isMobile ? '1.25rem' : '0.75rem 2.5rem',
+            flexDirection: isMobile ? 'column' : 'row',
+            alignItems: isMobile ? 'stretch' : 'center',
+            flexWrap: 'wrap',
+            gap: '1.25rem',
             flexShrink: 0
         },
         tabBtn: (active: boolean) => ({
-            padding: '0.8rem 1.75rem',
+            padding: '0.6rem 1.25rem',
             backgroundColor: active ? '#6366f1' : 'transparent',
             color: active ? 'white' : '#94a3b8',
             border: active ? 'none' : '1px solid rgba(255,255,255,0.1)',
             borderRadius: '6px',
-            fontSize: '14px',
+            fontSize: '12px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             letterSpacing: '0.12em',
@@ -379,18 +407,19 @@ export default function PITeamModule() {
             backgroundColor: 'transparent',
             border: 'none',
             color: 'white',
-            padding: '1rem 0.75rem',
-            fontSize: '14px',
+            padding: '0.6rem 0.75rem',
+            fontSize: '12px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             outline: 'none',
-            width: '320px',
+            width: '200px',
             letterSpacing: '0.05em'
         },
         tableArea: {
             flex: 1,
-            overflowY: 'auto' as const,
-            padding: '0 2.5rem'
+            overflowX: 'auto' as const,
+            overflowY: isMobile ? 'visible' : 'auto' as const,
+            padding: isMobile ? '0 1rem' : isTablet ? '0 1.5rem' : '0 2.5rem'
         },
         table: {
             width: '100%',
@@ -399,9 +428,9 @@ export default function PITeamModule() {
         },
         th: {
             position: 'sticky' as const,
-            top: 0,
-            padding: '2rem 1.5rem',
-            fontSize: '14px',
+            top: isMobile ? '64px' : 0,
+            padding: isMobile ? '0.75rem' : isTablet ? '1rem' : '1.25rem 1.5rem',
+            fontSize: '11px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             letterSpacing: '0.05em',
@@ -412,13 +441,13 @@ export default function PITeamModule() {
             zIndex: 10
         },
         td: {
-            padding: '2.5rem 1.5rem',
+            padding: isMobile ? '1rem 0.75rem' : isTablet ? '1.25rem' : '1.5rem 1.5rem',
             backgroundColor: 'rgba(255,255,255,0.01)',
             verticalAlign: 'middle',
             borderBottom: '1px solid rgba(255,255,255,0.04)'
         },
         name: {
-            fontSize: '24px',
+            fontSize: '14px',
             fontWeight: 900,
             fontStyle: 'italic',
             textTransform: 'uppercase' as const,
@@ -430,7 +459,7 @@ export default function PITeamModule() {
             position: 'fixed' as const,
             top: 0,
             right: 0,
-            width: '720px',
+            width: isMobile ? '100%' : '720px',
             height: '100vh',
             backgroundColor: 'rgba(7, 10, 19, 0.85)',
             backdropFilter: 'blur(40px)',
@@ -449,12 +478,12 @@ export default function PITeamModule() {
             borderRadius: '4px',
             color: 'white',
             padding: '1rem',
-            fontSize: '14px',
+            fontSize: '12px',
             outline: 'none',
             marginTop: '0.5rem'
         },
         label: {
-            fontSize: '10px',
+            fontSize: '12px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             letterSpacing: '0.15em',
@@ -473,18 +502,20 @@ export default function PITeamModule() {
             display: panelOpen || confirmModal || musbModalOpen ? 'block' : 'none'
         },
         toast: (type: string) => ({
-            padding: '1rem 1.5rem',
-            borderRadius: '4px',
+            padding: '1.25rem 2.25rem',
+            borderRadius: '8px',
             backgroundColor: type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#f59e0b',
             color: 'white',
-            fontSize: '12px',
+            fontSize: '14px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
-            marginBottom: '0.75rem',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+            marginBottom: '1rem',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.75rem'
+            gap: '1.25rem',
+            letterSpacing: '0.05em',
+            minWidth: isMobile ? 'calc(100vw - 4rem)' : '320px'
         }),
         statusBadge: (status: string) => ({
             padding: '0.6rem 1rem',
@@ -506,7 +537,7 @@ export default function PITeamModule() {
             </div>
             <div>
                 <div style={{ ...S.kpiValue, color: label === 'Action Required' && value > 0 ? '#f59e0b' : 'inherit' }}>{value.toString().padStart(2, '0')}</div>
-                <div style={S.kpiLabel}>{label}</div>
+                <div style={{ ...S.kpiLabel, fontSize: '11px' }}>{label}</div>
             </div>
         </div>
     );
@@ -519,7 +550,7 @@ export default function PITeamModule() {
             {/* HEADER */}
             <header style={S.header}>
                 <h1 style={S.title}>Team Management</h1>
-                <div style={{ display: 'flex' }}>
+                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem', width: isMobile ? '100%' : 'auto' }}>
                     <button style={S.btnGhost} onClick={() => {
                         setTempMusbSelected(musbTeam.filter(m => m.status === 'Active').map(m => m.id));
                         setMusbModalOpen(true);
@@ -541,7 +572,7 @@ export default function PITeamModule() {
             </header>
 
             {/* KPI STRIP */}
-            <div style={S.kpiStrip}>
+            <div style={S.kpiStrip} className="custom-scrollbar-horizontal">
                 {renderKPI('Total Personnel', officeTeam.length + musbTeam.length, Users, '#6366f1')}
                 {renderKPI('Active Status', [...officeTeam, ...musbTeam].filter(t => t.status === 'Active').length, CheckCircle2, '#10b981')}
                 {renderKPI('MusB Network', musbTeam.length, Building2, '#6366f1')}
@@ -551,21 +582,34 @@ export default function PITeamModule() {
 
             {/* NAVIGATION / SEARCH */}
             <div style={S.navRow}>
-                <div style={{ display: 'flex' }}>
+                <div className="custom-scrollbar-horizontal" style={{ 
+                    display: 'flex', 
+                    flexDirection: 'row', 
+                    gap: '0.5rem', 
+                    width: isMobile ? '100%' : 'auto',
+                    overflowX: isMobile ? 'auto' : 'visible',
+                    paddingBottom: isMobile ? '0.75rem' : '0',
+                    flexShrink: 0
+                }}>
                     <button style={S.tabBtn(activeTab === 'MusB')} onClick={() => setActiveTab('MusB')}>MusB Coordinators</button>
                     <button style={S.tabBtn(activeTab === 'Office')} onClick={() => setActiveTab('Office')}>My Office Team</button>
                     <button style={S.tabBtn(activeTab === 'All')} onClick={() => setActiveTab('All')}>All Team Members</button>
                 </div>
-                <div style={{ display: 'flex', gap: '1.5rem' }}>
+                <div style={{ 
+                    display: 'flex', 
+                    flexDirection: isMobile ? 'column' : 'row', 
+                    gap: isMobile ? '1.25rem' : '1.5rem',
+                    width: isMobile ? '100%' : 'auto'
+                }}>
                     {activeTab === 'MusB' && (
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <div className="custom-scrollbar-horizontal" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', overflowX: isMobile ? 'auto' : 'visible', paddingBottom: isMobile ? '0.5rem' : '0' }}>
                             <span style={S.label}>Filter:</span>
                             {['All', 'Available', 'Assigned', 'Active'].map(f => (
-                                <button key={f} 
+                                <button key={f}
                                     onClick={() => setFilterStatus(f)}
                                     style={{
                                         ...S.tabBtn(filterStatus === f),
-                                        padding: '0.4rem 0.8rem',
+                                        padding: '0.4rem 0.6rem',
                                         backgroundColor: filterStatus === f ? 'rgba(99,102,241,0.1)' : 'transparent',
                                         border: filterStatus === f ? '1px solid #6366f1' : '1px solid rgba(255,255,255,0.06)',
                                         color: filterStatus === f ? '#6366f1' : '#475569'
@@ -573,11 +617,11 @@ export default function PITeamModule() {
                             ))}
                         </div>
                     )}
-                    <div style={S.searchBox}>
+                    <div style={{ ...S.searchBox, width: isMobile ? '100%' : 'auto' }}>
                         <Search size={14} color="#475569" />
-                        <input 
-                            style={S.searchInput} 
-                            placeholder="SEARCH TEAM..." 
+                        <input
+                            style={{ ...S.searchInput, width: isMobile ? '100%' : '200px' }}
+                            placeholder="SEARCH TEAM..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -586,8 +630,8 @@ export default function PITeamModule() {
             </div>
 
             {/* TABLE AREA */}
-            <div style={S.tableArea}>
-                <table style={S.table}>
+            <div style={S.tableArea} className="custom-scrollbar-horizontal">
+                <table style={{ ...S.table, minWidth: isTablet ? '1200px' : '100%' }}>
                     <thead>
                         <tr>
                             <th style={S.th}>Personnel</th>
@@ -607,13 +651,13 @@ export default function PITeamModule() {
                                         </div>
                                         <div>
                                             <div style={S.name}>{m.name}</div>
-                                            <div style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 'bold', letterSpacing: '0.05em' }}>{m.email}</div>
+                                            <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 'bold', letterSpacing: '0.05em' }}>{m.email}</div>
                                         </div>
                                     </div>
                                 </td>
                                 <td style={S.td}>
-                                    <div style={{ fontSize: '14px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{m.role}</div>
-                                    {m.expertise && <div style={{ fontSize: '14px', color: '#6366f1', marginTop: '6px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.expertise}</div>}
+                                    <div style={{ fontSize: '12px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{m.role}</div>
+                                    {m.expertise && <div style={{ fontSize: '11px', color: '#6366f1', marginTop: '6px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.expertise}</div>}
                                 </td>
                                 <td style={S.td}>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
@@ -626,24 +670,59 @@ export default function PITeamModule() {
                                     <span style={S.statusBadge(m.status)}>{m.status}</span>
                                 </td>
                                 <td style={{ ...S.td, textAlign: 'right' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                                        {m.type === 'Office' && (
-                                            <>
-                                                <button style={S.btnGhost} onClick={() => {
-                                                    setPanelMode('edit');
-                                                    setEditedMember({ ...m });
-                                                    setSelectedMember(m);
-                                                    setPanelOpen(true);
-                                                }}><Edit2 size={14} /></button>
-                                                <button style={S.btnGhost} onClick={() => handleInactivateToggle(m)}>
-                                                    {m.status === 'Inactive' ? <Unlock size={14} color="#10b981" /> : <Lock size={14} color="#f59e0b" />}
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', position: 'relative' }}>
+                                        {m.type === 'Office' ? (
+                                            <div ref={activeRowMenu === m.id ? rowMenuRef : null}>
+                                                <button 
+                                                    style={{ ...S.btnGhost, padding: '0.5rem' }} 
+                                                    onClick={() => setActiveRowMenu(activeRowMenu === m.id ? null : m.id)}
+                                                >
+                                                    <MoreVertical size={16} />
                                                 </button>
-                                                <button style={{ ...S.btnGhost, borderColor: 'rgba(239, 68, 68, 0.2)' }} onClick={() => handleDelete(m)}><Trash2 size={14} color="#ef4444" /></button>
-                                            </>
-                                        )}
-                                        {m.type === 'MusB' && (
-                                            <button style={S.btnGhost} onClick={() => addToast('MusB credentials managed by Network Admin', 'warning')}>
-                                                <Shield size={14} />
+
+                                                {activeRowMenu === m.id && (
+                                                    <div style={{
+                                                        position: 'absolute', right: 0, top: '100%',
+                                                        backgroundColor: '#0B101B', border: '1px solid rgba(255,255,255,0.1)',
+                                                        borderRadius: '8px', zIndex: 50, width: '200px',
+                                                        boxShadow: '0 20px 40px rgba(0,0,0,0.6)', marginTop: '0.5rem', overflow: 'hidden'
+                                                    }}>
+                                                        <button 
+                                                            style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '100%', padding: '1rem', background: 'none', border: 'none', color: 'white', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}
+                                                            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+                                                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                            onClick={() => {
+                                                                setPanelMode('edit');
+                                                                setEditedMember({ ...m });
+                                                                setSelectedMember(m);
+                                                                setPanelOpen(true);
+                                                                setActiveRowMenu(null);
+                                                            }}
+                                                        >
+                                                            <Edit2 size={14} color="#6366f1" /> EDIT PERSONNEL
+                                                        </button>
+                                                        <button 
+                                                            style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '100%', padding: '1rem', background: 'none', border: 'none', color: 'white', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}
+                                                            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+                                                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                            onClick={() => { handleInactivateToggle(m); setActiveRowMenu(null); }}
+                                                        >
+                                                            {m.status === 'Inactive' ? <><Unlock size={14} color="#10b981" /> ACTIVATE USER</> : <><Lock size={14} color="#f59e0b" /> LOCK ACCESS</>}
+                                                        </button>
+                                                        <button 
+                                                            style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '100%', padding: '1rem', background: 'none', border: 'none', color: '#ef4444', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}
+                                                            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.05)'}
+                                                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                            onClick={() => { handleDelete(m); setActiveRowMenu(null); }}
+                                                        >
+                                                            <Trash2 size={14} /> REMOVE MEMBER
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <button style={{ ...S.btnGhost, padding: '0.5rem' }} onClick={() => addToast('MUSB CREDENTIALS MANAGED BY NETWORK ADMIN', 'warning')}>
+                                                <Shield size={16} />
                                             </button>
                                         )}
                                     </div>
@@ -671,14 +750,14 @@ export default function PITeamModule() {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                             <div>
                                 <label style={S.label}>Full Name</label>
-                                <input style={S.input} value={editedMember.name || ''} onChange={e => setEditedMember({...editedMember, name: e.target.value})} />
+                                <input style={S.input} value={editedMember.name || ''} onChange={e => setEditedMember({ ...editedMember, name: e.target.value })} />
                             </div>
                             <div>
                                 <label style={S.label}>Role Dropdown</label>
                                 <select style={{ ...S.input, fontSize: '18px', fontWeight: 900, textTransform: 'uppercase', cursor: 'pointer' }} value={editedMember.role} onChange={e => {
                                     const role = e.target.value;
                                     setEditedMember({
-                                        ...editedMember, 
+                                        ...editedMember,
                                         role,
                                         documents: ROLE_DOCS[role].map(name => ({
                                             id: Math.random().toString(36).substr(2, 9),
@@ -691,11 +770,11 @@ export default function PITeamModule() {
                             </div>
                             <div>
                                 <label style={S.label}>Email Address</label>
-                                <input style={S.input} value={editedMember.email || ''} onChange={e => setEditedMember({...editedMember, email: e.target.value})} />
+                                <input style={S.input} value={editedMember.email || ''} onChange={e => setEditedMember({ ...editedMember, email: e.target.value })} />
                             </div>
                             <div>
                                 <label style={S.label}>Phone Number</label>
-                                <input style={S.input} value={editedMember.phone || ''} onChange={e => setEditedMember({...editedMember, phone: e.target.value})} />
+                                <input style={S.input} value={editedMember.phone || ''} onChange={e => setEditedMember({ ...editedMember, phone: e.target.value })} />
                             </div>
                         </div>
                     </section>
@@ -711,10 +790,10 @@ export default function PITeamModule() {
                             {PROTOCOLS.map(p => {
                                 const selected = editedMember.assignedStudies?.includes(p);
                                 return (
-                                    <button key={p} 
+                                    <button key={p}
                                         onClick={() => setEditedMember({
                                             ...editedMember,
-                                            assignedStudies: selected 
+                                            assignedStudies: selected
                                                 ? editedMember.assignedStudies?.filter(s => s !== p)
                                                 : [...(editedMember.assignedStudies || []), p]
                                         })}
@@ -727,12 +806,12 @@ export default function PITeamModule() {
                                 );
                             })}
                         </div>
-                        
+
                         <label style={{ ...S.label, marginBottom: '0.75rem' }}>Permission Level</label>
                         <div style={{ display: 'flex', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '4px', padding: '4px' }}>
                             {['Full', 'Limited', 'Read-only'].map(lvl => (
-                                <button key={lvl} 
-                                    onClick={() => setEditedMember({...editedMember, permissionLevel: lvl as any})}
+                                <button key={lvl}
+                                    onClick={() => setEditedMember({ ...editedMember, permissionLevel: lvl as any })}
                                     style={{
                                         flex: 1, padding: '0.75rem', border: 'none', borderRadius: '4px',
                                         fontSize: '11px', fontWeight: 900, textTransform: 'uppercase',
@@ -752,8 +831,8 @@ export default function PITeamModule() {
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                             {editedMember.documents?.map(doc => (
-                                <div key={doc.id} style={{ 
-                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                                <div key={doc.id} style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                     padding: '1rem', backgroundColor: doc.status === 'Valid' ? 'rgba(16,185,129,0.05)' : 'rgba(255,255,255,0.02)',
                                     borderRadius: '4px', border: `1px solid ${doc.status === 'Valid' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)'}`
                                 }}>
@@ -776,8 +855,8 @@ export default function PITeamModule() {
                 {/* BOTTOM BANNER */}
                 <div style={{ padding: '1.5rem 2rem', borderTop: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
                     {editedMember.status !== 'Active' && (
-                        <div style={{ 
-                            display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', 
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem',
                             borderRadius: '4px', marginBottom: '1.5rem',
                             backgroundColor: (editedMember.documents || []).every(d => d.status === 'Valid') ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.05)',
                             border: `1px solid ${(editedMember.documents || []).every(d => d.status === 'Valid') ? '#10b981' : '#ef4444'}20`
@@ -797,15 +876,15 @@ export default function PITeamModule() {
                             )}
                         </div>
                     )}
-                    
+
                     <div style={{ display: 'flex', gap: '1rem' }}>
                         {panelMode === 'edit' && (
                             <button style={{ ...S.btnGhost, borderColor: '#ef444430', color: '#ef4444' }} onClick={() => handleDelete(editedMember as TeamMember)}>DELETE PERSON</button>
                         )}
                         <div style={{ flex: 1 }} />
                         <button style={S.btnGhost} onClick={() => setPanelOpen(false)}>CANCEL</button>
-                        <button style={{ 
-                            ...S.btnPrimary, 
+                        <button style={{
+                            ...S.btnPrimary,
                             backgroundColor: (editedMember.documents || []).every(d => d.status === 'Valid') ? '#10b981' : '#1e293b',
                             cursor: (editedMember.documents || []).every(d => d.status === 'Valid') ? 'pointer' : 'not-allowed'
                         }} onClick={handleActivateUser}>
@@ -818,7 +897,7 @@ export default function PITeamModule() {
 
             {/* MUSB MODAL */}
             {musbModalOpen && (
-                <div style={{ 
+                <div style={{
                     position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
                     width: '600px', backgroundColor: '#0B101B', border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: '8px', zIndex: 100, overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.5)'
@@ -849,7 +928,7 @@ export default function PITeamModule() {
 
             {/* CONFIRM MODAL */}
             {confirmModal && (
-                <div style={{ 
+                <div style={{
                     position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
                     width: '400px', backgroundColor: '#0B101B', border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: '8px', zIndex: 110, padding: '2rem', textAlign: 'center', boxShadow: '0 25px 50px rgba(0,0,0,0.8)'
@@ -860,10 +939,10 @@ export default function PITeamModule() {
                     <p style={{ fontSize: '14px', fontWeight: 'bold', color: 'white', marginBottom: '2rem' }}>{confirmModal.message}</p>
                     <div style={{ display: 'flex', gap: '1rem' }}>
                         <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => setConfirmModal(null)}>CANCEL</button>
-                        <button style={{ 
-                            ...S.btnPrimary, 
-                            flex: 1, 
-                            backgroundColor: confirmModal.type === 'danger' ? '#ef4444' : '#6366f1' 
+                        <button style={{
+                            ...S.btnPrimary,
+                            flex: 1,
+                            backgroundColor: confirmModal.type === 'danger' ? '#ef4444' : '#6366f1'
                         }} onClick={confirmModal.onConfirm}>PROCEED</button>
                     </div>
                 </div>
