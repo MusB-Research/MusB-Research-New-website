@@ -945,7 +945,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
                   <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Legal Name of Company*</label>
                   <input value={inquiryForm.legalName} onChange={e => setInquiryForm({ ...inquiryForm, legalName: e.target.value })} style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: 'white', padding: '16px', borderRadius: 12, outline: 'none', fontSize: 18 }} />
                 </div>
-                
+
                 <div style={{ gridColumn: windowWidth > 640 ? 'span 2' : 'auto' }}>
                   <label style={{ display: 'block', fontSize: 13, color: '#94a3b8', fontWeight: 800, marginBottom: 8, textTransform: 'uppercase' }}>Corporate Street Address*</label>
                   <textarea

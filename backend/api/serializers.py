@@ -308,14 +308,14 @@ class EventSerializer(SanitizedModelSerializer):
         fields = '__all__'
 
 class FacilityInquirySerializer(SanitizedModelSerializer):
-    id = ObjectIdField(read_only=True)
+    id = serializers.CharField(read_only=True)
     
     class Meta:
         model = FacilityInquiry
         fields = '__all__'
 
 class CandidateSerializer(SanitizedModelSerializer):
-    id = ObjectIdField(read_only=True)
+    id = serializers.CharField(read_only=True)
     
     class Meta:
         model = Candidate

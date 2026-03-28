@@ -539,11 +539,11 @@ class NewsletterSubscriber(models.Model):
 # --- Signals for Notifications ---
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .utils.resend_utils import send_newsletter_update, send_facility_inquiry_email
 
 @receiver(post_save, sender=FacilityInquiry)
 def notify_team_on_facility_inquiry(sender, instance, created, **kwargs):
     if created:
+        from .utils.resend_utils import send_facility_inquiry_email
         try:
             send_facility_inquiry_email(instance)
         except Exception as e:
@@ -554,7 +554,7 @@ def notify_subscribers_on_news(sender, instance, created, **kwargs):
     if created:
         subject = f"New Update from MusB Research: {instance.title}"
         content = f"<p>A new research update has been posted.</p><h2>{instance.title}</h2><p>{instance.content[:200]}...</p><p><a href='https://musbresearch.com/news'>Read More at musbresearch.com</a></p>"
-        # Run safely
+        from .utils.resend_utils import send_newsletter_update
         try:
             send_newsletter_update(subject, content)
         except Exception as e:
