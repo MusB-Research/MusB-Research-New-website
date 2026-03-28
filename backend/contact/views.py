@@ -193,4 +193,3 @@ class SubmissionCreateView(generics.CreateAPIView):
                     print(f"Lead created successfully for study: {study.protocol_id}")
             except Exception as e:
                 print(f"Failed to create Lead record: {e}")
-

@@ -317,7 +317,7 @@ export default function Contact() {
                                             rel="noopener noreferrer"
                                             className="text-green-400 font-black text-xl hover:text-green-300 transition-colors block"
                                         >
-                                            (727) 505-0452
+                                            +1 (727) 505-0452
                                         </a>
                                     </div>
                                 </div>
