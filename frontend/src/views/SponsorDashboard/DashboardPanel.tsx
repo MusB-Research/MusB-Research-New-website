@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import { authFetch, API } from '../../utils/auth';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { getUser, getRole, authFetch, API, performLogout, getDisplayName } from '../../utils/auth';
+import { Link } from 'react-router-dom';
+import { User, LogOut, Zap, Bell, Sparkles } from 'lucide-react';
 import { SPONSOR, MOCK_TEAM, MOCK_REPORTS, MOCK_PROTOCOLS, StatusBadge, Modal, ConfirmModal, PillButton, ProgressRing, downloadCSV, downloadFile } from './SponsorDashboardShared';
 
 // Pure SVG Bar Chart
@@ -58,6 +60,14 @@ const TIMEZONES = [
 ];
 
 export default function DashboardPanel({ protocols, team, inquiries, setProtocols, addToast, windowWidth, setActiveModule }: any) {
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Handle live clock for location-aware telemetry
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const [protocolFilter, setProtocolFilter] = useState('All');
   const [overviewModalOpen, setOverviewModalOpen] = useState(false);
   const [portfolioModalOpen, setPortfolioModalOpen] = useState(false);
@@ -173,12 +183,41 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
   ];
 
   return (
-    <div style={{
-      padding: windowWidth > 1024 ? '40px 60px' : windowWidth > 768 ? '30px 40px' : '20px 16px',
-      maxWidth: '100%',
-      margin: '0 auto',
-      color: '#f1f5f9'
-    }}>
+    <>
+      <div style={{
+        padding: windowWidth > 1024 ? '40px 60px' : windowWidth > 768 ? '30px 40px' : '20px 16px',
+        maxWidth: '100%',
+        margin: '0 auto',
+        color: '#f1f5f9'
+      }}>
+
+      {/* CLEAN HIGH-FIDELITY GREETING - NO ICON, NO CARD */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        marginBottom: '48px',
+        animation: 'fadeIn 0.8s'
+      }}>
+        <h1 style={{ margin: 0, fontSize: '36px', fontWeight: 900, color: 'white', fontStyle: 'italic', letterSpacing: '-0.02em' }}>
+          WELCOME BACK, <span style={{ color: '#60a5fa' }}>{getDisplayName(getUser()).toUpperCase()}</span>
+        </h1>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: '#60a5fa', fontSize: '18px', fontWeight: 900, fontFamily: 'monospace' }}>
+              {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+            </span>
+            <span style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 900, letterSpacing: '0.05em', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px' }}>
+              {Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop()?.replace('_', ' ')}
+            </span>
+          </div>
+          <div style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.1)' }} />
+          <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 800, letterSpacing: '0.1em' }}>
+            {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}
+          </div>
+        </div>
+      </div>
 
       {/* Primary Action Banner */}
       <div style={{
@@ -573,7 +612,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
               inquiryStep === 3 ? "🏢 Company Details" :
                 inquiryStep === 4 ? "📊 Project Details" :
                   inquiryStep === 5 ? "📅 Schedule Discovery Call" :
-                  "🚀 Inquiry Submitted"
+                    "🚀 Inquiry Submitted"
         }
         width={inquiryStep === 6 ? "500px" : "800px"}
       >
@@ -1416,6 +1455,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
       </Modal>
 
       <ConfirmModal confirmModal={confirmModal} setConfirmModal={setConfirmModal} />
-    </div>
+      </div>
+    </>
   );
-}
+}
