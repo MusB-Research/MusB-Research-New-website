@@ -48,9 +48,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-%s_3@h)4+#%gs%)nm@xvwar%j!9e38oa_5j#m2w+0j_mblj78g')
 
 # SECURITY WARNING: don't run with debug turned on in production!
+# Defaults to False in production (Render) and True for local development
 DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
+if os.getenv('RENDER'):
+    DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,musb-backend.onrender.com,musb-research-new-website.onrender.com').split(',')
+ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,musb-backend.onrender.com,musb-research-new-website.onrender.com').split(',') if h.strip()]
 
 
 # Application definition
@@ -191,14 +194,15 @@ if DEBUG:
     FRONTEND_URL = os.getenv('FRONTEND_URL', "http://localhost:5173")
 else:
     # PRODUCTION: Strictly pull from environment or default to primary domain
-    CORS_ALLOWED_ORIGINS = os.getenv(
+    raw_origins = os.getenv(
         'CORS_ALLOWED_ORIGINS',
         'https://musbhealth.com,https://www.musbhealth.com,https://musbresearchnewwebsite.vercel.app,https://musb-research-new-website.onrender.com,https://musb-backend.onrender.com'
     ).split(',')
+    CORS_ALLOWED_ORIGINS = [o.strip() for o in raw_origins if o.strip()]
     CSRF_TRUSTED_ORIGINS = [o for o in CORS_ALLOWED_ORIGINS]
     
     # Use the primary website domain for emails/links if FRONTEND_URL environment variable is missing
-    FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://musbhealth.com')
+    FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://musbhealth.com').strip()
 
 CORS_ALLOW_HEADERS = [
     "authorization",
@@ -238,6 +242,9 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    # Crucial for cross-domain auth (musbhealth.com -> onrender.com)
+    CSRF_COOKIE_SAMESITE = 'None'
+    SESSION_COOKIE_SAMESITE = 'None'
 else:
     # Development security
     CSRF_COOKIE_HTTPONLY = True
@@ -270,5 +277,5 @@ REST_FRAMEWORK = {
     }
 }
 
-# Essential for HttpOnly cookies
+# Essential for HttpOnly cookies (Consolidated)
 CORS_ALLOW_CREDENTIALS = True
