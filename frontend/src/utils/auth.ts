@@ -12,7 +12,7 @@ const getApiUrl = () => {
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
     if (!isLocal && (!envUrl || envUrl.includes('localhost'))) {
-        return 'https://musb-backend.onrender.com';
+        return 'https://musb-research-new-website.onrender.com';
     }
 
     return envUrl || 'http://localhost:8000';
