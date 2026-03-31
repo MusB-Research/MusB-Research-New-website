@@ -2,7 +2,26 @@ import os
 import resend
 from django.conf import settings
 from typing import List, Optional
+import threading
 
+def run_in_background(func):
+    """
+    Decorator to run a function in a separate thread.
+    Catches all exceptions to prevent any crashing.
+    """
+    def wrapper(*args, **kwargs):
+        def task():
+            try:
+                func(*args, **kwargs)
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Background task {func.__name__} failed: {e}")
+        thread = threading.Thread(target=task, daemon=True)
+        thread.start()
+    return wrapper
+
+@run_in_background
 def send_newsletter_update(subject: str, html_content: str, text_content: Optional[str] = None):
     """
     Fetches all active Newsletter subscribers and sends them an email via Resend.
@@ -49,6 +68,7 @@ def send_newsletter_update(subject: str, html_content: str, text_content: Option
             
     return success_count > 0
 
+@run_in_background
 def send_welcome_email(to_email: str):
     """
     Sends a welcome email to a new newsletter subscriber.
@@ -75,6 +95,7 @@ def send_welcome_email(to_email: str):
         print(f"Error sending welcome email via Resend to {to_email}: {e}")
         return False
 
+@run_in_background
 def send_inquiry_notification(inquiry_data: dict, target_email: str):
     """
     Sends a detailed notification to MusB team when a new study inquiry is submitted.
@@ -193,7 +214,7 @@ def send_inquiry_notification(inquiry_data: dict, target_email: str):
                 to=recipients
             )
             msg.attach_alternative(html_content, "text/html")
-            msg.send()
+            msg.send(fail_silently=True)
             print(f"Sent inquiry notification via SMTP fallback to {recipients}")
         
     
@@ -202,6 +223,7 @@ def send_inquiry_notification(inquiry_data: dict, target_email: str):
         print(f"Error sending inquiry notification to {target_email}: {e}")
         return False
 
+@run_in_background
 def send_facility_inquiry_email(inquiry):
     """
     Sends an email notification when a new Facility Inquiry is submitted.
@@ -266,26 +288,53 @@ def send_facility_inquiry_email(inquiry):
     """
     
     try:
-        # Send to Admin
-        admin_response = resend.Emails.send({
-            "from": "MusB Research System <onboarding@resend.dev>",
-            "to": [admin_recipient],
-            "subject": subject,
-            "html": html_content
-        })
-        
-        # Send to Participant
-        participant_response = resend.Emails.send({
-            "from": "MusB Research Team <onboarding@resend.dev>",
-            "to": [inquiry.email],
-            "subject": participant_subject,
-            "html": participant_html,
-            "reply_to": "info@musbresearch.com"
-        })
-        
-        print(f"Sent admin facility inquiry email: {admin_response}")
-        print(f"Sent participant confirmation email: {participant_response}")
+        try:
+            # Send to Admin
+            admin_response = resend.Emails.send({
+                "from": "MusB Research System <info@musbresearch.com>",
+                "to": [admin_recipient],
+                "subject": subject,
+                "html": html_content
+            })
+            
+            # Send to Participant
+            participant_response = resend.Emails.send({
+                "from": "MusB Research Team <info@musbresearch.com>",
+                "to": [inquiry.email],
+                "subject": participant_subject,
+                "html": participant_html,
+                "reply_to": "info@musbresearch.com"
+            })
+            
+            print(f"Sent admin facility inquiry email: {admin_response}")
+            print(f"Sent participant confirmation email: {participant_response}")
+        except Exception as resend_err:
+            print(f"Resend failed ({resend_err}), falling back to SMTP...")
+            from django.core.mail import EmailMultiAlternatives
+            
+            # Send to Admin via SMTP
+            msg_admin = EmailMultiAlternatives(
+                subject=subject,
+                body="Please view the HTML version of this email.",
+                from_email=settings.EMAIL_HOST_USER or "info@musbresearch.com",
+                to=[admin_recipient]
+            )
+            msg_admin.attach_alternative(html_content, "text/html")
+            msg_admin.send(fail_silently=True)
+            
+            # Send to Participant via SMTP
+            msg_participant = EmailMultiAlternatives(
+                subject=participant_subject,
+                body="Please view the HTML version of this email.",
+                from_email=settings.EMAIL_HOST_USER or "info@musbresearch.com",
+                to=[inquiry.email],
+                reply_to=["info@musbresearch.com"]
+            )
+            msg_participant.attach_alternative(participant_html, "text/html")
+            msg_participant.send(fail_silently=True)
+            print(f"Sent administration and participant facility inquiry confirmation via SMTP fallback")
+            
         return True
     except Exception as e:
-        print(f"Error sending facility inquiry email via Resend: {e}")
+        print(f"Error sending facility inquiry email: {e}")
         return False
