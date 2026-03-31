@@ -403,7 +403,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
 
                     <div className="p-8 bg-black/20 border-t border-red-500/20 flex justify-end">
                         <button 
-                            onClick={() => alert("✅ AE Report Synchronized.")}
+                            onClick={() => alert("we got your request and our team members contact you shortly")}
                             disabled={!aeDescription}
                             className="px-14 py-4 bg-red-600 shadow-[0_0_40px_rgba(239,68,68,0.2)] hover:shadow-[0_0_50px_rgba(239,68,68,0.4)] text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] transition-all active:scale-95 disabled:opacity-30"
                         >

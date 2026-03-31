@@ -132,7 +132,7 @@ export default function ParticipantDashboard() {
             }
 
             const friendlyName = field === 'userPhone' ? 'Phone' : field === 'userLocation' ? 'Location' : field === 'userTimezone' ? 'Timezone' : field === 'userName' ? 'Name' : field === 'userPicture' ? 'Profile Picture' : 'Profile';
-            alert(`✅ ${friendlyName} updated and synchronized with clinical servers.`);
+            alert("we got your request and our team members contact you shortly");
         } catch (err) {
             console.error("Failed to update profile:", err);
             alert("Security Node Sync Failed. Please retry.");
@@ -344,7 +344,7 @@ export default function ParticipantDashboard() {
                 return;
             }
 
-            alert(`✅ ${title} workflow completed.`);
+            alert("we got your request and our team members contact you shortly");
         }, 1500);
     };
 
@@ -526,7 +526,7 @@ export default function ParticipantDashboard() {
                             handleSaveProfileField('userPicture', result);
                         };
                         reader.readAsDataURL(file);
-                        alert(`✅ ${file.name} successfully encrypted and uploaded to study vaults.`);
+                        alert("we got your request and our team members contact you shortly");
                     }
                 }}
             />

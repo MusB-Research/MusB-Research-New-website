@@ -126,7 +126,7 @@ const MessagesView = ({ study }: { study?: any }) => {
 
     const handleSendMessage = () => {
         if (!messageInput.trim()) return;
-        alert(`✅ Message Sent: ${messageInput}`);
+        alert("we got your request and our team members contact you shortly");
         setMessageInput('');
         setIsUrgentMode(false);
     };

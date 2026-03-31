@@ -37,7 +37,7 @@ const ReportsView = ({ userName, handleExportPDF: externalExport, study }: { use
         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
         pdf.save('MusB_Research_Progress_Report.pdf');
 
-        alert("✅ Your secure study progress report has been encrypted and downloaded.");
+        alert("we got your request and our team members contact you shortly");
     };
 
     return (
