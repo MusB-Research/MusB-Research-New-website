@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { getUser, getRole, authFetch, API, performLogout, getDisplayName } from '../../utils/auth';
 import { Link } from 'react-router-dom';
 import { User, LogOut, Zap, Bell, Sparkles } from 'lucide-react';
-import { SPONSOR, MOCK_TEAM, MOCK_REPORTS, MOCK_PROTOCOLS, StatusBadge, Modal, ConfirmModal, PillButton, ProgressRing, downloadCSV, downloadFile } from './SponsorDashboardShared';
+import { SPONSOR, MOCK_TEAM, MOCK_REPORTS, MOCK_PROTOCOLS, StatusBadge, Modal, ConfirmModal, PillButton, ProgressRing, downloadCSV, downloadFile, downloadPDF } from './SponsorDashboardShared';
 
 // Pure SVG Bar Chart
 const SVGBarChart = ({ data }: any) => {
@@ -517,9 +517,8 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
               <div style={{ display: 'flex', gap: 10, flexShrink: 0, width: windowWidth > 600 ? 'auto' : '100%' }}>
                 <button
                   onClick={() => {
-                    const pdfContent = `MusB Research \u2014 ${r.name}\n${'='.repeat(60)}\nStudy ID: ${r.study}\nReport Type: ${r.type}\nGenerated: ${r.date}\n\nEXECUTIVE SUMMARY\n${'-'.repeat(40)}\nThis report summarizes the clinical progress, enrollment data,\nand safety findings for the referenced study period.\n\nKEY FINDINGS\n- Enrollment is progressing as planned\n- No serious adverse events reported\n- Participant compliance rate: 94.2%\n- Primary endpoint trending positive\n\nENROLLMENT METRICS\n- Enrolled to date: 65 / 100\n- Screen failures: 12\n- Dropout rate: 3.1%\n\nSAFETY SUMMARY\n- Total AEs: 4 (mild, unrelated)\n- SAEs: 0\n- Protocol deviations: 2 (minor)\n\nNEXT STEPS\n- Continue recruitment through Q2 2026\n- Interim analysis scheduled for June 2026\n- Final report expected Q3 2026\n\n${'-'.repeat(60)}\nConfidential \u2014 MusB Research Platform`;
-                    downloadFile(pdfContent, `${r.name}.pdf`, 'application/pdf');
-                    addToast({ type: 'success', message: 'PDF downloaded successfully.' });
+                    downloadPDF(r);
+                    addToast({ type: 'success', message: 'PDF generated successfully.' });
                   }}
                   style={{ background: '#2563eb', color: 'white', border: 'none', padding: '14px 24px', borderRadius: 12, fontWeight: 800, fontSize: 18, cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap', flex: windowWidth > 600 ? 'none' : 1 }}
                 >

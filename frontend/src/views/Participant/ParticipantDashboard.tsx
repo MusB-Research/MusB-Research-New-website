@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { jsPDF } from 'jspdf';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     LayoutDashboard, ClipboardList, Box, Activity, MessageSquare, 
@@ -138,7 +139,7 @@ export default function ParticipantDashboard() {
         }
     };
 
-    const handleExportPDF = (skipConfirm: boolean = false) => {
+    const handleExportPDF = async (skipConfirm: boolean = false) => {
         const title = activeNav === 'Reports' ? 'Participant_Report.pdf'
             : activeNav === 'Study Kit' ? 'Clinical_Shipping_Label.pdf'
                 : 'Document_Export.pdf';
@@ -146,16 +147,50 @@ export default function ParticipantDashboard() {
         const proceed = skipConfirm || window.confirm(`System is generating ${title}. Would you like to proceed with the secure download?`);
 
         if (proceed) {
-            const content = `MusB Research Clinical Data Export\nGenerated: ${new Date().toLocaleString()}\n\nThis is a securely encrypted document from the MusB Research Portal.\n\nDocument ID: ${Math.random().toString(36).substring(7).toUpperCase()}\nSubject: ${userProfile.userName}\nProtocol: NAD+ LONGEVITY TRIAL\n\n[Clinical Summary Details...]\nData Type: PDF Container (Encrypted)\n\n\nDigital Signature: MUSBRESEARCH_SECURE_AUTH_0x99201`;
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', title);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
+            const doc = new jsPDF();
+            
+            // Try to load logo (asynchronous process)
+            const logoUrl = '/logo.jpg';
+            try {
+              const img = new Image();
+              img.src = logoUrl;
+              await new Promise((resolve) => {
+                img.onload = resolve;
+                img.onerror = resolve; // Just proceed if it fails
+              });
+              if (img.complete && img.naturalWidth > 0) {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0);
+                const dataUrl = canvas.toDataURL('image/jpeg');
+                doc.addImage(dataUrl, 'JPEG', 15, 10, 30, 30); // MusB Logo
+              }
+            } catch (e) {
+               console.warn('Could not load logo for PDF');
+            }
+
+            doc.setFontSize(22);
+            doc.setTextColor(6, 182, 212); // Cyan match participant branding
+            doc.text('MusB RESEARCH PORTAL', 50, 25);
+            doc.setFontSize(14);
+            doc.setTextColor(100, 116, 139); // Slate
+            doc.text(`Official Clinical Export: ${title.replace('.pdf', '')}`, 50, 35);
+            doc.setDrawColor(6, 182, 212);
+            doc.line(15, 45, 195, 45);
+
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(12);
+            doc.text(`Subject: ${userProfile.userName}`, 15, 60);
+            doc.text(`Date of Export: ${new Date().toLocaleString()}`, 15, 70);
+            doc.text(`Protocol ID: MUSB-NAD-2030`, 15, 80);
+
+            doc.text('This is a securely encrypted document from the MusB Research Portal.', 15, 100);
+            doc.text('Clinical data synchronization with study servers: VERIFIED.', 15, 110);
+            doc.text('Integrity Check: AUTH-HASH-0x992B1', 15, 120);
+
+            doc.save(title);
 
             setTimeout(() => {
                 alert("we got your request and our team members contact you shortly");

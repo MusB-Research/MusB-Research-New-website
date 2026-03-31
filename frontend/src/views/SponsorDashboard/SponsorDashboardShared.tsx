@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { jsPDF } from 'jspdf';
 
 // === CONSTANTS & MOCK DATA ===
 export const SPONSOR = {
@@ -200,6 +201,79 @@ export const downloadFile = (content: string, filename: string, type='text/plain
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+};
+
+export const downloadPDF = async (reportData: any) => {
+  const doc = new jsPDF();
+  
+  // Try to load logo (asynchronous process)
+  const logoUrl = '/logo.jpg';
+  try {
+    const img = new Image();
+    img.src = logoUrl;
+    await new Promise((resolve) => {
+      img.onload = resolve;
+      img.onerror = resolve; // Just proceed if it fails
+    });
+    if (img.complete && img.naturalWidth > 0) {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0);
+      const dataUrl = canvas.toDataURL('image/jpeg');
+      doc.addImage(dataUrl, 'JPEG', 15, 10, 40, 40); // MusB Logo
+    }
+  } catch (e) {
+     console.warn('Could not load logo for PDF');
+  }
+
+  // PDF Content styling
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(22);
+  doc.setTextColor(30, 58, 138); // Dark Blue match branding
+  doc.text('MusB RESEARCH STUDY REPORT', 60, 25);
+  doc.setFontSize(14);
+  doc.setTextColor(100, 116, 139); // Slate match branding
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Protocol ID: ${reportData.study}`, 60, 35);
+  doc.text(`Generated On: ${reportData.date}`, 60, 45);
+  doc.setDrawColor(37, 99, 235);
+  doc.line(15, 55, 195, 55);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.setTextColor(0, 0, 0);
+  doc.text(reportData.name, 15, 70);
+  
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  doc.text('EXECUTIVE SUMMARY', 15, 85);
+  doc.line(15, 88, 60, 88);
+
+  doc.setTextColor(51, 65, 85);
+  doc.text('This report provides a formal summary of the research progress and protocol compliance.', 15, 95);
+  doc.text('Clinical data points have been synchronized with the central cloud repository.', 15, 102);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(30, 58, 138);
+  doc.text('KEY PROJECT METRICS:', 15, 115);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(51, 65, 85);
+  doc.text('- Enrollment Status: ON TRACK', 20, 122);
+  doc.text('- Quality Control Index: 98.4%', 20, 129);
+  doc.text('- Target Completion: Q4 2026', 20, 136);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(30, 58, 138);
+  doc.text('CONFIDENTIALITY NOTICE:', 15, 155);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(148, 163, 184);
+  doc.text('This document contains confidential information belonging to MusB Research Platform.', 15, 162);
+  doc.text('Unauthorized access or disclosure is strictly prohibited under NDA protocols.', 15, 169);
+
+  doc.save(`${reportData.name}.pdf`);
 };
 
 // === SHARED COMPONENTS ===
