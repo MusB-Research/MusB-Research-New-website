@@ -170,18 +170,33 @@ def send_inquiry_notification(inquiry_data: dict, target_email: str):
         # Always include info@musbresearch.com as per user requirement
         recipients = list(set([target_email, "info@musbresearch.com"]))
         
-        # Force the sender to info@musbresearch.com since that is the verified Resend address
+        # Try Resend first (production path)
         resend.api_key = os.environ.get('RESEND_API_KEY', getattr(settings, 'RESEND_API_KEY', ''))
         from_email = 'info@musbresearch.com'
         
-        email_response = resend.Emails.send({
-            "from": from_email,
-            "to": recipients,
-            "subject": subject,
-            "html": html_content
-        })
-        print(f"Sent inquiry notification via Resend directly to {recipients}: {email_response}")
-            
+        try:
+            email_response = resend.Emails.send({
+                "from": from_email,
+                "to": recipients,
+                "subject": subject,
+                "html": html_content
+            })
+            print(f"Sent inquiry notification via Resend to {recipients}: {email_response}")
+        except Exception as resend_err:
+            # Fallback to Django SMTP if Resend fails (e.g. domain not verified locally)
+            print(f"Resend failed ({resend_err}), falling back to SMTP...")
+            from django.core.mail import EmailMultiAlternatives
+            msg = EmailMultiAlternatives(
+                subject=subject,
+                body="Please view the HTML version of this email.",
+                from_email=settings.EMAIL_HOST_USER or from_email,
+                to=recipients
+            )
+            msg.attach_alternative(html_content, "text/html")
+            msg.send()
+            print(f"Sent inquiry notification via SMTP fallback to {recipients}")
+        
+    
         return True
     except Exception as e:
         print(f"Error sending inquiry notification to {target_email}: {e}")

@@ -136,24 +136,37 @@ class SubmissionCreateView(generics.CreateAPIView):
             resend.api_key = os.getenv("RESEND_API_KEY", getattr(settings, 'RESEND_API_KEY', ''))
             from_email = 'MusB Research System <info@musbresearch.com>'
             
-            # Send to Admin
-            resend.Emails.send({
-                "from": from_email,
-                "to": [admin_recipient],
-                "subject": admin_subject,
-                "html": admin_html
-            })
-            
-            # Send to Participant
-            resend.Emails.send({
-                "from": from_email,
-                "to": [submission.email],
-                "subject": participant_subject,
-                "html": participant_html,
-                "reply_to": "info@musbresearch.com"
-            })
-            
-            print(f"Sent both emails via Resend directly to {[admin_recipient, submission.email]}")
+            try:
+                # Send to Admin via Resend
+                resend.Emails.send({
+                    "from": from_email,
+                    "to": [admin_recipient],
+                    "subject": admin_subject,
+                    "html": admin_html
+                })
+                # Send to Participant via Resend
+                resend.Emails.send({
+                    "from": from_email,
+                    "to": [submission.email],
+                    "subject": participant_subject,
+                    "html": participant_html,
+                    "reply_to": "info@musbresearch.com"
+                })
+                print(f"Sent both emails via Resend to {[admin_recipient, submission.email]}")
+            except Exception as resend_err:
+                # Fallback to Django SMTP if Resend fails (e.g. domain not verified locally)
+                print(f"Resend failed ({resend_err}), falling back to SMTP...")
+                from django.core.mail import EmailMultiAlternatives
+                smtp_from = settings.EMAIL_HOST_USER or 'info@musbresearch.com'
+                
+                admin_msg = EmailMultiAlternatives(admin_subject, "Details inside.", smtp_from, [admin_recipient])
+                admin_msg.attach_alternative(admin_html, "text/html")
+                admin_msg.send()
+                
+                participant_msg = EmailMultiAlternatives(participant_subject, "Thank you.", smtp_from, [submission.email])
+                participant_msg.attach_alternative(participant_html, "text/html")
+                participant_msg.send()
+                print(f"Sent both emails via SMTP fallback to {[admin_recipient, submission.email]}")
             
             submission.is_processed = True
             submission.save()
