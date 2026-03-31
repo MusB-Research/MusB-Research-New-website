@@ -221,7 +221,8 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
 
       {/* Primary Action Banner */}
       <div style={{
-        background: 'linear-gradient(135deg, #1e3a8a 0%, #312e81 100%)',
+        background: 'rgba(15, 23, 42, 0.8)',
+        backdropFilter: 'blur(24px)',
         borderRadius: windowWidth > 768 ? 32 : 24,
         padding: windowWidth > 1024 ? '80px 100px' : windowWidth > 768 ? '60px 80px' : '40px 24px',
         marginBottom: windowWidth > 768 ? 64 : 32,
@@ -230,7 +231,6 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
         justifyContent: 'space-between',
         alignItems: windowWidth > 1024 ? 'center' : 'flex-start',
         gap: windowWidth > 768 ? 48 : 32,
-        boxShadow: '0 40px 80px rgba(0, 0, 0, 0.4)',
         border: '1px solid rgba(255,255,255,0.1)'
       }}>
         <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
@@ -242,11 +242,11 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
             letterSpacing: '-0.04em',
             lineHeight: 1.1
           }}>
-            Elevate Your <span style={{ color: '#60a5fa' }}>Research</span><br />Network.
+            Elevate Your <span style={{ color: '#10b981' }}>Research</span><br />Network.
           </h1>
           <p style={{
             margin: '24px 0 0 0',
-            color: 'rgba(255,255,255,0.9)',
+            color: 'rgba(255,255,255,0.7)',
             fontSize: windowWidth > 1024 ? 24 : windowWidth > 768 ? 20 : 16,
             lineHeight: 1.6,
             maxWidth: '950px',
@@ -257,7 +257,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
         </div>
         <button onClick={() => setInquiryModalOpen(true)} style={{
           background: 'white',
-          color: '#1e3a8a',
+          color: '#0f172a',
           fontWeight: 900,
           border: 'none',
           padding: windowWidth > 768 ? '28px 56px' : '20px 40px',
@@ -265,7 +265,6 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
           cursor: 'pointer',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           fontSize: windowWidth > 768 ? 22 : 18,
-          boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
           width: windowWidth > 1024 ? 'auto' : '100%'
         }}>
           + Inquire A New Study

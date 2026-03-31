@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authFetch, clearToken, getRole, performLogout, getDisplayName, API } from '../utils/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -91,10 +91,92 @@ const ROLES = [
 ];
 
 export default function SuperAdminDashboard() {
-  // ═══════════════════════════════════════════
-  // STATE MANAGEMENT
-  // ═══════════════════════════════════════════
-  const [currentPage, setCurrentPage] = useState<Page>('DASHBOARD');
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [currentPage, setCurrentPage] = useState<Page>(() => {
+    const route = location.pathname.split('/').pop();
+    if (route === 'activity') return 'ACTIVITY_LOG';
+    if (route === 'users') return 'ALL_USERS';
+    if (route === 'studies') return 'STUDIES';
+    if (route === 'sponsors') return 'SPONSORS';
+    if (route === 'sponsor-leads') return 'SPONSOR_LEADS';
+    if (route === 'metrics') return 'METRICS';
+    if (route === 'team') return 'TEAM';
+    if (route === 'inquiries') return 'INQUIRIES';
+    if (route === 'announcements') return 'ANNOUNCEMENTS';
+    if (route === 'audit') return 'AUDIT_LOGS';
+    if (route === 'settings') return 'SETTINGS';
+    if (route === 'launch-study') return 'LAUNCH_STUDY';
+    if (route === 'screener-builder') return 'SCREENER_BUILDER';
+    if (route === 'pis') return 'PIS';
+    if (route === 'coordinators') return 'COORDINATORS';
+    if (route === 'participants') return 'PARTICIPANTS';
+    if (route === 'live-users') return 'LIVE_USERS';
+    if (route === 'workflow') return 'WORKFLOW';
+    if (route === 'content') return 'SUBMIT_CONTENT';
+    if (route === 'approvals') return 'TEAM_APPROVALS';
+    if (route === 'careers') return 'CAREERS';
+    return 'DASHBOARD';
+  });
+
+  // Sync state with URL for back button support
+  useEffect(() => {
+    const route = location.pathname.split('/').pop();
+    if (route === 'activity') setCurrentPage('ACTIVITY_LOG');
+    else if (route === 'users') setCurrentPage('ALL_USERS');
+    else if (route === 'studies') setCurrentPage('STUDIES');
+    else if (route === 'sponsors') setCurrentPage('SPONSORS');
+    else if (route === 'sponsor-leads') setCurrentPage('SPONSOR_LEADS');
+    else if (route === 'metrics') setCurrentPage('METRICS');
+    else if (route === 'team') setCurrentPage('TEAM');
+    else if (route === 'inquiries') setCurrentPage('INQUIRIES');
+    else if (route === 'announcements') setCurrentPage('ANNOUNCEMENTS');
+    else if (route === 'audit') setCurrentPage('AUDIT_LOGS');
+    else if (route === 'settings') setCurrentPage('SETTINGS');
+    else if (route === 'launch-study') setCurrentPage('LAUNCH_STUDY');
+    else if (route === 'screener-builder') setCurrentPage('SCREENER_BUILDER');
+    else if (route === 'pis') setCurrentPage('PIS');
+    else if (route === 'coordinators') setCurrentPage('COORDINATORS');
+    else if (route === 'participants') setCurrentPage('PARTICIPANTS');
+    else if (route === 'live-users') setCurrentPage('LIVE_USERS');
+    else if (route === 'workflow') setCurrentPage('WORKFLOW');
+    else if (route === 'content') setCurrentPage('SUBMIT_CONTENT');
+    else if (route === 'approvals') setCurrentPage('TEAM_APPROVALS');
+    else if (route === 'careers') setCurrentPage('CAREERS');
+    else if (location.pathname.endsWith('/super-admin') || !route || route === 'super-admin') setCurrentPage('DASHBOARD');
+  }, [location.pathname]);
+
+  const handlePageChange = (page: Page) => {
+    const slugs: Record<string, string> = {
+      'DASHBOARD': '',
+      'ACTIVITY_LOG': 'activity',
+      'ALL_USERS': 'users',
+      'STUDIES': 'studies',
+      'SPONSORS': 'sponsors',
+      'SPONSOR_LEADS': 'sponsor-leads',
+      'METRICS': 'metrics',
+      'TEAM': 'team',
+      'INQUIRIES': 'inquiries',
+      'ANNOUNCEMENTS': 'announcements',
+      'AUDIT_LOGS': 'audit',
+      'SETTINGS': 'settings',
+      'LAUNCH_STUDY': 'launch-study',
+      'SCREENER_BUILDER': 'screener-builder',
+      'PIS': 'pis',
+      'COORDINATORS': 'coordinators',
+      'PARTICIPANTS': 'participants',
+      'LIVE_USERS': 'live-users',
+      'WORKFLOW': 'workflow',
+      'SUBMIT_CONTENT': 'content',
+      'TEAM_APPROVALS': 'approvals',
+      'CAREERS': 'careers'
+    };
+    const slug = slugs[page];
+    setCurrentPage(page);
+    navigate(`/dashboard/super-admin${slug ? '/' + slug : ''}`);
+  };
+
   const [searchTerm, setSearchTerm] = useState('');
   const [lastRefresh, setLastRefresh] = useState(new Date().toLocaleTimeString());
   const [showNotifications, setShowNotifications] = useState(false);
@@ -110,7 +192,6 @@ export default function SuperAdminDashboard() {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [creationRole, setCreationRole] = useState('PI');
-  const navigate = useNavigate();
   const profileRef = React.useRef<HTMLDivElement>(null);
 
   // Data States
@@ -126,7 +207,7 @@ export default function SuperAdminDashboard() {
       { id: 's1', text: 'New login from unknown IP: 182.16.0.4', time: '2m ago', unread: true },
       { id: 's3', text: 'System backup completed successfully', time: '4h ago', unread: false },
     ];
-    
+
     // Add real inquiries to notifications
     (studyInquiries || []).slice(0, 5).forEach((iq, i) => {
       if (iq.status === 'NDA_REQUESTED' || iq.status === 'PRELIMINARY') {
@@ -270,7 +351,7 @@ export default function SuperAdminDashboard() {
       });
       if (res.ok) {
         alert("Protocol Deployed Successfully");
-        setCurrentPage('STUDIES');
+        handlePageChange('STUDIES');
         fetchData();
       } else {
         const err = await res.json();
@@ -398,15 +479,15 @@ export default function SuperAdminDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
         {[
-          { label: 'Total Users', value: (users || []).length, icon: Users, color: '#14b8a6', badge: 'Live', onClick: () => setCurrentPage('ALL_USERS') },
-          { label: 'Total Studies', value: (studies || []).length, icon: Briefcase, color: '#3b82f6', onClick: () => setCurrentPage('STUDIES') },
+          { label: 'Total Users', value: (users || []).length, icon: Users, color: '#14b8a6', badge: 'Live', onClick: () => handlePageChange('ALL_USERS') },
+          { label: 'Total Studies', value: (studies || []).length, icon: Briefcase, color: '#3b82f6', onClick: () => handlePageChange('STUDIES') },
           { label: 'Active Participants', value: (participants || []).length, icon: UserCheck, color: '#14b8a6', onClick: () => { } },
           { label: 'Admins & Staff', value: (users || []).filter(u => ['ADMIN', 'SUPER_ADMIN', 'PI', 'COORDINATOR'].includes(u.role)).length, icon: Crown, color: '#f59e0b', onClick: () => { } },
-          { label: 'Sponsors', value: (users || []).filter(u => u.role === 'SPONSOR').length, icon: Building, color: '#ec4899', onClick: () => setCurrentPage('SPONSORS') },
+          { label: 'Sponsors', value: (users || []).filter(u => u.role === 'SPONSOR').length, icon: Building, color: '#ec4899', onClick: () => handlePageChange('SPONSORS') },
           { label: 'Sponsor Teams', value: 0, icon: Users, color: '#ec4899', onClick: () => { } },
-          { label: 'Active Studies', value: (studies || []).filter(s => s.status === 'UPCOMING' || s.status === 'RECRUITING').length, icon: Activity, color: '#14b8a6', onClick: () => setCurrentPage('STUDIES') },
+          { label: 'Active Studies', value: (studies || []).filter(s => s.status === 'UPCOMING' || s.status === 'RECRUITING').length, icon: Activity, color: '#14b8a6', onClick: () => handlePageChange('STUDIES') },
           { label: 'Open Adverse Events', value: 2, icon: ShieldAlert, color: '#ef4444', onClick: () => { } },
-          { label: 'Audit Events Today', value: 5, icon: FileText, color: '#7c3aed', onClick: () => setCurrentPage('AUDIT_LOGS') },
+          { label: 'Audit Events Today', value: 5, icon: FileText, color: '#7c3aed', onClick: () => handlePageChange('AUDIT_LOGS') },
         ].map((stat, i) => (
           <div
             key={i}
@@ -443,12 +524,12 @@ export default function SuperAdminDashboard() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             {[
-              { label: 'Manage Users', icon: Users, color: '#7c3aed', act: () => setCurrentPage('ALL_USERS') },
-              { label: 'Manage Studies', icon: Briefcase, color: '#3b82f6', act: () => setCurrentPage('STUDIES') },
-              { label: 'View Sponsors', icon: Building, color: '#ec4899', act: () => setCurrentPage('SPONSORS') },
-              { label: 'Audit Logs', icon: FileText, color: '#64748b', act: () => setCurrentPage('AUDIT_LOGS') },
-              { label: 'Announcements', icon: Megaphone, color: '#f59e0b', act: () => setCurrentPage('ANNOUNCEMENTS') },
-              { label: 'System Settings', icon: Settings, color: '#14b8a6', act: () => setCurrentPage('SETTINGS') },
+              { label: 'Manage Users', icon: Users, color: '#7c3aed', act: () => handlePageChange('ALL_USERS') },
+              { label: 'Manage Studies', icon: Briefcase, color: '#3b82f6', act: () => handlePageChange('STUDIES') },
+              { label: 'View Sponsors', icon: Building, color: '#ec4899', act: () => handlePageChange('SPONSORS') },
+              { label: 'Audit Logs', icon: FileText, color: '#64748b', act: () => handlePageChange('AUDIT_LOGS') },
+              { label: 'Announcements', icon: Megaphone, color: '#f59e0b', act: () => handlePageChange('ANNOUNCEMENTS') },
+              { label: 'System Settings', icon: Settings, color: '#14b8a6', act: () => handlePageChange('SETTINGS') },
             ].map((action, i) => (
               <button
                 key={i}
@@ -470,7 +551,7 @@ export default function SuperAdminDashboard() {
               <Activity className="w-6 h-6 text-[#7c3aed]" />
               <h3 className="text-base font-black text-white uppercase italic tracking-[0.2em]">Recent Platform Activity</h3>
             </div>
-            <button onClick={() => setCurrentPage('ACTIVITY_LOG')} className="text-xs font-black text-[#7c3aed] uppercase tracking-widest hover:text-white transition-all">View all &rarr;</button>
+            <button onClick={() => handlePageChange('ACTIVITY_LOG')} className="text-xs font-black text-[#7c3aed] uppercase tracking-widest hover:text-white transition-all">View all &rarr;</button>
           </div>
           <div className="bg-[#0f1133] border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
             <div className="divide-y divide-white/5">
@@ -981,7 +1062,7 @@ export default function SuperAdminDashboard() {
                       <button
                         onClick={() => {
                           setSelectedStudy(study);
-                          setCurrentPage('LAUNCH_STUDY');
+                          handlePageChange('LAUNCH_STUDY');
                         }}
                         className="p-3.5 text-slate-700 hover:text-white transition-all hover:bg-white/5 rounded-xl border border-transparent hover:border-white/10 shadow-lg"
                         title="Configure Protocol"
@@ -1088,7 +1169,7 @@ export default function SuperAdminDashboard() {
                     <button
                       onClick={() => {
                         setSearchTerm(s.name);
-                        setCurrentPage('STUDIES');
+                        handlePageChange('STUDIES');
                       }}
                       className="px-6 py-3 bg-white/5 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white hover:text-slate-900 transition-all"
                     >
@@ -1141,7 +1222,7 @@ export default function SuperAdminDashboard() {
                     <span className="text-amber-500/50 italic">{iq.status}</span>
                   </div>
                 </div>
-                <button onClick={() => setCurrentPage('INQUIRIES')} className="w-full py-4 bg-white/5 border border-white/5 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-amber-500 hover:text-slate-950 transition-all">View Details</button>
+                <button onClick={() => handlePageChange('INQUIRIES')} className="w-full py-4 bg-white/5 border border-white/5 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-amber-500 hover:text-slate-950 transition-all">View Details</button>
               </div>
             ))
           )}
@@ -1342,11 +1423,11 @@ export default function SuperAdminDashboard() {
         const res = await authFetch(`${API}/api/study-inquiries/${iqId}/engage/`, {
           method: 'POST'
         });
-        
+
         if (res.ok) {
           const data = await res.json();
           alert(`✅ LEAD ENGAGED & AUTHORIZED\n\nStudy ID: ${data.id || 'N/A'}\n\nThe study has been auto-created and assigned to the sponsor. They can now see it on their dashboard.`);
-          fetchData(); 
+          fetchData();
         } else {
           let errorMsg = 'Failed to engage lead';
           try {
@@ -1376,13 +1457,13 @@ export default function SuperAdminDashboard() {
             <p className="text-sm text-[#555a7a] font-black uppercase tracking-[0.1em] mt-4 max-w-xl">Central capture point for clinical study queries, protocol authorizations, and feasibility packets.</p>
           </div>
           <div className="flex bg-[#0a0b1a] p-1.5 rounded-2xl border border-white/5 shadow-2xl">
-            <button 
+            <button
               onClick={() => setSubTab('study_queries')}
               className={`px-8 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${subTab === 'study_queries' ? 'bg-[#f472b6] text-white shadow-lg' : 'text-[#555a7a] hover:text-white'}`}
             >
               Study Queries ({studyInquiries.length})
             </button>
-            <button 
+            <button
               onClick={() => setSubTab('authorizations')}
               className={`px-8 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${subTab === 'authorizations' ? 'bg-[#f472b6] text-white shadow-lg' : 'text-[#555a7a] hover:text-white'}`}
             >
@@ -1395,70 +1476,70 @@ export default function SuperAdminDashboard() {
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
             {studyInquiries.length === 0 ? (
               <div className="col-span-full py-20 bg-[#0f1133] rounded-[3rem] border border-white/5 text-center">
-                 <Server className="w-12 h-12 text-[#555a7a] mx-auto mb-6 animate-pulse" />
-                 <p className="text-[10px] text-[#555a7a] font-black uppercase tracking-[0.3em]">No incoming study queries at this node</p>
+                <Server className="w-12 h-12 text-[#555a7a] mx-auto mb-6 animate-pulse" />
+                <p className="text-[10px] text-[#555a7a] font-black uppercase tracking-[0.3em]">No incoming study queries at this node</p>
               </div>
             ) : (
               studyInquiries.map((iq, i) => (
                 <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-12 hover:border-[#f472b6]/40 transition-all group overflow-hidden relative shadow-2xl">
                   <div className="absolute top-0 right-0 p-10 opacity-[0.03] group-hover:scale-110 transition-transform">
-                     <Globe className="w-40 h-40 text-white" />
+                    <Globe className="w-40 h-40 text-white" />
                   </div>
-                  
+
                   <div className="flex justify-between items-start mb-8 relative z-10">
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 rounded-2xl bg-[#f472b6]/10 flex items-center justify-center text-[#f472b6] border border-[#f472b6]/20">
-                         <Mail className="w-7 h-7" />
+                        <Mail className="w-7 h-7" />
                       </div>
                       <div>
-                         <p className="text-[9px] font-black text-[#f472b6] uppercase tracking-widest mb-1 italic">{iq.category} INQUIRY</p>
-                         <h4 className="text-xl font-black text-white italic uppercase tracking-tight">{iq.product_name}</h4>
-                         <span className={`inline-block mt-2 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${iq.nda_preference === 'YES' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
-                           {iq.nda_preference === 'YES' ? 'NDA Path' : 'Direct Path'}
-                         </span>
+                        <p className="text-[9px] font-black text-[#f472b6] uppercase tracking-widest mb-1 italic">{iq.category} INQUIRY</p>
+                        <h4 className="text-xl font-black text-white italic uppercase tracking-tight">{iq.product_name}</h4>
+                        <span className={`inline-block mt-2 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${iq.nda_preference === 'YES' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                          {iq.nda_preference === 'YES' ? 'NDA Path' : 'Direct Path'}
+                        </span>
                       </div>
                     </div>
                     <div className="text-right">
-                       <p className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest mb-1">{new Date(iq.created_at).toLocaleDateString()}</p>
-                       <span className="px-3 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[9px] font-black uppercase tracking-widest border border-amber-500/10 italic">{iq.status}</span>
+                      <p className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest mb-1">{new Date(iq.created_at).toLocaleDateString()}</p>
+                      <span className="px-3 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[9px] font-black uppercase tracking-widest border border-amber-500/10 italic">{iq.status}</span>
                     </div>
                   </div>
 
                   <div className="space-y-4 mb-10 relative z-10">
                     <div className="flex justify-between items-center text-[11px] font-black uppercase tracking-widest">
-                       <span className="text-[#555a7a]">Legal Entity</span>
-                       <span className="text-white italic">{iq.legal_name || 'Anonymous Sponsor'}</span>
+                      <span className="text-[#555a7a]">Legal Entity</span>
+                      <span className="text-white italic">{iq.legal_name || 'Anonymous Sponsor'}</span>
                     </div>
                     <div className="flex justify-between items-center text-[11px] font-black uppercase tracking-widest">
-                       <span className="text-[#555a7a]">Clinical Needs</span>
-                       <span className="text-indigo-400 italic">{(iq.needs || []).join(', ')}</span>
+                      <span className="text-[#555a7a]">Clinical Needs</span>
+                      <span className="text-indigo-400 italic">{(iq.needs || []).join(', ')}</span>
                     </div>
                     <div className="flex justify-between items-center text-[11px] font-black uppercase tracking-widest">
-                       <span className="text-[#555a7a]">Primary Health Focus</span>
-                       <span className="text-emerald-400 italic">{iq.primary_focus}</span>
+                      <span className="text-[#555a7a]">Primary Health Focus</span>
+                      <span className="text-emerald-400 italic">{iq.primary_focus}</span>
                     </div>
                     <div className="flex justify-between items-center text-[11px] font-black uppercase tracking-widest">
-                       <span className="text-[#555a7a]">NDA Pref</span>
-                       <span className={`italic ${iq.nda_preference === 'YES' ? 'text-emerald-500' : 'text-slate-500'}`}>{iq.nda_preference}</span>
+                      <span className="text-[#555a7a]">NDA Pref</span>
+                      <span className={`italic ${iq.nda_preference === 'YES' ? 'text-emerald-500' : 'text-slate-500'}`}>{iq.nda_preference}</span>
                     </div>
                   </div>
 
                   <div className="flex gap-4 relative z-10">
-                    <button 
+                    <button
                       onClick={() => handleEngageLead(iq.id)}
                       disabled={isEngaging === iq.id || iq.status === 'QUALIFIED' || iq.status === 'REJECTED'}
                       className={`flex-[3] py-4 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] italic shadow-xl transition-all hover:scale-[1.02] ${iq.status === 'QUALIFIED' ? 'bg-emerald-500 shadow-emerald-500/20 grayscale' : iq.status === 'REJECTED' ? 'bg-slate-700 gray-scale' : 'bg-[#f472b6] shadow-[#f472b6]/20'}`}
                     >
                       {isEngaging === iq.id ? 'Processing...' : iq.status === 'QUALIFIED' ? 'Lead Engaged' : iq.status === 'REJECTED' ? 'Inquiry Rejected' : 'Engage Lead'}
                     </button>
-                    
+
                     {iq.status !== 'QUALIFIED' && iq.status !== 'REJECTED' && (
-                      <button 
+                      <button
                         onClick={() => handleRejectLead(iq.id)}
                         className="flex-1 py-4 bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all"
                       >Reject</button>
                     )}
-                    
+
                     <button onClick={() => handleDeleteLead(iq.id)} className="px-6 py-4 bg-white/5 border border-white/5 text-red-900/40 hover:text-red-500 rounded-2xl transition-all"><X className="w-5 h-5" /></button>
                     <button onClick={() => setViewingInquiry(iq)} className="px-6 py-4 bg-white/5 border border-white/5 text-[#555a7a] hover:text-white rounded-2xl transition-all"><Eye className="w-5 h-5" /></button>
                   </div>
@@ -1483,8 +1564,8 @@ export default function SuperAdminDashboard() {
                     </div>
                     <div>
                       <div className="flex items-center gap-4 mb-2">
-                         <h4 className="text-xl font-black text-white uppercase italic tracking-tight">{s.title}</h4>
-                         <span className="px-3 py-1 bg-[#f472b6]/10 text-[#f472b6] rounded-full text-[9px] font-black uppercase tracking-widest border border-[#f472b6]/20 italic">Feasibility Review</span>
+                        <h4 className="text-xl font-black text-white uppercase italic tracking-tight">{s.title}</h4>
+                        <span className="px-3 py-1 bg-[#f472b6]/10 text-[#f472b6] rounded-full text-[9px] font-black uppercase tracking-widest border border-[#f472b6]/20 italic">Feasibility Review</span>
                       </div>
                       <div className="flex items-center gap-6 text-[10px] font-black uppercase tracking-widest text-[#555a7a]">
                         <span className="flex items-center gap-2"><Building className="w-3 h-3" /> {s.sponsor_name || 'Anonymous Sponsor'}</span>
@@ -1496,9 +1577,9 @@ export default function SuperAdminDashboard() {
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <button 
-                       onClick={() => { setSelectedStudy(s); setCurrentPage('LAUNCH_STUDY'); }}
-                       className="px-10 py-5 bg-white text-slate-950 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] italic hover:bg-[#f472b6] hover:text-white transition-all shadow-xl shadow-black/40"
+                    <button
+                      onClick={() => { setSelectedStudy(s); handlePageChange('LAUNCH_STUDY'); }}
+                      className="px-10 py-5 bg-white text-slate-950 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] italic hover:bg-[#f472b6] hover:text-white transition-all shadow-xl shadow-black/40"
                     >
                       Process Authorization
                     </button>
@@ -1515,10 +1596,10 @@ export default function SuperAdminDashboard() {
           <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 backdrop-blur-3xl bg-black/80">
             <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} className="bg-[#0f1133] border border-white/10 w-full max-w-4xl rounded-[3rem] p-12 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
               <button onClick={() => setViewingInquiry(null)} className="absolute top-8 right-8 p-4 hover:bg-white/5 rounded-2xl transition-all"><X className="w-6 h-6 text-[#555a7a]" /></button>
-              
+
               <div className="flex items-center gap-6 mb-12">
                 <div className="w-20 h-20 bg-[#f472b6]/10 rounded-3xl flex items-center justify-center text-[#f472b6] border border-[#f472b6]/20 shadow-inner">
-                   <Mail className="w-10 h-10" />
+                  <Mail className="w-10 h-10" />
                 </div>
                 <div>
                   <p className="text-[12px] font-black text-[#f472b6] uppercase tracking-[0.2em] mb-2">Detailed Feasibility Analysis</p>
@@ -1561,7 +1642,7 @@ export default function SuperAdminDashboard() {
                   <div className="bg-[#0a0b1a] p-8 rounded-3xl border border-white/5 font-mono text-sm text-indigo-200/60 leading-relaxed whitespace-pre-wrap min-h-[120px]">
                     {viewingInquiry.project_description || 'No detailed scope provided by the sponsor.'}
                   </div>
-                  
+
                   {viewingInquiry.supporting_files && (
                     <button className="w-full py-4 bg-white/5 border border-white/5 text-[#f472b6] rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-[#f472b6] hover:text-white transition-all shadow-xl">
                       Download Supporting Protocol
@@ -1569,14 +1650,14 @@ export default function SuperAdminDashboard() {
                   ) || <div className="text-[9px] text-center text-[#555a7a] font-black uppercase tracking-widest opacity-50 italic">No supporting documents attached</div>}
                 </div>
               </div>
-              
+
               <div className="mt-12 pt-12 border-t border-white/5 flex gap-4">
-                 <button 
-                   onClick={() => { handleEngageLead(viewingInquiry.id); setViewingInquiry(null); }}
-                   disabled={isEngaging === viewingInquiry.id || viewingInquiry.status === 'QUALIFIED' || viewingInquiry.status === 'REJECTED'}
-                   className="flex-[2] py-5 bg-[#f472b6] text-white rounded-2xl font-black uppercase tracking-widest italic shadow-xl shadow-[#f472b6]/20"
-                 >Authorize Engagement</button>
-                 <button onClick={() => setViewingInquiry(null)} className="flex-1 py-5 bg-white/5 text-[#555a7a] rounded-2xl font-black uppercase tracking-widest">Close View</button>
+                <button
+                  onClick={() => { handleEngageLead(viewingInquiry.id); setViewingInquiry(null); }}
+                  disabled={isEngaging === viewingInquiry.id || viewingInquiry.status === 'QUALIFIED' || viewingInquiry.status === 'REJECTED'}
+                  className="flex-[2] py-5 bg-[#f472b6] text-white rounded-2xl font-black uppercase tracking-widest italic shadow-xl shadow-[#f472b6]/20"
+                >Authorize Engagement</button>
+                <button onClick={() => setViewingInquiry(null)} className="flex-1 py-5 bg-white/5 text-[#555a7a] rounded-2xl font-black uppercase tracking-widest">Close View</button>
               </div>
             </motion.div>
           </div>
@@ -1815,7 +1896,7 @@ export default function SuperAdminDashboard() {
                       if (item.id === 'WEBSITE') handleWebsiteLink();
                       else if ((item as any).isExternal) handleStudiesLink();
                       else {
-                        setCurrentPage(item.id as Page);
+                        handlePageChange(item.id as Page);
                         setIsSidebarOpen(false); // Close on mobile after selection
                       }
                     }}
@@ -1963,7 +2044,7 @@ export default function SuperAdminDashboard() {
             <motion.button
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              onClick={() => setCurrentPage('DASHBOARD')}
+              onClick={() => handlePageChange('DASHBOARD')}
               className="mb-8 flex items-center gap-2 px-6 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[#7c3aed] hover:bg-[#7c3aed] hover:text-white transition-all group font-black uppercase italic tracking-widest text-[10px]"
             >
               <ChevronRight className="w-4 h-4 rotate-180 group-hover:-translate-x-1 transition-transform" />
@@ -1986,7 +2067,7 @@ export default function SuperAdminDashboard() {
               }}
               onClose={() => {
                 setSelectedStudy(null);
-                setCurrentPage('STUDIES');
+                handlePageChange('STUDIES');
               }}
             />
           )}

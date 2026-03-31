@@ -4,9 +4,10 @@ import {
     Clock, Calendar, CheckCircle2, AlertCircle, Lock, 
     ChevronRight, Zap, Trophy, Play, FileText, 
     ClipboardList, Filter, LayoutGrid, List as ListIcon,
-    Download, ExternalLink, HelpCircle
+    Download, ExternalLink, HelpCircle, Eye
 } from 'lucide-react';
 import { Card, Badge, SegmentedProgressBar, Legend, FilterChip, ProgressBar } from './SharedComponents';
+import { jsPDF } from 'jspdf';
 
 interface Task {
     id: string;
@@ -24,7 +25,7 @@ interface Task {
     };
 }
 
-const TasksView = ({ tasks = [], onAction, study }: { tasks: any[]; onAction: (t: string, task?: any) => void; study?: any }) => {
+const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; onAction: (t: string, task?: any) => void; study?: any; userName?: string }) => {
     const [filter, setFilter] = useState('All');
     const [viewMode, setViewMode] = useState<'timeline' | 'list'>('timeline');
 
@@ -104,32 +105,167 @@ const TasksView = ({ tasks = [], onAction, study }: { tasks: any[]; onAction: (t
         return status;
     };
 
-    const handleDownloadDummy = () => {
-        // As a senior dev, I'll simulate a download mission with a sleek dummy file
-        const logoUrl = "https://musbresearch.com/logo.png"; // Placeholder for actual
-        const content = `
-███╗   ███╗██╗   ██╗███████╗██████╗ 
-████╗ ████║██║   ██║██╔════╝██╔══██╗
-██╔████╔██║██║   ██║███████╗██████╔╝
-██║╚██╔╝██║██║   ██║╚════██║██╔══██╗
-██║ ╚═╝ ██║╚██████╔╝███████║██████╔╝
-╚═╝     ╚═╝ ╚═════╝ ╚══════╝╚═════╝ 
-        RESEARCH PROTOCOL SYNC
-        ----------------------
-        Task ID: RESEARCH_SYNC_NODE_${Math.random().toString(36).substring(7).toUpperCase()}
-        Status: Verified
-        Timestamp: ${new Date().toISOString()}
+    const handleDownloadDummy = (task?: any) => {
+        const pdf = new jsPDF();
         
-        This is a dummy protocol document generated for verification.
-        MusB Research Website - Secure Data Node.
-        `;
-        const blob = new Blob([content], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = "MusB_Research_Protocol.txt";
-        a.click();
-        URL.revokeObjectURL(url);
+        // --- Add MusB Branding ---
+        pdf.setFillColor(13, 20, 36);
+        pdf.rect(0, 0, 210, 40, 'F');
+        
+        pdf.setTextColor(34, 211, 238);
+        pdf.setFontSize(26);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('ABC RESEARCH PVT. LTD.', 105, 20, { align: 'center' });
+        
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(10);
+        pdf.text('MUSB-PROTOCOL-SYNC | HEALTH AND LIFESTYLE SURVEY', 105, 30, { align: 'center' });
+
+        // --- Survey Content ---
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(18);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text("STUDY TITLE: HEALTH AND LIFESTYLE SURVEY", 20, 60);
+        
+        pdf.setDrawColor(34, 211, 238);
+        pdf.line(20, 65, 190, 65);
+        
+        pdf.setFontSize(11);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text("PURPOSE:", 20, 75);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text("This study is being conducted to understand general health and lifestyle patterns.", 20, 82);
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.text("PARTICIPATION:", 20, 92);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text("- Your participation is voluntary and you can stop at any time.", 20, 99);
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.text("WHAT YOU WILL DO:", 20, 109);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text("- Answer simple questions and share habits (10-15 min requirement).", 20, 116);
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.text("PRIVACY & CONFIDENTIALITY:", 20, 126);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text("- Your data is encrypted and de-identified per MusB protocols.", 20, 133);
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.text("CONSENT TERMS:", 20, 145);
+        const termsText = [
+            "1. Participation is 100% voluntary and revocable at any clinical node point.",
+            "2. Biometric sync requires daily logging of health metrics (Habits, Sleep, etc).",
+            "3. Data is encrypted via AES-256 and de-identified for ABC Research analysis.",
+            "4. No major risks involved; participants may skip personal habits questions.",
+            "5. Direct benefit for survey participation includes study credits and node access."
+        ];
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(termsText, 25, 153);
+
+        // --- Participant Box ---
+        pdf.setDrawColor(200, 200, 200);
+        pdf.rect(20, 195, 170, 50);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text("PARTICIPANT ATTESTATION", 25, 205);
+        
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`NAME: ${userName?.toUpperCase() || study?.participant_name || 'PARTICIPANT'}`, 30, 215);
+        pdf.text(`DATE: ${new Date().toLocaleDateString()}`, 30, 222);
+        pdf.text(`TIME: ${new Date().toLocaleTimeString()}`, 30, 229);
+        
+        if (task?.status === 'COMPLETED') {
+            pdf.setTextColor(34, 197, 94); // Green
+            pdf.setFontSize(22);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text("VERIFIED & SIGNED", 115, 225, { angle: 10 });
+            pdf.setFontSize(11);
+            pdf.setTextColor(0, 0, 0);
+        } else {
+            pdf.setFont('courier', 'italic');
+            pdf.setFontSize(14);
+            pdf.text("X ____________________", 30, 238);
+            pdf.setFontSize(8);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text("(Electronic Signature Node Verification Pending)", 90, 238);
+        }
+
+        // Footer
+        pdf.setFontSize(7);
+        pdf.setTextColor(150, 150, 150);
+        pdf.text(`Document uniquely hashed for ${userName || 'Participant'}. Protocol ABC-HLS-2026. Data Node: MUSB-V-SYNC`, 105, 285, { align: 'center' });
+
+        pdf.save(`ABC_Consent_${userName?.replace(/\s+/g, '_') || 'Study'}.pdf`);
+    };
+
+    const handleViewProtocol = (task?: any) => {
+        const pdf = new jsPDF();
+        
+        // branding
+        pdf.setFillColor(13, 20, 36);
+        pdf.rect(0, 0, 210, 40, 'F');
+        pdf.setTextColor(34, 211, 238);
+        pdf.setFontSize(26);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('ABC RESEARCH PVT. LTD.', 105, 20, { align: 'center' });
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(10);
+        pdf.text(`SECURE PREVIEW | STATUS: ${task?.status || 'PENDING'}`, 105, 30, { align: 'center' });
+
+        // details
+        pdf.setTextColor(0,0,0);
+        pdf.setFontSize(16);
+        pdf.text("HEALTH AND LIFESTYLE SURVEY: CONSENT PROTOCOL", 20, 60);
+        pdf.setDrawColor(34, 211, 238);
+        pdf.line(20, 65, 190, 65);
+        
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        const previewText = "You are reviewing the Informed Consent Form for study protocol ABC-HLS-2026. This study analyzes the correlation between habit synchronization and physiological stability. All data is managed within the secure MusB clinical cloud.";
+        pdf.text(pdf.splitTextToSize(previewText, 170), 20, 75);
+
+        // Content Sections
+        const sections = [
+            { t: "1. PURPOSE", c: "To map health patterns via digital habit tracking." },
+            { t: "2. PARTICIPATION", c: "Voluntary participation. One may withdraw at any node cycle." },
+            { t: "3. RISKS & BENEFITS", c: "Zero physiological risk. Enhanced health awareness through data." },
+            { t: "4. PRIVACY", c: "AES-256 End-to-End Encryption with biometric hashing." }
+        ];
+
+        let cursorY = 95;
+        sections.forEach(s => {
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(s.t, 20, cursorY);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(s.c, 30, cursorY + 7);
+            cursorY += 18;
+        });
+
+        // participant field box
+        const isComplete = task?.status === 'COMPLETED';
+        pdf.setDrawColor(isComplete ? 34 : 150, isComplete ? 197 : 150, isComplete ? 94 : 150);
+        pdf.setLineDashPattern([2, 1], 0);
+        pdf.rect(20, 180, 170, 50);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text("SECURE ATTESTATION NODE", 25, 190);
+        
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`PARTICIPANT: ${userName?.toUpperCase() || 'B.K. LPUINSTA'}`, 30, 205);
+        pdf.text(`SYNC DATE: ${new Date().toLocaleDateString()}`, 30, 215);
+        
+        if (isComplete) {
+            pdf.setTextColor(34, 197, 94);
+            pdf.setFontSize(18);
+            pdf.text("VERIFIED & SIGNED", 110, 212);
+            pdf.setFontSize(8);
+            pdf.text("ID: " + Math.random().toString(36).substring(7).toUpperCase(), 110, 218);
+        } else {
+            pdf.text("STATUS: AWAITING SIGNATURE", 90, 215);
+        }
+
+        const pdfBlob = pdf.output('blob');
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        window.open(pdfUrl, '_blank');
     };
 
     return (
@@ -334,13 +470,22 @@ const TasksView = ({ tasks = [], onAction, study }: { tasks: any[]; onAction: (t
                                                                             className={`flex-1 ${isOverdue ? 'bg-red-500 hover:bg-red-400' : 'bg-cyan-500 hover:bg-cyan-400'} text-slate-950 py-3 rounded-xl font-black text-[12px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95`}
                                                                         >
                                                                             {task.status === 'IN_PROGRESS' ? <Zap className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
-                                                                            {task.status === 'IN_PROGRESS' ? 'Resume Mission' : isOverdue ? 'Complete Now' : 'Initialize Mission'}
+                                                                            {task.status === 'IN_PROGRESS' ? 'Resume Mission' : isOverdue ? 'Complete Now' : task.task_details?.task_type === 'CONSENT' ? 'Initialize Signing' : 'Initialize Mission'}
                                                                         </button>
                                                                     )}
                                                                     
                                                                     <div className="flex gap-2">
+                                                                        {task.task_details?.task_type === 'CONSENT' && (
+                                                                            <button 
+                                                                                onClick={() => handleViewProtocol(task)}
+                                                                                title="Preview Protocol"
+                                                                                className="p-3 bg-white/5 border border-white/5 text-cyan-400 hover:text-white hover:border-cyan-500/30 rounded-xl transition-all"
+                                                                            >
+                                                                                <Eye className="w-4 h-4" />
+                                                                            </button>
+                                                                        )}
                                                                         <button 
-                                                                            onClick={handleDownloadDummy}
+                                                                            onClick={() => handleDownloadDummy(task)}
                                                                             title="Download Protocol"
                                                                             className="p-3 bg-white/5 border border-white/5 text-slate-500 hover:text-white hover:border-white/10 rounded-xl transition-all"
                                                                         >

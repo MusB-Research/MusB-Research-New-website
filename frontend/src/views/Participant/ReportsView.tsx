@@ -96,55 +96,55 @@ const ReportsView = ({ userName, handleExportPDF: externalExport, study }: { use
             </motion.div>
 
             {/* ──────────────── SUMMARY OVERVIEW ──────────────── */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <Card className="p-8 group">
-                    <div className="flex justify-between items-start mb-6">
-                        <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest">Study Completion</h4>
-                        <div className="w-10 h-10 bg-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-400">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                <Card className="p-8 group hover:border-cyan-500/30 transition-all duration-500">
+                    <div className="flex justify-between items-start mb-8">
+                        <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">Study Completion</h4>
+                        <div className="w-10 h-10 bg-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-400 border border-cyan-500/20 shadow-inner">
                             <Target className="w-5 h-5" />
                         </div>
                     </div>
                     <div className="flex items-center gap-8">
-                        <CircularProgress value={68} />
+                        <CircularProgress value={68} size={90} strokeWidth={8} />
                         <div>
-                            <span className="text-sm font-black text-white uppercase italic block mb-1">On Track</span>
-                            <p className="text-[12px] font-bold text-slate-500 uppercase leading-relaxed tracking-wider">You have completed 68% of your study mission.</p>
+                            <span className="text-[13px] font-black text-white uppercase italic block mb-1">On Track</span>
+                            <p className="text-[11px] font-bold text-slate-500 uppercase leading-relaxed tracking-wider">Mission completion status: 68% synchronized</p>
                         </div>
                     </div>
                 </Card>
 
-                <Card className="p-8 group">
-                    <div className="flex justify-between items-start mb-6">
-                        <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest">Days in Study</h4>
-                        <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400">
+                <Card className="p-8 group hover:border-indigo-500/30 transition-all duration-500">
+                    <div className="flex justify-between items-start mb-8">
+                        <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">Days in Study</h4>
+                        <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400 border border-indigo-500/20 shadow-inner">
                             <Clock className="w-5 h-5" />
                         </div>
                     </div>
                     <div className="space-y-4">
                         <div className="flex items-baseline gap-2">
-                            <span className="text-5xl font-black text-white italic leading-none">45</span>
-                            <span className="text-2xl font-black text-slate-500 uppercase italic">Days</span>
+                            <span className="text-6xl font-black text-white italic leading-none drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">45</span>
+                            <span className="text-2xl font-black text-slate-600 uppercase italic">Days</span>
                         </div>
-                        <p className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Total uptime since enrollment</p>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Total active session duration</p>
                     </div>
                 </Card>
 
-                <Card className="p-8 group">
-                    <div className="flex justify-between items-start mb-6">
-                        <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest">Tasks Completed</h4>
-                        <div className="w-10 h-10 bg-[#00e676]/10 rounded-xl flex items-center justify-center text-[#00e676]">
+                <Card className="p-8 group hover:border-[#00e676]/30 transition-all duration-500 md:col-span-2 lg:col-span-1">
+                    <div className="flex justify-between items-start mb-8">
+                        <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">Tasks Completed</h4>
+                        <div className="w-10 h-10 bg-[#00e676]/10 rounded-xl flex items-center justify-center text-[#00e676] border border-[#00e676]/20 shadow-inner">
                             <CheckCircle2 className="w-5 h-5" />
                         </div>
                     </div>
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         <div className="flex justify-between items-end">
                             <div className="flex items-baseline gap-1">
-                                <span className="text-4xl font-black text-white italic leading-none">32</span>
-                                <span className="text-slate-500 font-bold uppercase text-sm">/ 50</span>
+                                <span className="text-5xl font-black text-white italic leading-none">32</span>
+                                <span className="text-slate-500 font-bold uppercase text-lg">/ 50</span>
                             </div>
-                            <span className="text-[12px] font-black text-[#00e676] uppercase tracking-widest italic">64% Done</span>
+                            <Badge color="green" className="animate-pulse">64% SYNCED</Badge>
                         </div>
-                        <ProgressBar percent={64} />
+                        <ProgressBar percent={64} height={10} />
                     </div>
                 </Card>
             </div>
@@ -241,39 +241,51 @@ const ReportsView = ({ userName, handleExportPDF: externalExport, study }: { use
             </div>
 
             {/* ──────────────── EARNINGS SUMMARY ──────────────── */}
-            <Card className="p-10 border border-indigo-500/20 bg-gradient-to-b from-[#0d1424] to-[#0a0e1a]">
-                <div className="flex flex-col md:flex-row justify-between gap-10 mb-12">
-                    <div>
-                        <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-2">Earnings Summary</h3>
-                        <p className="text-slate-500 font-bold uppercase tracking-widest text-[12px]">Track your participation rewards and pending credits</p>
+            <Card className="p-10 border border-white/[0.05] bg-[#0d1424]/40 backdrop-blur-3xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 blur-[100px] -mr-32 -mt-32 rounded-full" />
+                
+                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-12 mb-16 relative z-10">
+                    <div className="max-w-xl">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400 border border-indigo-500/20">
+                                <DollarSign className="w-6 h-6" />
+                            </div>
+                            <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">Earnings Summary</h3>
+                        </div>
+                        <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px] leading-relaxed">
+                            Monitor your clinical participation incentives, pending verification credits, and finalized disbursements in real-time.
+                        </p>
                     </div>
-                    <div className="grid grid-cols-3 gap-8">
-                        <div className="text-right">
-                            <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest block mb-1">Total Earned</span>
-                            <span className="text-2xl font-black text-white italic leading-none">$120</span>
+
+                    <div className="flex flex-wrap gap-8 md:gap-12 w-full xl:w-auto">
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] mb-2 leading-none">Total Value</span>
+                            <span className="text-4xl font-black text-white italic leading-none tracking-tighter">$120</span>
                         </div>
-                        <div className="text-right">
-                            <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest block mb-1">Pending</span>
-                            <span className="text-2xl font-black text-amber-500 italic leading-none">$30</span>
+                        <div className="w-px h-12 bg-white/5 hidden md:block" />
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] mb-2 leading-none font-bold">Pending Sync</span>
+                            <span className="text-4xl font-black text-amber-500 italic leading-none tracking-tighter">$30</span>
                         </div>
-                        <div className="text-right">
-                            <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest block mb-1">Received</span>
-                            <span className="text-2xl font-black text-[#00e676] italic leading-none">$90</span>
+                        <div className="w-px h-12 bg-white/5 hidden md:block" />
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] mb-2 leading-none font-bold text-[#00e676]">Finalized</span>
+                            <span className="text-4xl font-black text-[#00e676] italic leading-none tracking-tighter">$90</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
+                <div className="overflow-x-auto relative z-10">
+                    <table className="w-full min-w-[700px] border-separate border-spacing-y-3">
                         <thead>
-                            <tr className="border-b border-white/5">
-                                <th className="pb-5 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">Activity Node</th>
-                                <th className="pb-5 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">Timestamp</th>
-                                <th className="pb-5 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] text-right">Credit Value</th>
-                                <th className="pb-5 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] text-right">Status</th>
+                            <tr className="text-left">
+                                <th className="px-6 pb-6 text-[11px] font-black text-slate-600 uppercase tracking-[0.3em]">Protocol Task</th>
+                                <th className="px-6 pb-6 text-[11px] font-black text-slate-600 uppercase tracking-[0.3em]">Sync Date</th>
+                                <th className="px-6 pb-6 text-[11px] font-black text-slate-600 uppercase tracking-[0.3em] text-right">Incentive</th>
+                                <th className="px-6 pb-6 text-[11px] font-black text-slate-600 uppercase tracking-[0.3em] text-right">Portal Status</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/[0.03]">
+                        <tbody className="space-y-3">
                             {[
                                 { node: 'Enrollment Mission', date: '2026-04-01', value: '$20.00', status: 'PAID' },
                                 { node: 'Baseline Survey Sync', date: '2026-04-05', value: '$25.00', status: 'PAID' },
@@ -281,19 +293,19 @@ const ReportsView = ({ userName, handleExportPDF: externalExport, study }: { use
                                 { node: 'Weekly Dosing Streak #1', date: '2026-04-20', value: '$25.00', status: 'PAID' },
                                 { node: 'Midpoint Assessment', date: '2026-05-15', value: '$30.00', status: 'PENDING' }
                             ].map((row, i) => (
-                                <tr key={i} className="group hover:bg-white/[0.01] transition-colors">
-                                    <td className="py-5">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black italic ${row.status === 'PAID' ? 'bg-[#00e676]/10 text-[#00e676]' : 'bg-amber-500/10 text-amber-500'}`}>
+                                <tr key={i} className="group hover:bg-white/[0.03] transition-all bg-white/[0.01] rounded-2xl">
+                                    <td className="px-6 py-6 rounded-l-2xl border-y border-l border-white/[0.02]">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xs font-black italic border transition-all duration-500 group-hover:scale-110 ${row.status === 'PAID' ? 'bg-[#00e676]/10 text-[#00e676] border-[#00e676]/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
                                                 {row.status === 'PAID' ? '$' : '?'}
                                             </div>
-                                            <span className="text-sm font-black text-white uppercase italic tracking-tight">{row.node}</span>
+                                            <span className="text-[15px] font-black text-white uppercase italic tracking-tight">{row.node}</span>
                                         </div>
                                     </td>
-                                    <td className="py-5 text-[11px] font-black text-slate-500 uppercase tracking-widest">{row.date}</td>
-                                    <td className="py-5 text-right font-black text-white italic text-sm tracking-tight">{row.value}</td>
-                                    <td className="py-5 text-right">
-                                        <Badge color={row.status === 'PAID' ? 'green' : 'amber'}>{row.status}</Badge>
+                                    <td className="px-6 py-6 border-y border-white/[0.02] text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">{row.date}</td>
+                                    <td className="px-6 py-6 border-y border-white/[0.02] text-right font-black text-white italic text-base tracking-tight">{row.value}</td>
+                                    <td className="px-6 py-6 rounded-r-2xl border-y border-r border-white/[0.02] text-right">
+                                        <Badge color={row.status === 'PAID' ? 'green' : 'amber'} className="min-w-[80px]">{row.status}</Badge>
                                     </td>
                                 </tr>
                             ))}

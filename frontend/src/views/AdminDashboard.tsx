@@ -7,7 +7,7 @@ import {
     ShieldCheck, FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { authFetch, clearToken, getRole, performLogout , API } from '../utils/auth';
 import DashboardModule from '../components/admin/DashboardModule';
 import TeamModule from '../components/admin/TeamModule';
@@ -29,13 +29,64 @@ type AdminModule = 'DASHBOARD' | 'STUDIES' | 'TEAM' | 'SCREENER_BUILDER' | 'AUDI
 
 
 export default function AdminDashboard() {
-    const [activeModule, setActiveModule] = useState<AdminModule>('DASHBOARD');
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const [activeModule, setActiveModule] = useState<AdminModule>(() => {
+        const route = location.pathname.split('/').pop();
+        if (route === 'studies') return 'STUDIES';
+        if (route === 'team') return 'TEAM';
+        if (route === 'screeners') return 'SCREENER_BUILDER';
+        if (route === 'audit') return 'AUDIT_LOGS';
+        if (route === 'settings') return 'SETTINGS';
+        if (route === 'compliance') return 'COMPLIANCE';
+        if (route === 'approvals') return 'APPROVALS';
+        if (route === 'content') return 'SUBMIT_CONTENT';
+        if (route === 'workflow') return 'WORKFLOW';
+        if (route === 'messages') return 'MESSAGES';
+        return 'DASHBOARD';
+    });
+
+    // Sync state with URL for back button support
+    useEffect(() => {
+        const route = location.pathname.split('/').pop();
+        if (route === 'studies') setActiveModule('STUDIES');
+        else if (route === 'team') setActiveModule('TEAM');
+        else if (route === 'screeners') setActiveModule('SCREENER_BUILDER');
+        else if (route === 'audit') setActiveModule('AUDIT_LOGS');
+        else if (route === 'settings') setActiveModule('SETTINGS');
+        else if (route === 'compliance') setActiveModule('COMPLIANCE');
+        else if (route === 'approvals') setActiveModule('APPROVALS');
+        else if (route === 'content') setActiveModule('SUBMIT_CONTENT');
+        else if (route === 'workflow') setActiveModule('WORKFLOW');
+        else if (route === 'messages') setActiveModule('MESSAGES');
+        else if (location.pathname.endsWith('/admin') || !route || route === 'admin') setActiveModule('DASHBOARD');
+    }, [location.pathname]);
+
+    const handleModuleChange = (mod: AdminModule) => {
+        const slugs: Record<string, string> = {
+            'DASHBOARD': '',
+            'STUDIES': 'studies',
+            'TEAM': 'team',
+            'SCREENER_BUILDER': 'screeners',
+            'AUDIT_LOGS': 'audit',
+            'SETTINGS': 'settings',
+            'COMPLIANCE': 'compliance',
+            'APPROVALS': 'approvals',
+            'SUBMIT_CONTENT': 'content',
+            'WORKFLOW': 'workflow',
+            'MESSAGES': 'messages'
+        };
+        const slug = slugs[mod];
+        setActiveModule(mod);
+        navigate(`/dashboard/admin${slug ? '/' + slug : ''}`);
+    };
+
     const [studies, setStudies] = useState<any[]>([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedStudy, setSelectedStudy] = useState<any>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [user, setUser] = useState<any>(null);
-    const navigate = useNavigate();
 
     const apiUrl = API || 'http://localhost:8000';
 
@@ -106,7 +157,7 @@ export default function AdminDashboard() {
                             key={item.id}
                             onClick={() => {
                                 if (item.id === 'WEBSITE') window.open('/', '_blank');
-                                else setActiveModule(item.id as AdminModule);
+                                else handleModuleChange(item.id as AdminModule);
                             }}
                             className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group ${activeModule === item.id
                                 ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]'

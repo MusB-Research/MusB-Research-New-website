@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { authFetch, API } from '../../utils/auth';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    Activity, AlertCircle, FileUp, ClipboardList, CheckCircle2, 
+import {
+    Activity, AlertCircle, FileUp, ClipboardList, CheckCircle2,
     AlertTriangle, Phone, ChevronRight, Info, Plus, Calendar,
     FileText, Save, Clock, ArrowRight, X, Trash2, Microscope
 } from 'lucide-react';
@@ -46,7 +46,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                 authFetch(`${apiUrl}/api/dosing-logs/`),
                 authFetch(`${apiUrl}/api/ae-reports/`)
             ]);
-            
+
             let combined: any[] = [];
             if (dosingResp.ok) {
                 const dosingData = await dosingResp.json();
@@ -56,7 +56,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                 const aeData = await aeResp.json();
                 combined = [...combined, ...aeData.map((a: any) => ({ ...a, type: 'AE' }))];
             }
-            
+
             setHistory(combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
         } catch (e) {
             console.error("History fetch failed", e);
@@ -74,7 +74,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                     date: new Date().toISOString().split('T')[0],
                     dose_taken: dosingTaken === 'YES',
                     missed_reason: dosingReason,
-                    side_effects: '', 
+                    side_effects: '',
                     notes: ''
                 })
             });
@@ -106,7 +106,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
             onAction('REQUEST_URGENT_CALL');
             return;
         }
-        
+
         try {
             const apiUrl = API || 'http://localhost:8000';
             const resp = await authFetch(`${apiUrl}/api/ae-reports/`, {
@@ -205,19 +205,17 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                             <div className="space-y-4">
                                 <label className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] px-2 block">1. Was your study dose taken today?</label>
                                 <div className="flex gap-4 p-2 bg-white/[0.02] border border-white/5 rounded-3xl">
-                                    <button 
+                                    <button
                                         onClick={() => setDosingTaken('YES')}
-                                        className={`flex-1 py-4 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all ${
-                                            dosingTaken === 'YES' ? 'bg-[#00e676] text-slate-950 shadow-lg shadow-[#00e676]/20' : 'text-slate-500 hover:text-white'
-                                        }`}
+                                        className={`flex-1 py-4 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all ${dosingTaken === 'YES' ? 'bg-[#00e676] text-slate-950 shadow-lg shadow-[#00e676]/20' : 'text-slate-500 hover:text-white'
+                                            }`}
                                     >
                                         YES (CONFIRMED)
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={() => setDosingTaken('NO')}
-                                        className={`flex-1 py-4 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all ${
-                                            dosingTaken === 'NO' ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'text-slate-500 hover:text-white'
-                                        }`}
+                                        className={`flex-1 py-4 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all ${dosingTaken === 'NO' ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'text-slate-500 hover:text-white'
+                                            }`}
                                     >
                                         NO (MISSED)
                                     </button>
@@ -227,13 +225,13 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                             {/* Missed Reason (Conditional) */}
                             <AnimatePresence>
                                 {dosingTaken === 'NO' && (
-                                    <motion.div 
+                                    <motion.div
                                         initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}
                                         className="space-y-4"
                                     >
                                         <label className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] px-2 block">2. missed dose rationale?</label>
                                         <div className="relative">
-                                            <button 
+                                            <button
                                                 onClick={() => setOpenDosingReason(!openDosingReason)}
                                                 className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-left text-sm font-black uppercase text-white outline-none focus:border-[#00e676]/30 flex justify-between items-center transition-all"
                                             >
@@ -242,12 +240,12 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                                             </button>
                                             <AnimatePresence>
                                                 {openDosingReason && (
-                                                    <motion.div 
+                                                    <motion.div
                                                         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
                                                         className="absolute z-50 top-full left-0 w-full mt-2 bg-[#121826] border border-white/10 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-xl"
                                                     >
                                                         {['Forgot / Overlooked', 'Felt Unwell / AE', 'Travel / Access', 'Supplies Depleted', 'Other'].map(opt => (
-                                                            <button 
+                                                            <button
                                                                 key={opt}
                                                                 onClick={() => { setDosingReason(opt); setOpenDosingReason(false); }}
                                                                 className="w-full p-4 text-left text-sm font-bold text-slate-400 hover:bg-white/5 hover:text-white transition-colors border-b border-white/5 last:border-0"
@@ -267,14 +265,14 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                             <div className="space-y-4">
                                 <label className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] px-2 block">Side Effects (Observed)</label>
-                                <textarea 
+                                <textarea
                                     placeholder="Describe any physiological variances experienced today..."
                                     className="w-full h-32 bg-white/5 border border-white/10 rounded-[2rem] p-6 text-sm font-bold text-slate-300 outline-none focus:border-cyan-500/30 resize-none placeholder:text-slate-700"
                                 />
                             </div>
                             <div className="space-y-4">
                                 <label className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] px-2 block">Mission Observations (Notes)</label>
-                                <textarea 
+                                <textarea
                                     placeholder="Food intake, timing variances, or logistical notes..."
                                     className="w-full h-32 bg-white/5 border border-white/10 rounded-[2rem] p-6 text-sm font-bold text-slate-300 outline-none focus:border-indigo-500/30 resize-none placeholder:text-slate-700"
                                 />
@@ -293,12 +291,11 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                                     Edit Today's Node
                                 </button>
                             )}
-                            <button 
+                            <button
                                 onClick={handleSubmitDosing}
-                                disabled={!dosingTaken}
-                                className={`px-10 py-3 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3 shadow-lg disabled:opacity-30 ${
-                                    dosingStatus === 'SUBMITTED' ? 'bg-indigo-600/30 text-indigo-200 border border-indigo-500/30' : 'bg-cyan-500 text-slate-950 shadow-cyan-500/20 hover:bg-cyan-400'
-                                }`}
+                                disabled={!dosingTaken || dosingStatus === 'SUBMITTED'}
+                                className={`px-10 py-3 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3 shadow-lg disabled:opacity-30 ${dosingStatus === 'SUBMITTED' ? 'bg-indigo-600/30 text-indigo-200 border border-indigo-500/30' : 'bg-cyan-500 text-slate-950 shadow-cyan-500/20 hover:bg-cyan-400'
+                                    }`}
                             >
                                 <Save className="w-4 h-4" />
                                 {dosingStatus === 'SUBMITTED' ? 'MISSION SYNCED' : 'INITIALIZE SYNC'}
@@ -321,7 +318,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                                 <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">Formal Adverse Event protocol report system</p>
                             </div>
                         </div>
-                        <button 
+                        <button
                             onClick={handleAEAction}
                             className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-500 text-white rounded-2xl font-black text-[12px] uppercase tracking-widest shadow-lg shadow-red-600/20 active:scale-95 transition-all"
                         >
@@ -338,7 +335,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                     <div className="p-10 space-y-10">
                         <div className="space-y-4">
                             <label className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] px-2 block underline decoration-red-500/30 underline-offset-4">Event description [WHAT HAPPENED?]</label>
-                            <textarea 
+                            <textarea
                                 value={aeDescription}
                                 onChange={(e) => setAeDescription(e.target.value)}
                                 placeholder="Describe symptoms, medical concerns, or physiological anomalies in detail..."
@@ -354,7 +351,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                             <div className="space-y-4">
                                 <label className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] px-2 block">Severity Matrix</label>
                                 <div className="relative">
-                                    <button 
+                                    <button
                                         onClick={() => setOpenAeSeverity(!openAeSeverity)}
                                         className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-left text-sm font-black uppercase text-white outline-none focus:border-red-500/30 flex justify-between items-center transition-all"
                                     >
@@ -363,17 +360,16 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                                     </button>
                                     <AnimatePresence>
                                         {openAeSeverity && (
-                                            <motion.div 
+                                            <motion.div
                                                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
                                                 className="absolute z-50 top-full left-0 w-full mt-2 bg-[#1a1212] border border-red-500/20 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-xl"
                                             >
                                                 {['MILD', 'MODERATE', 'SEVERE'].map(opt => (
-                                                    <button 
+                                                    <button
                                                         key={opt}
                                                         onClick={() => { setAeSeverity(opt); setOpenAeSeverity(false); }}
-                                                        className={`w-full p-4 text-left text-sm font-bold transition-colors border-b border-white/5 last:border-0 ${
-                                                            opt === 'SEVERE' ? 'text-red-500 bg-red-500/5 hover:bg-red-500/10' : 'text-slate-400 hover:bg-white/5 hover:text-white'
-                                                        }`}
+                                                        className={`w-full p-4 text-left text-sm font-bold transition-colors border-b border-white/5 last:border-0 ${opt === 'SEVERE' ? 'text-red-500 bg-red-500/5 hover:bg-red-500/10' : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                                                            }`}
                                                     >
                                                         {opt}
                                                     </button>
@@ -402,7 +398,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                     </div>
 
                     <div className="p-8 bg-black/20 border-t border-red-500/20 flex justify-end">
-                        <button 
+                        <button
                             onClick={() => alert("we got your request and our team members contact you shortly")}
                             disabled={!aeDescription}
                             className="px-14 py-4 bg-red-600 shadow-[0_0_40px_rgba(239,68,68,0.2)] hover:shadow-[0_0_50px_rgba(239,68,68,0.4)] text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] transition-all active:scale-95 disabled:opacity-30"
@@ -434,12 +430,11 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                                 <label className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] px-2 block">Protocol Lab Type</label>
                                 <div className="grid grid-cols-2 gap-3">
                                     {['Blood', 'Urine', 'Microbiome', 'Genetics'].map(type => (
-                                        <button 
+                                        <button
                                             key={type}
                                             onClick={() => setLabType(type)}
-                                            className={`py-4 rounded-xl border text-[12px] font-black uppercase tracking-widest transition-all ${
-                                                labType === type ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/10' : 'bg-white/5 border-white/5 text-slate-500 hover:text-white'
-                                            }`}
+                                            className={`py-4 rounded-xl border text-[12px] font-black uppercase tracking-widest transition-all ${labType === type ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/10' : 'bg-white/5 border-white/5 text-slate-500 hover:text-white'
+                                                }`}
                                         >
                                             {type}
                                         </button>
@@ -456,14 +451,13 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                         <div className="space-y-4">
                             <label className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] px-2 block">Source Lab Document [UPLOAD]</label>
                             <label className="block cursor-pointer">
-                                <input 
-                                    type="file" 
-                                    className="hidden" 
-                                    onChange={(e) => setUploadedFile(e.target.files ? e.target.files[0] : null)} 
+                                <input
+                                    type="file"
+                                    className="hidden"
+                                    onChange={(e) => setUploadedFile(e.target.files ? e.target.files[0] : null)}
                                 />
-                                <div className={`aspect-video md:aspect-[3/1] rounded-[3rem] border-2 border-dashed flex flex-col items-center justify-center p-12 transition-all ${
-                                    uploadedFile ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-white/[0.02] border-white/10 hover:bg-white/[0.04] hover:border-white/20'
-                                }`}>
+                                <div className={`aspect-video md:aspect-[3/1] rounded-[3rem] border-2 border-dashed flex flex-col items-center justify-center p-12 transition-all ${uploadedFile ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-white/[0.02] border-white/10 hover:bg-white/[0.04] hover:border-white/20'
+                                    }`}>
                                     {!uploadedFile ? (
                                         <>
                                             <div className="w-16 h-16 bg-white/5 rounded-3xl flex items-center justify-center text-slate-500 mb-6">
@@ -478,8 +472,8 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                                                 <CheckCircle2 className="w-8 h-8" />
                                             </div>
                                             <p className="text-sm font-black text-white italic uppercase tracking-tight">{uploadedFile.name}</p>
-                                            <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] mt-2">{(uploadedFile.size/1024/1024).toFixed(2)} MB</p>
-                                            <button 
+                                            <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] mt-2">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                                            <button
                                                 onClick={(e) => { e.preventDefault(); setUploadedFile(null); }}
                                                 className="mt-6 flex items-center gap-2 text-red-500 hover:text-red-400 text-[10px] font-black uppercase tracking-widest transition-colors"
                                             >
@@ -523,7 +517,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                         </div>
                     ) : (
                         history.map((item, idx) => (
-                            <motion.div 
+                            <motion.div
                                 key={item.id || idx}
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -531,9 +525,8 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                                 className="group relative bg-[#0a0e1a]/80 border border-white/5 p-6 rounded-[2rem] hover:border-cyan-500/20 transition-all flex items-center justify-between overflow-hidden"
                             >
                                 <div className="flex items-center gap-6">
-                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${
-                                        item.type === 'AE' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400'
-                                    }`}>
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${item.type === 'AE' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400'
+                                        }`}>
                                         {item.type === 'AE' ? <AlertTriangle className="w-5 h-5" /> : <Activity className="w-5 h-5" />}
                                     </div>
                                     <div>

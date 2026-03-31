@@ -26,7 +26,7 @@ const AnimatedBackground = () => {
         let mouseY = 0;
 
         // Configuration
-        const particleCount = 30; 
+        const particleCount = 30;
         const connectionDistance = 180;
         const mouseRadius = 250;
 
@@ -54,14 +54,14 @@ const AnimatedBackground = () => {
                     speedX: (Math.random() - 0.5) * 0.2,
                     speedY: (Math.random() - 0.5) * 0.2,
                     color: colorBase,
-                    glow: Math.random() * 25 + 15 
+                    glow: Math.random() * 25 + 15
                 });
             }
         };
 
         const drawParticles = () => {
-             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
             const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
             gradient.addColorStop(0, '#020617');
             gradient.addColorStop(1, '#0b1121');

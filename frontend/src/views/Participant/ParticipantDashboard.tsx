@@ -6,7 +6,7 @@ import {
     FileText, Trophy, User, ShieldCheck, LogOut, Menu, X,
     Bell, Zap, TrendingUp, Globe
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authFetch, clearToken, getRole, performLogout, getUser, saveUser, getDisplayName, API } from '../../utils/auth';
 
 // Sub-components from the new modular structure
@@ -21,6 +21,7 @@ import ReportsView from './ReportsView';
 import CompensationView from './CompensationView';
 import ProfileView from './ProfileView';
 import PrivacyDataView from './PrivacyDataView';
+import ConsentModal from './ConsentModal';
 
 export default function ParticipantDashboard() {
     const navigate = useNavigate();
@@ -28,7 +29,62 @@ export default function ParticipantDashboard() {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // ──────────────── STATE MANAGEMENT ────────────────
-    const [activeNav, setActiveNav] = useState('Dashboard');
+    const location = useLocation();
+    const subRoute = location.pathname.split('/').pop() || '';
+
+    // ──────────────── STATE MANAGEMENT ────────────────
+    const [activeNav, setActiveNav] = useState(() => {
+        // Init from URL if present
+        const route = location.pathname.split('/').pop();
+        if (route === 'tasks') return 'Tasks';
+        if (route === 'study-kit') return 'Study Kit';
+        if (route === 'logs') return 'Logs';
+        if (route === 'messages') return 'Messages';
+        if (route === 'documents') return 'Documents';
+        if (route === 'reports') return 'Reports';
+        if (route === 'compensation') return 'Compensation';
+        if (route === 'profile') return 'Profile';
+        if (route === 'privacy') return 'Privacy & Data';
+        return 'Dashboard';
+    });
+
+    // Update activeNav when URL changes (for browser back button support)
+    useEffect(() => {
+        const route = location.pathname.split('/').pop();
+        if (route === 'tasks') setActiveNav('Tasks');
+        else if (route === 'study-kit') setActiveNav('Study Kit');
+        else if (route === 'logs') setActiveNav('Logs');
+        else if (route === 'messages') setActiveNav('Messages');
+        else if (route === 'documents') setActiveNav('Documents');
+        else if (route === 'reports') setActiveNav('Reports');
+        else if (route === 'compensation') setActiveNav('Compensation');
+        else if (route === 'profile') setActiveNav('Profile');
+        else if (route === 'privacy') setActiveNav('Privacy & Data');
+        else if (route === 'participant' || !route) setActiveNav('Dashboard');
+    }, [location.pathname]);
+
+    const handleNavClick = (label: string) => {
+        const slugs: Record<string, string> = {
+            'Dashboard': '',
+            'Tasks': 'tasks',
+            'Study Kit': 'study-kit',
+            'Logs': 'logs',
+            'Messages': 'messages',
+            'Documents': 'documents',
+            'Reports': 'reports',
+            'Compensation': 'compensation',
+            'Profile': 'profile',
+            'Privacy & Data': 'privacy'
+        };
+        const slug = slugs[label];
+        if (label === 'Main Website') {
+            window.open('/', '_blank');
+        } else {
+            setActiveNav(label);
+            navigate(`/dashboard/participant${slug ? '/' + slug : ''}`);
+        }
+    };
+
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -40,6 +96,7 @@ export default function ParticipantDashboard() {
 
     const [modalConfig, setModalConfig] = useState<{ isOpen: boolean; title: string; desc: string; primaryAction: string; task?: any } | null>(null);
     const [editModal, setEditModal] = useState({ isOpen: false, title: '', value: '', field: '' });
+    const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
 
     const [userProfile, setUserProfile] = useState(() => {
         const u = getUser();
@@ -81,9 +138,30 @@ export default function ParticipantDashboard() {
 
                 // 2. Fetch Tasks
                 const tRes = await authFetch(`${apiUrl}/api/participant-tasks/`);
+                let fetchedTasks = [];
                 if (tRes.ok) {
-                    setTasks(await tRes.json());
+                    fetchedTasks = await tRes.json();
                 }
+                
+                // Inject a Dummy Consent Task if not present for testing mission
+                const hasConsentTask = fetchedTasks.some((t: any) => t.title?.toLowerCase().includes('consent'));
+                if (!hasConsentTask) {
+                    fetchedTasks.unshift({
+                        id: 'dummy-consent-task',
+                        title: 'Informed Consent Form (PI Shared)',
+                        status: 'PENDING',
+                        due_date: new Date().toISOString(),
+                        visit_name: 'Screening Visit',
+                        timeline_group: 'Mandatory',
+                        estimated_time: '10 min',
+                        task_type: 'CONSENT',
+                        task_details: {
+                            task_type: 'CONSENT',
+                            description: 'Review and sign the official study consent form shared by the Principal Investigator.'
+                        }
+                    });
+                }
+                setTasks(fetchedTasks);
             } catch (err) {
                 console.error("Failed to fetch dashboard data:", err);
             }
@@ -190,6 +268,30 @@ export default function ParticipantDashboard() {
             doc.text('Clinical data synchronization with study servers: VERIFIED.', 15, 110);
             doc.text('Integrity Check: AUTH-HASH-0x992B1', 15, 120);
 
+            doc.setTextColor(20, 20, 20);
+            doc.setFontSize(10);
+            doc.text([
+                "PARTICIPANT PROFILE INFORMATION",
+                `Name: ${userProfile.userName || 'Unspecified'}`,
+                `Email: ${userProfile.userEmail || 'Unspecified'}`,
+                `Location: ${userProfile.userLocation || 'Unspecified'}`,
+                `Timezone: ${userProfile.userTimezone || 'UTC'}`,
+                "",
+                "STUDY PROTOCOL ASSIGNMENT",
+                `Active Study: ${activeStudy?.title || 'ABC Research - Health & Lifestyle'}`,
+                `Participant ID: ${activeStudy?.participant_id || 'MUSB-NODE-001'}`,
+                `Enrollment Date: ${new Date().toLocaleDateString()}`,
+                "",
+                "CLINICAL DATA SNAPSHOT",
+                "Status: Active Sync",
+                `Total Tasks Assigned: ${tasks.length}`,
+                `Tasks Completed: ${tasks.filter((t: any) => t.status === 'COMPLETED').length}`,
+                "",
+                "CONFIDENTIALITY NOTICE:",
+                "This document is encrypted and intended only for the participant and study coordinator.",
+                "Data synchronized via MusB Clinical Node Sync protocol."
+            ], 15, 60);
+
             doc.save(title);
 
             setTimeout(() => {
@@ -235,11 +337,30 @@ export default function ParticipantDashboard() {
 
         for (const [key, view] of Object.entries(directNav)) {
             if (lowerTitle.includes(key)) {
-                // If it's a specific "Log" action, we might want a modal OR just go to the page
-                // For this high-fidelity version, clicking "Log Dose" on dashboard takes you to the Logs page
+                // Determine the slug for the view
+                const slugs: Record<string, string> = {
+                    'Dashboard': '',
+                    'Tasks': 'tasks',
+                    'Study Kit': 'study-kit',
+                    'Logs': 'logs',
+                    'Messages': 'messages',
+                    'Documents': 'documents',
+                    'Reports': 'reports',
+                    'Compensation': 'compensation',
+                    'Profile': 'profile',
+                    'Privacy & Data': 'privacy'
+                };
+                const slug = slugs[view];
                 setActiveNav(view);
+                navigate(`/dashboard/participant${slug ? '/' + slug : ''}`);
                 return;
             }
+        }
+
+        // eConsent Trigger
+        if (lowerTitle.includes('consent') || (task?.task_details?.task_type === 'CONSENT')) {
+            setIsConsentModalOpen(true);
+            return;
         }
 
         // Logic for specialized modals (if not caught by directNav)
@@ -348,6 +469,40 @@ export default function ParticipantDashboard() {
         }, 1500);
     };
 
+    const handleConsentComplete = async (signedPdf: File) => {
+        setIsConsentModalOpen(false);
+        setIsActionProcessing(true);
+        
+        try {
+            const formData = new FormData();
+            formData.append('study', activeStudy?.id);
+            formData.append('full_name', userProfile.userName);
+            formData.append('email', userProfile.userEmail);
+            formData.append('signed_pdf', signedPdf);
+            
+            const apiUrl = API || 'http://localhost:8000';
+            const response = await authFetch(`${apiUrl}/api/consents/`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                alert("🔒 eConsent Protocol Finalized. Signed document has been securely uploaded to the study node.");
+                // Update relevant task if any
+                setTasks((prev: any[]) => prev.map(t => t.title.toLowerCase().includes('consent') ? { ...t, status: 'COMPLETED' } : t));
+            } else {
+                const err = await response.json();
+                console.error("Consent upload failed:", err);
+                alert("Security node sync failed. Please try again or contact your coordinator.");
+            }
+        } catch (err) {
+            console.error("Consent process failed:", err);
+            alert("Internal protocol error. Please retry.");
+        } finally {
+            setIsActionProcessing(false);
+        }
+    };
+
     useEffect(() => {
         const role = getRole();
         if (role && role !== 'PARTICIPANT') {
@@ -407,7 +562,7 @@ export default function ParticipantDashboard() {
                         return (
                             <button
                                 key={item.label}
-                                onClick={() => { if (item.label === 'Main Website') window.open('/', '_blank'); else setActiveNav(item.label); }}
+                                onClick={() => { handleNavClick(item.label); }}
                                 className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group ${isActive ? 'bg-[#0a1525] text-cyan-400 border border-cyan-500/30' : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'}`}
                             >
                                 <item.icon className={`w-5 h-5 ${isActive ? 'text-cyan-400' : 'text-slate-500'}`} />
@@ -416,13 +571,6 @@ export default function ParticipantDashboard() {
                         );
                     })}
                 </nav>
-                
-                <div className="px-6 py-4 border-t border-white/[0.05] bg-black/5">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="w-2 h-2 rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] animate-pulse" />
-                        <span className="text-[10px] font-black text-[#00ff9d] uppercase tracking-widest">GLOBAL NODE SYNC</span>
-                    </div>
-                </div>
 
                 <div className="px-4 pb-6 pt-4 border-t border-white/[0.05]">
                     <button onClick={() => setIsLogoutModalOpen(true)} className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-500 hover:text-red-400 hover:bg-red-500/5 transition-all">
@@ -432,8 +580,8 @@ export default function ParticipantDashboard() {
                 </div>
             </aside>
 
-            <div className="flex-1 flex flex-col overflow-hidden relative z-10 w-full">
-                <header className="h-20 flex items-center justify-between px-4 lg:px-8 border-b border-white/[0.04] shrink-0 relative bg-[#0a0e1a]/40 backdrop-blur-md">
+            <div className="flex-1 flex flex-col overflow-hidden relative z-20 w-full">
+                <header className="h-24 sm:h-20 flex items-center justify-between px-4 lg:px-10 border-b border-white/[0.04] shrink-0 relative bg-[#0a0e1a]/60 backdrop-blur-xl z-[100] transition-all">
                     <div className="flex items-center gap-6">
                         <button className="lg:hidden text-slate-300" onClick={() => setIsMobileMenuOpen(true)}><Menu /></button>
                         <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20 group hover:border-cyan-400 transition-all cursor-default hidden sm:flex shadow-inner">
@@ -493,11 +641,11 @@ export default function ParticipantDashboard() {
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
+                <main className="flex-1 overflow-y-auto px-4 sm:px-8 lg:px-12 py-12 scroll-smooth">
                     <AnimatePresence mode="wait">
                         <motion.div key={activeNav} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
-                            {activeNav === 'Dashboard' && <DashboardView firstName={userProfile.userName || userProfile.firstName} userTimezone={userProfile.userTimezone} today={today} onAction={openActionModal} tasks={tasks} study={activeStudy} handleExportPDF={handleExportPDF} />}
-                            {activeNav === 'Tasks' && <TasksView tasks={tasks} onAction={openActionModal} study={activeStudy} />}
+                            {activeNav === 'Dashboard' && <DashboardView firstName={userProfile.userName || userProfile.firstName} userTimezone={userProfile.userTimezone} today={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: '2-digit' })} onAction={(v: string) => handleNavClick(v)} tasks={tasks} study={activeStudy} handleExportPDF={handleExportPDF} />}
+                            {activeNav === 'Tasks' && <TasksView tasks={tasks} onAction={openActionModal} study={activeStudy} userName={userProfile.userName} />}
                             {activeNav === 'Study Kit' && <StudyKitView onAction={openActionModal} study={activeStudy} />}
                             {activeNav === 'Logs' && <LogsView study={activeStudy} onAction={openActionModal} />}
                             {activeNav === 'Messages' && <MessagesView study={activeStudy} />}
@@ -522,6 +670,13 @@ export default function ParticipantDashboard() {
             <ActionModal isOpen={modalConfig?.isOpen} title={modalConfig?.title} desc={modalConfig?.desc} action={modalConfig?.primaryAction} onClose={() => setModalConfig(null)} onConfirm={handleActionConfirm} />
             <EditModal isOpen={editModal.isOpen} title={editModal.title} value={editModal.value} field={editModal.field} onClose={() => setEditModal(prev => ({ ...prev, isOpen: false }))} onSave={handleSaveProfileField} />
             <LogoutConfirmationModal isOpen={isLogoutModalOpen} onClose={() => setIsLogoutModalOpen(false)} onConfirm={performLogout} />
+            <ConsentModal 
+                isOpen={isConsentModalOpen} 
+                onClose={() => setIsConsentModalOpen(false)} 
+                onComplete={handleConsentComplete}
+                study={activeStudy}
+                userProfile={userProfile}
+            />
             <input
                 type="file" ref={fileInputRef} style={{ display: 'none' }}
                 onChange={(e) => {

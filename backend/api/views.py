@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions, status, parsers
+from rest_framework import viewsets, permissions, status, parsers, serializers
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import (
@@ -279,6 +279,7 @@ class ConsentViewSet(viewsets.ModelViewSet):
     queryset = Consent.objects.all()
     serializer_class = ConsentSerializer
     permission_classes = [permissions.AllowAny]
+    parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
 
 class DosingLogViewSet(viewsets.ModelViewSet):
     serializer_class = DosingLogSerializer
@@ -296,7 +297,21 @@ class DosingLogViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         participant = Participant.objects.filter(user=self.request.user).first()
+        if not participant:
+            raise serializers.ValidationError({"participant": "User does not have an active participant record."})
+        
+        # Check for existing log for this participant and date to avoid 400 error
+        date = serializer.validated_data.get('date')
+        if date:
+            existing = DosingLog.objects.filter(participant=participant, date=date).first()
+            if existing:
+                # Update existing instance instead of creating new one
+                serializer.instance = existing
+                serializer.save(participant=participant)
+                return
+
         serializer.save(participant=participant)
+
 
 class AEReportViewSet(viewsets.ModelViewSet):
     serializer_class = AEReportSerializer
@@ -312,6 +327,8 @@ class AEReportViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         participant = Participant.objects.filter(user=self.request.user).first()
+        if not participant:
+            raise serializers.ValidationError({"participant": "User does not have an active participant record."})
         serializer.save(participant=participant)
 
 class FormViewSet(viewsets.ModelViewSet):

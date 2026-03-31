@@ -35,7 +35,7 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
             status: 'DELIVERED',
             carrier: 'FedEx',
             tracking_number: '772948201934',
-            tracking_url: 'https://www.fedex.com',
+            tracking_url: 'https://www.fedex.com/fedextrack/index.html',
             collection_guide_url: '#',
             return_label_url: '#',
             expected_delivery: '2026-04-05',
@@ -227,9 +227,14 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
                                         <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em]">TRACKING SECURE_ID</span>
                                         <div className="flex items-center gap-4">
                                             <p className="text-sm font-black text-cyan-400 font-mono tracking-tighter">{kit.tracking_number || "PENDING_SYNC"}</p>
-                                            {kit.tracking_url && (
+                                            {(kit.tracking_url || kit.tracking_number) && (
                                                 <button 
-                                                    onClick={() => window.open(kit.tracking_url, '_blank')}
+                                                    onClick={() => {
+                                                        const baseUrl = 'https://www.fedex.com/fedextrack/index.html';
+                                                        const trkNo = (kit.tracking_number && kit.tracking_number !== "PENDING_SYNC") ? kit.tracking_number : "";
+                                                        const finalUrl = trkNo ? `${baseUrl}?trknbr=${trkNo}` : baseUrl;
+                                                        window.open(finalUrl, '_blank');
+                                                    }}
                                                     className="text-[11px] font-black text-white bg-white/10 px-3 py-1 rounded-full border border-white/10 hover:bg-cyan-500 hover:text-slate-950 transition-all font-bold italic"
                                                 >
                                                     TRACK SHIPMENT →

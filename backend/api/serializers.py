@@ -176,7 +176,7 @@ class StudySerializer(SanitizedModelSerializer):
             'launch_date', 'irb_status', 'target_screened', 'actual_screened',
             'proposal_source', 'proposal_submitted_date', 'agreement_signed_date',
             'contract_status', 'sponsor_contact_name', 'sponsor_contact_email',
-            'show_dosing_log', 'show_ae_report', 'show_lab_upload'
+            'show_dosing_log', 'show_ae_report', 'show_lab_upload', 'consent_template'
         ]
 
 class InterventionArmSerializer(SanitizedModelSerializer):
@@ -316,7 +316,7 @@ class ConsentSerializer(SanitizedModelSerializer):
     class Meta:
         model = Consent
         fields = '__all__'
-        read_only_fields = ['agreed_at', 'ip_address']
+        read_only_fields = ['agreed_at', 'ip_address', 'signed_pdf']
 
 class NewsSerializer(SanitizedModelSerializer):
     id = serializers.CharField(read_only=True)
@@ -425,8 +425,10 @@ class DosingLogSerializer(SanitizedModelSerializer):
     class Meta:
         model = DosingLog
         fields = '__all__'
+        read_only_fields = ['participant']
 
 class AEReportSerializer(SanitizedModelSerializer):
     class Meta:
         model = AEReport
         fields = '__all__'
+        read_only_fields = ['participant']

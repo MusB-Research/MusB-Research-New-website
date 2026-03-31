@@ -149,6 +149,7 @@ class Study(BaseMongoModel):
     notifications_enabled = models.BooleanField(default=True)
     show_dosing_log = models.BooleanField(default=True)
     show_ae_report = models.BooleanField(default=True)
+    consent_template = models.FileField(upload_to='consent_templates/', null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -462,6 +463,7 @@ class Consent(BaseMongoModel):
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     
     agreed_at = models.DateTimeField(auto_now_add=True)
+    signed_pdf = models.FileField(upload_to='signed_consents/', null=True, blank=True)
     is_valid = models.BooleanField(default=True)
     
     def __str__(self):

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { getUser, getRole, authFetch, API, performLogout, getDisplayName } from '../../utils/auth';
-import { Link } from 'react-router-dom';
-import { User, LogOut, Bell, Sparkles } from 'lucide-react';
+import { User, LogOut, Bell, Sparkles, LayoutDashboard, Database, FileText, Users, BarChart3, Presentation } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 import { MOCK_PROTOCOLS, ToastContainer, SPONSOR } from './SponsorDashboardShared';
 import DashboardPanel from './DashboardPanel';
@@ -28,7 +28,44 @@ const MOCK_NOTIFICATIONS = [
 ];
 
 export default function SponsorDashboard() {
-  const [activeModule, setActiveModule] = useState('DASHBOARD');
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [activeModule, setActiveModule] = useState(() => {
+    const route = location.pathname.split('/').pop();
+    if (route === 'studies') return 'STUDIES';
+    if (route === 'participants') return 'PARTICIPANTS';
+    if (route === 'documents') return 'DOCUMENTS';
+    if (route === 'team') return 'TEAM';
+    if (route === 'reports') return 'REPORTS';
+    return 'DASHBOARD';
+  });
+
+  // Sync state with URL for back button support
+  useEffect(() => {
+    const route = location.pathname.split('/').pop();
+    if (route === 'studies') setActiveModule('STUDIES');
+    else if (route === 'participants') setActiveModule('PARTICIPANTS');
+    else if (route === 'documents') setActiveModule('DOCUMENTS');
+    else if (route === 'team') setActiveModule('TEAM');
+    else if (route === 'reports') setActiveModule('REPORTS');
+    else if (location.pathname.endsWith('/sponsor') || !route || route === 'sponsor') setActiveModule('DASHBOARD');
+  }, [location.pathname]);
+
+  const handleModuleChange = (mod: string) => {
+    const slugs: Record<string, string> = {
+      'DASHBOARD': '',
+      'STUDIES': 'studies',
+      'PARTICIPANTS': 'participants',
+      'DOCUMENTS': 'documents',
+      'TEAM': 'team',
+      'REPORTS': 'reports'
+    };
+    const slug = slugs[mod];
+    setActiveModule(mod);
+    navigate(`/dashboard/sponsor${slug ? '/' + slug : ''}`);
+  };
+
   const [protocols, setProtocols] = useState<any[]>([]);
   const [team, setTeam] = useState<any[]>([]);
   const [inquiries, setInquiries] = useState<any[]>([]);
@@ -254,7 +291,7 @@ export default function SponsorDashboard() {
               <span style={{ flex: 1, textAlign: 'left' }}>MAIN WEBSITE</span>
               <span style={{ opacity: 0.5 }}>↗</span>
             </button>
-            <button onClick={() => setActiveModule('DASHBOARD')} style={getMenuBtnStyle('DASHBOARD', true)}>
+            <button onClick={() => handleModuleChange('DASHBOARD')} style={getMenuBtnStyle('DASHBOARD', true)}>
               <span style={{ fontSize: '14px', color: activeModule === 'DASHBOARD' ? '#a5b4fc' : THEME.body }}>⚏</span>
               <span style={{ flex: 1, textAlign: 'left', lineHeight: '1.4', fontSize: '12px' }}>DASHBOARD<br /><span style={{ fontSize: '10px', opacity: 0.7 }}>(PORTFOLIO OVERVIEW)</span></span>
             </button>
@@ -264,15 +301,15 @@ export default function SponsorDashboard() {
           <div>
             <div style={{ fontSize: '12px', fontWeight: 900, color: 'white', textShadow: '0 0 10px rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginBottom: '8px', paddingLeft: '16px' }}>CORE MANAGEMENT</div>
 
-            <button onClick={() => setActiveModule('STUDIES')} style={getMenuBtnStyle('STUDIES')}>
+            <button onClick={() => handleModuleChange('STUDIES')} style={getMenuBtnStyle('STUDIES')}>
               <span style={{ fontSize: '14px', opacity: activeModule === 'STUDIES' ? 1 : 0.6 }}>📁</span>
               <span style={{ flex: 1, textAlign: 'left' }}>OUR STUDIES</span>
             </button>
-            <button onClick={() => setActiveModule('PARTICIPANTS')} style={getMenuBtnStyle('PARTICIPANTS')}>
+            <button onClick={() => handleModuleChange('PARTICIPANTS')} style={getMenuBtnStyle('PARTICIPANTS')}>
               <span style={{ fontSize: '14px', opacity: activeModule === 'PARTICIPANTS' ? 1 : 0.6 }}>👥</span>
               <span style={{ flex: 1, textAlign: 'left', lineHeight: '1.4' }}>PARTICIPANT DATA</span>
             </button>
-            <button onClick={() => setActiveModule('TEAM')} style={getMenuBtnStyle('TEAM')}>
+            <button onClick={() => handleModuleChange('TEAM')} style={getMenuBtnStyle('TEAM')}>
               <span style={{ fontSize: '14px', opacity: activeModule === 'TEAM' ? 1 : 0.6 }}>🤝</span>
               <span style={{ flex: 1, textAlign: 'left' }}>TEAM MANAGEMENT</span>
             </button>
@@ -282,7 +319,7 @@ export default function SponsorDashboard() {
           <div>
             <div style={{ fontSize: '12px', fontWeight: 900, color: 'white', textShadow: '0 0 10px rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginBottom: '8px', paddingLeft: '16px' }}>REPORTS & DATA</div>
 
-            <button onClick={() => setActiveModule('REPORTS')} style={getMenuBtnStyle('REPORTS')}>
+            <button onClick={() => handleModuleChange('REPORTS')} style={getMenuBtnStyle('REPORTS')}>
               <span style={{ fontSize: '14px', opacity: activeModule === 'REPORTS' ? 1 : 0.6 }}>📈</span>
               <span style={{ flex: 1, textAlign: 'left', lineHeight: '1.4' }}>PARTICIPANT PROGRESS REPORTS</span>
             </button>
@@ -443,7 +480,7 @@ export default function SponsorDashboard() {
               addToast={addToast}
               windowWidth={windowWidth}
               currentUser={currentUser}
-              setActiveModule={setActiveModule}
+              setActiveModule={handleModuleChange}
             />
           )}
           {activeModule === 'STUDIES' && <OurStudiesPanel protocols={protocols} setProtocols={setProtocols} addToast={addToast} windowWidth={windowWidth} />}

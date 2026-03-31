@@ -18,7 +18,7 @@ export const Badge = ({ children, color = 'cyan', className = '', ...props }: an
         indigo: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
     };
     return (
-        <span className={`px-3 py-1.5 rounded text-[14px] font-black uppercase tracking-widest border ${colors[color] || colors.cyan} ${className}`} {...props}>
+        <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-[13px] font-black uppercase tracking-widest border leading-none ${colors[color] || colors.cyan} ${className}`} {...props}>
             {children}
         </span>
     );
@@ -112,9 +112,6 @@ export const CircularProgress = ({ value, size = 120, strokeWidth = 8, ...props 
                     strokeLinecap="round"
                 />
             </svg>
-            <span className="absolute text-2xl font-black text-white italic tracking-tighter">
-                {value}%
-            </span>
         </div>
     );
 };

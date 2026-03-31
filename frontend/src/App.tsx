@@ -35,7 +35,7 @@ import { performLogout, isLoggedIn } from './utils/auth';
 function AppContent() {
     const location = useLocation();
     const isDashboard = location.pathname.startsWith('/dashboard');
-    
+
     // KEEP-ALIVE FOR RENDER LIVE INSTANCE
     useEffect(() => {
         const pingProduction = async () => {
@@ -94,12 +94,12 @@ function AppContent() {
 
                     {/* Dashboard Routes (RBAC) */}
                     <Route path="/dashboard" element={<Navigate to="/dashboard/participant" replace />} />
-                    <Route path="/dashboard/participant" element={<ParticipantDashboard />} />
-                    <Route path="/dashboard/super-admin" element={<SuperAdminDashboard />} />
+                    <Route path="/dashboard/participant/*" element={<ParticipantDashboard />} />
+                    <Route path="/dashboard/super-admin/*" element={<SuperAdminDashboard />} />
                     <Route path="/dashboard/super admin" element={<Navigate to="/dashboard/super-admin" replace />} />
-                    <Route path="/dashboard/admin" element={<AdminDashboard />} />
-                    <Route path="/dashboard/pi" element={<PIDashboard />} />
-                    <Route path="/dashboard/sponsor" element={<SponsorDashboard />} />
+                    <Route path="/dashboard/admin/*" element={<AdminDashboard />} />
+                    <Route path="/dashboard/pi/*" element={<PIDashboard />} />
+                    <Route path="/dashboard/sponsor/*" element={<SponsorDashboard />} />
                     <Route path="/auth/reset-forced" element={<ResetForced />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/auth/profile-setup" element={<ProfileSetup />} />

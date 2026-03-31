@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authFetch, clearToken, getRole, performLogout, getUser, getDisplayName, API } from '../utils/auth';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
@@ -91,13 +91,87 @@ type PIModule =
     | 'ANALYTICS';
 
 export default function PIDashboard() {
-    const [activeModule, setActiveModule] = useState<PIModule>('OVERSIGHT');
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const [activeModule, setActiveModule] = useState<PIModule>(() => {
+        const route = location.pathname.split('/').pop();
+        if (route === 'studies') return 'STUDIES';
+        if (route === 'team') return 'TEAM';
+        if (route === 'participants') return 'PARTICIPANTS';
+        if (route === 'subject-review') return 'SUBJECT_REVIEW';
+        if (route === 'forms') return 'FORMS';
+        if (route === 'consent') return 'CONSENT';
+        if (route === 'visits') return 'VISITS';
+        if (route === 'labs') return 'LABS';
+        if (route === 'reports') return 'REPORTS';
+        if (route === 'study-docs') return 'STUDY_DOCS';
+        if (route === 'my-docs') return 'MY_DOCS';
+        if (route === 'messages') return 'MESSAGES';
+        if (route === 'alerts') return 'ALERTS';
+        if (route === 'launch-study') return 'LAUNCH_STUDY';
+        if (route === 'support') return 'SUPPORT';
+        if (route === 'audit-log') return 'AUDIT_LOG';
+        if (route === 'analytics') return 'ANALYTICS';
+        if (route === 'sponsors') return 'SPONSORS';
+        return 'OVERSIGHT';
+    });
+
+    // Sync activeModule when URL changes (for browser back button support)
+    useEffect(() => {
+        const route = location.pathname.split('/').pop();
+        if (route === 'studies') setActiveModule('STUDIES');
+        else if (route === 'team') setActiveModule('TEAM');
+        else if (route === 'participants') setActiveModule('PARTICIPANTS');
+        else if (route === 'subject-review') setActiveModule('SUBJECT_REVIEW');
+        else if (route === 'forms') setActiveModule('FORMS');
+        else if (route === 'consent') setActiveModule('CONSENT');
+        else if (route === 'visits') setActiveModule('VISITS');
+        else if (route === 'labs') setActiveModule('LABS');
+        else if (route === 'reports') setActiveModule('REPORTS');
+        else if (route === 'study-docs') setActiveModule('STUDY_DOCS');
+        else if (route === 'my-docs') setActiveModule('MY_DOCS');
+        else if (route === 'messages') setActiveModule('MESSAGES');
+        else if (route === 'alerts') setActiveModule('ALERTS');
+        else if (route === 'launch-study') setActiveModule('LAUNCH_STUDY');
+        else if (route === 'support') setActiveModule('SUPPORT');
+        else if (route === 'audit-log') setActiveModule('AUDIT_LOG');
+        else if (route === 'analytics') setActiveModule('ANALYTICS');
+        else if (route === 'sponsors') setActiveModule('SPONSORS');
+        else if (location.pathname.endsWith('/pi') || !route || route === 'pi') setActiveModule('OVERSIGHT');
+    }, [location.pathname]);
+
+    const handleModuleChange = (mod: PIModule) => {
+        const slugs: Record<string, string> = {
+            'OVERSIGHT': '',
+            'STUDIES': 'studies',
+            'TEAM': 'team',
+            'PARTICIPANTS': 'participants',
+            'SUBJECT_REVIEW': 'subject-review',
+            'FORMS': 'forms',
+            'CONSENT': 'consent',
+            'VISITS': 'visits',
+            'LABS': 'labs',
+            'REPORTS': 'reports',
+            'STUDY_DOCS': 'study-docs',
+            'MY_DOCS': 'my-docs',
+            'MESSAGES': 'messages',
+            'ALERTS': 'alerts',
+            'LAUNCH_STUDY': 'launch-study',
+            'SUPPORT': 'support',
+            'AUDIT_LOG': 'audit-log',
+            'ANALYTICS': 'analytics',
+            'SPONSORS': 'sponsors'
+        };
+        const slug = slugs[mod];
+        setActiveModule(mod);
+        navigate(`/dashboard/pi${slug ? '/' + slug : ''}`);
+    };
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const profileRef = useRef<HTMLDivElement>(null);
-    const navigate = useNavigate();
 
     useEffect(() => {
         const user = getUser();
@@ -144,7 +218,7 @@ export default function PIDashboard() {
     });
 
     useEffect(() => {
-        const handleNav = () => setActiveModule('PARTICIPANTS');
+        const handleNav = () => handleModuleChange('PARTICIPANTS');
         window.addEventListener('nav-to-participants', handleNav);
         return () => window.removeEventListener('nav-to-participants', handleNav);
     }, []);
@@ -205,7 +279,7 @@ export default function PIDashboard() {
             });
 
             if (res.ok) {
-                setActiveModule('STUDIES');
+                handleModuleChange('STUDIES');
                 setSelectedStudy(null);
                 fetchPIContent();
             } else {
@@ -298,7 +372,7 @@ export default function PIDashboard() {
 
                 <div className="flex items-center gap-4 h-10 md:h-14">
                     <button 
-                        onClick={() => setActiveModule('ALERTS')}
+                        onClick={() => handleModuleChange('ALERTS')}
                         className="h-10 w-10 md:h-12 md:w-12 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all text-slate-300 hover:text-white shrink-0 relative group shadow-lg active:scale-90"
                     >
                         <Bell className="w-4 h-4 md:w-5 h-5 group-hover:rotate-12 transition-transform" />
@@ -390,7 +464,7 @@ export default function PIDashboard() {
                                         onClick={() => {
                                             if (item.id === 'WEBSITE') window.open('/', '_blank');
                                             else {
-                                                setActiveModule(item.id as PIModule);
+                                                handleModuleChange(item.id as PIModule);
                                                 setIsSidebarOpen(false);
                                             }
                                         }}
