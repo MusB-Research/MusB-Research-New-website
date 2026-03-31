@@ -46,7 +46,7 @@ export default function FormsQuestionnairesModule() {
             {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div>
-                    <h2 className="text-xl md:text-3xl font-black text-white italic uppercase tracking-tighter">Forms & <span className="text-indigo-400">Questionnaires</span></h2>
+                    <h2 className="text-xl md:text-3xl font-black text-white italic uppercase tracking-tighter">ELIGIBILITY <span className="text-indigo-400">QUESTIONNAIRES</span></h2>
                     <p className="text-[9px] md:text-[11px] text-white/50 font-bold uppercase tracking-[0.2em] md:tracking-[0.4em] mt-3 md:mt-4 italic">eCRF Management & Dynamic Instrument Design</p>
                 </div>
                 <div className="flex bg-white/5 p-1.5 md:p-2 rounded-2xl border border-white/10 w-full lg:w-auto">

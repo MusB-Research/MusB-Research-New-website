@@ -218,7 +218,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                             <DraftingCompass className="w-10 h-10 lg:w-12 lg:h-12" />
                         </div>
                         <div>
-                            <h2 className="text-3xl lg:text-5xl font-black text-white italic uppercase tracking-tighter leading-none mb-3">SCREENER BUILDER</h2>
+                            <h2 className="text-3xl lg:text-5xl font-black text-white italic uppercase tracking-tighter leading-none mb-3">ELIGIBILITY QUESTIONNAIRES</h2>
                             <p className="text-[10px] lg:text-[11px] text-indigo-400 font-bold uppercase tracking-[0.3em] lg:tracking-[0.4em] italic opacity-80 max-w-2xl">Design logical recruitment funnels with dynamic branching and integrated validation triggers.</p>
                         </div>
                     </div>

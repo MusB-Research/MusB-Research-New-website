@@ -309,7 +309,7 @@ export default function PIDashboard() {
                 { id: 'TEAM', label: 'My Team', icon: Users },
                 { id: 'PARTICIPANTS', label: 'Participant Oversight', icon: UsersRound },
                 { id: 'SUBJECT_REVIEW', label: 'Subject Review', icon: Activity },
-                { id: 'FORMS', label: 'Forms & Questionnaires', icon: ClipboardList },
+                { id: 'FORMS', label: 'Eligibility Questionnaires', icon: ClipboardList },
                 { id: 'CONSENT', label: 'Consent Oversight', icon: ShieldCheck },
                 { id: 'VISITS', label: 'Visits & Assessments', icon: Calendar },
             ]

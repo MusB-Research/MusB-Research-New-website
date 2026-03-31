@@ -305,7 +305,7 @@ export default function StudyScreener() {
                             <div className="mb-8 space-y-2">
                                 <h1 className="text-3xl font-black text-white uppercase italic tracking-tight">{
                                     step === 'STEP1' ? 'Step 1: Basics & Location' :
-                                        step === 'STEP2' ? (dynamicForm ? 'Step 2: Custom Questionnaire' : 'Step 2: ELIGIBILITY CRITERIA') :
+                                        step === 'STEP2' ? (dynamicForm ? 'Step 2: ELIGIBILITY QUESTIONNAIRES' : 'Step 2: ELIGIBILITY CRITERIA') :
                                             'Step 3: Contact & Availability'
                                 }</h1>
                             </div>
