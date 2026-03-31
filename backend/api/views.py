@@ -473,6 +473,9 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
         return StudyInquiry.objects.filter(sponsor_user=user).order_by('-created_at')
 
     def perform_create(self, serializer):
+        import logging
+        logger = logging.getLogger(__name__)
+
         user = self.request.user
         inquiry = serializer.save(sponsor_user=user)
         target = "info@musbresearch.com"
@@ -481,8 +484,6 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
         else:
             inquiry.status = 'QUALIFIED'
         
-        # We still store the intended routing if we want to change back later, 
-        # but for now Resend only allows sending to the verified address.
         needs = inquiry.needs or []
         intended_target = "sales@musbresearch.com"
         if "Biorepository" in needs: intended_target = "biorepository@musbresearch.com"
@@ -526,7 +527,6 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
                 'budget_range': inquiry.get_budget_range_display() if inquiry.budget_range else 'Not Specified',
                 'services_needed': inquiry.services_needed,
                 'study_type_needed': inquiry.study_type_needed,
-                # Discovery Call Fields
                 'discovery_call_date': str(inquiry.discovery_call_date) if inquiry.discovery_call_date else None,
                 'discovery_call_time': str(inquiry.discovery_call_time) if inquiry.discovery_call_time else None,
                 'discovery_call_timezone': inquiry.discovery_call_timezone,
@@ -547,11 +547,12 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
             send_inquiry_notification(notification_data, target)
 
         except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
             logger.error(f"Failed to send inquiry notification: {e}")
 
-        AuditLog.log('STUDY_INQUIRY', user_email=user.email, request=self.request, detail=f"Inquiry for {inquiry.product_name} created. Routed to {target}")
+        try:
+            AuditLog.log('STUDY_INQUIRY', user_email=user.email, request=self.request, detail=f"Inquiry for {inquiry.product_name} created. Routed to {target}")
+        except Exception as audit_err:
+            logger.warning(f"AuditLog failed (non-critical): {audit_err}")
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def engage(self, request, pk=None):

@@ -130,21 +130,26 @@ class SubmissionCreateView(generics.CreateAPIView):
         </div>
         """
         
+        # Always mark submission as processed and save first (before any email attempt)
         try:
-            # ALWAYS use Resend as per user request
-            # Forcing the sender here ensures it uses the verified domain correctly
+            submission.is_processed = True
+            submission.save()
+        except Exception as save_err:
+            print(f"Warning: Could not mark submission as processed: {save_err}")
+
+        # Send emails — this block NEVER causes a 500, all failures are caught
+        try:
             resend.api_key = os.getenv("RESEND_API_KEY", getattr(settings, 'RESEND_API_KEY', ''))
             from_email = 'MusB Research System <info@musbresearch.com>'
-            
+
             try:
-                # Send to Admin via Resend
+                # Try Resend first (production path with verified domain)
                 resend.Emails.send({
                     "from": from_email,
                     "to": [admin_recipient],
                     "subject": admin_subject,
                     "html": admin_html
                 })
-                # Send to Participant via Resend
                 resend.Emails.send({
                     "from": from_email,
                     "to": [submission.email],
@@ -154,25 +159,23 @@ class SubmissionCreateView(generics.CreateAPIView):
                 })
                 print(f"Sent both emails via Resend to {[admin_recipient, submission.email]}")
             except Exception as resend_err:
-                # Fallback to Django SMTP if Resend fails (e.g. domain not verified locally)
-                print(f"Resend failed ({resend_err}), falling back to SMTP...")
-                from django.core.mail import EmailMultiAlternatives
-                smtp_from = settings.EMAIL_HOST_USER or 'info@musbresearch.com'
-                
-                admin_msg = EmailMultiAlternatives(admin_subject, "Details inside.", smtp_from, [admin_recipient])
-                admin_msg.attach_alternative(admin_html, "text/html")
-                admin_msg.send()
-                
-                participant_msg = EmailMultiAlternatives(participant_subject, "Thank you.", smtp_from, [submission.email])
-                participant_msg.attach_alternative(participant_html, "text/html")
-                participant_msg.send()
-                print(f"Sent both emails via SMTP fallback to {[admin_recipient, submission.email]}")
-            
-            submission.is_processed = True
-            submission.save()
-            
+                # Resend failed — try SMTP fallback
+                print(f"Resend failed ({resend_err}), trying SMTP fallback...")
+                try:
+                    from django.core.mail import EmailMultiAlternatives
+                    smtp_from = getattr(settings, 'EMAIL_HOST_USER', None) or 'info@musbresearch.com'
+                    admin_msg = EmailMultiAlternatives(admin_subject, "Details inside.", smtp_from, [admin_recipient])
+                    admin_msg.attach_alternative(admin_html, "text/html")
+                    admin_msg.send()
+                    participant_msg = EmailMultiAlternatives(participant_subject, "Thank you.", smtp_from, [submission.email])
+                    participant_msg.attach_alternative(participant_html, "text/html")
+                    participant_msg.send()
+                    print(f"Sent both emails via SMTP to {[admin_recipient, submission.email]}")
+                except Exception as smtp_err:
+                    print(f"SMTP also failed: {smtp_err}")
         except Exception as e:
-            print(f"Error sending emails: {e}")
+            print(f"Email sending error (non-critical): {e}")
+
 
         # 3. CLINICAL LEAD CREATION: If study_id is provided in request, create a Lead in the api app
         study_id = self.request.data.get('study_id')
