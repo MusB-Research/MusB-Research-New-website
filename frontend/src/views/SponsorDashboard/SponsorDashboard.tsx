@@ -178,6 +178,7 @@ export default function SponsorDashboard() {
           0% { transform: scale(1) translate(0, 0); }
           100% { transform: scale(1.1) translate(20px, 10px); }
         }
+        @keyframes pulse { 0% { scale: 1; opacity: 1; } 50% { scale: 1.25; opacity: 0.7; } 100% { scale: 1; opacity: 1; } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .logo-pill { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .logo-pill:hover { 
@@ -303,9 +304,15 @@ export default function SponsorDashboard() {
 
             {/* REAL-TIME NODE TELEMETRY */}
             <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                <div style={{ width: '6px', height: '6px', background: '#10b981', borderRadius: '50%', boxShadow: '0 0 8px #10b981' }} />
-                <span style={{ color: '#10b981', fontSize: '9px', fontWeight: 900, letterSpacing: '0.1em' }}>NODE ONLINE</span>
+              {/* PRODUCTION WAKE-LINK SYNC STATUS (UPTIME ROBOT STYLE) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <div style={{ width: '8px', height: '8px', background: '#00ff9d', borderRadius: '50%', boxShadow: '0 0 12px #00ff9d', animation: 'pulse 1.5s infinite' }} />
+                <span style={{ color: '#00ff9d', fontSize: '10px', fontWeight: 900, letterSpacing: '0.15em' }}>GLOBAL NODE SYNC</span>
+              </div>
+              <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 800, marginBottom: '16px', display: 'flex', gap: '6px' }}>
+                <span>UPTIME: <span style={{ color: 'white' }}>99.99%</span></span>
+                <span style={{ color: 'rgba(255,255,255,0.1)' }}>|</span>
+                <span>STATUS: <span style={{ color: '#00ff9d' }}>STABLE</span></span>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>

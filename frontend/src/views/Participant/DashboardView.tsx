@@ -88,7 +88,7 @@ const DashboardView = ({ firstName, userTimezone, today, onAction, tasks, study,
                     </div>
 
 
-                    <p className="text-[13px] font-bold text-slate-500 uppercase tracking-widest mt-6 italic max-w-xl">
+                    <p className="text-[13px] font-bold text-slate-500 uppercase tracking-widest mt-6 italic">
                         Track your study progress, complete today’s activities, and stay connected with your study team.
                     </p>
                 </div>

@@ -42,7 +42,7 @@ class SubmissionCreateView(generics.CreateAPIView):
         metadata = submission.metadata or {}
         form_data = metadata.get('formData', {})
         outcome = metadata.get('outcome', 'PENDING')
-        study_protocol = metadata.get('study_protocol', 'General Submission')
+        study_protocol = metadata.get('study_protocol') or 'MusB Research Program'
         is_screener = bool(form_data)
 
         # Generate a clean, plain-text style list for the screening data (if any)
@@ -115,7 +115,7 @@ class SubmissionCreateView(generics.CreateAPIView):
             </div>
             
             <p style="font-size: 16px; line-height: 1.6;">Hello {submission.name},</p>
-            <p style="font-size: 16px; line-height: 1.6;">{"Thank you for completing the eligibility protocol for <strong>" + study_protocol + "</strong>." if is_screener else "Thank you for reaching out to MusB Research."}</p>
+            <p style="font-size: 16px; line-height: 1.6;">{f"Thank you for completing the eligibility protocol for <strong>{study_protocol}</strong>." if is_screener else "Thank you for reaching out to MusB Research."}</p>
             <p style="font-size: 16px; line-height: 1.6;">{"Our clinical team has received your information. We are currently reviewing your eligibility and a study coordinator will reach out to you within 24-48 hours to discuss the next steps." if is_screener else "Our team has received your message. We will review your inquiry and get back to you shortly."}</p>
             
             <div style="margin: 40px 0; padding: 32px; background: #f8fafc; border-radius: 16px;">

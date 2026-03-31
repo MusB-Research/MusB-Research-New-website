@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import AnimatedBackground from './components/AnimatedBackground';
@@ -35,6 +35,28 @@ import { performLogout, isLoggedIn } from './utils/auth';
 function AppContent() {
     const location = useLocation();
     const isDashboard = location.pathname.startsWith('/dashboard');
+    
+    // KEEP-ALIVE FOR RENDER LIVE INSTANCE
+    useEffect(() => {
+        const pingProduction = async () => {
+            try {
+                // Ping the specific production health endpoint the user provided
+                const res = await fetch('https://musb-research-new-website.onrender.com/api/health/');
+                if (res.ok) console.log('✅ GLOBAL_NODE_SYNC: PRODUCTION_WAKE_SUCCESS');
+            } catch (e) {
+                console.warn('⚠️ GLOBAL_NODE_SYNC: ASYNC_PENDING');
+            }
+        };
+
+        // Initial wake call
+        pingProduction();
+
+        // Interval to beat "spin down" (Render free tier = 15min idle)
+        // 5 minutes (300,000ms) for maximum reliability
+        const interval = setInterval(pingProduction, 300000);
+        return () => clearInterval(interval);
+    }, []);
+
     useEffect(() => {
         if (isDashboard) {
             document.body.style.backgroundColor = '#0a0e1a';

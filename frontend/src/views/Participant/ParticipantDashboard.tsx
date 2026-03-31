@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { jsPDF } from 'jspdf';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    LayoutDashboard, ClipboardList, Box, Activity, MessageSquare, 
-    FileText, Trophy, User, ShieldCheck, LogOut, Menu, X, 
+import {
+    LayoutDashboard, ClipboardList, Box, Activity, MessageSquare,
+    FileText, Trophy, User, ShieldCheck, LogOut, Menu, X,
     Bell, Zap, TrendingUp, Globe
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -148,27 +148,27 @@ export default function ParticipantDashboard() {
 
         if (proceed) {
             const doc = new jsPDF();
-            
+
             // Try to load logo (asynchronous process)
             const logoUrl = '/logo.jpg';
             try {
-              const img = new Image();
-              img.src = logoUrl;
-              await new Promise((resolve) => {
-                img.onload = resolve;
-                img.onerror = resolve; // Just proceed if it fails
-              });
-              if (img.complete && img.naturalWidth > 0) {
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext('2d');
-                ctx?.drawImage(img, 0, 0);
-                const dataUrl = canvas.toDataURL('image/jpeg');
-                doc.addImage(dataUrl, 'JPEG', 15, 10, 30, 30); // MusB Logo
-              }
+                const img = new Image();
+                img.src = logoUrl;
+                await new Promise((resolve) => {
+                    img.onload = resolve;
+                    img.onerror = resolve; // Just proceed if it fails
+                });
+                if (img.complete && img.naturalWidth > 0) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0);
+                    const dataUrl = canvas.toDataURL('image/jpeg');
+                    doc.addImage(dataUrl, 'JPEG', 15, 10, 30, 30); // MusB Logo
+                }
             } catch (e) {
-               console.warn('Could not load logo for PDF');
+                console.warn('Could not load logo for PDF');
             }
 
             doc.setFontSize(22);
@@ -210,7 +210,7 @@ export default function ParticipantDashboard() {
             return;
         }
         const lowerTitle = title.toLowerCase();
-        
+
         // Navigation Mapping
         const directNav: Record<string, string> = {
             'tasks': 'Tasks',
@@ -381,10 +381,10 @@ export default function ParticipantDashboard() {
                 <div className="h-20 px-6 flex justify-between items-center lg:justify-center border-b border-white/[0.05]">
                     <Link to="/" target="_blank">
                         <div className="rounded-[2rem] overflow-hidden bg-white shadow-[0_0_25px_rgba(255,255,255,0.1)] hover:scale-105 transition-all">
-                            <img 
-                                src="/logo.jpg" 
-                                alt="MusB" 
-                                className="h-14 w-auto object-contain" 
+                            <img
+                                src="/logo.jpg"
+                                alt="MusB"
+                                className="h-14 w-auto object-contain"
                             />
                         </div>
                     </Link>
@@ -416,6 +416,13 @@ export default function ParticipantDashboard() {
                         );
                     })}
                 </nav>
+                
+                <div className="px-6 py-4 border-t border-white/[0.05] bg-black/5">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-2 h-2 rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] animate-pulse" />
+                        <span className="text-[10px] font-black text-[#00ff9d] uppercase tracking-widest">GLOBAL NODE SYNC</span>
+                    </div>
+                </div>
 
                 <div className="px-4 pb-6 pt-4 border-t border-white/[0.05]">
                     <button onClick={() => setIsLogoutModalOpen(true)} className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-500 hover:text-red-400 hover:bg-red-500/5 transition-all">
@@ -438,7 +445,7 @@ export default function ParticipantDashboard() {
                         </div>
                     </div>
                     <div className="flex items-center gap-6 relative" ref={dropdownRef}>
-                        <div 
+                        <div
                             className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-all"
                             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                         >
@@ -454,7 +461,7 @@ export default function ParticipantDashboard() {
                         {/* User Dropdown Menu */}
                         <AnimatePresence>
                             {isDropdownOpen && (
-                                <motion.div 
+                                <motion.div
                                     initial={{ opacity: 0, scale: 0.95, y: 10 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -465,14 +472,14 @@ export default function ParticipantDashboard() {
                                         <p className="text-xs font-black text-white uppercase italic truncate">{userProfile.userName}</p>
                                     </div>
                                     <div className="p-2">
-                                        <button 
+                                        <button
                                             onClick={() => { setActiveNav('Profile'); setIsDropdownOpen(false); }}
                                             className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-2xl transition-all group"
                                         >
                                             <User className="w-4 h-4 text-cyan-500 group-hover:scale-110 transition-transform" />
                                             <span className="text-xs font-bold uppercase tracking-widest italic">View Profile</span>
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => { setIsLogoutModalOpen(true); setIsDropdownOpen(false); }}
                                             className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-2xl transition-all group"
                                         >
@@ -498,12 +505,12 @@ export default function ParticipantDashboard() {
                             {activeNav === 'Reports' && <ReportsView userName={userProfile.userName} handleExportPDF={handleExportPDF} study={activeStudy} />}
                             {activeNav === 'Compensation' && <CompensationView study={activeStudy} />}
                             {activeNav === 'Profile' && (
-                                <ProfileView 
-                                    {...userProfile} 
-                                    initials={initials} 
-                                    notificationSettings={notificationSettings} 
+                                <ProfileView
+                                    {...userProfile}
+                                    initials={initials}
+                                    notificationSettings={notificationSettings}
                                     toggleNotification={toggleNotification}
-                                    onAction={openActionModal} 
+                                    onAction={openActionModal}
                                 />
                             )}
                             {activeNav === 'Privacy & Data' && <PrivacyDataView onAction={openActionModal} />}
@@ -515,8 +522,8 @@ export default function ParticipantDashboard() {
             <ActionModal isOpen={modalConfig?.isOpen} title={modalConfig?.title} desc={modalConfig?.desc} action={modalConfig?.primaryAction} onClose={() => setModalConfig(null)} onConfirm={handleActionConfirm} />
             <EditModal isOpen={editModal.isOpen} title={editModal.title} value={editModal.value} field={editModal.field} onClose={() => setEditModal(prev => ({ ...prev, isOpen: false }))} onSave={handleSaveProfileField} />
             <LogoutConfirmationModal isOpen={isLogoutModalOpen} onClose={() => setIsLogoutModalOpen(false)} onConfirm={performLogout} />
-            <input 
-                type="file" ref={fileInputRef} style={{ display: 'none' }} 
+            <input
+                type="file" ref={fileInputRef} style={{ display: 'none' }}
                 onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
