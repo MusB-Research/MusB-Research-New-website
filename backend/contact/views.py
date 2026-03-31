@@ -131,9 +131,10 @@ class SubmissionCreateView(generics.CreateAPIView):
         """
         
         try:
-            # ALWAYS use Resend as per user request (SMTP fallback removed)
+            # ALWAYS use Resend as per user request
+            # Forcing the sender here ensures it uses the verified domain correctly
             resend.api_key = os.getenv("RESEND_API_KEY", getattr(settings, 'RESEND_API_KEY', ''))
-            from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'MusB Research System <onboarding@resend.dev>')
+            from_email = 'MusB Research System <info@musbresearch.com>'
             
             # Send to Admin
             resend.Emails.send({

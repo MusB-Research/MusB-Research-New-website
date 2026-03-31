@@ -170,9 +170,9 @@ def send_inquiry_notification(inquiry_data: dict, target_email: str):
         # Always include info@musbresearch.com as per user requirement
         recipients = list(set([target_email, "info@musbresearch.com"]))
         
-        # Use Resend directly as per user requirement (removing SMTP fallback)
+        # Force the sender to info@musbresearch.com since that is the verified Resend address
         resend.api_key = os.environ.get('RESEND_API_KEY', getattr(settings, 'RESEND_API_KEY', ''))
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'onboarding@resend.dev')
+        from_email = 'info@musbresearch.com'
         
         email_response = resend.Emails.send({
             "from": from_email,
