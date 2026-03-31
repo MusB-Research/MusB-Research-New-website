@@ -5,7 +5,8 @@ from .models import (
     Compensation, LabResult, DataAuditLog, InterventionArm,
     News, Event, FacilityInquiry, Candidate, NewsletterSubscriber,
     BookletDownloadRequest, Partnership, Publication, EducationMaterial,
-    StudyInquiry, ClinicalConversation, ClinicalMessage
+    StudyInquiry, ClinicalConversation, ClinicalMessage,
+    DosingLog, AEReport
 )
 from authentication.models import User
 from authentication.security import decrypt_data
@@ -174,7 +175,8 @@ class StudySerializer(SanitizedModelSerializer):
             'privacy_standards', 'remote_participation', 'start_date', 'end_date',
             'launch_date', 'irb_status', 'target_screened', 'actual_screened',
             'proposal_source', 'proposal_submitted_date', 'agreement_signed_date',
-            'contract_status', 'sponsor_contact_name', 'sponsor_contact_email'
+            'contract_status', 'sponsor_contact_name', 'sponsor_contact_email',
+            'show_dosing_log', 'show_ae_report', 'show_lab_upload'
         ]
 
 class InterventionArmSerializer(SanitizedModelSerializer):
@@ -262,9 +264,30 @@ class VisitSerializer(SanitizedModelSerializer):
 
 class KitSerializer(SanitizedModelSerializer):
     id = serializers.CharField(read_only=True)
+    collection_guide_url = serializers.SerializerMethodField()
+    return_label_url = serializers.SerializerMethodField()
+    
     class Meta:
         model = Kit
-        fields = '__all__'
+        fields = [
+            'id', 'study', 'participant', 'kit_number', 'kit_type', 'status', 
+            'assignment_date', 'collection_date', 'shipping_date', 'received_date', 
+            'carrier', 'tracking_number', 'tracking_url', 'expected_delivery', 
+            'collection_guide', 'return_label', 'collection_guide_url', 'return_label_url',
+            'symptom_note'
+        ]
+
+    def get_collection_guide_url(self, obj):
+        if not obj.collection_guide: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.collection_guide.url)
+        return obj.collection_guide.url
+
+    def get_return_label_url(self, obj):
+        if not obj.return_label: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.return_label.url)
+        return obj.return_label.url
 
 class FormSerializer(SanitizedModelSerializer):
     id = serializers.CharField(read_only=True)
@@ -287,7 +310,7 @@ class ParticipantTaskSerializer(SanitizedModelSerializer):
     task_details = TaskSerializer(source='task', read_only=True)
     class Meta:
         model = ParticipantTask
-        fields = '__all__'
+        fields = ['id', 'participant', 'task', 'task_details', 'due_date', 'completed_at', 'status', 'visit_name', 'timeline_group', 'estimated_time', 'is_locked', 'current_data']
 
 class ConsentSerializer(SanitizedModelSerializer):
     class Meta:
@@ -397,3 +420,13 @@ class ClinicalConversationSerializer(SanitizedModelSerializer):
             'study_protocol', 'status', 'is_flagged', 'last_message_preview', 
             'last_updated', 'created_at', 'messages', 'assigned_coordinator'
         ]
+
+class DosingLogSerializer(SanitizedModelSerializer):
+    class Meta:
+        model = DosingLog
+        fields = '__all__'
+
+class AEReportSerializer(SanitizedModelSerializer):
+    class Meta:
+        model = AEReport
+        fields = '__all__'

@@ -7,7 +7,8 @@ from .models import (
     Compensation, LabResult, DataAuditLog, InterventionArm,
     News, Event, FacilityInquiry, Candidate, NewsletterSubscriber, 
     BookletDownloadRequest, Partnership, Publication, EducationMaterial,
-    StudyInquiry, ClinicalConversation, ClinicalMessage
+    StudyInquiry, ClinicalConversation, ClinicalMessage, Kit,
+    DosingLog, AEReport
 )
 from .serializers import (
     StudySerializer, StudyAssignmentSerializer, ParticipantSerializer, 
@@ -19,7 +20,8 @@ from .serializers import (
     NewsletterSubscriberSerializer, BookletDownloadRequestSerializer,
     PartnershipSerializer, PublicationSerializer, EducationMaterialSerializer,
     StudyInquirySerializer, InterventionArmSerializer,
-    ClinicalConversationSerializer, ClinicalMessageSerializer
+    ClinicalConversationSerializer, ClinicalMessageSerializer,
+    KitSerializer, DosingLogSerializer, AEReportSerializer
 )
 from authentication.models import User, AuditLog
 from django.db.models import Q
@@ -277,6 +279,40 @@ class ConsentViewSet(viewsets.ModelViewSet):
     queryset = Consent.objects.all()
     serializer_class = ConsentSerializer
     permission_classes = [permissions.AllowAny]
+
+class DosingLogViewSet(viewsets.ModelViewSet):
+    serializer_class = DosingLogSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
+            return DosingLog.objects.all()
+        # Participants see their own logs
+        if user.role.upper() == 'PARTICIPANT':
+            return DosingLog.objects.filter(participant__user=user)
+        # Coordinators/PIs see logs for their assigned studies
+        return DosingLog.objects.filter(participant__study__assignments__user=user)
+
+    def perform_create(self, serializer):
+        participant = Participant.objects.filter(user=self.request.user).first()
+        serializer.save(participant=participant)
+
+class AEReportViewSet(viewsets.ModelViewSet):
+    serializer_class = AEReportSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
+            return AEReport.objects.all()
+        if user.role.upper() == 'PARTICIPANT':
+            return AEReport.objects.filter(participant__user=user)
+        return AEReport.objects.filter(participant__study__assignments__user=user)
+
+    def perform_create(self, serializer):
+        participant = Participant.objects.filter(user=self.request.user).first()
+        serializer.save(participant=participant)
 
 class FormViewSet(viewsets.ModelViewSet):
     queryset = Form.objects.all()
@@ -597,6 +633,59 @@ class InterventionArmViewSet(viewsets.ModelViewSet):
     queryset = InterventionArm.objects.all()
     serializer_class = InterventionArmSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+class KitViewSet(viewsets.ModelViewSet):
+    queryset = Kit.objects.all()
+    serializer_class = KitSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated: return Kit.objects.none()
+        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']:
+            return Kit.objects.all().order_by('-assignment_date')
+        # Participants only see their own kits
+        return Kit.objects.filter(participant__user=user).order_by('-assignment_date')
+
+    @action(detail=True, methods=['post'])
+    def confirm_receipt(self, request, pk=None):
+        kit = self.get_object()
+        kit.status = 'DELIVERED'
+        kit.received_date = now()
+        kit.save()
+        return Response({'status': 'DELIVERED'})
+
+    @action(detail=True, methods=['post'])
+    def initialize_collection(self, request, pk=None):
+        kit = self.get_object()
+        kit.status = 'COLLECTING'
+        kit.collection_date = now()
+        kit.save()
+        return Response({'status': 'COLLECTING'})
+
+    @action(detail=True, methods=['post'])
+    def complete_collection(self, request, pk=None):
+        kit = self.get_object()
+        kit.status = 'COLLECTED'
+        kit.save()
+        return Response({'status': 'COLLECTED'})
+
+    @action(detail=True, methods=['post'])
+    def ship_return(self, request, pk=None):
+        kit = self.get_object()
+        kit.status = 'RETURN_SHIPPED'
+        kit.shipping_date = now()
+        kit.save()
+        return Response({'status': 'RETURN_SHIPPED'})
+
+    @action(detail=True, methods=['post'])
+    def report_issue(self, request, pk=None):
+        kit = self.get_object()
+        reason = request.data.get('reason', 'Generic Issue')
+        kit.status = 'DAMAGED'
+        kit.symptom_note = f"ISSUE REPORTED: {reason}"
+        kit.save()
+        return Response({'status': 'DAMAGED', 'message': 'Issue reported and status updated.'})
 
 class ClinicalConversationViewSet(viewsets.ModelViewSet):
     queryset = ClinicalConversation.objects.all()

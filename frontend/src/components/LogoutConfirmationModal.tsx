@@ -28,7 +28,7 @@ const LogoutConfirmationModal: React.FC<LogoutConfirmationModalProps> = ({ isOpe
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                        className="relative w-full max-w-md bg-[#0d1424] border border-white/10 rounded-[2.5rem] p-10 overflow-hidden shadow-2xl"
+                        className="relative w-full max-w-md bg-[#0d1424]/90 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-10 overflow-hidden shadow-2xl"
                     >
                         {/* Decorative Background Elements */}
                         <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />

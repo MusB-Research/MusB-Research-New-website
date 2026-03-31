@@ -199,21 +199,21 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
         marginBottom: '48px',
         animation: 'fadeIn 0.8s'
       }}>
-        <h1 style={{ margin: 0, fontSize: '36px', fontWeight: 900, color: 'white', fontStyle: 'italic', letterSpacing: '-0.02em' }}>
+        <h1 style={{ margin: 0, fontSize: '42px', fontWeight: 900, color: 'white', fontStyle: 'italic', letterSpacing: '-0.02em' }}>
           WELCOME BACK, <span style={{ color: '#60a5fa' }}>{getDisplayName(getUser()).toUpperCase()}</span>
         </h1>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#60a5fa', fontSize: '18px', fontWeight: 900, fontFamily: 'monospace' }}>
+            <span style={{ color: '#60a5fa', fontSize: '22px', fontWeight: 900, fontFamily: 'monospace' }}>
               {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
             </span>
-            <span style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 900, letterSpacing: '0.05em', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px' }}>
+            <span style={{ color: '#94a3b8', fontSize: '14px', fontWeight: 900, letterSpacing: '0.05em', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px' }}>
               {Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop()?.replace('_', ' ')}
             </span>
           </div>
           <div style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.1)' }} />
-          <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 800, letterSpacing: '0.1em' }}>
+          <div style={{ fontSize: '15px', color: '#94a3b8', fontWeight: 800, letterSpacing: '0.1em' }}>
             {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}
           </div>
         </div>
@@ -237,7 +237,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
           <h1 style={{
             margin: 0,
             fontWeight: 900,
-            fontSize: windowWidth > 960 ? 48 : windowWidth > 768 ? 35 : 28,
+            fontSize: windowWidth > 960 ? 56 : windowWidth > 768 ? 42 : 32,
             color: 'white',
             letterSpacing: '-0.04em',
             lineHeight: 1.1
@@ -247,7 +247,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
           <p style={{
             margin: '24px 0 0 0',
             color: 'rgba(255,255,255,0.9)',
-            fontSize: windowWidth > 1024 ? 20 : windowWidth > 768 ? 17 : 13,
+            fontSize: windowWidth > 1024 ? 24 : windowWidth > 768 ? 20 : 16,
             lineHeight: 1.6,
             maxWidth: '950px',
             fontWeight: 500
@@ -264,7 +264,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
           borderRadius: 24,
           cursor: 'pointer',
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          fontSize: windowWidth > 768 ? 18 : 15,
+          fontSize: windowWidth > 768 ? 22 : 18,
           boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
           width: windowWidth > 1024 ? 'auto' : '100%'
         }}>
@@ -272,17 +272,17 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
         </button>
       </div>
 
-      <div style={{ fontSize: 14, color: '#64748b', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 20 }}>CONTROL PANEL</div>
+      <div style={{ fontSize: 16, color: '#64748b', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 20 }}>CONTROL PANEL</div>
       <div style={{ display: 'grid', gridTemplateColumns: windowWidth > 1200 ? 'repeat(4,1fr)' : windowWidth > 900 ? 'repeat(2,1fr)' : '1fr', gap: windowWidth > 768 ? 20 : 12, marginBottom: 32, alignItems: 'stretch' }}>
 
         {/* Box 1 */}
         <div onClick={() => setOverviewModalOpen(true)} style={{ background: 'rgba(30, 41, 59, 0.6)', backdropFilter: 'blur(10px)', borderRadius: 24, padding: '28px 24px', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', transition: 'all 0.3s', display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>📊</div>
-          <h3 style={{ margin: '0 0 14px 0', fontSize: 22, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>Overview</h3>
-          <div style={{ fontSize: 16, color: '#94a3b8', lineHeight: 1.8, marginBottom: 20, fontWeight: 500, flex: 1 }}>
+          <h3 style={{ margin: '0 0 14px 0', fontSize: 26, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>Overview</h3>
+          <div style={{ fontSize: 18, color: '#94a3b8', lineHeight: 1.8, marginBottom: 20, fontWeight: 500, flex: 1 }}>
             Total Studies: <span style={{ color: '#f1f5f9', fontWeight: 700 }}>{stats.total}</span><br />Active: <span style={{ color: '#60a5fa', fontWeight: 700 }}>{stats.active}</span><br />Completed: <span style={{ color: '#10b981', fontWeight: 700 }}>{stats.completed}</span>
           </div>
-          <div style={{ color: '#2563eb', fontSize: 15, fontWeight: 800 }}>→ View Insights</div>
+          <div style={{ color: '#2563eb', fontSize: 17, fontWeight: 800 }}>→ View Insights</div>
         </div>
 
         {/* Box 2 */}
@@ -325,14 +325,14 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
         gap: 20
       }}>
         <div style={{
-          fontSize: windowWidth > 768 ? 56 : 36,
+          fontSize: windowWidth > 768 ? 64 : 42,
           color: '#f1f5f9',
           fontWeight: 900,
           letterSpacing: '-0.03em'
         }}>
           Strategic Protocol Portfolio
         </div>
-        <button onClick={() => setPortfolioModalOpen(true)} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: windowWidth > 768 ? 24 : 18, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>Explore Full Portfolio <span>→</span></button>
+        <button onClick={() => setPortfolioModalOpen(true)} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: windowWidth > 768 ? 28 : 22, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>Explore Full Portfolio <span>→</span></button>
       </div>
 
       {windowWidth > 768 ? (
@@ -354,7 +354,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
               border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: 16,
               padding: '14px 20px',
-              fontSize: 15,
+              fontSize: 18,
               fontWeight: 800,
               appearance: 'none',
               cursor: 'pointer',
@@ -368,7 +368,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
               <option key={f} value={f} style={{ background: '#0f172a', color: '#f1f5f9' }}>{f} Status</option>
             ))}
           </select>
-          <div style={{ position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#6366f1', fontSize: 14, fontWeight: 900 }}>▼</div>
+          <div style={{ position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#6366f1', fontSize: 16, fontWeight: 900 }}>▼</div>
         </div>
       )}
 
@@ -384,13 +384,13 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
           {filteredProtocols.map((p: any) => (
             <div key={p.id} style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(8px)', borderRadius: 24, padding: '24px', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', transition: 'transform 0.3s ease' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-                <h3 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.02em', lineHeight: 1.2 }}>{p.title}</h3>
+                <h3 style={{ margin: 0, fontSize: 32, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.02em', lineHeight: 1.2 }}>{p.title}</h3>
                 <StatusBadge status={p.status} />
               </div>
-              <div style={{ fontFamily: 'monospace', fontSize: 16, color: '#64748b', marginBottom: 32, fontWeight: 600 }}>{p.id}</div>
+              <div style={{ fontFamily: 'monospace', fontSize: 18, color: '#64748b', marginBottom: 32, fontWeight: 600 }}>{p.id}</div>
 
               <div style={{ marginBottom: 32, flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 17, color: '#94a3b8', marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 19, color: '#94a3b8', marginBottom: 12 }}>
                   <span>Enrollment</span>
                   <span style={{ color: '#f1f5f9', fontWeight: 800 }}>{p.enrollment.current} / {p.enrollment.target} ({(p.enrollment.current / p.enrollment.target * 100).toFixed(0)}%)</span>
                 </div>
@@ -401,9 +401,9 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 24, paddingTop: 28, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                <button onClick={() => { setStudyDetailId(p.id); setStudyDetailTab('Overview'); setStudyDetailModalOpen(true); }} style={{ background: 'none', border: 'none', color: '#3b82f6', fontWeight: 800, fontSize: 17, cursor: 'pointer', padding: 0 }}>View Study →</button>
-                <button onClick={() => { setReportsStudyFilter(p.id); setReportsModalOpen(true); }} style={{ background: 'none', border: 'none', color: '#94a3b8', fontWeight: 800, fontSize: 17, cursor: 'pointer', padding: 0 }}>Reports</button>
-                <button onClick={() => { setComposeStudyContext(p); setComposeForm({ to: `Study Team — ${p.title}`, subject: `Re: ${p.title}`, message: '' }); setComposeModalOpen(true); }} style={{ background: 'none', border: 'none', color: '#94a3b8', fontWeight: 800, fontSize: 17, cursor: 'pointer', padding: 0, marginLeft: 'auto' }}>Message</button>
+                <button onClick={() => { setStudyDetailId(p.id); setStudyDetailTab('Overview'); setStudyDetailModalOpen(true); }} style={{ background: 'none', border: 'none', color: '#3b82f6', fontWeight: 800, fontSize: 19, cursor: 'pointer', padding: 0 }}>View Study →</button>
+                <button onClick={() => { setReportsStudyFilter(p.id); setReportsModalOpen(true); }} style={{ background: 'none', border: 'none', color: '#94a3b8', fontWeight: 800, fontSize: 19, cursor: 'pointer', padding: 0 }}>Reports</button>
+                <button onClick={() => { setComposeStudyContext(p); setComposeForm({ to: `Study Team — ${p.title}`, subject: `Re: ${p.title}`, message: '' }); setComposeModalOpen(true); }} style={{ background: 'none', border: 'none', color: '#94a3b8', fontWeight: 800, fontSize: 19, cursor: 'pointer', padding: 0, marginLeft: 'auto' }}>Message</button>
               </div>
             </div>
           ))}
@@ -451,8 +451,8 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
                 onMouseEnter={e => { if (count > 0) (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'; }}
               >
-                <div style={{ fontSize: 52, fontWeight: 900, color: cols[s], lineHeight: 1 }}>{count}</div>
-                <div style={{ fontSize: 13, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, marginTop: 8, letterSpacing: '0.06em' }}>{s} Studies</div>
+                <div style={{ fontSize: 60, fontWeight: 900, color: cols[s], lineHeight: 1 }}>{count}</div>
+                <div style={{ fontSize: 15, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, marginTop: 8, letterSpacing: '0.06em' }}>{s} Studies</div>
                 {count > 0 && (
                   <div style={{ fontSize: 12, color: cols[s], fontWeight: 700, marginTop: 10, opacity: 0.8 }}>
                     {count === 1 ? 'View Study →' : `View All ${count} →`}
@@ -474,21 +474,21 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ background: '#1e293b', borderBottom: '1px solid #334155' }}>
               <tr>
-                <th style={{ padding: '18px 20px', fontSize: 13, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Study ID</th>
-                <th style={{ padding: '18px 20px', fontSize: 13, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Title</th>
-                <th style={{ padding: '18px 20px', fontSize: 13, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Status</th>
-                <th style={{ padding: '18px 20px', fontSize: 13, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Enrollment</th>
-                <th style={{ padding: '18px 20px', fontSize: 13, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Last Updated</th>
+                <th style={{ padding: '18px 20px', fontSize: 15, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Study ID</th>
+                <th style={{ padding: '18px 20px', fontSize: 15, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Title</th>
+                <th style={{ padding: '18px 20px', fontSize: 15, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Status</th>
+                <th style={{ padding: '18px 20px', fontSize: 15, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Enrollment</th>
+                <th style={{ padding: '18px 20px', fontSize: 15, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Last Updated</th>
               </tr>
             </thead>
             <tbody>
               {protocols.map((p: any) => (
                 <tr key={p.id} onClick={() => { setStudyDetailId(p.id); setStudyDetailModalOpen(true); setPortfolioModalOpen(false); }} style={{ borderBottom: '1px solid #334155', cursor: 'pointer', transition: 'background 0.2s' }}>
-                  <td style={{ padding: '22px 20px', fontSize: 15, fontFamily: 'monospace', color: '#94a3b8', fontWeight: 700 }}>{p.id}</td>
-                  <td style={{ padding: '22px 20px', fontSize: 18, color: '#f1f5f9', fontWeight: 900, letterSpacing: '-0.01em' }}>{p.title}</td>
+                  <td style={{ padding: '22px 20px', fontSize: 17, fontFamily: 'monospace', color: '#94a3b8', fontWeight: 700 }}>{p.id}</td>
+                  <td style={{ padding: '22px 20px', fontSize: 20, color: '#f1f5f9', fontWeight: 900, letterSpacing: '-0.01em' }}>{p.title}</td>
                   <td style={{ padding: '22px 20px' }}><StatusBadge status={p.status} /></td>
-                  <td style={{ padding: '22px 20px', fontSize: 18, color: '#f1f5f9', fontWeight: 800 }}>{p.enrollment.current} <span style={{ color: '#64748b', fontSize: 16 }}>/ {p.enrollment.target}</span></td>
-                  <td style={{ padding: '22px 20px', fontSize: 16, color: '#64748b', fontWeight: 500 }}>{p.lastUpdated}</td>
+                  <td style={{ padding: '22px 20px', fontSize: 20, color: '#f1f5f9', fontWeight: 800 }}>{p.enrollment.current} <span style={{ color: '#64748b', fontSize: 18 }}>/ {p.enrollment.target}</span></td>
+                   <td style={{ padding: '22px 20px', fontSize: 18, color: '#64748b', fontWeight: 500 }}>{p.lastUpdated}</td>
                 </tr>
               ))}
             </tbody>
@@ -509,10 +509,10 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
             <div key={r.id} style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 16, padding: windowWidth > 600 ? '28px 32px' : '20px 18px', display: 'flex', flexDirection: windowWidth > 600 ? 'row' : 'column', justifyContent: 'space-between', alignItems: windowWidth > 600 ? 'center' : 'flex-start', gap: 16, transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-                  <h4 style={{ margin: 0, fontSize: windowWidth > 600 ? 22 : 18, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.01em' }}>{r.name}</h4>
+                  <h4 style={{ margin: 0, fontSize: windowWidth > 600 ? 26 : 22, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.01em' }}>{r.name}</h4>
                   <StatusBadge status={r.type} />
                 </div>
-                <div style={{ fontSize: windowWidth > 600 ? 16 : 14, color: '#64748b', fontWeight: 500 }}>{r.study} • Generated on <span style={{ color: '#94a3b8', fontWeight: 800 }}>{r.date}</span></div>
+                <div style={{ fontSize: windowWidth > 600 ? 18 : 16, color: '#64748b', fontWeight: 500 }}>{r.study} • Generated on <span style={{ color: '#94a3b8', fontWeight: 800 }}>{r.date}</span></div>
               </div>
               <div style={{ display: 'flex', gap: 10, flexShrink: 0, width: windowWidth > 600 ? 'auto' : '100%' }}>
                 <button
@@ -521,7 +521,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
                     downloadFile(pdfContent, `${r.name}.pdf`, 'application/pdf');
                     addToast({ type: 'success', message: 'PDF downloaded successfully.' });
                   }}
-                  style={{ background: '#2563eb', color: 'white', border: 'none', padding: '14px 24px', borderRadius: 12, fontWeight: 800, fontSize: 16, cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap', flex: windowWidth > 600 ? 'none' : 1 }}
+                  style={{ background: '#2563eb', color: 'white', border: 'none', padding: '14px 24px', borderRadius: 12, fontWeight: 800, fontSize: 18, cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap', flex: windowWidth > 600 ? 'none' : 1 }}
                 >
                   ⬇ PDF
                 </button>
@@ -531,7 +531,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
                     downloadFile(csvContent, `${r.name}.csv`, 'text/csv');
                     addToast({ type: 'success', message: 'CSV downloaded successfully.' });
                   }}
-                  style={{ background: '#10b981', color: 'white', border: 'none', padding: '14px 24px', borderRadius: 12, fontWeight: 800, fontSize: 16, cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap', flex: windowWidth > 600 ? 'none' : 1 }}
+                  style={{ background: '#10b981', color: 'white', border: 'none', padding: '14px 24px', borderRadius: 12, fontWeight: 800, fontSize: 18, cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap', flex: windowWidth > 600 ? 'none' : 1 }}
                 >
                   ⬇ CSV
                 </button>
@@ -1294,10 +1294,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
             <div style={{ fontSize: 80, marginBottom: 32 }}>SUCCESS</div>
             <h2 style={{ fontSize: 36, fontWeight: 900, marginBottom: 16, color: 'white' }}>Inquiry & Call Booked!</h2>
             <p style={{ color: '#94a3b8', fontSize: 19, lineHeight: 1.6, marginBottom: 40 }}>
-              Your inquiry details and requested discovery call have been received.
-              {inquiryForm.ndaPreference === 'YES'
-                ? " Our legal team will reach out with the NDA shortly."
-                : " Our team will review your proposal and confirm the meeting time soon."}
+              we got your inquarie and our team members contact you shortly
               <br /><br />
               <strong>Scheduled for:</strong> {inquiryForm.discoveryCallDate} at {inquiryForm.discoveryCallTime} ({inquiryForm.discoveryCallTimezone})
             </p>

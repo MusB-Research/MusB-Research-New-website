@@ -23,7 +23,7 @@ import StudyDetail from './views/StudyDetail';
 import StudyScreener from './views/StudyScreener';
 import SuperAdminDashboard from './views/SuperAdminDashboard';
 import AdminDashboard from './views/AdminDashboard';
-import ParticipantDashboard from './views/ParticipantDashboard';
+import ParticipantDashboard from './views/Participant/ParticipantDashboard';
 import PIDashboard from './views/PIDashboard';
 import SponsorDashboard from './views/SponsorDashboard/SponsorDashboard';
 import StudyConsent from './views/StudyConsent';
@@ -35,7 +35,13 @@ import { performLogout, isLoggedIn } from './utils/auth';
 function AppContent() {
     const location = useLocation();
     const isDashboard = location.pathname.startsWith('/dashboard');
-
+    useEffect(() => {
+        if (isDashboard) {
+            document.body.style.backgroundColor = '#0a0e1a';
+        } else {
+            document.body.style.backgroundColor = '';
+        }
+    }, [isDashboard]);
 
     return (
         <>
@@ -65,6 +71,7 @@ function AppContent() {
                     <Route path="/studies/:id/consent" element={<StudyConsent />} />
 
                     {/* Dashboard Routes (RBAC) */}
+                    <Route path="/dashboard" element={<Navigate to="/dashboard/participant" replace />} />
                     <Route path="/dashboard/participant" element={<ParticipantDashboard />} />
                     <Route path="/dashboard/super-admin" element={<SuperAdminDashboard />} />
                     <Route path="/dashboard/super admin" element={<Navigate to="/dashboard/super-admin" replace />} />

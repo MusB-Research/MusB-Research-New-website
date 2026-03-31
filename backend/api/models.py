@@ -145,8 +145,10 @@ class Study(BaseMongoModel):
     scheduling_enabled = models.BooleanField(default=False)
     compensation_enabled = models.BooleanField(default=False)
     kit_tracking_enabled = models.BooleanField(default=False)
-    lab_uploads_enabled = models.BooleanField(default=False)
+    show_lab_upload = models.BooleanField(default=False)
     notifications_enabled = models.BooleanField(default=True)
+    show_dosing_log = models.BooleanField(default=True)
+    show_ae_report = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -319,18 +321,38 @@ class Kit(BaseMongoModel):
     
     status = models.CharField(max_length=30, default='ASSIGNED', choices=[
         ('ASSIGNED', 'Kit Assigned'),
+        ('PREPARING', 'Preparing for Sync'),
+        ('SHIPPED', 'In Transit (Outbound)'),
+        ('DELIVERED', 'Delivered at Node'),
         ('AWAITING', 'Awaiting Collection'),
-        ('COLLECTED', 'Collected'),
-        ('SHIPPED', 'Shipped by Participant'),
-        ('RECEIVED', 'Received at Site'),
-        ('MISSING', 'Missing'),
-        ('DELAYED', 'Delayed'),
-        ('DAMAGED', 'Damaged / Invalid'),
+        ('COLLECTING', 'Collection Active'),
+        ('COLLECTED', 'Sample Collected'),
+        ('RETURN_SHIPPED', 'Return Transit Active'),
+        ('RECEIVED', 'Received at Central Lab'),
+        ('MISSING', 'Node Signal Lost / Missing'),
+        ('DELAYED', 'Logistics Delay'),
+        ('DAMAGED', 'Damaged / Protocol Invalid'),
     ])
     
     assignment_date = models.DateTimeField(null=True, blank=True)
     collection_date = models.DateTimeField(null=True, blank=True)
+    shipping_date = models.DateTimeField(null=True, blank=True)
     received_date = models.DateTimeField(null=True, blank=True)
+    
+    # Advanced Tracking
+    carrier = models.CharField(max_length=50, default='FedEx')
+    tracking_number = models.CharField(max_length=100, blank=True)
+    tracking_url = models.URLField(max_length=500, blank=True, null=True)
+    expected_delivery = models.DateField(null=True, blank=True)
+    
+    # Protocol Materials (Files)
+    collection_guide = models.FileField(upload_to='kit_guides/', null=True, blank=True)
+    return_label = models.FileField(upload_to='return_labels/', null=True, blank=True)
+    
+    # Collection Data
+    symptom_note = models.TextField(blank=True)
+    kit_photo = models.ImageField(upload_to='kit_photos/', null=True, blank=True)
+    packaging_photo = models.ImageField(upload_to='packaging_photos/', null=True, blank=True)
 
     def __str__(self):
         return f"Kit {self.kit_number} ({self.status})"
@@ -389,6 +411,11 @@ class Task(BaseMongoModel):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # UI Configuration for Participant Portal
+    show_dosing_log = models.BooleanField(default=True)
+    show_ae_report = models.BooleanField(default=True)
+    show_lab_upload = models.BooleanField(default=True)
+    
     def __str__(self):
         return f"{self.title} ({self.frequency})"
 
@@ -405,6 +432,12 @@ class ParticipantTask(BaseMongoModel):
         ('MISSED', 'Missed'),
         ('IN_PROGRESS', 'In Progress'),
     ])
+    
+    # New fields for Advanced Portal UX
+    visit_name = models.CharField(max_length=100, default='Visit 1 (Baseline)')
+    timeline_group = models.CharField(max_length=50, default='Day 0')
+    estimated_time = models.CharField(max_length=20, default='15 min')
+    is_locked = models.BooleanField(default=False)
     
     # Store dynamic state for multi-step tasks if needed
     current_data = models.JSONField(default=dict, blank=True)
@@ -777,3 +810,34 @@ class ClinicalMessage(BaseMongoModel):
 
     class Meta:
         ordering = ['created_at']
+
+class DosingLog(BaseMongoModel):
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='dosing_logs')
+    date = models.DateField()
+    dose_taken = models.BooleanField(default=True)
+    missed_reason = models.CharField(max_length=255, blank=True)
+    side_effects = models.TextField(blank=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('participant', 'date')
+
+class AEReport(BaseMongoModel):
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='ae_reports')
+    description = models.TextField()
+    start_date = models.DateTimeField()
+    is_ongoing = models.BooleanField(default=True)
+    severity = models.CharField(max_length=20, choices=[
+        ('MILD', 'Mild'),
+        ('MODERATE', 'Moderate'),
+        ('SEVERE', 'Severe'),
+    ])
+    action_taken = models.TextField(blank=True)
+    related_to_product = models.CharField(max_length=20, choices=[
+        ('YES', 'Yes'),
+        ('NO', 'No'),
+        ('UNSURE', 'Unsure'),
+    ])
+    attachment = models.FileField(upload_to='ae_reports/', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
