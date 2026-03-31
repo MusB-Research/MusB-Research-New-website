@@ -158,7 +158,7 @@ export default function ParticipantDashboard() {
             window.URL.revokeObjectURL(url);
 
             setTimeout(() => {
-                alert(`✅ ${title} has been encrypted and successfully downloaded to your machine.`);
+                alert("we got your request and our team members contact you shortly");
             }, 1000);
         }
     };
@@ -246,24 +246,24 @@ export default function ParticipantDashboard() {
             if (modalConfig.task) {
                 const taskId = modalConfig.task.id;
                 setTasks((prev: any[]) => prev.map(t => t.id === taskId ? { ...t, status: 'COMPLETED' } : t));
-                alert(`✅ [${modalConfig.task.title}] has been logged and synchronized with study servers.`);
+                alert("we got your request and our team members contact you shortly");
                 return;
             }
 
             if (title.toLowerCase().includes('confirm') && title.toLowerCase().includes('received')) {
-                alert("✅ Kit Receipt Confirmed. Sample collection protocol is now available in your task list.");
+                alert("we got your request and our team members contact you shortly");
                 setActiveNav('Tasks');
                 return;
             }
 
             if (title.toLowerCase().includes('sync') || title.toLowerCase().includes('collection')) {
-                alert("✅ Collection Data Synchronized. Thank you for maintaining protocol compliance.");
+                alert("we got your request and our team members contact you shortly");
                 setActiveNav('Dashboard');
                 return;
             }
 
             if (title.toLowerCase().includes('report') || title.toLowerCase().includes('problem')) {
-                alert("⚠️ Resolution Ticket Created. A study coordinator will contact you via secure message shortly.");
+                alert("we got your request and our team members contact you shortly");
                 setActiveNav('Messages');
                 return;
             }
@@ -274,7 +274,7 @@ export default function ParticipantDashboard() {
             }
 
             if (title.toLowerCase().includes('receipt')) {
-                alert("✅ Receipt Confirmed. Your study timeline has been updated with Clinical Kit #4920.");
+                alert("we got your request and our team members contact you shortly");
                 setActiveNav('Study Kit');
                 return;
             }
@@ -289,14 +289,14 @@ export default function ParticipantDashboard() {
                 if (taskToUpdate) {
                     setTasks((prev: any[]) => prev.map(t => t.id === taskToUpdate.id ? { ...t, status: 'COMPLETED' } : t));
                 }
-                alert(`✅ [${title}] has been logged and synchronized with study servers.`);
+                alert("we got your request and our team members contact you shortly");
                 if (title.toLowerCase().includes('task')) setActiveNav('Tasks');
                 if (title.toLowerCase().includes('dose') || title.toLowerCase().includes('symptom')) setActiveNav('Logs');
                 return;
             }
 
             if (title.toLowerCase().includes('withdraw')) {
-                alert("⚠️ Withdrawal process initiated. Our clinical team will contact you within 24 hours to finalize your exit and ensure safety protocols.");
+                alert("we got your request and our team members contact you shortly");
                 return;
             }
 

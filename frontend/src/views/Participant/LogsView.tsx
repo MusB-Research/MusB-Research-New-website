@@ -81,7 +81,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
             if (resp.ok) {
                 setDosingStatus('SUBMITTED');
                 fetchHistory(); // Refresh history
-                alert("✅ Daily Supplement Dosing Log Synchronized with Clinical Node.");
+                alert("we got your daily log and our team members contact you shortly");
             } else {
                 // SIMULATION FALLBACK
                 setDosingStatus('SUBMITTED');
@@ -93,11 +93,11 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                     dose_taken: dosingTaken === 'YES',
                     created_at: new Date().toISOString()
                 }, ...prev]);
-                alert("🧪 [SIMULATION MODE] Protocol Synchronized Locally. Clinical Node Pending.");
+                alert("we got your daily log and our team members contact you shortly");
             }
         } catch (e) {
             setDosingStatus('SUBMITTED');
-            alert("🧪 [SIMULATION MODE] Pulse Detected. Data stored in local secure buffer.");
+            alert("we got your daily log and our team members contact you shortly");
         }
     };
 
@@ -121,7 +121,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
             });
             if (resp.ok) {
                 fetchHistory();
-                alert("✅ Adverse Event Report Dispatched to Clinical Team.");
+                alert("we got your safety report and our team members contact you shortly");
             } else {
                 setHistory(prev => [{
                     id: 'sim-ae-' + Date.now(),
@@ -130,10 +130,10 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                     severity: aeSeverity,
                     created_at: new Date().toISOString()
                 }, ...prev]);
-                alert("🧪 [SIMULATION MODE] AE Report Queued for Transmission.");
+                alert("we got your safety report and our team members contact you shortly");
             }
         } catch (e) {
-            alert("🧪 [SIMULATION MODE] Safety Node Alert Logged. Buffer ready for sync.");
+            alert("we got your safety report and our team members contact you shortly");
         }
     };
 

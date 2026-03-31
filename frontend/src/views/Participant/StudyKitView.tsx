@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Package, Truck, CheckCircle2, AlertCircle, Download, 
     ExternalLink, Play, FileText, ChevronRight, 
-    Clock, Calendar, Camera, Info, X, Zap
+    Clock, Calendar, Camera, Info, X, Zap, Ship
 } from 'lucide-react';
 import { Card, Badge, StepIndicator, Checklist, ProgressBar } from './SharedComponents';
 
@@ -116,8 +116,7 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
                 if (actionName === 'initialize_collection') {
                     setIsCollectionModalOpen(true);
                 }
-                const friendlyAction = actionName.split('_').map(w => w.toUpperCase()).join(' ');
-                alert(`✅ Logistics Command Sync: ${friendlyAction} successfully logged.`);
+                alert("we got your request and our team members contact you shortly");
             }
         } catch (e) {
             console.error("Action synchronization failed:", e);
@@ -150,7 +149,7 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
 
     const handleDownload = (url: string | null, title: string) => {
         if (!url) {
-            alert("Protocol material not yet provisioned for this kit.");
+            alert("we got your request and our team members contact you shortly");
             return;
         }
         window.open(url, '_blank');

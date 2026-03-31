@@ -416,7 +416,7 @@ const MessagesView = ({ study }: { study?: any }) => {
                                 <button 
                                     onClick={() => {
                                         setIsCallModalOpen(false);
-                                        alert("✅ Voice Sync Requested. Monitor your encrypted dispatcher for updates.");
+                                        alert("we got your request and our team members contact you shortly");
                                     }}
                                     className="w-full py-5 bg-cyan-500 text-slate-950 rounded-2xl font-black text-xs uppercase tracking-[0.25em] shadow-[0_0_30px_rgba(6,182,212,0.3)] active:scale-95"
                                 >
