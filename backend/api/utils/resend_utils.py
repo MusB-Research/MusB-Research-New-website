@@ -170,12 +170,18 @@ def send_inquiry_notification(inquiry_data: dict, target_email: str):
         # Always include info@musbresearch.com as per user requirement
         recipients = list(set([target_email, "info@musbresearch.com"]))
         
-        resend.Emails.send({
-            "from": settings.DEFAULT_FROM_EMAIL,
+        # Use Resend directly as per user requirement (removing SMTP fallback)
+        resend.api_key = os.environ.get('RESEND_API_KEY', getattr(settings, 'RESEND_API_KEY', ''))
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'onboarding@resend.dev')
+        
+        email_response = resend.Emails.send({
+            "from": from_email,
             "to": recipients,
             "subject": subject,
             "html": html_content
         })
+        print(f"Sent inquiry notification via Resend directly to {recipients}: {email_response}")
+            
         return True
     except Exception as e:
         print(f"Error sending inquiry notification to {target_email}: {e}")

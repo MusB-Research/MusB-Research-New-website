@@ -21,11 +21,24 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
     // --- AE STATE ---
     const [aeDescription, setAeDescription] = useState('');
     const [aeSeverity, setAeSeverity] = useState('MILD');
+    const [aeTimestamp, setAeTimestamp] = useState('');
+    const [aeOngoing, setAeOngoing] = useState(true);
+
+    React.useEffect(() => {
+        const now = new Date();
+        const offset = now.getTimezoneOffset() * 60000;
+        const localISOTime = new Date(now.getTime() - offset).toISOString().slice(0, 16);
+        setAeTimestamp(localISOTime);
+    }, []);
+
+
 
     // --- DROPDOWN STATES ---
     const [openDosingReason, setOpenDosingReason] = useState(false);
     const [dosingReason, setDosingReason] = useState('');
     const [openAeSeverity, setOpenAeSeverity] = useState(false);
+
+
 
     // --- LAB STATE ---
     const [labType, setLabType] = useState('Blood');
@@ -293,13 +306,14 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                             )}
                             <button
                                 onClick={handleSubmitDosing}
-                                disabled={!dosingTaken || dosingStatus === 'SUBMITTED'}
+                                disabled={!dosingTaken || (dosingTaken === 'NO' && !dosingReason) || dosingStatus === 'SUBMITTED'}
                                 className={`px-10 py-3 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3 shadow-lg disabled:opacity-30 ${dosingStatus === 'SUBMITTED' ? 'bg-indigo-600/30 text-indigo-200 border border-indigo-500/30' : 'bg-cyan-500 text-slate-950 shadow-cyan-500/20 hover:bg-cyan-400'
                                     }`}
                             >
                                 <Save className="w-4 h-4" />
-                                {dosingStatus === 'SUBMITTED' ? 'MISSION SYNCED' : 'INITIALIZE SYNC'}
+                                {dosingStatus === 'SUBMITTED' ? 'LOG SYNCHRONIZED' : 'SUBMIT DAILY LOG'}
                             </button>
+
                         </div>
                     </div>
                 </Card>
@@ -346,8 +360,14 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             <div className="space-y-4">
                                 <label className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] px-2 block">Incident Timestamp</label>
-                                <input type="datetime-local" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-black uppercase text-white outline-none focus:border-red-500/30" />
+                                <input 
+                                    type="datetime-local" 
+                                    value={aeTimestamp}
+                                    onChange={(e) => setAeTimestamp(e.target.value)}
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm font-black uppercase text-white outline-none focus:border-red-500/30" 
+                                />
                             </div>
+
                             <div className="space-y-4">
                                 <label className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] px-2 block">Severity Matrix</label>
                                 <div className="relative">
@@ -367,6 +387,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                                                 {['MILD', 'MODERATE', 'SEVERE'].map(opt => (
                                                     <button
                                                         key={opt}
+                                                        type="button"
                                                         onClick={() => { setAeSeverity(opt); setOpenAeSeverity(false); }}
                                                         className={`w-full p-4 text-left text-sm font-bold transition-colors border-b border-white/5 last:border-0 ${opt === 'SEVERE' ? 'text-red-500 bg-red-500/5 hover:bg-red-500/10' : 'text-slate-400 hover:bg-white/5 hover:text-white'
                                                             }`}
@@ -381,15 +402,31 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                             </div>
                             <div className="space-y-4">
                                 <label className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] px-2 block">Ongoing Incident?</label>
-                                <div className="flex gap-3">
-                                    {['YES', 'NO'].map(opt => (
-                                        <button key={opt} className={`flex-1 py-4 border rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${opt === 'YES' ? 'bg-white/10 border-white/20 text-white' : 'border-white/5 text-slate-600'}`}>
-                                            {opt}
-                                        </button>
-                                    ))}
+                                <div className="flex gap-4">
+                                    {['YES', 'NO'].map(opt => {
+                                        const isSelected = aeOngoing === (opt === 'YES');
+                                        return (
+                                            <button
+                                                key={opt}
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    console.log(`Setting AE ongoing to: ${opt === 'YES'}`);
+                                                    setAeOngoing(opt === 'YES');
+                                                }}
+                                                className={`flex-1 py-4 border rounded-[2rem] text-[12px] font-black uppercase tracking-[0.3em] transition-all cursor-pointer relative z-[200] ${isSelected 
+                                                    ? 'bg-[#06b6d4] text-slate-950 border-[#22d3ee] shadow-[0_0_30px_rgba(6,182,212,0.4)]' 
+                                                    : 'bg-white/5 border-white/10 text-slate-500 hover:text-white hover:bg-white/10'
+                                                }`}
+                                            >
+                                                {opt}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
+
 
                         <div className="space-y-4">
                             <label className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] px-2 block">Action Taken (Medical Response)</label>

@@ -115,7 +115,8 @@ const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; on
         pdf.setTextColor(34, 211, 238);
         pdf.setFontSize(26);
         pdf.setFont('helvetica', 'bold');
-        pdf.text('ABC RESEARCH PVT. LTD.', 105, 20, { align: 'center' });
+        pdf.text('MUSB RESEARCH PVT. LTD.', 105, 20, { align: 'center' });
+
         
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(10);
@@ -156,7 +157,8 @@ const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; on
         const termsText = [
             "1. Participation is 100% voluntary and revocable at any clinical node point.",
             "2. Biometric sync requires daily logging of health metrics (Habits, Sleep, etc).",
-            "3. Data is encrypted via AES-256 and de-identified for ABC Research analysis.",
+            "3. Data is encrypted via AES-256 and de-identified for MUSB Research analysis.",
+
             "4. No major risks involved; participants may skip personal habits questions.",
             "5. Direct benefit for survey participation includes study credits and node access."
         ];
@@ -207,7 +209,8 @@ const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; on
         pdf.setTextColor(34, 211, 238);
         pdf.setFontSize(26);
         pdf.setFont('helvetica', 'bold');
-        pdf.text('ABC RESEARCH PVT. LTD.', 105, 20, { align: 'center' });
+        pdf.text('MUSB RESEARCH PVT. LTD.', 105, 20, { align: 'center' });
+
         pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(10);
         pdf.text(`SECURE PREVIEW | STATUS: ${task?.status || 'PENDING'}`, 105, 30, { align: 'center' });
@@ -330,11 +333,15 @@ const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; on
             </Card>
 
             {/* ──────────────── FILTER BAR ──────────────── */}
-            <div className="flex items-center gap-4 overflow-x-auto pb-4 no-scrollbar">
-                <div className="flex items-center gap-2 mr-4 bg-white/5 px-4 py-2 rounded-xl border border-white/5">
-                    <Filter className="w-4 h-4 text-slate-500" />
-                    <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest">Filter</span>
-                </div>
+            <div className="flex items-center gap-4 overflow-x-auto pb-4 no-scrollbar relative z-50">
+                <button 
+                    onClick={() => setFilter('All')}
+                    className={`flex items-center gap-2 mr-4 px-4 py-2 rounded-xl border transition-all cursor-pointer ${filter === 'All' ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400' : 'bg-white/5 border-white/5 text-slate-500 hover:text-white hover:bg-white/10'}`}
+                >
+                    <Filter className="w-4 h-4" />
+                    <span className="text-[12px] font-black uppercase tracking-widest">Filter</span>
+                </button>
+
                 {['All', 'Today', 'Upcoming', 'Completed', 'Overdue', 'Locked'].map((f) => (
                     <FilterChip 
                         key={f} 

@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { authFetch, API } from '../../utils/auth';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    Package, Truck, CheckCircle2, AlertCircle, Download, 
-    ExternalLink, Play, FileText, ChevronRight, 
-    Clock, Calendar, Camera, Info, X, Zap, Ship
+import {
+    Package, Truck, CheckCircle2, AlertCircle, Download,
+    ExternalLink, Play, FileText, ChevronRight,
+    Clock, Calendar, Camera, Info, X, Zap, Ship, FileText as FileIcon
 } from 'lucide-react';
 import { Card, Badge, StepIndicator, Checklist, ProgressBar } from './SharedComponents';
+import CollectionGuideView from './CollectionGuideView';
+import ReturnLabelView from './ReturnLabelView';
+
 
 interface Kit {
     id: string;
@@ -20,6 +23,7 @@ interface Kit {
 
 const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) => void; study?: any }) => {
     const [activeTab, setActiveTab] = useState<'outbound' | 'return'>('outbound');
+    const [subView, setSubView] = useState<'LIST' | 'GUIDE' | 'LABEL'>('LIST');
     const [selectedKit, setSelectedKit] = useState<any>(null);
     const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
     const [collectionStep, setCollectionStep] = useState(0);
@@ -85,7 +89,7 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
         if (kitId.startsWith('DEMO-')) {
             const friendlyAction = actionName.split('_').map(w => w.toUpperCase()).join(' ');
             console.log(`🧪 [SIMULATION NODE] Processing Command: ${friendlyAction}`);
-            
+
             setKits(prev => prev.map(k => {
                 if (k.id === kitId) {
                     let nextStatus = k.status;
@@ -159,6 +163,20 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
         setCheckedItems(prev => prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]);
     };
 
+    if (subView === 'GUIDE') return <CollectionGuideView onBack={() => setSubView('LIST')} />;
+    if (subView === 'LABEL') return <ReturnLabelView onBack={() => setSubView('LIST')} />;
+
+    const filteredKits = useMemo(() => {
+        return kits.filter(kit => {
+            const s = kit.status.toUpperCase();
+            if (activeTab === 'outbound') {
+                return ['SHIPPED', 'DELIVERED', 'PREPARING', 'ASSIGNED', 'AWAITING', 'DAMAGED', 'MISSING'].includes(s);
+            } else {
+                return ['COLLECTING', 'COLLECTED', 'RETURN_SHIPPED', 'RECEIVED'].includes(s);
+            }
+        });
+    }, [kits, activeTab]);
+
     return (
         <div className="space-y-12 pb-20">
             {/* ──────────────── HEADER ──────────────── */}
@@ -171,13 +189,13 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
 
             {/* ──────────────── TABS ──────────────── */}
             <div className="flex p-1 bg-white/5 rounded-3xl border border-white/5 w-fit">
-                <button 
+                <button
                     onClick={() => setActiveTab('outbound')}
                     className={`px-8 py-4 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'outbound' ? 'bg-cyan-500 text-slate-950 shadow-xl' : 'text-slate-500 hover:text-white'}`}
                 >
                     Outbound Logistics
                 </button>
-                <button 
+                <button
                     onClick={() => setActiveTab('return')}
                     className={`px-8 py-4 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'return' ? 'bg-cyan-500 text-slate-950 shadow-xl' : 'text-slate-500 hover:text-white'}`}
                 >
@@ -191,12 +209,13 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
                         <div className="w-12 h-12 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin mx-auto" />
                         <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-[12px]">Syncing Logistics Telemetry...</p>
                     </div>
-                ) : kits.length === 0 ? (
+                ) : filteredKits.length === 0 ? (
                     <div className="col-span-full py-20 text-center bg-white/[0.02] border border-white/5 rounded-[3rem]">
                         <Package className="w-16 h-16 text-slate-700 mx-auto mb-4" strokeWidth={1} />
-                        <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-xs font-bold italic">No active kits assigned to your node.</p>
+                        <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-xs font-bold italic">No kits currently in {activeTab} stage.</p>
                     </div>
-                ) : kits.map((kit, idx) => (
+                ) : filteredKits.map((kit, idx) => (
+
                     <motion.div key={kit.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.1 }}>
                         <Card className="group overflow-hidden border-l-4 border-l-cyan-500">
                             <div className="p-8 space-y-8">
@@ -228,7 +247,7 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
                                         <div className="flex items-center gap-4">
                                             <p className="text-sm font-black text-cyan-400 font-mono tracking-tighter">{kit.tracking_number || "PENDING_SYNC"}</p>
                                             {(kit.tracking_url || kit.tracking_number) && (
-                                                <button 
+                                                <button
                                                     onClick={() => {
                                                         const baseUrl = 'https://www.fedex.com/fedextrack/index.html';
                                                         const trkNo = (kit.tracking_number && kit.tracking_number !== "PENDING_SYNC") ? kit.tracking_number : "";
@@ -267,30 +286,28 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
                                 <div className="space-y-4 pt-4 border-t border-white/[0.05]">
                                     <h5 className="text-[12px] font-black text-slate-500 uppercase tracking-widest">Protocol Materials</h5>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        <button 
-                                            disabled={!kit.collection_guide_url}
-                                            onClick={() => handleDownload(kit.collection_guide_url, "Collection Guide")} 
-                                            className={`flex items-center gap-3 p-4 bg-white/5 border border-white/5 rounded-2xl hover:border-white/20 transition-all text-left ${!kit.collection_guide_url && 'opacity-50 grayscale'}`}
+                                        <button
+                                            onClick={() => setSubView('GUIDE')}
+                                            className={`flex items-center gap-3 p-4 bg-white/5 border border-white/5 rounded-2xl hover:border-cyan-500/20 transition-all text-left shadow-lg hover:shadow-cyan-500/5 group/btn`}
                                         >
-                                            <div className="w-10 h-10 rounded-xl bg-[#00e676]/10 flex items-center justify-center text-[#00e676]">
-                                                <FileText className="w-5 h-5" />
+                                            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover/btn:bg-cyan-500 group-hover/btn:text-slate-950 transition-all">
+                                                <FileIcon className="w-5 h-5" />
                                             </div>
-                                            <div>
-                                                <p className="text-xs font-black text-white uppercase italic">Collection Guide</p>
-                                                <span className="text-[10px] font-black text-slate-600 uppercase">PDF • SECURE_NODE</span>
+                                            <div className="flex flex-col">
+                                                <span className="text-[12px] font-black text-white italic uppercase tracking-tighter">Collection Guide</span>
+                                                <span className="text-[10px] font-black text-slate-600 uppercase">DIGITAL NODE</span>
                                             </div>
                                         </button>
-                                        <button 
-                                            disabled={!kit.return_label_url}
-                                            onClick={() => handleDownload(kit.return_label_url, "Return Label")} 
-                                            className={`flex items-center gap-3 p-4 bg-white/5 border border-white/5 rounded-2xl hover:border-white/20 transition-all text-left ${!kit.return_label_url && 'opacity-50 grayscale'}`}
+                                        <button
+                                            onClick={() => setSubView('LABEL')}
+                                            className="flex items-center gap-3 p-4 bg-white/5 border border-white/5 rounded-2xl hover:border-indigo-500/20 transition-all text-left shadow-lg hover:shadow-indigo-500/5 group/btn"
                                         >
-                                            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                                            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover/btn:bg-indigo-500 group-hover/btn:text-white transition-all">
                                                 <Download className="w-5 h-5" />
                                             </div>
-                                            <div>
-                                                <p className="text-xs font-black text-white uppercase italic">Return Label</p>
-                                                <span className="text-[10px] font-black text-slate-600 uppercase">PDF • SECURE_NODE</span>
+                                            <div className="flex flex-col">
+                                                <span className="text-[12px] font-black text-white italic uppercase tracking-tighter">Return Label</span>
+                                                <span className="text-[10px] font-black text-slate-600 uppercase">DIGITAL NODE</span>
                                             </div>
                                         </button>
                                     </div>
@@ -299,7 +316,7 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
                                 {/* Actions */}
                                 <div className="flex flex-col md:flex-row gap-3">
                                     {(kit.status === 'DELIVERED' || kit.status === 'AWAITING') ? (
-                                        <button 
+                                        <button
                                             onClick={() => {
                                                 setSelectedKit(kit);
                                                 handleKitAction(kit.id, 'initialize_collection');
@@ -310,7 +327,7 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
                                             Initialize Collection
                                         </button>
                                     ) : (kit.status === 'SHIPPED' || kit.status === 'PREPARING' || kit.status === 'ASSIGNED') ? (
-                                        <button 
+                                        <button
                                             onClick={() => handleKitAction(kit.id, 'confirm_receipt')}
                                             className="flex-1 bg-green-500 hover:bg-green-400 text-white py-4 rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] transition-all shadow-[0_0_30px_rgba(34,197,94,0.3)] flex items-center justify-center gap-2"
                                         >
@@ -318,7 +335,7 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
                                             Confirm Receipt
                                         </button>
                                     ) : kit.status === 'COLLECTING' ? (
-                                        <button 
+                                        <button
                                             onClick={() => {
                                                 setSelectedKit(kit);
                                                 setIsCollectionModalOpen(true);
@@ -329,7 +346,7 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
                                             Resume Collection Sync
                                         </button>
                                     ) : kit.status === 'COLLECTED' ? (
-                                        <button 
+                                        <button
                                             onClick={() => handleKitAction(kit.id, 'ship_return')}
                                             className="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-900 py-4 rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] transition-all shadow-[0_0_30px_rgba(245,158,11,0.3)] flex items-center justify-center gap-2"
                                         >
@@ -341,8 +358,8 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
                                             {kit.status.replace('_', ' ')} ACTIVE
                                         </button>
                                     )}
-                                    <button 
-                                        onClick={() => handleKitAction(kit.id, 'report_issue', { reason: 'Reported via Dashboard' })} 
+                                    <button
+                                        onClick={() => handleKitAction(kit.id, 'report_issue', { reason: 'Reported via Dashboard' })}
                                         className="px-8 py-4 bg-white/5 text-slate-400 hover:text-white rounded-2xl border border-white/5 hover:border-white/10 font-black text-[12px] uppercase tracking-widest transition-colors"
                                     >
                                         Report Issue
@@ -359,14 +376,20 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
                 {isCollectionModalOpen && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#0a0e1a]/98 backdrop-blur-2xl" />
-                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 30 }} className="relative w-full max-w-2xl bg-[#0d1424] border border-white/10 rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-hidden">
-                            <div className="absolute top-0 right-0 p-8">
-                                <button onClick={() => setIsCollectionModalOpen(false)} className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10 transition-all">
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0, y: 30 }} 
+                            animate={{ scale: 1, opacity: 1, y: 0 }} 
+                            exit={{ scale: 0.9, opacity: 0, y: 30 }} 
+                            className="relative w-full max-w-2xl bg-[#0d1424] border border-white/10 rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-y-auto max-h-[85vh] scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent custom-scroll"
+                        >
+                            <div className="absolute top-0 right-0 p-8 z-[210]">
+                                <button onClick={() => setIsCollectionModalOpen(false)} className="w-12 h-12 bg-black/40 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10 transition-all">
                                     <X className="w-6 h-6" />
                                 </button>
                             </div>
 
                             <div className="p-12">
+
                                 <div className="space-y-2 mb-12">
                                     <h3 className="text-4xl font-black text-white italic uppercase tracking-tighter">Sample Collection</h3>
                                     <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">Protocol: MusB-BIO-2030-Node | Gateway Secure</p>
@@ -385,15 +408,15 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
                                                     </div>
                                                     <p className="text-sm font-bold text-slate-300 leading-relaxed italic">"Ensure all materials are sanitized and at baseline temperature. System clock sync required for accurate timestamp logging."</p>
                                                 </div>
-                                                <Checklist 
+                                                <Checklist
                                                     items={[
                                                         "Sanitize hands and workspace",
                                                         "Verify Kit Number: SK-4920 matches app",
                                                         "Read full collection instructions",
                                                         "Confirm fasting (if applicable)"
-                                                    ]} 
-                                                    checkedItems={checkedItems} 
-                                                    onToggle={toggleCheckItem} 
+                                                    ]}
+                                                    checkedItems={checkedItems}
+                                                    onToggle={toggleCheckItem}
                                                 />
                                             </div>
                                         </motion.div>
@@ -416,14 +439,14 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
                                 </div>
 
                                 <div className="flex gap-4 pt-12 border-t border-white/[0.05]">
-                                    <button 
+                                    <button
                                         disabled={collectionStep === 0}
                                         onClick={() => setCollectionStep(s => Math.max(0, s - 1))}
                                         className="flex-1 py-5 bg-white/5 text-slate-500 rounded-2xl font-black uppercase tracking-widest text-[12px] hover:text-white transition-colors disabled:opacity-30"
                                     >
                                         PREVIOUS NODE
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={() => {
                                             if (collectionStep === collectionSteps.length - 1) {
                                                 setIsCollectionModalOpen(false);

@@ -132,7 +132,7 @@ const DashboardView = ({ firstName, userTimezone, today, onAction, tasks, study,
 
                 {/* Secondary Stats Grid */}
                 <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div 
+                    <div
                         className="p-6 bg-[#0d1424] border border-white/5 rounded-3xl group hover:border-amber-500/30 transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between"
                         onClick={() => onAction('compensation')}
                     >
@@ -144,7 +144,7 @@ const DashboardView = ({ firstName, userTimezone, today, onAction, tasks, study,
                         <Trophy className="absolute bottom-4 right-4 w-10 h-10 text-white opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-700" />
                     </div>
 
-                    <div 
+                    <div
                         className="p-6 bg-[#0d1424] border border-white/5 rounded-3xl group hover:border-indigo-500/30 transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between"
                         onClick={() => onAction('tasks')}
                     >
@@ -158,7 +158,7 @@ const DashboardView = ({ firstName, userTimezone, today, onAction, tasks, study,
                         <History className="absolute bottom-4 right-4 w-10 h-10 text-white opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-700" />
                     </div>
 
-                    <div 
+                    <div
                         className="p-6 bg-[#0d1424] border border-white/5 rounded-3xl group hover:border-red-500/30 transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between sm:col-span-2"
                         onClick={() => onAction('tasks')}
                     >
@@ -180,7 +180,7 @@ const DashboardView = ({ firstName, userTimezone, today, onAction, tasks, study,
             {/* ROW 2 – CORE TASKS AND UPCOMING MILESTONES */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Todays Task - Large Interactive Card */}
-                <Card 
+                <Card
                     className="lg:col-span-8 p-10 bg-[#0a101f] border border-white/5 relative overflow-hidden group hover:bg-white/[0.02] transition-all cursor-pointer min-h-[300px] flex flex-col justify-between"
                     onClick={() => onAction('Tasks')}
                 >
@@ -203,16 +203,16 @@ const DashboardView = ({ firstName, userTimezone, today, onAction, tasks, study,
                             Initialize Sync <Play className="w-4 h-4 fill-current" />
                         </button>
                         <span className="text-[12px] font-black text-slate-600 uppercase tracking-widest italic flex items-center gap-2">
-                             <Activity className="w-3 h-3 text-cyan-400 animate-pulse" /> Live Telemetry Linked
+                            <Activity className="w-3 h-3 text-cyan-400 animate-pulse" /> Live Telemetry Linked
                         </span>
                     </div>
-                    
+
                     {/* Abstract background effect */}
                     <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-br from-[#00e676]/5 to-transparent rounded-full blur-[100px] -z-0 pointer-events-none" />
                 </Card>
 
                 {/* Next Milestone - Targeted Focus Card */}
-                <Card 
+                <Card
                     className="lg:col-span-4 p-8 bg-indigo-600/10 border border-indigo-500/20 group hover:bg-indigo-600/15 transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between"
                     onClick={() => onAction('Tasks')}
                 >
@@ -225,7 +225,7 @@ const DashboardView = ({ firstName, userTimezone, today, onAction, tasks, study,
                             Visit 2 Deployment
                         </h5>
                         <p className="text-[13px] font-bold text-indigo-300/50 uppercase tracking-widest italic leading-relaxed mb-6">
-                             Next site encounter scheduled for <span className="text-white">May 22, 2026</span>. Finalize all weekly biomarker surveys before arrival.
+                            Next site encounter scheduled for <span className="text-white">May 22, 2026</span>. Finalize all weekly biomarker surveys before arrival.
                         </p>
                         <Badge color="cyan" className="text-[10px] py-1 px-3 border border-indigo-500/30">Action Required: Phase 2 Sync</Badge>
                     </div>

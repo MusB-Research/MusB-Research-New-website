@@ -142,7 +142,7 @@ export default function ParticipantDashboard() {
                 if (tRes.ok) {
                     fetchedTasks = await tRes.json();
                 }
-                
+
                 // Inject a Dummy Consent Task if not present for testing mission
                 const hasConsentTask = fetchedTasks.some((t: any) => t.title?.toLowerCase().includes('consent'));
                 if (!hasConsentTask) {
@@ -278,7 +278,8 @@ export default function ParticipantDashboard() {
                 `Timezone: ${userProfile.userTimezone || 'UTC'}`,
                 "",
                 "STUDY PROTOCOL ASSIGNMENT",
-                `Active Study: ${activeStudy?.title || 'ABC Research - Health & Lifestyle'}`,
+                `Active Study: ${activeStudy?.title || 'MusB Research - Health & Lifestyle'}`,
+
                 `Participant ID: ${activeStudy?.participant_id || 'MUSB-NODE-001'}`,
                 `Enrollment Date: ${new Date().toLocaleDateString()}`,
                 "",
@@ -472,14 +473,14 @@ export default function ParticipantDashboard() {
     const handleConsentComplete = async (signedPdf: File) => {
         setIsConsentModalOpen(false);
         setIsActionProcessing(true);
-        
+
         try {
             const formData = new FormData();
             formData.append('study', activeStudy?.id);
             formData.append('full_name', userProfile.userName);
             formData.append('email', userProfile.userEmail);
             formData.append('signed_pdf', signedPdf);
-            
+
             const apiUrl = API || 'http://localhost:8000';
             const response = await authFetch(`${apiUrl}/api/consents/`, {
                 method: 'POST',
@@ -670,9 +671,9 @@ export default function ParticipantDashboard() {
             <ActionModal isOpen={modalConfig?.isOpen} title={modalConfig?.title} desc={modalConfig?.desc} action={modalConfig?.primaryAction} onClose={() => setModalConfig(null)} onConfirm={handleActionConfirm} />
             <EditModal isOpen={editModal.isOpen} title={editModal.title} value={editModal.value} field={editModal.field} onClose={() => setEditModal(prev => ({ ...prev, isOpen: false }))} onSave={handleSaveProfileField} />
             <LogoutConfirmationModal isOpen={isLogoutModalOpen} onClose={() => setIsLogoutModalOpen(false)} onConfirm={performLogout} />
-            <ConsentModal 
-                isOpen={isConsentModalOpen} 
-                onClose={() => setIsConsentModalOpen(false)} 
+            <ConsentModal
+                isOpen={isConsentModalOpen}
+                onClose={() => setIsConsentModalOpen(false)}
                 onComplete={handleConsentComplete}
                 study={activeStudy}
                 userProfile={userProfile}

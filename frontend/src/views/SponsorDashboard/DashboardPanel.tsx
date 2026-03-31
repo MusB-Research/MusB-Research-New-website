@@ -221,53 +221,86 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
 
       {/* Primary Action Banner */}
       <div style={{
-        background: 'rgba(15, 23, 42, 0.8)',
-        backdropFilter: 'blur(24px)',
-        borderRadius: windowWidth > 768 ? 32 : 24,
-        padding: windowWidth > 1024 ? '80px 100px' : windowWidth > 768 ? '60px 80px' : '40px 24px',
+        background: 'linear-gradient(135deg, rgba(8, 12, 21, 0.95), rgba(20, 30, 48, 0.8))',
+        backdropFilter: 'blur(30px)',
+        borderRadius: windowWidth > 768 ? 48 : 32,
+        padding: windowWidth > 1024 ? '60px 80px' : windowWidth > 768 ? '50px 60px' : '32px 24px',
         marginBottom: windowWidth > 768 ? 64 : 32,
         display: 'flex',
         flexDirection: windowWidth > 1024 ? 'row' : 'column',
         justifyContent: 'space-between',
-        alignItems: windowWidth > 1024 ? 'center' : 'flex-start',
+        alignItems: 'center',
         gap: windowWidth > 768 ? 48 : 32,
-        border: '1px solid rgba(255,255,255,0.1)'
+        border: '1px solid rgba(255,255,255,0.05)',
+        position: 'relative',
+        overflow: 'hidden',
+        boxShadow: '0 40px 100px rgba(0,0,0,0.5), inset 0 0 80px rgba(59, 130, 246, 0.03)'
       }}>
-        <div style={{ animation: 'fadeIn 0.8s ease-out' }}>
+        {/* Decorative Elements */}
+        <div style={{ position: 'absolute', top: '-20%', right: '-10%', width: '450px', height: '450px', background: 'rgba(37, 99, 235, 0.12)', filter: 'blur(110px)', borderRadius: '50%', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '-10%', left: '-5%', width: '300px', height: '300px', background: 'rgba(16, 185, 129, 0.08)', filter: 'blur(90px)', borderRadius: '50%', pointerEvents: 'none' }} />
+
+        <div style={{ animation: 'fadeIn 0.8s ease-out', position: 'relative', zIndex: 2 }}>
           <h1 style={{
             margin: 0,
-            fontWeight: 900,
-            fontSize: windowWidth > 960 ? 56 : windowWidth > 768 ? 42 : 32,
+            fontWeight: 950,
+            fontSize: windowWidth > 960 ? 64 : windowWidth > 768 ? 48 : 36,
             color: 'white',
-            letterSpacing: '-0.04em',
-            lineHeight: 1.1
+            letterSpacing: '-0.05em',
+            lineHeight: 1.05,
+            fontStyle: 'italic'
           }}>
-            Elevate Your <span style={{ color: '#10b981' }}>Research</span><br />Network.
+            Elevate Your <span style={{ color: '#10b981', textShadow: '0 0 30px rgba(16, 185, 129, 0.4)' }}>Research</span><br />Network.
           </h1>
           <p style={{
             margin: '24px 0 0 0',
-            color: 'rgba(255,255,255,0.7)',
-            fontSize: windowWidth > 1024 ? 24 : windowWidth > 768 ? 20 : 16,
+            color: 'rgba(255,255,255,0.6)',
+            fontSize: windowWidth > 1024 ? 22 : windowWidth > 768 ? 19 : 16,
             lineHeight: 1.6,
-            maxWidth: '950px',
-            fontWeight: 500
+            maxWidth: '750px',
+            fontWeight: 500,
+            letterSpacing: '0.01em'
           }}>
-            Partner with MusB's elite clinical network to accelerate your protocol deployment.
+            Partner with MusB's elite clinical network to accelerate your protocol deployment with state-of-the-art telemetry and verified data sync.
           </p>
         </div>
-        <button onClick={() => setInquiryModalOpen(true)} style={{
-          background: 'white',
-          color: '#0f172a',
-          fontWeight: 900,
-          border: 'none',
-          padding: windowWidth > 768 ? '28px 56px' : '20px 40px',
-          borderRadius: 24,
-          cursor: 'pointer',
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          fontSize: windowWidth > 768 ? 22 : 18,
-          width: windowWidth > 1024 ? 'auto' : '100%'
-        }}>
-          + Inquire A New Study
+
+        <button 
+          onClick={() => setInquiryModalOpen(true)} 
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-5px) scale(1.02)';
+            (e.currentTarget as HTMLButtonElement).style.background = '#f0f9ff';
+            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 25px 50px rgba(0,0,0,0.4), 0 0 30px rgba(37, 99, 235, 0.3)';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0) scale(1)';
+            (e.currentTarget as HTMLButtonElement).style.background = 'white';
+            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 15px 35px rgba(0,0,0,0.2)';
+          }}
+          style={{
+            background: 'white',
+            color: '#0f172a',
+            fontWeight: 950,
+            border: 'none',
+            padding: windowWidth > 768 ? '30px 60px' : '22px 44px',
+            borderRadius: 24,
+            cursor: 'pointer',
+            transition: 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+            fontSize: windowWidth > 768 ? 20 : 16,
+            width: windowWidth > 1024 ? 'auto' : '100%',
+            whiteSpace: 'nowrap',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '16px',
+            boxShadow: '0 15px 35px rgba(0,0,0,0.2)',
+            zIndex: 3,
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em'
+          }}
+        >
+          <span style={{ fontSize: '32px', lineHeight: 1, color: '#2563eb' }}>+</span>
+          Inquire A New Study
         </button>
       </div>
 

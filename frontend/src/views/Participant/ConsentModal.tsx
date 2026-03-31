@@ -109,7 +109,8 @@ const ConsentModal = ({ isOpen, onClose, onComplete, study, userProfile }: Conse
             doc.setTextColor(0, 0, 0);
             doc.setFontSize(14);
             doc.text(`Study: Health and Lifestyle Survey`, 20, 55);
-            doc.text(`Organization: ABC Research Pvt. Ltd.`, 20, 65);
+            doc.text(`Organization: MusB Research Pvt. Ltd.`, 20, 65);
+
             doc.text(`Protocol ID: ${study?.protocol_id || 'ABC-HLS-2026'}`, 20, 75);
 
             // Consent Content
@@ -150,7 +151,8 @@ const ConsentModal = ({ isOpen, onClose, onComplete, study, userProfile }: Conse
 
             // Finalize
             const blob = doc.output('blob');
-            const file = new File([blob], `Consent_ABC_HLS_${userProfile.userName}.pdf`, { type: 'application/pdf' });
+            const file = new File([blob], `Consent_MUSB_HLS_${userProfile.userName}.pdf`, { type: 'application/pdf' });
+
             
             onComplete(file);
         } catch (err) {
@@ -244,7 +246,8 @@ const ConsentModal = ({ isOpen, onClose, onComplete, study, userProfile }: Conse
                                     <div className="prose prose-invert max-w-none space-y-8">
                                         <div className="text-center border-b border-white/10 pb-6 mb-8">
                                             <h4 className="text-2xl font-black text-white italic uppercase tracking-tighter">Health and Lifestyle Survey</h4>
-                                            <p className="text-cyan-400 font-bold uppercase tracking-widest text-[10px] mt-1">ABC Research Pvt. Ltd.</p>
+                                            <p className="text-cyan-400 font-bold uppercase tracking-widest text-[10px] mt-1">MusB Research Pvt. Ltd.</p>
+
                                         </div>
 
                                         <section className="space-y-3">

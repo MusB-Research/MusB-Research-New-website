@@ -714,7 +714,7 @@ class StudyInquiry(BaseMongoModel):
     category = models.CharField(max_length=50, choices=PRODUCT_CATEGORIES)
     development_stage = models.CharField(max_length=50, choices=DEVELOPMENT_STAGES)
     needs = models.JSONField(default=list) # List of strings: New Study, Preclinical, etc.
-    primary_focus = models.CharField(max_length=100)
+    primary_focus = models.CharField(max_length=100, blank=True, default='')
     timeline = models.CharField(max_length=50, choices=TIMELINE_CHOICES)
     
     # NDA Fields

@@ -1,3 +1,5 @@
+import os
+import resend
 from rest_framework import generics, status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -29,9 +31,6 @@ class InquiryTypeListView(generics.ListAPIView):
     queryset = InquiryType.objects.filter(is_active=True)
     serializer_class = InquiryTypeSerializer
     permission_classes = [permissions.AllowAny]
-
-import resend
-import os
 
 class SubmissionCreateView(generics.CreateAPIView):
     serializer_class = SubmissionSerializer
@@ -132,11 +131,13 @@ class SubmissionCreateView(generics.CreateAPIView):
         """
         
         try:
-            resend.api_key = os.getenv("RESEND_API_KEY")
+            # ALWAYS use Resend as per user request (SMTP fallback removed)
+            resend.api_key = os.getenv("RESEND_API_KEY", getattr(settings, 'RESEND_API_KEY', ''))
+            from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'MusB Research System <onboarding@resend.dev>')
             
             # Send to Admin
             resend.Emails.send({
-                "from": "MusB Research System <onboarding@resend.dev>",
+                "from": from_email,
                 "to": [admin_recipient],
                 "subject": admin_subject,
                 "html": admin_html
@@ -144,19 +145,20 @@ class SubmissionCreateView(generics.CreateAPIView):
             
             # Send to Participant
             resend.Emails.send({
-                "from": "MusB Clinical Team <onboarding@resend.dev>",
+                "from": from_email,
                 "to": [submission.email],
                 "subject": participant_subject,
                 "html": participant_html,
                 "reply_to": "info@musbresearch.com"
             })
             
+            print(f"Sent both emails via Resend directly to {[admin_recipient, submission.email]}")
+            
             submission.is_processed = True
             submission.save()
-            print(f"Both notification and confirmation emails sent for {submission.email}")
             
         except Exception as e:
-            print(f"Error sending emails via Resend: {e}")
+            print(f"Error sending emails: {e}")
 
         # 3. CLINICAL LEAD CREATION: If study_id is provided in request, create a Lead in the api app
         study_id = self.request.data.get('study_id')

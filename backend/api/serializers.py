@@ -391,6 +391,11 @@ class EducationMaterialSerializer(SanitizedModelSerializer):
 
 class StudyInquirySerializer(SanitizedModelSerializer):
     id = ObjectIdField(read_only=True)
+    contact_email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
+    contact_person_name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    contact_person_designation = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    contact_mobile = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    
     class Meta:
         model = StudyInquiry
         fields = '__all__'
