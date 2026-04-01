@@ -64,23 +64,22 @@ export default function ParticipantDashboard() {
     }, [location.pathname]);
 
     const handleNavClick = (label: string) => {
+        // Normalize label to Title Case (e.g., 'tasks' -> 'Tasks')
+        const normalizedLabel = label.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+        
         const slugs: Record<string, string> = {
-            'Dashboard': '',
-            'Tasks': 'tasks',
-            'Study Kit': 'study-kit',
-            'Logs': 'logs',
-            'Messages': 'messages',
-            'Documents': 'documents',
-            'Reports': 'reports',
-            'Compensation': 'compensation',
-            'Profile': 'profile',
-            'Privacy & Data': 'privacy'
+            'Dashboard': '', 'Tasks': 'tasks', 'Study Kit': 'study-kit', 'Logs': 'logs',
+            'Messages': 'messages', 'Documents': 'documents', 'Reports': 'reports',
+            'Compensation': 'compensation', 'Profile': 'profile', 'Privacy & Data': 'privacy'
         };
-        const slug = slugs[label];
-        if (label === 'Main Website') {
+
+        const finalLabel = slugs[normalizedLabel] !== undefined ? normalizedLabel : label;
+        const slug = slugs[finalLabel];
+
+        if (finalLabel === 'Main Website') {
             window.open('/', '_blank');
         } else {
-            setActiveNav(label);
+            setActiveNav(finalLabel);
             navigate(`/dashboard/participant${slug ? '/' + slug : ''}`);
         }
     };
@@ -218,7 +217,7 @@ export default function ParticipantDashboard() {
     };
 
     const handleExportPDF = async (skipConfirm: boolean = false) => {
-        const title = activeNav === 'Reports' ? 'Participant_Report.pdf'
+        const title = activeNav === 'Reports' ? 'Participant_Clinical_Report.pdf'
             : activeNav === 'Study Kit' ? 'Clinical_Shipping_Label.pdf'
                 : 'Document_Export.pdf';
 
@@ -226,15 +225,16 @@ export default function ParticipantDashboard() {
 
         if (proceed) {
             const doc = new jsPDF();
-
-            // Try to load logo (asynchronous process)
-            const logoUrl = '/logo.jpg';
+            const pageWidth = doc.internal.pageSize.getWidth();
+            
+            // Header: MusB Logo and Branding
             try {
+                const logoUrl = '/logo.jpg';
                 const img = new Image();
                 img.src = logoUrl;
                 await new Promise((resolve) => {
                     img.onload = resolve;
-                    img.onerror = resolve; // Just proceed if it fails
+                    img.onerror = resolve; 
                 });
                 if (img.complete && img.naturalWidth > 0) {
                     const canvas = document.createElement('canvas');
@@ -243,61 +243,107 @@ export default function ParticipantDashboard() {
                     const ctx = canvas.getContext('2d');
                     ctx?.drawImage(img, 0, 0);
                     const dataUrl = canvas.toDataURL('image/jpeg');
-                    doc.addImage(dataUrl, 'JPEG', 15, 10, 30, 30); // MusB Logo
+                    doc.addImage(dataUrl, 'JPEG', 15, 12, 25, 25);
                 }
-            } catch (e) {
-                console.warn('Could not load logo for PDF');
-            }
+            } catch (e) { console.warn('Logo failed'); }
 
+            doc.setFont('helvetica', 'bold');
             doc.setFontSize(22);
-            doc.setTextColor(6, 182, 212); // Cyan match participant branding
-            doc.text('MusB RESEARCH PORTAL', 50, 25);
-            doc.setFontSize(14);
-            doc.setTextColor(100, 116, 139); // Slate
-            doc.text(`Official Clinical Export: ${title.replace('.pdf', '')}`, 50, 35);
-            doc.setDrawColor(6, 182, 212);
-            doc.line(15, 45, 195, 45);
+            doc.setTextColor(6, 182, 212);
+            doc.text('MusB RESEARCH PORTAL', 45, 25);
+            
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(11);
+            doc.setTextColor(100, 116, 139);
+            doc.text(`Official Export Identifier: ${title.replace('.pdf', '')}`, 45, 33);
+            
+            doc.setDrawColor(226, 232, 240);
+            doc.line(15, 45, pageWidth - 15, 45);
 
-            doc.setTextColor(0, 0, 0);
-            doc.setFontSize(12);
-            doc.text(`Subject: ${userProfile.userName}`, 15, 60);
-            doc.text(`Date of Export: ${new Date().toLocaleString()}`, 15, 70);
-            doc.text(`Protocol ID: MUSB-NAD-2030`, 15, 80);
+            let y = 60;
 
-            doc.text('This is a securely encrypted document from the MusB Research Portal.', 15, 100);
-            doc.text('Clinical data synchronization with study servers: VERIFIED.', 15, 110);
-            doc.text('Integrity Check: AUTH-HASH-0x992B1', 15, 120);
-
-            doc.setTextColor(20, 20, 20);
+            // SECTION 1: SYSTEM & METADATA
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(13);
+            doc.setTextColor(30, 41, 59);
+            doc.text('CORE REPORT METADATA', 15, y);
+            y += 10;
+            
+            doc.setFont('helvetica', 'normal');
             doc.setFontSize(10);
-            doc.text([
-                "PARTICIPANT PROFILE INFORMATION",
-                `Name: ${userProfile.userName || 'Unspecified'}`,
-                `Email: ${userProfile.userEmail || 'Unspecified'}`,
-                `Location: ${userProfile.userLocation || 'Unspecified'}`,
-                `Timezone: ${userProfile.userTimezone || 'UTC'}`,
-                "",
-                "STUDY PROTOCOL ASSIGNMENT",
-                `Active Study: ${activeStudy?.title || 'MusB Research - Health & Lifestyle'}`,
+            doc.setTextColor(71, 85, 105);
+            doc.text(`Internal Protocol ID:`, 15, y); doc.text(`MUSB-NAD-2030`, 60, y); y += 7;
+            doc.text(`System Timestamp:`, 15, y); doc.text(`${new Date().toLocaleString()}`, 60, y); y += 15;
 
-                `Participant ID: ${activeStudy?.participant_id || 'MUSB-NODE-001'}`,
-                `Enrollment Date: ${new Date().toLocaleDateString()}`,
-                "",
-                "CLINICAL DATA SNAPSHOT",
-                "Status: Active Sync",
-                `Total Tasks Assigned: ${tasks.length}`,
-                `Tasks Completed: ${tasks.filter((t: any) => t.status === 'COMPLETED').length}`,
-                "",
-                "CONFIDENTIALITY NOTICE:",
-                "This document is encrypted and intended only for the participant and study coordinator.",
-                "Data synchronized via MusB Clinical Node Sync protocol."
-            ], 15, 60);
+            // SECTION 2: PARTICIPANT PROFILE
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(13);
+            doc.setTextColor(30, 41, 59);
+            doc.text('PARTICIPANT PROFILE', 15, y);
+            y += 10;
+
+            const profileItems = [
+                ["Full Display Name", userProfile.userName || 'Unspecified'],
+                ["Clinical Email Node", userProfile.userEmail || 'Unspecified'],
+                ["Registered Locale", userProfile.userLocation || 'Unspecified'],
+                ["Participant Identifier", activeStudy?.participant_id || 'MUSB-NODE-001']
+            ];
+
+            profileItems.forEach((row) => {
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                doc.setTextColor(71, 85, 105);
+                doc.text(row[0] + ":", 15, y);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(15, 23, 42);
+                doc.text(row[1], 60, y);
+                y += 7;
+            });
+            y += 10;
+
+            // SECTION 3: STUDY ENGAGEMENT SUMMARY
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(13);
+            doc.setTextColor(30, 41, 59);
+            doc.text('STUDY ENGAGEMENT SUMMARY', 15, y);
+            y += 10;
+
+            const clinicalData = [
+                ["Current Protocol", activeStudy?.title || 'MusB Research - Health & Lifestyle'],
+                ["Enrollment Point", new Date().toLocaleDateString()],
+                ["Total Mission Tasks", tasks.length.toString()],
+                ["Completed Milestones", tasks.filter((t: any) => t.status === 'COMPLETED').length.toString()]
+            ];
+
+            clinicalData.forEach((row) => {
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                doc.setTextColor(71, 85, 105);
+                doc.text(row[0] + ":", 15, y);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(15, 23, 42);
+                doc.text(row[1], 60, y);
+                y += 7;
+            });
+
+            // Footer / System Validity
+            y = 265;
+            doc.setDrawColor(226, 232, 240);
+            doc.line(15, y, pageWidth - 15, y);
+            y += 10;
+            
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(148, 163, 184);
+            const legalNotice = [
+                "This document is securely synchronized via MusB Clinical Node Sync protocol.",
+                "CONFIDENTIALITY: Intended solely for the participant and study coordinator.",
+                "Generated by MusB Clinical Secure Gateway v2026.1"
+            ];
+            doc.text(legalNotice, 15, y);
 
             doc.save(title);
-
-            setTimeout(() => {
-                alert("we got your request and our team members contact you shortly");
-            }, 1000);
+            setTimeout(() => { alert("Report generated successfully."); }, 1000);
         }
     };
 
@@ -391,17 +437,40 @@ export default function ParticipantDashboard() {
         }
     };
 
-    const handleActionConfirm = () => {
+    const handleActionConfirm = async () => {
         if (!modalConfig) return;
         const title = modalConfig.title;
+        const task = modalConfig.task;
         setModalConfig(null);
         setIsActionProcessing(true);
+
+        // For Help/Coordinator requests, trigger the backend notification immediately
+        if (title.toLowerCase().includes('help') || title.toLowerCase().includes('coordinator') || title.toLowerCase().includes('emergency')) {
+            try {
+                // Robust study_id resolution: 
+                // 1. Check activeStudy object (standard dashboard state)
+                // 2. Check task_details (nested in ParticipantTask)
+                // 3. Check task.study (direct ID on ParticipantTask or Task)
+                const sId = activeStudy?.id || activeStudy?._id || task?.task_details?.study || task?.study;
+
+                await authFetch(`${API}/api/help-request/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        study_id: sId,
+                        action_title: title
+                    })
+                });
+            } catch (err) {
+                console.error("Backend dispatch failed:", err);
+            }
+        }
 
         setTimeout(() => {
             setIsActionProcessing(false);
 
-            if (modalConfig.task) {
-                const taskId = modalConfig.task.id;
+            if (task) {
+                const taskId = task.id;
                 setTasks((prev: any[]) => prev.map(t => t.id === taskId ? { ...t, status: 'COMPLETED' } : t));
                 alert("we got your request and our team members contact you shortly");
                 return;

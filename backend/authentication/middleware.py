@@ -69,7 +69,7 @@ class OnboardingEnforcementMiddleware:
                 token = auth_header.split(' ')[1]
 
         # If no token, let the normal DRF authentication handle the 401/403
-        if not token:
+        if not token or token in ["null", "undefined"]:
             return self.get_response(request)
 
         try:

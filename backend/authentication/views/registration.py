@@ -334,7 +334,7 @@ def list_team_members(request):
 def resend_invitation(request, invitation_id):
     """Resend a pending invitation."""
     admin = request.user
-    org = admin.organization
+    org = admin.organization or getattr(admin, 'affiliation', None) or 'MusB'
     
     if invitation_id.startswith('inv-'):
         invitation_id = invitation_id[4:]

@@ -13,6 +13,7 @@ router.register(r'form-responses', views.FormResponseViewSet)
 router.register(r'participants', views.ParticipantViewSet)
 router.register(r'tasks', views.TaskViewSet)
 router.register(r'participant-tasks', views.ParticipantTaskViewSet)
+router.register(r'consent-templates', views.ConsentTemplateViewSet)
 router.register(r'consent', views.ConsentViewSet)
 router.register(r'kits', views.KitViewSet)
 router.register(r'dosing-logs', views.DosingLogViewSet, basename='dosing-log')
@@ -37,5 +38,6 @@ urlpatterns = [
     path('facilities-inquiry/', views.FacilityInquiryView.as_view(), name='facilities-inquiry'),
     path('newsletter/subscribe/', views.SubscribeNewsletterView.as_view(), name='newsletter-subscribe'),
     path('booklet-download/', views.BookletDownloadRequestCreateView.as_view(), name='booklet-download'),
+    path('help-request/', views.ParticipantHelpRequestView.as_view(), name='participant-help-request'),
     path('', include(router.urls)),
 ]

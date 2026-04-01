@@ -378,22 +378,30 @@ export default function OurStudiesPanel({ protocols, setProtocols, addToast, win
                 {!activeStudyForDetail.documents?.length ? <div style={{ color: '#64748b', fontSize: 16, fontWeight: 500 }}>No documents uploaded.</div> :
                   activeStudyForDetail.documents.map((d: any) => (
                     <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0f172a', padding: 20, borderRadius: 12, border: '1px solid #334155' }}>
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: 16, color: '#f1f5f9' }}>{d.type} <span style={{ color: '#64748b', fontWeight: 500, fontSize: 14 }}>v{d.version}</span></div>
-                        <div style={{ fontSize: 14, color: '#64748b', marginTop: 4, fontWeight: 500 }}>{d.title} • {d.date}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 800, fontSize: 16, color: '#f1f5f9' }}>{d.title} <span style={{ color: '#64748b', fontWeight: 500, fontSize: 14 }}>v{d.version}</span></div>
+                        <div style={{ fontSize: 13, color: '#64748b', marginTop: 4, fontWeight: 500 }}>Uploaded on {d.uploaded_at ? new Date(d.uploaded_at).toLocaleDateString() : 'Recent'}</div>
                       </div>
-                      <button onClick={() => {
-                        setConfirmModal({
-                          title: 'Select Download Format',
-                          message: `How would you like to download "${d.title}"?`,
-                          buttons: [
-                            { label: 'Download PDF', color: '#2563eb', onClick: () => { downloadFile(`PDF Content: ${d.title}`, `${d.title}.pdf`, 'application/pdf'); addToast({ type: 'success', message: 'PDF generated successfully.' }); } },
-                            { label: 'Download CSV', color: '#10b981', onClick: () => { downloadFile(`CSV Content: ${d.title}`, `${d.title}.csv`, 'text/csv'); addToast({ type: 'success', message: 'CSV generated successfully.' }); } }
-                          ]
-                        });
-                      }} style={{ background: 'transparent', border: '2px solid #334155', color: '#f1f5f9', padding: '12px 24px', borderRadius: 10, fontWeight: 800, fontSize: 15, cursor: 'pointer', transition: 'all 0.2s' }}>
-                        ⬇ Download
-                      </button>
+                      <div style={{ display: 'flex', gap: 12 }}>
+                        <a href={d.file_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                          <button style={{ background: '#2563eb', border: 'none', color: '#fff', padding: '10px 20px', borderRadius: 8, fontWeight: 800, fontSize: 14, cursor: 'pointer', transition: 'all 0.2s' }}>
+                            View PDF
+                          </button>
+                        </a>
+                        <button 
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = d.file_url;
+                            link.download = d.title;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            addToast({ type: 'success', message: 'Download started.' });
+                          }}
+                          style={{ background: 'transparent', border: '2px solid #334155', color: '#f1f5f9', padding: '10px 20px', borderRadius: 8, fontWeight: 800, fontSize: 14, cursor: 'pointer', transition: 'all 0.2s' }}>
+                          ⬇ Download
+                        </button>
+                      </div>
                     </div>
                   ))
                 }

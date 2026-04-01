@@ -21,7 +21,7 @@ class CookieJWTAuthentication(authentication.BaseAuthentication):
         if not access_token and auth_header and auth_header.startswith('Bearer '):
             access_token = auth_header.split(' ')[1]
 
-        if not access_token:
+        if not access_token or access_token in ["null", "undefined"]:
             return None
 
         try:

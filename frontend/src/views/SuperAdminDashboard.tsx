@@ -1456,19 +1456,47 @@ export default function SuperAdminDashboard() {
             <h1 className="text-5xl font-black text-white italic uppercase tracking-tighter leading-none">Global <span className="text-[#f472b6]">Inquiries</span></h1>
             <p className="text-sm text-[#555a7a] font-black uppercase tracking-[0.1em] mt-4 max-w-xl">Central capture point for clinical study queries, protocol authorizations, and feasibility packets.</p>
           </div>
-          <div className="flex bg-[#0a0b1a] p-1.5 rounded-2xl border border-white/5 shadow-2xl">
-            <button
-              onClick={() => setSubTab('study_queries')}
-              className={`px-8 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${subTab === 'study_queries' ? 'bg-[#f472b6] text-white shadow-lg' : 'text-[#555a7a] hover:text-white'}`}
-            >
-              Study Queries ({studyInquiries.length})
-            </button>
-            <button
-              onClick={() => setSubTab('authorizations')}
-              className={`px-8 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${subTab === 'authorizations' ? 'bg-[#f472b6] text-white shadow-lg' : 'text-[#555a7a] hover:text-white'}`}
-            >
-              Authorizations ({pendingStudies.length})
-            </button>
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="flex bg-[#0a0b1a] p-1.5 rounded-2xl border border-white/5 shadow-2xl">
+              <button
+                onClick={() => setSubTab('study_queries')}
+                className={`px-8 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${subTab === 'study_queries' ? 'bg-[#f472b6] text-white shadow-lg' : 'text-[#555a7a] hover:text-white'}`}
+              >
+                Study Queries ({studyInquiries.length})
+              </button>
+              <button
+                onClick={() => setSubTab('authorizations')}
+                className={`px-8 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${subTab === 'authorizations' ? 'bg-[#f472b6] text-white shadow-lg' : 'text-[#555a7a] hover:text-white'}`}
+              >
+                Authorizations ({pendingStudies.length})
+              </button>
+            </div>
+            
+            {subTab === 'study_queries' && studyInquiries.length > 0 && (
+               <button
+                 onClick={async () => {
+                   if (!window.confirm("CRITICAL WARNING: Are you sure you want to REJECT and DELETE ALL pending study inquiries? This action is irreversible.")) return;
+                   try {
+                     const fetchUrl = `${API}/api/study-inquiries/reject-all-delete/`;
+                     const res = await authFetch(fetchUrl, {
+                       method: 'POST'
+                     });
+                     if (res.ok) {
+                       alert("🗑️ ALL RECORDS REJECTED AND ERASED FROM CORE");
+                       fetchData();
+                     } else {
+                       const err = await res.json().catch(() => ({}));
+                       alert(`Failed to reject & delete: ${err.error || err.detail || res.statusText}`);
+                     }
+                   } catch (err) {
+                     alert("System error. Injection failed.");
+                   }
+                 }}
+                 className="px-6 py-4 bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2"
+               >
+                 <Trash2 className="w-4 h-4" /> Reject & Delete All
+               </button>
+            )}
           </div>
         </div>
 

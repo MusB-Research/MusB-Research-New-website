@@ -1,8 +1,54 @@
 import os
 import resend
 from django.conf import settings
+from django.utils.timezone import now
 from typing import List, Optional
 import threading
+import logging
+
+logger = logging.getLogger(__name__)
+
+def _log_email_locally(to_email, subject, content):
+    """Saves email to a local log file for development debugging when API fails."""
+    try:
+        log_file = os.path.join(settings.BASE_DIR, "sent_emails.log")
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(f"\n{'='*80}\n")
+            f.write(f"DATE: {now()}\n")
+            f.write(f"TO: {to_email}\n")
+            f.write(f"SUBJECT: {subject}\n")
+            f.write(f"CONTENT:\n{content}\n")
+            f.write(f"{'='*80}\n")
+        logger.info(f"Email content saved to local log: {log_file}")
+    except Exception as e:
+        logger.error(f"Failed to log email locally: {e}")
+
+def safe_resend_send(params):
+    """Wraps Resend API calls with domain verification fallbacks."""
+    try:
+        resend.api_key = os.environ.get('RESEND_API_KEY', getattr(settings, 'RESEND_API_KEY', ''))
+        if not resend.api_key:
+            _log_email_locally(params.get('to'), params.get('subject'), params.get('html'))
+            return False
+            
+        try:
+            resend.Emails.send(params)
+            return True
+        except Exception as api_err:
+            err_msg = str(api_err).lower()
+            if "domain is not verified" in err_msg:
+                params["from"] = "onboarding@resend.dev"
+                try:
+                    resend.Emails.send(params)
+                    return True
+                except Exception as test_err:
+                    _log_email_locally(params.get('to'), f"[FAILED SEND] {params.get('subject')}", params.get('html'))
+                    return False
+            _log_email_locally(params.get('to'), f"[API ERROR] {params.get('subject')}", params.get('html'))
+            return False
+    except Exception as e:
+        logger.error(f"Safe send failed: {e}")
+        return False
 
 def run_in_background(func):
     """
@@ -60,9 +106,8 @@ def send_newsletter_update(subject: str, html_content: str, text_content: Option
             if text_content:
                 params["text"] = text_content
                 
-            email_response = resend.Emails.send(params)
-            print(f"Sent newsletter chunk: {email_response}")
-            success_count += len(chunk)
+            if safe_resend_send(params):
+                success_count += len(chunk)
         except Exception as e:
             print(f"Error sending newsletter via Resend: {e}")
             
@@ -83,14 +128,12 @@ def send_welcome_email(to_email: str):
     html_content = "<h2>Thank you for subscribing!</h2><p>You will now receive the latest updates, news, and notifications from MusB Research.</p><p><a href='https://musbresearch.com/'>Visit our website</a></p>"
     
     try:
-        email_response = resend.Emails.send({
+        return safe_resend_send({
             "from": settings.DEFAULT_FROM_EMAIL,
             "to": [to_email],
             "subject": subject,
             "html": html_content
         })
-        print(f"Sent welcome email to {to_email}: {email_response}")
-        return True
     except Exception as e:
         print(f"Error sending welcome email via Resend to {to_email}: {e}")
         return False
@@ -191,36 +234,16 @@ def send_inquiry_notification(inquiry_data: dict, target_email: str):
         # Always include info@musbresearch.com as per user requirement
         recipients = list(set([target_email, "info@musbresearch.com"]))
         
-        # Try Resend first (production path)
-        resend.api_key = os.environ.get('RESEND_API_KEY', getattr(settings, 'RESEND_API_KEY', ''))
-        from_email = 'info@musbresearch.com'
+        params = {
+            "from": settings.DEFAULT_FROM_EMAIL,
+            "to": recipients,
+            "subject": subject,
+            "html": html_content
+        }
         
-        try:
-            email_response = resend.Emails.send({
-                "from": from_email,
-                "to": recipients,
-                "subject": subject,
-                "html": html_content
-            })
-            print(f"Sent inquiry notification via Resend to {recipients}: {email_response}")
-        except Exception as resend_err:
-            # Fallback to Django SMTP if Resend fails (e.g. domain not verified locally)
-            print(f"Resend failed ({resend_err}), falling back to SMTP...")
-            from django.core.mail import EmailMultiAlternatives
-            msg = EmailMultiAlternatives(
-                subject=subject,
-                body="Please view the HTML version of this email.",
-                from_email=settings.EMAIL_HOST_USER or from_email,
-                to=recipients
-            )
-            msg.attach_alternative(html_content, "text/html")
-            msg.send(fail_silently=True)
-            print(f"Sent inquiry notification via SMTP fallback to {recipients}")
-        
-    
-        return True
+        return safe_resend_send(params)
     except Exception as e:
-        print(f"Error sending inquiry notification to {target_email}: {e}")
+        print(f"Error sending inquiry notification: {e}")
         return False
 
 @run_in_background
@@ -288,53 +311,71 @@ def send_facility_inquiry_email(inquiry):
     """
     
     try:
-        try:
-            # Send to Admin
-            admin_response = resend.Emails.send({
-                "from": "MusB Research System <info@musbresearch.com>",
-                "to": [admin_recipient],
-                "subject": subject,
-                "html": html_content
-            })
-            
-            # Send to Participant
-            participant_response = resend.Emails.send({
-                "from": "MusB Research Team <info@musbresearch.com>",
-                "to": [inquiry.email],
-                "subject": participant_subject,
-                "html": participant_html,
-                "reply_to": "info@musbresearch.com"
-            })
-            
-            print(f"Sent admin facility inquiry email: {admin_response}")
-            print(f"Sent participant confirmation email: {participant_response}")
-        except Exception as resend_err:
-            print(f"Resend failed ({resend_err}), falling back to SMTP...")
-            from django.core.mail import EmailMultiAlternatives
-            
-            # Send to Admin via SMTP
-            msg_admin = EmailMultiAlternatives(
-                subject=subject,
-                body="Please view the HTML version of this email.",
-                from_email=settings.EMAIL_HOST_USER or "info@musbresearch.com",
-                to=[admin_recipient]
-            )
-            msg_admin.attach_alternative(html_content, "text/html")
-            msg_admin.send(fail_silently=True)
-            
-            # Send to Participant via SMTP
-            msg_participant = EmailMultiAlternatives(
-                subject=participant_subject,
-                body="Please view the HTML version of this email.",
-                from_email=settings.EMAIL_HOST_USER or "info@musbresearch.com",
-                to=[inquiry.email],
-                reply_to=["info@musbresearch.com"]
-            )
-            msg_participant.attach_alternative(participant_html, "text/html")
-            msg_participant.send(fail_silently=True)
-            print(f"Sent administration and participant facility inquiry confirmation via SMTP fallback")
-            
-        return True
+        # 1. Admin
+        res1 = safe_resend_send({
+            "from": "MusB Research System <info@musbresearch.com>",
+            "to": [admin_recipient],
+            "subject": subject,
+            "html": html_content
+        })
+        
+        # 2. Participant
+        res2 = safe_resend_send({
+            "from": "MusB Research Team <info@musbresearch.com>",
+            "to": [inquiry.email],
+            "subject": participant_subject,
+            "html": participant_html,
+            "reply_to": "info@musbresearch.com"
+        })
+        
+        return res1 or res2
     except Exception as e:
         print(f"Error sending facility inquiry email: {e}")
         return False
+
+@run_in_background
+def send_help_request_notification(study_title, participant_name, participant_id, action_title, pi_email, coordinator_email):
+    """
+    Sends an urgent help request notification to the PI and Coordinator.
+    """
+    resend.api_key = os.environ.get('RESEND_API_KEY', getattr(settings, 'RESEND_API_KEY', ''))
+    if not resend.api_key:
+        return False
+
+    recipients = [pi_email, coordinator_email]
+    # Filter out empty or None emails
+    recipients = [email for email in recipients if email]
+    # Include admin for monitoring
+    recipients.append("info@musbresearch.com")
+    recipients = list(set(recipients))
+
+    subject = f"URGENT: Participant Help Requested - {study_title}"
+    
+    html_content = f"""
+    <div style="font-family: sans-serif; max-width: 600px; padding: 20px; border: 2px solid #ef4444; border-radius: 12px; background-color: #fef2f2; color: #1e293b;">
+        <h2 style="color: #b91c1c; margin-top: 0;">Urgent Help Request Triggered</h2>
+        <p>A participant has requested help or triggered a critical action in the Participant Portal.</p>
+        
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #fee2e2;">
+            <p><strong>Study:</strong> {study_title}</p>
+            <p><strong>Participant:</strong> {participant_name} (ID: {participant_id})</p>
+            <p><strong>Requested Action:</strong> <span style="color: #dc2626; font-weight: bold;">{action_title}</span></p>
+            <p><strong>Timestamp:</strong> {now().strftime('%Y-%m-%d %H:%M:%S')} UTC</p>
+        </div>
+        
+        <p style="margin-top: 20px;">Please log in to the PI Dashboard to review the participant status or reach out to them directly.</p>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="https://musbresearch.com/admin" style="background: #ef4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">VIEW PI DASHBOARD</a>
+        </div>
+    </div>
+    """
+
+    params = {
+        "from": "MusB Research Alerts <info@musbresearch.com>",
+        "to": recipients,
+        "subject": subject,
+        "html": html_content
+    }
+
+    return safe_resend_send(params)

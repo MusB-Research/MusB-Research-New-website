@@ -86,11 +86,16 @@ const validateRecord = (record: any, consent: any) => {
 
 // === MAIN COMPONENT ===
 export default function PIConsentModule() {
-    // State
-    const [consents, setConsents] = useState(MOCK_CONSENTS);
-    const [consentRecords, setConsentRecords] = useState(MOCK_CONSENT_RECORDS);
+    // API State
+    const [consents, setConsents] = useState<any[]>([]);
+    const [consentRecords, setConsentRecords] = useState<any[]>([]);
+    const [studies, setStudies] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Filter/View State
     const [activeView, setActiveView] = useState('builder');
-    const [activeConsentId, setActiveConsentId] = useState('c1');
+    const [activeConsentId, setActiveConsentId] = useState<string | null>(null);
     const [activeRecordId, setActiveRecordId] = useState<string | null>(null);
     const [leftSearch, setLeftSearch] = useState('');
     const [leftFilter, setLeftFilter] = useState('All');
@@ -98,6 +103,34 @@ export default function PIConsentModule() {
     const [recordsFilter, setRecordsFilter] = useState('All');
     const [currentViewerPage, setCurrentViewerPage] = useState(1);
     const [viewerZoom, setViewerZoom] = useState(85);
+
+    // Initial Data Load
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const [templatesRes, recordsRes, studiesRes] = await Promise.all([
+                    fetch('/api/consent-templates/').then(res => res.json()),
+                    fetch('/api/consent/').then(res => res.json()),
+                    fetch('/api/studies/').then(res => res.json())
+                ]);
+                
+                setConsents(templatesRes || []);
+                setConsentRecords(recordsRes || []);
+                setStudies(studiesRes || []);
+                
+                if (templatesRes.length > 0 && !activeConsentId) {
+                    setActiveConsentId(templatesRes[0].id);
+                }
+            } catch (err) {
+                console.error("Failed to fetch consent data:", err);
+                setError("Clinical data connection failed. Check backend status.");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
     const [thumbnailOpen, setThumbnailOpen] = useState(false);
     const [signatureActiveField, setSignatureActiveField] = useState<string | null>(null);
     const [signatureEditorPage, setSignatureEditorPage] = useState(1);
@@ -384,9 +417,40 @@ export default function PIConsentModule() {
                         </div>
                     </div>
                     <button style={{ ...S.btnIndigo, width: '100%', padding: '1.25rem' }} onClick={() => addToast('Draft settings updated')}><Save size={18} /> Commit Settings</button>
-                    <button style={{ ...S.btnGhost, width: '100%', marginTop: '1rem', borderColor: COLORS.success, color: COLORS.success }} onClick={() => setConfirmModal({ message: 'Publishing will activate this protocol and notify study coordinators. Continue?', onConfirm: () => addToast('Protocol Publish Protocol Active') })}><ShieldCheck size={18} /> Publish Protocol v{activeConsent?.version}</button>
+                    <button 
+                        style={{ ...S.btnGhost, width: '100%', marginTop: '1rem', borderColor: COLORS.success, color: COLORS.success }} 
+                        onClick={() => {
+                            if (!activeConsent) return;
+                            setConfirmModal({ 
+                                message: `Publishing will activate protocol version ${activeConsent.version}. Continue?`, 
+                                onConfirm: async () => {
+                                    try {
+                                        const res = await fetch(`/api/consent-templates/${activeConsent.id}/`, {
+                                            method: 'PATCH',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ status: 'Active' })
+                                        });
+                                        if (res.ok) {
+                                            const updated = await res.json();
+                                            setConsents(prev => prev.map(c => c.id === updated.id ? updated : c));
+                                            addToast(`Protocol v${updated.version} Activated`);
+                                        }
+                                    } catch (err) { addToast('Publish failed', 'danger'); }
+                                }
+                            })
+                        }}
+                    >
+                        <ShieldCheck size={18} /> Publish Protocol v{activeConsent?.version}
+                    </button>
                 </div>
             </div>
+        </div>
+    );
+
+    if (loading) return (
+        <div className="flex-1 flex flex-col items-center justify-center bg-[#060a14] min-h-[800px]">
+            <RefreshCw size={40} className="text-indigo-500 animate-spin mb-6" />
+            <h1 style={S.title}>Synchronizing Repository...</h1>
         </div>
     );
 
@@ -439,17 +503,17 @@ export default function PIConsentModule() {
                     <tbody>
                         {consentRecords.map(r => (
                             <tr key={r.id} className="border-b border-white/5 hover:bg-white/[0.01] transition-colors">
-                                <td className="p-8 font-black text-white text-xl tracking-tighter italic">{r.participantId}</td>
-                                <td className="p-8 text-lg font-black text-indigo-400 italic">{r.study}</td>
-                                <td className="p-8"><span style={S.badge(COLORS.accent)}>1.0</span></td>
-                                <td className="p-8 text-sm text-slate-400 font-bold">{r.participantSignedDate || '—'}</td>
+                                <td className="p-8 font-black text-white text-xl tracking-tighter italic">{r.full_name}</td>
+                                <td className="p-8 text-lg font-black text-indigo-400 italic">{r.study_title || r.protocol_id}</td>
+                                <td className="p-8"><span style={S.badge(COLORS.accent)}>{r.template_version}</span></td>
+                                <td className="p-8 text-sm text-slate-400 font-bold">{r.agreed_at ? new Date(r.agreed_at).toLocaleDateString() : '—'}</td>
                                 <td className="p-8">
-                                    <span style={{ ...S.badge(r.status.includes('Pending') ? COLORS.warning : r.status === 'Verified' ? COLORS.success : COLORS.label), fontSize: '14px', padding: '0.6rem 1.5rem' }}>{r.status}</span>
+                                    <span style={{ ...S.badge(r.pi_verified ? COLORS.success : COLORS.warning), fontSize: '14px', padding: '0.6rem 1.5rem' }}>{r.pi_verified ? 'VERIFIED' : 'PENDING PI'}</span>
                                 </td>
                                 <td className="p-8">
                                     <div className="flex gap-4">
-                                        <button className="p-4 bg-white/5 border border-white/10 text-slate-400 rounded-xl hover:text-white transition-all" onClick={() => addToast('Signed PDF Loaded')}><Eye size={18} /></button>
-                                        {r.status === 'Pending PI Verification' && (
+                                        <button className="p-4 bg-white/5 border border-white/10 text-slate-400 rounded-xl hover:text-white transition-all"><Eye size={18} /></button>
+                                        {!r.pi_verified && (
                                             <button className="px-6 py-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl font-black uppercase tracking-widest text-[11px] italic hover:bg-indigo-500 hover:text-white transition-all flex items-center gap-3" onClick={() => { setActiveRecordId(r.id); setActiveView('pi-verify'); }}><ShieldCheck size={18} /> Verify</button>
                                         )}
                                         <button className="p-4 bg-white/5 border border-white/10 text-slate-400 rounded-xl hover:text-white transition-all" onClick={() => { setAuditDrawerRecordId(r.id); setAuditDrawerOpen(true); }}><History size={18} /></button>
@@ -603,7 +667,25 @@ export default function PIConsentModule() {
                     <button 
                         style={{ ...S.btnIndigo, width: '100%', padding: '1.5rem', backgroundColor: piSignature ? COLORS.success : COLORS.accent }}
                         disabled={!piSignature}
-                        onClick={() => setConfirmModal({ message: 'Verifying will permanently seal this clinical record. Continue?', onConfirm: () => { setActiveView('records'); addToast('Transaction Sealed & Locked'); } })}
+                        onClick={() => setConfirmModal({ 
+                            message: 'Verifying will permanently seal this clinical record. Continue?', 
+                            onConfirm: async () => {
+                                try {
+                                    const res = await fetch(`/api/consent/${activeRecordId}/verify/`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' }
+                                    });
+                                    if (res.ok) {
+                                        const updated = await res.json();
+                                        setConsentRecords(prev => prev.map(r => r.id === activeRecordId ? updated : r));
+                                        setActiveView('records');
+                                        addToast('Transaction Sealed & Locked');
+                                    }
+                                } catch (err) {
+                                    addToast('Verification failed', 'danger');
+                                }
+                            } 
+                        })}
                     >
                         <ShieldCheck size={20} /> SEAL & VERIFY PROTOCOL
                     </button>

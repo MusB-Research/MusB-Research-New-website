@@ -149,7 +149,9 @@ class Study(BaseMongoModel):
     notifications_enabled = models.BooleanField(default=True)
     show_dosing_log = models.BooleanField(default=True)
     show_ae_report = models.BooleanField(default=True)
-    consent_template = models.FileField(upload_to='consent_templates/', null=True, blank=True)
+    
+    # Legacy field - moved to ConsentTemplate model
+    consent_template_file = models.FileField(upload_to='consent_templates/', null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -392,12 +394,13 @@ class Task(BaseMongoModel):
         ('LOG', 'Daily Log (Symptoms/Meds)'),
         ('SENSOR', 'Device / Sensor Data'),
         ('UPLOAD', 'File Upload / Photo'),
+        ('CONSENT', 'Informed Consent'),
     ]
     
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='tasks')
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-    task_type = models.CharField(max_length=20, choices=TASK_TYPES)
+    task_type = models.CharField(max_length=20, choices=TASK_TYPES, default='SURVEY', null=True, blank=True)
     frequency = models.CharField(max_length=20, choices=[
         ('DAILY', 'Daily'),
         ('WEEKLY', 'Weekly'),
@@ -449,25 +452,101 @@ class ParticipantTask(BaseMongoModel):
     def __str__(self):
         return f"{self.participant.participant_sid} - {self.task.title}"
 
+class ConsentTemplate(BaseMongoModel):
+    """Protocol definition for Informed Consent (Signatory requirements, versions, etc.)"""
+    study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='consent_templates')
+    title = models.CharField(max_length=255)
+    version = models.CharField(max_length=20, default='1.0')
+    status = models.CharField(max_length=20, default='DRAFT', choices=[
+        ('DRAFT', 'Draft'),
+        ('ACTIVE', 'Active'),
+        ('ARCHIVED', 'Archived')
+    ])
+    
+    # Requirements Matrix
+    require_participant_sig = models.BooleanField(default=True)
+    require_cc_verification = models.BooleanField(default=True)
+    require_pi_signoff = models.BooleanField(default=True)
+    require_witness = models.BooleanField(default=False)
+    require_lar = models.BooleanField(default=False)
+    require_initials_on_pages = models.BooleanField(default=False)
+    
+    # Rules
+    must_scroll_full = models.BooleanField(default=True)
+    must_answer_quiz = models.BooleanField(default=False)
+    
+    # Data fields
+    irb_number = models.CharField(max_length=100, blank=True)
+    irb_approval_date = models.DateField(null=True, blank=True)
+    effective_date = models.DateField(null=True, blank=True)
+    expiration_date = models.DateField(null=True, blank=True)
+    
+    file = models.FileField(upload_to='consent_templates/')
+    page_count = models.IntegerField(default=1)
+    
+    # Coordinates for signatures/initials {"f1": {"type": "p_sig", "page": 12, "x": 15, "y": 80}, ...}
+    placed_fields = models.JSONField(default=list, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta(BaseMongoModel.Meta):
+        ordering = ['-version']
+
+    def __str__(self):
+        return f"{self.title} v{self.version} ({self.study.protocol_id})"
+
 class Consent(BaseMongoModel):
     """Immutable record of electronic informed consent (eConsent)"""
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='consent_records')
-    # Link to participant if they exist, or keep anonymous until signup
+    template = models.ForeignKey(ConsentTemplate, on_delete=models.PROTECT, related_name='executions', null=True)
     participant = models.ForeignKey(Participant, on_delete=models.SET_NULL, null=True, blank=True)
     
     full_name = models.CharField(max_length=255, verbose_name="Electronic Signature")
     email = models.EmailField()
     
+    # Verification Chain
+    cc_verified = models.BooleanField(default=False)
+    cc_verified_at = models.DateTimeField(null=True, blank=True)
+    cc_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='cc_consents')
+    
+    pi_verified = models.BooleanField(default=False)
+    pi_verified_at = models.DateTimeField(null=True, blank=True)
+    pi_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='pi_consents')
+    
     device_hash = models.CharField(max_length=255, blank=True, help_text="Anonymous browser fingerprint")
-    timezone_detected = models.CharField(max_length=100, blank=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     
     agreed_at = models.DateTimeField(auto_now_add=True)
     signed_pdf = models.FileField(upload_to='signed_consents/', null=True, blank=True)
     is_valid = models.BooleanField(default=True)
     
+    # Metadata for the signed event
+    audit_trail = models.JSONField(default=list, blank=True) # [{"action": "SIGNED", "time": "...", "user": "..."}]
+
     def __str__(self):
-        return f"Consent: {self.full_name} ({self.study.protocol_id})"
+        return f"Consent: {self.full_name} ({self.study.protocol_id}) - v{self.template.version if self.template else '?'}"
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        old_pi_verified = False
+        
+        if not is_new:
+            try:
+                old_pi_verified = Consent.objects.get(pk=self.pk).pi_verified
+            except Consent.DoesNotExist:
+                pass
+                
+        super().save(*args, **kwargs)
+        
+        # Trigger task completion on PI verification
+        if self.pi_verified and not old_pi_verified and self.participant:
+            from django.utils.timezone import now
+            ParticipantTask.objects.filter(
+                participant=self.participant,
+                task__task_type='CONSENT',
+                status='PENDING'
+            ).update(status='COMPLETED', completed_at=now())
 
 # ─────────────────────────────────────────────────────────
 # NEW MODELS FOR FULL BUILD PROMPT

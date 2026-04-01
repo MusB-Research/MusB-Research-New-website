@@ -1,9 +1,10 @@
 from rest_framework import viewsets, permissions, status, parsers, serializers
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import (
     Study, StudyAssignment, Participant, Form, FormResponse, Task, 
-    ParticipantTask, Consent, Lead, CommunicationLog, 
+    ParticipantTask, Consent, ConsentTemplate, Lead, CommunicationLog, 
     Compensation, LabResult, DataAuditLog, InterventionArm,
     News, Event, FacilityInquiry, Candidate, NewsletterSubscriber, 
     BookletDownloadRequest, Partnership, Publication, EducationMaterial,
@@ -14,7 +15,7 @@ from .serializers import (
     StudySerializer, StudyAssignmentSerializer, ParticipantSerializer, 
     DeIdentifiedParticipantSerializer, UserSerializer, FormSerializer, 
     FormResponseSerializer, TaskSerializer, ParticipantTaskSerializer, 
-    ConsentSerializer, LeadSerializer, CommunicationLogSerializer,
+    ConsentSerializer, ConsentTemplateSerializer, LeadSerializer, CommunicationLogSerializer,
     CompensationSerializer, LabResultSerializer, DataAuditLogSerializer,
     NewsSerializer, EventSerializer, FacilityInquirySerializer, CandidateSerializer,
     NewsletterSubscriberSerializer, BookletDownloadRequestSerializer,
@@ -129,9 +130,16 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return Study.objects.filter(status__in=['RECRUITING', 'ACTIVE'], approval_status='approved').order_by('-created_at')
-        if (user.role or '').strip().upper() in ['ADMIN', 'SUPER_ADMIN']:
+        
+        # Super Admins see all
+        if (user.role or '').strip().upper() == 'SUPER_ADMIN':
             return Study.objects.all().order_by('-created_at')
-        return Study.objects.filter(assignments__user=user).order_by('-created_at')
+            
+        # Admins, PIs, Coordinators, Sponsors see studies they are assigned to
+        return Study.objects.filter(
+            Q(assignments__user=user) | Q(pi=user) | Q(coordinator=user) | Q(sponsor=user) | Q(created_by=user),
+            approval_status='approved'
+        ).distinct().order_by('-created_at')
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -275,11 +283,90 @@ class DataAuditLogViewSet(viewsets.ReadOnlyModelViewSet):
         if user.role == 'SUPER_ADMIN': return DataAuditLog.objects.all()
         return DataAuditLog.objects.none()
 
+class KitViewSet(viewsets.ModelViewSet):
+    queryset = Kit.objects.all()
+    serializer_class = KitSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
+            return self.queryset.all()
+        # Filter by study assignment
+        return self.queryset.filter(study__assignments__user=user).distinct()
+
+class ConsentTemplateViewSet(viewsets.ModelViewSet):
+    queryset = ConsentTemplate.objects.all()
+    serializer_class = ConsentTemplateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
+
+    def get_queryset(self):
+        study_id = self.request.query_params.get('study_id')
+        if study_id:
+            return self.queryset.filter(study_id=study_id)
+        return self.queryset.all()
+
 class ConsentViewSet(viewsets.ModelViewSet):
     queryset = Consent.objects.all()
     serializer_class = ConsentSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
+
+    def get_queryset(self):
+        queryset = self.queryset.all()
+        study_id = self.request.query_params.get('study_id')
+        participant_id = self.request.query_params.get('participant_id')
+        if study_id: queryset = queryset.filter(study_id=study_id)
+        if participant_id: queryset = queryset.filter(participant_id=participant_id)
+        return queryset
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def verify(self, request, pk=None):
+        """Seal & Verify action for PI or CC"""
+        consent = self.get_object()
+        user = request.user
+        role = user.role.upper()
+        
+        if role not in ['PI', 'COORDINATOR', 'ADMIN', 'SUPER_ADMIN']:
+            return Response({'error': 'Only PI or CC can verify consents.'}, status=status.HTTP_403_FORBIDDEN)
+            
+        now_time = now()
+        if role == 'PI' or role in ['ADMIN', 'SUPER_ADMIN']:
+            consent.pi_verified = True
+            consent.pi_verified_at = now_time
+            consent.pi_user = user
+            action_label = "PI_VERIFIED"
+        else:
+            consent.cc_verified = True
+            consent.cc_verified_at = now_time
+            consent.cc_user = user
+            action_label = "CC_VERIFIED"
+            
+        consent.audit_trail.append({
+            "action": action_label,
+            "timestamp": now_time.isoformat(),
+            "user": user.email
+        })
+        consent.save()
+        
+        AuditLog.log('VERIFY_CONSENT', user_email=user.email, request=request, detail=f"Verified consent for {consent.full_name} in study {consent.study.protocol_id}")
+        
+        return Response(ConsentSerializer(consent).data)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def reject(self, request, pk=None):
+        """Mark as invalid"""
+        consent = self.get_object()
+        consent.is_valid = False
+        consent.audit_trail.append({
+            "action": "REJECTED",
+            "timestamp": now().isoformat(),
+            "user": request.user.email,
+            "reason": request.data.get('reason', 'Administrative rejection')
+        })
+        consent.save()
+        return Response({'status': 'consent invalidated'})
 
 class DosingLogViewSet(viewsets.ModelViewSet):
     serializer_class = DosingLogSerializer
@@ -637,15 +724,35 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
         """Restricts deletion to Super Admin only."""
         user_role = (request.user.role or '').upper()
         
-        # LOGGING FOR DEBUGGING
-        with open("api_debug.log", "a") as f:
-            f.write(f"\n[DELETE] Request by: {request.user.email}, Role: {user_role}, Target ID: {kwargs.get('pk')}\n")
-            
         if user_role != 'SUPER_ADMIN':
             return Response({'error': f'Only Super Admin can delete inquiries. Your role: {user_role}'}, status=status.HTTP_403_FORBIDDEN)
             
         AuditLog.log('DELETE_RECORD', user_email=request.user.email, request=request, detail=f"Study inquiry record deleted.")
         return super().destroy(request, *args, **kwargs)
+
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def reject_all_delete(self, request):
+        """Allows super admin to reject and delete all inquiries."""
+        if request.user.role.upper() not in ['SUPER_ADMIN']:
+            return Response({'error': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            inquiries = self.get_queryset()
+            count = inquiries.count()
+            
+            for inquiry in inquiries:
+                inquiry.delete()
+            
+            try:
+                AuditLog.log('DELETE_RECORD', user_email=request.user.email, request=request, detail=f"All {count} study inquiries rejected and deleted by admin.")
+            except Exception as e:
+                pass
+                
+            return Response({'status': f'All {count} inquiries rejected and deleted successfully'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            import traceback
+            error_details = str(e) + " " + traceback.format_exc()
+            return Response({'error': 'Server crashed while deleting.', 'detail': error_details}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class InterventionArmViewSet(viewsets.ModelViewSet):
     queryset = InterventionArm.objects.all()
@@ -766,3 +873,95 @@ class ClinicalConversationViewSet(viewsets.ModelViewSet):
             conv.status = status_val.upper().replace(' ', '_')
             conv.save()
         return Response({'status': conv.status})
+
+class ParticipantHelpRequestView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        study_id = request.data.get('study_id')
+        action_title = request.data.get('action_title')
+        
+        user = request.user
+        
+        # 0. RESOLVE STUDY IF MISSING (Fallback for frontend issues)
+        if not study_id:
+            try:
+                participant = Participant.objects.filter(user=user).first()
+                if participant and participant.study:
+                    study_id = str(participant.study.id)
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Failed to auto-resolve study: {e}")
+
+        # If study_id is still missing, we send to a default admin email
+        if not study_id:
+            if not action_title:
+                return Response({'error': 'Action title is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            from .utils.resend_utils import send_help_request_notification
+            send_help_request_notification(
+                study_title="UNASSIGNED STUDY",
+                participant_name=user.decrypted_name,
+                participant_id=f"REF_{str(user.id)[-6:]}",
+                action_title=action_title,
+                pi_email="info@musbresearch.com",
+                coordinator_email=None
+            )
+            return Response({'status': 'sent', 'message': 'Help request routed to general support.'})
+
+        if not action_title:
+            return Response({'error': 'Action title is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            # Handle MongoDB ObjectId compatibility
+            study = Study.objects.get(id=study_id)
+            
+            # Find or create participant record for this user/study
+            participant = Participant.objects.filter(user=user, study=study).first()
+            participant_sid = participant.participant_sid if participant else "SELF_IDENTIFIED_USER"
+
+            # 1. SEND EMAIL NOTIFICATION
+            pi_email = study.pi.email if study.pi else None
+            coordinator_email = study.coordinator.email if study.coordinator else None
+            
+            from .utils.resend_utils import send_help_request_notification
+            send_help_request_notification(
+                study_title=study.title,
+                participant_name=user.decrypted_name,
+                participant_id=participant_sid,
+                action_title=action_title,
+                pi_email=pi_email,
+                coordinator_email=coordinator_email
+            )
+            
+            # 2. CREATE CLINICAL CONVERSATION/MESSAGE (if participant exists)
+            if participant:
+                conv, created = ClinicalConversation.objects.get_or_create(
+                    participant=participant,
+                    study=study,
+                    defaults={'status': 'ACTION_REQUIRED', 'last_message_preview': action_title}
+                )
+                if not created:
+                    conv.status = 'ACTION_REQUIRED'
+                    conv.last_message_preview = action_title
+                    conv.save()
+                
+                ClinicalMessage.objects.create(
+                    conversation=conv,
+                    sender=user,
+                    text=f"SYSTEM ALERT: Participant triggered help request - {action_title}"
+                )
+            
+            try:
+                AuditLog.log('HELP_REQUEST', user_email=user.email, request=request, detail=f"Help request triggered for study {study.title}: {action_title}")
+            except:
+                pass
+            
+            return Response({'status': 'sent', 'message': 'Help request routed successfully.'})
+            
+        except Study.DoesNotExist:
+            return Response({'error': 'Study not found.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Help request failed: {e}")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

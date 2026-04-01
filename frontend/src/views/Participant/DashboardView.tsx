@@ -134,7 +134,7 @@ const DashboardView = ({ firstName, userTimezone, today, onAction, tasks, study,
                 <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div
                         className="p-6 bg-[#0d1424] border border-white/5 rounded-3xl group hover:border-amber-500/30 transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between"
-                        onClick={() => onAction('compensation')}
+                        onClick={() => onAction('Compensation')}
                     >
                         <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Rewards</span>
                         <div className="mt-4">
@@ -146,7 +146,7 @@ const DashboardView = ({ firstName, userTimezone, today, onAction, tasks, study,
 
                     <div
                         className="p-6 bg-[#0d1424] border border-white/5 rounded-3xl group hover:border-indigo-500/30 transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between"
-                        onClick={() => onAction('tasks')}
+                        onClick={() => onAction('Tasks')}
                     >
                         <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Timeline</span>
                         <div className="mt-4">
@@ -160,7 +160,7 @@ const DashboardView = ({ firstName, userTimezone, today, onAction, tasks, study,
 
                     <div
                         className="p-6 bg-[#0d1424] border border-white/5 rounded-3xl group hover:border-red-500/30 transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between sm:col-span-2"
-                        onClick={() => onAction('tasks')}
+                        onClick={() => onAction('Tasks')}
                     >
                         <div className="flex justify-between items-center">
                             <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Mission Pulse</span>

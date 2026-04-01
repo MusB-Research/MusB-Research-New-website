@@ -5,7 +5,7 @@ import {
     X, ChevronDown, Upload, ChevronRight, ChevronLeft, 
     AlertCircle, History, CheckSquare, TrendingUp,
     ShieldCheck, Microscope, UserPlus, FileCheck, Layers,
-    Briefcase, Plus
+    Briefcase, Plus, Calendar
 } from 'lucide-react';
 
 interface LaunchStudyFormProps {
@@ -31,26 +31,10 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
     const [currentStep, setCurrentStep] = useState<StepID>(1);
     const [lastSaved, setLastSaved] = useState<string>('Just now');
 
-    // High-end Mock Data Fallbacks
-    const mockPIs = useMemo(() => [
-        { id: 'pi-1', name: 'Dr. Aris Thorne', role: 'PI' },
-        { id: 'pi-2', name: 'Dr. Sarah Jenkins', role: 'PI' },
-        { id: 'pi-3', name: 'Dr. Micheal Chen', role: 'PI' }
-    ], []);
-
-    const mockCoordinators = useMemo(() => [
-        { id: 'cc-1', name: 'Alex Rivera', role: 'COORDINATOR' },
-        { id: 'cc-2', name: 'Jordan Smith', role: 'COORDINATOR' },
-        { id: 'cc-3', name: 'Jamie Vane', role: 'COORDINATOR' }
-    ], []);
-
-    const displayPIs = useMemo(() => (availablePIs && availablePIs.length > 0 ? availablePIs : mockPIs), [availablePIs, mockPIs]);
-    const displayCoordinators = useMemo(() => (availableCoordinators && availableCoordinators.length > 0 ? availableCoordinators : mockCoordinators), [availableCoordinators, mockCoordinators]);
-    const displaySponsors = useMemo(() => (availableSponsors && availableSponsors.length > 0 ? availableSponsors : [
-        { id: 'sp-1', name: 'BioGen Global' },
-        { id: 'sp-2', name: 'NeuroPhase Research' },
-        { id: 'sp-3', name: 'Vanguard Clinical' }
-    ]), [availableSponsors]);
+    // Real Data Holders
+    const displayPIs = useMemo(() => availablePIs || [], [availablePIs]);
+    const displayCoordinators = useMemo(() => availableCoordinators || [], [availableCoordinators]);
+    const displaySponsors = useMemo(() => availableSponsors || [], [availableSponsors]);
     
     const [formData, setFormData] = useState({
         protocol_id: initialData?.protocol_id || `MUSB-${new Date().getFullYear()}-${Math.floor(Math.random() * 900) + 100}`,
@@ -222,8 +206,8 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                 </div>
                                                 <div className="max-h-60 overflow-y-auto">
                                                     {filteredSponsors.map(s => (
-                                                        <div key={s?.id} onClick={() => { setFormData({...formData, sponsor_id: s?.id, sponsor_name: s?.name}); setShowSponsorDropdown(false); }} className="px-6 py-5 hover:bg-indigo-600 cursor-pointer text-sm font-bold text-slate-300 hover:text-white flex items-center gap-3 transition-all">
-                                                            <Briefcase className="w-4 h-4 text-slate-500 group-hover:text-white" /> {s?.name}
+                                                        <div key={s?.id} onClick={() => { setFormData({...formData, sponsor_id: s?.id, sponsor_name: s?.full_name || s?.name}); setShowSponsorDropdown(false); }} className="px-6 py-5 hover:bg-indigo-600 cursor-pointer text-sm font-bold text-slate-300 hover:text-white flex items-center gap-3 transition-all">
+                                                            <Briefcase className="w-4 h-4 text-slate-500 group-hover:text-white" /> {s?.full_name || s?.name}
                                                         </div>
                                                     ))}
                                                     <div className="p-4 border-t border-white/5 bg-indigo-600/5 hover:bg-indigo-600/10 cursor-pointer text-[10px] font-black uppercase text-indigo-400 text-center tracking-widest transition-all">
@@ -237,11 +221,31 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                                     <div className="space-y-4">
                                         <label className="text-[15px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Start Date</label>
-                                        <input type="date" name="startDate" value={formData.startDate} onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-lg text-white font-mono outline-none focus:border-indigo-500/50" />
+                                        <div className="relative group">
+                                            <input 
+                                                type="date" 
+                                                name="startDate" 
+                                                value={formData.startDate} 
+                                                onChange={handleChange} 
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-lg text-white font-mono outline-none focus:border-indigo-500/50 transition-all custom-calendar-input" 
+                                                style={{ colorScheme: 'dark', zoom: 1.3 }}
+                                            />
+                                            <Calendar className="absolute right-6 top-1/2 -translate-y-1/2 w-8 h-8 text-indigo-400 pointer-events-none opacity-50 group-focus-within:opacity-100 transition-opacity" />
+                                        </div>
                                     </div>
                                     <div className="space-y-4">
                                         <label className="text-[15px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">End Date (Estimated)</label>
-                                        <input type="date" name="endDate" value={formData.endDate} onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-lg text-white font-mono outline-none focus:border-indigo-500/50" />
+                                        <div className="relative group">
+                                            <input 
+                                                type="date" 
+                                                name="endDate" 
+                                                value={formData.endDate} 
+                                                onChange={handleChange} 
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-lg text-white font-mono outline-none focus:border-indigo-500/50 transition-all custom-calendar-input" 
+                                                style={{ colorScheme: 'dark', zoom: 1.3 }}
+                                            />
+                                            <Calendar className="absolute right-6 top-1/2 -translate-y-1/2 w-8 h-8 text-indigo-400 pointer-events-none opacity-50 group-focus-within:opacity-100 transition-opacity" />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -380,9 +384,9 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                 <div key={pi?.id} onClick={() => toggleMultiSelect('assigned_pis', pi?.id)} className={`relative p-6 rounded-3xl border transition-all cursor-pointer group ${Array.isArray(formData.assigned_pis) && formData.assigned_pis.includes(pi?.id) ? 'bg-indigo-600/10 border-indigo-500/50' : 'bg-white/5 border-white/5 hover:border-white/20'}`}>
                                                     {Array.isArray(formData.assigned_pis) && formData.assigned_pis.includes(pi?.id) && <div className="absolute top-4 right-4 text-indigo-400 group-hover:scale-110 transition-transform duration-300"><ShieldCheck className="w-6 h-6 shadow-[0_0_15px_rgba(129,140,248,0.4)]" /></div>}
                                                     <div className="flex items-center gap-4">
-                                                        <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white italic group-hover:bg-white/10 transition-all">{String(pi?.name || 'U').charAt(0)}</div>
+                                                        <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white italic group-hover:bg-white/10 transition-all">{String(pi?.full_name || pi?.name || 'U').charAt(0)}</div>
                                                         <div>
-                                                            <p className="text-sm font-black text-white uppercase tracking-tighter">{pi?.name || 'Unknown User'}</p>
+                                                            <p className="text-sm font-black text-white uppercase tracking-tighter">{pi?.full_name || pi?.name || 'Unknown User'}</p>
                                                             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 italic">Verified Specialist</p>
                                                         </div>
                                                     </div>
@@ -397,9 +401,9 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                 <div key={crc?.id} onClick={() => toggleMultiSelect('assigned_coordinators', crc?.id)} className={`relative p-6 rounded-3xl border transition-all cursor-pointer group ${Array.isArray(formData.assigned_coordinators) && formData.assigned_coordinators.includes(crc?.id) ? 'bg-emerald-600/10 border-emerald-500/50' : 'bg-white/5 border-white/5 hover:border-white/20'}`}>
                                                     {Array.isArray(formData.assigned_coordinators) && formData.assigned_coordinators.includes(crc?.id) && <div className="absolute top-4 right-4 text-emerald-400 group-hover:scale-110 transition-transform duration-300"><UserPlus className="w-6 h-6 shadow-[0_0_15px_rgba(52,211,153,0.4)]" /></div>}
                                                     <div className="flex items-center gap-4">
-                                                        <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white italic group-hover:bg-white/10 transition-all">{String(crc?.name || 'U').charAt(0)}</div>
+                                                        <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white italic group-hover:bg-white/10 transition-all">{String(crc?.full_name || crc?.name || 'C').charAt(0)}</div>
                                                         <div>
-                                                            <p className="text-sm font-black text-white uppercase tracking-tighter">{crc?.name || 'Unknown User'}</p>
+                                                            <p className="text-sm font-black text-white uppercase tracking-tighter">{crc?.full_name || crc?.name || 'Unknown User'}</p>
                                                             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 italic">Operations Lead</p>
                                                         </div>
                                                     </div>

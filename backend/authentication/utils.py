@@ -34,23 +34,13 @@ from django.utils.html import strip_tags
 def send_resend_email(to_email, subject, html_content):
     """
     Sends an email using the Resend API directly.
-    In DEBUG mode, it still prints to the console if no API KEY is found,
-    but primarily uses the resend library for production/staging.
+    Fallbacks to onboarding@resend.dev or a local log file if unverified.
     """
     try:
         if not resend.api_key:
-            logger.warning("RESEND_API_KEY not configured. Falling back to Django mail console/SMTP.")
-            from_email = settings.DEFAULT_FROM_EMAIL
-            plain_message = strip_tags(html_content)
-            send_mail(
-                subject=subject,
-                message=plain_message,
-                from_email=from_email,
-                recipient_list=[to_email],
-                html_message=html_content,
-                fail_silently=False,
-            )
-            return True
+            logger.error("RESEND_API_KEY not configured.")
+            _log_email_locally(to_email, subject, html_content)
+            return False
 
         params = {
             "from": settings.DEFAULT_FROM_EMAIL,
@@ -59,11 +49,44 @@ def send_resend_email(to_email, subject, html_content):
             "html": html_content,
         }
 
-        resend.Emails.send(params)
-        return True
+        try:
+            resend.Emails.send(params)
+            return True
+        except Exception as api_err:
+            err_msg = str(api_err).lower()
+            if "domain is not verified" in err_msg:
+                logger.warning(f"Domain not verified, attempting testing domain for {to_email}")
+                params["from"] = "onboarding@resend.dev"
+                try:
+                    resend.Emails.send(params)
+                    return True
+                except Exception as test_err:
+                    if "only send testing emails to your own email address" in str(test_err).lower():
+                        logger.error(f"Resend TESTING RESTRICTION: Cannot send to {to_email} via testing domain.")
+                    _log_email_locally(to_email, f"[FAILED SEND] {subject}", html_content)
+                    return False
+            
+            _log_email_locally(to_email, f"[API ERROR] {subject}", html_content)
+            raise api_err
+            
     except Exception as e:
-        logger.error(f"Resend API error sending email to {to_email}: {str(e)}")
+        logger.error(f"Resend API error: {str(e)}")
         return False
+
+def _log_email_locally(to_email, subject, content):
+    """Saves email to a local log file for development debugging when API fails."""
+    try:
+        log_file = os.path.join(settings.BASE_DIR, "sent_emails.log")
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(f"\n{'='*80}\n")
+            f.write(f"DATE: {now()}\n")
+            f.write(f"TO: {to_email}\n")
+            f.write(f"SUBJECT: {subject}\n")
+            f.write(f"CONTENT:\n{content}\n")
+            f.write(f"{'='*80}\n")
+        logger.info(f"Email content saved to local log: {log_file}")
+    except Exception as e:
+        logger.error(f"Failed to log email locally: {e}")
 
 def generate_token():
     """Generates a secure random hex token for magic links."""

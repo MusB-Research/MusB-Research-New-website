@@ -1,12 +1,12 @@
 from rest_framework import serializers
 from .models import (
     Study, StudyAssignment, Participant, Visit, Kit, Form, FormResponse, 
-    Task, ParticipantTask, Consent, Lead, CommunicationLog, 
+    Task, ParticipantTask, Consent, ConsentTemplate, Lead, CommunicationLog, 
     Compensation, LabResult, DataAuditLog, InterventionArm,
     News, Event, FacilityInquiry, Candidate, NewsletterSubscriber,
     BookletDownloadRequest, Partnership, Publication, EducationMaterial,
     StudyInquiry, ClinicalConversation, ClinicalMessage,
-    DosingLog, AEReport
+    DosingLog, AEReport, Document
 )
 from authentication.models import User
 from authentication.security import decrypt_data
@@ -144,6 +144,22 @@ class UserSerializer(SanitizedModelSerializer):
             user.save()
         return user
 
+class DocumentSerializer(SanitizedModelSerializer):
+    id = ObjectIdField(read_only=True)
+    file_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Document
+        fields = ['id', 'title', 'file', 'file_url', 'version', 'is_archived', 'uploaded_at']
+
+    def get_file_url(self, obj):
+        if obj.file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.file.url)
+            return obj.file.url
+        return None
+
 class StudySerializer(SanitizedModelSerializer):
     id = ObjectIdField(read_only=True)
     pi_id = serializers.PrimaryKeyRelatedField(
@@ -161,6 +177,7 @@ class StudySerializer(SanitizedModelSerializer):
     # Read-only fields for current assignments
     assigned_pis = UserSerializer(many=True, read_only=True)
     assigned_coordinators = UserSerializer(many=True, read_only=True)
+    documents = DocumentSerializer(many=True, read_only=True)
     
     class Meta:
         model = Study
@@ -176,7 +193,9 @@ class StudySerializer(SanitizedModelSerializer):
             'launch_date', 'irb_status', 'target_screened', 'actual_screened',
             'proposal_source', 'proposal_submitted_date', 'agreement_signed_date',
             'contract_status', 'sponsor_contact_name', 'sponsor_contact_email',
-            'show_dosing_log', 'show_ae_report', 'show_lab_upload', 'consent_template'
+            'show_dosing_log', 'show_ae_report', 'show_lab_upload', 
+            'consent_template_file', 'consent_templates',
+            'documents'
         ]
 
 class InterventionArmSerializer(SanitizedModelSerializer):
@@ -312,10 +331,37 @@ class ParticipantTaskSerializer(SanitizedModelSerializer):
         model = ParticipantTask
         fields = ['id', 'participant', 'task', 'task_details', 'due_date', 'completed_at', 'status', 'visit_name', 'timeline_group', 'estimated_time', 'is_locked', 'current_data']
 
+class ConsentTemplateSerializer(SanitizedModelSerializer):
+    id = ObjectIdField(read_only=True)
+    file_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ConsentTemplate
+        fields = '__all__'
+
+    def get_file_url(self, obj):
+        if not obj.file: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.file.url)
+        return obj.file.url
+
 class ConsentSerializer(SanitizedModelSerializer):
+    id = ObjectIdField(read_only=True)
+    pi_name = serializers.CharField(source='pi_user.decrypted_name', read_only=True)
+    cc_name = serializers.CharField(source='cc_user.decrypted_name', read_only=True)
+    template_version = serializers.CharField(source='template.version', read_only=True)
+    study_title = serializers.CharField(source='study.title', read_only=True)
+    protocol_id = serializers.CharField(source='study.protocol_id', read_only=True)
+    
     class Meta:
         model = Consent
-        fields = '__all__'
+        fields = [
+            'id', 'study', 'study_title', 'protocol_id', 'template', 'template_version', 
+            'participant', 'full_name', 'email',
+            'cc_verified', 'cc_verified_at', 'cc_user', 'cc_name',
+            'pi_verified', 'pi_verified_at', 'pi_user', 'pi_name',
+            'agreed_at', 'signed_pdf', 'is_valid', 'audit_trail'
+        ]
         read_only_fields = ['agreed_at', 'ip_address', 'signed_pdf']
 
 class NewsSerializer(SanitizedModelSerializer):

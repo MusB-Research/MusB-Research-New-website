@@ -39,7 +39,10 @@ function getRefreshLock(): Promise<boolean> {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const getToken = () => localStorage.getItem('access') || sessionStorage.getItem('access');
+export const getToken = () => {
+    const t = localStorage.getItem('access') || sessionStorage.getItem('access');
+    return (t === 'null' || t === 'undefined') ? null : t;
+};
 export const getRole = () => (localStorage.getItem('role') || sessionStorage.getItem('role') || '').toUpperCase();
 
 export const getUser = () => {

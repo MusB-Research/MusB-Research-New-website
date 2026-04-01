@@ -602,7 +602,15 @@ function OversightModule({ studyCount, stats, onLaunch, onNavigate }: { studyCou
                     { label: 'Total Subjects', val: '1,240', icon: UsersRound, color: 'emerald' },
                     { label: 'Critical Alerts', val: '02', icon: Activity, color: 'red' },
                 ].map((stat, i) => (
-                    <div key={i} className="bg-[#0F172A] border border-white/10 rounded-2xl md:rounded-[3rem] p-5 md:p-10 flex flex-col justify-between min-h-[180px] md:min-h-[300px] group hover:bg-[#0B101B] hover:border-indigo-500/40 transition-all duration-500 shadow-2xl shadow-black/60 relative overflow-hidden">
+                    <div 
+                        key={i} 
+                        onClick={() => {
+                            if (stat.label.includes('Protocols')) onNavigate('STUDIES');
+                            if (stat.label.includes('Alerts')) onNavigate('ALERTS');
+                            if (stat.label.includes('Subjects')) onNavigate('PARTICIPANTS');
+                        }}
+                        className="bg-[#0F172A] border border-white/10 rounded-2xl md:rounded-[3rem] p-5 md:p-10 flex flex-col justify-between min-h-[180px] md:min-h-[300px] group hover:bg-[#0B101B] hover:border-indigo-500/40 transition-all duration-500 shadow-2xl shadow-black/60 relative overflow-hidden cursor-pointer"
+                    >
                         <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.03] to-transparent pointer-events-none" />
                         <div className={`w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-${stat.color}-500/10 border border-${stat.color}-500/20 flex items-center justify-center group-hover:scale-110 transition-transform relative z-10`}>
                             <stat.icon className={`w-5 h-5 md:w-8 md:h-8 text-${stat.color}-400`} />
@@ -695,14 +703,14 @@ function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd
 
     const categories = [
         { id: 'ALL', label: 'Total Assigned Studies', subtext: '(Include all)', count: studies.length, icon: Layers },
-        { id: 'ACTIVE', label: 'Active Studies', subtext: '(include only active)', count: studies.filter(s => s.status === 'Active').length, icon: Activity },
-        { id: 'RECRUITING', label: 'Recruiting Studies', subtext: '(include only that are recruiting)', count: studies.filter(s => s.status === 'Recruiting').length, icon: UsersRound },
-        { id: 'ANALYSIS', label: 'Studies in Analysis', subtext: '(include that completed recruitment)', count: studies.filter(s => s.status === 'Analysis').length, icon: TrendingUp },
-        { id: 'COMPLETED', label: 'Studies Completed', subtext: '(Include that are completed)', count: studies.filter(s => s.status === 'Completed').length, icon: CheckSquare },
-        { id: 'PAUSED', label: 'Studies Paused', subtext: '(include that are paused)', count: studies.filter(s => s.status === 'Paused').length, icon: Settings2 },
+        { id: 'ACTIVE', label: 'Active Studies', subtext: '(include only active)', count: studies.filter(s => s.status?.toUpperCase() === 'ACTIVE').length, icon: Activity },
+        { id: 'RECRUITING', label: 'Recruiting Studies', subtext: '(include only that are recruiting)', count: studies.filter(s => s.status?.toUpperCase() === 'RECRUITING').length, icon: UsersRound },
+        { id: 'ANALYSIS', label: 'Studies in Analysis', subtext: '(include that completed recruitment)', count: studies.filter(s => s.status?.toUpperCase() === 'ANALYSIS').length, icon: TrendingUp },
+        { id: 'COMPLETED', label: 'Studies Completed', subtext: '(Include that are completed)', count: studies.filter(s => s.status?.toUpperCase() === 'COMPLETED').length, icon: CheckSquare },
+        { id: 'PAUSED', label: 'Studies Paused', subtext: '(include that are paused)', count: studies.filter(s => s.status?.toUpperCase() === 'PAUSED').length, icon: Settings2 },
     ];
 
-    const filteredStudies = filter === 'ALL' ? studies : studies.filter(s => s.status.toUpperCase() === filter);
+    const filteredStudies = filter === 'ALL' ? studies : studies.filter(s => s.status?.toUpperCase() === filter);
 
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10">

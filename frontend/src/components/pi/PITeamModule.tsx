@@ -906,15 +906,16 @@ export default function PITeamModule() {
                         <h2 style={S.title}>SELECT MUSB COORDINATORS</h2>
                         <button onClick={() => setMusbModalOpen(false)} style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer' }}><X size={20} /></button>
                     </div>
-                    <div style={{ padding: '1.5rem', maxHeight: '400px', overflowY: 'auto' }}>
+                    <div style={{ padding: '1.5rem', maxHeight: '500px', overflowY: 'auto' }}>
                         {MOCK_MUSB.map(m => (
-                            <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                                <input type="checkbox" checked={tempMusbSelected.includes(m.id)} onChange={() => {
+                            <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.03)', cursor: 'pointer' }}
+                                onClick={() => {
                                     setTempMusbSelected(prev => prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id]);
-                                }} style={{ width: '18px', height: '18px', accentColor: '#6366f1' }} />
+                                }}>
+                                <input type="checkbox" checked={tempMusbSelected.includes(m.id)} readOnly style={{ width: '22px', height: '22px', accentColor: '#6366f1', cursor: 'pointer' }} />
                                 <div>
-                                    <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{m.name}</div>
-                                    <div style={{ fontSize: '11px', color: '#475569' }}>{m.expertise} • {m.email}</div>
+                                    <div style={{ fontSize: '18px', fontWeight: 900, color: 'white', textTransform: 'uppercase', letterSpacing: '-0.02em' }}>{m.name}</div>
+                                    <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 'bold', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.expertise} <span style={{ opacity: 0.3, margin: '0 8px' }}>|</span> {m.email}</div>
                                 </div>
                             </div>
                         ))}
