@@ -516,6 +516,7 @@ class Consent(BaseMongoModel):
     
     device_hash = models.CharField(max_length=255, blank=True, help_text="Anonymous browser fingerprint")
     ip_address = models.GenericIPAddressField(null=True, blank=True)
+    timezone_detected = models.CharField(max_length=100, blank=True)
     
     agreed_at = models.DateTimeField(auto_now_add=True)
     signed_pdf = models.FileField(upload_to='signed_consents/', null=True, blank=True)

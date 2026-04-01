@@ -283,17 +283,6 @@ class DataAuditLogViewSet(viewsets.ReadOnlyModelViewSet):
         if user.role == 'SUPER_ADMIN': return DataAuditLog.objects.all()
         return DataAuditLog.objects.none()
 
-class KitViewSet(viewsets.ModelViewSet):
-    queryset = Kit.objects.all()
-    serializer_class = KitSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        user = self.request.user
-        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
-            return self.queryset.all()
-        # Filter by study assignment
-        return self.queryset.filter(study__assignments__user=user).distinct()
 
 class ConsentTemplateViewSet(viewsets.ModelViewSet):
     queryset = ConsentTemplate.objects.all()
