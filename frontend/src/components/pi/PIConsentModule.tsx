@@ -589,7 +589,7 @@ export default function PIConsentModule() {
                 <div style={{ width: '280px', borderLeft: COLORS.border, padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column' }}>
                     <label style={S.label}>Assigned Nodes</label>
                     <div style={{ marginTop: '1.5rem', flex: 1, overflowY: 'auto' }} className="custom-scrollbar">
-                        {activeConsent?.placedFields.map(f => (
+                        {activeConsent?.placedFields.map((f: any) => (
                             <div key={f.id} style={{ padding: '0.75rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '8px', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: COLORS.border }}>
                                 <div>
                                     <div style={{ fontSize: '11px', fontWeight: 900 }}>{f.type}</div>
@@ -983,7 +983,7 @@ export default function PIConsentModule() {
                             {templateOpen && (
                                 <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '0.5rem', width: '260px', backgroundColor: '#161d2b', border: COLORS.border, borderRadius: '12px', padding: '0.75rem', zIndex: 10000, boxShadow: '0 20px 50px rgba(0,0,0,0.6)' }}>
                                     {['Main Informed Consent', 'HIPAA Authorization', 'Screening Consent'].map(t => (
-                                        <div key={t} onClick={() => applyTemplate(t)} style={{ padding: '1rem 1.25rem', fontSize: '14px', cursor: 'pointer', borderRadius: '8px', transition: '0.2s', fontWeight: 'bold' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                        <div key={t} onClick={() => applyTemplate(t)} style={{ padding: '1rem 1.25rem', fontSize: '14px', cursor: 'pointer', borderRadius: '8px', transition: '0.2s', fontWeight: 'bold' }} onMouseEnter={(e: any) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'} onMouseLeave={(e: any) => e.currentTarget.style.backgroundColor = 'transparent'}>
                                             {t}
                                         </div>
                                     ))}
@@ -1024,7 +1024,7 @@ export default function PIConsentModule() {
                             <div>
                                 <label style={S.label}>Study Repository</label>
                                 <select style={{ ...S.input, width: '100%', marginTop: '0.5rem', appearance: 'none' }}>
-                                    {MOCK_STUDIES.map(s => <option key={s}>{s}</option>)}
+                                    {MOCK_STUDIES.map((s: any) => <option key={s}>{s}</option>)}
                                 </select>
                             </div>
                             <div>
@@ -1084,7 +1084,7 @@ export default function PIConsentModule() {
                             <button style={S.btnGhost} onClick={() => setAuditDrawerOpen(false)}><X size={16} /></button>
                         </div>
                         <div style={{ flex: 1, overflowY: 'auto' }} className="custom-scrollbar">
-                            {(consentRecords.find(r => r.id === auditDrawerRecordId)?.auditLog || []).map((log, i) => (
+                            {(consentRecords.find((r: any) => r.id === auditDrawerRecordId)?.auditLog || []).map((log: any, i: number) => (
                                 <div key={i} style={{ padding: '1.25rem', borderLeft: `2px solid ${log.role === 'PI' ? COLORS.accent : log.role === 'CC' ? COLORS.success : COLORS.warning}`, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '0 8px 8px 0', marginBottom: '1rem' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                                         <span style={{ fontSize: '11px', fontWeight: 900, color: 'white' }}>{log.user.toUpperCase()} · {log.role}</span>

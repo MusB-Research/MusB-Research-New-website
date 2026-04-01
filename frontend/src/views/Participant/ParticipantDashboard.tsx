@@ -66,7 +66,7 @@ export default function ParticipantDashboard() {
     const handleNavClick = (label: string) => {
         // Normalize label to Title Case (e.g., 'tasks' -> 'Tasks')
         const normalizedLabel = label.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-        
+
         const slugs: Record<string, string> = {
             'Dashboard': '', 'Tasks': 'tasks', 'Study Kit': 'study-kit', 'Logs': 'logs',
             'Messages': 'messages', 'Documents': 'documents', 'Reports': 'reports',
@@ -226,7 +226,7 @@ export default function ParticipantDashboard() {
         if (proceed) {
             const doc = new jsPDF();
             const pageWidth = doc.internal.pageSize.getWidth();
-            
+
             // Header: MusB Logo and Branding
             try {
                 const logoUrl = '/logo.jpg';
@@ -234,7 +234,7 @@ export default function ParticipantDashboard() {
                 img.src = logoUrl;
                 await new Promise((resolve) => {
                     img.onload = resolve;
-                    img.onerror = resolve; 
+                    img.onerror = resolve;
                 });
                 if (img.complete && img.naturalWidth > 0) {
                     const canvas = document.createElement('canvas');
@@ -251,12 +251,12 @@ export default function ParticipantDashboard() {
             doc.setFontSize(22);
             doc.setTextColor(6, 182, 212);
             doc.text('MusB RESEARCH PORTAL', 45, 25);
-            
+
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(11);
             doc.setTextColor(100, 116, 139);
             doc.text(`Official Export Identifier: ${title.replace('.pdf', '')}`, 45, 33);
-            
+
             doc.setDrawColor(226, 232, 240);
             doc.line(15, 45, pageWidth - 15, 45);
 
@@ -268,7 +268,7 @@ export default function ParticipantDashboard() {
             doc.setTextColor(30, 41, 59);
             doc.text('CORE REPORT METADATA', 15, y);
             y += 10;
-            
+
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(10);
             doc.setTextColor(71, 85, 105);
@@ -331,7 +331,7 @@ export default function ParticipantDashboard() {
             doc.setDrawColor(226, 232, 240);
             doc.line(15, y, pageWidth - 15, y);
             y += 10;
-            
+
             doc.setFontSize(8);
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(148, 163, 184);
