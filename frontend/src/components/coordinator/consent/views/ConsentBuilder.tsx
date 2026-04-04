@@ -12,7 +12,7 @@ interface ConsentBuilderProps {
     leftFilter: string;
     setLeftFilter: (f: string) => void;
     currentViewerPage: number;
-    setCurrentViewerPage: (p: (prev: number) => number | number) => void;
+    setCurrentViewerPage: React.Dispatch<React.SetStateAction<number>>;
     viewerZoom: number;
     setViewerZoom: (z: (prev: number) => number | number) => void;
     thumbnailOpen: boolean;

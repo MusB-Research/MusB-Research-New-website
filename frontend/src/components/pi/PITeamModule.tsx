@@ -83,8 +83,20 @@ const ROLE_DOCS: Record<string, string[]> = {
 
 const PROTOCOLS = ['HI-202B', 'PT-901', 'OB-442', 'VX-001', 'DM-772'];
 
+interface PITeamModuleProps {
+    allUsers?: any[];
+    allStudies?: any[];
+    onRefresh?: () => void;
+    selectedStudyId?: string;
+}
+
 // --- COMPONENT ---
-export default function PITeamModule({ allUsers = [], allStudies = [], onRefresh }: any) {
+export default function PITeamModule({ 
+    allUsers = [], 
+    allStudies = [], 
+    onRefresh,
+    selectedStudyId 
+}: PITeamModuleProps) {
     // State
     const [officeTeam, setOfficeTeam] = useState<TeamMember[]>([]);
     const [musbTeam, setMusbTeam] = useState<TeamMember[]>([]);
@@ -120,11 +132,16 @@ export default function PITeamModule({ allUsers = [], allStudies = [], onRefresh
                 documents: []
             } as TeamMember));
             
+            // Filter by selectedStudyId if provided
+            const filtered = selectedStudyId && selectedStudyId !== 'all'
+                ? mapped.filter(m => m.assignedStudies.includes(selectedStudyId))
+                : mapped;
+
             // Filter out sponsors as they have their own module now
-            setOfficeTeam(mapped.filter(m => m.type === 'Office' && m.role !== 'SPONSOR'));
-            setMusbTeam(mapped.filter(m => m.type === 'MusB' && m.role !== 'SPONSOR'));
+            setOfficeTeam(filtered.filter(m => m.type === 'Office' && m.role !== 'SPONSOR'));
+            setMusbTeam(filtered.filter(m => m.type === 'MusB' && m.role !== 'SPONSOR'));
         }
-    }, [allUsers]);
+    }, [allUsers, selectedStudyId]);
 
     const isMobile = windowWidth < 768;
     const isTablet = windowWidth < 1440;

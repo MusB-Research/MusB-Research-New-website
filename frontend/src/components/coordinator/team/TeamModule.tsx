@@ -22,7 +22,7 @@ const INITIAL_OFFICE: TeamMember[] = [
     ]}
 ];
 
-export default function TeamModule() {
+export default function TeamModule({ selectedStudyId }: { selectedStudyId?: string }) {
     // State
     const [officeTeam, setOfficeTeam] = useState<TeamMember[]>(INITIAL_OFFICE);
     const [musbTeam, setMusbTeam] = useState<TeamMember[]>(INITIAL_MUSB);

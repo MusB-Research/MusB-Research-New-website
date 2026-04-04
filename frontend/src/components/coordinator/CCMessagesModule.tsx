@@ -106,7 +106,7 @@ const TEMPLATES = [
 const COORDINATORS = ['John Doe', 'Sarah Lee', 'Elena Rodriguez', 'Marcus Wilt'];
 
 // --- COMPONENT ---
-export default function PIMessagesModule() {
+export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?: string }) {
     // State
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [activeConvId, setActiveConvId] = useState<string | null>(null);

@@ -6,7 +6,7 @@ import { CredentialCard } from '../credentials/components/CredentialCard';
 import { CredentialProfile } from '../credentials/components/CredentialProfile';
 import { ComplianceLensModal } from '../credentials/components/ComplianceLensModal';
 
-export default function MyDocumentsModule() {
+export default function MyDocumentsModule({ selectedStudyId }: { selectedStudyId?: string }) {
     const [docs] = useState<PersonalDoc[]>(INITIAL_DOCS);
     const [selectedDoc, setSelectedDoc] = useState<PersonalDoc | null>(null);
 

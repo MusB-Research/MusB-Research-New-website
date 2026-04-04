@@ -17,7 +17,7 @@ import { SignatureConfiguration } from './views/SignatureConfiguration';
 import { PIVerification } from './views/PIVerification';
 import { UploadConsentModal } from './components/UploadConsentModal';
 
-export default function ConsentModule() {
+export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: string }) {
     // API State
     const [consents, setConsents] = useState<ConsentTemplate[]>([]);
     const [consentRecords, setConsentRecords] = useState<ConsentRecord[]>([]);
@@ -147,6 +147,8 @@ export default function ConsentModule() {
 
     const S = {
         title: { fontSize: '22px', fontWeight: 900, fontStyle: 'italic' as const, textTransform: 'uppercase' as const, letterSpacing: '-0.02em', color: 'white' },
+        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.4rem 1rem', borderRadius: '4px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
+        btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(99, 102, 241, 0.2)' },
         btnGhost: { backgroundColor: 'transparent', color: 'white', border: COLORS.border, padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }
     };
 

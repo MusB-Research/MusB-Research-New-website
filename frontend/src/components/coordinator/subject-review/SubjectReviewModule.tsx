@@ -83,7 +83,7 @@ const MOCK_PARTICIPANT = {
 };
 
 // --- COMPONENT ---
-export default function CCC_SubjectReviewModule({ participantId = 'BTB-023' }: { participantId?: string }) {
+export default function CCC_SubjectReviewModule({ participantId = 'BTB-023', selectedStudyId }: { participantId?: string, selectedStudyId?: string }) {
     // State
     const [participant, setParticipant] = useState(MOCK_PARTICIPANT);
     const [activeTab, setActiveTab] = useState('Overview');

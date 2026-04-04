@@ -31,7 +31,7 @@ interface AuditEntry {
     status: 'Verified' | 'Unverified';
 }
 
-export default function AuditLogModule() {
+export default function AuditLogModule({ selectedStudyId }: { selectedStudyId?: string }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState<'All' | 'Security' | 'Clinical' | 'System'>('All');
 

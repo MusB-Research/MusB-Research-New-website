@@ -20,7 +20,7 @@ import {
     Database
 } from 'lucide-react';
 
-export default function AnalyticsModule() {
+export default function AnalyticsModule({ selectedStudyId }: { selectedStudyId?: string }) {
     const [activeView, setActiveView] = useState<'Recruitment' | 'Safety' | 'Data Quality' | 'Global'>('Recruitment');
 
     const recruitmentFunnel = [

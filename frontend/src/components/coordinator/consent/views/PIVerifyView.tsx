@@ -40,7 +40,7 @@ export const PIVerifyView: React.FC<VerifyProps> = (props) => {
                     </div>
                 </div>
                 <div style={{ flex: 1, overflowY: 'auto' }} className="p-20 flex justify-center custom-scrollbar">
-                    <PDFPage pageNumber={12} placedFields={activeConsent?.placedFields || []} width="800px" signedFields={['Participant Signature', 'Participant Date', 'CC Signature']} activeRecord={activeRecord} />
+                    <PDFPage pageNumber={12} placedFields={activeConsent?.placedFields || []} width="800px" signedFields={['Participant Signature', 'Participant Date', 'CC Signature']} participantId={activeRecord?.participantId || activeRecord?.full_name} />
                 </div>
             </div>
 

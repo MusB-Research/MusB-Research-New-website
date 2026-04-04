@@ -28,16 +28,21 @@ interface DocumentFile {
     status: 'Current' | 'Draft';
 }
 
+interface StudyFormData {
+    [key: string]: any;
+}
+
 const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], availableCoordinators = [], availableSponsors = [] }: LaunchStudyFormProps) => {
     const [currentStep, setCurrentStep] = useState<StepID>(1);
     const [lastSaved, setLastSaved] = useState<string>('Just now');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Real Data Holders
     const displayPIs = useMemo(() => availablePIs || [], [availablePIs]);
     const displayCoordinators = useMemo(() => availableCoordinators || [], [availableCoordinators]);
     const displaySponsors = useMemo(() => availableSponsors || [], [availableSponsors]);
     
-    const [formData, setFormData] = useState<any>(() => {
+    const [formData, setFormData] = useState<StudyFormData>(() => {
         const currentUser = getUser();
         const initialPIs = (initialData?.assigned_pis || []).map((u: any) => typeof u === 'string' ? u : u.id);
         

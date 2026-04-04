@@ -526,9 +526,9 @@ export default function CoordinatorDashboard() {
                     {activeModule === 'LAUNCH_STUDY' && (
                         <LaunchStudyForm onClose={() => { setActiveModule('STUDIES'); setSelectedStudy(null); }} initialData={selectedStudy} onSave={handleCreateStudy} availablePIs={users.filter(u => u.role === 'PI')} availableCoordinators={users.filter(u => u.role === 'COORDINATOR')} availableSponsors={users.filter(u => u.role === 'SPONSOR')} />
                     )}
-                    {activeModule === 'MESSAGES' && <CCC_MessagesModule />}
-                    {activeModule === 'SUBJECT_REVIEW' && <CCC_SubjectReviewModule participantId={selectedParticipantId || 'BTB-023'} />}
-                    {activeModule === 'TEAM' && <CCC_TeamModule />}
+                    {activeModule === 'MESSAGES' && <CCC_MessagesModule selectedStudyId={globalSelectedStudyId} />}
+                    {activeModule === 'SUBJECT_REVIEW' && <CCC_SubjectReviewModule selectedStudyId={globalSelectedStudyId} participantId={selectedParticipantId || 'BTB-023'} />}
+                    {activeModule === 'TEAM' && <CCC_TeamModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'PARTICIPANTS' && <ParticipantOversight selectedStudyId={globalSelectedStudyId} onOpenProfile={(id) => { setSelectedParticipantId(id); setActiveModule('SUBJECT_REVIEW'); }} onMessage={() => setActiveModule('MESSAGES')} />}
                     {activeModule === 'FORMS' && <FormsQuestionnairesModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'CONSENT' && <CCConsentModule selectedStudyId={globalSelectedStudyId} />}
@@ -537,12 +537,12 @@ export default function CoordinatorDashboard() {
                     {activeModule === 'REPORTS' && <ReportsSignOffModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'STUDY_DOCS' && <StudyDocumentsModule selectedStudyId={globalSelectedStudyId} />}
 
-                    {activeModule === 'MY_DOCS' && <MyDocumentsModule />}
-                    {activeModule === 'ALERTS' && <AlertsModule />}
-                    {activeModule === 'SUPPORT' && <CCC_HelpSupportModule />}
-                    {activeModule === 'AUDIT_LOG' && <AuditLogModule />}
-                    {activeModule === 'ANALYTICS' && <AnalyticsModule />}
-                    {activeModule === 'SPONSORS' && <SponsorsManagement allUsers={users} allStudies={studies} onRefresh={fetchCoordinatorContent} />}
+                    {activeModule === 'MY_DOCS' && <MyDocumentsModule selectedStudyId={globalSelectedStudyId} />}
+                    {activeModule === 'ALERTS' && <AlertsModule selectedStudyId={globalSelectedStudyId} />}
+                    {activeModule === 'SUPPORT' && <CCC_HelpSupportModule selectedStudyId={globalSelectedStudyId} />}
+                    {activeModule === 'AUDIT_LOG' && <AuditLogModule selectedStudyId={globalSelectedStudyId} />}
+                    {activeModule === 'ANALYTICS' && <AnalyticsModule selectedStudyId={globalSelectedStudyId} />}
+                    {activeModule === 'SPONSORS' && <SponsorsManagement selectedStudyId={globalSelectedStudyId} allUsers={users} allStudies={studies} onRefresh={fetchCoordinatorContent} />}
                 </AnimatePresence>
             </main>
 

@@ -29,7 +29,7 @@ interface AlertItem {
     read: boolean;
 }
 
-export default function AlertsModule() {
+export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: string }) {
     const [activeSeverity, setActiveSeverity] = useState<'All' | 'Critical' | 'Warning' | 'Info'>('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [alerts, setAlerts] = useState<AlertItem[]>([

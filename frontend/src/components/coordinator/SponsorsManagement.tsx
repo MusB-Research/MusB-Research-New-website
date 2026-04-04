@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, UserPlus, Eye, Edit2, Shield, MoreVertical, Building2, Loader2, X, ShieldAlert } from 'lucide-react';
+import { Search, UserPlus, Eye, Edit2, Shield, MoreVertical, Building2, Loader2, X, ShieldAlert, Mail } from 'lucide-react';
 import { authFetch , API } from '../../utils/auth';
 
 interface Sponsor {
@@ -11,6 +11,7 @@ interface Sponsor {
   status: 'Active' | 'Inactive';
   studies: string[];
   registeredDate: string;
+  mustChangePassword: boolean;
   raw: any;
 }
 
@@ -18,9 +19,10 @@ interface SponsorsManagementProps {
   allUsers: any[];
   allStudies: any[];
   onRefresh: () => void;
+  selectedStudyId?: string;
 }
 
-export default function SponsorsManagement({ allUsers = [], allStudies = [], onRefresh }: SponsorsManagementProps) {
+export default function SponsorsManagement({ allUsers = [], allStudies = [], onRefresh, selectedStudyId }: SponsorsManagementProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -47,7 +49,8 @@ export default function SponsorsManagement({ allUsers = [], allStudies = [], onR
         studies: allStudies
           .filter(s => s.sponsor === u.id || s.sponsor_id === u.id)
           .map(s => s.title),
-        registeredDate: u.date_joined ? new Date(u.date_joined).toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Never'
+        registeredDate: u.date_joined ? new Date(u.date_joined).toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Never',
+        mustChangePassword: u.must_change_password
       }));
   }, [allUsers, allStudies]);
 
@@ -101,12 +104,39 @@ export default function SponsorsManagement({ allUsers = [], allStudies = [], onR
         onRefresh();
       } else {
         const err = await res.json();
-        alert(`❌ PROVISIONING FAILED: ${err.error || err.detail || 'Access Denied'}`);
+        if (res.status === 409) {
+          alert(`❌ PROVISIONING FAILED: ${err.error || 'An account with this email already exists.'}\n\nYou can use the "Resend Credentials" button in the table if they haven't logged in yet.`);
+        } else {
+          alert(`❌ PROVISIONING FAILED: ${err.error || err.detail || 'Access Denied'}`);
+        }
       }
     } catch (err) {
       alert('❌ SYSTEM ERROR: Secure stack trace logged in core analytics.');
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleResendCredentials = async (userId: string, email: string) => {
+    if (!window.confirm(`Are you sure you want to regenerate and resend credentials to ${email}?`)) return;
+    
+    setUpdatingId(userId);
+    try {
+      const apiUrl = API || 'http://localhost:8000';
+      const res = await authFetch(`${apiUrl}/api/auth/admin/resend-credentials/${userId}/`, {
+        method: 'POST'
+      });
+      
+      if (res.ok) {
+        alert('✅ CREDENTIALS REISSUED\n\nAn updated temporary password has been dispatched.');
+      } else {
+        const err = await res.json();
+        alert(`❌ FAILED: ${err.error || 'Operation failed'}`);
+      }
+    } catch (err) {
+      alert('❌ NETWORK ERROR: Terminal link failed.');
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -192,16 +222,28 @@ export default function SponsorsManagement({ allUsers = [], allStudies = [], onR
                     </td>
                     <td className="px-10 py-8 text-[11px] font-black text-slate-400 uppercase tracking-widest italic">{s.registeredDate}</td>
                     <td className="px-10 py-8">
-                      <button 
-                        onClick={() => handleToggleStatus(s)}
-                        disabled={updatingId === s.id}
-                        className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border transition-all flex items-center gap-2 ${
-                        s.status === 'Active' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20'
-                        } disabled:opacity-50`}
-                      >
-                        {updatingId === s.id ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-                        {s.status === 'Active' ? 'AUTHORIZED' : 'DISABLED'}
-                      </button>
+                      <div className="flex items-center gap-4">
+                        <button 
+                          onClick={() => handleToggleStatus(s)}
+                          disabled={updatingId === s.id}
+                          className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border transition-all flex items-center gap-2 ${
+                          s.status === 'Active' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20'
+                          } disabled:opacity-50`}
+                        >
+                          {updatingId === s.id && <Loader2 className="w-3 h-3 animate-spin" />}
+                          {s.status === 'Active' ? 'AUTHORIZED' : 'DISABLED'}
+                        </button>
+
+                        {s.mustChangePassword && (
+                          <button 
+                            onClick={() => handleResendCredentials(s.id, s.email)}
+                            className="px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border border-indigo-500/20 bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 transition-all flex items-center gap-2"
+                          >
+                            <Mail className="w-3 h-3" />
+                            RESEND ACCESS
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td className="px-10 py-8 text-right">
                       <button 
