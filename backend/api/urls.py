@@ -11,6 +11,7 @@ router.register(r'users', views.UserViewSet)
 router.register(r'forms', views.FormViewSet)
 router.register(r'form-responses', views.FormResponseViewSet)
 router.register(r'participants', views.ParticipantViewSet)
+router.register(r'visits', views.VisitViewSet)
 router.register(r'tasks', views.TaskViewSet)
 router.register(r'participant-tasks', views.ParticipantTaskViewSet)
 router.register(r'consent-templates', views.ConsentTemplateViewSet)
@@ -18,6 +19,7 @@ router.register(r'consent', views.ConsentViewSet)
 router.register(r'kits', views.KitViewSet)
 router.register(r'dosing-logs', views.DosingLogViewSet, basename='dosing-log')
 router.register(r'ae-reports', views.AEReportViewSet, basename='ae-report')
+router.register(r'progress-reports', views.ProgressReportViewSet)
 
 router.register(r'leads', views.LeadViewSet)
 router.register(r'communications', views.CommunicationLogViewSet)
@@ -32,6 +34,7 @@ router.register(r'education', views.EducationMaterialViewSet)
 router.register(r'study-inquiries', views.StudyInquiryViewSet)
 router.register(r'intervention-arms', views.InterventionArmViewSet)
 router.register(r'clinical-conversations', views.ClinicalConversationViewSet)
+router.register(r'notifications', views.NotificationViewSet, basename='notification')
 
 urlpatterns = [
     path('apply/', csrf_exempt(views.CandidateApplyView.as_view({'post': 'apply'})), name='candidate-apply'),

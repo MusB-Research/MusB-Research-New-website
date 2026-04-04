@@ -7,6 +7,7 @@ import {
     FileText, Image as ImageIcon, ExternalLink, ShieldCheck
 } from 'lucide-react';
 import { Card, Badge } from './SharedComponents';
+import { getUser, API, authFetch } from '../../utils/auth';
 
 interface Message {
     id: string;
@@ -35,8 +36,8 @@ interface Thread {
     status: 'active' | 'awaiting' | 'responded';
 }
 
-const MessagesView = ({ study }: { study?: any }) => {
-    const [selectedThreadId, setSelectedThreadId] = useState<string | null>('T1');
+const MessagesView = ({ study, conversations = [], onAction }: { study?: any, conversations?: any[], onAction?: (v: string) => void }) => {
+    const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [isUrgentMode, setIsUrgentMode] = useState(false);
     const [messageInput, setMessageInput] = useState('');
@@ -44,79 +45,46 @@ const MessagesView = ({ study }: { study?: any }) => {
     const [showDetails, setShowDetails] = useState(true);
     const chatEndRef = useRef<HTMLDivElement>(null);
 
-    // Mock Data
-    const threads: Thread[] = useMemo(() => [
-        {
-            id: 'T1',
-            title: 'Study Coordinator – Dosing Question',
-            last_message: 'Please confirm if you took your dose today at the scheduled time.',
-            timestamp: '10:32 AM',
-            unread_count: 2,
-            is_urgent: true,
-            staff_name: 'Dr. Sarah Mitchell',
-            staff_role: 'Lead Coordinator',
-            status: 'active'
-        },
-        {
-            id: 'T2',
-            title: 'Lab Logistics – Kit #4920',
-            last_message: 'Your shipment has been verified at the central node.',
-            timestamp: 'Yesterday',
-            unread_count: 0,
-            is_urgent: false,
-            staff_name: 'Mark Stevens',
-            staff_role: 'Logistics Manager',
-            status: 'responded'
-        },
-        {
-            id: 'T3',
-            title: 'Clinical Inquiry – Vital Sync',
-            last_message: 'We noticed a variance in your heart rate data from last night.',
-            timestamp: 'Monday',
-            unread_count: 0,
-            is_urgent: false,
-            staff_name: 'Nurse Elena',
-            staff_role: 'Clinical Staff',
-            status: 'awaiting'
-        }
-    ], []);
+    // Map Backend Conversations to UI Threads
+    const threads: Thread[] = useMemo(() => {
+        return conversations.map((conv: any) => ({
+            id: conv.id,
+            title: conv.study_protocol || 'Study Communication',
+            last_message: conv.last_message_preview || 'No messages yet',
+            timestamp: new Date(conv.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            unread_count: conv.status === 'ACTION_REQUIRED' ? 1 : 0,
+            is_urgent: conv.is_flagged,
+            staff_name: conv.assigned_coordinator || 'Clinical Staff',
+            staff_role: 'Study Node',
+            status: conv.status === 'RESOLVED' ? 'responded' : 'active'
+        }));
+    }, [conversations]);
 
-    const messages: Message[] = useMemo(() => [
-        {
-            id: 'M1',
-            text: 'Hello, I have a question about the evening dose. Should I take it with food?',
-            sender_name: 'Me',
-            timestamp: '09:15 AM',
-            is_from_me: true,
-            status: 'read'
-        },
-        {
-            id: 'M2',
-            text: 'Yes, please take the evening dose with a light meal to ensure optimal baseline stability.',
-            sender_name: 'Dr. Sarah Mitchell',
-            timestamp: '09:45 AM',
-            is_from_me: false,
+    // Map Backend Messages to UI
+    const activeConversation = useMemo(() => {
+        return conversations.find((c: any) => c.id === selectedThreadId);
+    }, [conversations, selectedThreadId]);
+
+    const messages: Message[] = useMemo(() => {
+        if (!activeConversation || !activeConversation.messages) return [];
+        const currentUser = getUser();
+        return activeConversation.messages.map((msg: any) => ({
+            id: msg.id,
+            text: msg.text,
+            sender_name: msg.sender_name,
+            timestamp: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            is_from_me: msg.sender === currentUser?.id,
             status: 'read',
-            tag: 'CLINICAL_GUIDANCE'
-        },
-        {
-            id: 'M3',
-            text: 'Understood. Initializing sync now.',
-            sender_name: 'Me',
-            timestamp: '10:00 AM',
-            is_from_me: true,
-            status: 'read'
-        },
-        {
-            id: 'M4',
-            text: 'Please confirm if you took your dose today at the scheduled time.',
-            sender_name: 'Dr. Sarah Mitchell',
-            timestamp: '10:32 AM',
-            is_from_me: false,
-            status: 'read',
-            tag: 'URGENT'
+            tag: msg.tag !== 'GENERAL' ? msg.tag : undefined
+        }));
+    }, [activeConversation]);
+
+    // Auto-select first thread if none selected
+    useEffect(() => {
+        if (threads.length > 0 && !selectedThreadId) {
+            setSelectedThreadId(threads[0].id);
         }
-    ], []);
+    }, [threads, selectedThreadId]);
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -124,11 +92,29 @@ const MessagesView = ({ study }: { study?: any }) => {
 
     const activeThread = threads.find(t => t.id === selectedThreadId);
 
-    const handleSendMessage = () => {
-        if (!messageInput.trim()) return;
-        alert("we got your request and our team members contact you shortly");
-        setMessageInput('');
-        setIsUrgentMode(false);
+    const handleSendMessage = async () => {
+        if (!messageInput.trim() || !selectedThreadId) return;
+        
+        try {
+            const apiUrl = API || 'http://localhost:8000';
+            const res = await authFetch(`${apiUrl}/api/clinical-conversations/${selectedThreadId}/add_message/`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    text: messageInput,
+                    tag: isUrgentMode ? 'SAFETY' : 'GENERAL'
+                })
+            });
+            
+            if (res.ok) {
+                setMessageInput('');
+                setIsUrgentMode(false);
+                // The parent ParticipantDashboard will re-fetch data or we can optimize here
+                if (onAction) onAction('Messages'); 
+            }
+        } catch (err) {
+            console.error("Failed to sync message:", err);
+            alert("Connection error. Protocol fallback engaged.");
+        }
     };
 
     return (
@@ -137,7 +123,7 @@ const MessagesView = ({ study }: { study?: any }) => {
             <div className="w-full lg:w-80 flex flex-col gap-6 shrink-0">
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">Conversations</h3>
+                        <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Conversations</h3>
                         <button className="w-8 h-8 bg-cyan-500 rounded-lg flex items-center justify-center text-slate-950 hover:bg-cyan-400 transition-all shadow-lg active:scale-95">
                             <Plus className="w-5 h-5" />
                         </button>
@@ -147,7 +133,7 @@ const MessagesView = ({ study }: { study?: any }) => {
                         <input 
                             type="text" 
                             placeholder="Search Node..."
-                            className="w-full bg-white/5 border border-white/5 rounded-2xl py-3 pl-11 pr-4 text-white text-[12px] font-black uppercase tracking-widest outline-none focus:border-cyan-500/50 transition-all"
+                            className="w-full bg-white/5 border border-white/5 rounded-2xl py-3 pl-11 pr-4 text-white text-[11px] font-black uppercase tracking-widest outline-none focus:border-cyan-500/50 transition-all"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -175,10 +161,10 @@ const MessagesView = ({ study }: { study?: any }) => {
                                 </div>
                                 <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{thread.timestamp}</span>
                             </div>
-                            <h4 className={`text-sm font-black uppercase tracking-tight mb-1 truncate ${selectedThreadId === thread.id ? 'text-white italic' : 'text-slate-400'}`}>
+                            <h4 className={`text-[13px] font-black uppercase tracking-tight mb-1 truncate ${selectedThreadId === thread.id ? 'text-white italic' : 'text-slate-400'}`}>
                                 {thread.title}
                             </h4>
-                            <p className="text-[12px] font-bold text-slate-600 line-clamp-2 leading-relaxed uppercase tracking-widest group-hover:text-slate-400 transition-colors">
+                            <p className="text-[11px] font-bold text-slate-600 line-clamp-2 leading-relaxed uppercase tracking-widest group-hover:text-slate-400 transition-colors">
                                 {thread.last_message}
                             </p>
                             <div className="flex items-center justify-between mt-4">
@@ -209,7 +195,7 @@ const MessagesView = ({ study }: { study?: any }) => {
                             <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#00e676] rounded-full border-4 border-[#0d1424]" />
                         </div>
                         <div>
-                            <h4 className="text-lg font-black text-white italic uppercase tracking-tighter leading-none">{activeThread?.title}</h4>
+                            <h4 className="text-[17px] font-black text-white italic uppercase tracking-tighter leading-none">{activeThread?.title}</h4>
                             <div className="flex items-center gap-2 mt-1">
                                 <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">{activeThread?.staff_name}</span>
                                 <div className="w-1 h-1 rounded-full bg-slate-700" />
@@ -240,7 +226,7 @@ const MessagesView = ({ study }: { study?: any }) => {
                                 <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{msg.timestamp}</span>
                             </div>
                             <div className="group relative max-w-[85%]">
-                                <div className={`p-6 rounded-[2rem] text-sm font-bold leading-relaxed transition-all shadow-xl ${
+                                <div className={`p-6 rounded-[2rem] text-[13px] font-bold leading-relaxed transition-all shadow-xl ${
                                     msg.is_from_me 
                                         ? 'bg-cyan-500 text-slate-950 rounded-tr-none shadow-cyan-500/10' 
                                         : 'bg-white/5 border border-white/5 text-slate-300 rounded-tl-none shadow-black/20'

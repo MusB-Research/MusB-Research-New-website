@@ -177,8 +177,8 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                         <ChevronRight className="w-3 h-3" />
                         <span className="text-cyan-500">Logs</span>
                     </div>
-                    <h2 className="text-4xl font-black italic tracking-tighter text-white uppercase italic mb-2">Daily Mission Logs</h2>
-                    <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">Command center for your daily protocol data points </p>
+                    <h2 className="text-2xl font-black italic tracking-tighter text-white uppercase italic mb-2">Daily Mission Logs</h2>
+                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">Command center for your daily protocol data points </p>
                 </div>
                 <div className="flex items-center gap-4 bg-white/5 border border-white/5 rounded-3xl p-4 pr-6">
                     <div className="w-10 h-10 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400">
@@ -200,8 +200,8 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                                 <Activity className="w-6 h-6" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">Supplement Dosing Log</h3>
-                                <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">Protocol validation for daily product intake</p>
+                                <h3 className="text-[17px] font-black text-white italic uppercase tracking-tighter">Supplement Dosing Log</h3>
+                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Protocol validation for daily product intake</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
@@ -328,8 +328,8 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                                 <AlertTriangle className="w-6 h-6" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">AE Report Dispatch</h3>
-                                <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">Formal Adverse Event protocol report system</p>
+                                <h3 className="text-[17px] font-black text-white italic uppercase tracking-tighter">AE Report Dispatch</h3>
+                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Formal Adverse Event protocol report system</p>
                             </div>
                         </div>
                         <button
@@ -455,8 +455,8 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                                 <Microscope className="w-6 h-6" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">Lab Report Upload Node</h3>
-                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Secure clinical data ingest and verification</p>
+                                <h3 className="text-[17px] font-black text-white italic uppercase tracking-tighter">Lab Report Upload Node</h3>
+                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Secure clinical data ingest and verification</p>
                             </div>
                         </div>
                     </div>
@@ -537,8 +537,8 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
             <div className="space-y-8">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Mission Log Trace</h3>
-                        <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mt-1">Audit trail of all protocol data points and synchronization states</p>
+                        <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">Mission Log Trace</h3>
+                        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-1">Audit trail of all protocol data points and synchronization states</p>
                     </div>
                     <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/5">
                         <div className="w-2 h-2 bg-[#00e676] rounded-full animate-pulse" />

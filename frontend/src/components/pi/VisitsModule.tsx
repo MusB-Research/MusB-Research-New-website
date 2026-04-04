@@ -257,7 +257,7 @@ export default function VisitsModule() {
             {/* Top Bar (Sticky) */}
             <div className="flex-shrink-0 px-6 lg:px-10 py-4 lg:py-8 bg-[#0B101B]/80 backdrop-blur-3xl border-b border-white/5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-8 z-40">
                 <div className="flex flex-col md:flex-row md:items-center gap-3 lg:gap-8">
-                    <h2 className="text-lg lg:text-2xl font-black text-white italic uppercase tracking-tighter">Visits & Assessments</h2>
+                    <h2 className="text-lg lg:text-xl font-black text-white italic uppercase tracking-tighter">Visits & Assessments</h2>
                     <div className="flex bg-white/5 p-1 rounded-xl lg:rounded-2xl border border-white/5 self-start">
                         <button 
                             onClick={() => setViewMode('Timeline')}
@@ -315,7 +315,7 @@ export default function VisitsModule() {
                                 onClick={() => setSelectedParticipantId(p.id)}
                                 className={`flex-shrink-0 lg:w-full min-w-[200px] lg:min-w-0 text-left p-4 lg:p-6 rounded-2xl lg:rounded-[2rem] border transition-all relative group overflow-hidden ${
                                     selectedParticipantId === p.id 
-                                        ? 'bg-indigo-600/10 border-indigo-500 shadow-xl' 
+                                        ? 'bg-indigo-900/40 border-indigo-500 shadow-xl' 
                                         : 'bg-white/5 border-white/5 hover:border-white/10'
                                 }`}
                             >
@@ -351,8 +351,8 @@ export default function VisitsModule() {
                         <section>
                             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 lg:mb-12 gap-6">
                                 <div>
-                                    <h3 className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter">Visit Protocol Flow</h3>
-                                    <p className="text-[9px] text-indigo-400 font-black uppercase tracking-[0.2em] lg:tracking-[0.3em] mt-2 italic">#{selectedParticipant.id} • {selectedParticipant.study}</p>
+                                    <h3 className="text-lg lg:text-xl font-black text-white italic uppercase tracking-tighter">Visit Protocol Flow</h3>
+                                    <p className="text-[8px] text-indigo-400 font-black uppercase tracking-[0.2em] lg:tracking-[0.3em] mt-2 italic">#{selectedParticipant.id} • {selectedParticipant.study}</p>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-3 lg:gap-4 pb-4 lg:pb-0">
                                     {['Overdue', 'Scheduled', 'Completed'].map(s => (
@@ -381,7 +381,7 @@ export default function VisitsModule() {
                                             <div className={`w-12 h-12 lg:w-14 lg:h-14 rounded-xl lg:rounded-2xl flex items-center justify-center border-2 lg:border-4 transition-all ${
                                                 node.status === 'Completed' ? 'bg-emerald-500/10 border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)]' : 
                                                 node.status === 'Overdue' ? 'bg-red-500/10 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)]' : 
-                                                selectedNodeId === node.id ? 'bg-indigo-600 border-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.4)]' : 
+                                                selectedNodeId === node.id ? 'bg-indigo-800 border-indigo-600 shadow-[0_0_20px_rgba(79,70,229,0.4)]' : 
                                                 'bg-white/5 border-white/5'
                                             }`}>
                                                 {node.status === 'Completed' ? <CheckCircle2 className="w-5 h-5 lg:w-6 lg:h-6 text-emerald-400" /> : 
@@ -405,15 +405,15 @@ export default function VisitsModule() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-2 gap-4 lg:gap-8">
                                 <div className="p-5 lg:p-8 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl lg:rounded-[2.5rem] flex items-center justify-between group min-h-[100px] lg:min-h-0">
                                     <div className="flex items-center gap-3 lg:gap-6">
-                                        <div className="w-10 h-10 lg:w-14 lg:h-14 rounded-2xl lg:rounded-3xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                                        <div className="w-10 h-10 lg:w-14 lg:h-14 rounded-2xl lg:rounded-3xl bg-indigo-900/40 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
                                             <Activity className="w-5 h-5 lg:w-7 lg:h-7" />
                                         </div>
                                         <div className="min-w-0">
                                             <p className="text-[7px] lg:text-[10px] text-indigo-400 font-black uppercase tracking-[0.2em] italic truncate">Adherence Index</p>
-                                            <p className="text-xl lg:text-4xl font-black text-white italic uppercase tracking-tighter mt-1 lg:mt-2">92<span className="text-indigo-500">%</span></p>
+                                            <p className="text-lg lg:text-xl font-black text-white italic uppercase tracking-tighter mt-1 lg:mt-2">92<span className="text-indigo-500">%</span></p>
                                         </div>
                                     </div>
-                                    <ArrowRight className="w-5 h-5 lg:w-6 lg:h-6 text-indigo-800 opacity-0 group-hover:opacity-100 transition-all translate-x-4 lg:group-hover:translate-x-0 hidden sm:block" />
+                                    <ArrowRight className="w-5 h-5 lg:w-6 lg:h-6 text-indigo-900 opacity-0 group-hover:opacity-100 transition-all translate-x-4 lg:group-hover:translate-x-0 hidden sm:block" />
                                 </div>
                                 <div className="p-5 lg:p-8 bg-white/5 border border-white/5 rounded-2xl lg:rounded-[2.5rem] flex flex-col justify-center min-h-[100px] lg:min-h-0">
                                     <p className="text-[7px] lg:text-[10px] text-slate-600 font-black uppercase tracking-widest italic mb-2 lg:mb-3 truncate">Next Target Window</p>
@@ -451,13 +451,13 @@ export default function VisitsModule() {
                                 <p className="text-[8px] text-indigo-400 font-black uppercase tracking-widest">#{selectedParticipant.id} • {selectedParticipant.coordinator}</p>
                             </div>
                             <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest shrink-0 ${
-                                selectedVisit.status === 'Completed' ? 'bg-emerald-500 text-white' : 'bg-indigo-600 text-white'
+                                selectedVisit.status === 'Completed' ? 'bg-emerald-600 text-white' : 'bg-indigo-700 text-white'
                             }`}>
                                 {selectedVisit.status}
                             </span>
                         </div>
                         <div className="flex flex-wrap items-center gap-3">
-                            <button className="flex-1 min-w-[180px] py-4 bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-xl shadow-indigo-900/40 hover:scale-[1.02] transition-all italic">Start Visit Sequence</button>
+                            <button className="flex-1 min-w-[180px] py-4 bg-indigo-700 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-xl shadow-indigo-900/40 hover:scale-[1.02] transition-all italic">Start Visit Sequence</button>
                             <button className="p-4 bg-white/5 border border-white/10 rounded-xl text-slate-500 hover:text-white shrink-0"><MoreVertical className="w-5 h-5" /></button>
                         </div>
                     </div>
@@ -656,7 +656,7 @@ export default function VisitsModule() {
                         >
                             <div className="flex items-center justify-between border-b border-white/5 pb-8">
                                 <div>
-                                    <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">Protocol Scheduling Interface</h3>
+                                    <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Protocol Scheduling Interface</h3>
                                     <p className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.3em] mt-3 italic">Sync visit window with global GCP timing</p>
                                 </div>
                                 <X className="w-8 h-8 text-slate-600 cursor-pointer hover:text-white transition-colors" onClick={() => setIsScheduleOpen(false)} />

@@ -138,6 +138,7 @@ def login_view(request):
     response = Response({
         'message': 'Login successful',
         'access': access_token, 
+        'refresh': refresh_token,
         'user': get_user_data_dict(user)
     })
     return _set_auth_cookies(response, access_token, refresh_token)
@@ -215,6 +216,7 @@ def refresh_token_view(request):
     response = Response({
         'message': 'Token refreshed',
         'access': new_access,  
+        'refresh': new_refresh,
         'user': get_user_data_dict(user)
     })
     return _set_auth_cookies(response, new_access, new_refresh)
@@ -321,6 +323,8 @@ def google_login(request):
 
         response = Response({
             'message': 'Login successful',
+            'access': access_token,
+            'refresh': refresh_token,
             'user': get_user_data_dict(user)
         })
         return _set_auth_cookies(response, access_token, refresh_token)

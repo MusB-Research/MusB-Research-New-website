@@ -52,10 +52,13 @@ export const getUser = () => {
     } catch { return null; }
 };
 
-export const saveToken = (token: string, role: string, modules?: string) => {
+export const saveToken = (token: string, role: string, modules?: string, refresh?: string) => {
     if (token) {
         localStorage.setItem('access', token);
         sessionStorage.setItem('access', token);
+    }
+    if (refresh) {
+        localStorage.setItem('refresh', refresh);
     }
     localStorage.setItem('role', role);
     sessionStorage.setItem('role', role);
@@ -174,10 +177,15 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
 
 export const attemptTokenRefresh = async (): Promise<boolean> => {
     try {
+        const storedRefresh = localStorage.getItem('refresh');
+        
+        const reqBody = storedRefresh ? JSON.stringify({ refresh: storedRefresh }) : undefined;
+        
         const res = await fetch(`${API}/api/auth/refresh/`, {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
+            body: reqBody
         });
 
         if (res.ok) {
@@ -185,6 +193,9 @@ export const attemptTokenRefresh = async (): Promise<boolean> => {
             if (data.access) {
                 localStorage.setItem('access', data.access);
                 sessionStorage.setItem('access', data.access);
+            }
+            if (data.refresh) {
+                localStorage.setItem('refresh', data.refresh);
             }
             if (data.user?.role) {
                 sessionStorage.setItem('role', data.user.role);

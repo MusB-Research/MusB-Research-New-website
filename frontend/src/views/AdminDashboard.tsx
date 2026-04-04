@@ -6,9 +6,10 @@ import {
     ShieldAlert, UserPlus, Rocket, ClipboardList,
     ShieldCheck, FileText
 } from 'lucide-react';
+import NotificationBell from '../components/NotificationBell';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { authFetch, clearToken, getRole, performLogout , API } from '../utils/auth';
+import { authFetch, clearToken, getRole, performLogout, API } from '../utils/auth';
 import DashboardModule from '../components/admin/DashboardModule';
 import TeamModule from '../components/admin/TeamModule';
 import AuditLogs from '../components/admin/AuditLogs';
@@ -83,10 +84,19 @@ export default function AdminDashboard() {
     };
 
     const [studies, setStudies] = useState<any[]>([]);
+    const [participants, setParticipants] = useState<any[]>([]);
+    const [staff, setStaff] = useState<any[]>([]);
+    const [auditLogs, setAuditLogs] = useState<any[]>([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedStudy, setSelectedStudy] = useState<any>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [user, setUser] = useState<any>(null);
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
 
     const apiUrl = API || 'http://localhost:8000';
 
@@ -99,6 +109,22 @@ export default function AdminDashboard() {
             }
         } catch (error) {
             console.error('Fetch error:', error);
+        }
+    };
+
+    const fetchDashboardMetrics = async () => {
+        try {
+            const [pRes, sRes, aRes] = await Promise.all([
+                authFetch(`${apiUrl}/api/participants/`),
+                authFetch(`${apiUrl}/api/staff/`),
+                authFetch(`${apiUrl}/api/audit-logs/`)
+            ]);
+
+            if (pRes.ok) setParticipants(await pRes.json());
+            if (sRes.ok) setStaff(await sRes.json());
+            if (aRes.ok) setAuditLogs(await aRes.json());
+        } catch (error) {
+            console.error('Metrics fetch error:', error);
         }
     };
 
@@ -115,11 +141,33 @@ export default function AdminDashboard() {
 
         if (userStr) setUser(JSON.parse(userStr));
         fetchStudies();
+        fetchDashboardMetrics();
     }, [navigate]);
 
-    const handleCreateStudy = (newStudy: any) => {
-        setStudies([...studies, newStudy]);
-        setShowCreateModal(false);
+    const handleCreateStudy = async (formData: any) => {
+        try {
+            const method = selectedStudy ? 'PATCH' : 'POST';
+            const url = selectedStudy
+                ? `${apiUrl}/api/studies/${selectedStudy.protocol_id || selectedStudy.id}/`
+                : `${apiUrl}/api/studies/`;
+
+            const res = await authFetch(url, {
+                method: method,
+                body: JSON.stringify(formData)
+            });
+
+            if (res.ok) {
+                setShowCreateModal(false);
+                setSelectedStudy(null);
+                fetchStudies();
+            } else {
+                const err = await res.json();
+                console.error("Study Save Failed:", err);
+                alert(`Operation failed: ${JSON.stringify(err)}`);
+            }
+        } catch (e) {
+            alert("Operation failed due to network error");
+        }
     };
 
     const navItems = [
@@ -160,14 +208,12 @@ export default function AdminDashboard() {
                                 else handleModuleChange(item.id as AdminModule);
                             }}
                             className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group ${activeModule === item.id
-                                ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]'
-                                : 'text-slate-500 hover:bg-white/5 hover:text-white'
+                                ? 'bg-[#0a1525] text-cyan-400 border border-cyan-500/30'
+                                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
                                 }`}
                         >
-                            <div className="w-10 flex items-center justify-center flex-shrink-0">
-                                <item.icon className={`w-4 h-4 ${activeModule === item.id ? 'text-cyan-400' : 'text-slate-600 group-hover:text-cyan-400'}`} />
-                            </div>
-                            {isSidebarOpen && <span className="text-[13px] font-black uppercase tracking-[0.1em]">{item.label}</span>}
+                            <item.icon className={`w-5 h-5 ${activeModule === item.id ? 'text-cyan-400' : 'text-slate-500'}`} />
+                            {isSidebarOpen && <span className="text-base font-bold">{item.label}</span>}
                             {activeModule === item.id && isSidebarOpen && (
                                 <motion.div layoutId="activeInd" className="ml-auto w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,1)]" />
                             )}
@@ -177,10 +223,8 @@ export default function AdminDashboard() {
 
                 <div className="absolute bottom-10 left-6 right-6 space-y-2">
                     <button onClick={confirmSignOut} className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-all group">
-                        <div className="w-10 flex items-center justify-center flex-shrink-0">
-                            <LogOut className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
-                        </div>
-                        {isSidebarOpen && <span className="text-[13px] font-black uppercase tracking-widest italic">Terminate Session</span>}
+                        <LogOut className="w-5 h-5" />
+                        {isSidebarOpen && <span className="text-sm font-bold">Sign Out</span>}
                     </button>
                 </div>
             </aside>
@@ -189,8 +233,8 @@ export default function AdminDashboard() {
             <header className="fixed top-0 left-0 right-0 h-28 z-50 bg-[#0B101B]/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between px-10">
                 <div className="flex items-center gap-12">
                     <div className="flex items-center gap-5 cursor-pointer" onClick={() => window.open('/', '_blank')}>
-                        <div className="h-12 px-6 rounded-full bg-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 group overflow-hidden">
-                            <img src="/logo.jpg" alt="MusB Research" className="h-7 w-auto object-contain" />
+                        <div className="bg-white p-2 rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                            <img src="/logo.jpg" alt="MusB Research" className="h-12 w-auto object-contain rounded-xl" />
                         </div>
                         <div className="h-8 w-px bg-white/10 hidden md:block" />
                         <span className="text-[13px] font-black uppercase tracking-[0.4em] text-cyan-400 hidden md:block">Research Terminal</span>
@@ -208,10 +252,16 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="flex items-center gap-8">
-                    <button className="relative p-4 bg-white/5 rounded-2xl border border-white/10 hover:border-white/20 transition-all group">
-                        <Bell className="w-4 h-4 text-slate-500 group-hover:text-white" />
-                        <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,1)]" />
-                    </button>
+                    <div className="flex flex-col items-end text-right border-r border-white/5 pr-4 md:pr-6">
+                        <span className="text-sm md:text-xl font-black text-cyan-400 font-mono tracking-tighter tabular-nums leading-none">
+                            {currentTime.toLocaleTimeString('en-US', { hour12: false })}
+                        </span>
+                        <span className="text-[8px] md:text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 md:mt-1.5">
+                            {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()}
+                        </span>
+                    </div>
+
+                    <NotificationBell unreadCount={0} />
 
                     <div className="flex items-center gap-6 pl-4 border-l border-white/5">
                         <div className="text-right hidden sm:block">
@@ -236,7 +286,15 @@ export default function AdminDashboard() {
             {/* Main Workspace Area */}
             <main className={`flex-1 pt-36 pb-24 px-10 transition-all duration-500 ${isSidebarOpen ? 'ml-80' : 'ml-24'}`}>
                 {activeModule === 'DASHBOARD' && (
-                    <DashboardModule key="DASHBOARD" studyCount={studies.length} />
+                    <DashboardModule
+                        key="DASHBOARD"
+                        studyCount={studies.length}
+                        participantCount={participants.length}
+                        staffCount={staff.length}
+                        auditLogs={auditLogs}
+                        onNavigate={(mod) => handleModuleChange(mod as AdminModule)}
+                        onActivitiesClick={() => handleModuleChange('AUDIT_LOGS')}
+                    />
                 )}
 
                 {activeModule === 'TEAM' && (
@@ -278,7 +336,7 @@ export default function AdminDashboard() {
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                         <div className="flex items-center justify-between mb-10">
                             <div>
-                                <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">Study Directory</h1>
+                                <h1 className="text-2xl font-black text-white tracking-tighter uppercase italic">Study Directory</h1>
                                 <p className="text-slate-500 font-bold mt-2 uppercase tracking-widest text-xs italic">Managing {studies.length} live research protocols</p>
                             </div>
                             <button
@@ -371,7 +429,7 @@ function ComplianceModule() {
     return (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
             <div>
-                <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Compliance <span className="text-cyan-400">& Credentials</span></h1>
+                <h1 className="text-2xl font-black text-white italic uppercase tracking-tighter">Compliance <span className="text-cyan-400">& Credentials</span></h1>
                 <p className="text-slate-500 font-bold mt-2 uppercase tracking-widest text-xs italic text-pretty">Secure documentation for clinical trial coordination</p>
             </div>
 

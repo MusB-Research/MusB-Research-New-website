@@ -1,5 +1,9 @@
 from django.contrib import admin
 
+admin.site.site_header = "MusB Research Command Center"
+admin.site.site_title = "MusB Super Admin"
+admin.site.index_title = "Platform Governance"
+
 from django.contrib import admin
 from .models import Study, StudyAssignment, Participant, Visit, Kit, Form, FormResponse, BookletDownloadRequest
 

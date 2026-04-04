@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     FileText, Download, Search, Filter, Clock, ShieldCheck, 
@@ -31,6 +31,42 @@ const DocumentsView = ({ handleExportPDF, study }: { handleExportPDF: any; study
     const [filterOption, setFilterOption] = useState('All');
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+    const [isDecrypting, setIsDecrypting] = useState(false);
+    const [decryptedContent, setDecryptedContent] = useState<string | null>(null);
+
+    // --- Decryption Effect ---
+    useEffect(() => {
+        if (selectedDoc) {
+            setIsDecrypting(true);
+            setDecryptedContent(null);
+            
+            const timer = setTimeout(async () => {
+                // Generate content using the existing handleAction logic
+                const content = await getDocumentContent(selectedDoc);
+                setDecryptedContent(content);
+                setIsDecrypting(false);
+            }, 2500); // 2.5 seconds of "Secure Rendering"
+
+            return () => clearTimeout(timer);
+        }
+    }, [selectedDoc]);
+
+    const getDocumentContent = async (doc: Document) => {
+        const pdf = new jsPDF();
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        // Mimic handleAction logic to get a data string
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(22);
+        pdf.setTextColor(6, 182, 212);
+        pdf.text('MusB RESEARCH PORTAL', 45, 25);
+        pdf.setFontSize(14);
+        pdf.text('DOCUMENT IDENTITY PROFILE', 15, 65);
+        pdf.setFontSize(10);
+        pdf.text("Nomenclature: " + doc.name, 15, 80);
+        pdf.text("Classification: " + doc.category, 15, 90);
+        pdf.text("Source: " + doc.uploadedBy, 15, 100);
+        return pdf.output('datauristring');
+    };
 
     // --- Mock Data ---
     const documents: Document[] = [
@@ -204,14 +240,14 @@ const DocumentsView = ({ handleExportPDF, study }: { handleExportPDF: any; study
     return (
         <div className="flex flex-col gap-8 max-w-[1600px] min-h-screen">
             {/* Top Utility Bar */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1">
-                <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1 italic">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="space-y-1 text-left">
+                    <div className="flex items-center gap-2 text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1 italic">
                         <span>Dashboard</span>
                         <ChevronRight className="w-3 h-3" />
                         <span className="text-cyan-400">Documents</span>
                     </div>
-                    <h2 className="text-3xl font-black italic tracking-tighter text-white uppercase flex items-center gap-3">
+                    <h2 className="text-xl sm:text-2xl font-black italic tracking-tighter text-white uppercase flex items-center gap-3">
                         DOCUMENTS
                         <div className="w-8 h-px bg-gradient-to-r from-cyan-400 to-transparent" />
                     </h2>
@@ -286,7 +322,7 @@ const DocumentsView = ({ handleExportPDF, study }: { handleExportPDF: any; study
                         >
                             <div className="flex items-center gap-3">
                                 <LayoutGrid className="w-4 h-4" />
-                                <span className="text-[12px] font-black uppercase tracking-widest group-hover:translate-x-1 transition-transform">All Documents</span>
+                                <span className="text-[11px] font-black uppercase tracking-widest group-hover:translate-x-1 transition-transform">All Documents</span>
                             </div>
                             <span className="text-[11px] font-bold opacity-40">[{documents.length}]</span>
                         </button>
@@ -299,7 +335,7 @@ const DocumentsView = ({ handleExportPDF, study }: { handleExportPDF: any; study
                                 >
                                     <div className="flex items-center gap-3">
                                         {cat.icon}
-                                        <span className="text-[12px] font-black uppercase tracking-widest group-hover:translate-x-1 transition-transform">{cat.name}</span>
+                                        <span className="text-[11px] font-black uppercase tracking-widest group-hover:translate-x-1 transition-transform">{cat.name}</span>
                                     </div>
                                     <span className="text-[11px] font-bold opacity-40">[{cat.count}]</span>
                                 </button>
@@ -351,9 +387,9 @@ const DocumentsView = ({ handleExportPDF, study }: { handleExportPDF: any; study
                     {/* List Header */}
                     <div className="flex items-center justify-between bg-[#0a101f]/40 backdrop-blur-sm border border-white/5 p-4 rounded-2xl">
                         <div className="flex flex-col px-2">
-                             <h4 className="text-xl font-black text-white uppercase italic tracking-tighter">{activeCategory === 'All' ? 'Everything' : activeCategory} Documents</h4>
+                             <h4 className="text-lg font-black text-white uppercase italic tracking-tighter">{activeCategory === 'All' ? 'Everything' : activeCategory} Documents</h4>
                              <div className="flex items-center gap-3 mt-1">
-                                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Total: {filteredDocs.length} Documents</span>
+                                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total: {filteredDocs.length} Documents</span>
                                  <div className="w-1 h-1 bg-white/20 rounded-full" />
                                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest italic">Last updated: 03/24/2026</span>
                              </div>
@@ -380,8 +416,8 @@ const DocumentsView = ({ handleExportPDF, study }: { handleExportPDF: any; study
                         <div className="relative">
                             {viewMode === 'table' ? (
                                 /* Table View */
-                                <div className="bg-[#0a101f]/80 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
-                                    <table className="w-full text-left border-collapse">
+                                <div className="bg-[#0a101f]/80 backdrop-blur-xl border border-white/5 rounded-3xl overflow-x-auto shadow-2xl no-scrollbar">
+                                    <table className="w-full text-left border-collapse min-w-[800px]">
                                         <thead>
                                             <tr className="border-b border-white/5 bg-white/[0.02]">
                                                 <th className="px-8 py-5 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Document Name</th>
@@ -408,7 +444,7 @@ const DocumentsView = ({ handleExportPDF, study }: { handleExportPDF: any; study
                                                                 {getFileIcon(doc.type)}
                                                             </div>
                                                             <div className="flex flex-col">
-                                                                <span className="text-sm font-black text-white uppercase italic tracking-tight group-hover:text-cyan-400 transition-colors">{doc.name}</span>
+                                                                <span className="text-[13px] font-black text-white uppercase italic tracking-tight group-hover:text-cyan-400 transition-colors">{doc.name}</span>
                                                                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{doc.size}</span>
                                                             </div>
                                                         </div>
@@ -485,7 +521,7 @@ const DocumentsView = ({ handleExportPDF, study }: { handleExportPDF: any; study
                                                         </div>
 
                                                         <div className="space-y-3">
-                                                            <h4 className="text-lg font-black text-white uppercase italic tracking-tighter group-hover:text-cyan-400 transition-colors leading-tight">
+                                                            <h4 className="text-[15px] font-black text-white uppercase italic tracking-tighter group-hover:text-cyan-400 transition-colors leading-tight">
                                                                 {doc.name}
                                                             </h4>
                                                             <div className="flex flex-wrap items-center gap-3 text-[11px] font-black text-slate-500 uppercase tracking-widest italic">
@@ -557,8 +593,8 @@ const DocumentsView = ({ handleExportPDF, study }: { handleExportPDF: any; study
                             
                             <div className="flex justify-between items-start mb-10">
                                 <div>
-                                    <h3 className="text-4xl font-black text-white italic tracking-tighter uppercase mb-2">UPLOAD DOCUMENT</h3>
-                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Select category and upload your file securely.</p>
+                                    <h3 className="text-2xl font-black text-white italic tracking-tighter uppercase mb-2">UPLOAD DOCUMENT</h3>
+                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Select category and upload your file securely.</p>
                                 </div>
                                 <button onClick={() => setIsUploadModalOpen(false)} className="p-3 text-slate-500 hover:text-white transition-colors">
                                     <X className="w-6 h-6" />
@@ -651,48 +687,69 @@ const DocumentsView = ({ handleExportPDF, study }: { handleExportPDF: any; study
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <button className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all italic">
+                                    <button 
+                                        onClick={() => handleAction(selectedDoc, 'DOWNLOAD')}
+                                        className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-cyan-500 hover:text-slate-950 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all italic active:scale-95"
+                                    >
                                         <Download className="w-3.5 h-3.5" /> DOWNLOAD
                                     </button>
-                                    <button className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all italic">
+                                    <button 
+                                        onClick={() => handleAction(selectedDoc, 'VIEW')}
+                                        className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-indigo-500 hover:text-white text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all italic active:scale-95"
+                                    >
                                         <Printer className="w-3.5 h-3.5" /> PRINT
                                     </button>
                                     <button 
                                         onClick={() => setSelectedDoc(null)}
-                                        className="p-3 bg-red-500/10 text-red-400 hover:bg-red-500 rounded-xl hover:text-white transition-all ml-4"
+                                        className="p-3 bg-red-500/10 text-red-400 hover:bg-red-500 rounded-xl hover:text-white transition-all ml-4 active:scale-95"
                                     >
                                         <X className="w-5 h-5" />
                                     </button>
                                 </div>
-                            </div>
-
-                            {/* Viewer Body */}
-                            <div className="flex-1 bg-[#060a12] p-10 overflow-auto flex items-center justify-center relative">
-                                <div className="absolute inset-0 opacity-[0.03] pointer-events-none flex items-center justify-center">
-                                    <ShieldCheck className="w-[40rem] h-[40rem] text-cyan-400" />
-                                </div>
-                                
-                                {/* Placeholder for Document Content */}
-                                <div className="w-full max-w-4xl min-h-full bg-white/5 rounded-[2rem] border border-white/5 flex flex-col items-center justify-center p-20 gap-8 shadow-2xl relative z-10 backdrop-blur-sm">
-                                     <div className="w-24 h-24 bg-cyan-500/10 rounded-full flex items-center justify-center animate-pulse">
-                                         <Lock className="w-10 h-10 text-cyan-400" />
-                                     </div>
-                                     <div className="text-center">
-                                         <h4 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-4 italic">SECURE RENDER IN PROGRESS</h4>
-                                         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] max-w-sm mx-auto leading-relaxed italic">
-                                             HIPAA-COMPLIANT RENDERING ENGINE IS DECRYPTING YOUR DATA...
-                                         </p>
-                                     </div>
-                                     
-                                     <div className="w-64 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                         <motion.div 
-                                            initial={{ width: 0 }}
-                                            animate={{ width: "100%" }}
-                                            transition={{ duration: 3, repeat: Infinity }}
-                                            className="h-full bg-gradient-to-r from-cyan-400 to-indigo-500"
-                                         />
-                                     </div>
-                                </div>
+                            </div>                             {/* Viewer Body */}
+                            <div className="flex-1 bg-[#060a12] p-8 overflow-hidden flex items-center justify-center relative">
+                                <AnimatePresence mode="wait">
+                                    {isDecrypting ? (
+                                        <motion.div 
+                                            key="loader"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            className="w-full max-w-4xl min-h-[500px] bg-white/5 rounded-[2rem] border border-white/5 flex flex-col items-center justify-center p-20 gap-8 shadow-2xl relative z-10 backdrop-blur-sm"
+                                        >
+                                            <div className="w-24 h-24 bg-cyan-500/10 rounded-full flex items-center justify-center animate-pulse">
+                                                <Lock className="w-10 h-10 text-cyan-400" />
+                                            </div>
+                                            <div className="text-center">
+                                                <h4 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-4 italic">SECURE RENDER IN PROGRESS</h4>
+                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] max-w-sm mx-auto leading-relaxed italic">
+                                                    HIPAA-COMPLIANT RENDERING ENGINE IS DECRYPTING YOUR DATA...
+                                                </p>
+                                            </div>
+                                            <div className="w-64 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                                <motion.div 
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: "100%" }}
+                                                    transition={{ duration: 2.5, ease: "easeInOut" }}
+                                                    className="h-full bg-gradient-to-r from-cyan-400 to-indigo-500 shadow-[0_0_15px_rgba(34,211,238,0.5)]"
+                                                />
+                                            </div>
+                                        </motion.div>
+                                    ) : (
+                                        <motion.div 
+                                            key="content"
+                                            initial={{ opacity: 0, scale: 0.98 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            className="w-full h-full relative z-10"
+                                        >
+                                            <iframe 
+                                                src={decryptedContent || ''} 
+                                                className="w-full h-full rounded-[2rem] border-none shadow-2xl bg-white"
+                                                title="Secure Document Archive"
+                                            />
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
 
                             {/* Viewer Footer */}

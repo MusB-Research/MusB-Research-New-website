@@ -11,6 +11,7 @@ import {
   MapPin, Clock, MousePointer2, User as UserIcon, Menu, RefreshCw,
   UserPlus, ShieldAlert, Rocket, ClipboardList, Archive
 } from 'lucide-react';
+import NotificationBell from '../components/NotificationBell';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
 
 import ScreenerBuilder from '../components/admin/ScreenerBuilder';
@@ -179,6 +180,12 @@ export default function SuperAdminDashboard() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [lastRefresh, setLastRefresh] = useState(new Date().toLocaleTimeString());
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
   const [showNotifications, setShowNotifications] = useState(false);
   const [modals, setModals] = useState({
     createUser: false,
@@ -199,8 +206,18 @@ export default function SuperAdminDashboard() {
   const [studies, setStudies] = useState<any[]>([]);
   const [participants, setParticipants] = useState<any[]>([]);
   const [studyInquiries, setStudyInquiries] = useState<any[]>([]);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [toasts, setToasts] = useState<any[]>([]);
+
+  const addToast = useCallback((msg: string, type: 'info' | 'success' | 'warn' | 'error' = 'info') => {
+    const id = Math.random().toString(36).substring(7);
+    setToasts(prev => [...prev, { id, msg, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 5000);
+  }, []);
 
   const notifications = useMemo(() => {
     const list = [
@@ -249,11 +266,12 @@ export default function SuperAdminDashboard() {
     try {
       const apiUrl = API || 'http://localhost:8000';
 
-      const [uRes, sRes, pRes, iRes] = await Promise.all([
+      const [uRes, sRes, pRes, iRes, nRes] = await Promise.all([
         authFetch(`${apiUrl}/api/users/`),
         authFetch(`${apiUrl}/api/studies/`),
         authFetch(`${apiUrl}/api/participants/`),
         authFetch(`${apiUrl}/api/study-inquiries/`),
+        authFetch(`${apiUrl}/api/news/`),
       ]);
 
       if (uRes.ok) {
@@ -272,6 +290,7 @@ export default function SuperAdminDashboard() {
       if (sRes.ok) setStudies(await sRes.json());
       if (pRes.ok) setParticipants(await pRes.json());
       if (iRes.ok) setStudyInquiries(await iRes.json());
+      if (nRes.ok) setAnnouncements(await nRes.json());
 
       // Fetch Live Audit Logs
       try {
@@ -282,12 +301,14 @@ export default function SuperAdminDashboard() {
       }
 
       setLastRefresh(new Date().toLocaleTimeString());
+      addToast("Platform Data Synchronized With Core", "success");
     } catch (err) {
       console.error("Failed to fetch platform data:", err);
+      addToast("Terminal Connection Unstable", "error");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [addToast]);
 
   useEffect(() => {
     const user = localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -317,6 +338,16 @@ export default function SuperAdminDashboard() {
     fetchData();
   }, [fetchData]);
 
+  // Real-time Lead Monitoring
+  useEffect(() => {
+    if (studyInquiries.length > 0) {
+      const pendingInquiries = studyInquiries.filter(iq => iq.status === 'NDA_REQUESTED' || iq.status === 'PRELIMINARY');
+      if (pendingInquiries.length > 0) {
+        addToast(`${pendingInquiries.length} New Sponsor Leads Awaiting Authorization`, "warn");
+      }
+    }
+  }, [studyInquiries.length, addToast]);
+
 
 
   // ═══════════════════════════════════════════
@@ -342,23 +373,60 @@ export default function SuperAdminDashboard() {
 
   const refreshDashboard = () => fetchData();
 
-  const handleCreateStudy = async (data: any) => {
+  /**
+   * Helper to retrieve a valid identifier for study-related API calls.
+   * Priority: protocol_id (as used for global lookup), then database ID.
+   */
+  const getStudyIdentifier = (study: any): string | null => {
+    if (!study) return null;
+    return study.protocol_id || study.id || study._id || null;
+  };
+
+  const handleCreateStudy = async (formData: any) => {
     try {
       const apiUrl = API || 'http://localhost:8000';
-      const res = await authFetch(`${apiUrl}/api/studies/`, {
-        method: 'POST',
-        body: JSON.stringify(data)
+      const method = selectedStudy ? 'PATCH' : 'POST';
+
+      const studyId = getStudyIdentifier(selectedStudy);
+      if (selectedStudy && !studyId) {
+        alert("❌ UNHANDLED PROTOCOL ERROR: Selected study has NO valid identifier. Metadata may be corrupted.");
+        return;
+      }
+
+      // Map frontend fields (from LaunchStudyForm) to backend fields (StudySerializer)
+      const payload = {
+        ...formData,
+        start_date: formData.startDate,
+        end_date: formData.endDate,
+        description: formData.brief_description,
+        primary_indication: formData.indication,
+        condition: formData.indication,
+        study_type: formData.execution_type,
+        target_screened: formData.target_subjects,
+        pi_ids: formData.assigned_pis,
+        coordinator_ids: formData.assigned_coordinators,
+      };
+
+      const url = selectedStudy
+        ? `${apiUrl}/api/studies/${studyId}/`
+        : `${apiUrl}/api/studies/`;
+
+      const res = await authFetch(url, {
+        method: method,
+        body: JSON.stringify(payload)
       });
+
       if (res.ok) {
-        alert("Protocol Deployed Successfully");
+        alert(selectedStudy ? "Protocol Metadata Successfully Synced to Core" : "New Strategy/Protocol Deployed to Active Matrix");
         handlePageChange('STUDIES');
         fetchData();
+        setSelectedStudy(null);
       } else {
         const err = await res.json();
-        alert(`Deployment failed: ${JSON.stringify(err)}`);
+        alert(`${selectedStudy ? 'Metadata Sync' : 'Deployment'} failed at node: ${JSON.stringify(err)}`);
       }
     } catch (e) {
-      alert("Deployment failed due to network error");
+      alert("❌ CRITICAL INTERFACE FAILURE: Terminal connection refused or high-latency interference detected.");
     }
   };
 
@@ -451,9 +519,18 @@ export default function SuperAdminDashboard() {
                 <Crown className="w-4 h-4 text-[#7c3aed]" />
                 <span className="text-xs font-black text-[#7c3aed] uppercase tracking-[0.3em]">Super Administrator</span>
               </div>
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-black text-white tracking-tight leading-none">
-                Platform Control Center
-              </h1>
+
+              <div className="flex items-center gap-3 text-[#555a7a] mt-6 mb-10">
+                <div className="flex items-center gap-2.5 px-4 py-2.5 bg-white/[0.03] rounded-xl border border-white/5 shadow-inner">
+                  <Calendar className="w-4 h-4 text-purple-400" />
+                  <span className="text-[11px] font-black uppercase tracking-widest leading-none">{currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                </div>
+                <div className="flex items-center gap-2.5 px-4 py-2.5 bg-[#7c3aed]/10 rounded-xl border border-[#7c3aed]/20 shadow-inner">
+                  <Clock className="w-4 h-4 text-[#7c3aed] animate-pulse" />
+                  <span className="text-[11px] font-black uppercase tracking-widest text-white leading-none">{currentTime.toLocaleTimeString()}</span>
+                </div>
+              </div>
+
               <p className="text-base sm:text-lg text-[#8b8fa8] font-medium tracking-tight max-w-2xl">
                 Welcome, {currentUserName}. You have complete platform visibility and control.
               </p>
@@ -481,13 +558,13 @@ export default function SuperAdminDashboard() {
         {[
           { label: 'Total Users', value: (users || []).length, icon: Users, color: '#14b8a6', badge: 'Live', onClick: () => handlePageChange('ALL_USERS') },
           { label: 'Total Studies', value: (studies || []).length, icon: Briefcase, color: '#3b82f6', onClick: () => handlePageChange('STUDIES') },
-          { label: 'Active Participants', value: (participants || []).length, icon: UserCheck, color: '#14b8a6', onClick: () => { } },
-          { label: 'Admins & Staff', value: (users || []).filter(u => ['ADMIN', 'SUPER_ADMIN', 'PI', 'COORDINATOR'].includes(u.role)).length, icon: Crown, color: '#f59e0b', onClick: () => { } },
+          { label: 'Active Participants', value: (participants || []).length, icon: UserCheck, color: '#14b8a6', onClick: () => handlePageChange('PARTICIPANTS') },
+          { label: 'Admins & Staff', value: (users || []).filter(u => ['ADMIN', 'SUPER_ADMIN', 'PI', 'COORDINATOR'].includes(u.role)).length, icon: Crown, color: '#f59e0b', onClick: () => handlePageChange('TEAM') },
           { label: 'Sponsors', value: (users || []).filter(u => u.role === 'SPONSOR').length, icon: Building, color: '#ec4899', onClick: () => handlePageChange('SPONSORS') },
-          { label: 'Sponsor Teams', value: 0, icon: Users, color: '#ec4899', onClick: () => { } },
-          { label: 'Active Studies', value: (studies || []).filter(s => s.status === 'UPCOMING' || s.status === 'RECRUITING').length, icon: Activity, color: '#14b8a6', onClick: () => handlePageChange('STUDIES') },
-          { label: 'Open Adverse Events', value: 2, icon: ShieldAlert, color: '#ef4444', onClick: () => { } },
-          { label: 'Audit Events Today', value: 5, icon: FileText, color: '#7c3aed', onClick: () => handlePageChange('AUDIT_LOGS') },
+          { label: 'Sponsor Teams', value: (studyInquiries || []).length, icon: Users, color: '#ec4899', onClick: () => handlePageChange('INQUIRIES') },
+          { label: 'Active Studies', value: (studies || []).filter(s => s.status === 'UPCOMING' || s.status === 'RECRUITING' || s.status === 'ACTIVE').length, icon: Activity, color: '#14b8a6', onClick: () => handlePageChange('STUDIES') },
+          { label: 'Open Adverse Events', value: 0, icon: ShieldAlert, color: '#ef4444', onClick: () => alert("Adverse Event Monitor: No active high-severity alerts detected in active matrix.") },
+          { label: 'Audit Events Today', value: (activities || []).length, icon: FileText, color: '#7c3aed', onClick: () => handlePageChange('AUDIT_LOGS') },
         ].map((stat, i) => (
           <div
             key={i}
@@ -506,7 +583,7 @@ export default function SuperAdminDashboard() {
               )}
             </div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 group-hover:text-white transition-colors">{stat.label}</p>
-            <h4 className="text-3xl sm:text-4xl xl:text-5xl font-black text-white italic tracking-tighter drop-shadow-2xl">{stat.value}</h4>
+            <h4 className="text-2xl sm:text-3xl xl:text-4xl font-black text-white italic tracking-tighter drop-shadow-2xl">{stat.value}</h4>
             <div className="absolute bottom-6 right-6 p-2 rounded-lg bg-white/5 border border-white/5 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1">
               <ArrowRight className="w-4 h-4 text-white" />
             </div>
@@ -647,7 +724,7 @@ export default function SuperAdminDashboard() {
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl sm:text-4xl font-black text-white italic uppercase tracking-tighter">All <span className="text-[#7c3aed]">Users</span></h1>
+            <h1 className="text-xl sm:text-2xl font-black text-white italic uppercase tracking-tighter">All <span className="text-[#7c3aed]">Users</span></h1>
             <p className="text-[10px] sm:text-xs text-[#8b8fa8] uppercase tracking-widest mt-2">Manage clinical research staff and participant accounts</p>
           </div>
           <button onClick={() => setModals({ ...modals, createUser: true })} className="w-full sm:w-auto px-10 py-5 bg-[#7c3aed] text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-4 shadow-xl shadow-purple-900/40 hover:bg-purple-600 transition-all">
@@ -664,7 +741,7 @@ export default function SuperAdminDashboard() {
           ].map((s, i) => (
             <div key={i} className="bg-[#0f1133] border border-white/5 rounded-3xl p-6 sm:p-8 text-center bg-gradient-to-br from-[#0f1133] to-[#0a0b1a] hover:border-purple-500/30 transition-colors">
               <p className="text-xs font-black text-[#555a7a] uppercase tracking-[0.2em] mb-3">{s.label}</p>
-              <h4 className={`text-2xl sm:text-5xl font-black italic tracking-tighter ${s.color}`}>{s.value}</h4>
+              <h4 className={`text-2xl sm:text-3xl font-black italic tracking-tighter ${s.color}`}>{s.value}</h4>
             </div>
           ))}
         </div>
@@ -779,7 +856,7 @@ export default function SuperAdminDashboard() {
 
     return (
       <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">System <span className="text-[#7c3aed]">Settings</span></h1>
+        <h1 className="text-2xl sm:text-3xl font-black text-white italic uppercase tracking-tighter">System <span className="text-[#7c3aed]">Settings</span></h1>
 
         <div className="flex gap-1 border-b border-white/5">
           {tabs.map(tab => (
@@ -850,7 +927,7 @@ export default function SuperAdminDashboard() {
       <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl sm:text-4xl font-black text-white italic uppercase tracking-tighter">Platform <span className="text-[#3b82f6]">Studies</span></h1>
+            <h1 className="text-xl sm:text-3xl font-black text-white italic uppercase tracking-tighter">Platform <span className="text-[#3b82f6]">Studies</span></h1>
             <p className="text-[10px] sm:text-xs text-[#8b8fa8] uppercase tracking-widest mt-2">Global clinical trial inventory and lifecycle management</p>
           </div>
           <div className="flex gap-4 w-full sm:w-auto">
@@ -894,14 +971,16 @@ export default function SuperAdminDashboard() {
                         onChange={async (e) => {
                           const newId = e.target.value;
                           const apiUrl = API || 'http://localhost:8000';
+                          const sid = getStudyIdentifier(study);
+                          if (!sid) return alert("❌ IDENTIFIER ERROR: Failed to patch protocol metadata.");
                           try {
-                            const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id}/`, {
+                            const res = await authFetch(`${apiUrl}/api/studies/${sid}/`, {
                               method: 'PATCH',
                               body: JSON.stringify({ sponsor_id: newId })
                             });
                             if (res.ok) fetchData();
                           } catch (err) {
-                            alert("Sponsor update failed");
+                            alert("❌ PORTAL ERROR: Failed to update associated sponsor.");
                           }
                         }}
                         className="bg-transparent text-[10px] font-black uppercase tracking-widest text-[#f472b6] outline-none cursor-pointer hover:text-white transition-all border-none"
@@ -920,7 +999,7 @@ export default function SuperAdminDashboard() {
                             const newId = e.target.value;
                             const apiUrl = API || 'http://localhost:8000';
                             try {
-                              const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id}/`, {
+                              const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id || study.id}/`, {
                                 method: 'PATCH',
                                 body: JSON.stringify({ pi_id: newId })
                               });
@@ -942,7 +1021,7 @@ export default function SuperAdminDashboard() {
                             const newId = e.target.value;
                             const apiUrl = API || 'http://localhost:8000';
                             try {
-                              const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id}/`, {
+                              const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id || study.id}/`, {
                                 method: 'PATCH',
                                 body: JSON.stringify({ coordinator_id: newId })
                               });
@@ -967,7 +1046,7 @@ export default function SuperAdminDashboard() {
                           const newType = e.target.value;
                           const apiUrl = API || 'http://localhost:8000';
                           try {
-                            const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id}/`, {
+                            const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id || study.id}/`, {
                               method: 'PATCH',
                               body: JSON.stringify({ study_type: newType })
                             });
@@ -995,7 +1074,7 @@ export default function SuperAdminDashboard() {
                                 const newTarget = parseInt(e.target.value) || 0;
                                 const apiUrl = API || 'http://localhost:8000';
                                 try {
-                                  await authFetch(`${apiUrl}/api/studies/${study.protocol_id}/`, {
+                                  await authFetch(`${apiUrl}/api/studies/${study.protocol_id || study.id}/`, {
                                     method: 'PATCH',
                                     body: JSON.stringify({ target_screened: newTarget })
                                   });
@@ -1018,14 +1097,16 @@ export default function SuperAdminDashboard() {
                         onChange={async (e) => {
                           const newStatus = e.target.value;
                           const apiUrl = API || 'http://localhost:8000';
+                          const sid = getStudyIdentifier(study);
+                          if (!sid) return alert("❌ IDENTIFIER ERROR: Failed to broadcast state transmission.");
                           try {
-                            const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id}/`, {
+                            const res = await authFetch(`${apiUrl}/api/studies/${sid}/`, {
                               method: 'PATCH',
                               body: JSON.stringify({ status: newStatus })
                             });
                             if (res.ok) fetchData();
                           } catch (err) {
-                            alert("Status update failed");
+                            alert("❌ PORTAL ERROR: Failed to update protocol lifecycle stage.");
                           }
                         }}
                         className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border outline-none cursor-pointer transition-all ${['ACTIVE', 'RECRUITING'].includes(study.status) ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
@@ -1073,14 +1154,16 @@ export default function SuperAdminDashboard() {
                         onClick={async () => {
                           const newStatus = study.status === 'CLOSED_ARCHIVED' ? 'RECRUITING' : 'CLOSED_ARCHIVED';
                           const apiUrl = API || 'http://localhost:8000';
+                          const sid = getStudyIdentifier(study);
+                          if (!sid) return alert("❌ IDENTIFIER ERROR: Archive command rejected.");
                           try {
-                            const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id || study.id}/`, {
+                            const res = await authFetch(`${apiUrl}/api/studies/${sid}/`, {
                               method: 'PATCH',
                               body: JSON.stringify({ status: newStatus })
                             });
                             if (res.ok) fetchData();
                           } catch (err) {
-                            alert("Archive state toggle failed");
+                            alert("❌ PORTAL ERROR: Failed to toggle protocol archive state.");
                           }
                         }}
                         className={`p-3.5 transition-all hover:bg-white/5 rounded-xl border border-transparent shadow-lg ${study.status === 'CLOSED_ARCHIVED' ? 'text-emerald-400 hover:border-emerald-500/30' : 'text-amber-500/50 hover:text-amber-500 hover:border-amber-500/30'}`}
@@ -1093,17 +1176,20 @@ export default function SuperAdminDashboard() {
                           const confirmMsg = `⚠️ IRREVERSIBLE ACTION DETECTED\n\nStudy: ${study.title.toUpperCase()}\n\nAre you sure you want to PERMANENTLY DELETE this clinical trial? This will purge all associated participant data and clinical records.`;
                           if (window.confirm(confirmMsg)) {
                             const apiUrl = API || 'http://localhost:8000';
+                            const sid = getStudyIdentifier(study);
+                            if (!sid) return alert("❌ IDENTIFIER ERROR: Record erasure rejected.");
                             try {
-                              const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id || study.id}/`, {
+                              const res = await authFetch(`${apiUrl}/api/studies/${sid}/`, {
                                 method: 'DELETE'
                               });
                               if (res.ok) {
                                 fetchData();
+                                alert("🗑️ PROTOCOL PURGED FROM ACTIVE MATRIX");
                               } else {
                                 alert("PROTECTION ACTIVE: Could not purge protocol.");
                               }
                             } catch (e) {
-                              alert("Network interference detected during purge command.");
+                              alert("❌ CRITICAL FAILURE: Network interference detected during purge command.");
                             }
                           }
                         }}
@@ -1248,33 +1334,48 @@ export default function SuperAdminDashboard() {
         </div>
 
         <div className="grid grid-cols-1 gap-6">
-          {[
-            { title: 'Platform Maintenance Protocol 0xAF', status: 'Live', date: 'March 18, 2026', author: 'Root Admin' },
-            { title: 'New SOC2 Compliance Directives', status: 'Draft', date: 'March 15, 2026', author: 'Compliance Bot' }
-          ].map((a, i) => (
-            <div key={i} className="bg-[#0f1133] border border-white/5 rounded-3xl p-8 flex items-center justify-between group hover:bg-white/[0.02] transition-colors">
-              <div className="flex items-center gap-6">
-                <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 border border-emerald-500/20">
-                  <Megaphone className="w-7 h-7" />
-                </div>
-                <div>
-                  <h4 className="text-xl font-black text-white uppercase italic group-hover:text-emerald-400 transition-all">{a.title}</h4>
-                  <div className="flex items-center gap-4 mt-2">
-                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{a.date}</span>
-                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">•</span>
-                    <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">BY {a.author}</span>
+          {announcements.length === 0 ? (
+            <div className="py-20 text-center bg-[#0f1133] rounded-3xl border border-dashed border-white/10 opacity-30">
+              <Megaphone className="w-12 h-12 mx-auto mb-4" />
+              <p className="text-[10px] font-black uppercase tracking-widest">No active transmissions in cluster logs</p>
+            </div>
+          ) : (
+            announcements.map((a, i) => (
+              <div key={i} className="bg-[#0f1133] border border-white/5 rounded-3xl p-8 flex items-center justify-between group hover:bg-white/[0.02] transition-colors">
+                <div className="flex items-center gap-6">
+                  <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 border border-emerald-500/20">
+                    <Megaphone className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-black text-white uppercase italic group-hover:text-emerald-400 transition-all">{a.title}</h4>
+                    <div className="flex items-center gap-4 mt-2">
+                      <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{new Date(a.published_at).toLocaleDateString()}</span>
+                      <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">•</span>
+                      <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">TYPE: {a.type || 'SYSTEM'}</span>
+                    </div>
                   </div>
                 </div>
+                <div className="flex items-center gap-6">
+                  <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest italic bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    Live
+                  </span>
+                  <button
+                    onClick={async () => {
+                      if (!window.confirm("Purge announcement from global history?")) return;
+                      try {
+                        const apiUrl = API || 'http://localhost:8000';
+                        const res = await authFetch(`${apiUrl}/api/news/${a.id}/`, { method: 'DELETE' });
+                        if (res.ok) fetchData();
+                      } catch (err) { }
+                    }}
+                    className="p-3 bg-white/5 border border-white/5 text-rose-500/40 hover:text-rose-500 rounded-xl transition-all"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-6">
-                <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest italic ${a.status === 'Live' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-500/10 text-slate-400'
-                  }`}>
-                  {a.status}
-                </span>
-                <button className="p-3 bg-white/5 border border-white/5 text-[#555a7a] hover:text-white rounded-xl transition-all"><MoreVertical className="w-5 h-5" /></button>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     );
@@ -1336,19 +1437,74 @@ export default function SuperAdminDashboard() {
 
   // --- Modal: Create User ---
   const CreateAnnouncementModal = () => {
+    const [title, setTitle] = useState('');
+    const [content, setContent] = useState('');
+    const [type, setType] = useState('PLATFORM');
+    const [isTransmitting, setIsTransmitting] = useState(false);
+
+    const handleBroadcast = async () => {
+      if (!title || !content) return alert("Header and Content payload required for transmission.");
+      setIsTransmitting(true);
+      try {
+        const apiUrl = API || 'http://localhost:8000';
+        const res = await authFetch(`${apiUrl}/api/news/`, {
+          method: 'POST',
+          body: JSON.stringify({ title, content, type })
+        });
+        if (res.ok) {
+          alert("📡 TRANSMISSION CASCADE INITIATED\nBroadcast has been propagated to all nodes.");
+          setModals({ ...modals, createAnnouncement: false });
+          fetchData();
+        } else {
+          alert("❌ TRANSMISSION FAILED: Cluster handshake refused.");
+        }
+      } catch (err) {
+        alert("❌ CRITICAL FAILURE: Signal interference in core loop.");
+      } finally {
+        setIsTransmitting(false);
+      }
+    };
+
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-3xl bg-black/60">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-[#0f1133] border border-white/10 w-full max-w-xl rounded-[3rem] p-12 shadow-2xl">
-          <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mb-8 italic">Broadcast <span className="text-emerald-500">Signal</span></h2>
-          <div className="space-y-6">
-            <input placeholder="Subject / Transmission Header" className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-white font-bold outline-none focus:border-emerald-500/40 transition-all font-mono" />
-            <textarea placeholder="Message content..." className="w-full h-40 bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-white font-bold resize-none outline-none focus:border-emerald-500/40 transition-all" />
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-[#0f1133] border border-white/10 w-full max-w-xl rounded-[3rem] p-12 shadow-2xl relative overflow-hidden">
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-emerald-500/5 blur-3xl rounded-full"></div>
+          <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mb-8 relative z-10">Broadcast <span className="text-emerald-500">Signal</span></h2>
+          <div className="space-y-6 relative z-10">
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Subject / Transmission Header"
+              className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-white font-bold outline-none focus:border-emerald-500/40 transition-all font-mono placeholder:text-slate-800"
+            />
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-white font-bold outline-none focus:border-emerald-500/40 transition-all uppercase tracking-widest text-xs"
+            >
+              <option value="PLATFORM">Platform Update</option>
+              <option value="EMERGENCY">Emergency Protocol</option>
+              <option value="MAINTENANCE">Maintenance Alert</option>
+              <option value="CLINICAL">Clinical Milestone</option>
+            </select>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Message content..."
+              className="w-full h-40 bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-white font-bold resize-none outline-none focus:border-emerald-500/40 transition-all placeholder:text-slate-800"
+            />
             <div className="flex gap-4">
               <button
                 onClick={() => setModals({ ...modals, createAnnouncement: false })}
                 className="flex-1 py-4 bg-white/5 border border-white/5 text-[#555a7a] hover:text-white rounded-2xl font-black uppercase tracking-widest transition-all"
               >Abort</button>
-              <button className="flex-[2] py-4 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest italic shadow-xl shadow-emerald-900/40 hover:scale-[1.02] transition-all">Transmit Global</button>
+              <button
+                onClick={handleBroadcast}
+                disabled={isTransmitting}
+                className="flex-[2] py-4 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest italic shadow-xl shadow-emerald-900/40 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100"
+              >
+                {isTransmitting ? 'Transmitting...' : 'Transmit Global'}
+              </button>
             </div>
           </div>
         </motion.div>
@@ -1356,23 +1512,37 @@ export default function SuperAdminDashboard() {
     );
   };
 
-  const TeamPage = () => (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">MUSB <span className="text-[#818cf8]">Internal Team</span></h1>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-        {['Brijesh Raj', 'Alice Johnson', 'Bob Smith', 'Carol White'].map((name, i) => (
-          <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-8 text-center hover:border-indigo-500/30 transition-all group">
-            <div className="w-20 h-20 bg-indigo-500/10 rounded-[2rem] flex items-center justify-center text-indigo-400 mx-auto mb-6 font-black text-2xl group-hover:scale-110 transition-transform">{name[0]}</div>
-            <h4 className="text-xl font-black text-white uppercase italic tracking-tighter">{name}</h4>
-            <p className="text-[10px] text-[#555a7a] mt-3 font-black uppercase tracking-widest leading-relaxed">
-              {i === 0 ? 'Master Admin / Root' : 'Node Controller'}
-            </p>
-            <button className="mt-8 w-full py-3 bg-white/5 text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-white hover:text-slate-900 transition-all">Direct Link</button>
-          </div>
-        ))}
+  const TeamPage = () => {
+    const internalTeam = (users || []).filter(u => ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR'].includes(u.role));
+    return (
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">MUSB <span className="text-[#818cf8]">Internal Team</span></h1>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {internalTeam.length === 0 ? (
+            <div className="col-span-4 py-20 text-center opacity-30 italic uppercase tracking-[0.2em] text-xs">No internal team members detected in node</div>
+          ) : (
+            internalTeam.map((u, i) => (
+              <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-8 text-center hover:border-indigo-500/30 transition-all group">
+                <div className="w-20 h-20 bg-indigo-500/10 rounded-[2rem] flex items-center justify-center text-indigo-400 mx-auto mb-6 font-black text-2xl group-hover:scale-110 transition-transform">
+                  {u.name ? u.name[0] : '?'}
+                </div>
+                <h4 className="text-xl font-black text-white uppercase italic tracking-tighter truncate px-2">{u.name}</h4>
+                <p className="text-[10px] text-[#555a7a] mt-3 font-black uppercase tracking-widest leading-relaxed">
+                  {u.role === 'SUPER_ADMIN' ? 'Master Admin / Root' : 'Node Controller'}
+                </p>
+                <button
+                  onClick={() => viewDetails(u)}
+                  className="mt-8 w-full py-3 bg-white/5 text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-white hover:text-slate-900 transition-all"
+                >
+                  Direct Link
+                </button>
+              </div>
+            ))
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const InquiriesPage = () => {
     const [subTab, setSubTab] = useState<'study_queries' | 'authorizations'>('study_queries');
@@ -1453,7 +1623,7 @@ export default function SuperAdminDashboard() {
               <span className="w-1.5 h-1.5 rounded-full bg-[#f472b6] shadow-[0_0_10px_#f472b6]" />
               <span className="text-[10px] font-black text-[#f472b6] uppercase tracking-[0.3em]">Platform Terminal</span>
             </div>
-            <h1 className="text-5xl font-black text-white italic uppercase tracking-tighter leading-none">Global <span className="text-[#f472b6]">Inquiries</span></h1>
+            <h1 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">Global <span className="text-[#f472b6]">Inquiries</span></h1>
             <p className="text-sm text-[#555a7a] font-black uppercase tracking-[0.1em] mt-4 max-w-xl">Central capture point for clinical study queries, protocol authorizations, and feasibility packets.</p>
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -1471,31 +1641,31 @@ export default function SuperAdminDashboard() {
                 Authorizations ({pendingStudies.length})
               </button>
             </div>
-            
+
             {subTab === 'study_queries' && studyInquiries.length > 0 && (
-               <button
-                 onClick={async () => {
-                   if (!window.confirm("CRITICAL WARNING: Are you sure you want to REJECT and DELETE ALL pending study inquiries? This action is irreversible.")) return;
-                   try {
-                     const fetchUrl = `${API}/api/study-inquiries/reject-all-delete/`;
-                     const res = await authFetch(fetchUrl, {
-                       method: 'POST'
-                     });
-                     if (res.ok) {
-                       alert("🗑️ ALL RECORDS REJECTED AND ERASED FROM CORE");
-                       fetchData();
-                     } else {
-                       const err = await res.json().catch(() => ({}));
-                       alert(`Failed to reject & delete: ${err.error || err.detail || res.statusText}`);
-                     }
-                   } catch (err) {
-                     alert("System error. Injection failed.");
-                   }
-                 }}
-                 className="px-6 py-4 bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2"
-               >
-                 <Trash2 className="w-4 h-4" /> Reject & Delete All
-               </button>
+              <button
+                onClick={async () => {
+                  if (!window.confirm("CRITICAL WARNING: Are you sure you want to REJECT and DELETE ALL pending study inquiries? This action is irreversible.")) return;
+                  try {
+                    const fetchUrl = `${API}/api/study-inquiries/reject-all-delete/`;
+                    const res = await authFetch(fetchUrl, {
+                      method: 'POST'
+                    });
+                    if (res.ok) {
+                      alert("🗑️ ALL RECORDS REJECTED AND ERASED FROM CORE");
+                      fetchData();
+                    } else {
+                      const err = await res.json().catch(() => ({}));
+                      alert(`Failed to reject & delete: ${err.error || err.detail || res.statusText}`);
+                    }
+                  } catch (err) {
+                    alert("System error. Injection failed.");
+                  }
+                }}
+                className="px-6 py-4 bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" /> Reject & Delete All
+              </button>
             )}
           </div>
         </div>
@@ -1983,16 +2153,14 @@ export default function SuperAdminDashboard() {
             </button>
           </div>
 
-          <div className="flex-1 flex justify-start">
-            <div className="relative w-full max-w-md group hidden sm:block">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-700 group-focus-within:text-[#7c3aed] transition-colors" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                placeholder="Search..."
-                className="w-full bg-[#0d0f2b] border border-white/5 rounded-2xl pl-16 pr-6 py-3.5 text-xs text-white placeholder:text-slate-800 outline-none focus:border-purple-500/30 transition-all font-medium"
-              />
+          <div className="flex-1 flex justify-end">
+            <div className="flex flex-col items-end text-right border-r border-white/5 pr-4 md:pr-6">
+              <span className="text-sm md:text-xl font-black text-[#7c3aed] font-mono tracking-tighter tabular-nums leading-none">
+                {currentTime.toLocaleTimeString('en-US', { hour12: false })}
+              </span>
+              <span className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 md:mt-1.5">
+                {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()}
+              </span>
             </div>
           </div>
 
@@ -2006,10 +2174,10 @@ export default function SuperAdminDashboard() {
             </div>
 
             <div className="relative">
-              <button onClick={() => setShowNotifications(!showNotifications)} className="p-3 bg-[#0d0f2b] border border-white/5 rounded-2xl text-slate-600 hover:text-white hover:border-white/10 transition-all relative">
-                <Bell className="w-5 h-5" />
-                <div className="absolute top-3 right-3 w-2 h-2 bg-pink-500 rounded-full border-2 border-[#0d0f2b]" />
-              </button>
+              <NotificationBell 
+                unreadCount={notifications.filter(n => n.unread).length}
+                onClick={() => setShowNotifications(!showNotifications)}
+              />
               <AnimatePresence>
                 {showNotifications && (
                   <div className="absolute top-full mt-4 right-0 w-80 bg-[#0f1133] border border-white/5 rounded-3xl shadow-2xl p-6 space-y-6 animate-in fade-in slide-in-from-top-4">
@@ -2174,6 +2342,38 @@ export default function SuperAdminDashboard() {
           <CreateAnnouncementModal />
         )}
       </AnimatePresence>
+      {/* Real-time Toast System */}
+      <div className="fixed bottom-10 right-10 z-[200] flex flex-col gap-4 pointer-events-none">
+        <AnimatePresence mode="popLayout">
+          {toasts.map((toast) => (
+            <motion.div
+              key={toast.id}
+              initial={{ opacity: 0, x: 50, scale: 0.9 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 20, scale: 0.95 }}
+              layout
+              className={`pointer-events-auto min-w-[320px] p-6 rounded-3xl border shadow-2xl backdrop-blur-3xl flex items-center gap-5 ${toast.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
+                  toast.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                    toast.type === 'warn' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
+                      'bg-indigo-500/10 border-white/10 text-indigo-400'
+                }`}
+            >
+              <div className={`w-2 h-2 rounded-full animate-pulse ${toast.type === 'error' ? 'bg-red-500' :
+                  toast.type === 'success' ? 'bg-emerald-500' :
+                    toast.type === 'warn' ? 'bg-amber-500' :
+                      'bg-indigo-500'
+                }`} />
+              <div className="flex-1">
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-1">{toast.type} ALERT</p>
+                <p className="text-sm font-black italic tracking-tight">{toast.msg}</p>
+              </div>
+              <button onClick={() => setToasts(prev => prev.filter(t => t.id !== toast.id))} className="text-white/20 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
 
 
       {/* NEW PAGES & MODALS */}

@@ -10,8 +10,45 @@ import { Card, Badge, CircularProgress, ProgressBar, LineChart, BarChart } from 
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
-const ReportsView = ({ userName, handleExportPDF: externalExport, study }: { userName?: string; handleExportPDF?: (skipConfirm?: boolean) => void; study?: any }) => {
+const ReportsView = ({ 
+    userName, 
+    handleExportPDF: externalExport, 
+    study,
+    compensations = [],
+    tasks = [],
+    visits = [],
+    kits = []
+}: { 
+    userName?: string; 
+    handleExportPDF?: (skipConfirm?: boolean) => void; 
+    study?: any;
+    compensations?: any[];
+    tasks?: any[];
+    visits?: any[];
+    kits?: any[];
+}) => {
     const [timeRange, setTimeRange] = useState('Entire Study');
+
+    const totalEarned = React.useMemo(() => {
+        return compensations
+            .filter((c: any) => c.status === 'PAID')
+            .reduce((sum: number, c: any) => sum + parseFloat(c.amount || 0), 0);
+    }, [compensations]);
+
+    const pendingPayment = React.useMemo(() => {
+        return compensations
+            .filter((c: any) => c.status === 'PENDING')
+            .reduce((sum: number, c: any) => sum + parseFloat(c.amount || 0), 0);
+    }, [compensations]);
+
+    const totalValue = totalEarned + pendingPayment;
+
+    const completedTasks = tasks.filter((t: any) => t.is_completed || t.status === 'COMPLETED').length;
+    const totalTasks = tasks.length || 1;
+    const taskCompletionPercent = Math.round((completedTasks / totalTasks) * 100);
+
+    const recruitmentDate = study?.recruitment_start_date || study?.created_at;
+    const daysInStudy = recruitmentDate ? Math.max(1, Math.ceil((new Date().getTime() - new Date(recruitmentDate).getTime()) / (1000 * 3600 * 24))) : 0;
 
     const handleDownloadPDF = async () => {
         if (externalExport) {
@@ -50,8 +87,8 @@ const ReportsView = ({ userName, handleExportPDF: externalExport, study }: { use
                         <ChevronRight className="w-3 h-3" />
                         <span className="text-cyan-500">Reports</span>
                     </div>
-                    <h2 className="text-4xl font-black italic tracking-tighter text-white uppercase italic mb-2">Reports</h2>
-                    <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">Track your progress, stay motivated, and see your study achievements</p>
+                    <h2 className="text-2xl font-black italic tracking-tighter text-white uppercase italic mb-2">Reports</h2>
+                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">Track your progress, stay motivated, and see your study achievements</p>
                 </div>
                 <div className="flex flex-wrap gap-4">
                     <div className="flex bg-white/5 rounded-2xl p-1 border border-white/5">
@@ -79,18 +116,18 @@ const ReportsView = ({ userName, handleExportPDF: externalExport, study }: { use
             <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative overflow-hidden bg-gradient-to-r from-indigo-600 to-cyan-500 rounded-[2.5rem] p-8 shadow-2xl shadow-cyan-500/10"
+                className="relative overflow-hidden bg-gradient-to-r from-indigo-950 via-[#1e293b] to-slate-900 rounded-[2.5rem] p-8 shadow-2xl border border-white/5"
             >
                 <div className="absolute top-0 right-0 p-8 opacity-10">
                     <Award className="w-32 h-32 rotate-12" />
                 </div>
                 <div className="relative z-10 flex flex-col md:flex-row items-center gap-6">
-                    <div className="w-16 h-16 bg-white/20 backdrop-blur-xl rounded-2xl flex items-center justify-center border border-white/20">
-                        <Zap className="w-8 h-8 text-white fill-current" />
+                    <div className="w-16 h-16 bg-cyan-500/10 backdrop-blur-xl rounded-2xl flex items-center justify-center border border-cyan-500/20 shadow-inner group">
+                        <Zap className="w-8 h-8 text-cyan-400 fill-cyan-400 group-hover:scale-110 transition-transform" />
                     </div>
                     <div>
-                        <h4 className="text-2xl font-black text-white italic uppercase tracking-tight">You’re making great progress!</h4>
-                        <p className="text-white/80 font-bold uppercase tracking-widest text-sm mt-1">Keep completing your tasks to finish the study successfully and unlock full rewards.</p>
+                        <h4 className="text-xl font-black text-white italic uppercase tracking-tight">You’re making great progress!</h4>
+                        <p className="text-white/80 font-bold uppercase tracking-widest text-[11px] mt-1">Keep completing your tasks to finish the study successfully and unlock full rewards.</p>
                     </div>
                 </div>
             </motion.div>
@@ -105,10 +142,10 @@ const ReportsView = ({ userName, handleExportPDF: externalExport, study }: { use
                         </div>
                     </div>
                     <div className="flex items-center gap-8">
-                        <CircularProgress value={68} size={90} strokeWidth={8} />
+                        <CircularProgress value={taskCompletionPercent} size={90} strokeWidth={8} />
                         <div>
                             <span className="text-[13px] font-black text-white uppercase italic block mb-1">On Track</span>
-                            <p className="text-[11px] font-bold text-slate-500 uppercase leading-relaxed tracking-wider">Mission completion status: 68% synchronized</p>
+                            <p className="text-[11px] font-bold text-slate-500 uppercase leading-relaxed tracking-wider">Mission completion status: {taskCompletionPercent}% synchronized</p>
                         </div>
                     </div>
                 </Card>
@@ -122,7 +159,7 @@ const ReportsView = ({ userName, handleExportPDF: externalExport, study }: { use
                     </div>
                     <div className="space-y-4">
                         <div className="flex items-baseline gap-2">
-                            <span className="text-6xl font-black text-white italic leading-none drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">45</span>
+                            <span className="text-6xl font-black text-white italic leading-none drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">{daysInStudy}</span>
                             <span className="text-2xl font-black text-slate-600 uppercase italic">Days</span>
                         </div>
                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Total active session duration</p>
@@ -139,12 +176,12 @@ const ReportsView = ({ userName, handleExportPDF: externalExport, study }: { use
                     <div className="space-y-6">
                         <div className="flex justify-between items-end">
                             <div className="flex items-baseline gap-1">
-                                <span className="text-5xl font-black text-white italic leading-none">32</span>
-                                <span className="text-slate-500 font-bold uppercase text-lg">/ 50</span>
+                                <span className="text-5xl font-black text-white italic leading-none">{completedTasks}</span>
+                                <span className="text-slate-500 font-bold uppercase text-lg">/ {totalTasks}</span>
                             </div>
-                            <Badge color="green" className="animate-pulse">64% SYNCED</Badge>
+                            <Badge color="green" className="animate-pulse">{taskCompletionPercent}% SYNCED</Badge>
                         </div>
-                        <ProgressBar percent={64} height={10} />
+                        <ProgressBar percent={taskCompletionPercent} height={10} />
                     </div>
                 </Card>
             </div>
@@ -161,42 +198,38 @@ const ReportsView = ({ userName, handleExportPDF: externalExport, study }: { use
                     <div className="space-y-8">
                         <div>
                             <div className="flex justify-between mb-2">
-                                <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest">Assessments Completed</span>
-                                <span className="text-[12px] font-black text-white uppercase italic">8 / 10</span>
+                                <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest">Protocol Adherence</span>
+                                <span className="text-[12px] font-black text-white uppercase italic">{completedTasks} / {totalTasks}</span>
                             </div>
-                            <ProgressBar percent={80} />
+                            <ProgressBar percent={taskCompletionPercent} />
                         </div>
 
                         <div className="grid grid-cols-2 gap-6">
                             <div className="p-6 bg-white/[0.02] border border-white/[0.05] rounded-3xl space-y-4">
                                 <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest">Kits Completion</span>
                                 <div className="space-y-3">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-[#00e676]" />
-                                        <span className="text-[11px] font-black text-white uppercase tracking-widest">Kit 1: Done</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-[#00e676]" />
-                                        <span className="text-[11px] font-black text-white uppercase tracking-widest">Kit 2: Done</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-amber-500" />
-                                        <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest italic">Kit 3: Pending</span>
-                                    </div>
+                                    {(kits.length > 0 ? kits.slice(0, 3) : [ {id: 1, status: 'PENDING', batch_number: 'N/A'}]).map((k: any, i: number) => (
+                                        <div key={k.id || i} className="flex items-center gap-2">
+                                            <div className={`w-2 h-2 rounded-full ${k.status === 'DELIVERED' || k.status === 'RECEIVED' ? 'bg-[#00e676]' : 'bg-amber-500'}`} />
+                                            <span className={`text-[11px] font-black uppercase tracking-widest ${k.status === 'DELIVERED' || k.status === 'RECEIVED' ? 'text-white' : 'text-slate-500 italic'}`}>
+                                                Kit {i + 1}: {k.status === 'DELIVERED' || k.status === 'RECEIVED' ? 'Done' : 'Pending'}
+                                            </span>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                             <div className="p-6 bg-white/[0.02] border border-white/[0.05] rounded-3xl space-y-4">
                                 <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest">Study Milestones</span>
                                 <div className="space-y-3">
-                                    <div className="flex items-center gap-2 opacity-100">
+                                    <div className="flex items-center gap-2">
                                         <CheckCircle2 className="w-3 h-3 text-[#00e676]" />
                                         <span className="text-[11px] font-black text-white uppercase tracking-widest">Enrollment</span>
                                     </div>
-                                    <div className="flex items-center gap-2 opacity-100">
-                                        <CheckCircle2 className="w-3 h-3 text-[#00e676]" />
-                                        <span className="text-[11px] font-black text-white uppercase tracking-widest">Baseline</span>
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-3 h-3 rounded-full ${completedTasks > 0 ? 'bg-[#00e676]' : 'bg-slate-700'}`} />
+                                        <span className={`text-[11px] font-black uppercase tracking-widest ${completedTasks > 0 ? 'text-white' : 'text-slate-500 italic'}`}>Baseline</span>
                                     </div>
-                                    <div className="flex items-center gap-2 opacity-40">
+                                    <div className="flex items-center gap-2">
                                         <Clock className="w-3 h-3 text-slate-500" />
                                         <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest italic">Midpoint</span>
                                     </div>
@@ -250,7 +283,7 @@ const ReportsView = ({ userName, handleExportPDF: externalExport, study }: { use
                             <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400 border border-indigo-500/20">
                                 <DollarSign className="w-6 h-6" />
                             </div>
-                            <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">Earnings Summary</h3>
+                            <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Earnings Summary</h3>
                         </div>
                         <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px] leading-relaxed">
                             Monitor your clinical participation incentives, pending verification credits, and finalized disbursements in real-time.
@@ -260,17 +293,17 @@ const ReportsView = ({ userName, handleExportPDF: externalExport, study }: { use
                     <div className="flex flex-wrap gap-8 md:gap-12 w-full xl:w-auto">
                         <div className="flex flex-col">
                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] mb-2 leading-none">Total Value</span>
-                            <span className="text-4xl font-black text-white italic leading-none tracking-tighter">$120</span>
+                            <span className="text-4xl font-black text-white italic leading-none tracking-tighter">${totalValue}</span>
                         </div>
                         <div className="w-px h-12 bg-white/5 hidden md:block" />
                         <div className="flex flex-col">
                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] mb-2 leading-none font-bold">Pending Sync</span>
-                            <span className="text-4xl font-black text-amber-500 italic leading-none tracking-tighter">$30</span>
+                            <span className="text-4xl font-black text-amber-500 italic leading-none tracking-tighter">${pendingPayment}</span>
                         </div>
                         <div className="w-px h-12 bg-white/5 hidden md:block" />
                         <div className="flex flex-col">
                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] mb-2 leading-none font-bold text-[#00e676]">Finalized</span>
-                            <span className="text-4xl font-black text-[#00e676] italic leading-none tracking-tighter">$90</span>
+                            <span className="text-4xl font-black text-[#00e676] italic leading-none tracking-tighter">${totalEarned}</span>
                         </div>
                     </div>
                 </div>
@@ -286,24 +319,18 @@ const ReportsView = ({ userName, handleExportPDF: externalExport, study }: { use
                             </tr>
                         </thead>
                         <tbody className="space-y-3">
-                            {[
-                                { node: 'Enrollment Mission', date: '2026-04-01', value: '$20.00', status: 'PAID' },
-                                { node: 'Baseline Survey Sync', date: '2026-04-05', value: '$25.00', status: 'PAID' },
-                                { node: 'Clinical Kit #1 Shipment', date: '2026-04-12', value: '$50.00', status: 'PAID' },
-                                { node: 'Weekly Dosing Streak #1', date: '2026-04-20', value: '$25.00', status: 'PAID' },
-                                { node: 'Midpoint Assessment', date: '2026-05-15', value: '$30.00', status: 'PENDING' }
-                            ].map((row, i) => (
+                            {compensations.slice(0, 5).map((row, i) => (
                                 <tr key={i} className="group hover:bg-white/[0.03] transition-all bg-white/[0.01] rounded-2xl">
                                     <td className="px-6 py-6 rounded-l-2xl border-y border-l border-white/[0.02]">
                                         <div className="flex items-center gap-4">
                                             <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xs font-black italic border transition-all duration-500 group-hover:scale-110 ${row.status === 'PAID' ? 'bg-[#00e676]/10 text-[#00e676] border-[#00e676]/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
                                                 {row.status === 'PAID' ? '$' : '?'}
                                             </div>
-                                            <span className="text-[15px] font-black text-white uppercase italic tracking-tight">{row.node}</span>
+                                            <span className="text-[15px] font-black text-white uppercase italic tracking-tight">{row.description || row.compensation_type}</span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-6 border-y border-white/[0.02] text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">{row.date}</td>
-                                    <td className="px-6 py-6 border-y border-white/[0.02] text-right font-black text-white italic text-base tracking-tight">{row.value}</td>
+                                    <td className="px-6 py-6 border-y border-white/[0.02] text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">{new Date(row.paid_at || row.created_at).toLocaleDateString()}</td>
+                                    <td className="px-6 py-6 border-y border-white/[0.02] text-right font-black text-white italic text-base tracking-tight">${parseFloat(row.amount).toFixed(2)}</td>
                                     <td className="px-6 py-6 rounded-r-2xl border-y border-r border-white/[0.02] text-right">
                                         <Badge color={row.status === 'PAID' ? 'green' : 'amber'} className="min-w-[80px]">{row.status}</Badge>
                                     </td>

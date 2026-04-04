@@ -81,7 +81,7 @@ export default function PIsManagement({ allUsers = [], allStudies = [], onRefres
         </div>
         <button 
           onClick={onRegister}
-          className="px-8 py-4 bg-[#6366f1] text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl shadow-indigo-500/20 hover:bg-[#4f46e5] transition-all"
+          className="px-8 py-4 bg-[#6366f1] text-white rounded-3xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl shadow-indigo-500/20 hover:bg-[#4f46e5] transition-all"
         >
           <UserPlus className="w-5 h-5" /> Register New PI
         </button>
@@ -94,7 +94,7 @@ export default function PIsManagement({ allUsers = [], allStudies = [], onRefres
             <input
               type="text"
               placeholder="Search PIs by name, email or specialty..."
-              className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl pl-16 pr-6 py-5 text-sm text-white outline-none focus:border-indigo-500/30 font-bold uppercase italic tracking-widest placeholder:text-slate-800"
+              className="w-full bg-[#0a0b1a] border border-white/5 rounded-3xl pl-16 pr-6 py-5 text-sm text-white outline-none focus:border-indigo-500/30 font-bold uppercase italic tracking-widest placeholder:text-slate-800"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
@@ -122,7 +122,7 @@ export default function PIsManagement({ allUsers = [], allStudies = [], onRefres
                   <tr key={pi.id} className="hover:bg-white/[0.01] transition-colors group">
                     <td className="px-10 py-8">
                       <div className="flex items-center gap-6">
-                        <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
+                        <div className="w-14 h-14 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
                           <Shield className="w-7 h-7" />
                         </div>
                         <div>
@@ -165,14 +165,14 @@ export default function PIsManagement({ allUsers = [], allStudies = [], onRefres
                         <button 
                           onClick={() => onViewUser(pi.raw)}
                           title="View Details" 
-                          className="p-3 bg-white/5 border border-white/5 rounded-xl text-slate-600 hover:text-white transition-all active:scale-95"
+                          className="p-3 bg-white/5 border border-white/5 rounded-2xl text-slate-600 hover:text-white transition-all active:scale-95"
                         >
                           <Eye className="w-5 h-5" />
                         </button>
                         <button 
                           onClick={() => onViewUser(pi.raw)}
                           title="Edit PI Profile" 
-                          className="p-3 bg-white/5 border border-white/5 rounded-xl text-slate-600 hover:text-indigo-400 transition-all active:scale-95"
+                          className="p-3 bg-white/5 border border-white/5 rounded-2xl text-slate-600 hover:text-indigo-400 transition-all active:scale-95"
                         >
                           <Edit2 className="w-5 h-5" />
                         </button>

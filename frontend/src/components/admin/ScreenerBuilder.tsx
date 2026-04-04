@@ -139,7 +139,7 @@ export default function ScreenerBuilder() {
             </div>
             <span className="text-[11px] font-black text-pink-500 uppercase tracking-[0.4em] italic font-black">Architecture: Protocol Design</span>
           </div>
-          <h1 className="text-5xl font-black text-white tracking-tighter uppercase italic">Screener Builder</h1>
+          <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic">Screener Builder</h1>
           <p className="text-slate-500 font-bold mt-3 max-w-xl text-lg leading-relaxed">Design logical recruitment funnels with dynamic branching and integrated validation triggers.</p>
         </div>
         

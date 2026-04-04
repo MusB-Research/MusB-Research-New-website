@@ -46,19 +46,19 @@ export default function FormsQuestionnairesModule() {
             {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div>
-                    <h2 className="text-xl md:text-3xl font-black text-white italic uppercase tracking-tighter">ELIGIBILITY <span className="text-indigo-400">QUESTIONNAIRES</span></h2>
-                    <p className="text-[9px] md:text-[11px] text-white/50 font-bold uppercase tracking-[0.2em] md:tracking-[0.4em] mt-3 md:mt-4 italic">eCRF Management & Dynamic Instrument Design</p>
+                    <h2 className="text-lg md:text-xl font-black text-white italic uppercase tracking-tighter">ELIGIBILITY <span className="text-indigo-400">QUESTIONNAIRES</span></h2>
+                    <p className="text-[8px] md:text-[10px] text-white/50 font-bold uppercase tracking-[0.2em] md:tracking-[0.4em] mt-3 md:mt-4 italic">eCRF Management & Dynamic Instrument Design</p>
                 </div>
                 <div className="flex bg-white/5 p-1.5 md:p-2 rounded-2xl border border-white/10 w-full lg:w-auto">
                     <button
                         onClick={() => setView('Tracking')}
-                        className={`flex-1 lg:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl text-[7px] md:text-[9px] font-black uppercase tracking-widest transition-all ${view === 'Tracking' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'}`}
+                        className={`flex-1 lg:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl text-[7px] md:text-[9px] font-black uppercase tracking-widest transition-all ${view === 'Tracking' ? 'bg-[#1e1b4b] border border-indigo-500/30 text-white shadow-lg shadow-indigo-600/10' : 'text-slate-500 hover:text-white'}`}
                     >
                         Form Tracking
                     </button>
                     <button
                         onClick={() => setView('Splash')}
-                        className={`flex-1 lg:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl text-[7px] md:text-[9px] font-black uppercase tracking-widest transition-all ${view === 'Splash' || view === 'Architect' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'}`}
+                        className={`flex-1 lg:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl text-[7px] md:text-[9px] font-black uppercase tracking-widest transition-all ${view === 'Splash' || view === 'Architect' ? 'bg-[#1e1b4b] border border-indigo-500/30 text-white shadow-lg shadow-indigo-600/10' : 'text-slate-500 hover:text-white'}`}
                     >
                         Form Builder
                     </button>
@@ -86,7 +86,7 @@ export default function FormsQuestionnairesModule() {
                                         </div>
                                         <span className="text-[9px] md:text-[10px] text-white/50 font-black uppercase tracking-widest italic leading-tight">{stat.label}</span>
                                     </div>
-                                    <p className="text-2xl md:text-4xl font-black text-white italic tracking-tighter leading-none relative z-10">{stat.val}</p>
+                                    <p className="text-2xl md:text-3xl font-black text-white italic tracking-tighter leading-none relative z-10">{stat.val}</p>
                                 </div>
                             ))}
                         </div>
@@ -118,7 +118,7 @@ export default function FormsQuestionnairesModule() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-8 text-center border-r border-white/5">
-                                                <p className="text-base md:text-lg font-black text-white italic uppercase tracking-tighter leading-none">{f.subjectId}</p>
+                                                <p className="text-sm md:text-base font-black text-white italic uppercase tracking-tighter leading-none">{f.subjectId}</p>
                                             </td>
                                             <td className="px-6 py-8 text-center border-r border-white/5">
                                                 <p className="text-[11px] md:text-[12px] text-indigo-300/60 font-black uppercase tracking-widest italic mb-1.5">{f.visit}</p>
@@ -139,7 +139,7 @@ export default function FormsQuestionnairesModule() {
                                                         {f.status}
                                                     </div>
                                                     <div className="w-32 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                                        <div className={`h-full bg-indigo-600 rounded-full transition-all shadow-[0_0_10px_rgba(79,70,229,0.5)]`} style={{ width: `${f.completion}%` }} />
+                                                        <div className={`h-full bg-gradient-to-r from-indigo-500 to-indigo-700 rounded-full transition-all shadow-[0_0_15px_rgba(79,70,229,0.4)]`} style={{ width: `${f.completion}%` }} />
                                                     </div>
                                                 </div>
                                             </td>
@@ -150,7 +150,7 @@ export default function FormsQuestionnairesModule() {
                                                     </button>
                                                     <button
                                                         onClick={() => alert(`Reviewing Instrument ${f.formName} for Subject ${f.subjectId}...`)}
-                                                        className="px-8 py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-indigo-900 shadow-xl shadow-indigo-600/30 active:scale-95 transition-all flex items-center gap-3 whitespace-nowrap"
+                                                        className="px-8 py-4 bg-gradient-to-br from-indigo-600 to-indigo-800 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-indigo-900 shadow-[0_20px_40px_-10px_rgba(99,102,241,0.3)] active:scale-95 transition-all flex items-center gap-3 whitespace-nowrap"
                                                     >
                                                         Open <span className="hidden xl:inline">eCRF</span> <ChevronRight className="w-5 h-5" />
                                                     </button>
@@ -170,7 +170,7 @@ export default function FormsQuestionnairesModule() {
                             <DraftingCompass className="w-16 h-16" />
                         </div>
                         <div className="max-w-xl space-y-4">
-                            <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">Instrument Architect</h3>
+                            <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Instrument Architect</h3>
                             <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed italic">Design multi-page electronic case report forms (eCRF) with built-in edit checks, logic branching, and dynamic field visibility.</p>
                         </div>
                         <div className="grid grid-cols-2 gap-4 w-full max-w-lg">

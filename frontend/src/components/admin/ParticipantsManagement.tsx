@@ -37,7 +37,7 @@ export default function ParticipantsManagement({ allParticipants = [], allStudie
       raw: p.user_details ? { ...p.user_details, id: p.id, role: 'PARTICIPANT' } : { id: p.id, role: 'PARTICIPANT', name: 'Anonymous' },
       name: p.user_details?.full_name || p.user_details?.name || 'Anonymous',
       email: p.user_details?.email || 'N/A',
-      registeredDate: p.created_at ? new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'N/A',
+      registeredDate: p.created_at ? new Date(p.created_at).toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A',
       status: p.status || 'NEW',
       enrolledStudies: allStudies
         .filter(s => s.id === p.study)
@@ -91,13 +91,13 @@ export default function ParticipantsManagement({ allParticipants = [], allStudie
         <div className="flex gap-6">
           <button 
             onClick={() => alert('Exporting data...')}
-            className="px-8 py-4 bg-white/5 border border-white/10 text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-white/10 transition-all active:scale-95"
+            className="px-8 py-4 bg-white/5 border border-white/10 text-white rounded-3xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-white/10 transition-all active:scale-95"
           >
             <Download className="w-5 h-5" /> Export Data
           </button>
           <button 
             onClick={onRegister}
-            className="px-8 py-4 bg-[#22c55e] text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl shadow-green-500/20 hover:bg-[#16a34a] transition-all active:scale-95"
+            className="px-8 py-4 bg-[#22c55e] text-white rounded-3xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl shadow-green-500/20 hover:bg-[#16a34a] transition-all active:scale-95"
           >
             <UserIcon className="w-5 h-5" /> Manual Registration
           </button>
@@ -111,14 +111,14 @@ export default function ParticipantsManagement({ allParticipants = [], allStudie
             <input
               type="text"
               placeholder="Search participants by ID, Name or Email..."
-              className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl pl-16 pr-6 py-5 text-sm text-white outline-none focus:border-green-500/30 font-black uppercase italic tracking-widest placeholder:text-slate-800"
+              className="w-full bg-[#0a0b1a] border border-white/5 rounded-3xl pl-16 pr-6 py-5 text-sm text-white outline-none focus:border-green-500/30 font-black uppercase italic tracking-widest placeholder:text-slate-800"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
           <div className="flex gap-4">
              <select 
-              className="bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 text-xs font-black uppercase text-slate-400 tracking-[0.2em] outline-none focus:border-green-500/30 cursor-pointer"
+              className="bg-[#0a0b1a] border border-white/5 rounded-3xl px-6 text-xs font-black uppercase text-slate-400 tracking-[0.2em] outline-none focus:border-green-500/30 cursor-pointer"
              >
                <option>All Statuses</option>
                <option>Active Only</option>
@@ -148,7 +148,7 @@ export default function ParticipantsManagement({ allParticipants = [], allStudie
                   <tr key={p.id} className="hover:bg-white/[0.01] transition-colors group">
                     <td className="px-10 py-8">
                       <div className="flex items-center gap-6">
-                        <div className="w-14 h-14 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center text-green-400 group-hover:scale-110 transition-transform">
+                        <div className="w-14 h-14 rounded-3xl bg-green-500/10 border border-green-500/20 flex items-center justify-center text-green-400 group-hover:scale-110 transition-transform">
                           <UserIcon className="w-7 h-7" />
                         </div>
                         <div>
@@ -187,13 +187,13 @@ export default function ParticipantsManagement({ allParticipants = [], allStudie
                       <div className="flex justify-end gap-3">
                         <button 
                           onClick={() => onViewUser(p.raw)}
-                          className="p-3 bg-white/5 border border-white/5 rounded-xl text-slate-600 hover:text-white transition-all active:scale-95"
+                          className="p-3 bg-white/5 border border-white/5 rounded-2xl text-slate-600 hover:text-white transition-all active:scale-95"
                         >
                           <Eye className="w-5 h-5" />
                         </button>
                         <button 
                           onClick={() => onViewUser(p.raw)}
-                          className="p-3 bg-white/5 border border-white/5 rounded-xl text-slate-600 hover:text-green-400 transition-all active:scale-95"
+                          className="p-3 bg-white/5 border border-white/5 rounded-2xl text-slate-600 hover:text-green-400 transition-all active:scale-95"
                         >
                           <Edit2 className="w-5 h-5" />
                         </button>

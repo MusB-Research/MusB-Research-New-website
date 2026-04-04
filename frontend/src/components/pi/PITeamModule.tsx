@@ -84,11 +84,11 @@ const ROLE_DOCS: Record<string, string[]> = {
 const PROTOCOLS = ['HI-202B', 'PT-901', 'OB-442', 'VX-001', 'DM-772'];
 
 // --- COMPONENT ---
-export default function PITeamModule() {
+export default function PITeamModule({ allUsers = [], allStudies = [], onRefresh }: any) {
     // State
-    const [officeTeam, setOfficeTeam] = useState<TeamMember[]>(INITIAL_OFFICE_TEAM);
-    const [musbTeam, setMusbTeam] = useState<TeamMember[]>(MOCK_MUSB);
-    const [activeTab, setActiveTab] = useState<'MusB' | 'Office' | 'All'>('MusB');
+    const [officeTeam, setOfficeTeam] = useState<TeamMember[]>([]);
+    const [musbTeam, setMusbTeam] = useState<TeamMember[]>([]);
+    const [activeTab, setActiveTab] = useState<'MusB' | 'Office' | 'All'>('Office');
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('All');
 
@@ -104,6 +104,27 @@ export default function PITeamModule() {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+
+    useEffect(() => {
+        if (allUsers.length > 0) {
+            const mapped = allUsers.map((u: any) => ({
+                id: u.id,
+                name: u.full_name || u.email,
+                email: u.email,
+                phone: u.phone_number || 'N/A',
+                role: u.role?.toUpperCase() || 'MEMBER',
+                type: u.affiliation === 'onsite' ? 'Office' : 'MusB',
+                status: (u.status || '').toLowerCase() === 'active' ? 'Active' : 'Inactive',
+                assignedStudies: u.assigned_studies || [],
+                permissionLevel: 'Full',
+                documents: []
+            } as TeamMember));
+            
+            // Filter out sponsors as they have their own module now
+            setOfficeTeam(mapped.filter(m => m.type === 'Office' && m.role !== 'SPONSOR'));
+            setMusbTeam(mapped.filter(m => m.type === 'MusB' && m.role !== 'SPONSOR'));
+        }
+    }, [allUsers]);
 
     const isMobile = windowWidth < 768;
     const isTablet = windowWidth < 1440;

@@ -89,7 +89,7 @@ export default function CoordinatorsManagement({ allUsers = [], allStudies = [],
         </div>
         <button 
           onClick={onRegister}
-          className="px-8 py-4 bg-[#14b8a6] text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl shadow-teal-500/20 hover:bg-[#0d9488] transition-all"
+          className="px-8 py-4 bg-[#14b8a6] text-white rounded-3xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl shadow-teal-500/20 hover:bg-[#0d9488] transition-all"
         >
           <UserCheck className="w-5 h-5" /> Add New Coordinator
         </button>
@@ -102,7 +102,7 @@ export default function CoordinatorsManagement({ allUsers = [], allStudies = [],
             <input
               type="text"
               placeholder="Search coordinators..."
-              className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl pl-16 pr-6 py-5 text-sm text-white outline-none focus:border-teal-500/30 font-bold uppercase italic tracking-widest placeholder:text-slate-800"
+              className="w-full bg-[#0a0b1a] border border-white/5 rounded-3xl pl-16 pr-6 py-5 text-sm text-white outline-none focus:border-teal-500/30 font-bold uppercase italic tracking-widest placeholder:text-slate-800"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
@@ -130,7 +130,7 @@ export default function CoordinatorsManagement({ allUsers = [], allStudies = [],
                   <tr key={coord.id} className="hover:bg-white/[0.01] transition-colors group">
                     <td className="px-10 py-8">
                       <div className="flex items-center gap-6">
-                        <div className="w-14 h-14 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 group-hover:scale-110 transition-transform">
+                        <div className="w-14 h-14 rounded-3xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 group-hover:scale-110 transition-transform">
                           <ClipboardList className="w-7 h-7" />
                         </div>
                         <div>
@@ -160,7 +160,7 @@ export default function CoordinatorsManagement({ allUsers = [], allStudies = [],
                     </td>
                     <td className="px-10 py-8">
                       <div className="flex items-center gap-4">
-                        <div className="p-3 bg-indigo-500/10 rounded-xl">
+                        <div className="p-3 bg-indigo-500/10 rounded-2xl">
                           <TrendingUp className="w-5 h-5 text-indigo-400" />
                         </div>
                         <div>
@@ -185,13 +185,13 @@ export default function CoordinatorsManagement({ allUsers = [], allStudies = [],
                       <div className="flex justify-end gap-3">
                         <button 
                           onClick={() => onViewUser(coord.raw)}
-                          className="p-3 bg-white/5 border border-white/5 rounded-xl text-slate-600 hover:text-white transition-all active:scale-95"
+                          className="p-3 bg-white/5 border border-white/5 rounded-2xl text-slate-600 hover:text-white transition-all active:scale-95"
                         >
                           <Eye className="w-5 h-5" />
                         </button>
                         <button 
                           onClick={() => onViewUser(coord.raw)}
-                          className="p-3 bg-white/5 border border-white/5 rounded-xl text-slate-600 hover:text-teal-400 transition-all active:scale-95"
+                          className="p-3 bg-white/5 border border-white/5 rounded-2xl text-slate-600 hover:text-teal-400 transition-all active:scale-95"
                         >
                           <Edit2 className="w-5 h-5" />
                         </button>

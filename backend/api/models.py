@@ -224,6 +224,20 @@ class Document(BaseMongoModel):
     def __str__(self):
         return f"{self.title} (v{self.version})"
 
+class ProgressReport(BaseMongoModel):
+    """Formal study progress and safety reports for Sponsors"""
+    REPORT_TYPES = [('PROGRESS', 'Progress'), ('SAFETY', 'Safety'), ('FINAL', 'Final')]
+    study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='progress_reports')
+    name = models.CharField(max_length=255)
+    report_type = models.CharField(max_length=20, choices=REPORT_TYPES, default='PROGRESS')
+    report_date = models.DateField()
+    file = models.FileField(upload_to='study_reports/')
+    status = models.CharField(max_length=20, default='SENT') # DRAFT, SENT, REVIEWED
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.study.protocol_id}"
+
 class Participant(BaseMongoModel):
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='participants')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='participant_records')
@@ -290,19 +304,36 @@ class Visit(BaseMongoModel):
     ]
 
     participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='visits')
-    visit_type = models.CharField(max_length=20, choices=VISIT_TYPES)
+    visit_type = models.CharField(max_length=50, choices=VISIT_TYPES)
     scheduled_date = models.DateTimeField()
     actual_date = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, default='SCHEDULED', choices=[
         ('SCHEDULED', 'Scheduled'),
+        ('IN_PROGRESS', 'In Progress'),
         ('COMPLETED', 'Completed'),
         ('MISSED', 'Missed'),
         ('CANCELLED', 'Cancelled'),
     ])
     
-    # Clinical Measures
+    # Clinical Measures & Protocol State
     notes = models.TextField(blank=True)
-    measurements = models.JSONField(default=dict, blank=True) # Anthropometrics, vitals, etc.
+    location = models.CharField(max_length=100, default='Clinic', choices=[
+        ('Clinic', 'In-Clinic Visit'),
+        ('Virtual', 'Telehealth / Virtual'),
+        ('Home Visit', 'At-Home Visit'),
+    ])
+    
+    # High-Density Data Blobs (JSON for flexibility in clinical assessments)
+    checklist = models.JSONField(default=list, blank=True)
+    assessments = models.JSONField(default=list, blank=True)
+    measurements = models.JSONField(default=dict, blank=True) # Vitals: weight, height, bp, hr, temp
+    deviations = models.JSONField(default=list, blank=True)
+    samples = models.JSONField(default=list, blank=True)
+    dispensing = models.JSONField(default=list, blank=True)
+    
+    # Authorization
+    pi_approved = models.BooleanField(default=False)
+    locked = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if self.notes and not self.notes.startswith('gAAAA'):
@@ -470,6 +501,7 @@ class ConsentTemplate(BaseMongoModel):
     require_witness = models.BooleanField(default=False)
     require_lar = models.BooleanField(default=False)
     require_initials_on_pages = models.BooleanField(default=False)
+    require_initial_sections = models.BooleanField(default=False)
     
     # Rules
     must_scroll_full = models.BooleanField(default=True)
@@ -481,7 +513,7 @@ class ConsentTemplate(BaseMongoModel):
     effective_date = models.DateField(null=True, blank=True)
     expiration_date = models.DateField(null=True, blank=True)
     
-    file = models.FileField(upload_to='consent_templates/')
+    file = models.FileField(upload_to='consent_templates/', null=True, blank=True)
     page_count = models.IntegerField(default=1)
     
     # Coordinates for signatures/initials {"f1": {"type": "p_sig", "page": 12, "x": 15, "y": 80}, ...}
@@ -505,11 +537,20 @@ class Consent(BaseMongoModel):
     full_name = models.CharField(max_length=255, verbose_name="Electronic Signature")
     email = models.EmailField()
     
-    # Verification Chain
+    agreed_at = models.DateTimeField(auto_now_add=True)
+    participant_signed_at = models.DateTimeField(null=True, blank=True)
+    participant_signature = models.TextField(blank=True, null=True)
+    
+    # Coordinator Section
+    cc_name = models.CharField(max_length=255, blank=True, null=True)
+    cc_signature = models.TextField(blank=True, null=True)
     cc_verified = models.BooleanField(default=False)
     cc_verified_at = models.DateTimeField(null=True, blank=True)
     cc_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='cc_consents')
     
+    # PI Section
+    pi_name = models.CharField(max_length=255, blank=True, null=True)
+    pi_signature = models.TextField(blank=True, null=True)
     pi_verified = models.BooleanField(default=False)
     pi_verified_at = models.DateTimeField(null=True, blank=True)
     pi_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='pi_consents')
@@ -518,7 +559,6 @@ class Consent(BaseMongoModel):
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     timezone_detected = models.CharField(max_length=100, blank=True)
     
-    agreed_at = models.DateTimeField(auto_now_add=True)
     signed_pdf = models.FileField(upload_to='signed_consents/', null=True, blank=True)
     is_valid = models.BooleanField(default=True)
     
@@ -540,14 +580,18 @@ class Consent(BaseMongoModel):
                 
         super().save(*args, **kwargs)
         
-        # Trigger task completion on PI verification
-        if self.pi_verified and not old_pi_verified and self.participant:
+        # Trigger task completion on participant signature (initial creation) OR PI verification
+        if (is_new or (self.pi_verified and not old_pi_verified)) and self.participant:
             from django.utils.timezone import now
-            ParticipantTask.objects.filter(
+            tasks_to_finalize = ParticipantTask.objects.filter(
                 participant=self.participant,
                 task__task_type='CONSENT',
-                status='PENDING'
-            ).update(status='COMPLETED', completed_at=now())
+                status__in=['PENDING', 'IN_PROGRESS']
+            )
+            for pt in tasks_to_finalize:
+                pt.status = 'COMPLETED'
+                pt.completed_at = now()
+                pt.save()
 
 # ─────────────────────────────────────────────────────────
 # NEW MODELS FOR FULL BUILD PROMPT
@@ -619,6 +663,13 @@ class LabResult(BaseMongoModel):
     value = models.CharField(max_length=100)
     units = models.CharField(max_length=50, blank=True)
     lab_date = models.DateField()
+    status = models.CharField(max_length=20, default='RESULTED', choices=[
+        ('SHIPPED', 'Shipped'),
+        ('PROCESSING', 'Processing'),
+        ('RESULTED', 'Resulted'),
+        ('ALERT', 'Alert')
+    ])
+    is_critical = models.BooleanField(default=False)
     document = models.FileField(upload_to='lab_reports/', null=True, blank=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
@@ -642,6 +693,22 @@ class PermissionMatrix(BaseMongoModel):
     class Meta(BaseMongoModel.Meta):
         unique_together = ('role', 'capability')
 
+class Notification(BaseMongoModel):
+    """Real-time system alerts and message notifications for users"""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    type = models.CharField(max_length=50, default='INFO') # INFO, SUCCESS, WARNING, ERROR, MESSAGE
+    link = models.CharField(max_length=255, blank=True, null=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta(BaseMongoModel.Meta):
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.email} - {self.title} ({'Read' if self.is_read else 'Unread'})"
+
 class NewsletterSubscriber(models.Model):
     email = models.EmailField(unique=True)
     user_type = models.CharField(max_length=20, choices=[('BUSINESS', 'Business'), ('INDIVIDUAL', 'Individual')], default='BUSINESS')
@@ -654,15 +721,6 @@ class NewsletterSubscriber(models.Model):
 # --- Signals for Notifications ---
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
-@receiver(post_save, sender=FacilityInquiry)
-def notify_team_on_facility_inquiry(sender, instance, created, **kwargs):
-    if created:
-        from .utils.resend_utils import send_facility_inquiry_email
-        try:
-            send_facility_inquiry_email(instance)
-        except Exception as e:
-            print(f"Error triggering facility inquiry email: {e}")
 
 @receiver(post_save, sender=News)
 def notify_subscribers_on_news(sender, instance, created, **kwargs):
@@ -923,3 +981,162 @@ class AEReport(BaseMongoModel):
     ])
     attachment = models.FileField(upload_to='ae_reports/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+@receiver(post_save, sender=FacilityInquiry)
+def notify_team_on_facility_inquiry(sender, instance, created, **kwargs):
+    if created:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        admins = User.objects.filter(role='SUPER_ADMIN')
+        for admin in admins:
+            Notification.objects.create(
+                user=admin,
+                title="New Facility Inquiry",
+                message=f"New inquiry from {instance.name} ({instance.company})",
+                type="MESSAGE",
+                link="/admin/inquiries"
+            )
+        from .utils.resend_utils import send_facility_inquiry_email
+        try:
+            send_facility_inquiry_email(instance)
+        except Exception as e:
+            print(f"Error triggering facility inquiry email: {e}")
+
+@receiver(post_save, sender=StudyInquiry)
+def notify_on_study_inquiry(sender, instance, created, **kwargs):
+    if created:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        admins = User.objects.filter(role='SUPER_ADMIN')
+        for admin in admins:
+            Notification.objects.create(
+                user=admin,
+                title="New Study Proposal",
+                message=f"New {instance.category} proposal for {instance.product_name}",
+                type="MESSAGE",
+                link="/admin/study-inquiries"
+            )
+# ─────────────────────────────────────────────────────────
+# SPONSOR INTELLIGENCE ALERTS (SIGNALS)
+# ─────────────────────────────────────────────────────────
+
+@receiver(post_save, sender=Study)
+def notify_sponsor_on_study_update(sender, instance, created, **kwargs):
+    """Notify sponsor when their study is launched or updated by PI/Admin"""
+    if instance.sponsor:
+        action = "launched" if created else "updated"
+        Notification.objects.create(
+            user=instance.sponsor,
+            title=f"Study {action.capitalize()}: {instance.protocol_id}",
+            message=f"Your study '{instance.title}' has been {action} by the clinical team. Status: {instance.get_status_display()}",
+            type="SUCCESS" if instance.status == 'ACTIVE' else "INFO",
+            link=f"/dashboard/sponsor/studies"
+        )
+
+@receiver(post_save, sender=Participant)
+def notify_sponsor_on_new_enrollment(sender, instance, created, **kwargs):
+    """Notify sponsor when a new participant joins or the enrollment target is met"""
+    if created and instance.study and instance.study.sponsor:
+        study = instance.study
+        current_count = Participant.objects.filter(study=study).count()
+        target = study.target_randomized or 100
+        
+        # Standard Enrollment Alert
+        Notification.objects.create(
+            user=study.sponsor,
+            title="New Participant Enrolled",
+            message=f"A new participant has joined {study.protocol_id}. Total: {current_count}/{target}",
+            type="INFO",
+            link="/dashboard/sponsor/participants"
+        )
+        
+        # Final Participant Milestone Alert
+        if current_count >= target:
+             Notification.objects.create(
+                user=study.sponsor,
+                title="🚀 ENROLLMENT TARGET MET",
+                message=f"Congratulations! {study.protocol_id} has reached its full enrollment target of {target} participants.",
+                type="SUCCESS",
+                link="/dashboard/sponsor/reports"
+            )
+
+@receiver(post_save, sender=StudyInquiry)
+def notify_sponsor_on_inquiry_reply(sender, instance, created, **kwargs):
+    """Notify sponsor when an admin updates/replies to their inquiry"""
+    if not created and instance.sponsor_user:
+        Notification.objects.create(
+            user=instance.sponsor_user,
+            title="Inquiry Update",
+            message=f"There is a new update regarding your inquiry for '{instance.product_name}'. Status: {instance.get_status_display()}",
+            type="MESSAGE",
+            link="/dashboard/sponsor"
+        )
+
+@receiver(post_save, sender=Consent)
+def notify_sponsor_on_new_consent_doc(sender, instance, created, **kwargs):
+    """Notify sponsor when a new signed consent is available"""
+    if created and instance.study and instance.study.sponsor:
+        Notification.objects.create(
+            user=instance.study.sponsor,
+            title="New Consent Uploaded",
+            message=f"A new signed consent form is available for review in {instance.study.protocol_id}.",
+            type="MESSAGE",
+            link="/dashboard/sponsor/documents"
+        )
+
+@receiver(post_save, sender=LabResult)
+def notify_sponsor_on_lab_data(sender, instance, created, **kwargs):
+    """Notify sponsor when new clinical lab data is synchronized"""
+    if created and instance.participant and instance.participant.study and instance.participant.study.sponsor:
+        study = instance.participant.study
+        Notification.objects.create(
+            user=study.sponsor,
+            title="Clinical Data Sync",
+            message=f"New lab results have been synchronized for participant {instance.participant.participant_sid} in {study.protocol_id}.",
+            type="INFO",
+            link="/dashboard/sponsor/participants"
+        )
+
+class StudyActionRequest(BaseMongoModel):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending Review'),
+        ('IN_PROGRESS', 'Under Review'),
+        ('APPROVED', 'Approved'),
+        ('COMPLETED', 'Completed'),
+        ('REJECTED', 'Rejected'),
+    ]
+
+    participant = models.ForeignKey('Participant', on_delete=models.CASCADE, related_name='action_requests')
+    study = models.ForeignKey('Study', on_delete=models.CASCADE, related_name='action_requests')
+    request_type = models.CharField(max_length=100)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    notes = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.request_type} - {self.status}"
+
+@receiver(post_save, sender=Document)
+def notify_sponsor_on_new_doc(sender, instance, created, **kwargs):
+    """Notify sponsor when any general study document (IRB, Protocol) is uploaded"""
+    if created and instance.study and instance.study.sponsor:
+        Notification.objects.create(
+            user=instance.study.sponsor,
+            title="New Document Uploaded",
+            message=f"A new file '{instance.title}' has been added to the protocol folders for {instance.study.protocol_id}.",
+            type="INFO",
+            link="/dashboard/sponsor/documents"
+        )
+
+@receiver(post_save, sender=ProgressReport)
+def notify_sponsor_on_new_report(sender, instance, created, **kwargs):
+    """Notify sponsor when a formal progress/monthly report is available"""
+    if created and instance.study and instance.study.sponsor:
+        Notification.objects.create(
+            user=instance.study.sponsor,
+            title="New Report Available",
+            message=f"The latest {instance.get_report_type_display()} report '{instance.name}' is now ready for review.",
+            type="SUCCESS",
+            link="/dashboard/sponsor/reports"
+        )

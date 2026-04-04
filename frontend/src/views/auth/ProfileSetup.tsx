@@ -80,7 +80,7 @@ export default function ProfileSetup() {
             saveUser(updatedUser);
             
             if (data.access) {
-                saveToken(data.access, updatedUser.role || 'PARTICIPANT');
+                saveToken(data.access, updatedUser.role || 'PARTICIPANT', undefined, data.refresh);
                 window.dispatchEvent(new Event('auth-token-changed'));
             }
 

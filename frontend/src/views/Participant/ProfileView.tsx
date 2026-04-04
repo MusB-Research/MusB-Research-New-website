@@ -16,8 +16,8 @@ const ProfileView = ({
             {/* Header Area */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-1">
                 <div>
-                    <h2 className="text-4xl font-black italic tracking-tighter text-white uppercase italic">Clinical Identity Hub</h2>
-                    <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mt-1">
+                    <h2 className="text-2xl font-black italic tracking-tighter text-white uppercase italic">Clinical Identity Hub</h2>
+                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-1">
                         Securely manage your participant profile and communication conduits.
                     </p>
                 </div>
@@ -50,8 +50,8 @@ const ProfileView = ({
 
                         <div className="mt-8 flex justify-between items-start">
                             <div>
-                                <h3 className="text-3xl font-black text-white italic tracking-tighter uppercase mb-1">{userName}</h3>
-                                <p className="text-sm font-black text-cyan-400 uppercase tracking-widest italic flex items-center gap-2">
+                                <h3 className="text-xl font-black text-white italic tracking-tighter uppercase mb-1">{userName}</h3>
+                                <p className="text-[11px] font-black text-cyan-400 uppercase tracking-widest italic flex items-center gap-2">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Verified Study Participant
                                 </p>
                             </div>

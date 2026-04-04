@@ -26,6 +26,7 @@ import AdminDashboard from './views/AdminDashboard';
 import ParticipantDashboard from './views/Participant/ParticipantDashboard';
 import PIDashboard from './views/PIDashboard';
 import SponsorDashboard from './views/SponsorDashboard/SponsorDashboard';
+import CoordinatorDashboard from './views/Coordinator/CoordinatorDashboard';
 import StudyConsent from './views/StudyConsent';
 import ResetForced from './views/auth/ResetForced';
 import ResetPassword from './views/auth/ResetPassword';
@@ -99,6 +100,7 @@ function AppContent() {
                     <Route path="/dashboard/super admin" element={<Navigate to="/dashboard/super-admin" replace />} />
                     <Route path="/dashboard/admin/*" element={<AdminDashboard />} />
                     <Route path="/dashboard/pi/*" element={<PIDashboard />} />
+                    <Route path="/dashboard/coordinator/*" element={<CoordinatorDashboard />} />
                     <Route path="/dashboard/sponsor/*" element={<SponsorDashboard />} />
                     <Route path="/auth/reset-forced" element={<ResetForced />} />
                     <Route path="/reset-password" element={<ResetPassword />} />

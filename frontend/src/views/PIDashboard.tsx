@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import NotificationBell from '../components/NotificationBell';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authFetch, clearToken, getRole, performLogout, getUser, getDisplayName, API } from '../utils/auth';
@@ -65,7 +66,8 @@ import {
     Settings2,
     Database,
     AlertTriangle,
-    FileCheck
+    FileCheck,
+    Building2,
 } from 'lucide-react';
 
 type PIModule =
@@ -89,6 +91,18 @@ type PIModule =
     | 'SUPPORT'
     | 'AUDIT_LOG'
     | 'ANALYTICS';
+
+interface SidebarItem {
+    id: PIModule | 'WEBSITE';
+    label: string;
+    icon: any;
+    hasNotify?: boolean;
+}
+
+interface SidebarGroup {
+    group: string;
+    items: SidebarItem[];
+}
 
 export default function PIDashboard() {
     const navigate = useNavigate();
@@ -119,26 +133,29 @@ export default function PIDashboard() {
 
     // Sync activeModule when URL changes (for browser back button support)
     useEffect(() => {
-        const route = location.pathname.split('/').pop();
-        if (route === 'studies') setActiveModule('STUDIES');
-        else if (route === 'team') setActiveModule('TEAM');
-        else if (route === 'participants') setActiveModule('PARTICIPANTS');
-        else if (route === 'subject-review') setActiveModule('SUBJECT_REVIEW');
-        else if (route === 'forms') setActiveModule('FORMS');
+        const path = location.pathname.toLowerCase().replace(/\/$/, "");
+        const parts = path.split('/');
+        const route = parts[parts.length - 1];
+        
+        console.log("[PIDashboard] Route sync:", { path, route });
+        
+        if (route === 'pi' || !route || route === 'oversight') setActiveModule('OVERSIGHT');
         else if (route === 'consent') setActiveModule('CONSENT');
         else if (route === 'visits') setActiveModule('VISITS');
+        else if (route === 'subject-review' || route === 'review') setActiveModule('SUBJECT_REVIEW');
+        else if (route === 'team') setActiveModule('TEAM');
+        else if (route === 'messages') setActiveModule('MESSAGES');
         else if (route === 'labs') setActiveModule('LABS');
         else if (route === 'reports') setActiveModule('REPORTS');
-        else if (route === 'study-docs') setActiveModule('STUDY_DOCS');
+        else if (route === 'study-docs' || route === 'docs') setActiveModule('STUDY_DOCS');
         else if (route === 'my-docs') setActiveModule('MY_DOCS');
-        else if (route === 'messages') setActiveModule('MESSAGES');
         else if (route === 'alerts') setActiveModule('ALERTS');
         else if (route === 'launch-study') setActiveModule('LAUNCH_STUDY');
-        else if (route === 'support') setActiveModule('SUPPORT');
-        else if (route === 'audit-log') setActiveModule('AUDIT_LOG');
+        else if (route === 'support' || route === 'help') setActiveModule('SUPPORT');
+        else if (route === 'audit-log' || route === 'audit') setActiveModule('AUDIT_LOG');
         else if (route === 'analytics') setActiveModule('ANALYTICS');
         else if (route === 'sponsors') setActiveModule('SPONSORS');
-        else if (location.pathname.endsWith('/pi') || !route || route === 'pi') setActiveModule('OVERSIGHT');
+        else setActiveModule('OVERSIGHT');
     }, [location.pathname]);
 
     const handleModuleChange = (mod: PIModule) => {
@@ -172,6 +189,12 @@ export default function PIDashboard() {
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const profileRef = useRef<HTMLDivElement>(null);
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
 
     useEffect(() => {
         const user = getUser();
@@ -234,7 +257,7 @@ export default function PIDashboard() {
 
             if (studiesRes.ok) {
                 const data = await studiesRes.json();
-                setStudies(data.sort((a: any, b: any) => 
+                setStudies(data.sort((a: any, b: any) =>
                     (a.id || "").localeCompare(b.id || "")
                 ));
             }
@@ -294,7 +317,7 @@ export default function PIDashboard() {
 
 
 
-    const sidebarGroups = [
+    const sidebarGroups: SidebarGroup[] = [
         {
             group: 'GENERAL',
             items: [
@@ -312,6 +335,7 @@ export default function PIDashboard() {
                 { id: 'FORMS', label: 'Eligibility Questionnaires', icon: ClipboardList },
                 { id: 'CONSENT', label: 'Consent Oversight', icon: ShieldCheck },
                 { id: 'VISITS', label: 'Visits & Assessments', icon: Calendar },
+                { id: 'SPONSORS', label: 'My Sponsors', icon: Building2 },
             ]
         },
         {
@@ -344,15 +368,9 @@ export default function PIDashboard() {
         } catch (e) { }
 
         return (
-            <header className="fixed top-0 lg:left-72 left-0 right-0 h-16 md:h-18 lg:h-24 z-[60] bg-[#0B101B]/95 backdrop-blur-3xl border-b border-white/5 flex items-center justify-between px-6 md:px-8">
+            <header className="fixed top-0 left-0 lg:left-[260px] right-0 h-16 md:h-18 lg:h-24 z-[60] bg-[#0B101B]/95 backdrop-blur-3xl border-b border-white/5 flex items-center justify-between px-6 md:px-8">
 
-                <div className="flex items-center gap-4 lg:gap-7 lg:hidden">
-                    <Link to="/" target="_blank" rel="noopener noreferrer" className="flex items-center group transition-all hover:scale-105 active:scale-95">
-                        <div className="h-10 px-4 rounded-full bg-white flex items-center justify-center shadow-lg group/logo overflow-hidden">
-                            <img src="/logo.jpg" alt="MusB Research" className="h-6 w-auto object-contain" />
-                        </div>
-                    </Link>
-
+                <div className="flex items-center lg:hidden">
                     <button
                         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                         className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:text-white transition-all flex items-center justify-center h-10 w-10 hover:bg-white/10 shrink-0"
@@ -371,21 +389,27 @@ export default function PIDashboard() {
 
 
                 <div className="flex items-center gap-4 h-10 md:h-14">
-                    <button 
+                    <div className="flex flex-col items-end text-right border-r border-white/5 pr-4 md:pr-6">
+                        <span className="text-sm md:text-xl font-black text-cyan-400 font-mono tracking-tighter tabular-nums leading-none">
+                            {currentTime.toLocaleTimeString('en-US', { hour12: false })}
+                        </span>
+                        <span className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 md:mt-1.5">
+                            {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()}
+                        </span>
+                    </div>
+
+                    <NotificationBell 
+                        unreadCount={oversightStats.hasCriticalAlert ? 1 : 0}
                         onClick={() => handleModuleChange('ALERTS')}
-                        className="h-10 w-10 md:h-12 md:w-12 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all text-slate-300 hover:text-white shrink-0 relative group shadow-lg active:scale-90"
-                    >
-                        <Bell className="w-4 h-4 md:w-5 h-5 group-hover:rotate-12 transition-transform" />
-                        <div className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(79,70,229,1)]" />
-                    </button>
+                    />
 
                     <div className="h-6 md:h-8 w-px bg-white/10 hidden md:block" />
 
 
                     <div className="flex items-center gap-4 relative" ref={profileRef}>
                         <div className="text-right hidden lg:block">
-                            <p className="text-[16px] font-black text-white uppercase italic leading-none tracking-tight">{userName}</p>
-                            <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-[0.2em] mt-2">Principal Investigator</p>
+                            <p className="text-[14px] font-black text-white uppercase italic leading-none tracking-tight">{userName}</p>
+                            <p className="text-[9px] text-indigo-400 font-bold uppercase tracking-[0.2em] mt-2">Principal Investigator</p>
                         </div>
                         <button
                             onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -444,19 +468,19 @@ export default function PIDashboard() {
                 )}
             </AnimatePresence>
 
-            <aside className={`fixed left-0 top-0 bottom-0 w-72 bg-[#0B101B] border-r border-white/5 z-[70] transition-transform duration-300 lg:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-                <div className="h-20 md:h-28 flex items-center px-10 border-b border-white/5">
-                    <Link to="/" target="_blank" rel="noopener noreferrer" className="group">
-                        <div className="bg-white p-2.5 rounded-2xl group-hover:scale-105 transition-transform inline-block shadow-2xl">
-                            <img src="/logo.jpg" alt="Logo" className="h-6 md:h-8 w-auto object-contain" />
+            <aside className={`fixed left-0 top-0 bottom-0 w-[260px] bg-[#0B101B] border-r border-white/5 z-[70] transition-transform duration-300 lg:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+                <div className="h-24 px-8 flex justify-between items-center border-b border-white/[0.05]">
+                    <Link to="/" target="_blank" rel="noopener noreferrer" className="group transition-all">
+                        <div className="bg-white p-2 rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                            <img src="/logo.jpg" alt="Logo" className="h-12 w-auto object-contain rounded-xl" />
                         </div>
                     </Link>
                 </div>
 
-                <nav className="flex-1 overflow-y-auto px-6 py-8 space-y-10 md:space-y-12 custom-scrollbar">
+                <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-6 custom-scrollbar">
                     {sidebarGroups.map((group, i) => (
-                        <div key={i} className="space-y-4 md:space-y-6">
-                            <p className="px-4 text-[11px] font-black text-white/50 uppercase tracking-[0.3em] font-mono">{group.group}</p>
+                        <div key={i} className="space-y-2">
+                            <p className="px-4 text-[10px] font-bold text-white/40 uppercase tracking-widest">{group.group}</p>
                             <div className="space-y-1.5">
                                 {group.items.map((item, j) => (
                                     <button
@@ -468,15 +492,13 @@ export default function PIDashboard() {
                                                 setIsSidebarOpen(false);
                                             }
                                         }}
-                                        className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all group relative ${activeModule === item.id
-                                            ? 'bg-indigo-600/20 text-white border-l-[3px] border-indigo-500 shadow-lg shadow-indigo-900/10'
-                                            : 'text-[#8b8fa8] hover:bg-white/[0.02] hover:text-white'
+                                        className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all group relative ${activeModule === item.id
+                                            ? 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 shadow-lg shadow-indigo-500/5'
+                                            : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'
                                             }`}
                                     >
-                                        <div className="w-8 flex items-center justify-center flex-shrink-0">
-                                            <item.icon className={`w-5 h-5 ${activeModule === item.id ? 'text-indigo-400' : 'text-slate-600 group-hover:text-white'}`} />
-                                        </div>
-                                        <span className="text-[10px] md:text-[11px] font-black uppercase tracking-tight text-left flex-1 italic leading-tight">{item.label}</span>
+                                        <item.icon className={`w-4 h-4 ${activeModule === item.id ? 'text-indigo-400' : 'text-slate-500'}`} />
+                                        <span className="text-sm font-black text-left flex-1 tracking-tight">{item.label}</span>
                                         {item.hasNotify && (
                                             <div className="w-2 h-2 rounded-full bg-pink-500 shadow-[0_0_10px_rgba(236,72,153,0.6)]" />
                                         )}
@@ -489,23 +511,21 @@ export default function PIDashboard() {
 
                 <div className="mt-auto p-4 border-t border-white/5 space-y-2">
                     <button onClick={handleSignOut} className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-[#8b8fa8] hover:bg-red-500/10 hover:text-red-400 transition-all group">
-                        <div className="w-8 flex items-center justify-center flex-shrink-0">
-                            <LogOut className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" />
-                        </div>
-                        <span className="text-[12px] font-black uppercase tracking-widest italic">Terminate Session</span>
+                        <LogOut className="w-5 h-5" />
+                        <span className="text-sm font-bold">Sign Out</span>
                     </button>
                 </div>
             </aside>
 
 
-            <main className="lg:ml-72 pt-20 md:pt-28 lg:pt-32 pb-12 md:pb-24 px-4 md:px-8 overflow-x-hidden bg-[#0F172A] min-h-screen">
+            <main className="lg:ml-[260px] pt-20 md:pt-28 lg:pt-32 pb-12 md:pb-24 px-4 md:px-8 overflow-x-hidden bg-[#0F172A] min-h-screen">
                 <AnimatePresence mode="wait">
                     {activeModule === 'OVERSIGHT' && (
-                        <OversightModule 
-                            studyCount={studies.length} 
+                        <OversightModule
+                            studyCount={studies.length}
                             stats={oversightStats}
-                            onLaunch={() => setActiveModule('LAUNCH_STUDY')} 
-                            onNavigate={(id) => setActiveModule(id as PIModule)} 
+                            onLaunch={() => setActiveModule('LAUNCH_STUDY')}
+                            onNavigate={(id) => setActiveModule(id as PIModule)}
                         />
                     )}
                     {activeModule === 'STUDIES' && (
@@ -533,7 +553,13 @@ export default function PIDashboard() {
                     )}
                     {activeModule === 'MESSAGES' && <PIMessagesModule />}
                     {activeModule === 'SUBJECT_REVIEW' && <PISubjectReviewModule participantId={selectedParticipantId || 'BTB-023'} />}
-                    {activeModule === 'TEAM' && <PITeamModule />}
+                    {activeModule === 'TEAM' && (
+                        <PITeamModule 
+                            allUsers={users}
+                            allStudies={studies}
+                            onRefresh={fetchPIContent}
+                        />
+                    )}
                     {activeModule === 'PARTICIPANTS' && <ParticipantOversight
                         onOpenProfile={(id) => {
                             setSelectedParticipantId(id);
@@ -579,17 +605,17 @@ function OversightModule({ studyCount, stats, onLaunch, onNavigate }: { studyCou
     return (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-3 md:space-y-5">
-                    <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white italic uppercase tracking-tighter line-clamp-2 leading-none">
+                <div className="space-y-2 md:space-y-3">
+                    <h2 className="text-base md:text-lg font-black text-white italic uppercase tracking-tighter line-clamp-2 leading-none">
                         Scientific <span className="text-indigo-400">Oversight</span>
                     </h2>
-                    <p className="text-[11px] md:text-[14px] lg:text-[18px] text-white/50 font-bold uppercase tracking-[0.2em] md:tracking-[0.4em] mt-4 md:mt-6 italic">
+                    <p className="text-[9px] md:text-[10px] lg:text-[11px] text-white/50 font-bold uppercase tracking-[0.2em] md:tracking-[0.4em] mt-3 md:mt-4 italic">
                         Portfolio Performance & clinical research velocity
                     </p>
                 </div>
                 <button
                     onClick={onLaunch}
-                    className="w-full md:w-auto px-6 md:px-10 py-4 md:py-5 bg-indigo-600 text-white rounded-2xl md:rounded-[2rem] text-[10px] md:text-[12px] font-black uppercase tracking-widest italic flex items-center justify-center gap-3 shadow-2xl shadow-indigo-900/40 hover:scale-[1.05] active:scale-95 transition-all font-mono"
+                    className="w-full md:w-auto px-6 md:px-10 py-4 md:py-5 bg-gradient-to-r from-indigo-600 to-indigo-800 text-white rounded-2xl md:rounded-[2rem] text-[10px] md:text-[11px] font-black uppercase tracking-widest italic flex items-center justify-center gap-3 shadow-[0_20px_50px_-10px_rgba(99,102,241,0.4)] hover:shadow-[0_25px_60px_-12px_rgba(99,102,241,0.5)] hover:scale-[1.02] active:scale-95 transition-all font-mono"
                 >
                     <Rocket className="w-5 h-5" /> LAUNCH A STUDY
                 </button>
@@ -602,8 +628,8 @@ function OversightModule({ studyCount, stats, onLaunch, onNavigate }: { studyCou
                     { label: 'Total Subjects', val: '1,240', icon: UsersRound, color: 'emerald' },
                     { label: 'Critical Alerts', val: '02', icon: Activity, color: 'red' },
                 ].map((stat, i) => (
-                    <div 
-                        key={i} 
+                    <div
+                        key={i}
                         onClick={() => {
                             if (stat.label.includes('Protocols')) onNavigate('STUDIES');
                             if (stat.label.includes('Alerts')) onNavigate('ALERTS');
@@ -616,8 +642,8 @@ function OversightModule({ studyCount, stats, onLaunch, onNavigate }: { studyCou
                             <stat.icon className={`w-5 h-5 md:w-8 md:h-8 text-${stat.color}-400`} />
                         </div>
                         <div className="mt-3 md:mt-8 relative z-10">
-                            <h4 className="text-[10px] md:text-[15px] font-black text-white/50 uppercase tracking-[0.1em] md:tracking-[0.2em] italic mb-1 md:mb-4 group-hover:text-white transition-colors uppercase">{stat.label}</h4>
-                            <p className="text-2xl md:text-4xl lg:text-5xl font-black text-white italic tracking-tighter leading-none group-hover:text-indigo-400 transition-colors uppercase">{stat.val}</p>
+                            <h4 className="text-[10px] md:text-[11px] font-black text-white/50 uppercase tracking-[0.1em] md:tracking-[0.2em] italic mb-1 md:mb-4 group-hover:text-white transition-colors uppercase">{stat.label}</h4>
+                            <p className="text-sm md:text-base lg:text-lg font-black text-white italic tracking-tighter leading-none group-hover:text-indigo-400 transition-colors uppercase">{stat.val}</p>
                         </div>
                     </div>
                 ))}
@@ -634,8 +660,8 @@ function OversightModule({ studyCount, stats, onLaunch, onNavigate }: { studyCou
                         {widget.alert && <div className="absolute top-4 right-4 md:top-6 md:right-6 w-2.5 h-2.5 md:w-3 h-3 bg-red-500 rounded-full animate-ping shadow-[0_0_15px_rgba(239,68,68,0.5)]" />}
                         <h4 className="text-[11px] md:text-sm font-black text-white/50 uppercase tracking-widest italic group-hover:text-white transition-colors">{widget.label}</h4>
                         <div className="flex items-end gap-3 md:gap-4 mt-3 md:mt-6">
-                            <p className={`text-2xl md:text-4xl font-black text-${widget.color}-400 italic tracking-tighter leading-none group-hover:scale-105 transition-transform origin-left uppercase`}>{widget.val}</p>
-                            <p className="text-[9px] md:text-[11px] text-white/40 font-black uppercase tracking-widest mb-1 md:mb-2 italic">{widget.sub}</p>
+                            <p className={`text-base md:text-xl font-black text-${widget.color}-400 italic tracking-tighter leading-none group-hover:scale-105 transition-transform origin-left uppercase`}>{widget.val}</p>
+                            <p className="text-[8px] md:text-[10px] text-white/40 font-black uppercase tracking-widest mb-1 md:mb-2 italic">{widget.sub}</p>
                         </div>
                     </div>
                 ))}
@@ -644,7 +670,7 @@ function OversightModule({ studyCount, stats, onLaunch, onNavigate }: { studyCou
             {/* Row 3 — Calendar Widget Placeholder */}
             <div className="bg-[#0B101B] border border-white/10 rounded-2xl md:rounded-[3rem] p-5 md:p-10 space-y-5 md:space-y-8 shadow-2xl shadow-black/50">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                    <h3 className="text-xs md:text-xl font-black text-white italic uppercase tracking-widest">Active Schedule <span className="text-indigo-400">Calendar</span></h3>
+                    <h3 className="text-[10px] md:text-lg font-black text-white italic uppercase tracking-widest">Active Schedule <span className="text-indigo-400">Calendar</span></h3>
                     <div className="flex flex-wrap gap-1.5 md:gap-2">
                         {['Confirmed', 'Pending', 'Overdue'].map((label, idx) => (
                             <div key={idx} className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-white/5 rounded-full border border-white/5">
@@ -715,8 +741,8 @@ function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10">
             <div className="flex justify-between items-center">
-                <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Research <span className="text-indigo-400">Portfolio</span></h2>
-                <button onClick={onAdd} className="px-8 py-4 bg-indigo-600 text-white rounded-[2rem] text-[12.5px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-xl shadow-indigo-500/20 hover:scale-[1.02] transition-all">
+                <h2 className="text-base lg:text-lg font-black text-white italic uppercase tracking-tighter">Research <span className="text-indigo-400">Portfolio</span></h2>
+                <button onClick={onAdd} className="px-6 py-3.5 bg-indigo-700 text-white rounded-[2rem] text-[11px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-xl shadow-indigo-900/40 hover:scale-[1.02] transition-all">
                     <Rocket className="w-4 h-4" /> LAUNCH A STUDY
                 </button>
             </div>
@@ -733,7 +759,7 @@ function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd
                     >
                         <cat.icon className={`w-8 h-8 ${filter === cat.id ? 'text-white' : 'text-indigo-400 group-hover:scale-110 transition-transform'}`} />
                         <div>
-                            <p className={`text-5xl font-black italic tracking-tighter leading-none ${filter === cat.id ? 'text-white' : 'text-white'}`}>{cat.count.toString().padStart(2, '0')}</p>
+                            <p className={`text-2xl font-black italic tracking-tighter leading-none ${filter === cat.id ? 'text-white' : 'text-white'}`}>{cat.count.toString().padStart(2, '0')}</p>
                             <p className={`text-[11px] font-black uppercase tracking-widest mt-2 ${filter === cat.id ? 'text-indigo-200' : 'text-slate-500 font-bold'}`}>{cat.label}</p>
                             <p className={`text-[9px] font-bold uppercase tracking-widest mt-1 italic ${filter === cat.id ? 'text-indigo-300/80' : 'text-slate-600'}`}>{cat.subtext}</p>
                         </div>
@@ -760,17 +786,17 @@ function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd
                             </div>
                         </div>
                         <div>
-                            <h3 className="text-4xl font-black text-white uppercase italic tracking-tighter truncate leading-tight group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{study.title}</h3>
+                            <h3 className="text-xl font-black text-white uppercase italic tracking-tighter truncate leading-tight group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{study.title}</h3>
                             <p className="text-[14px] text-white/40 font-black uppercase tracking-widest mt-2 italic">Protocol #{study.protocol_id || '---'}</p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/5">
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Enrollment</p>
-                                <p className="text-3xl font-black text-white italic mt-1.5">{study.actual_screened || '0'}<span className="text-[14px] text-slate-500 ml-1">/{study.target_screened || '100'}</span></p>
+                                <p className="text-2xl font-black text-white italic mt-1.5">{study.actual_screened || '0'}<span className="text-[12px] text-slate-500 ml-1">/{study.target_screened || '100'}</span></p>
                             </div>
                             <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/5">
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Completion</p>
-                                <p className="text-3xl font-black text-white italic mt-1.5">{study.completed_count || '0'}<span className="text-[14px] text-slate-500 ml-1">/{study.total_required || '90'}</span></p>
+                                <p className="text-2xl font-black text-white italic mt-1.5">{study.completed_count || '0'}<span className="text-[12px] text-slate-500 ml-1">/{study.total_required || '90'}</span></p>
                             </div>
                         </div>
                         <div className="p-6 rounded-2xl bg-indigo-500/5 border border-indigo-500/10">
@@ -796,10 +822,10 @@ function ComplianceModule() {
     return (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
             <div>
-                <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter leading-none">
+                <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none">
                     Compliance <span className="text-indigo-400">& Credentials</span>
                 </h2>
-                <p className="text-[13px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-3 italic">
+                <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-3 italic">
                     Verified professional documentation and node synchronization
                 </p>
             </div>

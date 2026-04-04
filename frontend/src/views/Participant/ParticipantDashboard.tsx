@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import NotificationBell from '../../components/NotificationBell';
 import { jsPDF } from 'jspdf';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     LayoutDashboard, ClipboardList, Box, Activity, MessageSquare,
     FileText, Trophy, User, ShieldCheck, LogOut, Menu, X,
-    Bell, Zap, TrendingUp, Globe
+    Bell, Zap, TrendingUp, Globe, Search, LifeBuoy
 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authFetch, clearToken, getRole, performLogout, getUser, saveUser, getDisplayName, API } from '../../utils/auth';
@@ -19,9 +20,11 @@ import MessagesView from './MessagesView';
 import DocumentsView from './DocumentsView';
 import ReportsView from './ReportsView';
 import CompensationView from './CompensationView';
+import SupportView from './SupportView';
 import ProfileView from './ProfileView';
 import PrivacyDataView from './PrivacyDataView';
 import ConsentModal from './ConsentModal';
+import DiscoverStudiesView from './DiscoverStudiesView';
 
 export default function ParticipantDashboard() {
     const navigate = useNavigate();
@@ -60,6 +63,7 @@ export default function ParticipantDashboard() {
         else if (route === 'compensation') setActiveNav('Compensation');
         else if (route === 'profile') setActiveNav('Profile');
         else if (route === 'privacy') setActiveNav('Privacy & Data');
+        else if (route === 'discover') setActiveNav('Discover Studies');
         else if (route === 'participant' || !route) setActiveNav('Dashboard');
     }, [location.pathname]);
 
@@ -70,7 +74,8 @@ export default function ParticipantDashboard() {
         const slugs: Record<string, string> = {
             'Dashboard': '', 'Tasks': 'tasks', 'Study Kit': 'study-kit', 'Logs': 'logs',
             'Messages': 'messages', 'Documents': 'documents', 'Reports': 'reports',
-            'Compensation': 'compensation', 'Profile': 'profile', 'Privacy & Data': 'privacy'
+            'Compensation': 'compensation', 'Profile': 'profile', 'Privacy & Data': 'privacy',
+            'Discover Studies': 'discover'
         };
 
         const finalLabel = slugs[normalizedLabel] !== undefined ? normalizedLabel : label;
@@ -92,10 +97,20 @@ export default function ParticipantDashboard() {
     const [tasks, setTasks] = useState<any[]>([]);
     const [kits, setKits] = useState<any[]>([]);
     const [activeStudy, setActiveStudy] = useState<any>(null);
+    const [allStudies, setAllStudies] = useState<any[]>([]);
+    const [selectedStudyIndex, setSelectedStudyIndex] = useState(0);
+    const [activeParticipant, setActiveParticipant] = useState<any>(null);
+    const [allParticipants, setAllParticipants] = useState<any[]>([]);
+    const [compensations, setCompensations] = useState<any[]>([]);
+    const [visits, setVisits] = useState<any[]>([]);
+    const [labResults, setLabResults] = useState<any[]>([]);
+    const [conversations, setConversations] = useState<any[]>([]);
+    const [helpRequests, setHelpRequests] = useState<any[]>([]);
 
     const [modalConfig, setModalConfig] = useState<{ isOpen: boolean; title: string; desc: string; primaryAction: string; task?: any } | null>(null);
     const [editModal, setEditModal] = useState({ isOpen: false, title: '', value: '', field: '' });
     const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
+    const [activeConsentTask, setActiveConsentTask] = useState<any>(null);
 
     const [userProfile, setUserProfile] = useState(() => {
         const u = getUser();
@@ -116,6 +131,26 @@ export default function ParticipantDashboard() {
         sms: false
     });
 
+    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+    const [notifications, setNotifications] = useState<any[]>([]);
+    
+    // Add time tracking state
+    const [currentTime, setCurrentTime] = useState(new Date());
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    // Auto-close dropdowns on scroll
+    useEffect(() => {
+        const handleScroll = () => {
+            if (isNotificationOpen) setIsNotificationOpen(false);
+            if (isDropdownOpen) setIsDropdownOpen(false);
+        };
+        window.addEventListener('scroll', handleScroll, true);
+        return () => window.removeEventListener('scroll', handleScroll, true);
+    }, [isNotificationOpen, isDropdownOpen]);
+
     // ──────────────── DATA FETCHING ────────────────
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -128,10 +163,20 @@ export default function ParticipantDashboard() {
                 if (pRes.ok) {
                     const pData = await pRes.json();
                     if (pData.length > 0) {
-                        const participant = pData[0];
-                        // Fetch Study details
-                        const sRes = await authFetch(`${apiUrl}/api/studies/${participant.study}/`);
-                        if (sRes.ok) setActiveStudy(await sRes.json());
+                        setAllParticipants(pData);
+                        setActiveParticipant(pData[0]);
+
+                        // Fetch detail for ALL studies this user is in
+                        const studiesPromises = pData.map((p: any) => 
+                            authFetch(`${apiUrl}/api/studies/${p.study}/`).then(res => res.ok ? res.json() : null)
+                        );
+                        const fetchedStudies = (await Promise.all(studiesPromises)).filter(s => s !== null);
+                        setAllStudies(fetchedStudies);
+                        
+                        // Set active study based on index or default to first
+                        if (fetchedStudies.length > 0) {
+                            setActiveStudy(fetchedStudies[0]);
+                        }
                     }
                 }
 
@@ -142,24 +187,110 @@ export default function ParticipantDashboard() {
                     fetchedTasks = await tRes.json();
                 }
 
-                // Inject a Dummy Consent Task if not present for testing mission
-                const hasConsentTask = fetchedTasks.some((t: any) => t.title?.toLowerCase().includes('consent'));
-                if (!hasConsentTask) {
-                    fetchedTasks.unshift({
-                        id: 'dummy-consent-task',
-                        title: 'Informed Consent Form (PI Shared)',
-                        status: 'PENDING',
-                        due_date: new Date().toISOString(),
-                        visit_name: 'Screening Visit',
-                        timeline_group: 'Mandatory',
-                        estimated_time: '10 min',
-                        task_type: 'CONSENT',
-                        task_details: {
-                            task_type: 'CONSENT',
-                            description: 'Review and sign the official study consent form shared by the Principal Investigator.'
+                // Inject LIVE Protocols from Database (Official)
+                try {
+                    const cRes = await authFetch(`${apiUrl}/api/consent-templates/`);
+                    if (cRes.ok) {
+                        const dbProtocols = await cRes.json();
+                        console.log(`🔍 Fetched ${dbProtocols.length} Protocols from DB`);
+
+                        dbProtocols.filter((p: any) => p.status?.toUpperCase() === 'ACTIVE').forEach((p: any) => {
+                            // Filter by Study (Optional but recommended for multi-study systems)
+                            const exists = fetchedTasks.some((t: any) => t.id === `db-consent-${p.id}`);
+                            if (!exists) {
+                                console.log(`✅ Injecting Official DB Protocol: ${p.title} (v${p.version})`);
+                                fetchedTasks.unshift({
+                                    id: `db-consent-${p.id}`,
+                                    title: `Official: ${p.title} (v${p.version})`,
+                                    status: 'PENDING',
+                                    due_date: new Date().toISOString(),
+                                    visit_name: 'eConsent Hub',
+                                    timeline_group: 'Mandatory',
+                                    estimated_time: '15 min',
+                                    task_type: 'CONSENT',
+                                    p_data: p,
+                                    task_details: {
+                                        task_type: 'CONSENT',
+                                        description: `Protocol Upgrade: ${p.title}. Required for continuing in the study.`
+                                    }
+                                });
+                            }
+                        });
+                    }
+                } catch (cErr) {
+                    console.error("DB Protocol Sync failed:", cErr);
+                }
+
+                // Fallback for Demo (Legacy bridge)
+                const sharedProtocolsRaw = localStorage.getItem('musb_consent_protocols');
+                if (sharedProtocolsRaw && !fetchedTasks.some((t: any) => t.id.startsWith('db-consent-'))) {
+                    const sharedProtocols = JSON.parse(sharedProtocolsRaw);
+                    sharedProtocols.filter((p: any) => p.status?.toLowerCase() === 'active').forEach((p: any) => {
+                        const exists = fetchedTasks.some((t: any) => t.id === `active-consent-${p.id}`);
+                        if (!exists) {
+                            fetchedTasks.unshift({
+                                id: `active-consent-${p.id}`,
+                                title: `Protocol: ${p.title} (v${p.version})`,
+                                status: 'PENDING',
+                                due_date: new Date().toISOString(),
+                                visit_name: 'eConsent Hub',
+                                timeline_group: 'Mandatory',
+                                estimated_time: '15 min',
+                                task_type: 'CONSENT',
+                                p_data: p,
+                                task_details: {
+                                    task_type: 'CONSENT',
+                                    description: `New Protocol: ${p.title}.`
+                                }
+                            });
                         }
                     });
                 }
+                // 4. Fetch Real Notifications
+                try {
+                    const nRes = await authFetch(`${apiUrl}/api/notifications/`);
+                    if (nRes.ok) {
+                        const rawNotifs = await nRes.json();
+                        const mappedNotifs = rawNotifs.map((n: any) => ({
+                            id: n.id,
+                            title: n.title || 'System Alert',
+                            desc: n.message,
+                            time: new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            type: n.type || 'system',
+                            read: n.is_read
+                        }));
+                        setNotifications(mappedNotifs.slice(0, 8));
+                    }
+                } catch (nErr) {
+                    console.error("Failed to fetch notifications:", nErr);
+                }
+
+                // 5. Fetch Advanced Clinical Data (Harmonization Sync)
+                try {
+                    const compRes = await authFetch(`${apiUrl}/api/compensations/`);
+                    if (compRes.ok) setCompensations(await compRes.json());
+
+                    const visitRes = await authFetch(`${apiUrl}/api/visits/`);
+                    if (visitRes.ok) setVisits(await visitRes.json());
+
+                    const kitRes = await authFetch(`${apiUrl}/api/kits/`);
+                    if (kitRes.ok) setKits(await kitRes.json());
+
+                    const labRes = await authFetch(`${apiUrl}/api/lab-results/`);
+                    if (labRes.ok) setLabResults(await labRes.json());
+
+                    const meshRes = await authFetch(`${apiUrl}/api/clinical-conversations/`);
+                    if (meshRes.ok) setConversations(await meshRes.json());
+
+                    const helpRes = await authFetch(`${apiUrl}/api/help-request/`);
+                    if (helpRes.ok) {
+                        const data = await helpRes.json();
+                        setHelpRequests(Array.isArray(data) ? data : data.results || []);
+                    }
+                } catch (advErr) {
+                    console.error("Advanced DB Sync failed:", advErr);
+                }
+
                 setTasks(fetchedTasks);
             } catch (err) {
                 console.error("Failed to fetch dashboard data:", err);
@@ -348,6 +479,16 @@ export default function ParticipantDashboard() {
     };
 
     const openActionModal = (title: string, task?: any) => {
+        // ── CONSENT TASK DETECTION (must be first) ──────────────────────────
+        // TasksView calls onAction('START_MISSION' | 'RESUME_MISSION', task)
+        // We intercept here if the task is a CONSENT type
+        const taskType = task?.task_type || task?.task_details?.task_type || '';
+        if (taskType.toUpperCase() === 'CONSENT') {
+            setActiveConsentTask(task);
+            setIsConsentModalOpen(true);
+            return;
+        }
+
         if (task) {
             setModalConfig({
                 isOpen: true,
@@ -404,8 +545,8 @@ export default function ParticipantDashboard() {
             }
         }
 
-        // eConsent Trigger
-        if (lowerTitle.includes('consent') || (task?.task_details?.task_type === 'CONSENT')) {
+        // eConsent Trigger — detect by title keyword
+        if (lowerTitle.includes('consent')) {
             setIsConsentModalOpen(true);
             return;
         }
@@ -545,24 +686,36 @@ export default function ParticipantDashboard() {
 
         try {
             const formData = new FormData();
-            formData.append('study', activeStudy?.id);
+            // Resolve study ID from the active consent task or the active study
+            const studyId = activeConsentTask?.p_data?.study || activeStudy?.id || activeStudy?._id;
+            formData.append('study', studyId || '');
             formData.append('full_name', userProfile.userName);
             formData.append('email', userProfile.userEmail);
             formData.append('signed_pdf', signedPdf);
 
             const apiUrl = API || 'http://localhost:8000';
-            const response = await authFetch(`${apiUrl}/api/consents/`, {
+            // Router registers as 'consent' → URL is /api/consent/
+            const response = await authFetch(`${apiUrl}/api/consent/`, {
                 method: 'POST',
                 body: formData
             });
 
             if (response.ok) {
                 alert("🔒 eConsent Protocol Finalized. Signed document has been securely uploaded to the study node.");
-                // Update relevant task if any
-                setTasks((prev: any[]) => prev.map(t => t.title.toLowerCase().includes('consent') ? { ...t, status: 'COMPLETED' } : t));
+                // Mark the specific consent task that was clicked as COMPLETED
+                const consentTaskId = activeConsentTask?.id;
+                setTasks((prev: any[]) =>
+                    prev.map(t =>
+                        t.id === consentTaskId || t.title?.toLowerCase().includes('consent')
+                            ? { ...t, status: 'COMPLETED' }
+                            : t
+                    )
+                );
+                setActiveConsentTask(null);
             } else {
-                const err = await response.json();
-                console.error("Consent upload failed:", err);
+                let errMsg = 'Unknown error';
+                try { errMsg = JSON.stringify(await response.json()); } catch { }
+                console.error("Consent upload failed:", errMsg);
                 alert("Security node sync failed. Please try again or contact your coordinator.");
             }
         } catch (err) {
@@ -585,6 +738,7 @@ export default function ParticipantDashboard() {
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase();
     const navItems = [
         { label: 'Main Website', icon: Globe },
+        { label: 'Discover Studies', icon: Search },
         { label: 'Dashboard', icon: LayoutDashboard },
         { label: 'Tasks', icon: ClipboardList },
         { label: 'Study Kit', icon: Box },
@@ -593,6 +747,7 @@ export default function ParticipantDashboard() {
         { label: 'Documents', icon: FileText },
         { label: 'Reports', icon: TrendingUp },
         { label: 'Compensation', icon: Trophy },
+        { label: 'Support', icon: LifeBuoy },
         { label: 'Profile', icon: User },
         { label: 'Privacy & Data', icon: ShieldCheck },
     ];
@@ -602,18 +757,14 @@ export default function ParticipantDashboard() {
             {/* Sidebar Overlay */}
             {isMobileMenuOpen && <div className="fixed inset-0 bg-black/60 z-30 lg:hidden backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />}
 
-            <aside className={`w-[260px] h-full flex-shrink-0 flex flex-col border-r border-white/[0.05] relative z-40 transition-transform duration-300 lg:translate-x-0 ${isMobileMenuOpen ? 'fixed left-0 bg-[#0d1525]/90 translate-x-0' : 'fixed lg:relative -translate-x-full'}`} style={{ background: 'rgba(13, 21, 37, 0.8)', backdropFilter: 'blur(12px)' }}>
-                <div className="h-20 px-6 flex justify-between items-center lg:justify-center border-b border-white/[0.05]">
-                    <Link to="/" target="_blank">
-                        <div className="rounded-[2rem] overflow-hidden bg-white shadow-[0_0_25px_rgba(255,255,255,0.1)] hover:scale-105 transition-all">
-                            <img
-                                src="/logo.jpg"
-                                alt="MusB"
-                                className="h-14 w-auto object-contain"
-                            />
+            <aside className={`h-full flex-shrink-0 flex-col border-r border-white/[0.05] z-40 transition-transform duration-300 ${isMobileMenuOpen ? 'fixed flex w-[260px] left-0 translate-x-0 bg-[#0d1525]/90 shadow-[0_0_50px_rgba(0,0,0,0.5)]' : 'hidden lg:flex lg:relative lg:w-[260px] lg:translate-x-0 transition-none'}`} style={{ background: 'rgba(13, 21, 37, 0.8)', backdropFilter: 'blur(12px)' }}>
+                <div className="h-24 px-8 flex justify-between items-center border-b border-white/[0.05]">
+                    <Link to="/" className="group transition-all">
+                        <div className="bg-white p-2 rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                            <img src="/logo.jpg" alt="MusB" className="h-12 w-auto object-contain rounded-xl" />
                         </div>
                     </Link>
-                    <button className="lg:hidden text-white" onClick={() => setIsMobileMenuOpen(false)}><X /></button>
+                    <button className="lg:hidden text-slate-400 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}><X className="w-6 h-6" /></button>
                 </div>
 
                 <div className="mx-5 mt-2 mb-6 bg-[#141e35]/60 border border-white/5 rounded-2xl p-4 flex items-center gap-4">
@@ -651,77 +802,224 @@ export default function ParticipantDashboard() {
             </aside>
 
             <div className="flex-1 flex flex-col overflow-hidden relative z-20 w-full">
-                <header className="h-24 sm:h-20 flex items-center justify-between px-4 lg:px-10 border-b border-white/[0.04] shrink-0 relative bg-[#0a0e1a]/60 backdrop-blur-xl z-[100] transition-all">
-                    <div className="flex items-center gap-6">
-                        <button className="lg:hidden text-slate-300" onClick={() => setIsMobileMenuOpen(true)}><Menu /></button>
-                        <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20 group hover:border-cyan-400 transition-all cursor-default hidden sm:flex shadow-inner">
-                            <Zap className="w-6 h-6 text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]" />
+                <header className="h-20 flex items-center justify-between px-6 lg:px-12 border-b border-white/[0.04] shrink-0 relative bg-[#0a0e1a]/60 backdrop-blur-xl z-[100] transition-all">
+                    <div className="flex items-center gap-3 sm:gap-6">
+                        <button className="lg:hidden text-slate-300 hover:text-cyan-400 transition-colors mr-1" onClick={() => setIsMobileMenuOpen(true)}>
+                            <Menu className="w-6 h-6" />
+                        </button>
+
+                        {/* Mobile/Tablet Clickable Logo (only for participant dashboard on mobile) */}
+                        <Link to="/" className="lg:hidden flex-shrink-0">
+                            <img src="/logo.jpg" alt="MusB" className="h-9 w-auto object-contain rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.1)] border border-white/10 active:scale-95 transition-transform" />
+                        </Link>
+
+                        <div className="w-10 h-10 rounded-xl bg-cyan-500/10 hidden md:flex items-center justify-center border border-cyan-500/20 group hover:border-cyan-400 transition-all shadow-inner">
+                            <Zap className="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]" />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-[9px] font-black text-cyan-500/60 uppercase tracking-[0.3em] mb-1 italic">Active Node</span>
-                            <span className="text-xl font-black text-white italic uppercase tracking-tighter">{activeNav}</span>
+                            <span className="text-[8px] font-black text-cyan-500/50 uppercase tracking-[0.3em] mb-0.5 italic hidden sm:block">Active Node</span>
+                            <div className="flex items-center gap-2">
+                                <h1 className="text-lg font-black text-white italic uppercase tracking-tighter leading-none">{activeNav}</h1>
+                                {allStudies.length > 1 && (
+                                    <div className="relative ml-2">
+                                        <select 
+                                            value={selectedStudyIndex}
+                                            onChange={(e) => {
+                                                const idx = parseInt(e.target.value);
+                                                setSelectedStudyIndex(idx);
+                                                setActiveStudy(allStudies[idx]);
+                                            }}
+                                            className="bg-slate-900/80 border border-white/10 text-cyan-400 text-[10px] font-black uppercase py-1 px-4 rounded-lg outline-none cursor-pointer hover:border-cyan-500/50 transition-all appearance-none pr-10 h-8 flex items-center shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] min-w-[160px] sm:min-w-[200px]"
+                                        >
+                                            {allStudies.map((s, idx) => (
+                                                <option key={s.id} value={idx}>{s.protocol_id || 'NODE-' + idx}</option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                                            <TrendingUp className="w-3.5 h-3.5 text-cyan-400/50" />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-6 relative" ref={dropdownRef}>
-                        <div
-                            className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-all"
-                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                        >
-                            <div className="hidden sm:flex flex-col items-end gap-1">
-                                <span className="text-base font-black text-white italic uppercase tracking-tight">{userProfile.userName}</span>
-                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded border border-white/5">{userProfile.userEmail}</span>
-                            </div>
-                            <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-white/10 overflow-hidden shadow-2xl hover:border-cyan-500/40 transition-all ring-1 ring-white/5">
-                                {userProfile.userPicture ? <img src={userProfile.userPicture} className="w-full h-full object-cover" /> : <span className="text-lg font-black">{initials}</span>}
-                            </div>
+                    <div className="flex items-center gap-4 relative" ref={dropdownRef}>
+                        <div className="hidden xl:flex flex-col items-end text-right border-r border-white/5 pr-6">
+                            <span className="text-xl font-black text-cyan-400 font-mono tracking-tighter tabular-nums leading-none">
+                                {currentTime.toLocaleTimeString('en-US', { hour12: false })}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">
+                                {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}
+                            </span>
+                        </div>
+                        <div className="relative">
+                                <NotificationBell 
+                                    unreadCount={notifications.filter(n => !n.read).length}
+                                    onClick={() => {
+                                        setIsNotificationOpen(!isNotificationOpen);
+                                        setIsDropdownOpen(false);
+                                    }}
+                                />
+
+                                <AnimatePresence>
+                                    {isNotificationOpen && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                            className="absolute right-0 top-full mt-6 w-[420px] bg-[#0d1424] border border-white/10 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] backdrop-blur-2xl z-[150] overflow-hidden"
+                                        >
+                                            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.03]">
+                                                <div className="flex flex-col gap-1">
+                                                    <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em] italic">Notifications Hub</h3>
+                                                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-none">Telemetry & Event Stream</span>
+                                                </div>
+                                                <button 
+                                                    onClick={() => setNotifications(notifications.map(n => ({ ...n, read: true })))} 
+                                                    className="px-4 py-2 bg-cyan-400/10 border border-cyan-400/20 text-[10px] font-black text-cyan-400 uppercase tracking-tighter hover:bg-cyan-400 hover:text-black rounded-xl transition-all"
+                                                >
+                                                    Mark all read
+                                                </button>
+                                            </div>
+                                            <div className="max-h-[450px] overflow-y-auto no-scrollbar">
+                                                {notifications.length > 0 ? notifications.map(n => (
+                                                    <div
+                                                        key={n.id}
+                                                        className={`p-6 border-b border-white/[0.03] last:border-0 hover:bg-white/[0.03] transition-all cursor-pointer relative group/notif ${!n.read ? 'bg-cyan-500/[0.03]' : ''}`}
+                                                        onClick={() => {
+                                                            if (n.type === 'protocol') setActiveNav('Tasks');
+                                                            setNotifications(notifications.map(notif => notif.id === n.id ? { ...notif, read: true } : notif));
+                                                            setIsNotificationOpen(false);
+                                                        }}
+                                                    >
+                                                        {!n.read && <div className="absolute top-0 bottom-0 left-0 w-1 bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.5)]" />}
+                                                        <div className="flex flex-col gap-2">
+                                                            <div className="flex justify-between items-baseline gap-4">
+                                                                <span className={`text-[12px] font-black uppercase italic tracking-tight leading-none ${n.type === 'protocol' ? 'text-amber-400' : 'text-white group-hover/notif:text-cyan-400'} transition-colors truncate`}>{n.title}</span>
+                                                                <span className="text-[10px] font-black text-slate-700 uppercase tracking-tighter flex-shrink-0">{n.time}</span>
+                                                            </div>
+                                                            <p className="text-[13px] text-slate-400 font-medium leading-relaxed">{n.desc}</p>
+                                                        </div>
+                                                    </div>
+                                                )) : (
+                                                    <div className="p-16 text-center text-slate-600 italic text-sm">No active alerts...</div>
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                            </AnimatePresence>
                         </div>
 
-                        {/* User Dropdown Menu */}
-                        <AnimatePresence>
-                            {isDropdownOpen && (
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                    className="absolute right-0 top-full mt-4 w-56 bg-[#0d1424] border border-white/10 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl z-[60] overflow-hidden"
-                                >
-                                    <div className="p-4 border-b border-white/5 bg-white/[0.02]">
-                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic mb-1">Session Identity</p>
-                                        <p className="text-xs font-black text-white uppercase italic truncate">{userProfile.userName}</p>
-                                    </div>
-                                    <div className="p-2">
-                                        <button
-                                            onClick={() => { setActiveNav('Profile'); setIsDropdownOpen(false); }}
-                                            className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-2xl transition-all group"
-                                        >
-                                            <User className="w-4 h-4 text-cyan-500 group-hover:scale-110 transition-transform" />
-                                            <span className="text-xs font-bold uppercase tracking-widest italic">View Profile</span>
-                                        </button>
-                                        <button
-                                            onClick={() => { setIsLogoutModalOpen(true); setIsDropdownOpen(false); }}
-                                            className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-2xl transition-all group"
-                                        >
-                                            <LogOut className="w-4 h-4 text-red-500 group-hover:scale-110 transition-transform" />
-                                            <span className="text-xs font-bold uppercase tracking-widest italic">Sign Out</span>
-                                        </button>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                        <div className="relative">
+                            <div
+                                className="flex items-center gap-3 cursor-pointer hover:bg-white/[0.03] p-1 rounded-2xl transition-all"
+                                onClick={() => {
+                                    setIsDropdownOpen(!isDropdownOpen);
+                                    setIsNotificationOpen(false);
+                                }}
+                            >
+                                <div className="hidden sm:flex flex-col items-end mr-1">
+                                    <span className="text-sm font-black text-white italic uppercase tracking-tighter leading-none mb-1.5">{userProfile.userName}</span>
+                                    <span className="text-[9px] text-cyan-400/60 font-black uppercase tracking-widest bg-cyan-400/[0.03] px-2 py-0.5 rounded border border-cyan-400/10 truncate max-w-[120px]">{userProfile.userEmail}</span>
+                                </div>
+                                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-white/10 overflow-hidden shadow-2xl hover:border-cyan-500/40 transition-all ring-1 ring-white/5">
+                                    {userProfile.userPicture ? <img src={userProfile.userPicture} className="w-full h-full object-cover" /> : <span className="text-sm font-black italic">{initials}</span>}
+                                </div>
+                            </div>
+
+                            {/* User Dropdown Menu */}
+                            <AnimatePresence>
+                                {isDropdownOpen && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                        className="absolute right-0 top-full mt-6 w-60 bg-[#0d1424] border border-white/10 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl z-[150] overflow-hidden"
+                                    >
+                                        <div className="p-5 border-b border-white/5 bg-white/[0.02]">
+                                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] italic mb-1.5">Session Node</p>
+                                            <p className="text-xs font-black text-white uppercase italic truncate tracking-tight">{userProfile.userName}</p>
+                                        </div>
+                                        <div className="p-2">
+                                            <button
+                                                onClick={() => { setActiveNav('Profile'); setIsDropdownOpen(false); }}
+                                                className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-2xl transition-all group"
+                                            >
+                                                <User className="w-4 h-4 text-cyan-500 group-hover:scale-110 transition-transform" />
+                                                <span className="text-xs font-bold uppercase tracking-widest italic">View Profile</span>
+                                            </button>
+                                            <button
+                                                onClick={() => { setIsLogoutModalOpen(true); setIsDropdownOpen(false); }}
+                                                className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-2xl transition-all group"
+                                            >
+                                                <LogOut className="w-4 h-4 text-red-500 group-hover:scale-110 transition-transform" />
+                                                <span className="text-xs font-bold uppercase tracking-widest italic">Sign Out</span>
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-y-auto px-4 sm:px-8 lg:px-12 py-12 scroll-smooth">
+                <main className="flex-1 overflow-y-auto px-6 lg:px-12 py-8 scroll-smooth no-scrollbar">
                     <AnimatePresence mode="wait">
                         <motion.div key={activeNav} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
-                            {activeNav === 'Dashboard' && <DashboardView firstName={userProfile.userName || userProfile.firstName} userTimezone={userProfile.userTimezone} today={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: '2-digit' })} onAction={(v: string) => handleNavClick(v)} tasks={tasks} study={activeStudy} handleExportPDF={handleExportPDF} />}
+                            {activeNav === 'Discover Studies' && <DiscoverStudiesView />}
+                            {activeNav === 'Dashboard' && (
+                                <DashboardView 
+                                    firstName={userProfile.userName || userProfile.firstName} 
+                                    userTimezone={userProfile.userTimezone} 
+                                    today={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: '2-digit' })} 
+                                    onAction={(v: string) => handleNavClick(v)} 
+                                    tasks={tasks} 
+                                    study={activeStudy} 
+                                    participant={activeParticipant}
+                                    handleExportPDF={handleExportPDF}
+                                    allStudies={allStudies}
+                                    selectedStudyIndex={selectedStudyIndex}
+                                    onStudySwitch={(idx: number) => {
+                                        setSelectedStudyIndex(idx);
+                                        setActiveStudy(allStudies[idx]);
+                                        setActiveParticipant(allParticipants[idx]);
+                                    }}
+                                    compensations={compensations}
+                                    visits={visits}
+                                    kits={kits}
+                                    labResults={labResults}
+                                    conversations={conversations}
+                                />
+                            )}
                             {activeNav === 'Tasks' && <TasksView tasks={tasks} onAction={openActionModal} study={activeStudy} userName={userProfile.userName} />}
-                            {activeNav === 'Study Kit' && <StudyKitView onAction={openActionModal} study={activeStudy} />}
+                            {activeNav === 'Study Kit' && <StudyKitView onAction={openActionModal} study={activeStudy} kits={kits} />}
                             {activeNav === 'Logs' && <LogsView study={activeStudy} onAction={openActionModal} />}
-                            {activeNav === 'Messages' && <MessagesView study={activeStudy} />}
+                            {activeNav === 'Messages' && <MessagesView study={activeStudy} conversations={conversations} onAction={handleNavClick} />}
                             {activeNav === 'Documents' && <DocumentsView handleExportPDF={handleExportPDF} study={activeStudy} />}
-                            {activeNav === 'Reports' && <ReportsView userName={userProfile.userName} handleExportPDF={handleExportPDF} study={activeStudy} />}
-                            {activeNav === 'Compensation' && <CompensationView study={activeStudy} />}
+                            {activeNav === 'Reports' && (
+                                <ReportsView 
+                                    userName={userProfile.userName} 
+                                    handleExportPDF={handleExportPDF} 
+                                    study={activeStudy} 
+                                    compensations={compensations}
+                                    tasks={tasks}
+                                    visits={visits}
+                                    kits={kits}
+                                />
+                            )}
+                            {activeNav === 'Compensation' && (
+                                <CompensationView 
+                                    study={activeStudy} 
+                                    compensations={compensations} 
+                                    onAction={openActionModal}
+                                />
+                            )}
+                            {activeNav === 'Support' && (
+                                <SupportView 
+                                    requests={helpRequests}
+                                    onAction={openActionModal}
+                                />
+                            )}
                             {activeNav === 'Profile' && (
                                 <ProfileView
                                     {...userProfile}

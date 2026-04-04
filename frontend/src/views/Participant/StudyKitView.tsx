@@ -21,15 +21,15 @@ interface Kit {
     kit_number: string;
 }
 
-const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) => void; study?: any }) => {
+const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (t: string, data?: any) => void; study?: any; kits?: any[] }) => {
     const [activeTab, setActiveTab] = useState<'outbound' | 'return'>('outbound');
     const [subView, setSubView] = useState<'LIST' | 'GUIDE' | 'LABEL'>('LIST');
     const [selectedKit, setSelectedKit] = useState<any>(null);
     const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
     const [collectionStep, setCollectionStep] = useState(0);
     const [checkedItems, setCheckedItems] = useState<string[]>([]);
-
-    const [kits, setKits] = useState<any[]>([]);
+ 
+    const [kits, setKits] = useState<any[]>(initialKits);
     const [loading, setLoading] = useState(true);
 
     const dummyKits = useMemo(() => [
@@ -58,8 +58,13 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
     ], []);
 
     useEffect(() => {
-        fetchKits();
-    }, []);
+        if (initialKits && initialKits.length > 0) {
+            setKits(initialKits);
+            setLoading(false);
+        } else {
+            fetchKits();
+        }
+    }, [initialKits]);
 
     const fetchKits = async () => {
         setLoading(true);
@@ -182,8 +187,8 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
             {/* ──────────────── HEADER ──────────────── */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
-                    <h2 className="text-4xl font-black italic tracking-tighter text-white uppercase italic mb-2">Study Kits</h2>
-                    <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">Track your kits, follow instructions, and complete your sample collection.</p>
+                    <h2 className="text-2xl font-black italic tracking-tighter text-white uppercase italic mb-1.5">Study Kits</h2>
+                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">Track your kits, follow instructions, and complete your sample collection.</p>
                 </div>
             </div>
 
@@ -226,8 +231,8 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
                                             <Package className={`w-8 h-8 ${activeTab === 'outbound' ? 'text-cyan-400' : 'text-indigo-400'}`} strokeWidth={1} />
                                         </div>
                                         <div>
-                                            <h4 className="text-xl font-black text-white italic uppercase tracking-tight">{kit.kit_type}</h4>
-                                            <span className="text-[12px] font-black text-slate-600 uppercase tracking-widest">KIT IDENTIFIER: {kit.kit_number}</span>
+                                            <h4 className="text-[17px] font-black text-white italic uppercase tracking-tight">{kit.kit_type}</h4>
+                                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">KIT IDENTIFIER: {kit.kit_number}</span>
                                         </div>
                                     </div>
                                     <Badge color={getStatusColor(kit.status)}>{kit.status.replace('_', ' ')}</Badge>
@@ -276,7 +281,7 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
                                     </div>
                                     <div className="flex items-center gap-2 text-slate-400">
                                         <Clock className="w-4 h-4" />
-                                        <span className="text-[12px] font-black uppercase tracking-widest italic">
+                                        <span className="text-[11px] font-black uppercase tracking-widest italic">
                                             {kit.expected_delivery ? `Exp. Arrival: ${new Date(kit.expected_delivery).toLocaleDateString()}` : "ETA: AWAITING DISPATCH"}
                                         </span>
                                     </div>
@@ -306,8 +311,8 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
                                                 <Download className="w-5 h-5" />
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-[12px] font-black text-white italic uppercase tracking-tighter">Return Label</span>
-                                                <span className="text-[10px] font-black text-slate-600 uppercase">DIGITAL NODE</span>
+                                                <span className="text-[11px] font-black text-white italic uppercase tracking-tighter">Return Label</span>
+                                                <span className="text-[9px] font-black text-slate-600 uppercase">DIGITAL NODE</span>
                                             </div>
                                         </button>
                                     </div>
@@ -390,9 +395,9 @@ const StudyKitView = ({ onAction, study }: { onAction: (t: string, data?: any) =
 
                             <div className="p-12">
 
-                                <div className="space-y-2 mb-12">
-                                    <h3 className="text-4xl font-black text-white italic uppercase tracking-tighter">Sample Collection</h3>
-                                    <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">Protocol: MusB-BIO-2030-Node | Gateway Secure</p>
+                                <div className="space-y-1.5 mb-12">
+                                    <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Sample Collection</h3>
+                                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">Protocol: MusB-BIO-2030-Node | Gateway Secure</p>
                                 </div>
 
                                 <StepIndicator steps={collectionSteps} currentStep={collectionStep} />

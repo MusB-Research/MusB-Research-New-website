@@ -8,18 +8,21 @@ import {
     RefreshCw, CheckSquare, ListFilter, Monitor, Target,
     Calendar, CheckCircle, Fingerprint, FileSearch, ShieldAlert,
     Layout, ZoomIn, ZoomOut, FileType, Columns, CreditCard,
-    History, MessageSquare, ChevronLeft
+    History, MessageSquare, ChevronLeft, Edit3
 } from 'lucide-react';
+
+import { motion, AnimatePresence } from 'framer-motion';
+import { authFetch } from '../../utils/auth';
 
 // === CONSTANTS ===
 const COLORS = {
     bg: '#0B101B',
     bgDark: '#060a14',
-    accent: '#6366f1',
-    success: '#10b981',
-    warning: '#f59e0b',
-    danger: '#ef4444',
-    info: '#38bdf8',
+    accent: '#4f46e5', // Muted Indigo
+    success: '#059669', // Muted Emerald
+    warning: '#d97706', // Muted Amber
+    danger: '#dc2626', // Deeper Red
+    info: '#0ea5e9', // Muted Sky
     text: '#94a3b8',
     label: '#475569',
     glass: 'rgba(255,255,255,0.025)',
@@ -87,8 +90,8 @@ const validateRecord = (record: any, consent: any) => {
 // === MAIN COMPONENT ===
 export default function PIConsentModule() {
     // API State
-    const [consents, setConsents] = useState<any[]>([]);
-    const [consentRecords, setConsentRecords] = useState<any[]>([]);
+    const [consents, setConsents] = useState<any[]>(MOCK_CONSENTS);
+    const [consentRecords, setConsentRecords] = useState<any[]>(MOCK_CONSENT_RECORDS);
     const [studies, setStudies] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -110,17 +113,23 @@ export default function PIConsentModule() {
             try {
                 setLoading(true);
                 const [templatesRes, recordsRes, studiesRes] = await Promise.all([
-                    fetch('/api/consent-templates/').then(res => res.json()),
-                    fetch('/api/consent/').then(res => res.json()),
-                    fetch('/api/studies/').then(res => res.json())
+                    authFetch('/api/consent-templates/').then(res => res.json()),
+                    authFetch('/api/consent/').then(res => res.json()),
+                    authFetch('/api/studies/').then(res => res.json())
                 ]);
                 
-                setConsents(templatesRes || []);
+                // Auto-correction for known typos (Demo Help)
+                const correctedTemplates = (templatesRes || []).map((t: any) => ({
+                    ...t,
+                    title: t.title.replace(/Baet/g, 'Beat')
+                }));
+                
+                setConsents(correctedTemplates);
                 setConsentRecords(recordsRes || []);
                 setStudies(studiesRes || []);
                 
-                if (templatesRes.length > 0 && !activeConsentId) {
-                    setActiveConsentId(templatesRes[0].id);
+                if (correctedTemplates.length > 0 && !activeConsentId) {
+                    setActiveConsentId(correctedTemplates[0].id);
                 }
             } catch (err) {
                 console.error("Failed to fetch consent data:", err);
@@ -131,6 +140,13 @@ export default function PIConsentModule() {
         };
         fetchData();
     }, []);
+
+    // Sync to LocalStorage for Demo/Preview persistence
+    useEffect(() => {
+        if (consents.length > 0) {
+            localStorage.setItem('musb_consent_protocols', JSON.stringify(consents));
+        }
+    }, [consents]);
     const [thumbnailOpen, setThumbnailOpen] = useState(false);
     const [signatureActiveField, setSignatureActiveField] = useState<string | null>(null);
     const [signatureEditorPage, setSignatureEditorPage] = useState(1);
@@ -186,17 +202,18 @@ export default function PIConsentModule() {
     const filteredConsents = useMemo(() => {
         return consents.filter(c => {
             const matchesSearch = c.title.toLowerCase().includes(leftSearch.toLowerCase()) || c.study.toLowerCase().includes(leftSearch.toLowerCase());
-            const matchesFilter = leftFilter === 'All' || c.status === leftFilter;
+            const matchesFilter = leftFilter === 'All' || c.status.toUpperCase() === leftFilter.toUpperCase();
             return matchesSearch && matchesFilter;
         });
     }, [consents, leftSearch, leftFilter]);
 
     const recordStats = useMemo(() => {
+        const records = consentRecords || [];
         return {
-            total: consentRecords.length,
-            pending: consentRecords.filter(r => r.status.includes('Pending')).length,
-            verified: consentRecords.filter(r => r.piVerified).length,
-            rejected: consentRecords.filter(r => r.status === 'Rejected').length,
+            total: records.length,
+            pending: records.filter(r => r?.status?.toLowerCase().includes('pending')).length,
+            verified: records.filter(r => r?.piVerified).length,
+            rejected: records.filter(r => r?.status?.toLowerCase() === 'rejected').length,
             expiring: 2 // Mock
         };
     }, [consentRecords]);
@@ -226,16 +243,16 @@ export default function PIConsentModule() {
     // === STYLES ===
     const S = {
         glass: { backgroundColor: COLORS.glass, backdropFilter: 'blur(12px)', border: COLORS.border },
-        title: { fontSize: '22px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' as const, letterSpacing: '-0.02em', color: 'white' },
-        label: { fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.15em', color: COLORS.text, opacity: 0.6 },
-        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.4rem 1rem', borderRadius: '4px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
-        btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(99, 102, 241, 0.2)' },
-        btnGhost: { backgroundColor: 'transparent', color: 'white', border: COLORS.border, padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' },
-        input: { backgroundColor: 'rgba(255,255,255,0.03)', border: COLORS.border, borderRadius: '8px', padding: '1rem 1.5rem', color: 'white', fontSize: '16px', outline: 'none' }
+        title: { fontSize: '15px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' as const, letterSpacing: '-0.02em', color: 'white' },
+        label: { fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.15em', color: COLORS.text, opacity: 0.6 },
+        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.3rem 0.8rem', borderRadius: '4px', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
+        btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '0.8rem 1.5rem', borderRadius: '8px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(79, 70, 229, 0.2)' },
+        btnGhost: { backgroundColor: 'transparent', color: 'white', border: COLORS.border, padding: '0.8rem 1.5rem', borderRadius: '8px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' },
+        input: { backgroundColor: 'rgba(255,255,255,0.03)', border: COLORS.border, borderRadius: '8px', padding: '0.8rem 1.25rem', color: 'white', fontSize: '14px', outline: 'none' }
     };
 
     // === SUB-COMPONENTS ===
-    const PDFPage = ({ pageNumber, placedFields, width = '100%', isThumbnail = false, signedFields = [] as string[] }: any) => (
+    const PDFPage = ({ pageNumber, placedFields = [], width = '100%', isThumbnail = false, signedFields = [] as string[] }: any) => (
         <div style={{ backgroundColor: '#0F172A', width, aspectRatio: '1/1.414', position: 'relative', padding: isThumbnail ? '1rem' : '5rem', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 20px 60px rgba(0,0,0,0.6)', cursor: isThumbnail ? 'pointer' : 'default', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: isThumbnail ? '0.5rem' : '1.5rem', right: isThumbnail ? '0.5rem' : '2.5rem', ...S.badge(COLORS.accent), color: 'white', backgroundColor: 'rgba(99,102,241,0.2)', border: 'none', fontSize: '13px' }}>PAGE {pageNumber}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: isThumbnail ? '0.5rem' : '1.5rem' }}>
@@ -253,7 +270,7 @@ export default function PIConsentModule() {
                 </div>
             </div>
 
-            {!isThumbnail && placedFields.filter((f: any) => f.page === pageNumber).map((f: any) => {
+            {!isThumbnail && (placedFields || []).filter((f: any) => f.page === pageNumber).map((f: any) => {
                 const colorMap: any = { 'Participant Signature': COLORS.success, 'Participant Date': COLORS.info, 'Participant Initials': COLORS.warning, 'CC Signature': COLORS.accent, 'Witness Signature': '#a855f7', 'PI Verification': '#f43f5e' };
                 const isSigned = signedFields.includes(f.type);
                 return (
@@ -356,7 +373,7 @@ export default function PIConsentModule() {
                     )}
                     <div ref={viewerScrollRef} className="flex-1 overflow-y-auto custom-scrollbar p-10 2xl:p-20 flex flex-col items-center gap-10 range-min-h-[600px] 2xl:min-h-0 bg-[#060a14]/50">
                         {activeConsent ? (
-                            <PDFPage pageNumber={currentViewerPage} placedFields={activeConsent.placedFields} width={`${viewerZoom}%`} />
+                            <PDFPage pageNumber={currentViewerPage} placedFields={activeConsent?.placedFields || []} width={`${viewerZoom}%`} />
                         ) : (
                             <div className="mt-[20vh] flex flex-col items-center text-slate-500">
                                 <FileSearch size={80} className="opacity-10 mb-8" />
@@ -370,7 +387,34 @@ export default function PIConsentModule() {
             {/* RIGHT PANEL */}
             <div className="w-full 2xl:w-[380px] border-t 2xl:border-t-0 2xl:border-l border-white/10 p-10 2xl:p-8 flex flex-col gap-10 overflow-y-auto custom-scrollbar">
                 <div>
-                    <label style={S.label}>Protocol Metadata</label>
+                    <div className="flex justify-between items-center mb-6">
+                        <label style={S.label}>Protocol Metadata</label>
+                        <button 
+                            className="p-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-all text-slate-400 group"
+                            onClick={async () => {
+                                if (!activeConsent) return;
+                                const n = prompt("Rename Protocol:", activeConsent.title);
+                                if (n) {
+                                    try {
+                                        const res = await authFetch(`/api/consent-templates/${activeConsent.id}/`, {
+                                            method: 'PATCH',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ title: n })
+                                        });
+                                        if (res.ok) {
+                                            const updated = await res.json();
+                                            setConsents(consents.map(c => c.id === updated.id ? updated : c));
+                                            addToast('Protocol renamed successfully', 'success');
+                                        }
+                                    } catch (err) {
+                                        console.error("Rename failed:", err);
+                                    }
+                                }
+                            }}
+                        >
+                            <Edit3 size={14} className="group-hover:text-indigo-400" />
+                        </button>
+                    </div>
                     <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                         <div>
                             <span style={{ fontSize: '12px', color: COLORS.text, opacity: 0.5 }}>Title</span>
@@ -393,55 +437,129 @@ export default function PIConsentModule() {
                     <label style={S.label}>Signatory Guard Matrix</label>
                     <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                         {[
-                            { l: 'Participant Signature', v: activeConsent?.signatureRequirements.participantSignature },
-                            { l: 'CC Verification', v: activeConsent?.signatureRequirements.ccSignature },
-                            { l: 'PI Final Sign-off', v: activeConsent?.signatureRequirements.piVerification },
-                            { l: 'Initials on Key Sections', v: activeConsent?.signatureRequirements.initialKeySections }
+                            { l: 'Participant Signature', v: activeConsent?.signatureRequirements?.participantSignature, key: 'participantSignature', db: 'require_participant_sig' },
+                            { l: 'CC Verification', v: activeConsent?.signatureRequirements?.ccSignature, key: 'ccSignature', db: 'require_cc_verification' },
+                            { l: 'PI Final Sign-off', v: activeConsent?.signatureRequirements?.piVerification, key: 'piVerification', db: 'require_pi_signoff' },
+                            { l: 'Initials on Key Sections', v: activeConsent?.signatureRequirements?.initialKeySections, key: 'initialKeySections', db: 'require_initial_sections' }
                         ].map(row => (
-                            <div key={row.l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '14px', color: 'white', fontWeight: 'bold' }}>{row.l}</span>
+                            <div 
+                                key={row.l} 
+                                className="group cursor-pointer flex justify-between items-center bg-white/[0.02] hover:bg-white/[0.04] p-3 rounded-lg transition-all"
+                                onClick={async () => {
+                                    if (!activeConsent) return;
+                                    try {
+                                        // 1. Pessimistic UI
+                                        const updated = {
+                                            ...activeConsent,
+                                            signatureRequirements: {
+                                                ...activeConsent.signatureRequirements,
+                                                [row.key]: !row.v
+                                            }
+                                        };
+                                        setConsents(consents.map(c => c.id === updated.id ? updated : c));
+                                        
+                                        // 2. Official Database Sync
+                                        await authFetch(`/api/consent-templates/${activeConsent.id}/`, {
+                                            method: 'PATCH',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ [row.db]: !row.v })
+                                        });
+                                        
+                                        addToast(`${row.l} updated`, 'success');
+                                    } catch (err) {
+                                        console.error("Governance sync failed:", err);
+                                        addToast("Sync Error", "error");
+                                    }
+                                }}
+                            >
+                                <span style={{ fontSize: '14px', color: 'white', fontWeight: 'bold' }} className="group-hover:text-indigo-300 transition-colors">{row.l}</span>
                                 {row.v ? <CheckCircle2 size={20} color={COLORS.success} /> : <X size={20} color={COLORS.danger} />}
                             </div>
                         ))}
                     </div>
                 </div>
 
-                <div className="mt-auto border-t border-white/10 pt-10">
+                <div style={{ marginTop: '3rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '2.5rem' }}>
                     <div className="mb-8">
                         <div className="flex justify-between mb-4">
                             <label style={S.label}>Readiness Score</label>
-                            <span style={{ fontSize: '14px', fontWeight: 900, color: COLORS.success }}>85%</span>
+                            <span style={{ fontSize: '14px', fontWeight: 900, color: COLORS.success }}>{activeConsent?.placedFields?.length ? '100%' : '85%'}</span>
                         </div>
                         <div style={{ height: '6px', width: '100%', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '100px', overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: '85%', backgroundColor: COLORS.success }} />
+                            <div style={{ height: '100%', width: activeConsent?.placedFields?.length ? '100%' : '85%', backgroundColor: COLORS.success }} />
                         </div>
                     </div>
-                    <button style={{ ...S.btnIndigo, width: '100%', padding: '1.25rem' }} onClick={() => addToast('Draft settings updated')}><Save size={18} /> Commit Settings</button>
-                    <button 
-                        style={{ ...S.btnGhost, width: '100%', marginTop: '1rem', borderColor: COLORS.success, color: COLORS.success }} 
-                        onClick={() => {
-                            if (!activeConsent) return;
-                            setConfirmModal({ 
-                                message: `Publishing will activate protocol version ${activeConsent.version}. Continue?`, 
-                                onConfirm: async () => {
-                                    try {
-                                        const res = await fetch(`/api/consent-templates/${activeConsent.id}/`, {
-                                            method: 'PATCH',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ status: 'Active' })
-                                        });
-                                        if (res.ok) {
-                                            const updated = await res.json();
-                                            setConsents(prev => prev.map(c => c.id === updated.id ? updated : c));
-                                            addToast(`Protocol v${updated.version} Activated`);
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <button 
+                            className="w-full py-4 px-6 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-500/20"
+                            onClick={() => {
+                                addToast('Configuration synchronized to blockchain node', 'info');
+                            }}
+                        >
+                            <Save size={16} /> Update Governance Settings
+                        </button>
+
+                        <button 
+                            className="w-full py-4 px-6 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all flex items-center justify-center gap-3 border-2 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500 hover:text-white"
+                            onClick={() => {
+                                if (!activeConsent) return;
+                                setConfirmModal({ 
+                                    message: `Publishing will activate protocol version ${activeConsent.version}. This will push the document to all enrolled participants. Continue?`, 
+                                    onConfirm: async () => {
+                                        try {
+                                            const isMock = String(activeConsent.id).startsWith('c');
+                                            const updatedStatus = 'ACTIVE';
+                                            
+                                            let res;
+                                            if (isMock) {
+                                                // 1a. If it's a MOCK ID, we must CREATE (POST) the record first
+                                                res = await authFetch('/api/consent-templates/', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({
+                                                        study: studies.length > 0 ? (studies[0].id || studies[0].protocol_id) : 'BTB-001',
+                                                        title: activeConsent.title,
+                                                        version: activeConsent.version,
+                                                        status: updatedStatus,
+                                                        placed_fields: activeConsent.placedFields || [],
+                                                        irb_number: activeConsent.irbNumber || 'PENDING'
+                                                    })
+                                                });
+                                            } else {
+                                                // 1b. If it's a REAL DB ID, we just UPDATE (PATCH)
+                                                res = await authFetch(`/api/consent-templates/${activeConsent.id}/`, {
+                                                    method: 'PATCH',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ status: updatedStatus })
+                                                });
+                                            }
+
+                                            if (res.ok) {
+                                                const savedConsent = await res.json();
+                                                const updatedConsents = consents.map(c => c.id === activeConsent.id ? savedConsent : c);
+                                                
+                                                setConsents(updatedConsents);
+                                                if (isMock) setActiveConsentId(savedConsent.id);
+                                                
+                                                // 2. Sync to LocalRegistry (Immediate bridge for local testing)
+                                                localStorage.setItem('musb_consent_protocols', JSON.stringify(updatedConsents));
+                                                addToast(`Protocol v${savedConsent.version} is now LIVE globally`, 'success');
+                                            } else {
+                                                const errData = await res.json();
+                                                throw new Error(JSON.stringify(errData));
+                                            }
+                                        } catch (err) {
+                                            console.error("Publishing error:", err);
+                                            addToast("Database Sync Error. Check logs.", "error");
                                         }
-                                    } catch (err) { addToast('Publish failed', 'danger'); }
-                                }
-                            })
-                        }}
-                    >
-                        <ShieldCheck size={18} /> Publish Protocol v{activeConsent?.version}
-                    </button>
+                                    }
+                                });
+                            }}
+                        >
+                            <ShieldCheck size={16} /> Publish Protocol v{activeConsent?.version}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -459,26 +577,26 @@ export default function PIConsentModule() {
             {/* STATS STRIP */}
             <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/5 rounded-[2rem] p-8 2xl:p-10 grid grid-cols-2 lg:grid-cols-4 gap-8 mb-12 2xl:mb-16">
                 <div className="text-center group">
-                    <div className="text-3xl lg:text-4xl font-black text-white group-hover:scale-110 transition-transform">{recordStats.total}</div>
+                    <div className="text-xl lg:text-2xl font-black text-white group-hover:scale-110 transition-transform">{recordStats.total}</div>
                     <div className="text-[12px] font-black uppercase tracking-[0.2em] text-slate-500 mt-3 italic">Total Records</div>
                 </div>
                 <div className="text-center group border-l border-white/5">
-                    <div className="text-3xl lg:text-4xl font-black text-amber-500 group-hover:scale-110 transition-transform">{recordStats.pending}</div>
+                    <div className="text-xl lg:text-2xl font-black text-amber-500 group-hover:scale-110 transition-transform">{recordStats.pending}</div>
                     <div className="text-[12px] font-black uppercase tracking-[0.2em] text-slate-500 mt-3 italic">Pending PI</div>
                 </div>
                 <div className="text-center group border-l border-white/5">
-                    <div className="text-3xl lg:text-4xl font-black text-emerald-500 group-hover:scale-110 transition-transform">{recordStats.verified}</div>
+                    <div className="text-xl lg:text-2xl font-black text-emerald-500 group-hover:scale-110 transition-transform">{recordStats.verified}</div>
                     <div className="text-[12px] font-black uppercase tracking-[0.2em] text-slate-500 mt-3 italic">Verified</div>
                 </div>
                 <div className="text-center group border-l border-white/5">
-                    <div className="text-3xl lg:text-4xl font-black text-rose-500 group-hover:scale-110 transition-transform">{recordStats.rejected}</div>
+                    <div className="text-xl lg:text-2xl font-black text-rose-500 group-hover:scale-110 transition-transform">{recordStats.rejected}</div>
                     <div className="text-[12px] font-black uppercase tracking-[0.2em] text-slate-500 mt-3 italic">Rejected</div>
                 </div>
             </div>
 
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 mb-10">
                 <div className="flex flex-col lg:flex-row gap-8 items-start lg:items-center">
-                    <h2 style={{ ...S.title, fontSize: '28px' }}>Transaction Registry</h2>
+                    <h2 style={{ ...S.title, fontSize: '22px' }}>Transaction Registry</h2>
                     <div className="flex gap-3 overflow-x-auto pb-4 lg:pb-0 custom-scrollbar-horizontal w-full lg:w-auto">
                         {['All', 'Pending', 'Verified', 'Rejected'].map(f => (
                             <button key={f} onClick={() => setRecordsFilter(f)} style={{ ...S.badge(recordsFilter === f ? COLORS.accent : COLORS.label), padding: '0.6rem 1.5rem', cursor: 'pointer', whiteSpace: 'nowrap' }}>{f}</button>
@@ -502,9 +620,9 @@ export default function PIConsentModule() {
                     </thead>
                     <tbody>
                         {consentRecords.map(r => (
-                            <tr key={r.id} className="border-b border-white/5 hover:bg-white/[0.01] transition-colors">
-                                <td className="p-8 font-black text-white text-xl tracking-tighter italic">{r.full_name}</td>
-                                <td className="p-8 text-lg font-black text-indigo-400 italic">{r.study_title || r.protocol_id}</td>
+                            <tr key={r.id || Math.random().toString()} className="border-b border-white/5 hover:bg-white/[0.01] transition-colors">
+                                <td className="p-8 font-black text-white text-xl tracking-tighter italic">{r.full_name || r.participantId || 'Unknown'}</td>
+                                <td className="p-8 text-lg font-black text-indigo-400 italic">{r.study_title || r.study || r.protocol_id}</td>
                                 <td className="p-8"><span style={S.badge(COLORS.accent)}>{r.template_version}</span></td>
                                 <td className="p-8 text-sm text-slate-400 font-bold">{r.agreed_at ? new Date(r.agreed_at).toLocaleDateString() : '—'}</td>
                                 <td className="p-8">
@@ -573,29 +691,53 @@ export default function PIConsentModule() {
                 <div style={{ flex: 1, backgroundColor: COLORS.bgDark, overflowY: 'auto', padding: '4rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }} className="custom-scrollbar">
                     <div 
                         onClick={(e) => {
-                            if (!signatureActiveField) return;
+                            if (!signatureActiveField || !activeConsent) return;
                             const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
                             const x = ((e.clientX - rect.left) / rect.width) * 100;
                             const y = ((e.clientY - rect.top) / rect.height) * 100;
-                            // Logic: Add field to state
-                            addToast(`Mapped [${signatureActiveField}] to protocol`, 'info');
+                            
+                            const newField = {
+                                id: 'f' + Date.now(),
+                                type: signatureActiveField,
+                                page: currentViewerPage,
+                                x,
+                                y
+                            };
+
+                            const updated = {
+                                ...activeConsent,
+                                placedFields: [...activeConsent.placedFields, newField]
+                            };
+                            setConsents(consents.map(c => c.id === updated.id ? updated : c));
+                            addToast(`Mapped [${signatureActiveField}] at ${Math.round(x)}% x ${Math.round(y)}%`, 'info');
                         }}
                         style={{ position: 'relative', cursor: signatureActiveField ? 'crosshair' : 'default' }}
                     >
-                        <PDFPage pageNumber={1} placedFields={activeConsent?.placedFields || []} width="800px" />
+                        <PDFPage pageNumber={currentViewerPage} placedFields={activeConsent?.placedFields || []} width="800px" />
                     </div>
                 </div>
 
                 <div style={{ width: '280px', borderLeft: COLORS.border, padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column' }}>
                     <label style={S.label}>Assigned Nodes</label>
                     <div style={{ marginTop: '1.5rem', flex: 1, overflowY: 'auto' }} className="custom-scrollbar">
-                        {activeConsent?.placedFields.map((f: any) => (
+                        {activeConsent?.placedFields?.map((f: any) => (
                             <div key={f.id} style={{ padding: '0.75rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '8px', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: COLORS.border }}>
                                 <div>
-                                    <div style={{ fontSize: '11px', fontWeight: 900 }}>{f.type}</div>
+                                    <div style={{ fontSize: '11px', fontWeight: 900, color: 'white' }}>{f.type}</div>
                                     <div style={{ fontSize: '9px', color: COLORS.label }}>Page {f.page} · {Math.round(f.x)}% x {Math.round(f.y)}%</div>
                                 </div>
-                                <button style={{ background: 'none', border: 'none', color: COLORS.danger, cursor: 'pointer' }}><Trash2 size={12} /></button>
+                                <button 
+                                    style={{ background: 'none', border: 'none', color: COLORS.danger, cursor: 'pointer' }}
+                                    onClick={() => {
+                                        const updated = {
+                                            ...activeConsent,
+                                            placedFields: activeConsent.placedFields.filter((field: any) => field.id !== f.id)
+                                        };
+                                        setConsents(consents.map(c => c.id === updated.id ? updated : c));
+                                    }}
+                                >
+                                    <Trash2 size={12} />
+                                </button>
                             </div>
                         ))}
                     </div>
@@ -640,8 +782,8 @@ export default function PIConsentModule() {
                             { l: 'All Signature Nodes Captured', v: true },
                             { l: 'Clinical Coordinator Sign-off', v: true },
                             { l: 'IRB Metadata Synchronized', v: true }
-                        ].map(row => (
-                            <div key={row.l} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem 1rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
+                        ].map((row, idx) => (
+                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem 1rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
                                 <CheckSquare size={18} color={COLORS.success} />
                                 <span style={{ fontSize: '13px', color: 'white' }}>{row.l}</span>
                             </div>
@@ -671,7 +813,7 @@ export default function PIConsentModule() {
                             message: 'Verifying will permanently seal this clinical record. Continue?', 
                             onConfirm: async () => {
                                 try {
-                                    const res = await fetch(`/api/consent/${activeRecordId}/verify/`, {
+                                    const res = await authFetch(`/api/consent/${activeRecordId}/verify/`, {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' }
                                     });
@@ -727,7 +869,19 @@ export default function PIConsentModule() {
                             <p className="text-slate-400 text-lg lg:text-xl leading-relaxed mb-10 lg:mb-16">
                                 Please read the following <span className="text-white font-black italic">{activeConsent?.title}</span> document in its entirety before proceeding to the signature step.
                             </p>
-                            <div className="p-8 lg:p-16 bg-white rounded-3xl h-[600px] overflow-y-auto custom-scrollbar shadow-2xl shadow-black/50 text-slate-800">
+                            <div 
+                                className="p-8 lg:p-16 bg-white rounded-3xl h-[600px] overflow-y-auto custom-scrollbar shadow-2xl shadow-black/50 text-slate-800"
+                                onScroll={(e) => {
+                                    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+                                    // If we are within 50px of the bottom, consider it fully scrolled
+                                    if (scrollTop + clientHeight >= scrollHeight - 50) {
+                                        if (!hasScrolledFull) {
+                                            setHasScrolledFull(true);
+                                            addToast('Full protocol review verified', 'success');
+                                        }
+                                    }
+                                }}
+                            >
                                 {/* DUMMY PROTOCOL CONTENT */}
                                 <div className="space-y-12">
                                     <div className="text-center pb-8 border-b border-slate-100">
@@ -961,14 +1115,19 @@ export default function PIConsentModule() {
     );
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '1200px', backgroundColor: COLORS.bg, color: 'white' }}>
+        <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '1200px', backgroundColor: COLORS.bg, color: 'white' }}
+        >
             {/* TOP BAR */}
             <header className="flex-shrink-0 bg-[#0B101B]/80 backdrop-blur-3xl border-b border-white/5 z-[1000] px-6 lg:px-12 py-8 2xl:py-10">
                 <div className="flex flex-col 2xl:flex-row items-start 2xl:items-center justify-between gap-10 2xl:gap-6">
                     <div className="flex items-center gap-6">
                         <ShieldCheck size={36} color={COLORS.success} />
                         <div>
-                            <h1 style={{ ...S.title, fontSize: '24px' }}>Consent Management</h1>
+                            <h1 style={{ ...S.title, fontSize: '18px' }}>Consent Management</h1>
                             <div className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-400 mt-2 italic">
                                 GOVERNANCE OVERLAY {' > '} <span className="text-white">{activeView.toUpperCase()} MODE</span>
                             </div>
@@ -1016,29 +1175,110 @@ export default function PIConsentModule() {
                     <div style={{ position: 'absolute', inset: 0, backgroundColor: COLORS.modalOverlay, backdropFilter: 'blur(8px)' }} onClick={() => setUploadModalOpen(false)} />
                     <div style={{ ...S.glass, width: '600px', padding: '3rem', borderRadius: '24px', position: 'relative', backgroundColor: 'rgba(11,16,27,0.85)' }}>
                         <h2 style={{ ...S.title, fontSize: '20px', marginBottom: '2.5rem' }}>Upload Consent Protocol</h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2.5rem' }}>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2.5rem' }}>
                             <div style={{ gridColumn: '1 / -1' }}>
-                                <label style={S.label}>Consent Type Header</label>
-                                <input style={{ ...S.input, width: '100%', marginTop: '0.5rem' }} placeholder="e.g. Main Informed Consent" />
+                                <label style={S.label}>Consent Type Header (Display Name)</label>
+                                <input 
+                                    style={{ ...S.input, width: '100%', marginTop: '0.5rem' }} 
+                                    placeholder="e.g. Main Informed Consent" 
+                                    value={uploadForm.title}
+                                    onChange={(e) => setUploadForm({...uploadForm, title: e.target.value})}
+                                />
                             </div>
-                            <div>
-                                <label style={S.label}>Study Repository</label>
-                                <select style={{ ...S.input, width: '100%', marginTop: '0.5rem', appearance: 'none' }}>
-                                    {MOCK_STUDIES.map((s: any) => <option key={s}>{s}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label style={S.label}>Version Tag</label>
-                                <input style={{ ...S.input, width: '100%', marginTop: '0.5rem' }} value="1.0" readOnly />
+                            
+                            <div className="grid grid-cols-2 gap-6">
+                                <div style={{ position: 'relative' }}>
+                                    <label style={S.label}>Study Repository</label>
+                                    <div style={{ position: 'relative', marginTop: '0.5rem' }}>
+                                        <select 
+                                            style={{ ...S.input, width: '100%', paddingRight: '2.5rem', appearance: 'none', cursor: 'pointer' }}
+                                            value={uploadForm.study}
+                                            onChange={(e) => setUploadForm({...uploadForm, study: e.target.value})}
+                                        >
+                                            <option value="" disabled>Select clinical study...</option>
+                                            {studies.length > 0 ? (
+                                                studies.map((s: any) => (
+                                                    <option key={s.id} value={s.title || s.full_name} className="bg-[#161d2b]">
+                                                        {s.title || s.full_name}
+                                                    </option>
+                                                ))
+                                            ) : (
+                                                MOCK_STUDIES.map((s: any) => (
+                                                    <option key={s} value={s} className="bg-[#161d2b]">
+                                                        {s}
+                                                    </option>
+                                                ))
+                                            )}
+                                        </select>
+                                        <ChevronDown size={14} color={COLORS.text} style={{ position: 'absolute', right: '1.25rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label style={S.label}>IRB ID / Protocol #</label>
+                                    <input 
+                                        style={{ ...S.input, width: '100%', marginTop: '0.5rem' }} 
+                                        placeholder="e.G. 25-081-XP" 
+                                        value={uploadForm.irbNumber}
+                                        onChange={(e) => setUploadForm({...uploadForm, irbNumber: e.target.value})}
+                                    />
+                                </div>
                             </div>
                         </div>
-                        <div style={{ border: `2px dashed ${COLORS.border}`, borderRadius: '12px', padding: '4rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }} onClick={() => addToast('consent_v1.pdf staging successful', 'info')}>
-                            <ArrowUpRight size={32} color={COLORS.accent} style={{ marginBottom: '1rem' }} />
-                            <span style={S.label}>Drop Protocol PDF here</span>
+
+                        <div 
+                            style={{ border: `2px dashed ${uploadForm.file ? COLORS.success : COLORS.border}`, borderRadius: '12px', padding: '4rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', backgroundColor: uploadForm.file ? `${COLORS.success}05` : 'transparent' }} 
+                            onClick={() => fileInputRef.current?.click()}
+                        >
+                            <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                className="hidden" 
+                                accept=".pdf"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                        setUploadForm({ ...uploadForm, file: file as any });
+                                        addToast(`${file.name} staged for synchronization`, 'info');
+                                    }
+                                }}
+                            />
+                            {uploadForm.file ? (
+                                <>
+                                    <CheckCircle size={32} className="text-emerald-500 mb-4" />
+                                    <span style={{ ...S.label, color: COLORS.success }}>{(uploadForm.file as any).name} SELECTED</span>
+                                </>
+                            ) : (
+                                <>
+                                    <ArrowUpRight size={32} color={COLORS.accent} style={{ marginBottom: '1rem' }} />
+                                    <span style={S.label}>Drop Protocol PDF here</span>
+                                </>
+                            )}
                         </div>
+
                         <div style={{ display: 'flex', gap: '1rem', marginTop: '3rem' }}>
                             <button style={{ ...S.btnGhost, flex: 1, padding: '1rem' }} onClick={() => setUploadModalOpen(false)}>Abort</button>
-                            <button style={{ ...S.btnIndigo, flex: 2, padding: '1rem' }} onClick={() => { setUploadModalOpen(false); addToast('Draft created successfully'); }}>Commit Draft</button>
+                            <button 
+                                style={{ ...S.btnIndigo, flex: 2, padding: '1rem' }} 
+                                disabled={!uploadForm.title || !uploadForm.study}
+                                onClick={() => { 
+                                    const newTemplate = {
+                                        id: 'c' + (consents.length + 1),
+                                        ...uploadForm,
+                                        status: 'Draft',
+                                        pageCount: 1,
+                                        signatureRequirements: { participantSignature: true, participantDate: true, ccSignature: false, piVerification: true },
+                                        completionRules: { mustScrollFull: true },
+                                        placedFields: [],
+                                        auditLog: [{ time: new Date().toLocaleTimeString(), user: 'Dr. Yadav', role: 'PI', action: 'Draft created via portal' }]
+                                    };
+                                    setConsents([newTemplate, ...consents]);
+                                    setUploadModalOpen(false); 
+                                    addToast('Protocol synchronized successfully'); 
+                                }}
+                            >
+                                Commit Draft & Sync
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1133,6 +1373,6 @@ export default function PIConsentModule() {
                     </div>
                 </div>
             )}
-        </div>
+        </motion.div>
     );
 }

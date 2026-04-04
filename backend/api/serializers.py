@@ -5,8 +5,9 @@ from .models import (
     Compensation, LabResult, DataAuditLog, InterventionArm,
     News, Event, FacilityInquiry, Candidate, NewsletterSubscriber,
     BookletDownloadRequest, Partnership, Publication, EducationMaterial,
-    StudyInquiry, ClinicalConversation, ClinicalMessage,
-    DosingLog, AEReport, Document
+    StudyInquiry, ClinicalConversation, ClinicalMessage, Kit,
+    DosingLog, AEReport, Document, Notification, ProgressReport,
+    StudyActionRequest
 )
 from authentication.models import User
 from authentication.security import decrypt_data
@@ -79,6 +80,7 @@ class UserSerializer(SanitizedModelSerializer):
     full_name = serializers.CharField()
     phone_number = serializers.SerializerMethodField()
     last_login_formatted = serializers.SerializerMethodField()
+    date_joined_formatted = serializers.SerializerMethodField()
     password = serializers.CharField(write_only=True, required=False)
     
     mobile_number = serializers.SerializerMethodField()
@@ -91,7 +93,7 @@ class UserSerializer(SanitizedModelSerializer):
         model = User
         fields = [
             'id', 'email', 'full_name', 'role', 'phone_number', 'mobile_number',
-            'profile_picture', 'password', 'last_login_formatted',
+            'profile_picture', 'password', 'last_login_formatted', 'date_joined_formatted',
             'full_address', 'city', 'state', 'zip_code', 'country', 'place_of_origin',
             'must_change_password', 'profile_completed', 'is_active'
         ]
@@ -135,6 +137,11 @@ class UserSerializer(SanitizedModelSerializer):
         if seconds < 3600:
             return f"{seconds // 60}m ago"
         return f"{seconds // 3600}h ago"
+    
+    def get_date_joined_formatted(self, obj):
+        if not obj.date_joined:
+            return "N/A"
+        return obj.date_joined.strftime('%b %d, %Y %H:%M')
 
     def create(self, validated_data):
         password = validated_data.pop('password', None)
@@ -214,36 +221,22 @@ class StudyAssignmentSerializer(SanitizedModelSerializer):
         model = StudyAssignment
         fields = ['id', 'study', 'user', 'user_id', 'role', 'date_assigned']
 
-class ParticipantSerializer(SanitizedModelSerializer):
+class VisitSerializer(SanitizedModelSerializer):
     id = serializers.CharField(read_only=True)
-    gender = serializers.SerializerMethodField()
-    user_details = UserSerializer(source='user', read_only=True)
-    
+    notes = serializers.SerializerMethodField()
     class Meta:
-        model = Participant
-        fields = ['id', 'study', 'user', 'user_details', 'participant_sid', 'status', 'gender', 'dob', 'assigned_arm', 'is_locked', 'completion_date', 'created_at']
+        model = Visit
+        fields = [
+            'id', 'participant', 'visit_type', 'scheduled_date', 'actual_date', 
+            'status', 'notes', 'location', 'checklist', 'assessments', 
+            'measurements', 'deviations', 'samples', 'dispensing', 
+            'pi_approved', 'locked'
+        ]
 
-    def get_gender(self, obj):
-        return obj.decrypted_gender
+    def get_notes(self, obj):
+        return obj.decrypted_notes
 
-class DeIdentifiedParticipantSerializer(SanitizedModelSerializer):
-    """Restricted view for Sponsors (No PII)"""
-    id = serializers.CharField(read_only=True)
-    age = serializers.SerializerMethodField()
-    gender = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Participant
-        fields = ['id', 'study', 'participant_sid', 'status', 'gender', 'age', 'assigned_arm', 'completion_date']
 
-    def get_gender(self, obj):
-        return obj.decrypted_gender
-
-    def get_age(self, obj):
-        if not obj.dob: return None
-        from datetime import date
-        today = date.today()
-        return today.year - obj.dob.year - ((today.month, today.day) < (obj.dob.month, obj.dob.day))
 
 class LeadSerializer(SanitizedModelSerializer):
     class Meta:
@@ -260,10 +253,6 @@ class CompensationSerializer(SanitizedModelSerializer):
         model = Compensation
         fields = '__all__'
 
-class LabResultSerializer(SanitizedModelSerializer):
-    class Meta:
-        model = LabResult
-        fields = '__all__'
 
 class DataAuditLogSerializer(SanitizedModelSerializer):
     user_email = serializers.EmailField(source='user.email', read_only=True)
@@ -271,15 +260,6 @@ class DataAuditLogSerializer(SanitizedModelSerializer):
         model = DataAuditLog
         fields = '__all__'
 
-class VisitSerializer(SanitizedModelSerializer):
-    id = serializers.CharField(read_only=True)
-    notes = serializers.SerializerMethodField()
-    class Meta:
-        model = Visit
-        fields = ['id', 'participant', 'visit_type', 'scheduled_date', 'actual_date', 'status', 'notes', 'measurements']
-
-    def get_notes(self, obj):
-        return obj.decrypted_notes
 
 class KitSerializer(SanitizedModelSerializer):
     id = serializers.CharField(read_only=True)
@@ -335,6 +315,19 @@ class ConsentTemplateSerializer(SanitizedModelSerializer):
     id = ObjectIdField(read_only=True)
     file_url = serializers.SerializerMethodField()
     
+    # Nested UI Objects
+    signatureRequirements = serializers.SerializerMethodField()
+    completionRules = serializers.SerializerMethodField()
+    
+    # CamelCase Aliases for UI Compatibility
+    placedFields = serializers.JSONField(source='placed_fields', required=False)
+    irbNumber = serializers.CharField(source='irb_number', required=False, allow_blank=True)
+    irbApprovalDate = serializers.DateField(source='irb_approval_date', required=False, allow_null=True)
+    effectiveDate = serializers.DateField(source='effective_date', required=False, allow_null=True)
+    expirationDate = serializers.DateField(source='expiration_date', required=False, allow_null=True)
+    pageCount = serializers.IntegerField(source='page_count', default=1)
+    shortName = serializers.SerializerMethodField()
+
     class Meta:
         model = ConsentTemplate
         fields = '__all__'
@@ -344,6 +337,31 @@ class ConsentTemplateSerializer(SanitizedModelSerializer):
         request = self.context.get('request')
         if request: return request.build_absolute_uri(obj.file.url)
         return obj.file.url
+
+    def get_shortName(self, obj):
+        return obj.title[:10]
+
+    def get_signatureRequirements(self, obj):
+        return {
+            'participantSignature': obj.require_participant_sig,
+            'participantDate': True,
+            'larSignature': obj.require_lar,
+            'witnessSignature': obj.require_witness,
+            'ccSignature': obj.require_cc_verification,
+            'piVerification': obj.require_pi_signoff,
+            'initialEachPage': obj.require_initials_on_pages,
+            'initialKeySections': obj.require_initial_sections
+        }
+
+    def get_completionRules(self, obj):
+        return {
+            'mustScrollFull': obj.must_scroll_full,
+            'mustAnswerComprehension': obj.must_answer_quiz,
+            'mustCheckAgreements': True,
+            'allowRemote': True,
+            'allowInPerson': True,
+            'requireCCBeforePI': True
+        }
 
 class ConsentSerializer(SanitizedModelSerializer):
     id = ObjectIdField(read_only=True)
@@ -363,6 +381,12 @@ class ConsentSerializer(SanitizedModelSerializer):
             'agreed_at', 'signed_pdf', 'is_valid', 'audit_trail'
         ]
         read_only_fields = ['agreed_at', 'ip_address', 'signed_pdf']
+
+class LabResultSerializer(SanitizedModelSerializer):
+    class Meta:
+        model = LabResult
+        fields = '__all__'
+
 
 class NewsSerializer(SanitizedModelSerializer):
     id = serializers.CharField(read_only=True)
@@ -483,3 +507,83 @@ class AEReportSerializer(SanitizedModelSerializer):
         model = AEReport
         fields = '__all__'
         read_only_fields = ['participant']
+
+class ParticipantSerializer(SanitizedModelSerializer):
+    id = serializers.CharField(read_only=True)
+    gender = serializers.SerializerMethodField()
+    user_details = UserSerializer(source='user', read_only=True)
+    study_name = serializers.CharField(source='study.title', read_only=True)
+    protocol_id = serializers.CharField(source='study.protocol_id', read_only=True)
+    coordinator_name = serializers.CharField(source='study.coordinator.decrypted_name', read_only=True, allow_null=True)
+    visits = VisitSerializer(many=True, read_only=True)
+    ae_reports = AEReportSerializer(many=True, read_only=True)
+    lab_results = LabResultSerializer(many=True, read_only=True)
+    consent_records = ConsentSerializer(many=True, read_only=True)
+    age = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Participant
+        fields = [
+            'id', 'study', 'study_name', 'protocol_id', 'user', 'user_details', 
+            'participant_sid', 'status', 'gender', 'dob', 'age', 'assigned_arm', 
+            'is_locked', 'completion_date', 'created_at', 'coordinator_name', 
+            'visits', 'ae_reports', 'lab_results', 'consent_records'
+        ]
+
+    def get_gender(self, obj):
+        return obj.decrypted_gender
+
+    def get_age(self, obj):
+        if not obj.dob: return None
+        from datetime import date
+        today = date.today()
+        return today.year - obj.dob.year - ((today.month, today.day) < (obj.dob.month, self.safe_day(obj)))
+    
+    # Helper to avoid issues with leap years or missing days
+    def safe_day(self, obj):
+        return obj.dob.day if obj.dob else 1
+
+class DeIdentifiedParticipantSerializer(SanitizedModelSerializer):
+    """Restricted view for Sponsors (No PII)"""
+    id = serializers.CharField(read_only=True)
+    age = serializers.SerializerMethodField()
+    gender = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Participant
+        fields = ['id', 'study', 'participant_sid', 'status', 'gender', 'age', 'assigned_arm', 'completion_date']
+
+    def get_gender(self, obj):
+        return obj.decrypted_gender
+
+    def get_age(self, obj):
+        if not obj.dob: return None
+        from datetime import date
+        today = date.today()
+        return today.year - obj.dob.year - ((today.month, today.day) < (obj.dob.month, obj.dob.day))
+
+class NotificationSerializer(SanitizedModelSerializer):
+    id = ObjectIdField(read_only=True)
+    class Meta:
+        model = Notification
+        fields = '__all__'
+
+class ProgressReportSerializer(SanitizedModelSerializer):
+    id = ObjectIdField(read_only=True)
+    study_protocol = serializers.CharField(source='study.protocol_id', read_only=True)
+    report_type_display = serializers.CharField(source='get_report_type_display', read_only=True)
+    class Meta:
+        model = ProgressReport
+        fields = ['id', 'study', 'study_protocol', 'name', 'report_type', 'report_type_display', 'report_date', 'file', 'status', 'created_at']
+class StudyActionRequestSerializer(SanitizedModelSerializer):
+    participant_id = ObjectIdField(read_only=True, source='participant.id')
+    study_id = ObjectIdField(read_only=True, source='study.id')
+    study_title = serializers.CharField(read_only=True, source='study.title')
+    created_at_formatted = serializers.DateTimeField(source='created_at', format="%b %d, %Y %H:%M", read_only=True)
+
+    class Meta:
+        model = StudyActionRequest
+        fields = [
+            'id', 'participant_id', 'study_id', 'study_title', 'request_type', 
+            'status', 'created_at', 'created_at_formatted', 'updated_at', 'notes'
+        ]

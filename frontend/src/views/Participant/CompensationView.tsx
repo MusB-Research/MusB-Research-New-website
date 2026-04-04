@@ -6,17 +6,37 @@ import {
 } from 'lucide-react';
 import { Card, Badge, ProgressBar } from './SharedComponents';
 
-const CompensationView = ({ study }: any) => {
-    const totalEarned = 1450;
-    const pendingPayment = 250;
+const CompensationView = ({ study, compensations = [], onAction }: any) => {
+    const handleAction = (type: string) => {
+        if (onAction) {
+            onAction(type);
+        } else {
+            alert(`Your request for "${type}" has been received. Our clinical finance team will contact you shortly.`);
+        }
+    };
+
+    const totalEarned = React.useMemo(() => {
+        return compensations
+            .filter((c: any) => c.status === 'PAID')
+            .reduce((sum: number, c: any) => sum + parseFloat(c.amount || 0), 0);
+    }, [compensations]);
+
+    const pendingPayment = React.useMemo(() => {
+        return compensations
+            .filter((c: any) => c.status === 'PENDING')
+            .reduce((sum: number, c: any) => sum + parseFloat(c.amount || 0), 0);
+    }, [compensations]);
+
     const progressToNextMilestone = 75;
 
-    const history = [
-        { id: 1, type: 'Milestone', desc: 'Baseline Visit Completion', amount: 500, date: 'Mar 05, 2026', status: 'PAID' },
-        { id: 2, type: 'Incentive', desc: '14-Day Perfect Adherence Bonus', amount: 100, date: 'Mar 19, 2026', status: 'PAID' },
-        { id: 3, type: 'Visit', desc: 'Week 2 Assessment', amount: 250, date: 'Mar 20, 2026', status: 'PAID' },
-        { id: 4, type: 'Milestone', desc: 'Month 1 Sample Submission', amount: 250, date: 'Apr 05, 2026', status: 'PENDING' },
-    ];
+    const history = compensations.map((c: any) => ({
+        id: c.id,
+        type: c.compensation_type || 'Milestone',
+        desc: c.description || 'Visit Assessment',
+        amount: parseFloat(c.amount || 0),
+        date: new Date(c.paid_at || c.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+        status: (c.status || 'PENDING').toUpperCase()
+    }));
 
     return (
         <div className="flex flex-col gap-10 max-w-[1500px] animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -34,11 +54,11 @@ const CompensationView = ({ study }: any) => {
                                 <ChevronRight className="w-3 h-3" />
                                 <span className="text-white">Active Participation</span>
                             </div>
-                            <h2 className="text-4xl lg:text-6xl font-black italic tracking-tighter text-white uppercase leading-none">Your Clinical<br />Rewards Hub</h2>
+                            <h2 className="text-2xl lg:text-3xl font-black italic tracking-tighter text-white uppercase leading-none">Your Clinical<br />Rewards Hub</h2>
                         </div>
                         <div className="flex flex-col items-end">
-                            <span className="text-[12px] font-black text-[#00e676] uppercase tracking-[0.3em] mb-1 italic">Total Lifetime Earned</span>
-                            <span className="text-5xl lg:text-7xl font-black italic tracking-tighter text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">${totalEarned}</span>
+                            <span className="text-[11px] font-black text-[#00e676] uppercase tracking-[0.3em] mb-1 italic">Total Lifetime Earned</span>
+                            <span className="text-4xl lg:text-5xl font-black italic tracking-tighter text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">${totalEarned.toFixed(2)}</span>
                         </div>
                     </div>
 
@@ -48,8 +68,8 @@ const CompensationView = ({ study }: any) => {
                                 <TrendingUp className="w-3.5 h-3.5 text-[#00e676]" /> Pending Clinical Payout
                             </h4>
                             <div className="flex items-center justify-between">
-                                <span className="text-3xl font-black text-white italic tracking-tighter">${pendingPayment}</span>
-                                <Badge color="indigo">Scheduled: April 05</Badge>
+                                <span className="text-3xl font-black text-white italic tracking-tighter">${pendingPayment.toFixed(2)}</span>
+                                <Badge color="indigo">Scheduled: TBD</Badge>
                             </div>
                         </div>
                         <div className="p-8 bg-white/[0.03] border border-white/10 rounded-[2rem] hover:bg-white/[0.05] transition-all">
@@ -61,7 +81,12 @@ const CompensationView = ({ study }: any) => {
                                     <div className="p-2 bg-white/10 rounded-lg text-white"><CreditCard className="w-4 h-4" /></div>
                                     <span className="text-sm font-bold text-white uppercase tracking-widest italic">Bank Account (***9203)</span>
                                 </div>
-                                <button className="text-[12px] font-black text-cyan-400 hover:text-white transition-all uppercase underline underline-offset-4">Change</button>
+                                <button 
+                                    onClick={() => handleAction('Change Disbursement Method')}
+                                    className="text-[12px] font-black text-cyan-400 hover:text-white transition-all uppercase underline underline-offset-4"
+                                >
+                                    Change
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -70,14 +95,17 @@ const CompensationView = ({ study }: any) => {
                         <div className="flex items-center gap-3 text-sm font-black text-slate-500 uppercase tracking-widest italic">
                             <span className="w-2 h-2 rounded-full bg-[#00e676] animate-pulse" /> Financial Vault Secure
                         </div>
-                        <button className="text-sm font-black text-cyan-400 hover:text-white transition-all flex items-center gap-2 uppercase tracking-widest italic">
+                        <button 
+                            onClick={() => handleAction('Request Financial Statement')}
+                            className="text-sm font-black text-cyan-400 hover:text-white transition-all flex items-center gap-2 uppercase tracking-widest italic"
+                        >
                             REQUEST STATEMENT <ArrowRight className="w-4 h-4" />
                         </button>
                     </div>
                 </Card>
 
                 {/* Next Milestone Sidebar */}
-                <Card className="lg:col-span-4 p-12 bg-indigo-600 border-indigo-400/30 shadow-[0_20px_50px_rgba(79,70,229,0.3)] relative overflow-hidden group">
+                <Card className="lg:col-span-4 p-12 bg-gradient-to-br from-indigo-950 to-slate-900 border-white/5 shadow-2xl relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none group-hover:scale-110 transition-transform">
                         <Trophy className="w-48 h-48 text-white" />
                     </div>
@@ -98,17 +126,17 @@ const CompensationView = ({ study }: any) => {
                                     <motion.div
                                         initial={{ width: 0 }}
                                         animate={{ width: `${progressToNextMilestone}%` }}
-                                        className="h-full bg-white shadow-[0_0_15px_rgba(255,255,255,0.6)]"
+                                        className="h-full bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.6)]"
                                         transition={{ duration: 2, ease: "easeOut" }}
                                     />
                                 </div>
                             </div>
-                            <div className="bg-white/10 p-6 rounded-2xl border border-white/10 flex items-center justify-between">
+                            <div className="bg-cyan-500/10 p-6 rounded-2xl border border-cyan-500/20 flex items-center justify-between">
                                 <div>
-                                    <p className="text-[11px] font-black text-indigo-200 uppercase tracking-widest mb-1">Bonus Reward</p>
+                                    <p className="text-[11px] font-black text-cyan-200 uppercase tracking-widest mb-1">Bonus Reward</p>
                                     <p className="text-2xl font-black text-white italic tracking-tighter">$250.00</p>
                                 </div>
-                                <div className="w-10 h-10 bg-white text-indigo-600 rounded-xl flex items-center justify-center shadow-lg"><Trophy className="w-5 h-5" /></div>
+                                <div className="w-10 h-10 bg-cyan-500 text-slate-950 rounded-xl flex items-center justify-center shadow-lg"><Trophy className="w-5 h-5" /></div>
                             </div>
                         </div>
                     </div>
@@ -138,7 +166,7 @@ const CompensationView = ({ study }: any) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {history.map((row, i) => (
+                            {history.length > 0 ? history.map((row: any, i: number) => (
                                 <tr key={row.id} className="hover:bg-white/[0.01] transition-colors group">
                                     <td className="p-6 px-10">
                                         <div className="flex items-center gap-4">
@@ -153,7 +181,17 @@ const CompensationView = ({ study }: any) => {
                                     <td className="p-6 text-base font-black text-white italic tracking-tighter">${row.amount.toFixed(2)}</td>
                                     <td className="p-6"><Badge color={row.status === 'PAID' ? 'green' : 'amber'}>{row.status}</Badge></td>
                                 </tr>
-                            ))}
+                            )) : (
+                                <tr>
+                                    <td colSpan={5} className="p-20 text-center">
+                                        <div className="flex flex-col items-center gap-4 opacity-30">
+                                            <History className="w-12 h-12 text-slate-500 mb-2" />
+                                            <p className="text-sm font-black text-slate-500 uppercase tracking-[0.2em] italic">No Transactions Authenticated Yet</p>
+                                            <p className="text-[11px] font-bold text-slate-600 uppercase tracking-widest max-w-[300px]">Clinical rewards are disbursed upon protocol verification. Complete your next task to trigger a payment cycle.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

@@ -276,8 +276,8 @@ const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; on
             {/* ──────────────── HEADER ──────────────── */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
-                    <h2 className="text-4xl font-black italic tracking-tighter text-white uppercase italic mb-2">My Tasks</h2>
-                    <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">View your study schedule, complete tasks on time, and track your progress.</p>
+                    <h2 className="text-2xl font-black italic tracking-tighter text-white uppercase italic mb-1.5">My Tasks</h2>
+                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">View your study schedule, complete tasks on time, and track your progress.</p>
                 </div>
                 <div className="flex bg-white/5 rounded-2xl p-1 border border-white/5">
                     <button 
@@ -299,15 +299,15 @@ const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; on
             <Card className="p-8 border-l-4 border-l-cyan-500">
                 <div className="flex flex-col md:flex-row justify-between gap-8 mb-8">
                     <div>
-                        <h4 className="text-lg font-black text-white italic uppercase mb-1">Study Progress</h4>
+                        <h4 className="text-[13px] font-black text-white italic uppercase mb-1">Study Progress</h4>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-black text-cyan-400 italic leading-none">{stats.completed}</span>
-                            <span className="text-slate-500 font-bold uppercase text-sm">of {stats.total} tasks completed</span>
+                            <span className="text-2xl font-black text-cyan-400 italic leading-none">{stats.completed}</span>
+                            <span className="text-slate-500 font-bold uppercase text-[11px]">of {stats.total} tasks completed</span>
                         </div>
                     </div>
                     <div className="text-right">
-                        <span className="text-4xl font-black text-white italic leading-none">{stats.percent}%</span>
-                        <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest mt-1">TOTAL MISSION PROGRESS</p>
+                        <span className="text-3xl font-black text-white italic leading-none">{stats.percent}%</span>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1">TOTAL MISSION PROGRESS</p>
                     </div>
                 </div>
                 
@@ -375,9 +375,9 @@ const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; on
                                         V{idx + 1}
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none">{visit.name}</h3>
-                                        <div className="flex items-center gap-4 mt-1">
-                                            <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest leading-none">
+                                        <h3 className="text-lg font-black text-white italic uppercase tracking-tighter leading-none">{visit.name}</h3>
+                                        <div className="flex items-center gap-4 mt-1.5">
+                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">
                                                 {visit.completed} of {visit.total} tasks completed
                                             </span>
                                             <div className="w-32">
@@ -424,10 +424,10 @@ const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; on
                                                                 {/* Card Top */}
                                                                 <div className="flex justify-between items-start">
                                                                     <div>
-                                                                        <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest block mb-1">
+                                                                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-1">
                                                                             {task.task_details?.task_type || 'RESEARCH TASK'} | {task.estimated_time || '15 min'}
                                                                         </span>
-                                                                        <h5 className="text-lg font-black text-white italic uppercase tracking-tight group-hover:text-cyan-400 transition-colors">
+                                                                        <h5 className="text-[15px] font-black text-white italic uppercase tracking-tight group-hover:text-cyan-400 transition-colors">
                                                                             {task.title}
                                                                         </h5>
                                                                     </div>

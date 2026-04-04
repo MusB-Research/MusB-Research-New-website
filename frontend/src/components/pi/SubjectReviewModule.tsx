@@ -111,7 +111,7 @@ export default function SubjectReviewModule() {
                     </div>
                     <div>
                         <div className="flex flex-wrap items-center gap-3">
-                            <h2 className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter">{participant.id}</h2>
+                            <h2 className="text-xl lg:text-2xl font-black text-white italic uppercase tracking-tighter">{participant.id}</h2>
                             <span className={`px-3 lg:px-4 py-1 rounded-full text-[9px] lg:text-[10px] font-black uppercase tracking-widest border transition-all ${
                                 status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
                                 status === 'Screening' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 
@@ -171,7 +171,7 @@ export default function SubjectReviewModule() {
                                                     key={s}
                                                     onClick={() => { setActiveSection(s); setIsSectionSelectorOpen(false); }}
                                                     className={`w-full px-6 py-4 rounded-xl text-left text-[10px] font-black uppercase tracking-widest transition-all ${
-                                                        activeSection === s ? 'bg-indigo-600/10 text-indigo-400 font-black' : 'text-slate-500 hover:bg-white/5 hover:text-white'
+                                                        activeSection === s ? 'bg-indigo-500/10 text-indigo-300 font-black' : 'text-slate-500 hover:bg-white/5 hover:text-white'
                                                     }`}
                                                 >
                                                     {s}
@@ -191,7 +191,7 @@ export default function SubjectReviewModule() {
                                     key={s}
                                     onClick={() => setActiveSection(s)}
                                     className={`px-4 lg:px-6 py-2 rounded-lg lg:rounded-xl text-[9px] lg:text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
-                                        activeSection === s ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'
+                                        activeSection === s ? 'bg-indigo-700 text-white shadow-lg shadow-indigo-700/20' : 'text-slate-500 hover:text-white'
                                     }`}
                                 >
                                     {s}
@@ -251,13 +251,13 @@ export default function SubjectReviewModule() {
                                             </div>
                                             <div>
                                                 <p className="text-[9px] text-slate-600 font-extrabold uppercase tracking-widest italic">{card.label}</p>
-                                                <p className="text-xl font-black text-white italic truncate mt-1">{card.val}</p>
+                                                <p className="text-base font-black text-white italic truncate mt-1">{card.val}</p>
                                             </div>
                                         </div>
                                     ))}
                                     <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-indigo-500/5 border border-indigo-500/10 rounded-[2.5rem] p-8 flex items-center justify-between">
                                         <div className="flex items-center gap-6">
-                                            <div className="w-14 h-14 rounded-full bg-indigo-600/10 flex items-center justify-center border border-indigo-500/20 text-indigo-400">
+                                            <div className="w-14 h-14 rounded-full bg-indigo-900/40 flex items-center justify-center border border-indigo-500/20 text-indigo-300">
                                                 <Activity className="w-6 h-6" />
                                             </div>
                                             <div>
@@ -362,7 +362,7 @@ export default function SubjectReviewModule() {
                                         <div className="flex flex-col gap-6">
                                             <div className="p-8 bg-indigo-600/10 border border-indigo-500/20 rounded-[2.5rem] flex-1 flex flex-col justify-center">
                                                 <p className="text-[9px] text-indigo-400 font-black uppercase tracking-[0.3em] italic mb-2 underline decoration-indigo-800 underline-offset-4">Endpoint Performance</p>
-                                                <h3 className="text-5xl font-black text-white italic uppercase tracking-tighter leading-none">55<span className="text-indigo-500">%</span></h3>
+                                                <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">55<span className="text-indigo-500">%</span></h3>
                                                 <p className="text-[10px] text-slate-500 font-extrabold uppercase tracking-widest mt-4">Average improvement in reported GI distress markers vs cohort baseline</p>
                                             </div>
                                             <div className="p-8 bg-white/5 border border-white/5 rounded-[2.5rem] flex-1">

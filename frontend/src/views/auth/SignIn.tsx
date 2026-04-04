@@ -215,7 +215,7 @@ export default function SignIn() {
                  throw new Error('RESTRICTED_ACCESS: Super Admin accounts must use the Restricted Portal for login.');
             }
 
-            saveToken(data.access, userRole);
+            saveToken(data.access, userRole, undefined, data.refresh);
             saveUser(data.user);
 
             if (data.user.must_reset) {
@@ -229,8 +229,8 @@ export default function SignIn() {
 
             const role = data.user.role;
             switch (role) {
-                case 'ADMIN':
-                case 'COORDINATOR': navigate('/dashboard/admin'); break;
+                case 'ADMIN': navigate('/dashboard/admin'); break;
+                case 'COORDINATOR': navigate('/dashboard/coordinator'); break;
                 case 'SPONSOR': navigate('/dashboard/sponsor'); break;
                 case 'PI': navigate('/dashboard/pi'); break;
                 default: navigate('/dashboard/participant');
@@ -357,7 +357,7 @@ export default function SignIn() {
                 throw new Error('RESTRICTED_ACCESS: Please use the dedicated Admin Portal for Super Admin login.');
             }
 
-            saveToken(data.access, userRole);
+            saveToken(data.access, userRole, undefined, data.refresh);
             saveUser(data.user);
 
             if (data.user.must_reset) {
@@ -371,8 +371,8 @@ export default function SignIn() {
 
             switch (userRole) {
                 case 'SUPER_ADMIN': navigate('/dashboard/super-admin'); break;
-                case 'ADMIN':
-                case 'COORDINATOR': navigate('/dashboard/admin'); break;
+                case 'ADMIN': navigate('/dashboard/admin'); break;
+                case 'COORDINATOR': navigate('/dashboard/coordinator'); break;
                 case 'SPONSOR': navigate('/dashboard/sponsor'); break;
                 case 'PI': navigate('/dashboard/pi'); break;
                 default: navigate(redirectTo || '/dashboard/participant');

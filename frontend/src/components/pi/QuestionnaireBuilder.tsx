@@ -212,14 +212,14 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
         <div className="flex flex-col h-auto 2xl:h-[calc(100vh-14rem)] bg-[#0B101B] border border-white/5 rounded-[1.5rem] lg:rounded-[2.5rem] overflow-hidden 2xl:overflow-hidden shadow-2xl relative mb-10 2xl:mb-0">
             {/* Top Tactical Header */}
             <div className="flex-shrink-0 bg-[#0B101B]/80 backdrop-blur-3xl border-b border-white/5 z-40">
-                <div className="px-6 lg:px-12 py-8 lg:py-12 flex flex-col xl:flex-row items-center justify-between gap-10 xl:gap-8">
-                    <div className="flex items-start gap-6 lg:gap-10 shrink-0">
-                        <div className="w-16 h-16 lg:w-20 lg:h-20 bg-indigo-500/10 border border-indigo-500/20 rounded-[1.75rem] flex items-center justify-center text-indigo-400 shadow-2xl shadow-indigo-500/10 shrink-0 mt-1">
-                            <DraftingCompass className="w-10 h-10 lg:w-12 lg:h-12" />
+                <div className="px-6 lg:px-10 py-6 lg:py-8 flex flex-col xl:flex-row items-center justify-between gap-8 xl:gap-8">
+                    <div className="flex items-start gap-4 lg:gap-8 shrink-0">
+                        <div className="w-12 h-12 lg:w-16 lg:h-16 bg-indigo-500/10 border border-indigo-500/20 rounded-[1.25rem] flex items-center justify-center text-indigo-400 shadow-2xl shadow-indigo-500/10 shrink-0 mt-1">
+                            <DraftingCompass className="w-7 h-7 lg:w-9 lg:h-9" />
                         </div>
                         <div>
-                            <h2 className="text-3xl lg:text-5xl font-black text-white italic uppercase tracking-tighter leading-none mb-3">ELIGIBILITY QUESTIONNAIRES</h2>
-                            <p className="text-[10px] lg:text-[11px] text-indigo-400 font-bold uppercase tracking-[0.3em] lg:tracking-[0.4em] italic opacity-80 max-w-2xl">Design logical recruitment funnels with dynamic branching and integrated validation triggers.</p>
+                            <h2 className="text-xl lg:text-3xl font-black text-white italic uppercase tracking-tighter leading-none mb-2">ELIGIBILITY QUESTIONNAIRES</h2>
+                            <p className="text-[9px] lg:text-[10px] text-indigo-400 font-bold uppercase tracking-[0.2em] lg:tracking-[0.3em] italic opacity-80 max-w-2xl">Design logical recruitment funnels with dynamic branching and validation.</p>
                         </div>
                     </div>
 
@@ -270,7 +270,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                 </div>
 
 
-                <div className="px-6 lg:px-12 flex gap-8 lg:gap-12 overflow-x-auto custom-scrollbar-horizontal whitespace-nowrap bg-white/[0.02]">
+                <div className="px-6 lg:px-10 flex gap-6 lg:gap-10 overflow-x-auto custom-scrollbar-horizontal whitespace-nowrap bg-white/[0.02]">
                     {['My Questionnaires', 'Create New', 'Templates', 'Scoring & Formulas', 'Registry'].map(tab => (
                         <button 
                             key={tab}
@@ -351,7 +351,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                          placeholder="Enter Protocol Title..." 
                                          value={formTitle} 
                                          onChange={(e) => setFormTitle(e.target.value)}
-                                         className="w-full bg-transparent border-b border-white/5 py-4 text-sm md:text-base lg:text-xl font-black text-white italic uppercase placeholder-slate-930 outline-none focus:border-indigo-500/50 transition-all tracking-tight leading-none" 
+                                         className="w-full bg-transparent border-b border-white/5 py-4 text-sm md:text-base lg:text-lg font-black text-white italic uppercase placeholder-slate-930 outline-none focus:border-indigo-500/50 transition-all tracking-tight leading-none" 
                                      />
                                  </div>
 
@@ -413,7 +413,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                 <section key={section.id} className="relative">
                                     <div className="flex items-center gap-6 mb-12">
                                         <div className="w-10 h-10 rounded-2xl bg-indigo-600/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20 font-black italic">S</div>
-                                        <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">{section.title}</h3>
+                                        <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">{section.title}</h3>
                                         <div className="flex-1 h-[1px] bg-white/5" />
                                     </div>
                                     
@@ -425,7 +425,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                                 onClick={() => setSelectedQId(q.id)}
                                                 className={`p-10 rounded-[3rem] border transition-all cursor-pointer relative group ${
                                                     selectedQId === q.id 
-                                                    ? 'bg-indigo-600 border-indigo-400 shadow-[0_30px_60px_-15px_rgba(99,102,241,0.2)]' 
+                                                    ? 'bg-[#1a1c31] border-indigo-500/50 shadow-[0_20px_50px_-12px_rgba(99,102,241,0.2)]' 
                                                     : 'bg-white/[0.02] border-white/5 shadow-xl hover:bg-white/[0.04]'
                                                 }`}
                                             >
@@ -570,7 +570,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                         <button 
                                             onClick={() => updateQuestion(selectedQuestion.id, { required: !selectedQuestion.required })}
                                             className={`p-6 rounded-[2rem] border transition-all text-[10px] font-black uppercase tracking-widest italic flex flex-col items-center gap-3 ${
-                                                selectedQuestion.required ? 'bg-indigo-600 border-indigo-400 text-white shadow-indigo-500/20 shadow-xl' : 'bg-white/5 border-white/10 text-slate-700 hover:bg-white/10'
+                                            selectedQuestion.required ? 'bg-[#1e1b4b] border-indigo-500/50 text-white shadow-[0_20px_40px_-10px_rgba(99,102,241,0.3)] ring-1 ring-indigo-500/20' : 'bg-white/5 border-white/10 text-slate-700 hover:bg-white/10'
                                             }`}
                                         >
                                             <CheckCircle2 className={`w-5 h-5 ${selectedQuestion.required ? 'text-white' : 'text-slate-800'}`} />

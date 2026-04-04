@@ -142,7 +142,7 @@ export default function SuperAdminSignIn() {
                 return;
             }
 
-            saveToken(data.access, userRole);
+            saveToken(data.access, userRole, undefined, data.refresh);
             saveUser(data.user);
             
             navigate('/dashboard/super-admin');

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { authFetch, API } from '../../../utils/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Users, 
@@ -42,13 +43,40 @@ export default function ParticipantOversight({ onOpenProfile, onMessage }: { onO
     const isMobile = windowWidth < 768;
     const isTablet = windowWidth < 1440;
 
-    const participants: Participant[] = [
-        { id: 'SUB-001', name: 'Alice Johnson', study: 'Metabolic-202B', status: 'Active', progress: 65, lastVisit: '2026-03-15', risk: 'Low' },
-        { id: 'SUB-002', name: 'Bob Smith', study: 'Metabolic-202B', status: 'Screening', progress: 10, lastVisit: '2026-03-20', risk: 'Medium' },
-        { id: 'SUB-003', name: 'Charlie Davis', study: 'Metabolic-202B', status: 'Completed', progress: 100, lastVisit: '2026-03-10', risk: 'Low' },
-        { id: 'SUB-004', name: 'Diana Prince', study: 'Metabolic-202B', status: 'Fail', progress: 5, lastVisit: '2026-03-18', risk: 'High' },
-        { id: 'SUB-005', name: 'Edward Norton', study: 'Cognitive-X1', status: 'Active', progress: 40, lastVisit: '2026-03-19', risk: 'Low' },
-    ];
+    const [participants, setParticipants] = useState<Participant[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchParticipants = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const res = await authFetch(`${API}/api/participants/`);
+            if (!res.ok) throw new Error('Subject Registry Offline');
+            const data = await res.json();
+            
+            // Map Backend to PI UI Schema
+            const mapped: Participant[] = data.map((p: any) => ({
+                id: p.id, // Hex ID for routing
+                name: p.user_details?.full_name || p.participant_sid,
+                study: p.protocol_id || 'Unknown Protocol',
+                status: (p.status.charAt(0) + p.status.slice(1).toLowerCase()) as any,
+                progress: p.status === 'COMPLETED' ? 100 : (p.status === 'RANDOMIZED' ? 50 : 5),
+                lastVisit: p.visits?.[0]?.scheduled_date?.split('T')[0] || 'No Visit',
+                risk: 'Low' // Backend doesn't have risk field yet
+            }));
+            setParticipants(mapped);
+        } catch (err: any) {
+            console.error(err);
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchParticipants();
+    }, [fetchParticipants]);
 
     const filteredParticipants = participants.filter(p => {
         const matchesTab = activeTab === 'All' || 
@@ -171,9 +199,22 @@ export default function ParticipantOversight({ onOpenProfile, onMessage }: { onO
             </div>
 
             {/* Grid */}
-            <div className="bg-[#0F172A]/80 backdrop-blur-2xl border border-white/10 rounded-2xl md:rounded-[2.5rem] overflow-hidden shadow-2xl shadow-black/60 relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.03] to-transparent pointer-events-none" />
-                <div className="overflow-x-auto pb-4 custom-scrollbar-horizontal px-0.5">
+            <div className="bg-[#0F172A]/80 backdrop-blur-2xl border border-white/10 rounded-2xl md:rounded-[2.5rem] overflow-hidden shadow-2xl shadow-black/60 relative min-h-[400px]">
+                {isLoading ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-6">
+                        <div className="w-12 h-12 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
+                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] italic">Hydrating Subject Portfolio...</p>
+                    </div>
+                ) : error ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+                        <AlertCircle className="w-12 h-12 text-red-500/50" />
+                        <p className="text-[11px] text-red-400 font-bold uppercase italic">{error}</p>
+                        <button onClick={fetchParticipants} className="text-[10px] font-black text-white px-6 py-2 bg-white/5 rounded-full hover:bg-white/10 transition-all uppercase tracking-widest">Retry Connection</button>
+                    </div>
+                ) : (
+                    <>
+                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.03] to-transparent pointer-events-none" />
+                        <div className="overflow-x-auto pb-4 custom-scrollbar-horizontal px-0.5">
                     <table className="w-full text-left border-collapse min-w-[1000px] lg:min-w-[1250px]">
                     <thead>
                         <tr className="bg-white/[0.03] border-b border-indigo-500/10 whitespace-nowrap">
@@ -254,8 +295,10 @@ export default function ParticipantOversight({ onOpenProfile, onMessage }: { onO
                         </AnimatePresence>
                     </tbody>
                 </table>
-                </div>
-                {filteredParticipants.length === 0 && (
+                        </div>
+                    </>
+                )}
+                {filteredParticipants.length === 0 && !isLoading && !error && (
                     <div className="py-20 text-center space-y-4">
                         <Users className="w-12 h-12 text-slate-800 mx-auto" />
                         <p className="text-[11px] text-slate-600 font-black uppercase tracking-[0.2em] italic">No participants match your criteria</p>
