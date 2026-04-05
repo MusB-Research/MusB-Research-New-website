@@ -10,6 +10,7 @@ import {
     X,
     Filter
 } from 'lucide-react';
+import { authFetch, API } from '../../../utils/auth';
 import { COLORS, ConsentTemplate, ConsentRecord, AuditEntry } from './ConsentConstants';
 import { ConsentBuilder } from './views/ConsentBuilder';
 import { ConsentRegistry } from './views/ConsentRegistry';
@@ -62,9 +63,9 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
                 setLoading(true);
                 const queryStr = selectedStudyId ? `?study_id=${selectedStudyId}` : '';
                 const [templatesRes, recordsRes, studiesRes] = await Promise.all([
-                    fetch(`/api/consent-templates/${queryStr}`).then(res => res.json()),
-                    fetch(`/api/consent/${queryStr}`).then(res => res.json()),
-                    fetch('/api/studies/').then(res => res.json())
+                    authFetch(`${API}/api/consent-templates/${queryStr}`).then(res => res.json()),
+                    authFetch(`${API}/api/consent/${queryStr}`).then(res => res.json()),
+                    authFetch(`${API}/api/studies/`).then(res => res.json())
                 ]);
                 
                 const correctedTemplates = (templatesRes || []).map((t: any) => ({
@@ -95,7 +96,7 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
             }
         };
         fetchData();
-    }, []);
+    }, [selectedStudyId]);
 
     const addToast = useCallback((message: string, type = 'success') => {
         const id = Math.random().toString(36).substr(2, 9);
@@ -105,9 +106,8 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
 
     const handleUpload = async () => {
         try {
-            const res = await fetch('/api/consent-templates/', {
+            const res = await authFetch(`${API}/api/consent-templates/`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     title: uploadForm.title,
                     study: uploadForm.study,
@@ -133,14 +133,13 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
     const handleVerify = async () => {
         if (!activeRecord) return;
         try {
-            const res = await fetch(`/api/consent/${activeRecord.id}/`, {
+            const res = await authFetch(`${API}/api/consent/${activeRecord.id}/`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ pi_verified: true, notes: piNotes })
             });
             if (res.ok) {
                 const updated = await res.json();
-                setConsentRecords(consentRecords.map(r => r.id === updated.id ? updated : r));
+                setConsentRecords(consentRecords.map(r => r.id === updated.id ? { ...updated, piVerified: updated.pi_verified } : r));
                 setActiveView('records');
                 addToast('Protocol verified and locked for clinical entry', 'success');
             } else {
@@ -155,9 +154,8 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
 
     const handleUpdateTemplate = async (templateId: string, updates: any) => {
         try {
-            const res = await fetch(`/api/consent-templates/${templateId}/`, {
+            const res = await authFetch(`${API}/api/consent-templates/${templateId}/`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updates)
             });
             if (res.ok) {
@@ -182,9 +180,8 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
     const handleReject = async () => {
         if (!activeRecord) return;
         try {
-            const res = await fetch(`/api/consent/${activeRecord.id}/reject/`, {
+            const res = await authFetch(`${API}/api/consent/${activeRecord.id}/reject/`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ reason: piNotes || 'Coordinator/PI Rejection' })
             });
             if (res.ok) {
