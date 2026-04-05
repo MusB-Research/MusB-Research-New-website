@@ -91,7 +91,8 @@ export interface NewsItem {
     publishStatus: 'Draft' | 'Published' | 'Archived';
     excerpt: string;
     content: string;
-    imageUrl: string;
+    imageUrl?: string;
+    image?: string;
     date: string;
     // Event specific
     startTime?: string;

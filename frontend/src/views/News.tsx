@@ -89,7 +89,7 @@ export default function News() {
                         title: n.title || 'Untitled News',
                         excerpt: n.excerpt || n.content?.substring(0, 150) || 'No excerpt available.',
                         date: new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                        image: n.image_url || n.image // Use real-time absolute URL from backend
+                        imageUrl: n.image_url || n.image // Standardized to imageUrl
                     }))];
                 }
 
@@ -101,7 +101,7 @@ export default function News() {
                         title: e.title || e.name || 'Untitled Event',
                         excerpt: e.description || e.excerpt || 'No description available.',
                         date: new Date(e.date || e.event_date || e.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                        image: e.image_url || e.image // Use real-time absolute URL from backend
+                        imageUrl: e.image_url || e.image // Standardized to imageUrl
                     }))];
                 }
 
@@ -372,9 +372,9 @@ export default function News() {
                                                 return (
                                                     <div key={item.id} className={`group bg-white/5 border border-white/5 rounded-[2.5rem] overflow-hidden flex flex-col hover:bg-white/10 hover:border-white/10 ${accent.border} transition-all duration-300 shadow-xl`}>
                                                         <div className="aspect-[16/10] overflow-hidden relative">
-                                                            {item.image ? (
+                                                            {item.imageUrl ? (
                                                                 <img 
-                                                                    src={item.image} 
+                                                                    src={item.imageUrl} 
                                                                     alt={item.title} 
                                                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                                                                 />
