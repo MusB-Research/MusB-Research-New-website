@@ -19,7 +19,7 @@ export const S = {
     header: {
         padding: '1.5rem 3rem', backgroundColor: 'rgba(7, 10, 19, 0.8)',
         backdropFilter: 'blur(40px)', borderBottom: `1px solid ${COLORS.accent}30`,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 100
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 40
     },
     tabBar: {
         display: 'flex', gap: '0.5rem', padding: '0.75rem 3rem',

@@ -15,7 +15,9 @@ import { ConsentBuilder } from './views/ConsentBuilder';
 import { ConsentRegistry } from './views/ConsentRegistry';
 import { SignatureConfiguration } from './views/SignatureConfiguration';
 import { PIVerification } from './views/PIVerification';
+import { ParticipantSignView } from './views/ParticipantSignView';
 import { UploadConsentModal } from './components/UploadConsentModal';
+import { AuditDrawer } from './components/AuditDrawer';
 
 export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: string }) {
     // API State
@@ -29,6 +31,7 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
     const [activeView, setActiveView] = useState('builder');
     const [activeConsentId, setActiveConsentId] = useState<string | null>(null);
     const [activeRecordId, setActiveRecordId] = useState<string | null>(null);
+    const [auditDrawerOpen, setAuditDrawerOpen] = useState(false);
     const [leftSearch, setLeftSearch] = useState('');
     const [leftFilter, setLeftFilter] = useState('All');
     const [recordsSearch, setRecordsSearch] = useState('');
@@ -57,14 +60,16 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
         const fetchData = async () => {
             try {
                 setLoading(true);
+                const queryStr = selectedStudyId ? `?study_id=${selectedStudyId}` : '';
                 const [templatesRes, recordsRes, studiesRes] = await Promise.all([
-                    fetch('/api/consent-templates/').then(res => res.json()),
-                    fetch('/api/consent/').then(res => res.json()),
+                    fetch(`/api/consent-templates/${queryStr}`).then(res => res.json()),
+                    fetch(`/api/consent/${queryStr}`).then(res => res.json()),
                     fetch('/api/studies/').then(res => res.json())
                 ]);
                 
                 const correctedTemplates = (templatesRes || []).map((t: any) => ({
                     ...t,
+                    id: t.id || t._id, // Handle Mongo ID variations
                     title: t.title?.replace(/Baet/g, 'Beat') || 'Untitled Protocol',
                     signatureRequirements: t.signatureRequirements || {
                         participantSignature: true,
@@ -72,12 +77,12 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
                         ccSignature: true,
                         piVerification: true
                     },
-                    placedFields: t.placed_fields || []
+                    placedFields: t.placedFields || t.placed_fields || []
                 }));
                 
                 setConsents(correctedTemplates);
-                setConsentRecords(recordsRes || []);
-                setStudies(studiesRes || []);
+                setConsentRecords((recordsRes || []).map((r: any) => ({ ...r, id: r.id || r._id })));
+                setStudies((studiesRes || []).map((s: any) => ({ ...s, id: s.id || s._id })));
                 
                 if (correctedTemplates.length > 0 && !activeConsentId) {
                     setActiveConsentId(correctedTemplates[0].id);
@@ -138,10 +143,58 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
                 setConsentRecords(consentRecords.map(r => r.id === updated.id ? updated : r));
                 setActiveView('records');
                 addToast('Protocol verified and locked for clinical entry', 'success');
+            } else {
+                const errData = await res.json();
+                addToast(errData.detail || 'Verification sync failed', 'error');
             }
         } catch (err) {
             console.error("Verification failed:", err);
             addToast("Record sync failed", "error");
+        }
+    };
+
+    const handleUpdateTemplate = async (templateId: string, updates: any) => {
+        try {
+            const res = await fetch(`/api/consent-templates/${templateId}/`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updates)
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                const processed = {
+                    ...updated,
+                    id: updated.id || updated._id,
+                    placedFields: updated.placedFields || updated.placed_fields || []
+                };
+                setConsents(consents.map(c => c.id === processed.id ? processed : c));
+                addToast('Protocol structure committed to secure vault', 'success');
+            } else {
+                const errData = await res.json();
+                addToast(errData.detail || 'Sync failed', 'error');
+            }
+        } catch (err) {
+            console.error("Template update failed:", err);
+            addToast("Vault communication error", "error");
+        }
+    };
+
+    const handleReject = async () => {
+        if (!activeRecord) return;
+        try {
+            const res = await fetch(`/api/consent/${activeRecord.id}/reject/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason: piNotes || 'Coordinator/PI Rejection' })
+            });
+            if (res.ok) {
+                setConsentRecords(consentRecords.map(r => r.id === activeRecord.id ? { ...r, status: 'REJECTED', pi_verified: false } : r));
+                setActiveView('records');
+                addToast('Consent record successfully rejected and flagged', 'warning');
+            }
+        } catch (err) {
+            console.error("Rejection failed:", err);
+            addToast("Sync Error during rejection", "error");
         }
     };
 
@@ -219,7 +272,7 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
                         setActiveRecordId={setActiveRecordId}
                         setActiveView={setActiveView}
                         setAuditDrawerRecordId={setActiveRecordId /* reuse */}
-                        setAuditDrawerOpen={() => {}} /* placeholder */
+                        setAuditDrawerOpen={setAuditDrawerOpen}
                     />
                 )}
 
@@ -234,6 +287,7 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
                         currentViewerPage={currentViewerPage}
                         consents={consents}
                         setConsents={setConsents}
+                        handleUpdateTemplate={handleUpdateTemplate}
                     />
                 )}
 
@@ -249,7 +303,15 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
                         piNotes={piNotes}
                         setPiNotes={setPiNotes}
                         handleVerify={handleVerify}
-                        handleReject={() => addToast('Rejection logic pending', 'warning')}
+                        handleReject={handleReject}
+                        addToast={addToast}
+                    />
+                )}
+
+                {activeView === 'participant-sign' && (
+                    <ParticipantSignView 
+                        activeConsent={activeConsent}
+                        setActiveView={setActiveView}
                         addToast={addToast}
                     />
                 )}
@@ -262,6 +324,12 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
                 setUploadForm={setUploadForm}
                 studies={studies}
                 handleUpload={handleUpload}
+            />
+
+            <AuditDrawer
+                isOpen={auditDrawerOpen}
+                onClose={() => setAuditDrawerOpen(false)}
+                record={activeRecord}
             />
 
             {/* TOAST SYSTEM */}

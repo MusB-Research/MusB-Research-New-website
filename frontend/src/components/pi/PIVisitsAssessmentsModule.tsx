@@ -257,7 +257,7 @@ export default function PIVisitsAssessmentsModule() {
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', backgroundColor: COLORS.bg, color: 'white', overflow: 'hidden' }}>
             
             {/* STICKY TOP BAR */}
-            <header style={{ ...G.glass, padding: '1rem 3rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 100 }}>
+            <header style={{ ...G.glass, padding: '1rem 3rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 40 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                     <Calendar size={24} color={COLORS.accent} />
                     <h1 style={G.title}>Visits & Assessments</h1>
@@ -562,8 +562,8 @@ export default function PIVisitsAssessmentsModule() {
                                     value={schedulePanelForm.participantId}
                                     onChange={e => setSchedulePanelForm({...schedulePanelForm, participantId: e.target.value})}
                                 >
-                                    <option value="">Select Participant...</option>
-                                    {participants.map(p => <option key={p.id} value={p.id}>{p.name} ({p.study})</option>)}
+                                    <option value="" style={{ backgroundColor: '#0B101B', color: 'white' }}>Select Participant...</option>
+                                    {participants.map(p => <option key={p.id} value={p.id} style={{ backgroundColor: '#0B101B', color: 'white' }}>{p.name} ({p.study})</option>)}
                                 </select>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
@@ -574,10 +574,10 @@ export default function PIVisitsAssessmentsModule() {
                                         value={schedulePanelForm.visitType}
                                         onChange={e => setSchedulePanelForm({...schedulePanelForm, visitType: e.target.value})}
                                     >
-                                        <option>Screening</option>
-                                        <option>Baseline</option>
-                                        <option>Follow-up</option>
-                                        <option>End of Study</option>
+                                        <option style={{ backgroundColor: '#0B101B', color: 'white' }}>Screening</option>
+                                        <option style={{ backgroundColor: '#0B101B', color: 'white' }}>Baseline</option>
+                                        <option style={{ backgroundColor: '#0B101B', color: 'white' }}>Follow-up</option>
+                                        <option style={{ backgroundColor: '#0B101B', color: 'white' }}>End of Study</option>
                                     </select>
                                 </div>
                                 <div>
@@ -587,9 +587,9 @@ export default function PIVisitsAssessmentsModule() {
                                         value={schedulePanelForm.location}
                                         onChange={e => setSchedulePanelForm({...schedulePanelForm, location: e.target.value})}
                                     >
-                                        <option>Clinic</option>
-                                        <option>Virtual</option>
-                                        <option>Home Visit</option>
+                                        <option style={{ backgroundColor: '#0B101B', color: 'white' }}>Clinic</option>
+                                        <option style={{ backgroundColor: '#0B101B', color: 'white' }}>Virtual</option>
+                                        <option style={{ backgroundColor: '#0B101B', color: 'white' }}>Home Visit</option>
                                     </select>
                                 </div>
                             </div>

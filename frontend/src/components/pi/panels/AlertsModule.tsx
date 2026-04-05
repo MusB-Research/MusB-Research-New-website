@@ -18,6 +18,7 @@ import {
     MessageSquare,
     ClipboardList
 } from 'lucide-react';
+import { authFetch, API } from '../../../utils/auth';
 
 interface AlertItem {
     id: string;
@@ -32,24 +33,76 @@ interface AlertItem {
 export default function AlertsModule() {
     const [activeSeverity, setActiveSeverity] = useState<'All' | 'Critical' | 'Warning' | 'Info'>('All');
     const [searchQuery, setSearchQuery] = useState('');
-    const [alerts, setAlerts] = useState<AlertItem[]>([
-        { id: 'AL-001', title: 'SAE Reported: SUB-023', description: 'Severe GI distress reported during V4. Immediate PI review required.', severity: 'Critical', category: 'Safety', timestamp: '2026-03-21 14:22', read: false },
-        { id: 'AL-002', title: 'Kit Shipment Delayed', description: 'Pharmacy Manual kit #1292 is delayed due to logistics. Impact: V5 scheduling.', severity: 'Warning', category: 'Operational', timestamp: '2026-03-21 11:05', read: false },
-        { id: 'AL-003', title: 'Consent Version Update', description: 'New Protocol v3.3 requires re-consent for all Cohort Alpha subjects.', severity: 'Info', category: 'Clinical', timestamp: '2026-03-20 09:44', read: true },
-        { id: 'AL-004', title: 'Screen Fail Detected: SUB-102', description: 'Inclusion Criteria #4 failure (BMI out of range).', severity: 'Info', category: 'Clinical', timestamp: '2026-03-20 08:12', read: true },
-        { id: 'AL-005', title: 'System Maintenance', description: 'Platform will be offline for 30 mins tonight at 02:00 UTC.', severity: 'Info', category: 'System', timestamp: '2026-03-19 16:00', read: false },
-    ]);
+    const [alerts, setAlerts] = useState<AlertItem[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const handleMarkRead = (id: string) => {
-        setAlerts(prev => prev.map(a => a.id === id ? { ...a, read: true } : a));
+    const fetchAlerts = async () => {
+        try {
+            const res = await authFetch(`${API}/api/notifications/`);
+            if (res.ok) {
+                const data = await res.json();
+                // Map backend Notification to AlertItem interface
+                const mapped: AlertItem[] = data.map((n: any) => ({
+                    id: n.id,
+                    title: n.title,
+                    description: n.message,
+                    severity: mapTypeToSeverity(n.type),
+                    category: 'System', // Backend notification types are generic (INFO, SUCCESS, WARNING)
+                    timestamp: new Date(n.created_at).toLocaleString('en-US', { 
+                        month: 'short', day: 'numeric', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                    }),
+                    read: n.is_read
+                }));
+                setAlerts(mapped);
+            }
+        } catch (err) {
+            console.error("Failed to fetch tactical signals:", err);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleResolve = (id: string) => {
+    const mapTypeToSeverity = (type: string): 'Critical' | 'Warning' | 'Info' => {
+        const t = type.toUpperCase();
+        if (t === 'ERROR' || t === 'CRITICAL' || t === 'DANGER') return 'Critical';
+        if (t === 'WARNING' || t === 'ALERT') return 'Warning';
+        return 'Info';
+    };
+
+    React.useEffect(() => {
+        fetchAlerts();
+        // Polling for real-time tactical signals every 30 seconds
+        const interval = setInterval(fetchAlerts, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const handleMarkRead = async (id: string) => {
+        try {
+            const res = await authFetch(`${API}/api/notifications/${id}/read/`, { method: 'POST' });
+            if (res.ok) {
+                setAlerts(prev => prev.map(a => a.id === id ? { ...a, read: true } : a));
+            }
+        } catch (err) {
+            console.error("Failed to mark alert as read:", err);
+        }
+    };
+
+    const handleResolve = async (id: string) => {
+        // For notifications, resolve simply marks it as read and archives it locally
+        await handleMarkRead(id);
         setAlerts(prev => prev.filter(a => a.id !== id));
     };
 
-    const handleMarkAllRead = () => {
-        setAlerts(prev => prev.map(a => ({ ...a, read: true })));
+    const handleMarkAllRead = async () => {
+        try {
+            const res = await authFetch(`${API}/api/notifications/read_all/`, { method: 'POST' });
+            if (res.ok) {
+                setAlerts(prev => prev.map(a => ({ ...a, read: true })));
+            }
+        } catch (err) {
+            console.error("Failed to mark all read:", err);
+        }
     };
 
     const handleArchive = () => {
@@ -132,8 +185,14 @@ export default function AlertsModule() {
 
                 {/* Alerts List */}
                 <div className="space-y-4">
-                    <AnimatePresence mode="popLayout">
-                        {filteredAlerts.length > 0 ? filteredAlerts.map((alert) => (
+                    {loading ? (
+                        <div className="py-20 text-center animate-pulse">
+                            <Activity className="w-12 h-12 text-indigo-500/20 mx-auto mb-4" />
+                            <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Scanning Tactical Signals...</p>
+                        </div>
+                    ) : (
+                        <AnimatePresence mode="popLayout">
+                            {filteredAlerts.length > 0 ? filteredAlerts.map((alert) => (
                             <motion.div 
                                 key={alert.id}
                                 layout
@@ -189,7 +248,8 @@ export default function AlertsModule() {
                                 <p className="text-slate-500 font-black uppercase tracking-widest text-xs italic">All Tactical Signals Resolved • Research Environment Clear</p>
                             </motion.div>
                         )}
-                    </AnimatePresence>
+                        </AnimatePresence>
+                    )}
                 </div>
             </div>
         </motion.div>

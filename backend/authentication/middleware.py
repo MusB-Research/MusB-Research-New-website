@@ -61,12 +61,12 @@ class OnboardingEnforcementMiddleware:
         if not path.startswith('/api/'):
             return self.get_response(request)
 
-        # Extract token from cookies or auth header
-        token = request.COOKIES.get('access_token')
-        if not token:
-            auth_header = request.headers.get('Authorization')
-            if auth_header and auth_header.startswith('Bearer '):
-                token = auth_header.split(' ')[1]
+        # Extract token from auth header or cookies
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header.split(' ')[1]
+        else:
+            token = request.COOKIES.get('access_token')
 
         # If no token, let the normal DRF authentication handle the 401/403
         if not token or token in ["null", "undefined"]:

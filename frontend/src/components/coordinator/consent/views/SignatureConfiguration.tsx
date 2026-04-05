@@ -13,6 +13,7 @@ interface SignatureConfigurationProps {
     currentViewerPage: number;
     consents: ConsentTemplate[];
     setConsents: (consents: ConsentTemplate[]) => void;
+    handleUpdateTemplate?: (id: string, updates: any) => void;
 }
 
 export const SignatureConfiguration: React.FC<SignatureConfigurationProps> = ({
@@ -24,7 +25,8 @@ export const SignatureConfiguration: React.FC<SignatureConfigurationProps> = ({
     setSignatureActiveField,
     currentViewerPage,
     consents,
-    setConsents
+    setConsents,
+    handleUpdateTemplate
 }) => {
     const handlePlaceField = (e: React.MouseEvent) => {
         if (!signatureActiveField || !activeConsent) return;
@@ -57,6 +59,14 @@ export const SignatureConfiguration: React.FC<SignatureConfigurationProps> = ({
         setConsents(consents.map(c => c.id === updated.id ? updated : c));
     };
 
+    const handleCommit = () => {
+        if (!activeConsent) return;
+        if (handleUpdateTemplate) {
+            handleUpdateTemplate(activeConsent.id, { placedFields: activeConsent.placedFields });
+        }
+        setActiveView('builder');
+    };
+
     const S = {
         title: { fontSize: '22px', fontWeight: 900, fontStyle: 'italic' as const, textTransform: 'uppercase' as const, letterSpacing: '-0.02em', color: 'white' },
         label: { fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.15em', color: COLORS.text, opacity: 0.6 },
@@ -73,8 +83,14 @@ export const SignatureConfiguration: React.FC<SignatureConfigurationProps> = ({
                     <span style={S.title}>Signature Configuration Engine</span>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button style={{ ...S.btnGhost, color: COLORS.danger, borderColor: COLORS.danger }} onClick={() => setConfirmModal({ message: 'Wipe all signature fields from this protocol?', onConfirm: () => addToast('Field registry cleared', 'warning') })}><Trash2 size={14} /> Clear All</button>
-                    <button style={S.btnIndigo} onClick={() => { setActiveView('builder'); addToast('Signature mappings committed'); }}><Save size={14} /> Commit Changes</button>
+                    <button style={{ ...S.btnGhost, color: COLORS.danger, borderColor: COLORS.danger }} onClick={() => setConfirmModal({ message: 'Wipe all signature fields from this protocol?', onConfirm: () => {
+                        if (activeConsent) {
+                            const updated = { ...activeConsent, placedFields: [] };
+                            setConsents(consents.map(c => c.id === updated.id ? updated : c));
+                        }
+                        addToast('Field registry cleared', 'warning');
+                    } })}><Trash2 size={14} /> Clear All</button>
+                    <button style={S.btnIndigo} onClick={handleCommit}><Save size={14} /> Commit Changes</button>
                 </div>
             </div>
 

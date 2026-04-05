@@ -390,15 +390,29 @@ class LabResultSerializer(SanitizedModelSerializer):
 
 class NewsSerializer(SanitizedModelSerializer):
     id = serializers.CharField(read_only=True)
+    image_url = serializers.SerializerMethodField()
     class Meta:
         model = News
         fields = '__all__'
 
+    def get_image_url(self, obj):
+        if not obj.image: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
+
 class EventSerializer(SanitizedModelSerializer):
     id = serializers.CharField(read_only=True)
+    image_url = serializers.SerializerMethodField()
     class Meta:
         model = Event
         fields = '__all__'
+
+    def get_image_url(self, obj):
+        if not obj.image: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
 
 class FacilityInquirySerializer(SanitizedModelSerializer):
     id = serializers.CharField(read_only=True)

@@ -81,6 +81,7 @@ export const clearToken = async () => {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: getToken() })
         });
     } catch (e) {
         console.warn('Logout ping failed', e);

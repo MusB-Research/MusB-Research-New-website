@@ -88,7 +88,8 @@ export default function News() {
                         type: n.is_success_story ? 'Success Story' : 'News',
                         title: n.title || 'Untitled News',
                         excerpt: n.excerpt || n.content?.substring(0, 150) || 'No excerpt available.',
-                        date: new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        date: new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                        image: n.image_url || n.image // Use real-time absolute URL from backend
                     }))];
                 }
 
@@ -99,7 +100,8 @@ export default function News() {
                         type: 'Event',
                         title: e.title || e.name || 'Untitled Event',
                         excerpt: e.description || e.excerpt || 'No description available.',
-                        date: new Date(e.event_date || e.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        date: new Date(e.date || e.event_date || e.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                        image: e.image_url || e.image // Use real-time absolute URL from backend
                     }))];
                 }
 
@@ -370,7 +372,15 @@ export default function News() {
                                                 return (
                                                     <div key={item.id} className={`group bg-white/5 border border-white/5 rounded-[2.5rem] overflow-hidden flex flex-col hover:bg-white/10 hover:border-white/10 ${accent.border} transition-all duration-300 shadow-xl`}>
                                                         <div className="aspect-[16/10] overflow-hidden relative">
-                                                            <div className="w-full h-full bg-gradient-to-br from-cyan-500/10 to-indigo-500/10 group-hover:scale-110 transition-transform duration-700"></div>
+                                                            {item.image ? (
+                                                                <img 
+                                                                    src={item.image} 
+                                                                    alt={item.title} 
+                                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-full h-full bg-gradient-to-br from-cyan-500/10 to-indigo-500/10 group-hover:scale-110 transition-transform duration-700"></div>
+                                                            )}
                                                             <div className="absolute top-4 left-4">
                                                                 <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-950/80 backdrop-blur-md text-[10px] font-black uppercase tracking-widest border border-white/10 ${accent.badge}`}>
                                                                     <Icon className="w-3 h-3" />

@@ -147,7 +147,7 @@ def login_view(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def logout_view(request):
-    token = request.COOKIES.get('access_token') or request.data.get('token')
+    token = request.data.get('token') or request.COOKIES.get('access_token')
     if token:
         try:
             payload = decode_access_token(token)
@@ -176,7 +176,7 @@ def logout_view(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def refresh_token_view(request):
-    old_refresh = request.COOKIES.get('refresh_token') or request.data.get('refresh')
+    old_refresh = request.data.get('refresh') or request.COOKIES.get('refresh_token')
     if not old_refresh:
         return Response({'error': 'Refresh token required'}, status=status.HTTP_400_BAD_REQUEST)
 

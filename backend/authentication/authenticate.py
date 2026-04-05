@@ -13,13 +13,13 @@ class CookieJWTAuthentication(authentication.BaseAuthentication):
     the 'access_token' from HttpOnly cookies.
     """
     def authenticate(self, request):
-        # 1. Get token from cookie
-        access_token = request.COOKIES.get('access_token')
-
-        # 2. Fallback to Authorization header
+        # 1. Check Authorization header first (prefer explicit client state)
         auth_header = request.headers.get('Authorization')
-        if not access_token and auth_header and auth_header.startswith('Bearer '):
+        if auth_header and auth_header.startswith('Bearer '):
             access_token = auth_header.split(' ')[1]
+        else:
+            # 2. Fallback to cookie
+            access_token = request.COOKIES.get('access_token')
 
         if not access_token or access_token in ["null", "undefined"]:
             return None

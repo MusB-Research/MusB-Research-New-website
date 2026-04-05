@@ -174,11 +174,13 @@ class News(models.Model):
     content = models.TextField()
     type = models.CharField(max_length=50, blank=True)
     published_at = models.DateTimeField(auto_now_add=True)
+    image = models.ImageField(upload_to='news_images/', null=True, blank=True)
 
 class Event(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     date = models.DateTimeField()
+    image = models.ImageField(upload_to='event_images/', null=True, blank=True)
 
 class FacilityInquiry(models.Model):
     name = models.CharField(max_length=255)
