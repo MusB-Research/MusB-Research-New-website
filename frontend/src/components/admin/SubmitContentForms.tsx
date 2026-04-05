@@ -43,7 +43,8 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
             } else if (activeForm === 'event') {
                 body.append('title', formData.title);
                 body.append('description', formData.description);
-                body.append('event_date', new Date(formData.event_date).toISOString());
+                // Correcting field name from 'event_date' to 'date' to match backend model
+                body.append('date', new Date(formData.event_date).toISOString());
             } else if (activeForm === 'partnership') {
                 body.append('name', formData.title || formData.name);
                 body.append('description', formData.description);
