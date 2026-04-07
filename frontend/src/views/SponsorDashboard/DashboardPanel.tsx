@@ -244,7 +244,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
           }}
         >
           <span style={{ fontSize: '20px', lineHeight: 1, color: '#2563eb' }}>+</span>
-          Inquire A New Study
+          Start a New Study Inquiry
         </button>
       </div>
 
@@ -259,17 +259,17 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
           <div style={{ fontSize: 18, color: '#94a3b8', lineHeight: 1.8, marginBottom: 20, fontWeight: 500, flex: 1 }}>
             Total Studies: <span style={{ color: '#f1f5f9', fontWeight: 700 }}>{stats.total}</span><br />Active: <span style={{ color: '#60a5fa', fontWeight: 700 }}>{stats.active}</span><br />Completed: <span style={{ color: '#10b981', fontWeight: 700 }}>{stats.completed}</span>
           </div>
-          <div style={{ color: '#2563eb', fontSize: 17, fontWeight: 800 }}>→ View Insights</div>
+          <div style={{ color: '#2563eb', fontSize: 17, fontWeight: 800 }}>→ View Study Data</div>
         </div>
 
         {/* Box 2 */}
         <div onClick={() => setPortfolioModalOpen(true)} style={{ background: '#1e293b', borderRadius: 24, padding: '28px 24px', border: '1px solid #334155', cursor: 'pointer', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', transition: 'all 0.3s', display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>📁</div>
-          <h3 style={{ margin: '0 0 14px 0', fontSize: 22, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>Protocol Portfolio</h3>
+          <h3 style={{ margin: '0 0 14px 0', fontSize: 22, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>Research Portfolio</h3>
           <div style={{ fontSize: 16, color: '#94a3b8', lineHeight: 1.8, marginBottom: 20, fontWeight: 500, flex: 1 }}>
             Submitted: <span style={{ color: '#6366f1', fontWeight: 700 }}>{stats.submitted}</span><br />Active: <span style={{ color: '#60a5fa', fontWeight: 700 }}>{stats.active}</span><br />Completed: <span style={{ color: '#10b981', fontWeight: 700 }}>{stats.completed}</span>
           </div>
-          <div style={{ color: '#6366f1', fontSize: 15, fontWeight: 800 }}>→ View All Protocols</div>
+          <div style={{ color: '#6366f1', fontSize: 15, fontWeight: 800 }}>→ View All Studies</div>
         </div>
 
         {/* Box 3 */}
@@ -307,9 +307,9 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
           fontWeight: 900,
           letterSpacing: '-0.03em'
         }}>
-          Strategic Protocol Portfolio
+          Your Study Portfolio
         </div>
-        <button onClick={() => setPortfolioModalOpen(true)} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: windowWidth > 768 ? 28 : 22, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>Explore Full Portfolio <span>→</span></button>
+        <button onClick={() => setPortfolioModalOpen(true)} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: windowWidth > 768 ? 28 : 22, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>View Full Portfolio <span>→</span></button>
       </div>
 
       {windowWidth > 768 ? (
@@ -446,7 +446,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
       </Modal>
 
       {/* Portfolio Modal */}
-      <Modal open={portfolioModalOpen} onClose={() => setPortfolioModalOpen(false)} title="Protocol Portfolio" width="860px">
+      <Modal open={portfolioModalOpen} onClose={() => setPortfolioModalOpen(false)} title="Research Portfolio" width="860px">
         <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 12, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ background: '#1e293b', borderBottom: '1px solid #334155' }}>

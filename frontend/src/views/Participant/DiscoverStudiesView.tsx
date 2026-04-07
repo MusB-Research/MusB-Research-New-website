@@ -1,37 +1,59 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ChevronRight, Loader2, Network } from 'lucide-react';
+import { Search, Loader2, Network, ClipboardCheck, AlertCircle, CheckCircle2, ArrowRight, Globe } from 'lucide-react';
 import { authFetch, API } from '../../utils/auth';
+import { useNavigate } from 'react-router-dom';
 
-export default function DiscoverStudiesView({ onEnrollSubmit }: { onEnrollSubmit?: (studyId: string) => void }) {
+export default function DiscoverStudiesView() {
+    const navigate = useNavigate();
     const [publicStudies, setPublicStudies] = useState<any[]>([]);
-    const [enrolledStudyIds, setEnrolledStudyIds] = useState<string[]>([]);
+    const [activeEnrollment, setActiveEnrollment] = useState<any>(null);
+    const [enrolledStudyId, setEnrolledStudyId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
-    const [enrollingId, setEnrollingId] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const apiUrl = API || 'http://localhost:8000';
-                
-                // 1. Fetch Participant Enrollments
+
+                // Fetch Participant records for the current user
                 const pRes = await authFetch(`${apiUrl}/api/participants/`);
                 if (pRes.ok) {
+                    // 2. Prioritize truly ENROLLED/ACTIVE studies for the primary "Active Enrollment" banner
                     const pData = await pRes.json();
-                    setEnrolledStudyIds(pData.map((p: any) => p.study));
+
+                    // Sort so that ENROLLED/ACTIVE/etc statuses come first
+                    const priorityStatuses = ['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE'];
+                    const sortedPData = [...pData].sort((a: any, b: any) => {
+                        const sA = (a.status || '').toUpperCase();
+                        const sB = (b.status || '').toUpperCase();
+                        const indexA = priorityStatuses.indexOf(sA);
+                        const indexB = priorityStatuses.indexOf(sB);
+                        // If one is in priority list and other isn't, priority wins
+                        if (indexA !== -1 && indexB === -1) return -1;
+                        if (indexA === -1 && indexB !== -1) return 1;
+                        return 0;
+                    });
+
+                    const active = sortedPData.find(
+                        (p: any) => !['DROPPED', 'INELIGIBLE', 'COMPLETED'].includes((p.status || '').toUpperCase())
+                    );
+                    if (active) {
+                        setActiveEnrollment(active);
+                        setEnrolledStudyId(active.study);
+                    }
                 }
 
-                // 2. Fetch Public Studies
+                // Fetch Public Studies
                 const res = await authFetch(`${apiUrl}/api/public-studies/`);
                 if (res.ok) {
                     const data = await res.json();
-                    // Sort: Alphabetical by Title (A-Z)
-                    const sorted = data.sort((a: any, b: any) => 
-                        (a.title || "").localeCompare(b.title || "")
+                    const sorted = data.sort((a: any, b: any) =>
+                        (a.title || '').localeCompare(b.title || '')
                     );
                     setPublicStudies(sorted);
                 }
             } catch (error) {
-                console.error("Error fetching studies data:", error);
+                console.error('Error fetching studies data:', error);
             } finally {
                 setLoading(false);
             }
@@ -39,85 +61,128 @@ export default function DiscoverStudiesView({ onEnrollSubmit }: { onEnrollSubmit
         fetchData();
     }, []);
 
-    const handleEnroll = async (studyId: string) => {
-        if (enrolledStudyIds.includes(studyId)) return;
-        
-        setEnrollingId(studyId);
-        try {
-            const apiUrl = API || 'http://localhost:8000';
-            const res = await authFetch(`${apiUrl}/api/public-studies/${studyId}/enroll/`, {
-                method: 'POST'
-            });
-            const data = await res.json();
-            if (res.ok) {
-                alert(`Successfully enrolled in ${data.study_title || studyId}! Protocol node sync initiated.`);
-                // Update local state instead of full redirect if desired, but user preferred dashboard refresh before
-                window.location.reload(); 
-            } else {
-                alert(`Error: ${data.message || 'Error occurred during enrollment.'}`);
-            }
-        } catch (error) {
-            console.error("Enroll error", error);
-            alert("Error confirming connection. Node offline.");
-        } finally {
-            setEnrollingId(null);
-        }
+    const isCurrentStudy = (study: any) =>
+        enrolledStudyId &&
+        (study.id === enrolledStudyId || study.protocol_id === enrolledStudyId);
+
+    const hasActiveEnrollment = !!activeEnrollment;
+
+    const getStatusColor = (status: string) => {
+        const s = (status || '').toUpperCase();
+        if (s === 'RECRUITING') return 'text-green-400 bg-green-500/10 border-green-500/20';
+        if (s === 'ACTIVE') return 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20';
+        if (s === 'PAUSED') return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20';
+        return 'text-slate-400 bg-slate-500/10 border-slate-500/20';
+    };
+
+    const getEnrollmentLabel = (status: string) => {
+        const s = (status || '').toUpperCase();
+        if (s === 'SCREENING') return 'Under Review';
+        if (s === 'CONSENTED') return 'Consented';
+        if (s === 'ACTIVE') return 'Active';
+        if (s === 'RANDOMIZED') return 'Randomized';
+        return s;
     };
 
     if (loading) {
-        return <div className="flex h-full items-center justify-center pt-20"><Loader2 className="w-8 h-8 animate-spin text-cyan-500" /></div>;
+        return (
+            <div className="flex h-full items-center justify-center pt-20">
+                <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
+            </div>
+        );
     }
 
     return (
         <div className="space-y-6">
-            <div className="mb-8">
-                <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter flex items-center gap-3">
-                    <Network className="w-8 h-8 text-cyan-400" /> Discover Studies
-                </h2>
-                <p className="text-[11px] text-slate-400 uppercase tracking-widest font-black mt-2">Available protocols securely broadcasting for participants</p>
-            </div>
+
 
             {publicStudies.length === 0 ? (
                 <div className="p-12 border border-white/5 bg-[#0a0f1d] rounded-2xl text-center shadow-lg">
                     <Search className="w-10 h-10 text-slate-600 mx-auto mb-4" />
-                    <p className="text-slate-500 text-xs italic tracking-widest uppercase font-bold">No active protocols currently recruiting.</p>
+                    <p className="text-slate-500 text-xs italic tracking-widest uppercase font-bold">
+                        No active studies currently recruiting.
+                    </p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                    {publicStudies.map(study => (
-                        <div key={`${study.protocol_id}-${study.title}`} className="bg-[#0a0e1a] border border-white/10 rounded-3xl p-6 shadow-xl relative overflow-hidden group hover:border-cyan-500/50 transition-all flex flex-col justify-between">
-                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-blue-500" />
-                            <div className="space-y-4 mb-6">
-                                <div>
-                                    <span className="text-[10px] bg-green-500/10 text-green-400 px-2 py-1 rounded-sm uppercase tracking-widest font-black inline-block mb-3 border border-green-500/20">{study.status}</span>
-                                    <h3 className="text-[17px] font-black text-white italic uppercase lg:truncate">{study.title}</h3>
-                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">ID: {study.protocol_id}</p>
+                    {publicStudies.map(study => {
+                        const isMine = isCurrentStudy(study);
+                        // Use protocol_id as the URL slug — matches how StudyDetail looks up studies
+                        const studySlug = study.protocol_id || study.id;
+
+                        return (
+                            <div
+                                key={`${study.protocol_id}-${study.title}`}
+                                className={`bg-[#0a0e1a] border rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col justify-between transition-all ${isMine ? 'border-cyan-500/40' : 'border-white/10 hover:border-cyan-500/30'}`}
+                            >
+                                {/* Accent bar */}
+                                <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${isMine ? 'from-cyan-400 to-emerald-500' : 'from-cyan-500 to-blue-500'}`} />
+
+                                <div className="space-y-3 mb-5">
+                                    {/* Status badges */}
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className={`text-[10px] px-2 py-1 rounded-sm uppercase tracking-widest font-black inline-block border ${getStatusColor(study.status)}`}>
+                                            {study.status}
+                                        </span>
+                                        {isMine && (
+                                            <span className={`text-[10px] px-2 py-1 rounded-sm uppercase tracking-widest font-black inline-flex items-center gap-1.5 border text-cyan-400 bg-cyan-500/10 border-cyan-500/20`}>
+                                                <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                                                {getEnrollmentLabel(activeEnrollment?.status)}
+                                            </span>
+                                        )}
+                                        {study.remote_participation && (
+                                            <span className="flex items-center gap-1 text-[9px] font-black text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded-sm uppercase tracking-widest">
+                                                <Globe className="w-2.5 h-2.5" /> Remote
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Title */}
+                                    <div>
+                                        <h3 className="text-[16px] font-black text-white italic uppercase leading-tight">{study.title}</h3>
+                                        <p className="text-[11px] font-bold text-slate-600 uppercase tracking-widest mt-0.5">Protocol: {study.protocol_id}</p>
+                                    </div>
+
+                                    {/* Short description */}
+                                    <p className="text-[13px] text-slate-400 line-clamp-2 leading-relaxed">
+                                        {study.description || study.full_title || 'No description available.'}
+                                    </p>
+
+                                    {/* Quick meta row */}
+                                    <div className="flex flex-wrap gap-3 text-[11px] font-bold text-slate-600 uppercase tracking-wider pt-1">
+                                        {study.duration && <span>⏱ {study.duration}</span>}
+                                        {study.location && <span>📍 {study.location}</span>}
+                                        {study.compensation && <span className="text-green-500">💰 Compensated</span>}
+                                    </div>
                                 </div>
-                                <p className="text-[13px] text-slate-400 line-clamp-3 leading-relaxed">{study.description || study.full_title}</p>
+
+                                {/* Action */}
+                                {isMine ? (
+                                    <div className="w-full mt-auto bg-white/5 border border-cyan-500/20 text-cyan-400 px-4 py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 cursor-default">
+                                        <CheckCircle2 className="w-4 h-4" />
+                                        Your Current Study
+                                    </div>
+                                ) : (
+                                    <div className="space-y-1.5">
+                                        {hasActiveEnrollment && (
+                                            <p className="text-[11px] text-amber-500/80 uppercase tracking-widest font-bold flex items-center gap-1.5">
+                                                <AlertCircle className="w-3.5 h-3.5" />
+                                                PI/CC approval required to join
+                                            </p>
+                                        )}
+                                        <button
+                                            onClick={() => navigate(`/studies/${studySlug}`)}
+                                            className="w-full bg-gradient-to-r from-cyan-500/10 to-blue-500/10 hover:from-cyan-500/20 hover:to-blue-500/20 border border-cyan-500/30 hover:border-cyan-400/60 text-cyan-300 hover:text-cyan-200 px-4 py-3.5 rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all active:scale-95"
+                                        >
+                                            <ClipboardCheck className="w-4 h-4" />
+                                            Check Eligibility
+                                            <ArrowRight className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
-                            {enrolledStudyIds.includes(study.protocol_id) || enrolledStudyIds.includes(study.id) ? (
-                                <div className="w-full mt-auto bg-white/5 border border-white/10 text-cyan-400 px-4 py-4 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 cursor-default">
-                                    <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                                    Active Enrollment
-                                </div>
-                            ) : (
-                                <button
-                                    onClick={() => handleEnroll(study.protocol_id || study.id)}
-                                    disabled={enrollingId !== null}
-                                    className="w-full mt-auto bg-cyan-500 flex-shrink-0 text-slate-900 border border-cyan-400 hover:bg-cyan-400 px-4 py-4 rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
-                                >
-                                    {enrollingId !== null && (enrollingId === study.protocol_id || enrollingId === study.id) ? (
-                                        <Loader2 className="w-4 h-4 animate-spin text-slate-900" />
-                                    ) : (
-                                        <>
-                                            <ChevronRight className="w-4 h-4" /> 
-                                            Initialize Enrollment
-                                        </>
-                                    )}
-                                </button>
-                            )}
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>

@@ -249,18 +249,26 @@ class Participant(BaseMongoModel):
     
     # Enrollment Tracking
     status = models.CharField(max_length=30, default='NEW', choices=[
-        ('NEW', 'New Lead'),
-        ('CONTACTED', 'Contact Attempted'),
-        ('INTERESTED', 'Interested'),
-        ('SCREENING', 'Prescreening in Progress'),
+        ('RECRUITING', 'Recruiting'),
+        ('PENDING_REVIEW', 'Pending Review'),
         ('ELIGIBLE', 'Eligible'),
-        ('INELIGIBLE', 'Ineligible'),
+        ('INELIGIBLE', 'Not Eligible'),
+        ('ENROLLED', 'Enrolled'),
         ('CONSENTED', 'Consented'),
         ('RANDOMIZED', 'Randomized'),
         ('ACTIVE', 'Active'),
-        ('COMPLETED', 'Completed'),
+        ('COMPLETED', 'Study Completed'),
         ('DROPPED', 'Dropped'),
     ])
+
+    # Eligibility Form Data
+    eligibility_data = models.JSONField(default=dict, blank=True, help_text="Stored results from the eligibility/screener form")
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    
+    # Review Data
+    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_participants')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    status_notes = models.TextField(blank=True, help_text="Notes from PI/Coordinator regarding status changes")
     
     # Demographics (PII - only visible to Admin/PI/Coordinator)
     gender = models.CharField(max_length=20, blank=True)
@@ -401,6 +409,7 @@ class Form(BaseMongoModel):
     schema = models.JSONField(help_text="JSON representation of fields and conditional logic")
     
     is_published = models.BooleanField(default=False)
+    is_required_on_enrollment = models.BooleanField(default=False, help_text="Automatically assign this form to participants upon enrollment")
     version = models.IntegerField(default=1)
     
     created_at = models.DateTimeField(auto_now_add=True)
@@ -428,6 +437,7 @@ class Task(BaseMongoModel):
         ('SENSOR', 'Device / Sensor Data'),
         ('UPLOAD', 'File Upload / Photo'),
         ('CONSENT', 'Informed Consent'),
+        ('FORM_SIGNATURE', 'Form Signature Workflow'),
     ]
     
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='tasks')
@@ -478,12 +488,31 @@ class ParticipantTask(BaseMongoModel):
     
     # Store dynamic state for multi-step tasks if needed
     current_data = models.JSONField(default=dict, blank=True)
+    assigned_form = models.ForeignKey('AssignedForm', on_delete=models.SET_NULL, null=True, blank=True, related_name='tasks')
 
     class Meta(BaseMongoModel.Meta):
         ordering = ['due_date']
 
     def __str__(self):
         return f"{self.participant.participant_sid} - {self.task.title}"
+
+class StaffTask(BaseMongoModel):
+    """Tasks assigned to Staff members (PIs, Coordinators)"""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='staff_tasks')
+    study = models.ForeignKey(Study, on_delete=models.CASCADE, null=True, blank=True)
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    task_type = models.CharField(max_length=50, default='CONSENT_SIGNATURE')
+    reference_id = models.CharField(max_length=100, blank=True)
+    is_completed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta(BaseMongoModel.Meta):
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.title} for {self.user.email}"
 
 class ConsentTemplate(BaseMongoModel):
     """Protocol definition for Informed Consent (Signatory requirements, versions, etc.)"""
@@ -719,6 +748,45 @@ class NewsletterSubscriber(models.Model):
 
     def __str__(self):
         return f"{self.email} ({self.user_type})"
+
+class AssignedForm(BaseMongoModel):
+    """Workflow tracking for multi-signatory forms (Participant -> Coordinator -> PI)"""
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='assigned_forms')
+    form = models.ForeignKey(Form, on_delete=models.CASCADE)
+    study = models.ForeignKey(Study, on_delete=models.CASCADE)
+    
+    status = models.CharField(max_length=30, default='PENDING', choices=[
+        ('PENDING', 'Pending'),
+        ('PARTICIPANT_SIGNED', 'Participant Signed'),
+        ('COORDINATOR_SIGNED', 'Coordinator Signed'),
+        ('COMPLETED', 'Fully Completed'),
+    ])
+    
+    # Signature Data
+    participant_signature = models.TextField(blank=True, null=True)
+    participant_signed_at = models.DateTimeField(null=True, blank=True)
+    
+    coordinator_signature = models.TextField(blank=True, null=True)
+    coordinator_signed_at = models.DateTimeField(null=True, blank=True)
+    coordinator_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='coordinator_assigned_forms')
+    
+    pi_signature = models.TextField(blank=True, null=True)
+    pi_signed_at = models.DateTimeField(null=True, blank=True)
+    pi_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='pi_assigned_forms')
+    
+    # Form Results (Snapshot of the data at time of participant signature)
+    data = models.JSONField(default=dict, blank=True, help_text="Stored answers from the form")
+    signed_pdf = models.FileField(upload_to='signed_forms/', null=True, blank=True)
+    
+    due_date = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta(BaseMongoModel.Meta):
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Assigned Form: {self.form.title} for {self.participant.participant_sid}"
 
 # --- Signals for Notifications ---
 from django.db.models.signals import post_save
@@ -964,6 +1032,52 @@ class DosingLog(BaseMongoModel):
 
     class Meta:
         unique_together = ('participant', 'date')
+
+class DailyMedicationLog(BaseMongoModel):
+    FEELING_CHOICES = [
+        ('VERY_GOOD', 'Very Good'),
+        ('GOOD', 'Good'),
+        ('FAIR', 'Fair'),
+        ('POOR', 'Poor'),
+    ]
+    SEVERITY_CHOICES = [
+        ('MILD', 'Mild'),
+        ('MODERATE', 'Moderate'),
+        ('SEVERE', 'Severe'),
+    ]
+
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='daily_logs')
+    date = models.DateField(auto_now_add=True)
+    
+    # A. Medicine intake
+    took_medicine = models.BooleanField(default=True)
+    time_taken = models.TimeField(null=True, blank=True)
+    full_dose = models.BooleanField(default=True)
+    dose_amount = models.CharField(max_length=255, blank=True)
+    reason_missed = models.TextField(blank=True)
+
+    # B. Adverse events / side effects
+    noticed_side_effects = models.BooleanField(default=False)
+    side_effect_description = models.TextField(blank=True)
+    side_effect_start_time = models.CharField(max_length=100, blank=True) # UI flexibility
+    side_effect_ongoing = models.BooleanField(default=False)
+    severity = models.CharField(max_length=20, choices=SEVERITY_CHOICES, blank=True, null=True)
+    interfered_daily_activities = models.BooleanField(default=False)
+    sought_medical_care = models.BooleanField(default=False)
+    ae_additional_comments = models.TextField(blank=True)
+
+    # C. General health check
+    overall_feeling = models.CharField(max_length=20, choices=FEELING_CHOICES, blank=True, null=True)
+    health_updates = models.TextField(blank=True)
+    supporting_file = models.FileField(upload_to='daily_log_files/', null=True, blank=True)
+    
+    is_draft = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('participant', 'date')
+        ordering = ['-date']
 
 class AEReport(BaseMongoModel):
     participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='ae_reports')

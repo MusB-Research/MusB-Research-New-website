@@ -18,7 +18,7 @@ export const Badge = ({ children, color = 'cyan', className = '', ...props }: an
         indigo: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
     };
     return (
-        <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-[13px] font-black uppercase tracking-widest border leading-none ${colors[color] || colors.cyan} ${className}`} {...props}>
+        <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-[14px] font-black uppercase tracking-widest border leading-none ${colors[color] || colors.cyan} ${className}`} {...props}>
             {children}
         </span>
     );
@@ -43,7 +43,7 @@ export const SegmentedProgressBar = ({ segments }: { segments: { count: number; 
                 <motion.div
                     key={i}
                     initial={{ width: 0 }}
-                    animate={{ width: `${(seg.count / total) * 100}%` }}
+                    animate={{ width: `${total > 0 ? (seg.count / total) * 100 : 0}%` }}
                     className={`h-full ${seg.color} first:rounded-l-full last:rounded-r-full transition-all duration-1000 relative group`}
                     style={{ minWidth: seg.count > 0 ? '4px' : '0' }}
                 >
@@ -212,11 +212,11 @@ export const ActionModal = ({ isOpen, title, desc, action, onClose, onConfirm }:
                         <AlertCircle className="w-10 h-10" strokeWidth={1} />
                     </div>
                 </div>
-                <h3 className="text-4xl font-black text-white italic tracking-tighter uppercase text-center mb-4">{title}</h3>
-                <p className="text-center text-base font-bold text-slate-500 uppercase tracking-widest leading-relaxed mb-10 px-4">{desc}</p>
+                <h3 className="text-3xl font-black text-white italic tracking-tighter uppercase text-center mb-4">{title}</h3>
+                <p className="text-center text-sm font-bold text-slate-500 uppercase tracking-widest leading-relaxed mb-10 px-4">{desc}</p>
                 <div className="flex flex-col gap-3">
                     <button onClick={onConfirm} className="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 py-5 rounded-2xl font-black text-sm uppercase tracking-[0.25em] transition-all shadow-[0_0_30px_rgba(6,182,212,0.3)] active:scale-[0.98]">{action}</button>
-                    <button onClick={onClose} className="w-full py-5 text-slate-500 hover:text-white font-black text-[13px] uppercase tracking-[0.2em] transition-colors">CANCEL MISSION</button>
+                    <button onClick={onClose} className="w-full py-5 text-slate-500 hover:text-white font-black text-[13px] uppercase tracking-[0.2em] transition-colors whitespace-nowrap">GO BACK</button>
                 </div>
             </motion.div>
         </div>
@@ -232,7 +232,7 @@ export const EditModal = ({ isOpen, title, value, field, onClose, onSave }: any)
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-[#0a0e1a]/95 backdrop-blur-md" onClick={onClose} />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative w-full max-w-md bg-[#0d1424] border border-white/10 rounded-3xl p-10">
-                <h3 className="text-3xl font-black text-white italic uppercase mb-8">{title}</h3>
+                <h3 className="text-2xl font-black text-white italic uppercase mb-8">{title}</h3>
                 <input
                     type="text" value={val} onChange={(e) => setVal(e.target.value)}
                     className="w-full bg-[#141e35] border border-white/10 rounded-xl p-5 text-white text-lg font-bold outline-none focus:border-cyan-500 italic mb-10"
@@ -255,10 +255,10 @@ export const LogoutConfirmationModal = ({ isOpen, onClose, onConfirm }: any) => 
                 <div className="w-20 h-20 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-8 border border-red-500/20">
                     <AlertCircle className="w-10 h-10" />
                 </div>
-                <h3 className="text-4xl font-black text-white italic uppercase mb-4">Secure Sign Out?</h3>
-                <p className="text-slate-500 font-bold uppercase tracking-widest text-sm mb-10 leading-relaxed">You are about to terminate your active encrypted session. All unsaved syncs may be lost.</p>
+                <h3 className="text-3xl font-black text-white italic uppercase mb-4">Confirm Sign Out?</h3>
+                <p className="text-slate-500 font-bold uppercase tracking-widest text-[12px] mb-10 leading-relaxed">You are about to terminate your active study session. Unsaved changes may be lost.</p>
                 <div className="flex flex-col gap-3">
-                    <button onClick={onConfirm} className="w-full bg-red-500 hover:bg-red-400 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all">TERMINATE SESSION</button>
+                    <button onClick={onConfirm} className="w-full bg-red-500 hover:bg-red-400 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all">SIGN OUT</button>
                     <button onClick={onClose} className="w-full py-4 text-slate-500 hover:text-white font-black text-[13px] uppercase tracking-widest transition-colors">CANCEL</button>
                 </div>
             </motion.div>

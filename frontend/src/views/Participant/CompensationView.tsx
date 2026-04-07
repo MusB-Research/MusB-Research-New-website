@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-    Trophy, ChevronRight, TrendingUp, Wallet, CreditCard, 
+    Trophy, ChevronRight, TrendingUp, Wallet, 
     ArrowRight, CheckCircle, Clock, History, Download 
 } from 'lucide-react';
 import { Card, Badge, ProgressBar } from './SharedComponents';
@@ -54,10 +54,10 @@ const CompensationView = ({ study, compensations = [], onAction }: any) => {
                                 <ChevronRight className="w-3 h-3" />
                                 <span className="text-white">Active Participation</span>
                             </div>
-                            <h2 className="text-2xl lg:text-3xl font-black italic tracking-tighter text-white uppercase leading-none">Your Clinical<br />Rewards Hub</h2>
+                            <h2 className="text-2xl lg:text-3xl font-black italic tracking-tighter text-white uppercase leading-none">Your Clinical Rewards Hub</h2>
                         </div>
                         <div className="flex flex-col items-end">
-                            <span className="text-[11px] font-black text-[#00e676] uppercase tracking-[0.3em] mb-1 italic">Total Lifetime Earned</span>
+                            <span className="text-[11px] font-black text-[#00e676] uppercase tracking-[0.3em] mb-1 italic">Total Rewards Earned</span>
                             <span className="text-4xl lg:text-5xl font-black italic tracking-tighter text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">${totalEarned.toFixed(2)}</span>
                         </div>
                     </div>
@@ -65,41 +65,36 @@ const CompensationView = ({ study, compensations = [], onAction }: any) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10 mb-10">
                         <div className="p-8 bg-white/[0.03] border border-white/10 rounded-[2rem] hover:bg-white/[0.05] transition-all">
                             <h4 className="text-[12px] font-black text-slate-500 uppercase tracking-widest mb-4 italic flex items-center gap-2">
-                                <TrendingUp className="w-3.5 h-3.5 text-[#00e676]" /> Pending Clinical Payout
+                                <TrendingUp className="w-3.5 h-3.5 text-[#00e676]" /> Awaiting Disbursement
                             </h4>
                             <div className="flex items-center justify-between">
                                 <span className="text-3xl font-black text-white italic tracking-tighter">${pendingPayment.toFixed(2)}</span>
-                                <Badge color="indigo">Scheduled: TBD</Badge>
+                                <Badge color="indigo">Log Verified</Badge>
                             </div>
                         </div>
                         <div className="p-8 bg-white/[0.03] border border-white/10 rounded-[2rem] hover:bg-white/[0.05] transition-all">
                             <h4 className="text-[12px] font-black text-slate-500 uppercase tracking-widest mb-4 italic flex items-center gap-2">
-                                <Wallet className="w-3.5 h-3.5 text-cyan-400" /> Disbursment Method
+                                <Wallet className="w-3.5 h-3.5 text-cyan-400" /> Reward Method
                             </h4>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-white/10 rounded-lg text-white"><CreditCard className="w-4 h-4" /></div>
-                                    <span className="text-sm font-bold text-white uppercase tracking-widest italic">Bank Account (***9203)</span>
+                                    <div className="p-2 bg-white/10 rounded-lg text-white"><Trophy className="w-4 h-4" /></div>
+                                    <span className="text-sm font-bold text-white uppercase tracking-widest italic">Coupons / Cash (Coordinator Assigned)</span>
                                 </div>
-                                <button 
-                                    onClick={() => handleAction('Change Disbursement Method')}
-                                    className="text-[12px] font-black text-cyan-400 hover:text-white transition-all uppercase underline underline-offset-4"
-                                >
-                                    Change
-                                </button>
+                                <Badge color="gray">Assigned</Badge>
                             </div>
                         </div>
                     </div>
 
                     <div className="mt-6 pt-10 border-t border-white/[0.03] flex items-center justify-between relative z-10">
                         <div className="flex items-center gap-3 text-sm font-black text-slate-500 uppercase tracking-widest italic">
-                            <span className="w-2 h-2 rounded-full bg-[#00e676] animate-pulse" /> Financial Vault Secure
+                            <span className="w-2 h-2 rounded-full bg-[#00e676] animate-pulse" /> Incentive Log Secure
                         </div>
                         <button 
-                            onClick={() => handleAction('Request Financial Statement')}
+                            onClick={() => handleAction('Request Incentive Summary')}
                             className="text-sm font-black text-cyan-400 hover:text-white transition-all flex items-center gap-2 uppercase tracking-widest italic"
                         >
-                            REQUEST STATEMENT <ArrowRight className="w-4 h-4" />
+                            INCENTIVE SUMMARY <ArrowRight className="w-4 h-4" />
                         </button>
                     </div>
                 </Card>

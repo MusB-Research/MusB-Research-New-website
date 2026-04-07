@@ -23,7 +23,7 @@ interface Document {
     type: 'pdf' | 'image' | 'doc' | 'csv';
 }
 
-const DocumentsView = ({ handleExportPDF, study }: { handleExportPDF: any; study?: any }) => {
+const DocumentsView = ({ study }: { study?: any }) => {
     // --- State ---
     const [searchQuery, setSearchQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
@@ -60,9 +60,9 @@ const DocumentsView = ({ handleExportPDF, study }: { handleExportPDF: any; study
         pdf.setTextColor(6, 182, 212);
         pdf.text('MusB RESEARCH PORTAL', 45, 25);
         pdf.setFontSize(14);
-        pdf.text('DOCUMENT IDENTITY PROFILE', 15, 65);
+        pdf.text('DOCUMENT DETAILS', 15, 65);
         pdf.setFontSize(10);
-        pdf.text("Nomenclature: " + doc.name, 15, 80);
+        pdf.text("Name: " + doc.name, 15, 80);
         pdf.text("Classification: " + doc.category, 15, 90);
         pdf.text("Source: " + doc.uploadedBy, 15, 100);
         return pdf.output('datauristring');
@@ -169,7 +169,7 @@ const DocumentsView = ({ handleExportPDF, study }: { handleExportPDF: any; study
         pdf.setFont('helvetica', 'normal');
         pdf.setFontSize(11);
         pdf.setTextColor(100, 116, 139); // Slate
-        pdf.text('DOCUMENT ARCHIVE | SECURE NODE ACCESS', 45, 33);
+        pdf.text('DOCUMENT ARCHIVE | SECURE PORTAL ACCESS', 45, 33);
         
         pdf.setDrawColor(226, 232, 240);
         pdf.line(15, 45, pageWidth - 15, 45);
@@ -180,15 +180,15 @@ const DocumentsView = ({ handleExportPDF, study }: { handleExportPDF: any; study
         pdf.setFont('helvetica', 'bold');
         pdf.setFontSize(14);
         pdf.setTextColor(30, 41, 59);
-        pdf.text('DOCUMENT IDENTITY PROFILE', 15, y);
+        pdf.text('DOCUMENT DETAILS', 15, y);
         y += 12;
 
         const docDetails = [
-            ["Item Nomenclature", doc.name],
+            ["Document Name", doc.name],
             ["Classification", doc.category],
-            ["Origin Source", doc.uploadedBy],
-            ["Synchronization Date", doc.date],
-            ["Logical Payload Size", doc.size]
+            ["Source", doc.uploadedBy],
+            ["Effective Date", doc.date],
+            ["File Size", doc.size]
         ];
 
         docDetails.forEach((row) => {
@@ -206,19 +206,20 @@ const DocumentsView = ({ handleExportPDF, study }: { handleExportPDF: any; study
         pdf.setFont('helvetica', 'bold');
         pdf.setFontSize(14);
         pdf.setTextColor(30, 41, 59);
-        pdf.text('TECHNICAL AUTHENTICATION', 15, y);
+        pdf.text('TECHNICAL DETAILS', 15, y);
         y += 10;
 
         pdf.setFont('helvetica', 'normal');
         pdf.setFontSize(10);
         pdf.setTextColor(71, 85, 105);
-        const description = pdf.splitTextToSize("This clinical asset has been securely synchronized with the MusB Research Node. The integrity of this document is verified via high-entropy cryptographic protocols. This serves as an official study-authorized record for compliance and auditing purposes.", 180);
-        pdf.text(description, 15, y);
+        const descriptionText = "This clinical asset has been securely stored within the MusB Research Infrastructure. The integrity of this document is verified via standard security protocols. This serves as an official study-approved record for compliance and auditing purposes.";
+        const wrappedText = pdf.splitTextToSize(descriptionText, 180);
+        pdf.text(wrappedText, 15, y);
         y += 20;
 
         pdf.text("Verification Hash:", 15, y);
         pdf.setFont('helvetica', 'bold');
-        pdf.text("SHA256-" + Math.random().toString(36).substring(2, 10).toUpperCase() + "...-VERIFIED", 65, y);
+        pdf.text("SECURE-" + Math.random().toString(36).substring(2, 10).toUpperCase() + "...-VERIFIED", 65, y);
 
         // --- Footer ---
         pdf.setTextColor(150, 150, 150);
@@ -481,9 +482,6 @@ const DocumentsView = ({ handleExportPDF, study }: { handleExportPDF: any; study
                                                             >
                                                                 <Download className="w-3.5 h-3.5" />
                                                             </button>
-                                                            <button className="p-2.5 rounded-lg bg-white/5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all">
-                                                                <Trash2 className="w-3.5 h-3.5" />
-                                                            </button>
                                                         </div>
                                                     </td>
                                                 </motion.tr>
@@ -642,7 +640,7 @@ const DocumentsView = ({ handleExportPDF, study }: { handleExportPDF: any; study
                                     className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.25em] transition-all shadow-[0_10px_30px_rgba(6,182,212,0.3)] active:scale-[0.98] italic"
                                     onClick={() => setIsUploadModalOpen(false)}
                                 >
-                                    ENCRYPT & UPLOAD
+                                    UPLOAD DOCUMENT
                                 </button>
                                 <button 
                                     onClick={() => setIsUploadModalOpen(false)}
@@ -721,9 +719,9 @@ const DocumentsView = ({ handleExportPDF, study }: { handleExportPDF: any; study
                                                 <Lock className="w-10 h-10 text-cyan-400" />
                                             </div>
                                             <div className="text-center">
-                                                <h4 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-4 italic">SECURE RENDER IN PROGRESS</h4>
+                                                <h4 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-4 italic">LOADING DOCUMENT...</h4>
                                                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] max-w-sm mx-auto leading-relaxed italic">
-                                                    HIPAA-COMPLIANT RENDERING ENGINE IS DECRYPTING YOUR DATA...
+                                                    FETCHING AND PREPARING YOUR SECURE DATA...
                                                 </p>
                                             </div>
                                             <div className="w-64 h-1.5 bg-white/5 rounded-full overflow-hidden">

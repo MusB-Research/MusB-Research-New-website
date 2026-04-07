@@ -93,7 +93,7 @@ export const PDFPage: React.FC<PDFPageProps> = ({
                     {isSigned ? (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                             <div style={{ fontFamily: 'cursive', fontSize: '18px', marginBottom: '4px' }}>{participantId || 'Signed'}</div>
-                            <div style={{ fontSize: '8px', opacity: 0.7 }}>{new Date().toLocaleDateString()}</div>
+                            <div style={{ fontSize: '8px', opacity: 0.7 }}>{new Date().toLocaleString()}</div>
                         </div>
                     ) : `[${f.type}]`}
                 </div>

@@ -367,7 +367,7 @@ export default function Layout({ children }: LayoutProps) {
             </header>
 
             {/* Main Content */}
-            <main className="flex-grow w-full">
+            <main className="flex-grow w-full min-h-screen">
                 {children}
             </main>
             {/* Footer Section */}

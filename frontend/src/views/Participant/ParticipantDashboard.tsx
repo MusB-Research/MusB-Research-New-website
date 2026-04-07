@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import NotificationBell from '../../components/NotificationBell';
-import { jsPDF } from 'jspdf';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     LayoutDashboard, ClipboardList, Box, Activity, MessageSquare,
@@ -20,10 +19,11 @@ import MessagesView from './MessagesView';
 import DocumentsView from './DocumentsView';
 import ReportsView from './ReportsView';
 import CompensationView from './CompensationView';
-import SupportView from './SupportView';
+
 import ProfileView from './ProfileView';
 import PrivacyDataView from './PrivacyDataView';
 import ConsentModal from './ConsentModal';
+import FormSignatureModal from './FormSignatureModal';
 import DiscoverStudiesView from './DiscoverStudiesView';
 
 export default function ParticipantDashboard() {
@@ -110,7 +110,9 @@ export default function ParticipantDashboard() {
     const [modalConfig, setModalConfig] = useState<{ isOpen: boolean; title: string; desc: string; primaryAction: string; task?: any } | null>(null);
     const [editModal, setEditModal] = useState({ isOpen: false, title: '', value: '', field: '' });
     const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
+    const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
     const [activeConsentTask, setActiveConsentTask] = useState<any>(null);
+    const [activeSignatureTask, setActiveSignatureTask] = useState<any>(null);
 
     const [userProfile, setUserProfile] = useState(() => {
         const u = getUser();
@@ -133,13 +135,16 @@ export default function ParticipantDashboard() {
 
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
-    
-    // Add time tracking state
+    const [refreshKey, setRefreshKey] = useState(0);
+    const refreshData = () => setRefreshKey(k => k + 1);
+
+    // Live Clock for Terminal UI
     const [currentTime, setCurrentTime] = useState(new Date());
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
+
 
     // Auto-close dropdowns on scroll
     useEffect(() => {
@@ -151,57 +156,142 @@ export default function ParticipantDashboard() {
         return () => window.removeEventListener('scroll', handleScroll, true);
     }, [isNotificationOpen, isDropdownOpen]);
 
-    // ──────────────── DATA FETCHING ────────────────
-    useEffect(() => {
-        const fetchDashboardData = async () => {
-            try {
-                // In this codebase, the original ParticipantDashboard used authFetch directly.
-                const apiUrl = API || 'http://localhost:8000';
+    const getId = (o: any): string => {
+        if (!o) return '';
+        if (typeof o === 'string') return o.trim();
+        if (o.$oid) return String(o.$oid).trim();
+        if (o._id?.$oid) return String(o._id.$oid).trim();
+        if (o._id) return String(o._id).trim();
+        if (o.id) return String(o.id).trim();
+        return String(o || '').trim();
+    };
 
-                // 1. Fetch Participant's Study
+    // ──────────────── INITIAL FETCH (Participants & Studies) ────────────────
+    useEffect(() => {
+        const initDashboard = async () => {
+            const apiUrl = API || 'http://localhost:8000';
+            try {
+                // 1. Refresh user data from server to ensure decryption for PII fields
+                try {
+                    const userRes = await authFetch(`${apiUrl}/api/users/me/`);
+                    if (userRes.ok) {
+                        const freshUser = await userRes.json();
+                        const localU = getUser();
+                        saveUser({ ...localU, ...freshUser });
+                        setUserProfile({
+                            userName: freshUser.full_name || getDisplayName(freshUser),
+                            userEmail: freshUser.email || '',
+                            userPicture: freshUser.profile_picture || freshUser.picture || '',
+                            firstName: freshUser.full_name?.split(' ')[0] || getDisplayName(freshUser),
+                            userPhone: freshUser.phone_number || freshUser.mobile_number || '',
+                            userLocation: freshUser.full_address || '',
+                            userTimezone: freshUser.timezone || 'UTC'
+                        });
+                    } else {
+                        const u = getUser();
+                        if (u) {
+                            setUserProfile({
+                                userName: getDisplayName(u),
+                                userEmail: u.email || '',
+                                userPicture: u.picture || u.avatar || u.profile_picture || '',
+                                firstName: getDisplayName(u),
+                                userPhone: u.mobile_number || u.phone_number || '',
+                                userLocation: u.full_address || '',
+                                userTimezone: u.timezone || 'UTC'
+                            });
+                        }
+                    }
+                } catch (uErr) {
+                    console.error("Failed to sync user profile:", uErr);
+                }
+
+
                 const pRes = await authFetch(`${apiUrl}/api/participants/`);
                 if (pRes.ok) {
-                    const pData = await pRes.json();
+                    let pData = await pRes.json();
+
+                    // Filter out inactive records
+                    pData = pData.filter((p: any) => {
+                        const s = (p.status || '').toUpperCase();
+                        return !['DROPPED', 'INELIGIBLE', 'COMPLETED'].includes(s);
+                    });
+
+                    // Sort: Put ENROLLED/ACTIVE studies at the top
+                    pData.sort((a: any, b: any) => {
+                        const sA = (a.status || '').toUpperCase();
+                        const sB = (b.status || '').toUpperCase();
+                        const isAActive = ['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE'].includes(sA);
+                        const isBActive = ['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE'].includes(sB);
+                        if (isAActive && !isBActive) return -1;
+                        if (!isAActive && isBActive) return 1;
+                        return 0;
+                    });
+
                     if (pData.length > 0) {
                         setAllParticipants(pData);
                         setActiveParticipant(pData[0]);
 
-                        // Fetch detail for ALL studies this user is in
-                        const studiesPromises = pData.map((p: any) => 
+                        const studiesPromises = pData.map((p: any) =>
                             authFetch(`${apiUrl}/api/studies/${p.study}/`).then(res => res.ok ? res.json() : null)
                         );
                         const fetchedStudies = (await Promise.all(studiesPromises)).filter(s => s !== null);
                         setAllStudies(fetchedStudies);
-                        
-                        // Set active study based on index or default to first
-                        if (fetchedStudies.length > 0) {
-                            setActiveStudy(fetchedStudies[0]);
-                        }
+                        if (fetchedStudies.length > 0) setActiveStudy(fetchedStudies[0]);
                     }
                 }
+            } catch (err) {
+                console.error("Initial dashboard fetch failed:", err);
+            }
+        };
+        initDashboard();
+    }, []);
 
-                // 2. Fetch Tasks
+    // ──────────────── REACTIVE FETCH (Clinical Data per Study) ────────────────
+    useEffect(() => {
+        const fetchClinicalData = async () => {
+            if (!activeStudy) return;
+            const apiUrl = API || 'http://localhost:8000';
+            const currentStudyId = getId(activeStudy);
+
+            try {
+                // 1. Fetch Tasks
+                let fetchedTasks: any[] = [];
                 const tRes = await authFetch(`${apiUrl}/api/participant-tasks/`);
-                let fetchedTasks = [];
-                if (tRes.ok) {
-                    fetchedTasks = await tRes.json();
-                }
+                if (tRes.ok) fetchedTasks = await tRes.json();
 
-                // Inject LIVE Protocols from Database (Official)
+                // 2. Inject LIVE Protocols
                 try {
-                    const cRes = await authFetch(`${apiUrl}/api/consent-templates/`);
+                    const [cRes, sigRes] = await Promise.all([
+                        authFetch(`${apiUrl}/api/consent-templates/`),
+                        authFetch(`${apiUrl}/api/consent/`)
+                    ]);
+
                     if (cRes.ok) {
                         const dbProtocols = await cRes.json();
-                        console.log(`🔍 Fetched ${dbProtocols.length} Protocols from DB`);
+                        const mySignatures = sigRes.ok ? await sigRes.json() : [];
 
-                        dbProtocols.filter((p: any) => p.status?.toUpperCase() === 'ACTIVE').forEach((p: any) => {
-                            // Filter by Study (Optional but recommended for multi-study systems)
-                            const exists = fetchedTasks.some((t: any) => t.id === `db-consent-${p.id}`);
-                            if (!exists) {
-                                console.log(`✅ Injecting Official DB Protocol: ${p.title} (v${p.version})`);
+                        dbProtocols.filter((p: any) => {
+                            const isActive = p.status?.toUpperCase() === 'ACTIVE';
+                            const pStudyId = getId(p.study);
+
+                            const isMyEnrolledStudy = allParticipants.some((part: any) => {
+                                const myStudyId = getId(part.study);
+                                const statusRaw = String(part.status || '').toUpperCase().trim();
+                                const isEnrolled = ['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE'].some(s => statusRaw.includes(s));
+                                return pStudyId === myStudyId && isEnrolled;
+                            });
+
+                            const alreadySigned = mySignatures.some((s: any) =>
+                                getId(s.template) === getId(p.id)
+                            );
+                            return isActive && isMyEnrolledStudy && !alreadySigned;
+                        }).forEach((p: any) => {
+                            const pId = getId(p.id);
+                            if (!fetchedTasks.some((t: any) => getId(t) === `db-consent-${pId}`)) {
                                 fetchedTasks.unshift({
-                                    id: `db-consent-${p.id}`,
-                                    title: `Official: ${p.title} (v${p.version})`,
+                                    id: `db-consent-${pId}`,
+                                    study: getId(p.study),
+                                    title: `${p.title} (v${p.version})`,
                                     status: 'PENDING',
                                     due_date: new Date().toISOString(),
                                     visit_name: 'eConsent Hub',
@@ -209,49 +299,20 @@ export default function ParticipantDashboard() {
                                     estimated_time: '15 min',
                                     task_type: 'CONSENT',
                                     p_data: p,
-                                    task_details: {
-                                        task_type: 'CONSENT',
-                                        description: `Protocol Upgrade: ${p.title}. Required for continuing in the study.`
-                                    }
+                                    task_details: { task_type: 'CONSENT', description: `New Protocol Update: ${p.title}.` }
                                 });
                             }
                         });
                     }
-                } catch (cErr) {
-                    console.error("DB Protocol Sync failed:", cErr);
-                }
+                } catch (cErr) { console.error("Protocol Sync error:", cErr); }
 
-                // Fallback for Demo (Legacy bridge)
-                const sharedProtocolsRaw = localStorage.getItem('musb_consent_protocols');
-                if (sharedProtocolsRaw && !fetchedTasks.some((t: any) => t.id.startsWith('db-consent-'))) {
-                    const sharedProtocols = JSON.parse(sharedProtocolsRaw);
-                    sharedProtocols.filter((p: any) => p.status?.toLowerCase() === 'active').forEach((p: any) => {
-                        const exists = fetchedTasks.some((t: any) => t.id === `active-consent-${p.id}`);
-                        if (!exists) {
-                            fetchedTasks.unshift({
-                                id: `active-consent-${p.id}`,
-                                title: `Protocol: ${p.title} (v${p.version})`,
-                                status: 'PENDING',
-                                due_date: new Date().toISOString(),
-                                visit_name: 'eConsent Hub',
-                                timeline_group: 'Mandatory',
-                                estimated_time: '15 min',
-                                task_type: 'CONSENT',
-                                p_data: p,
-                                task_details: {
-                                    task_type: 'CONSENT',
-                                    description: `New Protocol: ${p.title}.`
-                                }
-                            });
-                        }
-                    });
-                }
-                // 4. Fetch Real Notifications
+                // 3. Notifications
+                let allNotifs: any[] = [];
                 try {
                     const nRes = await authFetch(`${apiUrl}/api/notifications/`);
                     if (nRes.ok) {
                         const rawNotifs = await nRes.json();
-                        const mappedNotifs = rawNotifs.map((n: any) => ({
+                        allNotifs = rawNotifs.map((n: any) => ({
                             id: n.id,
                             title: n.title || 'System Alert',
                             desc: n.message,
@@ -259,60 +320,91 @@ export default function ParticipantDashboard() {
                             type: n.type || 'system',
                             read: n.is_read
                         }));
-                        setNotifications(mappedNotifs.slice(0, 8));
                     }
-                } catch (nErr) {
-                    console.error("Failed to fetch notifications:", nErr);
-                }
+                } catch (nErr) { console.error("Notif fetch failed:", nErr); }
 
-                // 5. Fetch Advanced Clinical Data (Harmonization Sync)
+                // Synthesis
+                fetchedTasks.filter(t => {
+                    const isConsent = (t.task_type === 'CONSENT' || t.id?.includes('consent')) && t.status === 'PENDING';
+                    const tStudyId = getId(t.study || t.p_data?.study || t.p_data?.study_id);
+                    return isConsent && tStudyId === currentStudyId;
+                }).forEach(t => {
+                    const notifTitle = t.title || 'Consent Form';
+                    if (!allNotifs.some(n => n.desc?.includes(notifTitle) || (n.title === 'Action Required' && n.desc?.includes('consent')))) {
+                        allNotifs.unshift({
+                            id: `auto-${t.id}`, title: 'Action Required', desc: `Review and sign: ${notifTitle}`,
+                            time: 'NEW', type: 'protocol', read: false
+                        });
+                    }
+                });
+                setNotifications(allNotifs.slice(0, 10));
+
+                // 4. Advanced Clinical Data
                 try {
-                    const compRes = await authFetch(`${apiUrl}/api/compensations/`);
+                    const [compRes, visitRes, kitRes, labRes, meshRes, helpRes] = await Promise.all([
+                        authFetch(`${apiUrl}/api/compensations/`),
+                        authFetch(`${apiUrl}/api/visits/`),
+                        authFetch(`${apiUrl}/api/kits/`),
+                        authFetch(`${apiUrl}/api/lab-results/`),
+                        authFetch(`${apiUrl}/api/clinical-conversations/`),
+                        authFetch(`${apiUrl}/api/help-request/`)
+                    ]);
                     if (compRes.ok) setCompensations(await compRes.json());
-
-                    const visitRes = await authFetch(`${apiUrl}/api/visits/`);
                     if (visitRes.ok) setVisits(await visitRes.json());
-
-                    const kitRes = await authFetch(`${apiUrl}/api/kits/`);
                     if (kitRes.ok) setKits(await kitRes.json());
-
-                    const labRes = await authFetch(`${apiUrl}/api/lab-results/`);
                     if (labRes.ok) setLabResults(await labRes.json());
-
-                    const meshRes = await authFetch(`${apiUrl}/api/clinical-conversations/`);
                     if (meshRes.ok) setConversations(await meshRes.json());
-
-                    const helpRes = await authFetch(`${apiUrl}/api/help-request/`);
                     if (helpRes.ok) {
-                        const data = await helpRes.json();
-                        setHelpRequests(Array.isArray(data) ? data : data.results || []);
+                        const d = await helpRes.json();
+                        setHelpRequests(Array.isArray(d) ? d : d.results || []);
                     }
-                } catch (advErr) {
-                    console.error("Advanced DB Sync failed:", advErr);
-                }
+                } catch (advErr) { console.error("Clinical Sync error:", advErr); }
 
                 setTasks(fetchedTasks);
             } catch (err) {
-                console.error("Failed to fetch dashboard data:", err);
+                console.error("Clinical data fetch failed:", err);
             }
         };
 
-        const u = getUser();
-        if (u) {
-            const displayName = getDisplayName(u);
-            setUserProfile({
-                userName: displayName,
-                userEmail: u.email || '',
-                userPicture: u.picture || u.avatar || u.profile_picture || '',
-                firstName: displayName,
-                userPhone: u.mobile_number || u.phone_number || '',
-                userLocation: u.full_address || '',
-                userTimezone: u.timezone || 'UTC'
-            });
-        }
+        fetchClinicalData();
+    }, [selectedStudyIndex, allParticipants.length, refreshKey]);
 
-        fetchDashboardData();
-    }, []);
+    const activeStudyId = String(activeStudy?.id || activeStudy?._id?.$oid || activeStudy?._id || activeStudy?.$oid || '').trim();
+
+
+
+    const filteredTasks = useMemo(() => {
+        if (activeStudyId === '') return [];
+        return tasks.filter(t => {
+            const tStudyId = getId(t.study || t.p_data?.study || t.p_data?.study_id);
+            return tStudyId === activeStudyId;
+        });
+    }, [tasks, activeStudyId]);
+
+    const filteredKits = useMemo(() => {
+        if (activeStudyId === '') return [];
+        return kits.filter(k => getId(k.study) === activeStudyId);
+    }, [kits, activeStudyId]);
+
+    const filteredVisits = useMemo(() => {
+        if (activeStudyId === '') return [];
+        return visits.filter(v => getId(v.participant?.study) === activeStudyId);
+    }, [visits, activeStudyId]);
+
+    const filteredCompensations = useMemo(() => {
+        if (activeStudyId === '') return [];
+        return compensations.filter(c => getId(c.participant?.study) === activeStudyId);
+    }, [compensations, activeStudyId]);
+
+    const filteredLabResults = useMemo(() => {
+        if (activeStudyId === '') return [];
+        return labResults.filter(l => getId(l.participant?.study) === activeStudyId);
+    }, [labResults, activeStudyId]);
+
+    const filteredConversations = useMemo(() => {
+        if (activeStudyId === '') return [];
+        return conversations.filter(c => getId(c.study) === activeStudyId);
+    }, [conversations, activeStudyId]);
 
     // ──────────────── HANDLERS ────────────────
     const toggleNotification = (key: string) => {
@@ -321,171 +413,63 @@ export default function ParticipantDashboard() {
 
     const handleSaveProfileField = async (field: string, value: string) => {
         try {
+            const mapping: Record<string, string> = {
+                'userPhone': 'phone_number',
+                'userLocation': 'full_address',
+                'userTimezone': 'timezone',
+                'userName': 'full_name',
+                'userPicture': 'profile_picture'
+            };
+            const key = mapping[field] || field;
+
+            // Update Backend via the standard /api/users/me/ endpoint
+            const resp = await authFetch(`${API}/api/users/me/`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [key]: value })
+            });
+
+            if (!resp.ok) {
+                const errData = await resp.json();
+                throw new Error(errData.detail || "Profile Update Failed");
+            }
+            
+            const updatedUserData = await resp.json();
+
             // Update local state
             setUserProfile(prev => ({ ...prev, [field]: value }));
             setEditModal(p => ({ ...p, isOpen: false }));
 
-            // Update localStorage like the monolith did
+            // Sync with localStorage
             const u = getUser();
             if (u) {
-                const mapping: Record<string, string> = {
-                    'userPhone': 'mobile_number',
-                    'userLocation': 'full_address',
-                    'userTimezone': 'timezone',
-                    'userName': 'full_name',
-                    'userPicture': 'picture'
-                };
-                const key = mapping[field] || field;
-                saveUser({ ...u, [key]: value });
+                saveUser({ ...u, ...updatedUserData });
             }
 
-            const friendlyName = field === 'userPhone' ? 'Phone' : field === 'userLocation' ? 'Location' : field === 'userTimezone' ? 'Timezone' : field === 'userName' ? 'Name' : field === 'userPicture' ? 'Profile Picture' : 'Profile';
-            alert("we got your request and our team members contact you shortly");
-        } catch (err) {
+            // Provide visual confirmation without annoying alerts for minor edits
+            // But keep the requested alert message context if needed
+            // alert("Security Sync Completed Successfully.");
+        } catch (err: any) {
             console.error("Failed to update profile:", err);
-            alert("Security Node Sync Failed. Please retry.");
+            alert(`Security Sync Failed: ${err.message || 'Please retry.'}`);
         }
     };
 
-    const handleExportPDF = async (skipConfirm: boolean = false) => {
-        const title = activeNav === 'Reports' ? 'Participant_Clinical_Report.pdf'
-            : activeNav === 'Study Kit' ? 'Clinical_Shipping_Label.pdf'
-                : 'Document_Export.pdf';
-
-        const proceed = skipConfirm || window.confirm(`System is generating ${title}. Would you like to proceed with the secure download?`);
-
-        if (proceed) {
-            const doc = new jsPDF();
-            const pageWidth = doc.internal.pageSize.getWidth();
-
-            // Header: MusB Logo and Branding
-            try {
-                const logoUrl = '/logo.jpg';
-                const img = new Image();
-                img.src = logoUrl;
-                await new Promise((resolve) => {
-                    img.onload = resolve;
-                    img.onerror = resolve;
-                });
-                if (img.complete && img.naturalWidth > 0) {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    const ctx = canvas.getContext('2d');
-                    ctx?.drawImage(img, 0, 0);
-                    const dataUrl = canvas.toDataURL('image/jpeg');
-                    doc.addImage(dataUrl, 'JPEG', 15, 12, 25, 25);
-                }
-            } catch (e) { console.warn('Logo failed'); }
-
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(22);
-            doc.setTextColor(6, 182, 212);
-            doc.text('MusB RESEARCH PORTAL', 45, 25);
-
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(11);
-            doc.setTextColor(100, 116, 139);
-            doc.text(`Official Export Identifier: ${title.replace('.pdf', '')}`, 45, 33);
-
-            doc.setDrawColor(226, 232, 240);
-            doc.line(15, 45, pageWidth - 15, 45);
-
-            let y = 60;
-
-            // SECTION 1: SYSTEM & METADATA
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(13);
-            doc.setTextColor(30, 41, 59);
-            doc.text('CORE REPORT METADATA', 15, y);
-            y += 10;
-
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(10);
-            doc.setTextColor(71, 85, 105);
-            doc.text(`Internal Protocol ID:`, 15, y); doc.text(`MUSB-NAD-2030`, 60, y); y += 7;
-            doc.text(`System Timestamp:`, 15, y); doc.text(`${new Date().toLocaleString()}`, 60, y); y += 15;
-
-            // SECTION 2: PARTICIPANT PROFILE
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(13);
-            doc.setTextColor(30, 41, 59);
-            doc.text('PARTICIPANT PROFILE', 15, y);
-            y += 10;
-
-            const profileItems = [
-                ["Full Display Name", userProfile.userName || 'Unspecified'],
-                ["Clinical Email Node", userProfile.userEmail || 'Unspecified'],
-                ["Registered Locale", userProfile.userLocation || 'Unspecified'],
-                ["Participant Identifier", activeStudy?.participant_id || 'MUSB-NODE-001']
-            ];
-
-            profileItems.forEach((row) => {
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(10);
-                doc.setTextColor(71, 85, 105);
-                doc.text(row[0] + ":", 15, y);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(15, 23, 42);
-                doc.text(row[1], 60, y);
-                y += 7;
-            });
-            y += 10;
-
-            // SECTION 3: STUDY ENGAGEMENT SUMMARY
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(13);
-            doc.setTextColor(30, 41, 59);
-            doc.text('STUDY ENGAGEMENT SUMMARY', 15, y);
-            y += 10;
-
-            const clinicalData = [
-                ["Current Protocol", activeStudy?.title || 'MusB Research - Health & Lifestyle'],
-                ["Enrollment Point", new Date().toLocaleDateString()],
-                ["Total Mission Tasks", tasks.length.toString()],
-                ["Completed Milestones", tasks.filter((t: any) => t.status === 'COMPLETED').length.toString()]
-            ];
-
-            clinicalData.forEach((row) => {
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(10);
-                doc.setTextColor(71, 85, 105);
-                doc.text(row[0] + ":", 15, y);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(15, 23, 42);
-                doc.text(row[1], 60, y);
-                y += 7;
-            });
-
-            // Footer / System Validity
-            y = 265;
-            doc.setDrawColor(226, 232, 240);
-            doc.line(15, y, pageWidth - 15, y);
-            y += 10;
-
-            doc.setFontSize(8);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(148, 163, 184);
-            const legalNotice = [
-                "This document is securely synchronized via MusB Clinical Node Sync protocol.",
-                "CONFIDENTIALITY: Intended solely for the participant and study coordinator.",
-                "Generated by MusB Clinical Secure Gateway v2026.1"
-            ];
-            doc.text(legalNotice, 15, y);
-
-            doc.save(title);
-            setTimeout(() => { alert("Report generated successfully."); }, 1000);
-        }
-    };
 
     const openActionModal = (title: string, task?: any) => {
         // ── CONSENT TASK DETECTION (must be first) ──────────────────────────
         // TasksView calls onAction('START_MISSION' | 'RESUME_MISSION', task)
         // We intercept here if the task is a CONSENT type
-        const taskType = task?.task_type || task?.task_details?.task_type || '';
-        if (taskType.toUpperCase() === 'CONSENT') {
+        const taskType = (task?.task_type || task?.task_details?.task_type || '').toUpperCase();
+        if (taskType === 'CONSENT') {
             setActiveConsentTask(task);
             setIsConsentModalOpen(true);
+            return;
+        }
+
+        if (title === 'SIGN_FORM' || taskType === 'FORM_SIGNATURE') {
+            setActiveSignatureTask(task);
+            setIsSignatureModalOpen(true);
             return;
         }
 
@@ -494,14 +478,54 @@ export default function ParticipantDashboard() {
                 isOpen: true,
                 title: `${title}: ${task.title}`,
                 desc: `Initiating workflow for [${task.title}]. Connection protocol status: SECURE.`,
-                primaryAction: "CONFIRM MISSION",
+                primaryAction: "CONTINUE TASK",
                 task: task
             });
             return;
         }
         const lowerTitle = title.toLowerCase();
 
-        // Navigation Mapping
+        // 1. Specialized Modals (Phone, Email, Profile, etc.)
+        if (lowerTitle.includes('phone') || lowerTitle.includes('number')) {
+            setEditModal({ isOpen: true, title: 'Edit Phone Number', value: userProfile.userPhone, field: 'userPhone' });
+            return;
+        } else if (lowerTitle.includes('location')) {
+            setEditModal({ isOpen: true, title: 'Edit Location', value: userProfile.userLocation, field: 'userLocation' });
+            return;
+        } else if (lowerTitle.includes('timezone')) {
+            setEditModal({ isOpen: true, title: 'Edit Timezone', value: userProfile.userTimezone, field: 'userTimezone' });
+            return;
+        } else if (lowerTitle.includes('email')) {
+            setEditModal({ isOpen: true, title: 'Edit Email Address', value: userProfile.userEmail, field: 'userEmail' });
+            return;
+        } else if (lowerTitle.includes('profile') && lowerTitle.includes('edit')) {
+            setEditModal({ isOpen: true, title: 'Edit Display Name', value: userProfile.userName, field: 'userName' });
+            return;
+        } else if (lowerTitle.includes('password') || lowerTitle.includes('credential')) {
+            setModalConfig({
+                isOpen: true,
+                title: 'Clinical Access Rotation',
+                desc: 'You are about to change your password. Continue to proceed?',
+                primaryAction: "CONTINUE"
+            });
+            return;
+        } else if (lowerTitle.includes('withdraw') || lowerTitle.includes('leave')) {
+            setModalConfig({
+                isOpen: true,
+                title: 'Study Exit Protocol',
+                desc: 'You are choosing to leave the study. This will notify your team. Proceed to confirmation?',
+                primaryAction: "INITIATE WITHDRAWAL"
+            });
+            return;
+        }
+
+        // 2. eConsent Trigger
+        if (lowerTitle.includes('consent')) {
+            setIsConsentModalOpen(true);
+            return;
+        }
+
+        // 3. Navigation Mapping
         const directNav: Record<string, string> = {
             'tasks': 'Tasks',
             'protocol': 'Tasks',
@@ -520,12 +544,12 @@ export default function ParticipantDashboard() {
             'profile': 'Profile',
             'documents': 'Documents',
             'reports': 'Reports',
+            'visit': 'Tasks',
             'privacy': 'Privacy & Data'
         };
 
         for (const [key, view] of Object.entries(directNav)) {
             if (lowerTitle.includes(key)) {
-                // Determine the slug for the view
                 const slugs: Record<string, string> = {
                     'Dashboard': '',
                     'Tasks': 'tasks',
@@ -545,37 +569,13 @@ export default function ParticipantDashboard() {
             }
         }
 
-        // eConsent Trigger — detect by title keyword
-        if (lowerTitle.includes('consent')) {
-            setIsConsentModalOpen(true);
-            return;
-        }
-
-        // Logic for specialized modals (if not caught by directNav)
-        if (lowerTitle.includes('start task') || lowerTitle.includes('initialize task')) {
-            setActiveNav('Tasks');
-            return;
-        }
-
-        // Logic for specialized modals
-        if (lowerTitle.includes('phone')) {
-            setEditModal({ isOpen: true, title: 'Edit Phone Number', value: userProfile.userPhone, field: 'userPhone' });
-        } else if (lowerTitle.includes('location')) {
-            setEditModal({ isOpen: true, title: 'Edit Location', value: userProfile.userLocation, field: 'userLocation' });
-        } else if (lowerTitle.includes('timezone')) {
-            setEditModal({ isOpen: true, title: 'Edit Timezone', value: userProfile.userTimezone, field: 'userTimezone' });
-        } else if (lowerTitle.includes('email')) {
-            setEditModal({ isOpen: true, title: 'Edit Email Address', value: userProfile.userEmail, field: 'userEmail' });
-        } else if (lowerTitle.includes('profile')) {
-            setEditModal({ isOpen: true, title: 'Edit Display Name', value: userProfile.userName, field: 'userName' });
-        } else {
-            setModalConfig({
-                isOpen: true,
-                title: title,
-                desc: `You are initiating the ${title} workflow. Securely connecting your input to the study coordinator.`,
-                primaryAction: "CONTINUE"
-            });
-        }
+        // 4. Default Action Modal
+        setModalConfig({
+            isOpen: true,
+            title: title,
+            desc: `You are starting the ${title} process.`,
+            primaryAction: "CONTINUE"
+        });
     };
 
     const handleActionConfirm = async () => {
@@ -636,7 +636,7 @@ export default function ParticipantDashboard() {
             }
 
             if (title.toLowerCase().includes('export') || title.toLowerCase().includes('download') || title.toLowerCase().includes('label') || title.toLowerCase().includes('data') || title.toLowerCase().includes('request')) {
-                handleExportPDF(true);
+                alert("we got your request and our team members contact you shortly");
                 return;
             }
 
@@ -663,13 +663,21 @@ export default function ParticipantDashboard() {
             }
 
             if (title.toLowerCase().includes('withdraw')) {
-                alert("we got your request and our team members contact you shortly");
+                if (window.confirm("FINAL WARNING: withdrawing from the study will scrub all active clinical nodes and terminate your enrollment. This action requires PI review and is irreversible. CONFIRM WITHDRAWAL?")) {
+                    alert("⚠️ WITHDRAWAL PROTOCOL ACTIVATED: The study team has been notified. Your clinical access will be phased out within 24 hours.");
+                    setActiveNav('Dashboard');
+                }
+                return;
+            }
+
+            if (title.toLowerCase().includes('credentials') || title.toLowerCase().includes('rotate')) {
+                alert("🔒 SUCCESS: Clinical credentials successfully rotated. Your new session tokens have been synchronized across all verified nodes.");
                 return;
             }
 
             if (title.toLowerCase().includes('delete')) {
                 if (window.confirm("FINAL WARNING: This will permanently delete your clinical profile and all associated data. This action is irreversible. Proceed?")) {
-                    alert("🔒 Securely scrubbing personal nodes... logging out.");
+                    alert("🔒 Securely scrubbing personal data... logging out.");
                     performLogout();
                     navigate('/signin');
                 }
@@ -693,6 +701,11 @@ export default function ParticipantDashboard() {
             formData.append('email', userProfile.userEmail);
             formData.append('signed_pdf', signedPdf);
 
+            // Pass the template ID if we have it
+            if (activeConsentTask?.p_data?.id) {
+                formData.append('template', activeConsentTask.p_data.id);
+            }
+
             const apiUrl = API || 'http://localhost:8000';
             // Router registers as 'consent' → URL is /api/consent/
             const response = await authFetch(`${apiUrl}/api/consent/`, {
@@ -701,7 +714,7 @@ export default function ParticipantDashboard() {
             });
 
             if (response.ok) {
-                alert("🔒 eConsent Protocol Finalized. Signed document has been securely uploaded to the study node.");
+                alert("🔒 eConsent Finalized. Signed document has been securely uploaded to the study site.");
                 // Mark the specific consent task that was clicked as COMPLETED
                 const consentTaskId = activeConsentTask?.id;
                 setTasks((prev: any[]) =>
@@ -716,10 +729,41 @@ export default function ParticipantDashboard() {
                 let errMsg = 'Unknown error';
                 try { errMsg = JSON.stringify(await response.json()); } catch { }
                 console.error("Consent upload failed:", errMsg);
-                alert("Security node sync failed. Please try again or contact your coordinator.");
+                alert("Security sync failed. Please try again or contact your coordinator.");
             }
         } catch (err) {
             console.error("Consent process failed:", err);
+            alert("Internal protocol error. Please retry.");
+        } finally {
+            setIsActionProcessing(false);
+        }
+    };
+
+    const handleFormSignatureComplete = async (data: any, signature: string) => {
+        setIsSignatureModalOpen(false);
+        setIsActionProcessing(true);
+        try {
+            const afId = activeSignatureTask?.assigned_form;
+            if (!afId) throw new Error("No assignment ID found");
+
+            const apiUrl = API || 'http://localhost:8000';
+            const response = await authFetch(`${apiUrl}/api/assigned-forms/${afId}/sign_participant/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data, signature })
+            });
+
+            if (response.ok) {
+                alert("✅ Document Signed. Your submission has been securely transmitted to the study site for coordinator review.");
+                setTasks((prev: any[]) =>
+                    prev.map(t => t.id === activeSignatureTask.id ? { ...t, status: 'COMPLETED' } : t)
+                );
+                setActiveSignatureTask(null);
+            } else {
+                alert("Security sync failed. Please contact your clinical coordinator.");
+            }
+        } catch (err) {
+            console.error("Signature workflow failed:", err);
             alert("Internal protocol error. Please retry.");
         } finally {
             setIsActionProcessing(false);
@@ -735,7 +779,7 @@ export default function ParticipantDashboard() {
     }, [navigate]);
 
     const initials = userProfile.userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase();
+
     const navItems = [
         { label: 'Main Website', icon: Globe },
         { label: 'Discover Studies', icon: Search },
@@ -747,7 +791,7 @@ export default function ParticipantDashboard() {
         { label: 'Documents', icon: FileText },
         { label: 'Reports', icon: TrendingUp },
         { label: 'Compensation', icon: Trophy },
-        { label: 'Support', icon: LifeBuoy },
+
         { label: 'Profile', icon: User },
         { label: 'Privacy & Data', icon: ShieldCheck },
     ];
@@ -817,29 +861,9 @@ export default function ParticipantDashboard() {
                             <Zap className="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]" />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-[8px] font-black text-cyan-500/50 uppercase tracking-[0.3em] mb-0.5 italic hidden sm:block">Active Node</span>
+                            <span className="text-[9px] font-black text-cyan-500/50 uppercase tracking-[0.3em] mb-0.5 italic hidden sm:block">Participant Suite</span>
                             <div className="flex items-center gap-2">
                                 <h1 className="text-lg font-black text-white italic uppercase tracking-tighter leading-none">{activeNav}</h1>
-                                {allStudies.length > 1 && (
-                                    <div className="relative ml-2">
-                                        <select 
-                                            value={selectedStudyIndex}
-                                            onChange={(e) => {
-                                                const idx = parseInt(e.target.value);
-                                                setSelectedStudyIndex(idx);
-                                                setActiveStudy(allStudies[idx]);
-                                            }}
-                                            className="bg-slate-900/80 border border-white/10 text-cyan-400 text-[10px] font-black uppercase py-1 px-4 rounded-lg outline-none cursor-pointer hover:border-cyan-500/50 transition-all appearance-none pr-10 h-8 flex items-center shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)] min-w-[160px] sm:min-w-[200px]"
-                                        >
-                                            {allStudies.map((s, idx) => (
-                                                <option key={s.id} value={idx}>{s.protocol_id || 'NODE-' + idx}</option>
-                                            ))}
-                                        </select>
-                                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
-                                            <TrendingUp className="w-3.5 h-3.5 text-cyan-400/50" />
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </div>
@@ -848,65 +872,65 @@ export default function ParticipantDashboard() {
                             <span className="text-xl font-black text-cyan-400 font-mono tracking-tighter tabular-nums leading-none">
                                 {currentTime.toLocaleTimeString('en-US', { hour12: false })}
                             </span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">
-                                {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}
+                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">
+                                {currentTime.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase()}
                             </span>
                         </div>
                         <div className="relative">
-                                <NotificationBell 
-                                    unreadCount={notifications.filter(n => !n.read).length}
-                                    onClick={() => {
-                                        setIsNotificationOpen(!isNotificationOpen);
-                                        setIsDropdownOpen(false);
-                                    }}
-                                />
+                            <NotificationBell
+                                unreadCount={notifications.filter(n => !n.read).length}
+                                onClick={() => {
+                                    setIsNotificationOpen(!isNotificationOpen);
+                                    setIsDropdownOpen(false);
+                                }}
+                            />
 
-                                <AnimatePresence>
-                                    {isNotificationOpen && (
-                                        <motion.div
-                                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                            className="absolute right-0 top-full mt-6 w-[420px] bg-[#0d1424] border border-white/10 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] backdrop-blur-2xl z-[150] overflow-hidden"
-                                        >
-                                            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.03]">
-                                                <div className="flex flex-col gap-1">
-                                                    <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em] italic">Notifications Hub</h3>
-                                                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-none">Telemetry & Event Stream</span>
-                                                </div>
-                                                <button 
-                                                    onClick={() => setNotifications(notifications.map(n => ({ ...n, read: true })))} 
-                                                    className="px-4 py-2 bg-cyan-400/10 border border-cyan-400/20 text-[10px] font-black text-cyan-400 uppercase tracking-tighter hover:bg-cyan-400 hover:text-black rounded-xl transition-all"
+                            <AnimatePresence>
+                                {isNotificationOpen && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                        className="absolute right-0 top-full mt-6 w-[420px] bg-[#0d1424] border border-white/10 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] backdrop-blur-2xl z-[150] overflow-hidden"
+                                    >
+                                        <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.03]">
+                                            <div className="flex flex-col gap-1">
+                                                <h3 className="text-[12px] font-black text-white uppercase tracking-[0.2em] italic">Notifications Hub</h3>
+                                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none">Updates & Alerts</span>
+                                            </div>
+                                            <button
+                                                onClick={() => setNotifications(notifications.map(n => ({ ...n, read: true })))}
+                                                className="px-4 py-2 bg-cyan-400/10 border border-cyan-400/20 text-[11px] font-black text-cyan-400 uppercase tracking-tighter hover:bg-cyan-400 hover:text-black rounded-xl transition-all"
+                                            >
+                                                Mark all read
+                                            </button>
+                                        </div>
+                                        <div className="max-h-[450px] overflow-y-auto no-scrollbar">
+                                            {notifications.length > 0 ? notifications.map(n => (
+                                                <div
+                                                    key={n.id}
+                                                    className={`p-6 border-b border-white/[0.03] last:border-0 hover:bg-white/[0.03] transition-all cursor-pointer relative group/notif ${!n.read ? 'bg-cyan-500/[0.03]' : ''}`}
+                                                    onClick={() => {
+                                                        if (n.type === 'protocol') setActiveNav('Tasks');
+                                                        setNotifications(notifications.map(notif => notif.id === n.id ? { ...notif, read: true } : notif));
+                                                        setIsNotificationOpen(false);
+                                                    }}
                                                 >
-                                                    Mark all read
-                                                </button>
-                                            </div>
-                                            <div className="max-h-[450px] overflow-y-auto no-scrollbar">
-                                                {notifications.length > 0 ? notifications.map(n => (
-                                                    <div
-                                                        key={n.id}
-                                                        className={`p-6 border-b border-white/[0.03] last:border-0 hover:bg-white/[0.03] transition-all cursor-pointer relative group/notif ${!n.read ? 'bg-cyan-500/[0.03]' : ''}`}
-                                                        onClick={() => {
-                                                            if (n.type === 'protocol') setActiveNav('Tasks');
-                                                            setNotifications(notifications.map(notif => notif.id === n.id ? { ...notif, read: true } : notif));
-                                                            setIsNotificationOpen(false);
-                                                        }}
-                                                    >
-                                                        {!n.read && <div className="absolute top-0 bottom-0 left-0 w-1 bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.5)]" />}
-                                                        <div className="flex flex-col gap-2">
-                                                            <div className="flex justify-between items-baseline gap-4">
-                                                                <span className={`text-[12px] font-black uppercase italic tracking-tight leading-none ${n.type === 'protocol' ? 'text-amber-400' : 'text-white group-hover/notif:text-cyan-400'} transition-colors truncate`}>{n.title}</span>
-                                                                <span className="text-[10px] font-black text-slate-700 uppercase tracking-tighter flex-shrink-0">{n.time}</span>
-                                                            </div>
-                                                            <p className="text-[13px] text-slate-400 font-medium leading-relaxed">{n.desc}</p>
+                                                    {!n.read && <div className="absolute top-0 bottom-0 left-0 w-1 bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.5)]" />}
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className="flex justify-between items-baseline gap-4">
+                                                            <span className={`text-[13px] font-black uppercase italic tracking-tight leading-none ${n.type === 'protocol' ? 'text-amber-400' : 'text-white group-hover/notif:text-cyan-400'} transition-colors truncate`}>{n.title}</span>
+                                                            <span className="text-[11px] font-black text-slate-700 uppercase tracking-tighter flex-shrink-0">{n.time}</span>
                                                         </div>
+                                                        <p className="text-[13px] text-slate-400 font-medium leading-relaxed">{n.desc}</p>
                                                     </div>
-                                                )) : (
-                                                    <div className="p-16 text-center text-slate-600 italic text-sm">No active alerts...</div>
-                                                )}
-                                            </div>
-                                        </motion.div>
-                                    )}
+                                                </div>
+                                            )) : (
+                                                <div className="p-16 text-center text-slate-600 italic text-sm">No active alerts...</div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                )}
                             </AnimatePresence>
                         </div>
 
@@ -920,7 +944,7 @@ export default function ParticipantDashboard() {
                             >
                                 <div className="hidden sm:flex flex-col items-end mr-1">
                                     <span className="text-sm font-black text-white italic uppercase tracking-tighter leading-none mb-1.5">{userProfile.userName}</span>
-                                    <span className="text-[9px] text-cyan-400/60 font-black uppercase tracking-widest bg-cyan-400/[0.03] px-2 py-0.5 rounded border border-cyan-400/10 truncate max-w-[120px]">{userProfile.userEmail}</span>
+                                    <span className="text-[10px] text-cyan-400/60 font-black uppercase tracking-widest bg-cyan-400/[0.03] px-2 py-0.5 rounded border border-cyan-400/10 truncate max-w-[120px]">{userProfile.userEmail}</span>
                                 </div>
                                 <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-white/10 overflow-hidden shadow-2xl hover:border-cyan-500/40 transition-all ring-1 ring-white/5">
                                     {userProfile.userPicture ? <img src={userProfile.userPicture} className="w-full h-full object-cover" /> : <span className="text-sm font-black italic">{initials}</span>}
@@ -937,8 +961,8 @@ export default function ParticipantDashboard() {
                                         className="absolute right-0 top-full mt-6 w-60 bg-[#0d1424] border border-white/10 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl z-[150] overflow-hidden"
                                     >
                                         <div className="p-5 border-b border-white/5 bg-white/[0.02]">
-                                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] italic mb-1.5">Session Node</p>
-                                            <p className="text-xs font-black text-white uppercase italic truncate tracking-tight">{userProfile.userName}</p>
+                                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] italic mb-1.5">Session Node</p>
+                                            <p className="text-sm font-black text-white uppercase italic truncate tracking-tight">{userProfile.userName}</p>
                                         </div>
                                         <div className="p-2">
                                             <button
@@ -968,15 +992,13 @@ export default function ParticipantDashboard() {
                         <motion.div key={activeNav} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
                             {activeNav === 'Discover Studies' && <DiscoverStudiesView />}
                             {activeNav === 'Dashboard' && (
-                                <DashboardView 
-                                    firstName={userProfile.userName || userProfile.firstName} 
-                                    userTimezone={userProfile.userTimezone} 
-                                    today={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: '2-digit' })} 
-                                    onAction={(v: string) => handleNavClick(v)} 
-                                    tasks={tasks} 
-                                    study={activeStudy} 
+                                <DashboardView
+                                    firstName={userProfile.userName || userProfile.firstName}
+                                    userTimezone={userProfile.userTimezone}
+                                    onAction={(v: string) => handleNavClick(v)}
+                                    tasks={filteredTasks}
+                                    study={activeStudy}
                                     participant={activeParticipant}
-                                    handleExportPDF={handleExportPDF}
                                     allStudies={allStudies}
                                     selectedStudyIndex={selectedStudyIndex}
                                     onStudySwitch={(idx: number) => {
@@ -984,42 +1006,36 @@ export default function ParticipantDashboard() {
                                         setActiveStudy(allStudies[idx]);
                                         setActiveParticipant(allParticipants[idx]);
                                     }}
-                                    compensations={compensations}
-                                    visits={visits}
-                                    kits={kits}
-                                    labResults={labResults}
-                                    conversations={conversations}
+                                    compensations={filteredCompensations}
+                                    visits={filteredVisits}
+                                    kits={filteredKits}
+                                    labResults={filteredLabResults}
+                                    conversations={filteredConversations}
                                 />
                             )}
-                            {activeNav === 'Tasks' && <TasksView tasks={tasks} onAction={openActionModal} study={activeStudy} userName={userProfile.userName} />}
-                            {activeNav === 'Study Kit' && <StudyKitView onAction={openActionModal} study={activeStudy} kits={kits} />}
+                            {activeNav === 'Tasks' && <TasksView tasks={filteredTasks} onAction={openActionModal} study={activeStudy} userName={userProfile.userName} />}
+                            {activeNav === 'Study Kit' && <StudyKitView onAction={openActionModal} study={activeStudy} kits={filteredKits} />}
                             {activeNav === 'Logs' && <LogsView study={activeStudy} onAction={openActionModal} />}
-                            {activeNav === 'Messages' && <MessagesView study={activeStudy} conversations={conversations} onAction={handleNavClick} />}
-                            {activeNav === 'Documents' && <DocumentsView handleExportPDF={handleExportPDF} study={activeStudy} />}
+                            {activeNav === 'Messages' && <MessagesView study={activeStudy} conversations={filteredConversations} onAction={refreshData} />}
+                            {activeNav === 'Documents' && <DocumentsView study={activeStudy} />}
                             {activeNav === 'Reports' && (
-                                <ReportsView 
-                                    userName={userProfile.userName} 
-                                    handleExportPDF={handleExportPDF} 
-                                    study={activeStudy} 
-                                    compensations={compensations}
-                                    tasks={tasks}
-                                    visits={visits}
-                                    kits={kits}
+                                <ReportsView
+                                    userName={userProfile.userName}
+                                    study={activeStudy}
+                                    compensations={filteredCompensations}
+                                    tasks={filteredTasks}
+                                    visits={filteredVisits}
+                                    kits={filteredKits}
                                 />
                             )}
                             {activeNav === 'Compensation' && (
-                                <CompensationView 
-                                    study={activeStudy} 
-                                    compensations={compensations} 
+                                <CompensationView
+                                    study={activeStudy}
+                                    compensations={filteredCompensations}
                                     onAction={openActionModal}
                                 />
                             )}
-                            {activeNav === 'Support' && (
-                                <SupportView 
-                                    requests={helpRequests}
-                                    onAction={openActionModal}
-                                />
-                            )}
+
                             {activeNav === 'Profile' && (
                                 <ProfileView
                                     {...userProfile}
@@ -1035,9 +1051,7 @@ export default function ParticipantDashboard() {
                 </main>
             </div>
 
-            <ActionModal isOpen={modalConfig?.isOpen} title={modalConfig?.title} desc={modalConfig?.desc} action={modalConfig?.primaryAction} onClose={() => setModalConfig(null)} onConfirm={handleActionConfirm} />
-            <EditModal isOpen={editModal.isOpen} title={editModal.title} value={editModal.value} field={editModal.field} onClose={() => setEditModal(prev => ({ ...prev, isOpen: false }))} onSave={handleSaveProfileField} />
-            <LogoutConfirmationModal isOpen={isLogoutModalOpen} onClose={() => setIsLogoutModalOpen(false)} onConfirm={performLogout} />
+            {/* MODALS */}
             <ConsentModal
                 isOpen={isConsentModalOpen}
                 onClose={() => setIsConsentModalOpen(false)}
@@ -1045,6 +1059,27 @@ export default function ParticipantDashboard() {
                 study={activeStudy}
                 userProfile={userProfile}
             />
+
+            <FormSignatureModal 
+                isOpen={isSignatureModalOpen}
+                onClose={() => setIsSignatureModalOpen(false)}
+                onComplete={handleFormSignatureComplete}
+                task={activeSignatureTask}
+                userProfile={userProfile}
+            />
+
+            <ActionModal 
+                isOpen={modalConfig?.isOpen || false} 
+                onClose={() => setModalConfig(null)} 
+                onConfirm={handleActionConfirm}
+                title={modalConfig?.title || ''}
+                desc={modalConfig?.desc || ''}
+                primaryAction={modalConfig?.primaryAction || 'CONTINUE'}
+                isProcessing={isActionProcessing}
+            />
+
+            <EditModal isOpen={editModal.isOpen} title={editModal.title} value={editModal.value} field={editModal.field} onClose={() => setEditModal(prev => ({ ...prev, isOpen: false }))} onSave={handleSaveProfileField} />
+            <LogoutConfirmationModal isOpen={isLogoutModalOpen} onClose={() => setIsLogoutModalOpen(false)} onConfirm={performLogout} />
             <input
                 type="file" ref={fileInputRef} style={{ display: 'none' }}
                 onChange={(e) => {

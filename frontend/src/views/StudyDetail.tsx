@@ -100,8 +100,11 @@ export default function StudyDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [study, setStudy] = useState<Study | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // Scroll immediately — before data loads — to prevent footer flash
+        setLoading(true);
         fetchStudies().then((studies) => {
             const foundStudy = studies.find(s => s.id === id);
             if (foundStudy) {
@@ -109,11 +112,36 @@ export default function StudyDetail() {
             } else {
                 navigate('/trials');
             }
+            setLoading(false);
         });
-        window.scrollTo(0, 0);
     }, [id, navigate]);
 
-    if (!study) return null;
+    if (loading || !study) {
+        return (
+            <div className="min-h-screen pt-40 pb-24 px-4 md:px-12">
+                <div className="max-w-7xl mx-auto space-y-10 animate-pulse">
+                    {/* Back link skeleton */}
+                    <div className="h-4 w-36 bg-white/5 rounded-full" />
+                    <div className="grid lg:grid-cols-12 gap-12">
+                        <div className="lg:col-span-8 space-y-8">
+                            <div className="flex gap-3">
+                                <div className="h-7 w-24 bg-white/5 rounded-full" />
+                                <div className="h-7 w-20 bg-white/5 rounded-full" />
+                            </div>
+                            <div className="space-y-4">
+                                <div className="h-16 w-3/4 bg-white/5 rounded-2xl" />
+                                <div className="h-8 w-1/2 bg-white/5 rounded-xl" />
+                            </div>
+                            <div className="h-64 w-full bg-white/5 rounded-[3rem]" />
+                        </div>
+                        <div className="lg:col-span-4">
+                            <div className="h-64 w-full bg-white/5 rounded-[2.5rem]" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     const studyKey = Object.keys(customStudyContent).find(key => study.title.toLowerCase().includes(key));
     const customContent = studyKey ? customStudyContent[studyKey] : null;

@@ -4,17 +4,18 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import (
     Visit, Study, StudyAssignment, Participant, Form, FormResponse, Task, 
-    ParticipantTask, Consent, ConsentTemplate, Lead, CommunicationLog, 
+    ParticipantTask, StaffTask, Consent, ConsentTemplate, Lead, CommunicationLog, 
     Compensation, LabResult, DataAuditLog, InterventionArm,
     News, Event, FacilityInquiry, Candidate, NewsletterSubscriber, 
     BookletDownloadRequest, Partnership, Publication, EducationMaterial,
     StudyInquiry, ClinicalConversation, ClinicalMessage, Kit,
-    DosingLog, AEReport, Document, Notification, ProgressReport
+    DosingLog, AEReport, Document, Notification, ProgressReport, DailyMedicationLog,
+    AssignedForm
 )
 from .serializers import (
     VisitSerializer, StudySerializer, StudyAssignmentSerializer, ParticipantSerializer, 
     DeIdentifiedParticipantSerializer, UserSerializer, FormSerializer, 
-    FormResponseSerializer, TaskSerializer, ParticipantTaskSerializer, 
+    FormResponseSerializer, TaskSerializer, ParticipantTaskSerializer, StaffTaskSerializer, 
     ConsentSerializer, ConsentTemplateSerializer, LeadSerializer, CommunicationLogSerializer,
     CompensationSerializer, LabResultSerializer, DataAuditLogSerializer,
     NewsSerializer, EventSerializer, FacilityInquirySerializer, CandidateSerializer,
@@ -23,7 +24,8 @@ from .serializers import (
     StudyInquirySerializer, InterventionArmSerializer,
     ClinicalConversationSerializer, ClinicalMessageSerializer,
     KitSerializer, DosingLogSerializer, AEReportSerializer,
-    NotificationSerializer, ProgressReportSerializer, DocumentSerializer
+    NotificationSerializer, ProgressReportSerializer, DocumentSerializer,
+    DailyMedicationLogSerializer, AssignedFormSerializer
 )
 from authentication.models import User, AuditLog
 from django.db.models import Q
@@ -220,10 +222,25 @@ class PublicStudyViewSet(viewsets.ReadOnlyModelViewSet):
         study = self.get_object()
         user = request.user
         
-        # Check if already enrolled
+        # Check if already enrolled in THIS study
         existing = Participant.objects.filter(study=study, user=user).first()
         if existing:
             return Response({'status': 'already_enrolled', 'message': 'You are already enrolled in this study.', 'participant_sid': existing.participant_sid}, status=status.HTTP_200_OK)
+
+        # Enforce one-study-at-a-time: block if already enrolled in any other study
+        # (any status that is not DROPPED or INELIGIBLE means still engaged)
+        active_enrollment = Participant.objects.filter(
+            user=user
+        ).exclude(
+            status__in=['DROPPED', 'INELIGIBLE', 'COMPLETED']
+        ).exclude(study=study).first()
+        if active_enrollment:
+            return Response({
+                'status': 'already_in_study',
+                'message': f'You are already enrolled in study {active_enrollment.study.protocol_id}. You can only participate in one study at a time. Please complete or withdraw from your current study before joining another.',
+                'current_study': active_enrollment.study.protocol_id,
+                'current_study_title': active_enrollment.study.title,
+            }, status=status.HTTP_409_CONFLICT)
             
         # Generate anonymous SID
         import secrets
@@ -234,13 +251,38 @@ class PublicStudyViewSet(viewsets.ReadOnlyModelViewSet):
             study=study,
             user=user,
             participant_sid=sid,
-            status='SCREENING' # Default starting status
+            status='RECRUITING' # Initial state before eligibility form submission
         )
         AuditLog.log('PARTICIPANT_SELF_ENROLL', user_email=user.email, request=request, detail=f"User self-enrolled in study {study.protocol_id}")
         
+        # Determine the Coordinator and PI for the study
+        if study.coordinator:
+            Notification.objects.create(
+                user=study.coordinator,
+                title="New Study Interest",
+                message=f"Participant {sid} has expressed interest in {study.protocol_id} and added it to their portal.",
+                type="INFO"
+            )
+            StaffTask.objects.create(
+                user=study.coordinator,
+                study=study,
+                title="Review Screener Form",
+                description=f"Participant {sid} has completed the screener for {study.protocol_id}. Please review eligibility.",
+                task_type="SCREENER_REVIEW",
+                reference_id=str(participant.pk)
+            )
+            
+        if study.pi:
+            Notification.objects.create(
+                user=study.pi,
+                title="New Study Interest",
+                message=f"Participant {sid} has expressed interest in {study.protocol_id}.",
+                type="INFO"
+            )
+        
         return Response({
             'status': 'success', 
-            'message': 'Successfully enrolled in study.', 
+            'message': 'Study added to your portal. Please complete the eligibility screener to proceed.', 
             'participant_sid': sid,
             'study_title': study.title
         }, status=status.HTTP_201_CREATED)
@@ -260,6 +302,148 @@ class ParticipantViewSet(viewsets.ModelViewSet):
     queryset = Participant.objects.all()
     serializer_class = ParticipantSerializer
     permission_classes = [permissions.IsAuthenticated]
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def me(self, request):
+        """Endpoint to get the current user's most recent participant profile."""
+        participant = Participant.objects.filter(user=request.user).order_by('-created_at').first()
+        if not participant:
+            return Response({'error': 'No participant record found.'}, status=status.HTTP_404_NOT_FOUND)
+            
+        serializer = self.get_serializer(participant)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def submit_eligibility(self, request, pk=None):
+        """Submit the eligibility form results and set status to PENDING_REVIEW"""
+        participant = self.get_object()
+        
+        # Verify ownership
+        if participant.user != request.user:
+            return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+            
+        # Lock check (Rule 9)
+        if participant.status not in ['RECRUITING', 'INELIGIBLE']:
+            return Response({'error': 'Eligibility form already submitted and locked.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        data = request.data.get('eligibility_data')
+        if not data:
+            return Response({'error': 'No eligibility data provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        participant.eligibility_data = data
+        participant.status = 'PENDING_REVIEW' # Requirement 3
+        participant.submitted_at = now()
+        participant.save()
+
+        # Notify PI and Coordinator (Requirement 2)
+        study = participant.study
+        team = [study.pi, study.coordinator]
+        for user in filter(None, team):
+            Notification.objects.create(
+                user=user,
+                title="Eligibility Submission",
+                message=f"Participant {participant.participant_sid} submitted form for {study.protocol_id}.",
+                type="INFO"
+            )
+            StaffTask.objects.create(
+                user=user,
+                study=study,
+                title="Review Eligibility",
+                description=f"Action Required: Review submission for {participant.participant_sid}.",
+                task_type="SCREENER_REVIEW",
+                reference_id=str(participant.pk)
+            )
+
+        return Response({'status': 'submitted', 'message': 'Successfully submitted for review.'})
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrCoordinator])
+    def review_eligibility(self, request, pk=None):
+        """Review endpoint for PI/Coordinator (Requirement 4)"""
+        participant = self.get_object()
+        decision = request.data.get('decision') # 'ACCEPT' or 'REJECT'
+        notes = request.data.get('notes', '')
+
+        if decision == 'ACCEPT':
+            participant.status = 'ENROLLED'
+            # TRIGGER FORM ASSIGNMENT (Requirement 1)
+            # Find all forms marked as is_required_on_enrollment for this study
+            required_forms = Form.objects.filter(study=participant.study, is_required_on_enrollment=True)
+            for f in required_forms:
+                # 1. Create the AssignedForm tracking record
+                af = AssignedForm.objects.create(
+                    participant=participant,
+                    form=f,
+                    study=participant.study,
+                    status='PENDING'
+                )
+                
+                # 2. Create the ParticipantTask UI record to trigger the form in their portal
+                from datetime import timedelta
+                from django.utils.timezone import now as dj_now
+                
+                # Create a specific task for this form signature
+                Task.objects.get_or_create(
+                    study=participant.study,
+                    title=f.title,
+                    task_type='FORM_SIGNATURE',
+                    form=f,
+                    frequency='ONCE'
+                )
+                
+                # Assign the task instance
+                t_obj = Task.objects.filter(study=participant.study, form=f, task_type='FORM_SIGNATURE').first()
+                if t_obj:
+                    ParticipantTask.objects.create(
+                        participant=participant,
+                        task=t_obj,
+                        due_date=dj_now() + timedelta(days=7),
+                        status='PENDING',
+                        visit_name='Onboarding',
+                        timeline_group='Initial Enrollment',
+                        estimated_time='10 min',
+                        assigned_form=af
+                    )
+
+            # Also ensure a Consent task exists if the study is eConsent
+            if participant.study.consent_mode in ['ECONSENT', 'HYBRID']:
+                c_task, _ = Task.objects.get_or_create(
+                    study=participant.study,
+                    title='Informed Consent Agreement',
+                    task_type='CONSENT',
+                    frequency='ONCE'
+                )
+                ParticipantTask.objects.get_or_create(
+                    participant=participant,
+                    task=c_task,
+                    defaults={
+                        'due_date': dj_now() + timedelta(days=2),
+                        'status': 'PENDING',
+                        'visit_name': 'Screening',
+                        'timeline_group': 'Pre-Enrolled'
+                    }
+                )
+
+        elif decision == 'REJECT':
+            participant.status = 'INELIGIBLE'
+        else:
+            return Response({'error': 'Invalid decision.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        participant.reviewed_by = request.user
+        participant.reviewed_at = now()
+        participant.status_notes = notes
+        participant.save()
+
+        # Notify Participant
+        if participant.user:
+            msg = "Accepted into study." if decision == 'ACCEPT' else "Not eligible at this time."
+            Notification.objects.create(
+                user=participant.user,
+                title="Status Updated",
+                message=f"{participant.study.protocol_id}: {msg}",
+                type="SUCCESS" if decision == 'ACCEPT' else "WARNING"
+            )
+
+        return Response({'status': 'reviewed', 'new_status': participant.status})
+
     def get_serializer_class(self):
         if self.request.user.role.upper() == 'SPONSOR':
             return DeIdentifiedParticipantSerializer
@@ -267,8 +451,9 @@ class ParticipantViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated: return Participant.objects.none()
-        if user.role.upper() == 'SUPER_ADMIN': return Participant.objects.all().order_by('-created_at')
+        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']: return Participant.objects.all().order_by('-created_at')
         if user.role.upper() == 'PARTICIPANT': return Participant.objects.filter(user=user).order_by('-created_at')
+        # PIs, Coordinators, and Sponsors only see participants in studies they are assigned to
         return Participant.objects.filter(study__assignments__user=user).distinct().order_by('-created_at')
 
 class VisitViewSet(viewsets.ModelViewSet):
@@ -278,14 +463,13 @@ class VisitViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if not user.is_authenticated:
-            return Visit.objects.none()
+        if not user.is_authenticated: return Visit.objects.none()
         if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']:
             return Visit.objects.all().order_by('-scheduled_date')
-        if user.role.upper() in ['PI', 'COORDINATOR']:
-            return Visit.objects.filter(participant__study__assignments__user=user).distinct().order_by('-scheduled_date')
-        # Participants only see their own visits
-        return Visit.objects.filter(participant__user=user).order_by('-scheduled_date')
+        if user.role.upper() == 'PARTICIPANT':
+            return Visit.objects.filter(participant__user=user).order_by('-scheduled_date')
+        # PIs, Coordinators, and Sponsors see visits for assigned studies
+        return Visit.objects.filter(participant__study__assignments__user=user).distinct().order_by('-scheduled_date')
 
     def perform_create(self, serializer):
         visit = serializer.save()
@@ -315,7 +499,8 @@ class CommunicationLogViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated: return CommunicationLog.objects.none()
-        return CommunicationLog.objects.filter(participant__study__assignments__user=user)
+        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']: return CommunicationLog.objects.all()
+        return CommunicationLog.objects.filter(participant__study__assignments__user=user).distinct()
 
 class CompensationViewSet(viewsets.ModelViewSet):
     queryset = Compensation.objects.all()
@@ -328,7 +513,7 @@ class CompensationViewSet(viewsets.ModelViewSet):
             return Compensation.objects.all().order_by('-paid_at')
         if user.role.upper() == 'PARTICIPANT':
             return Compensation.objects.filter(participant__user=user).order_by('-paid_at')
-        return Compensation.objects.filter(participant__study__assignments__user=user).distinct()
+        return Compensation.objects.filter(participant__study__assignments__user=user).distinct().order_by('-paid_at')
 
 class LabResultViewSet(viewsets.ModelViewSet):
     queryset = LabResult.objects.all()
@@ -371,10 +556,15 @@ class ConsentTemplateViewSet(viewsets.ModelViewSet):
     parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
 
     def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated: return ConsentTemplate.objects.none()
+        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']: return ConsentTemplate.objects.all()
+        
         study_id = self.request.query_params.get('study_id')
+        queryset = ConsentTemplate.objects.filter(study__assignments__user=user).distinct()
         if study_id:
-            return self.queryset.filter(study_id=study_id)
-        return self.queryset.all()
+            queryset = queryset.filter(study_id=study_id)
+        return queryset
 
 class ConsentViewSet(viewsets.ModelViewSet):
     queryset = Consent.objects.all()
@@ -383,14 +573,20 @@ class ConsentViewSet(viewsets.ModelViewSet):
     parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
 
     def get_queryset(self):
-        queryset = self.queryset.all()
+        user = self.request.user
+        if not user.is_authenticated: return Consent.objects.none()
+        
+        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']:
+            queryset = self.queryset.all()
+        elif user.role.upper() == 'PARTICIPANT':
+            queryset = self.queryset.filter(participant__user=user)
+        else:
+            # PIs, Coordinators, and Sponsors see consents for assigned studies
+            queryset = self.queryset.filter(participant__study__assignments__user=user).distinct()
+            
         study_id = self.request.query_params.get('study_id')
         participant_id = self.request.query_params.get('participant_id')
         
-        # Participants only see their own consents
-        if self.request.user.is_authenticated and self.request.user.role.upper() == 'PARTICIPANT':
-            queryset = queryset.filter(participant__user=self.request.user)
-            
         if study_id: queryset = queryset.filter(study_id=study_id)
         if participant_id: queryset = queryset.filter(participant_id=participant_id)
         return queryset
@@ -399,24 +595,81 @@ class ConsentViewSet(viewsets.ModelViewSet):
         user = self.request.user
         study_id = self.request.data.get('study')
         
-        # Determine participant
-        participant = Participant.objects.filter(user=user).first()
+        participant = Participant.objects.filter(user=user, study_id=study_id).first()
+        if not participant:
+            participant = Participant.objects.filter(user=user).first()
+            
+        # 1. Blocks if active in another study (Not COMPLETED or DROPPED or INELIGIBLE)
+        active_studies = Participant.objects.filter(
+            user=user, 
+            status__in=['CONSENTED', 'RANDOMIZED', 'ACTIVE']
+        ).exclude(study_id=study_id)
+        if active_studies.exists():
+            raise serializers.ValidationError({"error": "You are currently active in another study. You must complete it before joining a new one."})
+
+        # Determine template: Use explicitly provided template ID if present, otherwise fallback to latest active
+        template_id = self.request.data.get('template')
+        if template_id:
+            from bson import ObjectId
+            template = ConsentTemplate.objects.filter(pk=template_id).first()
+        else:
+            template = ConsentTemplate.objects.filter(
+                study_id=study_id, 
+                status='ACTIVE'
+            ).order_by('-version').first()
         
-        # Determine latest active template for the study
-        template = ConsentTemplate.objects.filter(
-            study_id=study_id, 
-            status='ACTIVE'
-        ).order_by('-version').first()
-        
-        serializer.save(
+        consent = serializer.save(
             participant=participant,
             template=template,
+            participant_signed_at=now(),
             audit_trail=[{
                 "action": "PARTICIPANT_SIGNED",
                 "timestamp": now().isoformat(),
                 "user": user.email
             }]
         )
+        
+        # Mark Participant as CONSENTED 
+        if participant:
+            participant.status = 'CONSENTED'
+            participant.save()
+
+        # 2. Alert logic for PI & Coordinator
+        study = Study.objects.get(id=study_id)
+        
+        # Notify Coordinator
+        if study.coordinator:
+            Notification.objects.create(
+                user=study.coordinator,
+                title="New Consent Signed",
+                message=f"Participant {participant.participant_sid if participant else 'Unknown'} signed the consent for {study.protocol_id}. Please review and sign.",
+                type="INFO"
+            )
+            StaffTask.objects.create(
+                user=study.coordinator,
+                study=study,
+                title="Sign Consent Form",
+                description=f"Participant {participant.participant_sid if participant else 'Unknown'} signed the consent for {study.protocol_id}.",
+                task_type="CONSENT_SIGNATURE",
+                reference_id=str(consent.pk)
+            )
+            
+        # Notify PI
+        if study.pi:
+            Notification.objects.create(
+                user=study.pi,
+                title="New Consent Signed",
+                message=f"Participant {participant.participant_sid if participant else 'Unknown'} signed the consent for {study.protocol_id}. Required to sign (optional depending on protocol).",
+                type="INFO"
+            )
+            StaffTask.objects.create(
+                user=study.pi,
+                study=study,
+                title="Sign Consent Form",
+                description=f"Participant {participant.participant_sid if participant else 'Unknown'} signed the consent for {study.protocol_id}.",
+                task_type="CONSENT_SIGNATURE",
+                reference_id=str(consent.pk)
+            )
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def verify(self, request, pk=None):
@@ -446,6 +699,17 @@ class ConsentViewSet(viewsets.ModelViewSet):
             "user": user.email
         })
         consent.save()
+        
+        # Auto-complete any pending staff task for this consent signature
+        pending_tasks = StaffTask.objects.filter(
+            user=user,
+            task_type="CONSENT_SIGNATURE",
+            reference_id=str(consent.pk),
+            is_completed=False
+        )
+        for task in pending_tasks:
+            task.is_completed = True
+            task.save()
         
         AuditLog.log('VERIFY_CONSENT', user_email=user.email, request=request, detail=f"Verified consent for {consent.full_name} in study {consent.study.protocol_id}")
         
@@ -515,15 +779,142 @@ class AEReportViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError({"participant": "User does not have an active participant record."})
         serializer.save(participant=participant)
 
+class DailyMedicationLogViewSet(viewsets.ModelViewSet):
+    serializer_class = DailyMedicationLogSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
+            return DailyMedicationLog.objects.all()
+        if user.role.upper() == 'PARTICIPANT':
+            return DailyMedicationLog.objects.filter(participant__user=user)
+        return DailyMedicationLog.objects.filter(participant__study__assignments__user=user)
+
+    def perform_create(self, serializer):
+        participant = Participant.objects.filter(user=self.request.user).first()
+        if not participant:
+            raise serializers.ValidationError({"participant": "User does not have an active participant record."})
+        serializer.save(participant=participant)
+
+class AssignedFormViewSet(viewsets.ModelViewSet):
+    queryset = AssignedForm.objects.all()
+    serializer_class = AssignedFormSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
+            return AssignedForm.objects.all().order_by('-created_at')
+        if user.role.upper() == 'PARTICIPANT':
+            return AssignedForm.objects.filter(participant__user=user).order_by('-created_at')
+        # PIs/Coordinators see forms for their assigned studies
+        return AssignedForm.objects.filter(study__assignments__user=user).distinct().order_by('-created_at')
+
+    @action(detail=True, methods=['post'])
+    def sign_participant(self, request, pk=None):
+        """Participant signs their form"""
+        af = self.get_object()
+        if af.participant.user != request.user:
+            return Response({'error': 'Unauthorized'}, status=403)
+            
+        if af.status != 'PENDING':
+            return Response({'error': 'Form already signed or completed.'}, status=400)
+            
+        sig_data = request.data.get('signature')
+        form_data = request.data.get('data') # Snapshot of fields
+        
+        if not sig_data:
+            return Response({'error': 'Signature required'}, status=400)
+            
+        af.participant_signature = sig_data
+        af.participant_signed_at = now()
+        af.data = form_data
+        af.status = 'PARTICIPANT_SIGNED'
+        af.save()
+        
+        # Mark Task as COMPLETED (for participant UI)
+        ParticipantTask.objects.filter(assigned_form=af, participant=af.participant).update(
+            status='COMPLETED', 
+            completed_at=now()
+        )
+        
+        # Notify Coordinator
+        study = af.study
+        if study.coordinator:
+            Notification.objects.create(
+                user=study.coordinator,
+                title="Form Signed",
+                message=f"Participant {af.participant.participant_sid} signed '{af.form.title}'. Pending review.",
+                link=f"/coordinator/forms/{af.id}"
+            )
+            StaffTask.objects.create(
+                user=study.coordinator,
+                study=study,
+                title=f"Review & Sign: {af.form.title}",
+                description=f"Action Required: Staff signature for {af.participant.participant_sid}.",
+                task_type="FORM_SIGNATURE",
+                reference_id=str(af.pk)
+            )
+            
+        return Response({'status': 'signed'})
+
+    @action(detail=True, methods=['post'])
+    def sign_coordinator(self, request, pk=None):
+        """Coordinator signs/countersigns"""
+        af = self.get_object()
+        if request.user.role.upper() not in ['COORDINATOR', 'PI', 'ADMIN', 'SUPER_ADMIN']:
+            return Response({'error': 'Unauthorized'}, status=403)
+            
+        sig_data = request.data.get('signature')
+        af.coordinator_signature = sig_data
+        af.coordinator_signed_at = now()
+        af.coordinator_user = request.user
+        af.status = 'COORDINATOR_SIGNED'
+        af.save()
+        
+        # Notify PI
+        if af.study.pi:
+            Notification.objects.create(
+                user=af.study.pi,
+                title="Form Pending PI Sign-off",
+                message=f"{af.form.title} verified by CC for {af.participant.participant_sid}.",
+                link=f"/pi/forms/{af.id}"
+            )
+            
+        return Response({'status': 'coordinator_signed'})
+
+    @action(detail=True, methods=['post'])
+    def sign_pi(self, request, pk=None):
+        """PI signs off (Optional but completing)"""
+        af = self.get_object()
+        if request.user.role.upper() not in ['PI', 'ADMIN', 'SUPER_ADMIN']:
+            return Response({'error': 'Unauthorized'}, status=403)
+            
+        sig_data = request.data.get('signature')
+        af.pi_signature = sig_data
+        af.pi_signed_at = now()
+        af.pi_user = request.user
+        af.status = 'COMPLETED'
+        af.save()
+        
+        return Response({'status': 'fully_completed'})
+
 class FormViewSet(viewsets.ModelViewSet):
     queryset = Form.objects.all()
     serializer_class = FormSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     def get_queryset(self):
-        queryset = Form.objects.all()
+        user = self.request.user
+        if not user.is_authenticated: return Form.objects.none()
+        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']: return Form.objects.all()
         study_id = self.request.query_params.get('study_id')
-        if study_id: queryset = queryset.filter(study_id=study_id)
-        return queryset
+        if user.role.upper() == 'PARTICIPANT':
+            qs = Form.objects.filter(study__participants__user=user).distinct()
+        else:
+            qs = Form.objects.filter(study__assignments__user=user).distinct()
+        if study_id: qs = qs.filter(study_id=study_id)
+        return qs
     def perform_create(self, serializer):
         form = serializer.save()
         AuditLog.log('UPDATE_STUDY', user_email=self.request.user.email, request=self.request, detail=f"Pushed screener for study ID {form.study_id}")
@@ -553,26 +944,90 @@ class ParticipantTaskViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     def get_queryset(self):
         user = self.request.user
-        if not user.is_authenticated: return ParticipantTask.objects.none()
-        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']: return ParticipantTask.objects.all()
-        return ParticipantTask.objects.filter(participant__user=user)
+        if not user.is_authenticated:
+            return ParticipantTask.objects.none()
+        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']:
+            return ParticipantTask.objects.all()
+        # CRITICAL: Only return tasks for participants who are formally ENROLLED.
+        # Participants still in SCREENING, RECRUITING, etc. should not see clinical tasks.
+        enrolled_statuses = ['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE']
+        return ParticipantTask.objects.filter(
+            participant__user=user,
+            participant__status__in=enrolled_statuses
+        )
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
+
     def get_permissions(self):
-        if self.action in ['list', 'create', 'retrieve', 'update', 'partial_update', 'destroy']: return [IsAdminOrCoordinator()]
+        # 'me' action belongs to any authenticated user
+        if self.action == 'me':
+            return [permissions.IsAuthenticated()]
+        # Standard CRUD restricted to staff roles
+        if self.action in ['list', 'create', 'retrieve', 'update', 'partial_update', 'destroy']:
+            return [IsAdminOrCoordinator()]
         return super().get_permissions()
+
     def get_queryset(self):
         user = self.request.user
-        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']: return User.objects.all()
+        if not user.is_authenticated:
+            return User.objects.none()
+        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
+            return User.objects.all()
         return User.objects.filter(id=user.id)
+
+    @action(detail=False, methods=['get', 'patch'], permission_classes=[permissions.IsAuthenticated])
+    def me(self, request):
+        """Endpoint for the current user to view or update their own profile."""
+        if request.method == 'GET':
+            serializer = self.get_serializer(request.user)
+            return Response(serializer.data)
+        
+        if request.method == 'PATCH':
+            serializer = self.get_serializer(request.user, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                AuditLog.log('ROLE_CHANGED', user_email=request.user.email, request=request, detail="User updated own profile")
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class NewsViewSet(viewsets.ModelViewSet):
     queryset = News.objects.all()
     serializer_class = NewsSerializer
     permission_classes = [permissions.AllowAny]
+
+class StaffTaskViewSet(viewsets.ModelViewSet):
+    queryset = StaffTask.objects.all()
+    serializer_class = StaffTaskSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return StaffTask.objects.none()
+        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
+            return StaffTask.objects.all().order_by('-created_at')
+        return StaffTask.objects.filter(user=user).order_by('-created_at')
+
+    @action(detail=True, methods=['post'])
+    def complete(self, request, pk=None):
+        task = self.get_object()
+        if task.user != request.user and request.user.role.upper() not in ['ADMIN', 'SUPER_ADMIN']:
+            return Response({'error': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+            
+        task.is_completed = True
+        task.completed_at = now()
+        task.save()
+        
+        Notification.objects.create(
+            user=request.user,
+            title="Task Completed",
+            message=f"You successfully completed the task: {task.title}",
+            type="SUCCESS"
+        )
+        return Response({'status': 'task marked as completed'})
 
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
@@ -864,10 +1319,12 @@ class KitViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated: return Kit.objects.none()
-        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']:
+        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
             return Kit.objects.all().order_by('-assignment_date')
-        # Participants only see their own kits
-        return Kit.objects.filter(participant__user=user).order_by('-assignment_date')
+        if user.role.upper() == 'PARTICIPANT':
+            return Kit.objects.filter(participant__user=user).order_by('-assignment_date')
+        # PIs, Coordinators, and Sponsors: only kits for their assigned studies
+        return Kit.objects.filter(participant__study__assignments__user=user).distinct().order_by('-assignment_date')
 
     @action(detail=True, methods=['post'])
     def confirm_receipt(self, request, pk=None):
@@ -950,7 +1407,18 @@ class ClinicalConversationViewSet(viewsets.ModelViewSet):
         return ClinicalConversation.objects.filter(study__assignments__user=user).distinct().order_by('-last_updated')
 
     def perform_create(self, serializer):
-        serializer.save()
+        user = self.request.user
+        study_id = self.request.data.get('study')
+        participant = Participant.objects.filter(user=user, study_id=study_id).first()
+        if not participant:
+            # Fallback: grab the first active enrollment for this user
+            participant = Participant.objects.filter(user=user).exclude(
+                status__in=['DROPPED', 'INELIGIBLE', 'COMPLETED']
+            ).first()
+        if not participant:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({'participant': 'No active enrollment found for this user.'})
+        serializer.save(participant=participant, study=participant.study)
 
     @action(detail=True, methods=['post'])
     def add_message(self, request, pk=None):

@@ -33,6 +33,9 @@ export default function StudyScreener() {
     const [outcome, setOutcome] = useState<OutcomeType>('ELIGIBLE');
     const [isLoading, setIsLoading] = useState(false);
 
+    // Existing Participant Check
+    const [isExistingParticipant, setIsExistingParticipant] = useState(false);
+
     // Form Data
     const [formData, setFormData] = useState<any>({
         age: '',
@@ -44,10 +47,53 @@ export default function StudyScreener() {
         fullName: '',
         email: '',
         phone: '',
-        availability: ''
+        availability: 'Existing Participant'
     });
 
     useEffect(() => {
+        const checkExistingParticipant = async () => {
+            // ONLY check if we likely have an active session (avoiding 403-redirect loop for guests)
+            const token = localStorage.getItem('access') || sessionStorage.getItem('access');
+            if (!token) {
+                console.log("No token found, skipping existing participant check.");
+                return;
+            }
+
+            try {
+                const res = await authFetch(`${API}/api/users/me/`);
+                if (res.ok) {
+                    const user = await res.json();
+                    if (user.role === 'PARTICIPANT') {
+                        setIsExistingParticipant(true);
+                        setStep('STEP2'); // Skip Step 1 entirely for existing participants
+                        
+                        // Also try to get age from participant record if available
+                        try {
+                            const pRes = await authFetch(`${API}/api/participants/me/`);
+                            if (pRes.ok) {
+                                const pData = await pRes.json();
+                                setFormData((prev: any) => ({
+                                    ...prev,
+                                    age: pData.age || (pData.dob ? String(new Date().getFullYear() - new Date(pData.dob).getFullYear()) : '25'),
+                                    zipCode: pData.zip_code || user.zip_code || '33602',
+                                    location: pData.location || `${user.city || 'Tampa'}, ${user.state || 'FL'}`,
+                                    fullName: user.decrypted_name || user.full_name || '',
+                                    email: user.email || '',
+                                    phone: user.phone_number || '',
+                                    availability: 'Existing Participant',
+                                    cvConsent: true
+                                }));
+                            }
+                        } catch (pErr) {
+                            console.error("Could not fetch detailed participant record", pErr);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('Auth check skipped or failed', err);
+            }
+        };
+
         const fetchStudyAndForm = async () => {
             setIsLoading(true);
             const apiUrl = API;
@@ -64,11 +110,9 @@ export default function StudyScreener() {
                     });
 
                     // Try to fetch dynamic form for this study
-                    // Use regular fetch as screeners are public (ReadOnly allowed on backend)
                     const formRes = await fetch(`${apiUrl}/api/forms/?study_id=${data.id}`);
                     if (formRes.ok) {
                         const forms = await formRes.json();
-                        // Filter for correct title and sort by most recent to ensure we don't load zombie/duplicate forms
                         const relevantForm = forms
                             .filter((f: any) => f.title === 'Screener Form' || f.is_published)
                             .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
@@ -78,7 +122,6 @@ export default function StudyScreener() {
                         }
                     }
                 } else {
-                    // Fallback to public fetch if auth fetch fails
                     const studies = await fetchStudies();
                     const foundStudy = studies.find(s => s.id === id);
                     if (foundStudy) setStudy(foundStudy);
@@ -86,7 +129,6 @@ export default function StudyScreener() {
                 }
             } catch (e) {
                 console.error("Error fetching study for screener:", e);
-                // Last ditch effort: public fetch
                 const studies = await fetchStudies();
                 const foundStudy = studies.find(s => s.id === id);
                 if (foundStudy) setStudy(foundStudy);
@@ -96,6 +138,7 @@ export default function StudyScreener() {
             }
         };
 
+        checkExistingParticipant();
         fetchStudyAndForm();
     }, [id, navigate]);
 
@@ -179,8 +222,12 @@ export default function StudyScreener() {
         }
         setError(null);
         setIsAttemptingSubmit(false);
+        window.scrollTo({ top: 0, behavior: 'instant' });
         if (step === 'STEP1') setStep('STEP2');
-        else if (step === 'STEP2') setStep('STEP3');
+        else if (step === 'STEP2') {
+            if (isExistingParticipant) handleSubmit();
+            else setStep('STEP3');
+        }
         else if (step === 'STEP3') handleSubmit();
     };
 
@@ -209,7 +256,8 @@ export default function StudyScreener() {
     };
 
     const handleBack = () => {
-        if (step === 'STEP2') setStep('STEP1');
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        if (step === 'STEP2' && !isExistingParticipant) setStep('STEP1');
         else if (step === 'STEP3') setStep('STEP2');
     };
 
@@ -242,7 +290,7 @@ export default function StudyScreener() {
                 method: 'POST',
                 body: JSON.stringify({
                     name: formData.fullName || 'Anonymous Participant',
-                    email: formData.email || 'no-email@provided.com',
+                    email: formData.email?.trim() || (isExistingParticipant ? formData.email : 'no-email@provided.com'),
                     phone: formData.phone || 'N/A',
                     message: `
                         Screening Results for ${study?.protocol_id || study?.title}:
@@ -254,15 +302,18 @@ export default function StudyScreener() {
                         CONDITION DETAILS:
                         ${JSON.stringify(conditionDetails, null, 2)}
                     `,
-                    inquiry_type: 1,
-                    study_id: study?.id,
+                    inquiry_type_slug: 'screening',
+                    study_id: study?.id || study?._id || study?.protocol_id,
                     metadata: {
-                        study_protocol: study?.protocol_id,
+                        study_protocol: study?.protocol_id || study?.title,
                         outcome: finalOutcome,
-                        formData: formData, // The full structured answers
+                        formData: formData,
                         conditionDetails: conditionDetails
                     }
-                })
+                }),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
         } catch (e) {
             console.error('Failed to notify clinical team', e);
@@ -272,7 +323,29 @@ export default function StudyScreener() {
         setStep('OUTCOME');
     };
 
-    if (!study) return null;
+    if (isLoading || !study) {
+        return (
+            <div className="min-h-screen pt-40 pb-24 px-4">
+                <div className="max-w-2xl mx-auto animate-pulse space-y-6">
+                    {/* Back link skeleton */}
+                    <div className="h-4 w-32 bg-white/5 rounded-full" />
+                    {/* Card skeleton */}
+                    <div className="bg-white/5 border border-white/10 rounded-[3rem] p-10 space-y-8">
+                        <div className="space-y-3">
+                            <div className="h-8 w-3/4 bg-white/5 rounded-xl" />
+                            <div className="h-4 w-1/2 bg-white/5 rounded-lg" />
+                        </div>
+                        <div className="space-y-4">
+                            <div className="h-12 w-full bg-white/5 rounded-xl" />
+                            <div className="h-12 w-full bg-white/5 rounded-xl" />
+                            <div className="h-12 w-full bg-white/5 rounded-xl" />
+                        </div>
+                        <div className="h-14 w-full bg-white/5 rounded-2xl" />
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     const renderProgress = () => {
         const stepMap: Record<ScreenerStep, number> = { 'STEP1': 33, 'STEP2': 66, 'STEP3': 100, 'OUTCOME': 100 };
@@ -292,6 +365,12 @@ export default function StudyScreener() {
     return (
         <div className="min-h-screen pt-40 pb-24 px-4 bg-transparent text-slate-200">
             <div className="max-w-2xl mx-auto">
+                {isExistingParticipant && (
+                    <div className="max-w-xl mx-auto mb-8 bg-cyan-500/10 border border-cyan-500/20 py-4 px-6 rounded-2xl flex items-center gap-3 text-cyan-400 text-sm font-bold uppercase tracking-widest animate-in fade-in slide-in-from-top-4">
+                        <ShieldCheck className="w-5 h-5 shrink-0" />
+                        You are already enrolled. Only required fields need to be completed.
+                    </div>
+                )}
                 <AnimatePresence mode="wait">
                     {step !== 'OUTCOME' ? (
                         <motion.div
@@ -323,8 +402,9 @@ export default function StudyScreener() {
                                                             type="number"
                                                             placeholder="Enter your age"
                                                             value={formData.age}
-                                                            onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isFieldMissing('age') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
+                                                            onChange={(e) => !isExistingParticipant && setFormData({ ...formData, age: e.target.value })}
+                                                            readOnly={isExistingParticipant}
+                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isFieldMissing('age') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'} ${isExistingParticipant ? 'opacity-50 cursor-not-allowed border-dashed' : ''}`}
                                                         />
                                                     </div>
                                                     <div className="space-y-3">
@@ -334,8 +414,9 @@ export default function StudyScreener() {
                                                                 type="text"
                                                                 placeholder="e.g. 90210"
                                                                 value={formData.zipCode}
-                                                                onChange={(e) => handleZipChange(e.target.value)}
-                                                                className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 text-white text-lg outline-none focus:border-cyan-500/50 transition-all font-bold"
+                                                                onChange={(e) => !isExistingParticipant && handleZipChange(e.target.value)}
+                                                                readOnly={isExistingParticipant}
+                                                                className={`w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 text-white text-lg outline-none focus:border-cyan-500/50 transition-all font-bold ${isExistingParticipant ? 'opacity-50 cursor-not-allowed border-dashed' : ''}`}
                                                             />
                                                             {isLocating && (
                                                                 <div className="absolute right-6 top-1/2 -translate-y-1/2">
@@ -350,8 +431,9 @@ export default function StudyScreener() {
                                                             type="text"
                                                             placeholder="Auto-filled from Zip Code or enter manually"
                                                             value={formData.location}
-                                                            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isFieldMissing('location') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
+                                                            onChange={(e) => !isExistingParticipant && setFormData({ ...formData, location: e.target.value })}
+                                                            readOnly={isExistingParticipant}
+                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isFieldMissing('location') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'} ${isExistingParticipant ? 'opacity-50 cursor-not-allowed border-dashed' : ''}`}
                                                         />
                                                     </div>
                                                 </div>
@@ -551,7 +633,7 @@ export default function StudyScreener() {
                                             </motion.div>
                                         )}
 
-                                        {step === 'STEP3' && (
+                                        {!isExistingParticipant && step === 'STEP3' && (
                                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                                                 <div className="space-y-6">
                                                     <div className="space-y-4">
@@ -560,8 +642,9 @@ export default function StudyScreener() {
                                                             type="text"
                                                             placeholder="John Doe"
                                                             value={formData.fullName}
-                                                            onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isFieldMissing('fullName') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
+                                                            onChange={(e) => !isExistingParticipant && setFormData({ ...formData, fullName: e.target.value })}
+                                                            readOnly={isExistingParticipant}
+                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isFieldMissing('fullName') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'} ${isExistingParticipant ? 'opacity-50 cursor-not-allowed border-dashed' : ''}`}
                                                         />
                                                     </div>
                                                     <div className="space-y-4">
@@ -570,8 +653,9 @@ export default function StudyScreener() {
                                                             type="email"
                                                             placeholder="you@example.com"
                                                             value={formData.email}
-                                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isFieldMissing('email') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
+                                                            onChange={(e) => !isExistingParticipant && setFormData({ ...formData, email: e.target.value })}
+                                                            readOnly={isExistingParticipant}
+                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isFieldMissing('email') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'} ${isExistingParticipant ? 'opacity-50 cursor-not-allowed border-dashed' : ''}`}
                                                         />
                                                     </div>
                                                     <div className="space-y-4">
@@ -580,18 +664,21 @@ export default function StudyScreener() {
                                                             type="tel"
                                                             placeholder="(555) 123-4567"
                                                             value={formData.phone}
-                                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isFieldMissing('phone') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
+                                                            onChange={(e) => !isExistingParticipant && setFormData({ ...formData, phone: e.target.value })}
+                                                            readOnly={isExistingParticipant}
+                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isFieldMissing('phone') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'} ${isExistingParticipant ? 'opacity-50 cursor-not-allowed border-dashed' : ''}`}
                                                         />
                                                     </div>
                                                     <div className="space-y-4">
                                                         <label className={`text-sm font-black uppercase tracking-widest ml-4 transition-colors ${isFieldMissing('availability') ? 'text-red-500' : 'text-slate-300'}`}>Availability for Onboarding Call</label>
                                                         <select
                                                             value={formData.availability}
-                                                            onChange={(e) => setFormData({ ...formData, availability: e.target.value })}
-                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all appearance-none cursor-pointer ${isFieldMissing('availability') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500 focus:bg-slate-900/90'}`}
+                                                            onChange={(e) => !isExistingParticipant && setFormData({ ...formData, availability: e.target.value })}
+                                                            disabled={isExistingParticipant}
+                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all appearance-none cursor-pointer ${isFieldMissing('availability') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500 focus:bg-slate-900/90'} ${isExistingParticipant ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                         >
                                                             <option value="" className="bg-slate-900">Select a time...</option>
+                                                            <option value="Existing Participant" className="bg-slate-900">Existing Participant Profile</option>
                                                             <option value="Morning" className="bg-slate-900">Morning (9AM - 12PM)</option>
                                                             <option value="Afternoon" className="bg-slate-900">Afternoon (12PM - 5PM)</option>
                                                             <option value="Evening" className="bg-slate-900">Evening (5PM - 8PM)</option>
@@ -639,7 +726,7 @@ export default function StudyScreener() {
                             <div className="flex items-center justify-between pt-8 border-t border-white/5">
                                 <button
                                     onClick={() => { setError(null); handleBack(); }}
-                                    className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${step === 'STEP1' ? 'opacity-0 pointer-events-none' : 'text-slate-500 hover:text-white'}`}
+                                    className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${ step === 'STEP1' ? 'opacity-0 pointer-events-none' : 'text-slate-500 hover:text-white'}`}
                                 >
                                     <ChevronLeft className="w-4 h-4" /> BACK
                                 </button>
@@ -648,7 +735,7 @@ export default function StudyScreener() {
                                     disabled={isLoading}
                                     className="px-10 py-4 bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-300 rounded-xl font-black text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 shadow-2xl group active:scale-95"
                                 >
-                                    {isLoading ? 'PROCESSING...' : (step === 'STEP3' ? 'CHECK RESULT' : 'NEXT')}
+                                    {isLoading ? 'PROCESSING...' : ((step === 'STEP3' || (step === 'STEP2' && isExistingParticipant)) ? 'CHECK RESULT' : 'NEXT')}
                                     {!isLoading && <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
                                 </button>
                             </div>
@@ -686,7 +773,7 @@ export default function StudyScreener() {
                                     </div>
                                     <div className="grid gap-4">
                                         <button
-                                            onClick={() => navigate('/signin', {
+                                            onClick={() => isExistingParticipant ? navigate('/dashboard/participant') : navigate('/signin', {
                                                 state: { 
                                                     redirectTo: `/studies/${study.id}/consent`,
                                                     email: formData.email,
@@ -695,10 +782,10 @@ export default function StudyScreener() {
                                             })}
                                             className="w-full py-6 bg-cyan-500 text-slate-950 rounded-2xl font-black text-base uppercase tracking-widest hover:bg-white transition-all shadow-xl shadow-cyan-500/20 cursor-pointer active:scale-[0.98]"
                                         >
-                                            Proceed to Digital Consent
+                                            {isExistingParticipant ? 'Go To Participant Dashboard' : 'Proceed to Digital Consent'}
                                         </button>
                                         <Link to="/dashboard/participant" className="w-full py-4 text-slate-500 font-black text-sm uppercase tracking-widest hover:text-white transition-all text-center">
-                                            Back to Dashboard
+                                            Return to Dashboard
                                         </Link>
                                     </div>
                                 </div>

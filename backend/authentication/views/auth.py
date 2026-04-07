@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle, ScopedRateThrottle
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.utils.timezone import now
@@ -19,6 +19,8 @@ from ..security import (
 )
 
 logger = logging.getLogger(__name__)
+class LoginRateThrottle(ScopedRateThrottle):
+    throttle_scope = 'login'
 
 # ── Cookie configuration ──────────────────────────────────
 COOKIE_OPTS = {
@@ -74,7 +76,7 @@ from django.views.decorators.csrf import csrf_exempt
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@throttle_classes([AnonRateThrottle])
+@throttle_classes([LoginRateThrottle])
 def login_view(request):
     """Unified login for all roles (Superadmin, Admin, PI, Coordinator, Participant, Sponsor)"""
 

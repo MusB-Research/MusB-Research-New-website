@@ -32,6 +32,7 @@ import ResetForced from './views/auth/ResetForced';
 import ResetPassword from './views/auth/ResetPassword';
 import ProfileSetup from './views/auth/ProfileSetup';
 import { performLogout, isLoggedIn } from './utils/auth';
+import ScrollToTop from './components/ScrollToTop';
 
 function AppContent() {
     const location = useLocation();
@@ -114,6 +115,7 @@ function AppContent() {
 function App() {
     return (
         <Router>
+            <ScrollToTop />
             <AppContent />
         </Router>
     );

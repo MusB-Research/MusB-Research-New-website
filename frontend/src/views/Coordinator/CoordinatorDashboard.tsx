@@ -26,48 +26,22 @@ import AlertsModule from '../../components/coordinator/panels/AlertsModule';
 import AuditLogModule from '../../components/coordinator/panels/AuditLogModule';
 import AnalyticsModule from '../../components/coordinator/panels/AnalyticsModule';
 import AnimatedBackground from '../../components/AnimatedBackground';
+import StaffTasksModule from '../../components/shared/StaffTasksModule';
+import StudyKitsModule from '../../components/shared/StudyKitsModule';
+import ParticipantTaskManagement from '../../components/shared/ParticipantTaskManagement';
 
 
 import {
-    LayoutDashboard,
-    Beaker,
-    Calendar,
-    DraftingCompass,
-    Users,
-    ClipboardList,
-    ShieldCheck,
-    Activity,
-    MessageSquare,
-    FileText,
-    Settings,
-    TrendingUp,
-    Search,
-    Bell,
-    ChevronDown,
-    Plus,
-    X,
-    Filter,
-    HelpCircle,
-    Stethoscope,
-    UsersRound,
-    Clock,
-    ArrowUpRight,
-    LogOut,
-    Globe,
-    Rocket,
-    Menu,
-    FlaskConical,
-    History,
-    FileSearch,
-    Layers,
-    ListFilter,
-    CheckSquare,
-    ScrollText,
-    Settings2,
-    Database,
-    AlertTriangle,
-    FileCheck,
-    Briefcase
+    Calendar, Clock, ArrowRight, ChevronRight, Sparkles, Trophy,
+    Activity, FileText, CheckCircle2, Box, Zap, PlusCircle,
+    AlertCircle, MessageSquare, Ship, Microscope, History,
+    TrendingUp, Award, LayoutDashboard, Bell, Info, ExternalLink,
+    Play, Download, ClipboardList, Beaker, DraftingCompass, Users,
+    ShieldCheck, Settings, Search, ChevronDown, Plus, X, Filter,
+    HelpCircle, Stethoscope, UsersRound, ArrowUpRight, LogOut,
+    Globe, Rocket, Menu, FlaskConical, FileSearch, Layers,
+    ListFilter, CheckSquare, ScrollText, Settings2, Database,
+    AlertTriangle, FileCheck, Briefcase
 } from 'lucide-react';
 
 type CCModule =
@@ -90,7 +64,10 @@ type CCModule =
     | 'SPONSORS'
     | 'SUPPORT'
     | 'AUDIT_LOG'
-    | 'ANALYTICS';
+    | 'TASKS'
+    | 'ANALYTICS'
+    | 'KITS'
+    | 'PARTICIPANT_TASKS';
 
 export default function CoordinatorDashboard() {
     const navigate = useNavigate();
@@ -116,6 +93,7 @@ export default function CoordinatorDashboard() {
         if (route === 'audit-log') return 'AUDIT_LOG';
         if (route === 'analytics') return 'ANALYTICS';
         if (route === 'sponsors') return 'SPONSORS';
+        if (route === 'tasks') return 'TASKS';
         return 'OVERSIGHT';
     });
 
@@ -139,7 +117,9 @@ export default function CoordinatorDashboard() {
         else if (route === 'support') setActiveModule('SUPPORT');
         else if (route === 'audit-log') setActiveModule('AUDIT_LOG');
         else if (route === 'analytics') setActiveModule('ANALYTICS');
+        else if (route === 'tasks') setActiveModule('TASKS');
         else if (route === 'sponsors') setActiveModule('SPONSORS');
+        else if (route === 'kits') setActiveModule('KITS');
         else if (location.pathname.endsWith('/coordinator') || !route || route === 'coordinator') setActiveModule('OVERSIGHT');
     }, [location.pathname]);
 
@@ -162,8 +142,11 @@ export default function CoordinatorDashboard() {
             'LAUNCH_STUDY': 'launch-study',
             'SUPPORT': 'support',
             'AUDIT_LOG': 'audit-log',
+            'TASKS': 'tasks',
             'ANALYTICS': 'analytics',
-            'SPONSORS': 'sponsors'
+            'SPONSORS': 'sponsors',
+            'KITS': 'kits',
+            'PARTICIPANT_TASKS': 'participant-tasks'
         };
         const slug = slugs[mod];
         setActiveModule(mod);
@@ -330,6 +313,7 @@ export default function CoordinatorDashboard() {
             items: [
                 { id: 'WEBSITE', label: 'Main Website', icon: Globe },
                 { id: 'OVERSIGHT', label: 'Operations Overview', icon: LayoutDashboard },
+                { id: 'TASKS', label: 'My Tasks', icon: CheckSquare, hasNotify: true },
             ]
         },
         {
@@ -342,6 +326,9 @@ export default function CoordinatorDashboard() {
                 { id: 'FORMS', label: 'Study Questionnaires', icon: ClipboardList },
                 { id: 'CONSENT', label: 'Consent Oversight', icon: ShieldCheck },
                 { id: 'VISITS', label: 'Visits & Assessments', icon: Calendar },
+                { id: 'LABS', label: 'Health Check Reports', icon: Beaker },
+                { id: 'KITS', label: 'Study Kits', icon: Box },
+                { id: 'PARTICIPANT_TASKS', label: 'Participant Tasks', icon: ListFilter },
             ]
         },
         {
@@ -534,6 +521,7 @@ export default function CoordinatorDashboard() {
                     {activeModule === 'CONSENT' && <CCConsentModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'VISITS' && <CCC_VisitsAssessmentsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'LABS' && <LabsResultsModule selectedStudyId={globalSelectedStudyId} />}
+                    {activeModule === 'KITS' && <StudyKitsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'REPORTS' && <ReportsSignOffModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'STUDY_DOCS' && <StudyDocumentsModule selectedStudyId={globalSelectedStudyId} />}
 
@@ -541,6 +529,8 @@ export default function CoordinatorDashboard() {
                     {activeModule === 'ALERTS' && <AlertsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'SUPPORT' && <CCC_HelpSupportModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'AUDIT_LOG' && <AuditLogModule selectedStudyId={globalSelectedStudyId} />}
+                    {activeModule === 'TASKS' && <StaffTasksModule primaryColor="teal" />}
+                    {activeModule === 'PARTICIPANT_TASKS' && <ParticipantTaskManagement primaryColor="teal" />}
                     {activeModule === 'ANALYTICS' && <AnalyticsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'SPONSORS' && <SponsorsManagement selectedStudyId={globalSelectedStudyId} allUsers={users} allStudies={studies} onRefresh={fetchCoordinatorContent} />}
                 </AnimatePresence>

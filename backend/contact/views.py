@@ -142,10 +142,34 @@ class SubmissionCreateView(generics.CreateAPIView):
             from api.utils.resend_utils import safe_resend_send
             from_email = 'MusB Research <info@musbresearch.com>'
             
-            # Send to Admin
+            # Fetch study to get PI/Coordinator if available
+            study_id = self.request.data.get('study_id')
+            recipients = ["info@musbresearch.com"]
+            
+            if study_id:
+                try:
+                    from api.models import Study
+                    study = None
+                    try:
+                        study = Study.objects.get(pk=study_id)
+                    except Exception:
+                        study = Study.objects.filter(protocol_id=study_id).first()
+                    
+                    if study:
+                        if study.pi and study.pi.email:
+                            recipients.append(study.pi.email)
+                        if study.coordinator and study.coordinator.email:
+                            recipients.append(study.coordinator.email)
+                except Exception as study_err:
+                    print(f"Warning: Could not fetch study team for email: {study_err}")
+
+            # deduplicate
+            recipients = list(set([r for r in recipients if r]))
+
+            # Send to Admin & Study Team
             safe_resend_send({
                 "from": from_email,
-                "to": ["info@musbresearch.com"],
+                "to": recipients,
                 "subject": admin_subject,
                 "html": admin_html
             })

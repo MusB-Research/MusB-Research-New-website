@@ -1,13 +1,13 @@
 from rest_framework import serializers
 from .models import (
-    Study, StudyAssignment, Participant, Visit, Kit, Form, FormResponse, 
-    Task, ParticipantTask, Consent, ConsentTemplate, Lead, CommunicationLog, 
+    Study, StudyAssignment, Participant, Visit, Form, FormResponse, 
+    Task, ParticipantTask, StaffTask, Consent, ConsentTemplate, Lead, CommunicationLog, 
     Compensation, LabResult, DataAuditLog, InterventionArm,
     News, Event, FacilityInquiry, Candidate, NewsletterSubscriber,
     BookletDownloadRequest, Partnership, Publication, EducationMaterial,
     StudyInquiry, ClinicalConversation, ClinicalMessage, Kit,
     DosingLog, AEReport, Document, Notification, ProgressReport,
-    StudyActionRequest
+    StudyActionRequest, DailyMedicationLog, AssignedForm
 )
 from authentication.models import User
 from authentication.security import decrypt_data
@@ -31,6 +31,8 @@ class ObjectIdField(serializers.Field):
             raise serializers.ValidationError(f"Invalid ObjectId: {data}")
 
 class SanitizedModelSerializer(serializers.ModelSerializer):
+    id = ObjectIdField(read_only=True)
+    
     def to_representation(self, instance):
         """Handle MongoDB ObjectId serialization and authorized decryption (SUPER_ADMIN, etc.)."""
         from authentication.security import decrypt_data
@@ -49,7 +51,7 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
                 ret[key] = [str(item) if type(item).__name__ == 'ObjectId' else item for item in value]
             elif isinstance(value, str) and (val_str := str(value)).startswith('gAAAA'):
                 # Automatically decrypt ONLY for authorized roles
-                if is_authorized or (user and hasattr(instance, 'user') and instance.user == user):
+                if is_authorized or (user and (instance == user or (hasattr(instance, 'user') and instance.user == user))):
                     try:
                         ret[key] = decrypt_data(val_str)
                     except Exception:
@@ -76,18 +78,12 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
         return super().to_internal_value(mutable_data)
 
 class UserSerializer(SanitizedModelSerializer):
-    id = ObjectIdField(read_only=True)
-    full_name = serializers.CharField()
-    phone_number = serializers.SerializerMethodField()
     last_login_formatted = serializers.SerializerMethodField()
     date_joined_formatted = serializers.SerializerMethodField()
     password = serializers.CharField(write_only=True, required=False)
     
-    mobile_number = serializers.SerializerMethodField()
-    full_address = serializers.SerializerMethodField()
-    city = serializers.SerializerMethodField()
-    state = serializers.SerializerMethodField()
-    place_of_origin = serializers.SerializerMethodField()
+    # Aliases for frontend compatibility
+    mobile_number = serializers.CharField(source='phone_number', required=False, allow_blank=True)
     
     class Meta:
         model = User
@@ -95,32 +91,15 @@ class UserSerializer(SanitizedModelSerializer):
             'id', 'email', 'full_name', 'role', 'phone_number', 'mobile_number',
             'profile_picture', 'password', 'last_login_formatted', 'date_joined_formatted',
             'full_address', 'city', 'state', 'zip_code', 'country', 'place_of_origin',
-            'must_change_password', 'profile_completed', 'is_active'
+            'must_change_password', 'profile_completed', 'is_active', 'timezone'
         ]
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        # Use decrypted name for output
-        ret['full_name'] = instance.decrypted_name
+        # Ensure full_name is decrypted
+        if hasattr(instance, 'decrypted_name'):
+            ret['full_name'] = instance.decrypted_name
         return ret
-
-    def get_phone_number(self, obj):
-        return obj.decrypted_phone
-
-    def get_mobile_number(self, obj):
-        return obj.decrypted_phone
-
-    def get_full_address(self, obj):
-        return decrypt_data(obj.full_address) if obj.full_address else ''
-
-    def get_city(self, obj):
-        return decrypt_data(obj.city) if obj.city else ''
-
-    def get_state(self, obj):
-        return decrypt_data(obj.state) if obj.state else ''
-
-    def get_place_of_origin(self, obj):
-        return decrypt_data(obj.place_of_origin) if obj.place_of_origin else ''
 
     def get_last_login_formatted(self, obj):
         if not obj.last_login:
@@ -143,6 +122,7 @@ class UserSerializer(SanitizedModelSerializer):
             return "N/A"
         return obj.date_joined.strftime('%b %d, %Y %H:%M')
 
+
     def create(self, validated_data):
         password = validated_data.pop('password', None)
         user = User.objects.create_user(**validated_data)
@@ -152,7 +132,6 @@ class UserSerializer(SanitizedModelSerializer):
         return user
 
 class DocumentSerializer(SanitizedModelSerializer):
-    id = ObjectIdField(read_only=True)
     file_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -168,7 +147,6 @@ class DocumentSerializer(SanitizedModelSerializer):
         return None
 
 class StudySerializer(SanitizedModelSerializer):
-    id = ObjectIdField(read_only=True)
     pi_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), source='pi', required=False, allow_null=True
     )
@@ -300,16 +278,40 @@ class FormResponseSerializer(SanitizedModelSerializer):
         model = FormResponse
         fields = '__all__'
 
+class AssignedFormSerializer(SanitizedModelSerializer):
+    form_details = FormSerializer(source='form', read_only=True)
+    class Meta:
+        model = AssignedForm
+        fields = '__all__'
+        read_only_fields = ['participant_signed_at', 'coordinator_signed_at', 'pi_signed_at']
+
 class TaskSerializer(SanitizedModelSerializer):
+    form_details = FormSerializer(source='form', read_only=True)
     class Meta:
         model = Task
         fields = '__all__'
 
 class ParticipantTaskSerializer(SanitizedModelSerializer):
     task_details = TaskSerializer(source='task', read_only=True)
+    assigned_form_details = AssignedFormSerializer(source='assigned_form', read_only=True)
+    study = serializers.SerializerMethodField()
+
+    def get_study(self, obj):
+        """Expose the participant's study ID so the frontend can filter tasks per-study."""
+        try:
+            return str(obj.participant.study_id)
+        except Exception:
+            return None
+
     class Meta:
         model = ParticipantTask
-        fields = ['id', 'participant', 'task', 'task_details', 'due_date', 'completed_at', 'status', 'visit_name', 'timeline_group', 'estimated_time', 'is_locked', 'current_data']
+        fields = ['id', 'participant', 'task', 'task_details', 'study', 'due_date', 'completed_at', 'status', 'visit_name', 'timeline_group', 'estimated_time', 'is_locked', 'current_data', 'assigned_form', 'assigned_form_details']
+
+class StaffTaskSerializer(SanitizedModelSerializer):
+    id = ObjectIdField(read_only=True)
+    class Meta:
+        model = StaffTask
+        fields = '__all__'
 
 class ConsentTemplateSerializer(SanitizedModelSerializer):
     id = ObjectIdField(read_only=True)
@@ -509,6 +511,7 @@ class ClinicalConversationSerializer(SanitizedModelSerializer):
             'study_protocol', 'status', 'is_flagged', 'last_message_preview', 
             'last_updated', 'created_at', 'messages', 'assigned_coordinator'
         ]
+        read_only_fields = ['participant', 'study']
 
 class DosingLogSerializer(SanitizedModelSerializer):
     class Meta:
@@ -522,6 +525,12 @@ class AEReportSerializer(SanitizedModelSerializer):
         fields = '__all__'
         read_only_fields = ['participant']
 
+class DailyMedicationLogSerializer(SanitizedModelSerializer):
+    class Meta:
+        model = DailyMedicationLog
+        fields = '__all__'
+        read_only_fields = ['participant']
+
 class ParticipantSerializer(SanitizedModelSerializer):
     id = serializers.CharField(read_only=True)
     gender = serializers.SerializerMethodField()
@@ -531,17 +540,22 @@ class ParticipantSerializer(SanitizedModelSerializer):
     coordinator_name = serializers.CharField(source='study.coordinator.decrypted_name', read_only=True, allow_null=True)
     visits = VisitSerializer(many=True, read_only=True)
     ae_reports = AEReportSerializer(many=True, read_only=True)
+    daily_logs = DailyMedicationLogSerializer(many=True, read_only=True)
     lab_results = LabResultSerializer(many=True, read_only=True)
     consent_records = ConsentSerializer(many=True, read_only=True)
     age = serializers.SerializerMethodField()
     
+    reviewer_name = serializers.CharField(source='reviewed_by.decrypted_name', read_only=True, allow_null=True)
+
     class Meta:
         model = Participant
         fields = [
             'id', 'study', 'study_name', 'protocol_id', 'user', 'user_details', 
             'participant_sid', 'status', 'gender', 'dob', 'age', 'assigned_arm', 
             'is_locked', 'completion_date', 'created_at', 'coordinator_name', 
-            'visits', 'ae_reports', 'lab_results', 'consent_records'
+            'visits', 'ae_reports', 'daily_logs', 'lab_results', 'consent_records',
+            'eligibility_data', 'submitted_at', 'reviewed_by', 'reviewer_name',
+            'reviewed_at', 'status_notes'
         ]
 
     def get_gender(self, obj):
@@ -590,6 +604,7 @@ class ProgressReportSerializer(SanitizedModelSerializer):
         model = ProgressReport
         fields = ['id', 'study', 'study_protocol', 'name', 'report_type', 'report_type_display', 'report_date', 'file', 'status', 'created_at']
 class StudyActionRequestSerializer(SanitizedModelSerializer):
+    id = ObjectIdField(read_only=True)
     participant_id = ObjectIdField(read_only=True, source='participant.id')
     study_id = ObjectIdField(read_only=True, source='study.id')
     study_title = serializers.CharField(read_only=True, source='study.title')

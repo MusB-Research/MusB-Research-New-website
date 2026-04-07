@@ -32,19 +32,19 @@ export default function DocumentCenterPanel({ protocols, addToast }: any) {
       <div style={{ padding: '48px 64px', maxWidth: '100%', margin: '0 auto', color: '#f1f5f9', minHeight: '90vh', animation: 'fadeIn 0.5s ease-out' }}>
         <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 24, marginBottom: 56, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h1 style={{ margin: 0, fontWeight: 900, fontSize: 52, color: '#f1f5f9', letterSpacing: '-0.04em', lineHeight: 1.1 }}>Document Vault</h1>
+            <h1 style={{ margin: 0, fontWeight: 900, fontSize: 52, color: '#f1f5f9', letterSpacing: '-0.04em', lineHeight: 1.1 }}>Document Center</h1>
             <div style={{ fontSize: 20, color: '#94a3b8', marginTop: 12, fontWeight: 600 }}>Sponsor Dashboard → <span style={{ color: '#2563eb' }}>Participant Level Data</span></div>
           </div>
         </div>
         <div style={{ margin: 'auto', background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(10px)', borderRadius: 36, border: '1px solid rgba(255,255,255,0.1)', padding: '100px 80px', textAlign: 'center', maxWidth: 850, width: '100%', boxShadow: '0 40px 80px rgba(0,0,0,0.4)' }}>
           <div style={{ fontSize: 120, color: '#2563eb', marginBottom: 48 }}>📖</div>
-          <h2 style={{ margin: '0 0 24px 0', fontWeight: 900, fontSize: 48, letterSpacing: '-0.03em', color: '#f1f5f9' }}>Select a Protocol</h2>
+          <h2 style={{ margin: '0 0 24px 0', fontWeight: 900, fontSize: 48, letterSpacing: '-0.03em', color: '#f1f5f9' }}>Select a Study</h2>
           <p style={{ color: '#94a3b8', fontSize: 24, margin: '0 0 64px 0', lineHeight: 1.6, fontWeight: 500 }}>Access your study's secure document repository for de-identified datasets and regulatory files.</p>
           <select value={studySelectValue} onChange={e => setStudySelectValue(e.target.value)} style={{ width: '100%', background: 'rgba(15, 23, 42, 0.6)', border: '2px solid rgba(255,255,255,0.1)', color: '#f1f5f9', padding: '24px 32px', borderRadius: 24, outline: 'none', marginBottom: 48, boxSizing: 'border-box', fontSize: 22, fontWeight: 700, appearance: 'none', cursor: 'pointer' }}>
             <option value="">-- Choose a Study --</option>
             {protocols.map((p:any) => <option key={p.id} value={p.id}>{p.id} — {p.title}</option>)}
           </select>
-          <button onClick={() => setSelectedStudyId(studySelectValue)} style={{ width: '100%', background: '#2563eb', color: 'white', border: 'none', padding: '28px', borderRadius: 24, fontWeight: 900, fontSize: 24, cursor: 'pointer', transition: 'all 0.3s', boxShadow: '0 15px 40px rgba(37, 99, 235, 0.3)' }}>Open Document Vault →</button>
+          <button onClick={() => setSelectedStudyId(studySelectValue)} style={{ width: '100%', background: '#2563eb', color: 'white', border: 'none', padding: '28px', borderRadius: 24, fontWeight: 900, fontSize: 24, cursor: 'pointer', transition: 'all 0.3s', boxShadow: '0 15px 40px rgba(37, 99, 235, 0.3)' }}>Open Document Center →</button>
         </div>
       </div>
     );
@@ -61,7 +61,7 @@ export default function DocumentCenterPanel({ protocols, addToast }: any) {
           </div>
           <div>
             <h2 style={{ margin: 0, fontWeight: 900, fontSize: 32, color: '#f1f5f9', letterSpacing: '-0.02em' }}>{selectedStudy.title}</h2>
-            <div style={{ fontFamily: 'monospace', fontSize: 17, color: '#64748b', marginTop: 8, fontWeight: 600 }}>Protocol ID: <span style={{ color: '#6366f1' }}>{selectedStudy.id}</span></div>
+            <div style={{ fontFamily: 'monospace', fontSize: 17, color: '#64748b', marginTop: 8, fontWeight: 600 }}>Study ID: <span style={{ color: '#6366f1' }}>{selectedStudy.id}</span></div>
           </div>
         </div>
         <select value={selectedStudyId} onChange={e => setSelectedStudyId(e.target.value)} style={{ background: '#0f172a', border: '2px solid #334155', color: '#f1f5f9', padding: '18px 24px', borderRadius: 16, outline: 'none', fontWeight: 800, fontSize: 18, cursor: 'pointer' }}>
@@ -70,7 +70,7 @@ export default function DocumentCenterPanel({ protocols, addToast }: any) {
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 32, overflowX: 'auto', paddingBottom: 16 }}>
-        {['All', 'Protocol', 'Consent', 'Regulatory', 'Reports'].map(c => (
+        {['All', 'Study', 'Consent', 'Regulatory', 'Reports'].map(c => (
           <PillButton key={c} active={filterCategory === c} onClick={() => setFilterCategory(c)} style={{ padding: '12px 24px', fontSize: 15, fontWeight: 800 }}>{c}</PillButton>
         ))}
       </div>

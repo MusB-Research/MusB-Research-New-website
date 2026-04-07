@@ -30,7 +30,7 @@ interface LabSample {
     critical: boolean;
 }
 
-export default function LabsResultsModule({ selectedStudyId }: { selectedStudyId?: string }) {
+export default function LabResultsModule({ selectedStudyId }: { selectedStudyId?: string }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [samples, setSamples] = useState<LabSample[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -88,7 +88,7 @@ export default function LabsResultsModule({ selectedStudyId }: { selectedStudyId
             {/* Header / Tactical Controls */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div>
-                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Labs & <span className="text-indigo-400">Results</span></h2>
+                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Health Check <span className="text-indigo-400">Reports</span></h2>
                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">Global Specimen Tracking & Bio-Analysis</p>
                 </div>
                 <div className="flex items-center gap-4">
@@ -184,6 +184,7 @@ export default function LabsResultsModule({ selectedStudyId }: { selectedStudyId
                                 </td>
                                 <td className="px-10 py-8">
                                     <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button className="px-6 py-2.5 bg-indigo-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-[1.03] transition-all">Push to Participant <CheckCircle2 className="w-4 h-4" /></button>
                                         <button className="p-3 bg-white/5 border border-white/5 rounded-2xl text-slate-400 hover:text-white hover:bg-white/10 transition-all"><TrendingUp className="w-4 h-4" /></button>
                                         <button className="px-6 py-2.5 bg-white text-slate-950 rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-[1.03] transition-all">Review <ChevronRight className="w-4 h-4" /></button>
                                     </div>

@@ -79,7 +79,7 @@ export const ConsentRecordsView: React.FC<RecordsProps> = (props) => {
                                 <td className="p-8 font-black text-white text-xl tracking-tighter italic">{r.full_name}</td>
                                 <td className="p-8 text-lg font-black text-indigo-400 italic">{r.study_title || r.protocol_id}</td>
                                 <td className="p-8"><span style={S.badge(COLORS.accent)}>{r.template_version}</span></td>
-                                <td className="p-8 text-sm text-slate-400 font-bold">{r.agreed_at ? new Date(r.agreed_at).toLocaleDateString() : '—'}</td>
+                                <td className="p-8 text-sm text-slate-400 font-bold">{r.agreed_at ? new Date(r.agreed_at).toLocaleString() : '—'}</td>
                                 <td className="p-8"><span style={{ ...S.badge(r.pi_verified ? COLORS.success : COLORS.warning), fontSize: '14px', padding: '0.6rem 1.5rem' }}>{r.pi_verified ? 'VERIFIED' : 'PENDING PI'}</span></td>
                                 <td className="p-8">
                                     <div className="flex gap-4">

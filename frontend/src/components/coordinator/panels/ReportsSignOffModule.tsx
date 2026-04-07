@@ -123,9 +123,14 @@ export default function ReportsSignOffModule({ selectedStudyId }: { selectedStud
                                 <p className="text-[10px] text-slate-300 font-black uppercase tracking-widest mt-1">{r.author} • {r.date}</p>
                             </div>
                             {r.status === 'Pending' && (
-                                <button onClick={() => handleSignOff(r)} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-[1.03] transition-all shadow-xl shadow-indigo-900/40">
-                                    Apply Sign-Off <FileSignature className="w-4 h-4" />
-                                </button>
+                                <div className="flex gap-3">
+                                    <button onClick={() => handleSignOff(r)} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-[1.03] transition-all shadow-xl shadow-indigo-900/40">
+                                        Push to Participant <CheckCircle2 className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={() => handleSignOff(r)} className="px-6 py-3 bg-white/5 border border-white/10 text-indigo-400 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-white/10 transition-all">
+                                        Apply Sign-Off <FileSignature className="w-4 h-4" />
+                                    </button>
+                                </div>
                             )}
                             {r.status === 'Signed' && (
                                 <button className="px-6 py-3 bg-white/5 border border-white/5 text-emerald-400 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2">

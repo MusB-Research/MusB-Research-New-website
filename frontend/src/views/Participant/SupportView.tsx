@@ -51,7 +51,7 @@ const SupportView = ({ requests = [], onAction }: any) => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
                     { label: 'Active Requests', value: requests.filter((r: any) => r.status !== 'COMPLETED').length, icon: Clock, color: 'text-amber-400' },
-                    { label: 'Resolved Missions', value: requests.filter((r: any) => r.status === 'COMPLETED').length, icon: CheckCircle, color: 'text-green-400' },
+                    { label: 'Resolved Requests', value: requests.filter((r: any) => r.status === 'COMPLETED').length, icon: CheckCircle, color: 'text-green-400' },
                     { label: 'System Uptime', value: '100%', icon: ShieldCheck, color: 'text-cyan-400' }
                 ].map((stat, i) => (
                     <Card key={i} className="p-6 bg-[#141e35]/40 border-white/5 flex items-center gap-5 group hover:border-white/10 transition-all">
@@ -74,7 +74,7 @@ const SupportView = ({ requests = [], onAction }: any) => {
                             <History className="w-5 h-5" />
                         </div>
                         <div>
-                            <h3 className="text-sm font-black text-white italic uppercase tracking-widest">Audit Registry</h3>
+                            <h3 className="text-sm font-black text-white italic uppercase tracking-widest">Activity History</h3>
                             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Formal history of all coordination requests.</p>
                         </div>
                     </div>
@@ -84,10 +84,10 @@ const SupportView = ({ requests = [], onAction }: any) => {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-white/[0.05] bg-white/[0.01]">
-                                <th className="p-6 px-10 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Request Node</th>
-                                <th className="p-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Origin Point</th>
-                                <th className="p-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] italic">System Timestamp</th>
-                                <th className="p-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Status Node</th>
+                                <th className="p-6 px-10 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Request Type</th>
+                                <th className="p-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Study Context</th>
+                                <th className="p-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Timestamp</th>
+                                <th className="p-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Status</th>
                                 <th className="p-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] italic"></th>
                             </tr>
                         </thead>
@@ -103,7 +103,7 @@ const SupportView = ({ requests = [], onAction }: any) => {
                                         </div>
                                     </td>
                                     <td className="p-6 text-sm font-bold text-slate-300 uppercase tracking-widest italic opacity-70">
-                                        {row.study_title || 'Clinical Research Node'}
+                                        {row.study_title || 'Clinical Research Center'}
                                     </td>
                                     <td className="p-6 text-[11px] font-black text-slate-500 italic uppercase">
                                         {row.created_at_formatted || new Date(row.created_at).toLocaleString()}
@@ -132,9 +132,9 @@ const SupportView = ({ requests = [], onAction }: any) => {
                                     <td colSpan={5} className="p-24 text-center">
                                         <div className="flex flex-col items-center gap-4 opacity-30">
                                             <LifeBuoy className="w-16 h-16 text-slate-500 mb-2 animate-pulse" />
-                                            <p className="text-sm font-black text-slate-500 uppercase tracking-[0.3em] italic">No Interaction History Found</p>
+                                            <p className="text-sm font-black text-slate-500 uppercase tracking-[0.3em] italic">No Activity History Found</p>
                                             <p className="text-[11px] font-bold text-slate-600 uppercase tracking-widest max-w-[320px] leading-relaxed">
-                                                Your coordination history is empty. Site requests will appear here once you initiate a clinical workflow.
+                                                Your request history is empty. Site requests will appear here once you initiate a clinical workflow.
                                             </p>
                                         </div>
                                     </td>

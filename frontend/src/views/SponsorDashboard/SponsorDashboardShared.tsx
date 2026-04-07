@@ -236,7 +236,7 @@ export const downloadPDF = async (reportData: any) => {
   doc.setFontSize(14);
   doc.setTextColor(100, 116, 139); // Slate match branding
   doc.setFont('helvetica', 'normal');
-  doc.text(`Protocol ID: ${reportData.study}`, 60, 35);
+  doc.text(`Study ID: ${reportData.study}`, 60, 35);
   doc.text(`Generated On: ${reportData.date}`, 60, 45);
   doc.setDrawColor(37, 99, 235);
   doc.line(15, 55, 195, 55);
@@ -258,7 +258,7 @@ export const downloadPDF = async (reportData: any) => {
 
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(30, 58, 138);
-  doc.text('KEY PROJECT METRICS:', 15, 115);
+  doc.text('KEY STUDY STATS:', 15, 115);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(51, 65, 85);
   doc.text('- Enrollment Status: ON TRACK', 20, 122);
@@ -271,7 +271,7 @@ export const downloadPDF = async (reportData: any) => {
   doc.setFont('helvetica', 'italic');
   doc.setTextColor(148, 163, 184);
   doc.text('This document contains confidential information belonging to MusB Research Platform.', 15, 162);
-  doc.text('Unauthorized access or disclosure is strictly prohibited under NDA protocols.', 15, 169);
+  doc.text('Unauthorized access or disclosure is strictly prohibited under NDA agreements.', 15, 169);
 
   doc.save(`${reportData.name}.pdf`);
 };

@@ -26,48 +26,22 @@ import AlertsModule from '../components/pi/panels/AlertsModule';
 import AuditLogModule from '../components/pi/panels/AuditLogModule';
 import AnalyticsModule from '../components/pi/panels/AnalyticsModule';
 import AnimatedBackground from '../components/AnimatedBackground';
+import StaffTasksModule from '../components/shared/StaffTasksModule';
+import StudyKitsModule from '../components/shared/StudyKitsModule';
+import ParticipantTaskManagement from '../components/shared/ParticipantTaskManagement';
 
 
 import {
-    LayoutDashboard,
-    Beaker,
-    Calendar,
-    DraftingCompass,
-    Users,
-    ClipboardList,
-    ShieldCheck,
-    Activity,
-    MessageSquare,
-    FileText,
-    Settings,
-    TrendingUp,
-    Search,
-    Bell,
-    ChevronDown,
-    Plus,
-    X,
-    Filter,
-    HelpCircle,
-    Stethoscope,
-    UsersRound,
-    Clock,
-    ArrowUpRight,
-    LogOut,
-    Globe,
-    Rocket,
-    Menu,
-    FlaskConical,
-    History,
-    FileSearch,
-    Layers,
-    ListFilter,
-    CheckSquare,
-    ScrollText,
-    Settings2,
-    Database,
-    AlertTriangle,
-    FileCheck,
-    Building2,
+    Calendar, Clock, ArrowRight, ChevronRight, Sparkles, Trophy,
+    Activity, FileText, CheckCircle2, Box, Zap, PlusCircle,
+    AlertCircle, MessageSquare, Ship, Microscope, History,
+    TrendingUp, Award, LayoutDashboard, Bell, Info, ExternalLink,
+    Play, Download, ClipboardList, Beaker, DraftingCompass, Users,
+    ShieldCheck, Settings, Search, ChevronDown, Plus, X, Filter,
+    HelpCircle, Stethoscope, UsersRound, ArrowUpRight, LogOut,
+    Globe, Rocket, Menu, FlaskConical, FileSearch, Layers,
+    ListFilter, CheckSquare, ScrollText, Settings2, Database,
+    AlertTriangle, FileCheck, Building2
 } from 'lucide-react';
 
 type PIModule =
@@ -90,7 +64,10 @@ type PIModule =
     | 'SPONSORS'
     | 'SUPPORT'
     | 'AUDIT_LOG'
-    | 'ANALYTICS';
+    | 'TASKS'
+    | 'ANALYTICS'
+    | 'KITS'
+    | 'PARTICIPANT_TASKS';
 
 interface SidebarItem {
     id: PIModule | 'WEBSITE';
@@ -128,6 +105,8 @@ export default function PIDashboard() {
         if (route === 'audit-log') return 'AUDIT_LOG';
         if (route === 'analytics') return 'ANALYTICS';
         if (route === 'sponsors') return 'SPONSORS';
+        if (route === 'tasks') return 'TASKS';
+        if (route === 'kits') return 'KITS';
         return 'OVERSIGHT';
     });
 
@@ -154,7 +133,9 @@ export default function PIDashboard() {
         else if (route === 'support' || route === 'help') setActiveModule('SUPPORT');
         else if (route === 'audit-log' || route === 'audit') setActiveModule('AUDIT_LOG');
         else if (route === 'analytics') setActiveModule('ANALYTICS');
+        else if (route === 'tasks') setActiveModule('TASKS');
         else if (route === 'sponsors') setActiveModule('SPONSORS');
+        else if (route === 'kits') setActiveModule('KITS');
         else setActiveModule('OVERSIGHT');
     }, [location.pathname]);
 
@@ -177,8 +158,11 @@ export default function PIDashboard() {
             'LAUNCH_STUDY': 'launch-study',
             'SUPPORT': 'support',
             'AUDIT_LOG': 'audit-log',
+            'TASKS': 'tasks',
             'ANALYTICS': 'analytics',
-            'SPONSORS': 'sponsors'
+            'SPONSORS': 'sponsors',
+            'KITS': 'kits',
+            'PARTICIPANT_TASKS': 'participant-tasks'
         };
         const slug = slugs[mod];
         setActiveModule(mod);
@@ -229,6 +213,7 @@ export default function PIDashboard() {
     const [loading, setLoading] = useState(true);
     const [selectedStudy, setSelectedStudy] = useState<any>(null);
     const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
+    const [globalSelectedStudyId, setGlobalSelectedStudyId] = useState<string | 'all'>('all');
 
     // Dynamic state for Operational Widgets
     // IMPORTANT: upcomingVisits should fetch data for a 2-month rolling window (60 days)
@@ -323,6 +308,7 @@ export default function PIDashboard() {
             items: [
                 { id: 'WEBSITE', label: 'Main Website', icon: Globe },
                 { id: 'OVERSIGHT', label: 'Dashboard', icon: LayoutDashboard },
+                { id: 'TASKS', label: 'My Tasks', icon: CheckSquare, hasNotify: true },
             ]
         },
         {
@@ -336,6 +322,9 @@ export default function PIDashboard() {
                 { id: 'CONSENT', label: 'Consent Oversight', icon: ShieldCheck },
                 { id: 'VISITS', label: 'Visits & Assessments', icon: Calendar },
                 { id: 'SPONSORS', label: 'My Sponsors', icon: Building2 },
+                { id: 'LABS', label: 'Health Check Reports', icon: Beaker },
+                { id: 'KITS', label: 'Study Kits', icon: Box },
+                { id: 'PARTICIPANT_TASKS', label: 'Participant Tasks', icon: ListFilter },
             ]
         },
         {
@@ -383,6 +372,22 @@ export default function PIDashboard() {
                     <h1 className="text-xl font-black text-white uppercase italic tracking-tighter leading-none">PI DASHBOARD</h1>
                     <div className="flex items-center gap-2 mt-2">
                         <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400 font-mono">RESEARCH TERMINAL</span>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-6">
+                    <div className="hidden xl:flex items-center gap-3 bg-white/5 p-1.5 rounded-2xl border border-white/10">
+                        <div className="px-4 text-[10px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/10">PROTOCOL NODE</div>
+                        <select
+                            value={globalSelectedStudyId}
+                            onChange={(e) => setGlobalSelectedStudyId(e.target.value)}
+                            className="bg-transparent text-[11px] font-black text-indigo-400 uppercase tracking-widest outline-none cursor-pointer px-4"
+                        >
+                            <option value="all" className="bg-[#0B101B]">ALL STUDIES</option>
+                            {studies.map(s => (
+                                <option key={s.id} value={s.id} className="bg-[#0B101B]">{s.protocol_id || s.id}</option>
+                            ))}
+                        </select>
                     </div>
                 </div>
 
@@ -572,13 +577,16 @@ export default function PIDashboard() {
                     {activeModule === 'FORMS' && <FormsQuestionnairesModule />}
                     {activeModule === 'CONSENT' && <PIConsentModule />}
                     {activeModule === 'VISITS' && <PIVisitsAssessmentsModule />}
-                    {activeModule === 'LABS' && <LabsResultsModule />}
-                    {activeModule === 'REPORTS' && <ReportsSignOffModule />}
+                    {activeModule === 'LABS' && <LabsResultsModule selectedStudyId={globalSelectedStudyId} />}
+                    {activeModule === 'KITS' && <StudyKitsModule selectedStudyId={globalSelectedStudyId} />}
+                    {activeModule === 'REPORTS' && <ReportsSignOffModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'STUDY_DOCS' && <StudyDocumentsModule />}
                     {activeModule === 'MY_DOCS' && <MyDocumentsModule />}
                     {activeModule === 'ALERTS' && <AlertsModule />}
                     {activeModule === 'SUPPORT' && <PIHelpSupportModule />}
                     {activeModule === 'AUDIT_LOG' && <AuditLogModule />}
+                    {activeModule === 'TASKS' && <StaffTasksModule primaryColor="indigo" />}
+                    {activeModule === 'PARTICIPANT_TASKS' && <ParticipantTaskManagement primaryColor="indigo" />}
                     {activeModule === 'ANALYTICS' && <AnalyticsModule />}
                     {activeModule === 'SPONSORS' && (
                         <SponsorsManagement

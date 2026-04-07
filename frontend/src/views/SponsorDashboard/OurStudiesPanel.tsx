@@ -86,7 +86,7 @@ export default function OurStudiesPanel({ protocols, setProtocols, addToast, win
       <div style={{ paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 20 }}>
         <div style={{ display: 'flex', flexDirection: windowWidth > 768 ? 'row' : 'column', justifyContent: 'space-between', alignItems: windowWidth > 768 ? 'center' : 'flex-start', gap: 16 }}>
           <div>
-            <h1 style={{ margin: 0, fontWeight: 900, fontSize: windowWidth > 768 ? 36 : 26, color: '#f1f5f9', letterSpacing: '-0.04em', lineHeight: 1.1 }}>Strategic Portfolio</h1>
+            <h1 style={{ margin: 0, fontWeight: 900, fontSize: windowWidth > 768 ? 36 : 26, color: '#f1f5f9', letterSpacing: '-0.04em', lineHeight: 1.1 }}>Study Portfolio</h1>
             <div style={{ fontSize: windowWidth > 768 ? 20 : 16, color: '#94a3b8', marginTop: 12, fontWeight: 600 }}>Sponsor Dashboard → <span style={{ color: '#2563eb' }}>Our Studies</span></div>
           </div>
         </div>
@@ -220,7 +220,7 @@ export default function OurStudiesPanel({ protocols, setProtocols, addToast, win
 
                   {/* Row 2 - KPIs */}
                   <div style={{ padding: '32px 48px', borderBottom: '1px solid #334155', overflowX: 'auto' }}>
-                    <div style={{ fontSize: 15, fontWeight: 900, color: '#64748b', letterSpacing: '0.15em', marginBottom: 24, textTransform: 'uppercase' }}>KEY PERFORMANCE INDICATORS</div>
+                    <div style={{ fontSize: 15, fontWeight: 900, color: '#64748b', letterSpacing: '0.15em', marginBottom: 24, textTransform: 'uppercase' }}>Main Study Stats</div>
                     <div style={{ display: 'flex', gap: 24 }}>
                       <div style={{ minWidth: 200, background: '#0f172a', border: '1px solid #334155', borderRadius: 20, padding: 24 }}>
                         <div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 16, fontWeight: 600 }}>Status</div>
@@ -256,7 +256,7 @@ export default function OurStudiesPanel({ protocols, setProtocols, addToast, win
                   {/* Row 3 - Charts */}
                   <div style={{ padding: '16px 24px', borderBottom: '1px solid #334155' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.05em' }}>VISUAL INSIGHTS</div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.05em' }}>Study Charts</div>
                       <div style={{ display: 'flex', gap: 4 }}>
                         {['Enrollment', 'Completion', 'Questionnaires', 'Samples'].map(tab => (
                           <button key={tab} onClick={() => setCardChartTabs({ ...cardChartTabs, [study.id]: tab })} style={{ background: activeTab === tab ? '#334155' : 'transparent', color: activeTab === tab ? '#f1f5f9' : '#94a3b8', border: 'none', padding: '4px 12px', fontSize: 12, borderRadius: 999, fontWeight: 600, cursor: 'pointer' }}>{tab}</button>

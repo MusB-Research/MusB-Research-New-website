@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-    Search, Plus, Filter, MoreHorizontal, Send, Paperclip, 
-    AlertTriangle, Phone, ChevronRight, Download, Archive, 
+    Search, Plus, Filter, Send, 
+    AlertTriangle, ChevronRight, Download, Archive, 
     User, MessageSquare, Check, CheckCheck, Clock, X,
     FileText, Image as ImageIcon, ExternalLink, ShieldCheck
 } from 'lucide-react';
@@ -36,12 +36,12 @@ interface Thread {
     status: 'active' | 'awaiting' | 'responded';
 }
 
-const MessagesView = ({ study, conversations = [], onAction }: { study?: any, conversations?: any[], onAction?: (v: string) => void }) => {
+const MessagesView = ({ study, conversations = [], onAction }: { study?: any, conversations?: any[], onAction?: () => void }) => {
     const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [isUrgentMode, setIsUrgentMode] = useState(false);
     const [messageInput, setMessageInput] = useState('');
-    const [isCallModalOpen, setIsCallModalOpen] = useState(false);
+
     const [showDetails, setShowDetails] = useState(true);
     const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -55,7 +55,7 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
             unread_count: conv.status === 'ACTION_REQUIRED' ? 1 : 0,
             is_urgent: conv.is_flagged,
             staff_name: conv.assigned_coordinator || 'Clinical Staff',
-            staff_role: 'Study Node',
+            staff_role: 'Study Coordinator',
             status: conv.status === 'RESOLVED' ? 'responded' : 'active'
         }));
     }, [conversations]);
@@ -109,11 +109,11 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
                 setMessageInput('');
                 setIsUrgentMode(false);
                 // The parent ParticipantDashboard will re-fetch data or we can optimize here
-                if (onAction) onAction('Messages'); 
+                if (onAction) onAction(); 
             }
         } catch (err) {
             console.error("Failed to sync message:", err);
-            alert("Connection error. Protocol fallback engaged.");
+            alert("Connection error. Please try again.");
         }
     };
 
@@ -124,7 +124,33 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
                         <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Conversations</h3>
-                        <button className="w-8 h-8 bg-cyan-500 rounded-lg flex items-center justify-center text-slate-950 hover:bg-cyan-400 transition-all shadow-lg active:scale-95">
+                        <button 
+                            onClick={async () => {
+                                try {
+                                    const apiUrl = API || 'http://localhost:8000';
+                                    const studyId = study?.id || study?._id?.$oid || study?._id || '';
+                                    const res = await authFetch(`${apiUrl}/api/clinical-conversations/`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ study: studyId })
+                                    });
+                                    if (res.ok) {
+                                        const newConv = await res.json();
+                                        setSelectedThreadId(newConv.id);
+                                        // Trigger parent to re-fetch conversations
+                                        if (onAction) onAction();
+                                    } else {
+                                        const err = await res.json();
+                                        console.error("Create conversation failed:", err);
+                                        alert("Could not start a new conversation. Please try again.");
+                                    }
+                                } catch (err) {
+                                    console.error("Network error:", err);
+                                    alert("Connection error. Please try again.");
+                                }
+                            }}
+                            className="w-8 h-8 bg-cyan-500 rounded-lg flex items-center justify-center text-slate-950 hover:bg-cyan-400 transition-all shadow-lg active:scale-95"
+                        >
                             <Plus className="w-5 h-5" />
                         </button>
                     </div>
@@ -132,7 +158,7 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
                         <input 
                             type="text" 
-                            placeholder="Search Node..."
+                            placeholder="Search Conversations..."
                             className="w-full bg-white/5 border border-white/5 rounded-2xl py-3 pl-11 pr-4 text-white text-[11px] font-black uppercase tracking-widest outline-none focus:border-cyan-500/50 transition-all"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -204,16 +230,7 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <button 
-                            onClick={() => setIsCallModalOpen(true)}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-xl border border-white/5 transition-all text-[11px] font-black uppercase tracking-widest"
-                        >
-                            <Phone className="w-4 h-4" />
-                            <span className="hidden md:inline">Request Call</span>
-                        </button>
-                        <button onClick={() => setShowDetails(!showDetails)} className="p-3 text-slate-500 hover:text-white transition-colors">
-                            <MoreHorizontal className="w-5 h-5" />
-                        </button>
+
                     </div>
                 </div>
 
@@ -242,7 +259,7 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
                                 {msg.is_from_me && (
                                     <div className="flex items-center gap-1 mt-2 px-4">
                                         <CheckCheck className="w-3 h-3 text-cyan-400" />
-                                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">DECRYPTED & READ</span>
+                                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">MESSAGE READ</span>
                                     </div>
                                 )}
                             </div>
@@ -257,14 +274,12 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
                         <textarea 
                             value={messageInput}
                             onChange={(e) => setMessageInput(e.target.value)}
-                            placeholder={isUrgentMode ? "Typing urgent alert mission..." : "Initialize secure session..."}
+                            placeholder={isUrgentMode ? "Type your urgent message..." : "Type your message..."}
                             className="w-full bg-transparent p-4 outline-none text-white text-base font-bold italic resize-none no-scrollbar h-20 placeholder:text-slate-700"
                         />
                         <div className="flex items-center justify-between border-t border-white/[0.03] pt-4 mt-2">
                             <div className="flex items-center gap-4">
-                                <button className="p-3 bg-white/5 hover:bg-white/10 text-slate-500 hover:text-white rounded-xl transition-all border border-white/5">
-                                    <Paperclip className="w-4 h-4" />
-                                </button>
+
                                 <button 
                                     onClick={() => setIsUrgentMode(!isUrgentMode)}
                                     className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all border ${
@@ -272,7 +287,7 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
                                     }`}
                                 >
                                     <AlertTriangle className={`w-3.5 h-3.5 ${isUrgentMode ? 'animate-pulse' : ''}`} />
-                                    Urgent Dispatch
+                                    Urgent Message
                                 </button>
                             </div>
                             <button 
@@ -283,137 +298,18 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
                                 }`}
                             >
                                 <Send className="w-4 h-4" />
-                                Synchronize
+                                Send Message
                             </button>
                         </div>
                     </div>
                 </div>
             </Card>
 
-            {/* ──────────────── THREAD DETAILS (RIGHTPANEL) ──────────────── */}
+            {/* ──────────────── THREAD DETAILS (RIGHTPANEL) - REMOVED ──────────────── */}
             <AnimatePresence>
-                {showDetails && (
-                    <motion.div 
-                        initial={{ width: 0, opacity: 0 }} 
-                        animate={{ width: 320, opacity: 1 }} 
-                        exit={{ width: 0, opacity: 0 }}
-                        className="hidden xl:flex flex-col gap-6 shrink-0 overflow-hidden"
-                    >
-                        <Card className="p-8 space-y-8 flex-1 overflow-y-auto no-scrollbar border-white/[0.02]">
-                            <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.3em] mb-4">Thread Vault</h3>
-                            
-                            <div className="space-y-6 pb-6 border-b border-white/[0.05]">
-                                <div>
-                                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-1">Study Context</span>
-                                    <p className="text-sm font-black text-white italic uppercase tracking-tight">Bio-Sync-2030</p>
-                                </div>
-                                <div>
-                                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-1">Assigned Node</span>
-                                    <p className="text-sm font-black text-cyan-400 italic uppercase tracking-tight">{activeThread?.staff_name}</p>
-                                </div>
-                                <div className="p-4 bg-white/[0.02] border border-white/[0.05] rounded-2xl space-y-2">
-                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Protocol Status</span>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-[#00e676]" />
-                                        <span className="text-[12px] font-black text-white uppercase italic tracking-widest">Active Link</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Shared Assets</h4>
-                                <div className="space-y-3">
-                                    <div className="group p-4 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between hover:border-cyan-500/30 transition-all cursor-pointer">
-                                        <div className="flex items-center gap-3">
-                                            <FileText className="w-5 h-5 text-indigo-400" />
-                                            <div>
-                                                <p className="text-[12px] font-black text-white uppercase italic">Protocol_Log.pdf</p>
-                                                <span className="text-[10px] font-black text-slate-600 uppercase">2.4 MB</span>
-                                            </div>
-                                        </div>
-                                        <Download className="w-4 h-4 text-slate-700 group-hover:text-white transition-colors" />
-                                    </div>
-                                    <div className="group p-4 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between hover:border-cyan-500/30 transition-all cursor-pointer">
-                                        <div className="flex items-center gap-3">
-                                            <ImageIcon className="w-5 h-5 text-cyan-400" />
-                                            <div>
-                                                <p className="text-[12px] font-black text-white uppercase italic">Skin_Baseline.jpg</p>
-                                                <span className="text-[10px] font-black text-slate-600 uppercase">1.1 MB</span>
-                                            </div>
-                                        </div>
-                                        <Download className="w-4 h-4 text-slate-700 group-hover:text-white transition-colors" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="pt-6 border-t border-white/[0.05] space-y-3">
-                                <button className="w-full py-4 text-slate-500 hover:text-white font-black text-[11px] uppercase tracking-widest border border-white/5 hover:border-white/10 rounded-2xl transition-all flex items-center justify-center gap-2">
-                                    <Archive className="w-4 h-4" />
-                                    Archive Link
-                                </button>
-                                <button className="w-full py-4 text-red-500 hover:text-red-400 font-black text-[11px] uppercase tracking-widest border border-red-500/10 hover:border-red-500/20 rounded-2xl transition-all flex items-center justify-center gap-2">
-                                    <AlertTriangle className="w-4 h-4" />
-                                    Report Node Link
-                                </button>
-                            </div>
-                        </Card>
-                    </motion.div>
-                )}
             </AnimatePresence>
 
-            {/* ──────────────── CALL REQUEST MODAL ──────────────── */}
-            <AnimatePresence>
-                {isCallModalOpen && (
-                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#0a0e1a]/98 backdrop-blur-2xl" onClick={() => setIsCallModalOpen(false)} />
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-md bg-[#0d1424] border border-white/10 rounded-[3rem] p-12 shadow-[0_30px_100px_rgba(0,0,0,0.8)]">
-                            <div className="w-16 h-16 bg-cyan-500/10 text-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-8 border border-cyan-500/20">
-                                <Phone className="w-8 h-8" />
-                            </div>
-                            <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter text-center mb-4">Request Voice Sync</h3>
-                            <p className="text-slate-500 font-bold uppercase tracking-widest text-sm text-center mb-10 leading-relaxed">
-                                Initialize a direct secure line with {activeThread?.staff_name}. Preferred time nodes will be analyzed.
-                            </p>
-                            <div className="space-y-8 mb-10">
-                                <div className="space-y-2">
-                                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest px-4">Urgency Level</span>
-                                    <div className="flex gap-2">
-                                        {['Routine', 'Priority', 'Critical'].map(level => (
-                                            <button 
-                                                key={level}
-                                                className={`flex-1 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest border transition-all ${
-                                                    level === 'Routine' ? 'bg-white/5 text-white border-white/20' : 'bg-transparent text-slate-600 border-white/5 hover:border-white/10'
-                                                }`}
-                                            >
-                                                {level}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest px-4">Wait Window</span>
-                                    <div className="p-4 bg-white/5 border border-white/5 rounded-2xl text-white text-sm font-bold italic">
-                                        Expected callback: &lt; 2 Standard Cycles
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div className="flex flex-col gap-3">
-                                <button 
-                                    onClick={() => {
-                                        setIsCallModalOpen(false);
-                                        alert("we got your request and our team members contact you shortly");
-                                    }}
-                                    className="w-full py-5 bg-cyan-500 text-slate-950 rounded-2xl font-black text-xs uppercase tracking-[0.25em] shadow-[0_0_30px_rgba(6,182,212,0.3)] active:scale-95"
-                                >
-                                    AUTHORIZE REQUEST
-                                </button>
-                                <button onClick={() => setIsCallModalOpen(false)} className="w-full py-4 text-slate-500 font-black text-[10px] uppercase tracking-widest">TERMINATE REQUEST</button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
         </div>
     );
 };
