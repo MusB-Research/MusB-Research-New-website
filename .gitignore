@@ -4,6 +4,8 @@
 .vite
 Allabout.txt
 .env
+.env.*
+!.env.example
 *.txt
 *.json
 *.pem
