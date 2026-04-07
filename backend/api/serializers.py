@@ -136,7 +136,7 @@ class DocumentSerializer(SanitizedModelSerializer):
 
     class Meta:
         model = Document
-        fields = ['id', 'title', 'file', 'file_url', 'version', 'is_archived', 'uploaded_at']
+        fields = ['id', 'title', 'file', 'file_url', 'version', 'visibility', 'is_archived', 'uploaded_at']
 
     def get_file_url(self, obj):
         if obj.file:
@@ -175,7 +175,7 @@ class StudySerializer(SanitizedModelSerializer):
             'trial_format', 'benefit', 'duration', 'tags', 'compensation', 'location',
             'time_commitment', 'overview', 'timeline', 'kits_info', 'safety_info',
             'privacy_standards', 'remote_participation', 'start_date', 'end_date',
-            'launch_date', 'irb_status', 'target_screened', 'actual_screened',
+            'launch_date', 'irb_status', 'target_subjects', 'target_screened', 'actual_screened',
             'proposal_source', 'proposal_submitted_date', 'agreement_signed_date',
             'contract_status', 'sponsor_contact_name', 'sponsor_contact_email',
             'show_dosing_log', 'show_ae_report', 'show_lab_upload', 
@@ -321,7 +321,7 @@ class ConsentTemplateSerializer(SanitizedModelSerializer):
     signatureRequirements = serializers.SerializerMethodField()
     completionRules = serializers.SerializerMethodField()
     
-    # CamelCase Aliases for UI Compatibility
+    # CamelCase/SnakeCase Mapping for UI Compatibility
     placedFields = serializers.JSONField(source='placed_fields', required=False)
     irbNumber = serializers.CharField(source='irb_number', required=False, allow_blank=True)
     irbApprovalDate = serializers.DateField(source='irb_approval_date', required=False, allow_null=True)
@@ -333,6 +333,31 @@ class ConsentTemplateSerializer(SanitizedModelSerializer):
     class Meta:
         model = ConsentTemplate
         fields = '__all__'
+
+    def to_internal_value(self, data):
+        """Map frontend snake_case or camelCase keys to the correct internal field names."""
+        # Support both styles from frontend
+        mappings = {
+            'placed_fields': 'placedFields',
+            'irb_number': 'irbNumber',
+            'irb_approval_date': 'irbApprovalDate',
+            'effective_date': 'effectiveDate',
+            'expiration_date': 'expirationDate',
+            'page_count': 'pageCount'
+        }
+        for snake, camel in mappings.items():
+            if snake in data and camel not in data:
+                data[camel] = data[snake]
+        
+        # Handle study lookup if protocol_id string is passed
+        if 'study' in data and isinstance(data['study'], str):
+            import bson
+            if not bson.ObjectId.is_valid(data['study']):
+                study_obj = Study.objects.filter(protocol_id=data['study']).first()
+                if study_obj:
+                    data['study'] = str(study_obj.id)
+
+        return super().to_internal_value(data)
 
     def get_file_url(self, obj):
         if not obj.file: return None

@@ -1,5 +1,6 @@
 import requests
 from django.conf import settings
+from django.utils import timezone
 import logging
 import os
 import secrets
@@ -79,7 +80,7 @@ def _log_email_locally(to_email, subject, content):
         log_file = os.path.join(settings.BASE_DIR, "sent_emails.log")
         with open(log_file, "a", encoding="utf-8") as f:
             f.write(f"\n{'='*80}\n")
-            f.write(f"DATE: {now()}\n")
+            f.write(f"DATE: {timezone.now()}\n")
             f.write(f"TO: {to_email}\n")
             f.write(f"SUBJECT: {subject}\n")
             f.write(f"CONTENT:\n{content}\n")

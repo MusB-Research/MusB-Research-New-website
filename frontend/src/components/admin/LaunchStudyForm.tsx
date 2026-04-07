@@ -11,7 +11,7 @@ import { authFetch, API, getUser, getRole } from '../../utils/auth';
 
 interface LaunchStudyFormProps {
     onClose?: () => void;
-    onSave?: (data: any) => void;
+    onSave?: (data: any, docs?: any[]) => Promise<void> | void;
     initialData?: any;
     availablePIs?: any[];
     availableCoordinators?: any[];
@@ -26,6 +26,8 @@ interface DocumentFile {
     category: 'Protocol' | 'IRB_Letter' | 'Flyer' | 'Other';
     version: string;
     status: 'Current' | 'Draft';
+    visibility: string[];
+    file?: File;
 }
 
 interface StudyFormData {
@@ -79,8 +81,8 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
     });
 
     const [uploadedDocs, setUploadedDocs] = useState<DocumentFile[]>(() => [
-        { id: '1', name: 'IRB_Protocol_V3.pdf', category: 'Protocol', version: 'V3.1', status: 'Current' },
-        { id: '2', name: 'Consent_Form_Template.docx', category: 'Other', version: 'V1.0', status: 'Draft' }
+        { id: '1', name: 'IRB_Protocol_V3.pdf', category: 'Protocol', version: 'V3.1', status: 'Current', visibility: ['PI', 'COORDINATOR'] },
+        { id: '2', name: 'Consent_Form_Template.docx', category: 'Other', version: 'V1.0', status: 'Draft', visibility: ['PI', 'COORDINATOR', 'PARTICIPANT'] }
     ]);
     const [sponsorSearch, setSponsorSearch] = useState('');
     const [showSponsorDropdown, setShowSponsorDropdown] = useState(false);
@@ -101,7 +103,9 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                 name: file.name,
                 category: 'Protocol',
                 version: 'V1.0 (Draft)',
-                status: 'Draft'
+                status: 'Draft',
+                visibility: ['PI', 'COORDINATOR'], // Default visibility
+                file: file
             };
             setUploadedDocs(prev => [newDoc, ...prev]);
         }
@@ -516,7 +520,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                         <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{Array.isArray(uploadedDocs) ? uploadedDocs.length : 0} Artifacts Synced</p>
                                     </div>
                                     {Array.isArray(uploadedDocs) && uploadedDocs.map(doc => (
-                                        <div key={doc.id} className="bg-white/[0.03] border border-white/5 rounded-3xl px-10 py-6 flex items-center justify-between group hover:bg-white/[0.05] transition-all hover:border-white/10">
+                                        <div key={doc.id} className="bg-white/[0.03] border border-white/5 rounded-3xl px-10 py-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6 group hover:bg-white/[0.05] transition-all hover:border-white/10">
                                             <div className="flex items-center gap-6">
                                                 <div className="p-3 bg-white/5 rounded-2xl group-hover:bg-indigo-500/10 transition-colors"><Microscope className="w-6 h-6 text-indigo-400" /></div>
                                                 <div className="text-left">
@@ -524,17 +528,56 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 italic">{doc.category} Node • {doc.version}</p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-6">
-                                                <span className="px-3 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20 text-[9px] font-black text-emerald-400 uppercase tracking-widest">{doc.status}</span>
-                                                <button 
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setUploadedDocs(prev => prev.filter(d => d.id !== doc.id));
-                                                    }}
-                                                    className="text-slate-600 hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg group/del"
-                                                >
-                                                    <X className="w-5 h-5 group-hover/del:rotate-90 transition-transform" />
-                                                </button>
+                                            
+                                            <div className="flex flex-wrap items-center gap-6">
+                                                {/* Visibility Controls */}
+                                                <div className="flex items-center gap-4 bg-[#0B101B] border border-white/5 px-4 py-2 rounded-2xl">
+                                                    <span className="text-[8px] font-black text-slate-600 uppercase tracking-[0.2em] border-r border-white/10 pr-4 mr-2">Visibility</span>
+                                                    {['PI', 'COORDINATOR', 'SPONSOR', 'PARTICIPANT'].map(role => (
+                                                        <label key={role} className="flex items-center gap-2 cursor-pointer group/label">
+                                                            <input 
+                                                                type="checkbox"
+                                                                className="hidden"
+                                                                checked={doc.visibility?.includes(role)}
+                                                                onChange={() => {
+                                                                    setUploadedDocs(prev => prev.map(d => 
+                                                                        d.id === doc.id 
+                                                                        ? { 
+                                                                            ...d, 
+                                                                            visibility: d.visibility?.includes(role) 
+                                                                                ? d.visibility.filter(r => r !== role) 
+                                                                                : [...(d.visibility || []), role]
+                                                                          }
+                                                                        : d
+                                                                    ));
+                                                                }}
+                                                            />
+                                                            <div className={`w-4 h-4 rounded border transition-all flex items-center justify-center ${
+                                                                doc.visibility?.includes(role) 
+                                                                    ? 'bg-indigo-500 border-indigo-500 shadow-[0_0_10px_rgba(79,70,229,0.3)]' 
+                                                                    : 'border-white/20 group-hover/label:border-indigo-500/30'
+                                                            }`}>
+                                                                {doc.visibility?.includes(role) && <CheckCircle2 className="w-2.5 h-2.5 text-white" />}
+                                                            </div>
+                                                            <span className={`text-[8px] font-black uppercase tracking-widest transition-colors ${
+                                                                doc.visibility?.includes(role) ? 'text-white' : 'text-slate-600'
+                                                            }`}>{role === 'COORDINATOR' ? 'Coord' : role}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+
+                                                <div className="flex items-center gap-6 border-l border-white/5 pl-6">
+                                                    <span className="px-3 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20 text-[9px] font-black text-emerald-400 uppercase tracking-widest">{doc.status}</span>
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setUploadedDocs(prev => prev.filter(d => d.id !== doc.id));
+                                                        }}
+                                                        className="text-slate-600 hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg group/del"
+                                                    >
+                                                        <X className="w-5 h-5 group-hover/del:rotate-90 transition-transform" />
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
@@ -667,7 +710,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                 if (validation?.isValid && onSave) {
                                     setIsSubmitting(true);
                                     try {
-                                        await onSave(formData);
+                                        await onSave(formData, uploadedDocs);
                                         alert("✅ PROTOCOL SYNCHRONIZED\n\nStudy has been successfully registered in the MusB Meta-Database and is now live across the network.");
                                     } catch (err) {
                                         console.error(err);

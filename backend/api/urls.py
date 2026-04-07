@@ -23,6 +23,7 @@ router.register(r'daily-medication-logs', views.DailyMedicationLogViewSet, basen
 router.register(r'ae-reports', views.AEReportViewSet, basename='ae-report')
 router.register(r'progress-reports', views.ProgressReportViewSet)
 router.register(r'assigned-forms', views.AssignedFormViewSet)
+router.register(r'documents', views.DocumentViewSet)
 
 router.register(r'leads', views.LeadViewSet)
 router.register(r'communications', views.CommunicationLogViewSet)

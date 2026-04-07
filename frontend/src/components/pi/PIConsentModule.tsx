@@ -133,7 +133,7 @@ export default function PIConsentModule() {
                 }
             } catch (err) {
                 console.error("Failed to fetch consent data:", err);
-                setError("Clinical data connection failed. Check backend status.");
+                setError("Unable to connect to the Study Consent repository. Please verify your connection.");
             } finally {
                 setLoading(false);
             }
@@ -248,7 +248,9 @@ export default function PIConsentModule() {
         badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.3rem 0.8rem', borderRadius: '4px', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
         btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '0.8rem 1.5rem', borderRadius: '8px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(79, 70, 229, 0.2)' },
         btnGhost: { backgroundColor: 'transparent', color: 'white', border: COLORS.border, padding: '0.8rem 1.5rem', borderRadius: '8px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' },
-        input: { backgroundColor: 'rgba(255,255,255,0.03)', border: COLORS.border, borderRadius: '8px', padding: '0.8rem 1.25rem', color: 'white', fontSize: '14px', outline: 'none' }
+        input: { backgroundColor: 'rgba(255,255,255,0.03)', border: COLORS.border, borderRadius: '8px', padding: '0.8rem 1.25rem', color: 'white', fontSize: '14px', outline: 'none' },
+        h2: { fontSize: '32px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' as const, color: 'white' },
+        p: { fontSize: '14px', color: COLORS.text, opacity: 0.8 }
     };
 
     // === SUB-COMPONENTS ===
@@ -388,12 +390,12 @@ export default function PIConsentModule() {
             <div className="w-full 2xl:w-[380px] border-t 2xl:border-t-0 2xl:border-l border-white/10 p-10 2xl:p-8 flex flex-col gap-10 overflow-y-auto custom-scrollbar">
                 <div>
                     <div className="flex justify-between items-center mb-6">
-                        <label style={S.label}>Protocol Metadata</label>
+                        <label style={S.label}>Study Document Metadata</label>
                         <button 
                             className="p-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-all text-slate-400 group"
                             onClick={async () => {
                                 if (!activeConsent) return;
-                                const n = prompt("Rename Protocol:", activeConsent.title);
+                                const n = prompt("Rename Study Document:", activeConsent.title);
                                 if (n) {
                                     try {
                                         const res = await authFetch(`/api/consent-templates/${activeConsent.id}/`, {
@@ -404,10 +406,11 @@ export default function PIConsentModule() {
                                         if (res.ok) {
                                             const updated = await res.json();
                                             setConsents(consents.map(c => c.id === updated.id ? updated : c));
-                                            addToast('Protocol renamed successfully', 'success');
+                                            addToast('Document renamed successfully', 'success');
                                         }
                                     } catch (err) {
                                         console.error("Rename failed:", err);
+                                        addToast("Update failed", "error");
                                     }
                                 }
                             }}
@@ -505,12 +508,21 @@ export default function PIConsentModule() {
                             onClick={() => {
                                 if (!activeConsent) return;
                                 setConfirmModal({ 
-                                    message: `Publishing will activate protocol version ${activeConsent.version}. This will push the document to all enrolled participants. Continue?`, 
+                                    message: `Publishing will activate version ${activeConsent.version} for this study. This will make the document available to all enrolled participants. Continue?`, 
                                     onConfirm: async () => {
                                         try {
                                             const isMock = String(activeConsent.id).startsWith('c');
                                             const updatedStatus = 'ACTIVE';
                                             
+                                            // Ensure we have a valid study ID
+                                            const targetStudy = studies.find(s => s.protocol_id === activeConsent.study || s.title === activeConsent.study || s.id === activeConsent.study);
+                                            const studyId = targetStudy?.id || (studies.length > 0 ? studies[0].id : null);
+                                            
+                                            if (!studyId && isMock) {
+                                                addToast("No valid study ID found for publishing", "error");
+                                                return;
+                                            }
+
                                             let res;
                                             if (isMock) {
                                                 // 1a. If it's a MOCK ID, we must CREATE (POST) the record first
@@ -518,12 +530,12 @@ export default function PIConsentModule() {
                                                     method: 'POST',
                                                     headers: { 'Content-Type': 'application/json' },
                                                     body: JSON.stringify({
-                                                        study: studies.length > 0 ? (studies[0].id || studies[0].protocol_id) : 'BTB-001',
+                                                        study: studyId,
                                                         title: activeConsent.title,
                                                         version: activeConsent.version,
                                                         status: updatedStatus,
-                                                        placed_fields: activeConsent.placedFields || [],
-                                                        irb_number: activeConsent.irbNumber || 'PENDING'
+                                                        placedFields: activeConsent.placedFields || [],
+                                                        irbNumber: activeConsent.irbNumber || 'PENDING'
                                                     })
                                                 });
                                             } else {
@@ -544,10 +556,11 @@ export default function PIConsentModule() {
                                                 
                                                 // 2. Sync to LocalRegistry (Immediate bridge for local testing)
                                                 localStorage.setItem('musb_consent_protocols', JSON.stringify(updatedConsents));
-                                                addToast(`Protocol v${savedConsent.version} is now LIVE globally`, 'success');
+                                                addToast(`Document v${savedConsent.version} is now LIVE for this study`, 'success');
                                             } else {
                                                 const errData = await res.json();
-                                                throw new Error(JSON.stringify(errData));
+                                                console.error("API Error Response:", errData);
+                                                addToast(`Publish failed: ${JSON.stringify(errData)}`, "error");
                                             }
                                         } catch (err) {
                                             console.error("Publishing error:", err);
@@ -557,7 +570,7 @@ export default function PIConsentModule() {
                                 });
                             }}
                         >
-                            <ShieldCheck size={16} /> Publish Protocol v{activeConsent?.version}
+                            <ShieldCheck size={16} /> Publish Document v{activeConsent?.version}
                         </button>
                     </div>
                 </div>
@@ -916,10 +929,11 @@ export default function PIConsentModule() {
                                     </section>
 
                                     <div className="h-[200px] bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-10 text-center gap-4">
-                                        <ShieldCheck size={40} className="text-indigo-200" />
+                                        <ShieldCheck size={40} className="text-indigo-200 shadow-xl shadow-indigo-500/10" />
                                         <div>
                                             <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-1">Authenticated Regulatory Node</p>
-                                            <p className="text-slate-300 text-[11px] italic">Verified IRB Approval Stamp: MAR-2026-X88</p>
+                                            <p className="text-indigo-600 font-black italic text-lg mb-1">{activeConsent?.study || 'STUDY-PROTOCOL-001'}</p>
+                                            <p className="text-slate-400 text-[10px] italic">Verified IRB Approval Stamp: MAR-2026-X88</p>
                                         </div>
                                     </div>
 
@@ -1161,6 +1175,10 @@ export default function PIConsentModule() {
 
             {/* MAIN AREA */}
             <main className="flex-1 flex flex-col min-h-[1000px] lg:min-h-[800px]" style={{ display: 'flex', backgroundColor: '#060a14' }}>
+                <header className="mb-10 px-12 pt-10">
+                    <h2 style={S.h2}>Consent Review & Tracking</h2>
+                    <p style={S.p}>Review and manage informed consent documents across all active studies.</p>
+                </header>
                 {activeView === 'builder' && renderBuilder()}
                 {activeView === 'records' && renderRecords()}
                 {activeView === 'signature-setup' && renderSignatureSetup()}

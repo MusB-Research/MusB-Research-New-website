@@ -382,7 +382,7 @@ export default function SuperAdminDashboard() {
     return study.protocol_id || study.id || study._id || null;
   };
 
-  const handleCreateStudy = async (formData: any) => {
+  const handleCreateStudy = async (formData: any, uploadedDocs: any[] = []) => {
     try {
       const apiUrl = API || 'http://localhost:8000';
       const method = selectedStudy ? 'PATCH' : 'POST';
@@ -393,18 +393,19 @@ export default function SuperAdminDashboard() {
         return;
       }
 
-      // Map frontend fields (from LaunchStudyForm) to backend fields (StudySerializer)
+      // Map frontend fields to backend
       const payload = {
         ...formData,
         start_date: formData.startDate,
         end_date: formData.endDate,
         description: formData.brief_description,
         primary_indication: formData.indication,
-        condition: formData.indication,
+        condition: formData.indication || formData.condition,
         study_type: formData.execution_type,
         target_screened: formData.target_subjects,
         pi_ids: formData.assigned_pis,
         coordinator_ids: formData.assigned_coordinators,
+        sponsor_id: formData.sponsor_id
       };
 
       const url = selectedStudy
@@ -417,6 +418,32 @@ export default function SuperAdminDashboard() {
       });
 
       if (res.ok) {
+        const studyData = await res.json();
+        const currentStudyId = studyData.protocol_id || studyData.id;
+
+        // --- Document Upload Matrix Propagation ---
+        if (uploadedDocs && uploadedDocs.length > 0) {
+          const docsToUpload = uploadedDocs.filter(d => d.file);
+          for (const doc of docsToUpload) {
+            const docFormData = new FormData();
+            docFormData.append('file', doc.file);
+            docFormData.append('title', doc.name);
+            docFormData.append('category', doc.category || 'OTHER');
+            docFormData.append('version', doc.version || 'V1.0');
+            docFormData.append('study', currentStudyId);
+            docFormData.append('visibility', JSON.stringify(doc.visibility || ['PI', 'COORDINATOR']));
+
+            try {
+              await authFetch(`${apiUrl}/api/documents/`, {
+                method: 'POST',
+                body: docFormData
+              });
+            } catch (err) {
+              console.error("Document upload failed for:", doc.name, err);
+            }
+          }
+        }
+
         alert(selectedStudy ? "Protocol Metadata Successfully Synced to Core" : "New Strategy/Protocol Deployed to Active Matrix");
         handlePageChange('STUDIES');
         fetchData();
@@ -953,7 +980,7 @@ export default function SuperAdminDashboard() {
               </thead>
               <tbody className="divide-y divide-white/5">
                 {(studies || []).map((study, i) => (
-                  <tr key={study.id || i} className="hover:bg-white/[0.01] transition-colors group">
+                  <tr key={study.id || i} className="hover:bg-white/[0.01] transition-colors group relative study-row-container">
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-2xl flex items-center justify-center border border-white/5 bg-blue-500/10 text-blue-400">
@@ -1035,6 +1062,28 @@ export default function SuperAdminDashboard() {
                           <option value="" className="bg-[#0a0b1a]">-- Select Coord --</option>
                           {users.filter(u => u.role === 'COORDINATOR').map(c => (
                             <option key={c.id} value={c.id} className="bg-[#0a0b1a]">{c.name}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={study.sponsor_id || ''}
+                          onChange={async (e) => {
+                            const newId = e.target.value;
+                            const apiUrl = API || 'http://localhost:8000';
+                            try {
+                              const res = await authFetch(`${apiUrl}/api/studies/${study.protocol_id || study.id}/`, {
+                                method: 'PATCH',
+                                body: JSON.stringify({ sponsor_id: newId })
+                              });
+                              if (res.ok) fetchData();
+                            } catch (err) {
+                              alert("Sponsor update failed");
+                            }
+                          }}
+                          className="bg-transparent text-[10px] font-black uppercase tracking-widest text-emerald-400 outline-none cursor-pointer hover:text-white transition-all border-none"
+                        >
+                          <option value="" className="bg-[#0a0b1a]">-- Select Sponsor --</option>
+                          {users.filter(u => u.role === 'SPONSOR').map(s => (
+                            <option key={s.id} value={s.id} className="bg-[#0a0b1a]">{s.name || s.email}</option>
                           ))}
                         </select>
                       </div>
@@ -1139,65 +1188,67 @@ export default function SuperAdminDashboard() {
                         <option value="CLOSED_ARCHIVED" className="bg-[#0a0b1a]">Closed / Archived</option>
                       </select>
                     </td>
-                    <td className="px-10 py-6 text-right flex items-center justify-end gap-3 min-w-[180px]">
-                      <button
-                        onClick={() => {
-                          setSelectedStudy(study);
-                          handlePageChange('LAUNCH_STUDY');
-                        }}
-                        className="p-3.5 text-slate-700 hover:text-white transition-all hover:bg-white/5 rounded-xl border border-transparent hover:border-white/10 shadow-lg"
-                        title="Configure Protocol"
-                      >
-                        <Settings className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={async () => {
-                          const newStatus = study.status === 'CLOSED_ARCHIVED' ? 'RECRUITING' : 'CLOSED_ARCHIVED';
-                          const apiUrl = API || 'http://localhost:8000';
-                          const sid = getStudyIdentifier(study);
-                          if (!sid) return alert("❌ IDENTIFIER ERROR: Archive command rejected.");
-                          try {
-                            const res = await authFetch(`${apiUrl}/api/studies/${sid}/`, {
-                              method: 'PATCH',
-                              body: JSON.stringify({ status: newStatus })
-                            });
-                            if (res.ok) fetchData();
-                          } catch (err) {
-                            alert("❌ PORTAL ERROR: Failed to toggle protocol archive state.");
-                          }
-                        }}
-                        className={`p-3.5 transition-all hover:bg-white/5 rounded-xl border border-transparent shadow-lg ${study.status === 'CLOSED_ARCHIVED' ? 'text-emerald-400 hover:border-emerald-500/30' : 'text-amber-500/50 hover:text-amber-500 hover:border-amber-500/30'}`}
-                        title={study.status === 'CLOSED_ARCHIVED' ? 'Unarchive Study' : 'Archive Study'}
-                      >
-                        <Archive className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={async () => {
-                          const confirmMsg = `⚠️ IRREVERSIBLE ACTION DETECTED\n\nStudy: ${study.title.toUpperCase()}\n\nAre you sure you want to PERMANENTLY DELETE this clinical trial? This will purge all associated participant data and clinical records.`;
-                          if (window.confirm(confirmMsg)) {
+                    <td className="px-10 py-6 text-right relative min-w-[180px]">
+                      <div className="actions absolute inset-0 flex items-center justify-end gap-3 px-10 opacity-0 group-hover:opacity-100 transition-all duration-200 delay-75 pointer-events-none group-hover:pointer-events-auto bg-[#0f1133]/40 backdrop-blur-sm z-10">
+                        <button
+                          onClick={() => {
+                            setSelectedStudy(study);
+                            handlePageChange('LAUNCH_STUDY');
+                          }}
+                          className="p-3.5 text-slate-300 hover:text-white transition-all hover:bg-white/10 rounded-xl border border-white/5 hover:border-white/20 shadow-lg"
+                          title="Configure Protocol"
+                        >
+                          <Settings className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const newStatus = study.status === 'CLOSED_ARCHIVED' ? 'RECRUITING' : 'CLOSED_ARCHIVED';
                             const apiUrl = API || 'http://localhost:8000';
                             const sid = getStudyIdentifier(study);
-                            if (!sid) return alert("❌ IDENTIFIER ERROR: Record erasure rejected.");
+                            if (!sid) return alert("❌ IDENTIFIER ERROR: Archive command rejected.");
                             try {
                               const res = await authFetch(`${apiUrl}/api/studies/${sid}/`, {
-                                method: 'DELETE'
+                                method: 'PATCH',
+                                body: JSON.stringify({ status: newStatus })
                               });
-                              if (res.ok) {
-                                fetchData();
-                                alert("🗑️ PROTOCOL PURGED FROM ACTIVE MATRIX");
-                              } else {
-                                alert("PROTECTION ACTIVE: Could not purge protocol.");
-                              }
-                            } catch (e) {
-                              alert("❌ CRITICAL FAILURE: Network interference detected during purge command.");
+                              if (res.ok) fetchData();
+                            } catch (err) {
+                              alert("❌ PORTAL ERROR: Failed to toggle protocol archive state.");
                             }
-                          }
-                        }}
-                        className="p-2 text-rose-500/40 hover:text-rose-500 transition-all hover:bg-rose-500/5 rounded-lg"
-                        title="Purge Study"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                          }}
+                          className={`p-3.5 transition-all hover:bg-white/10 rounded-xl border border-white/5 shadow-lg ${study.status === 'CLOSED_ARCHIVED' ? 'text-emerald-400 hover:border-emerald-500/30' : 'text-amber-500/50 hover:text-amber-500 hover:border-amber-500/30'}`}
+                          title={study.status === 'CLOSED_ARCHIVED' ? 'Unarchive Study' : 'Archive Study'}
+                        >
+                          <Archive className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const confirmMsg = `⚠️ IRREVERSIBLE ACTION DETECTED\n\nStudy: ${study.title.toUpperCase()}\n\nAre you sure you want to PERMANENTLY DELETE this clinical trial? This will purge all associated participant data and clinical records.`;
+                            if (window.confirm(confirmMsg)) {
+                              const apiUrl = API || 'http://localhost:8000';
+                              const sid = getStudyIdentifier(study);
+                              if (!sid) return alert("❌ IDENTIFIER ERROR: Record erasure rejected.");
+                              try {
+                                const res = await authFetch(`${apiUrl}/api/studies/${sid}/`, {
+                                  method: 'DELETE'
+                                });
+                                if (res.ok) {
+                                  fetchData();
+                                  alert("🗑️ PROTOCOL PURGED FROM ACTIVE MATRIX");
+                                } else {
+                                  alert("PROTECTION ACTIVE: Could not purge protocol.");
+                                }
+                              } catch (e) {
+                                alert("❌ CRITICAL FAILURE: Network interference detected during purge command.");
+                              }
+                            }
+                          }}
+                          className="p-2 text-rose-500/40 hover:text-rose-500 transition-all hover:bg-rose-500/10 rounded-lg"
+                          title="Purge Study"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -2257,8 +2308,8 @@ export default function SuperAdminDashboard() {
               availablePIs={users.filter(u => u.role === 'PI')}
               availableCoordinators={users.filter(u => u.role === 'COORDINATOR')}
               availableSponsors={users.filter(u => u.role === 'SPONSOR')}
-              onSave={async (data) => {
-                await handleCreateStudy(data);
+              onSave={async (data: any, docs: any[] = []) => {
+                await handleCreateStudy(data, docs);
                 setSelectedStudy(null);
               }}
               onClose={() => {

@@ -123,6 +123,7 @@ class Study(BaseMongoModel):
     irb_status = models.CharField(max_length=100, blank=True)
 
     # Enrollment Targets
+    target_subjects = models.IntegerField(default=0, verbose_name="Target Randomized Subjects")
     target_screened = models.IntegerField(default=0)
     target_eligible = models.IntegerField(default=0)
     target_consented = models.IntegerField(default=0)
@@ -220,6 +221,7 @@ class Document(BaseMongoModel):
     title = models.CharField(max_length=255)
     file = models.FileField(upload_to='study_docs/')
     version = models.CharField(max_length=20, default='1.0')
+    visibility = models.JSONField(default=list, blank=True, help_text="List of roles that can see this document: SPONSOR, PARTICIPANT, PI, COORDINATOR")
     is_archived = models.BooleanField(default=False)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 

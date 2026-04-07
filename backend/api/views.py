@@ -181,10 +181,16 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
             study.assignments.filter(role='COORDINATOR').exclude(user__in=coord_ids).delete()
             for coord_user in coord_ids:
                 StudyAssignment.objects.get_or_create(study=study, user=coord_user, role='COORDINATOR')
+        
+        # Sync Sponsor assignment
+        if study.sponsor:
+            study.assignments.filter(role='SPONSOR_ADMIN').exclude(user=study.sponsor).delete()
+            StudyAssignment.objects.get_or_create(study=study, user=study.sponsor, role='SPONSOR_ADMIN')
+        else:
+            study.assignments.filter(role='SPONSOR_ADMIN').delete()
+
         if pi_ids: study.pi = pi_ids[0]
         if coord_ids: study.coordinator = coord_ids[0]
-        if study.sponsor:
-            StudyAssignment.objects.get_or_create(study=study, user=study.sponsor, role='SPONSOR_ADMIN')
         study.save()
 
 class PublicStudyViewSet(viewsets.ReadOnlyModelViewSet):
@@ -549,22 +555,75 @@ class DataAuditLogViewSet(viewsets.ReadOnlyModelViewSet):
         return DataAuditLog.objects.none()
 
 
-class ConsentTemplateViewSet(viewsets.ModelViewSet):
+class ConsentTemplateViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
     queryset = ConsentTemplate.objects.all()
     serializer_class = ConsentTemplateSerializer
+    permission_classes = [IsAdminOrCoordinator]
+    parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return ConsentTemplate.objects.none()
+            
+        if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
+            return ConsentTemplate.objects.all().order_by('-created_at')
+            
+        study_id = self.request.query_params.get('study_id')
+        # Filter templates by studies the user is assigned to
+        queryset = ConsentTemplate.objects.filter(study__assignments__user=user).distinct().order_by('-created_at')
+        
+        if study_id:
+            import bson
+            if bson.ObjectId.is_valid(study_id):
+                queryset = queryset.filter(study_id=study_id)
+            else:
+                queryset = queryset.filter(study__protocol_id=study_id)
+                
+        return queryset
+
+class DocumentViewSet(viewsets.ModelViewSet):
+    queryset = Document.objects.all()
+    serializer_class = DocumentSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
 
     def get_queryset(self):
         user = self.request.user
-        if not user.is_authenticated: return ConsentTemplate.objects.none()
-        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']: return ConsentTemplate.objects.all()
-        
+        if not user.is_authenticated:
+            return Document.objects.none()
+            
         study_id = self.request.query_params.get('study_id')
-        queryset = ConsentTemplate.objects.filter(study__assignments__user=user).distinct()
+        queryset = Document.objects.all()
+        
         if study_id:
             queryset = queryset.filter(study_id=study_id)
-        return queryset
+
+        # Super Admin and Admin see all
+        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']:
+            return queryset.order_by('-uploaded_at')
+
+        # Filter by visibility for other roles
+        role_map = {
+            'PI': 'PI',
+            'COORDINATOR': 'COORDINATOR',
+            'SPONSOR': 'SPONSOR',
+            'PARTICIPANT': 'PARTICIPANT'
+        }
+        user_role = role_map.get(user.role.upper())
+        
+        if user_role:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(visibility__contains=user_role) | Q(visibility=[]) | Q(visibility__isnull=True)
+            )
+
+        # Further restrict to assigned studies for non-admins
+        return queryset.filter(study__assignments__user=user).distinct().order_by('-uploaded_at')
+
+    def perform_create(self, serializer):
+        serializer.save()
+        AuditLog.log('DOCUMENT_UPLOADED', user_email=self.request.user.email, request=self.request, detail=f"Uploaded document {serializer.instance.title} for study {serializer.instance.study.protocol_id}")
 
 class ConsentViewSet(viewsets.ModelViewSet):
     queryset = Consent.objects.all()
