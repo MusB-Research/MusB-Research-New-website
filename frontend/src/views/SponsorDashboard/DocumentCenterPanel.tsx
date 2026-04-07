@@ -167,9 +167,9 @@ export default function DocumentCenterPanel({ protocols, addToast }: any) {
                        <StatusBadge status={v.status} />
                      </div>
                      <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>{v.date}</div>
-                     {v.notes && <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.4, background: '#1e293b', padding: 8, borderRadius: 6, marginTop: 8 }}>{v.notes}</div>}
+                     {v.notes && <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.4, background: '#1e293b', padding: 8, borderRadius: 6, marginTop: 8 }}>{v.notes}</div>}
                      {v.status !== 'Current' && (
-                       <button onClick={() => addToast({type:'info', message:`Downloading version ${v.version}`})} style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: 11, fontWeight: 600, cursor: 'pointer', padding: 0, marginTop: 8 }}>Download Old Version</button>
+                       <button onClick={() => addToast({type:'info', message:`Downloading version ${v.version}`})} style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, marginTop: 8 }}>Download Old Version</button>
                      )}
                   </div>
                 ))}
@@ -197,3 +197,5 @@ export default function DocumentCenterPanel({ protocols, addToast }: any) {
     </div>
   );
 }
+
+

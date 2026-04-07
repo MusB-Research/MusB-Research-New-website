@@ -704,6 +704,8 @@ class LabResult(BaseMongoModel):
     ])
     is_critical = models.BooleanField(default=False)
     document = models.FileField(upload_to='lab_reports/', null=True, blank=True)
+    is_released = models.BooleanField(default=False)
+    released_at = models.DateTimeField(null=True, blank=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
 class DataAuditLog(BaseMongoModel):

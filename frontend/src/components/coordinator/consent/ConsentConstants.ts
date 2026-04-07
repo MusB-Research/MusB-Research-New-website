@@ -94,3 +94,5 @@ export interface ConsentRecord {
     locked: boolean;
     auditLog: AuditEntry[];
 }
+
+

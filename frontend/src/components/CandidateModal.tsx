@@ -118,7 +118,7 @@ export default function CandidateModal({ isOpen, onClose }: CandidateModalProps)
                             
                             <div className="grid md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-black uppercase tracking-widest text-slate-400">Full Name</label>
+                                    <label className="text-[12px] font-black uppercase tracking-widest text-slate-400">Full Name</label>
                                     <input 
                                         type="text" 
                                         required
@@ -129,7 +129,7 @@ export default function CandidateModal({ isOpen, onClose }: CandidateModalProps)
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-black uppercase tracking-widest text-slate-400">Email Address</label>
+                                    <label className="text-[12px] font-black uppercase tracking-widest text-slate-400">Email Address</label>
                                     <input 
                                         type="email" 
                                         required
@@ -143,7 +143,7 @@ export default function CandidateModal({ isOpen, onClose }: CandidateModalProps)
 
                             <div className="grid md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-black uppercase tracking-widest text-slate-400">Phone Number</label>
+                                    <label className="text-[12px] font-black uppercase tracking-widest text-slate-400">Phone Number</label>
                                     <input 
                                         type="tel" 
                                         required
@@ -154,7 +154,7 @@ export default function CandidateModal({ isOpen, onClose }: CandidateModalProps)
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-black uppercase tracking-widest text-slate-400">Create Password (For Account)</label>
+                                    <label className="text-[12px] font-black uppercase tracking-widest text-slate-400">Create Password (For Account)</label>
                                     <input 
                                         type="password" 
                                         required
@@ -168,7 +168,7 @@ export default function CandidateModal({ isOpen, onClose }: CandidateModalProps)
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-xs font-black uppercase tracking-widest text-slate-400">Resume / CV (PDF or DOCX)</label>
+                                <label className="text-[12px] font-black uppercase tracking-widest text-slate-400">Resume / CV (PDF or DOCX)</label>
                                 <div className="relative">
                                     <input 
                                         type="file" 
@@ -189,7 +189,7 @@ export default function CandidateModal({ isOpen, onClose }: CandidateModalProps)
                                             <p className="text-sm font-bold text-white">
                                                 {resumeFile ? resumeFile.name : "Click to upload or drag and drop"}
                                             </p>
-                                            <p className="text-xs text-slate-500">PDF, DOCX up to 10MB</p>
+                                            <p className="text-[12px] text-slate-500">PDF, DOCX up to 10MB</p>
                                         </div>
                                     </div>
                                 </div>
@@ -217,3 +217,5 @@ export default function CandidateModal({ isOpen, onClose }: CandidateModalProps)
         </div>
     );
 }
+
+

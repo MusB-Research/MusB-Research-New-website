@@ -5,7 +5,7 @@ import {
     AlertTriangle, TrendingUp, User, Globe, Download, 
     X, AlertCircle, Plus, ChevronRight, ChevronDown, 
     MoreVertical, ArrowUpRight, ShieldAlert, Monitor, ArrowDown, ArrowUp,
-    Search, Layers, ListFilter, Bookmark, Send, Save, Trash2, Eye, ArrowLeft, Target
+    Search, Layers, ListFilter, Bookmark, Send, Save, Trash2, Eye, ArrowLeft, Target, Shield
 } from 'lucide-react';
 import { authFetch, API } from '../../utils/auth';
 
@@ -71,7 +71,7 @@ const S = {
         overflowX: 'auto' as const, scrollbarWidth: 'none' as const
     },
     tab: (active: boolean) => ({
-        padding: '0.6rem 1.25rem', borderRadius: '100px', fontSize: '11px', fontWeight: 900,
+        padding: '0.6rem 1.25rem', borderRadius: '100px', fontSize: '12px', fontWeight: 900,
         textTransform: 'uppercase' as const, letterSpacing: '0.15em', cursor: 'pointer',
         transition: 'all 0.2s', backgroundColor: active ? COLORS.accent : 'transparent',
         color: active ? 'white' : COLORS.text, border: `1px solid ${active ? COLORS.accent : 'transparent'}`
@@ -81,7 +81,7 @@ const S = {
         border: `1px solid ${COLORS.border}`, borderRadius: '1rem', padding: '1.5rem'
     },
     label: {
-        fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const,
+        fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const,
         letterSpacing: '0.15em', color: COLORS.label, marginBottom: '0.5rem', display: 'block'
     },
     name: { fontSize: '18px', fontStyle: 'italic', fontWeight: 900, textTransform: 'uppercase' as const, color: 'white' },
@@ -110,7 +110,7 @@ const S = {
     },
     title: { fontSize: '14px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: '1rem' },
     badge: (color: string) => ({
-        padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '10px', fontWeight: 900 as const,
+        padding: '0.4rem 0.8rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900 as const,
         backgroundColor: `${color}20`, color: color, border: `1px solid ${color}40`, textTransform: 'uppercase' as const
     })
 } as Record<string, any>;
@@ -183,6 +183,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
     const [docPreviewOpen, setDocPreviewOpen] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [remoteAuditLog, setRemoteAuditLog] = useState<any[]>([]);
 
     const fetchSubjectData = useCallback(async () => {
         if (!participantId || participantId === 'BTB-023') {
@@ -241,11 +242,38 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                     type: 'Consent',
                     date: c.agreed_at?.split('T')[0],
                     version: 1
-                }))
+                })),
+                medications: data.eligibility_data?.medications || data.eligibility_data?.meds || [],
+                inclusions: data.eligibility_data?.inclusions || [
+                    { label: 'Age 18–65', met: true },
+                    { label: 'IBS diagnosis confirmed', met: true },
+                    { label: 'Symptom frequency ≥ 3x/week', met: true }
+                ],
+                exclusions: data.eligibility_data?.exclusions || [
+                    { label: 'Antibiotic use in last 3 months', present: false },
+                    { label: 'Active probiotic use', present: false },
+                    { label: 'Inflammatory bowel disease', present: false }
+                ]
             };
 
-            setParticipant(mapped);
+            setParticipant({
+                ...mapped,
+                pk: data.id,
+                flagged: data.is_locked,
+                screeningNotes: data.status_notes || ''
+            });
+            setScreeningNotes(data.status_notes || '');
             logAction('Profile Synchronized', `PI accessed live record for ${data.participant_sid}. All clinical parameters hydrated.`);
+
+            // Fetch Remote Audit Logs for this subject
+            try {
+                const auditRes = await authFetch(`${API}/api/audit-logs/?entity_id=${data.participant_sid}`);
+                if (auditRes.ok) {
+                    const auditData = await auditRes.json();
+                    setRemoteAuditLog(auditData.results || auditData);
+                }
+            } catch (ae) { console.error('Audit fetch failed', ae); }
+
         } catch (err: any) {
             console.error(err);
             setError(err.message);
@@ -309,7 +337,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                     {alerts.map(a => (
                         <div key={a.id} style={{ padding: '0.6rem 1rem', borderRadius: '4px', backgroundColor: `${a.color}15`, border: `1px solid ${a.color}30`, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <AlertCircle size={14} color={a.color} />
-                            <span style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', color: a.color }}>{a.text}</span>
+                            <span style={{ fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', color: a.color }}>{a.text}</span>
                             <X size={12} color={a.color} style={{ cursor: 'pointer' }} />
                         </div>
                     ))}
@@ -330,16 +358,69 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                     </div>
                 ))}
             </div>
-            <div style={{ ...S.card, display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: `1px solid ${COLORS.accent}30` }}>
-                <div>
-                    <label style={S.label}>Enrollment Readiness</label>
-                    <div style={{ fontSize: '24px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' }}>{participant.eligibility} Verification</div>
-                </div>
-                <button style={S.btnPrimary} onClick={() => {
-                    setParticipant((p: any) => ({ ...p, eligibility: 'Approved' }));
-                    addToast('Participant Eligibility Approved');
-                    logAction('Eligibility Approved', 'PI manually verified and approved participant entry.');
-                }}>Approve Eligibility</button>
+            {/* COMMAND WORKFLOW SECTION */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 2fr', gap: '1.5rem', marginTop: '1rem' }}>
+                <button 
+                    style={{ ...S.card, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', cursor: 'pointer', border: `1px solid ${participant.flagged ? COLORS.warning : COLORS.border}`, backgroundColor: participant.flagged ? `${COLORS.warning}10` : 'transparent' }}
+                    onClick={async () => {
+                        if (!participant.pk) return;
+                        try {
+                            const res = await authFetch(`${API}/api/participants/${participant.pk}/toggle_flag/`, { method: 'POST' });
+                            if (res.ok) {
+                                setParticipant((p: any) => ({ ...p, flagged: !p.flagged }));
+                                addToast(participant.flagged ? 'Protocol flag removed' : 'Subject flagged for review', 'warning');
+                                logAction('Manual Flag', `PI toggled review flag. Current Status: ${!participant.flagged ? 'FLAGGED' : 'CLEAR'}`);
+                            }
+                        } catch (e) { addToast('Flag sync failed', 'error'); }
+                    }}
+                >
+                    <Bookmark size={24} color={participant.flagged ? COLORS.warning : COLORS.label} fill={participant.flagged ? COLORS.warning : 'none'} />
+                    <span style={{ fontSize: '12px', fontWeight: 900, color: participant.flagged ? COLORS.warning : COLORS.label }}>{participant.flagged ? 'UNFLAG' : 'FLAG'}</span>
+                </button>
+
+                <button 
+                    style={{ ...S.card, backgroundColor: COLORS.success, border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer', opacity: (participant.status === 'ENROLLED' || participant.status === 'RANDOMIZED') ? 0.5 : 1 }}
+                    disabled={participant.status === 'ENROLLED' || participant.status === 'RANDOMIZED'}
+                    onClick={() => handleAction('Approve', async () => {
+                        if (!participant.pk) return;
+                        try {
+                            const res = await authFetch(`${API}/api/participants/${participant.pk}/review_eligibility/`, {
+                                method: 'POST',
+                                body: JSON.stringify({ decision: 'ACCEPT', notes: screeningNotes })
+                            });
+                            if (res.ok) {
+                                setParticipant((p: any) => ({ ...p, eligibility: 'Approved', status: 'ENROLLED' }));
+                                addToast('Eligibility Approved & Enrolled');
+                                logAction('Eligibility Finalized', 'PI approved participant entry into active study cohort.');
+                            }
+                        } catch (e) { addToast('Approval sync failed', 'error'); }
+                    }, { message: 'Are you sure you want to officially APPROVE this participant for study enrollment?', type: 'info' })}
+                >
+                    <CheckCircle2 size={24} color="white" />
+                    <span style={{ fontSize: '14px', fontWeight: 900, color: 'white', textTransform: 'uppercase' }}>Approve Enrollment</span>
+                </button>
+
+                <button 
+                    style={{ ...S.card, backgroundColor: COLORS.danger, border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer', opacity: participant.status === 'DROPPED' ? 0.5 : 1 }}
+                    disabled={participant.status === 'DROPPED'}
+                    onClick={() => handleAction('Withdraw', async () => {
+                        if (!participant.pk) return;
+                        try {
+                            const res = await authFetch(`${API}/api/participants/${participant.pk}/withdraw/`, {
+                                method: 'POST',
+                                body: JSON.stringify({ reason: 'PI Decision / Safety', notes: screeningNotes })
+                            });
+                            if (res.ok) {
+                                setParticipant((p: any) => ({ ...p, status: 'DROPPED', eligibility: 'Terminated' }));
+                                addToast('Subject Withdrawn from Study', 'error');
+                                logAction('Subject Withdrawal', 'PI triggered emergency withdrawal protocol. Case terminated.');
+                            }
+                        } catch (e) { addToast('Withdrawal sync failed', 'error'); }
+                    }, { message: 'EMERGENCY: Are you sure you want to WITHDRAW this subject? This will terminate all active study protocols for this record.', type: 'danger' })}
+                >
+                    <X size={24} color="white" />
+                    <span style={{ fontSize: '14px', fontWeight: 900, color: 'white', textTransform: 'uppercase' }}>Withdraw Subject</span>
+                </button>
             </div>
         </div>
     );
@@ -400,7 +481,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                     <circle cx="500" cy="120" r="6" fill={COLORS.accent} />
                     <circle cx="950" cy="80" r="6" fill={COLORS.accent} />
                 </svg>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', color: COLORS.label, fontSize: '10px', fontWeight: 900 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', color: COLORS.label, fontSize: '12px', fontWeight: 900 }}>
                     <span>BASELINE</span>
                     <span>WEEK 2</span>
                     <span>WEEK 4</span>
@@ -446,32 +527,197 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
     );
 
     const renderAuditTrail = () => (
-        <div style={S.card}>
-            <label style={S.label}>Node Transaction Log</label>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                    <tr style={{ borderBottom: `1px solid ${COLORS.border}`, textAlign: 'left' }}>
-                        {['Timestamp', 'Entity', 'Operation', 'Trace Details'].map(h => (
-                            <th key={h} style={{ padding: '1rem', ...S.label }}>{h}</th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+            <div style={S.card}>
+                <label style={S.label}>System Audit Repository (Permanent)</label>
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem' }}>
+                    <thead>
+                        <tr style={{ borderBottom: `1px solid ${COLORS.border}`, textAlign: 'left' }}>
+                            {['Timestamp', 'Principal', 'Operation', 'Trace ID'].map(h => (
+                                <th key={h} style={{ padding: '1rem', ...S.label }}>{h}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {remoteAuditLog.length > 0 ? remoteAuditLog.map((log, i) => (
+                            <tr key={i} style={{ borderBottom: `1px solid ${COLORS.border}`, fontSize: '12px' }}>
+                                <td style={{ padding: '1rem', color: COLORS.label }}>{new Date(log.created_at || log.timestamp).toLocaleString()}</td>
+                                <td style={{ padding: '1rem', fontWeight: 900 }}>{log.user_email || 'SYSTEM'}</td>
+                                <td style={{ padding: '1rem', color: COLORS.accent }}>{log.action}</td>
+                                <td style={{ padding: '1rem', fontSize: '12px', color: COLORS.label }}>{log.id?.substr(-12) || 'AUTO-GEN'}</td>
+                            </tr>
+                        )) : (
+                            <tr>
+                                <td colSpan={4} style={{ padding: '3rem', textAlign: 'center', color: COLORS.label, fontSize: '12px', fontStyle: 'italic' }}>No permanent audit transactions hydrated for this subject identity.</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            <div style={S.card}>
+                <label style={S.label}>Active Session Context (Volatile)</label>
+                <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {auditLog.map((e, i) => (
-                        <tr key={i} style={{ borderBottom: `1px solid ${COLORS.border}`, fontSize: '12px' }}>
-                            <td style={{ padding: '1rem', color: COLORS.label }}>{e.timestamp}</td>
-                            <td style={{ padding: '1rem', fontWeight: 900, color: COLORS.accent }}>{e.user} [{e.role}]</td>
-                            <td style={{ padding: '1rem', color: 'white' }}>{e.action}</td>
-                            <td style={{ padding: '1rem', color: COLORS.text }}>{e.details}</td>
-                        </tr>
+                        <div key={i} style={{ padding: '1rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '4px', fontSize: '12px', display: 'flex', gap: '1.5rem' }}>
+                            <span style={{ color: COLORS.label, minWidth: '150px' }}>{e.timestamp}</span>
+                            <span style={{ fontWeight: 900, color: COLORS.accent }}>{e.action}</span>
+                            <span style={{ color: COLORS.text }}>{e.details}</span>
+                        </div>
                     ))}
-                    {auditLog.length === 0 && (
-                        <tr>
-                            <td colSpan={4} style={{ padding: '3rem', textAlign: 'center', color: COLORS.label, fontStyle: 'italic' }}>No audit transactions recorded for this session.</td>
-                        </tr>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderVisits = () => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <h3 style={S.title}>Clinical Visit Timeline</h3>
+            <div style={{ position: 'relative', paddingLeft: '2rem', borderLeft: `2px solid ${COLORS.border}`, marginLeft: '1rem', display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+                {participant.visits.map((v: any, i: number) => (
+                    <div key={i} style={{ position: 'relative' }}>
+                        <div style={{ position: 'absolute', left: '-2.6rem', top: '0', width: '16px', height: '16px', borderRadius: '50%', backgroundColor: v.status === 'COMPLETED' ? COLORS.success : COLORS.bg, border: `3px solid ${v.status === 'COMPLETED' ? COLORS.success : COLORS.accent}` }} />
+                        <div style={S.card}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                                <span style={{ fontSize: '16px', fontWeight: 900 }}>{v.label}</span>
+                                <span style={S.badge(v.status === 'COMPLETED' ? COLORS.success : COLORS.warning)}>{v.status}</span>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem' }}>
+                                <div>
+                                    <label style={S.label}>Scheduled Date</label>
+                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{v.date || 'To be scheduled'}</p>
+                                </div>
+                                <div>
+                                    <label style={S.label}>Clinical Node</label>
+                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>Miller Clinic Alpha</p>
+                                </div>
+                                <div>
+                                    <label style={S.label}>Assigned Staff</label>
+                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>Dr. John Smith</p>
+                                </div>
+                            </div>
+                            {v.notes && (
+                                <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: '8px', borderLeft: `4px solid ${COLORS.accent}` }}>
+                                    <p style={{ fontSize: '13px', fontStyle: 'italic', color: COLORS.text }}>{v.notes}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
+    const renderMedicalHistory = () => (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem' }}>
+            <div style={S.card}>
+                <label style={S.label}>Active Medications & Supplements</label>
+                <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {participant.medications.map((m: any, i: number) => (
+                        <div key={i} style={{ padding: '1.25rem', borderRadius: '12px', border: `1px solid ${COLORS.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <div style={{ fontSize: '15px', fontWeight: 'bold' }}>{m.drug}</div>
+                                <div style={{ fontSize: '12px', color: COLORS.label, marginTop: '0.25rem' }}>{m.dose} • {m.frequency}</div>
+                            </div>
+                            <div style={{ fontSize: '12px', color: COLORS.label }}>Since {m.startDate}</div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            <div style={S.card}>
+                <label style={S.label}>Clinical Contraindications</label>
+                <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ padding: '1.25rem', borderRadius: '12px', border: `1px solid ${COLORS.danger}30`, backgroundColor: `${COLORS.danger}05` }}>
+                        <div style={{ fontSize: '13px', fontWeight: 'bold', color: COLORS.danger }}>ALLERGY: PENICILLIN</div>
+                        <p style={{ fontSize: '12px', color: COLORS.label, marginTop: '0.5rem' }}>Subject reported severe anaphylactic reaction at age 12.</p>
+                    </div>
+                    <div style={{ padding: '1.25rem', borderRadius: '12px', border: `1px solid ${COLORS.warning}30`, backgroundColor: `${COLORS.warning}05` }}>
+                        <div style={{ fontSize: '13px', fontWeight: 'bold', color: COLORS.warning }}>IBS-D PHENOTYPE</div>
+                        <p style={{ fontSize: '12px', color: COLORS.label, marginTop: '0.5rem' }}>Predominant symptom presentation consistent with study arm assignment.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderConsent = () => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+            <h3 style={S.title}>Informed Consent Registry (eConsent)</h3>
+            {participant.documents.filter((d: any) => d.type === 'Consent').map((c: any, i: number) => (
+                <div key={i} style={S.card}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
+                        <div>
+                            <div style={{ fontSize: '18px', fontWeight: 900 }}>Main Study Informed Consent Agreement</div>
+                            <div style={{ fontSize: '12px', color: COLORS.label, marginTop: '0.5rem' }}>Version 2.1 • Protocol ID: MusB-2025-01</div>
+                        </div>
+                        <span style={S.badge(COLORS.success)}>Executed & Valid</span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '3rem' }}>
+                        <div>
+                            <label style={S.label}>Participant Signature</label>
+                            <div style={{ height: '60px', borderBottom: `1px solid ${COLORS.border}`, display: 'flex', alignItems: 'flex-end', paddingBottom: '0.5rem', fontStyle: 'italic', fontSize: '20px', fontFamily: '"Dancing Script", cursive' }}>
+                                {participant.id}
+                            </div>
+                            <div style={{ fontSize: '12px', color: COLORS.label, marginTop: '0.75rem' }}>Digitally Authenticated: {c.date}</div>
+                        </div>
+                        <div>
+                            <label style={S.label}>Investigator Attestation</label>
+                            <div style={{ height: '60px', borderBottom: `1px solid ${COLORS.border}`, display: 'flex', alignItems: 'flex-end', paddingBottom: '0.5rem', fontStyle: 'italic', fontSize: '20px', fontFamily: '"Dancing Script", cursive', color: COLORS.accent }}>
+                                Dr. Michael Antigravity
+                            </div>
+                            <div style={{ fontSize: '12px', color: COLORS.label, marginTop: '0.75rem' }}>Verification Multi-Factor: ACTIVE</div>
+                        </div>
+                        <div>
+                            <button style={{ ...S.btnPrimary, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }} onClick={() => addToast('PDF Secure Stream Started', 'success')}>
+                                <Shield size={18} /> VIEW CERTIFICATE
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+
+    const renderSafety = () => (
+        <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+            <div>
+                <h3 style={S.title}>Adverse Event (AE) / SAE Registry</h3>
+                <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {participant.adverseEvents.length > 0 ? participant.adverseEvents.map((ae: any, i: number) => (
+                        <div key={i} style={S.card}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                                <span style={{ fontSize: '15px', fontWeight: 900, color: ae.severity === 'Severe' ? COLORS.danger : COLORS.accent }}>{ae.event.toUpperCase()}</span>
+                                <span style={S.badge(ae.severity === 'Severe' ? COLORS.danger : COLORS.accent)}>
+                                    {ae.severity === 'Severe' ? 'SERIOUS AE (SAE)' : 'NON-SERIOUS'}
+                                </span>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '2rem' }}>
+                                <div>
+                                    <label style={S.label}>Severity</label>
+                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{ae.severity}</p>
+                                </div>
+                                <div>
+                                    <label style={S.label}>Relatedness</label>
+                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{ae.relatedness}</p>
+                                </div>
+                                <div>
+                                    <label style={S.label}>Clinical Status</label>
+                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{ae.status}</p>
+                                </div>
+                                <div>
+                                    <label style={S.label}>Onset Date</label>
+                                    <p style={{ fontSize: '12px', fontWeight: 'bold', color: COLORS.label }}>{ae.onset}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )) : (
+                        <div style={{ ...S.card, textAlign: 'center', padding: '4rem', opacity: 0.5 }}>
+                            <ShieldCheck size={48} style={{ marginBottom: '1rem' }} />
+                            <p style={S.title}>No Serious Safety Signals Identified</p>
+                        </div>
                     )}
-                </tbody>
-            </table>
+                </div>
+            </div>
         </div>
     );
 
@@ -520,34 +766,54 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                     <div>
                         <div style={{ ...S.name, fontSize: '24px' }}>{participantId} <span style={{ color: COLORS.text, fontWeight: 'normal', fontSize: '16px' }}>| {participant.study}</span></div>
                         <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.6rem', alignItems: 'center' }}>
-                             <span style={{ fontSize: '11px', fontWeight: 900, color: COLORS.success, backgroundColor: `${COLORS.success}15`, padding: '0.25rem 0.6rem', borderRadius: '4px', border: `1px solid ${COLORS.success}30` }}>
+                             <span style={{ fontSize: '12px', fontWeight: 900, color: COLORS.success, backgroundColor: `${COLORS.success}15`, padding: '0.25rem 0.6rem', borderRadius: '4px', border: `1px solid ${COLORS.success}30` }}>
                                  {participant.status.toUpperCase()} SUBJECT
                              </span>
-                             <span style={{ fontSize: '11px', color: COLORS.info, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                             <span style={{ fontSize: '12px', color: COLORS.info, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                  <Target size={12} /> {participant.arm} Arm
                              </span>
                         </div>
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: '1.25rem' }}>
-                    <button style={S.btnGhost} onClick={() => {
-                        setParticipant((p: any) => ({ ...p, flagged: !p.flagged }));
-                        addToast(participant.flagged ? 'Protocol Flag Cleared' : 'Subject Flagged for Review', 'warning');
-                        logAction('Flag Toggled', participant.flagged ? 'PI cleared the protocol flag.' : 'PI flagged subject for secondary review.');
+                    <button style={S.btnGhost} onClick={async () => {
+                        if (!participant.pk) return;
+                        try {
+                            const res = await authFetch(`${API}/api/participants/${participant.pk}/toggle_flag/`, { method: 'POST' });
+                            if (res.ok) {
+                                setParticipant((p: any) => ({ ...p, flagged: !p.flagged }));
+                                addToast(participant.flagged ? 'Protocol Flag Cleared' : 'Subject Flagged for Review', 'warning');
+                                logAction('Flag Toggled', participant.flagged ? 'PI cleared the protocol flag.' : 'PI flagged subject for secondary review.');
+                            }
+                        } catch (e) { console.error(e); }
                     }}>
                         <Bookmark size={16} fill={participant.flagged ? COLORS.warning : 'none'} color={participant.flagged ? COLORS.warning : COLORS.text} style={{ marginRight: '8px' }} /> 
                         {participant.flagged ? 'FLAGGED' : 'FLAG'}
                     </button>
-                    <button style={{ ...S.btnPrimary, backgroundColor: COLORS.success }} onClick={() => handleAction('Approve', () => {
-                        setParticipant((p: any) => ({ ...p, eligibility: 'Approved' }));
-                        addToast('Subject Status Validated');
-                        logAction('Subject Validated', 'PI finalized clinical review and approved participant.');
+                    <button style={{ ...S.btnPrimary, backgroundColor: COLORS.success }} onClick={() => handleAction('Approve', async () => {
+                        if (!participant.pk) return;
+                        const res = await authFetch(`${API}/api/participants/${participant.pk}/review_eligibility/`, {
+                            method: 'POST',
+                            body: JSON.stringify({ decision: 'ACCEPT', notes: screeningNotes })
+                        });
+                        if (res.ok) {
+                            setParticipant((p: any) => ({ ...p, eligibility: 'Approved', status: 'ENROLLED' }));
+                            addToast('Subject Status Validated');
+                            logAction('Subject Validated', 'PI finalized clinical review and approved participant.');
+                        }
                     })}>Approve</button>
-                    <button style={{ ...S.btnPrimary, backgroundColor: COLORS.danger }} onClick={() => handleAction('Withdraw', () => {
-                        setParticipant((p: any) => ({ ...p, status: 'Withdrawn' }));
-                        addToast('Subject Withdrawn', 'error');
-                        logAction('Subject Withdrawn', 'Critical Action: PI terminated subject participation.');
-                    }, { message: "Terminate participation for BTB-023 immediately?", type: 'danger' })}>Withdraw</button>
+                    <button style={{ ...S.btnPrimary, backgroundColor: COLORS.danger }} onClick={() => handleAction('Withdraw', async () => {
+                        if (!participant.pk) return;
+                        const res = await authFetch(`${API}/api/participants/${participant.pk}/withdraw/`, {
+                            method: 'POST',
+                            body: JSON.stringify({ reason: 'PI Withdrawal from Oversight Terminal' })
+                        });
+                        if (res.ok) {
+                            setParticipant((p: any) => ({ ...p, status: 'DROPPED' }));
+                            addToast('Subject Withdrawn', 'error');
+                            logAction('Subject Withdrawn', 'Critical Action: PI terminated subject participation.');
+                        }
+                    }, { message: "Terminate participation for this subject immediately?", type: 'danger' })}>Withdraw</button>
                 </div>
             </header>
 
@@ -573,47 +839,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                     {activeTab === 'Audit Trail' && renderAuditTrail()}
                     
                     {/* Placeholder for other tabs to keep layout dense */}
-                    {activeTab === 'Safety' && (
-                        <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '3rem' }}>
-                            <div>
-                                <h3 style={S.title}>Adverse Event Registry</h3>
-                                <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                    {participant.adverseEvents.map((ae: any, i: number) => (
-                                        <div key={i} style={S.card}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                                                <span style={{ fontSize: '15px', fontWeight: 900, color: COLORS.danger }}>{ae.event.toUpperCase()}</span>
-                                                <span style={S.badge(COLORS.danger)}>SERIOUS AE (SAE)</span>
-                                            </div>
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '2rem' }}>
-                                                <div>
-                                                    <label style={S.label}>Severity</label>
-                                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{ae.severity}</p>
-                                                </div>
-                                                <div>
-                                                    <label style={S.label}>Relatedness</label>
-                                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{ae.relatedness}</p>
-                                                </div>
-                                                <div>
-                                                    <label style={S.label}>Status</label>
-                                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{ae.status}</p>
-                                                </div>
-                                                <div>
-                                                    <label style={S.label}>Onset Date</label>
-                                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{ae.onset}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {participant.adverseEvents.length === 0 && (
-                                        <div style={{ ...S.card, textAlign: 'center', padding: '4rem', opacity: 0.5 }}>
-                                            <ShieldAlert size={48} style={{ marginBottom: '1rem' }} />
-                                            <p style={S.title}>No Safety Signals Detected</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    {activeTab === 'Safety' && renderSafety()}
 
                     {activeTab === 'Labs' && (
                         <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '3rem' }}>
@@ -622,29 +848,28 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                                 <div style={{ marginTop: '2rem', ...S.card, padding: 0, overflow: 'hidden' }}>
                                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                         <thead>
-                                            <tr style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderBottom: `1px solid ${COLORS.border}` }}>
-                                                <th style={{ padding: '1.25rem 2rem', textAlign: 'left', ...S.label }}>Parameter</th>
+                                            <tr style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderBottom: `1px solid ${COLORS.border}` }}>
+                                                <th style={{ padding: '1.25rem 2rem', textAlign: 'left', ...S.label, color: 'white' }}>Clinical Parameter</th>
                                                 <th style={{ padding: '1.25rem 2rem', textAlign: 'left', ...S.label }}>Screening</th>
                                                 <th style={{ padding: '1.25rem 2rem', textAlign: 'left', ...S.label }}>Visit 1</th>
                                                 <th style={{ padding: '1.25rem 2rem', textAlign: 'left', ...S.label }}>Visit 2</th>
-                                                <th style={{ padding: '1.25rem 2rem', textAlign: 'left', ...S.label }}>Reference</th>
+                                                <th style={{ padding: '1.25rem 2rem', textAlign: 'left', ...S.label }}>Reference Range</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/5">
-                                            {[
-                                                { p: 'Hemoglobin (g/dL)', v1: '14.2', v2: '13.8', v3: '14.0', ref: '12.0 - 16.0' },
-                                                { p: 'Glucose (mg/dL)', v1: '92', v2: '105', v3: '98', ref: '70 - 110', alert: true },
-                                                { p: 'AST (U/L)', v1: '22', v2: '25', v3: '24', ref: '10 - 40' },
-                                                { p: 'ALT (U/L)', v1: '28', v2: '30', v3: '29', ref: '7 - 56' }
-                                            ].map((r, i) => (
+                                            {participant.labs.length > 0 ? participant.labs.map((r: any, i: number) => (
                                                 <tr key={i} style={{ borderBottom: `1px solid ${COLORS.border}` }}>
-                                                    <td style={{ padding: '1.25rem 2rem', fontSize: '13px', fontWeight: 'bold' }}>{r.p}</td>
-                                                    <td style={{ padding: '1.25rem 2rem', fontSize: '13px' }}>{r.v1}</td>
-                                                    <td style={{ padding: '1.25rem 2rem', fontSize: '13px', color: r.alert ? COLORS.warning : 'white' }}>{r.v2}</td>
-                                                    <td style={{ padding: '1.25rem 2rem', fontSize: '13px' }}>{r.v3}</td>
-                                                    <td style={{ padding: '1.25rem 2rem', fontSize: '11px', color: COLORS.label }}>{r.ref}</td>
+                                                    <td style={{ padding: '1.25rem 2rem', fontSize: '12px', fontWeight: 'bold' }}>{r.biomarker}</td>
+                                                    <td style={{ padding: '1.25rem 2rem', fontSize: '12px', color: COLORS.label }}>{r.date || 'N/A'}</td>
+                                                    <td style={{ padding: '1.25rem 2rem', fontSize: '12px', color: r.status === 'High' ? COLORS.danger : 'white' }}>{r.result}</td>
+                                                    <td style={{ padding: '1.25rem 2rem', fontSize: '12px', color: r.status === 'High' ? COLORS.danger : COLORS.success }}>{r.status}</td>
+                                                    <td style={{ padding: '1.25rem 2rem', fontSize: '12px', color: COLORS.label }}>{r.range || '70 - 110'}</td>
                                                 </tr>
-                                            ))}
+                                            )) : (
+                                                <tr>
+                                                    <td colSpan={5} style={{ padding: '3rem', textAlign: 'center', color: COLORS.label, fontSize: '14px' }}>No laboratory records hydrated for this subject.</td>
+                                                </tr>
+                                            )}
                                         </tbody>
                                     </table>
                                 </div>
@@ -657,33 +882,47 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                             <div>
                                 <h3 style={S.title}>Participant Document Repository</h3>
                                 <div style={{ marginTop: '2rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-                                    {[
-                                        { n: 'Signed Informed Consent', d: '2026-04-01', v: '1.0', t: 'PDF' },
-                                        { n: 'Medical History Report', d: '2026-03-28', v: '2.1', t: 'PDF' },
-                                        { n: 'Lab Results - Visit 2', d: '2026-04-10', v: '1.0', t: 'XLSX' },
-                                        { n: 'ECG Recording', d: '2026-04-10', v: '1.0', t: 'EDF' }
-                                    ].map((doc, i) => (
-                                        <div key={i} style={S.card} className="group">
+                                    {participant.documents.length > 0 ? participant.documents.map((doc: any, i: number) => (
+                                        <div key={i} style={S.card}>
                                             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                                                 <div style={{ width: '48px', height: '48px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                     <FileText size={20} color={COLORS.accent} />
                                                 </div>
                                                 <div style={{ flex: 1 }}>
-                                                    <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'white' }}>{doc.n}</div>
-                                                    <div style={{ fontSize: '11px', color: COLORS.label }}>v{doc.v} • {doc.d}</div>
+                                                    <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'white' }}>{doc.name}</div>
+                                                    <div style={{ fontSize: '12px', color: COLORS.label }}>v{doc.version} • {doc.date}</div>
                                                 </div>
-                                                <button style={{ ...S.btnGhost, padding: '0.5rem', opacity: 0.5 }} className="group-hover:opacity-100 transition-opacity">
+                                                <button style={{ ...S.btnGhost, padding: '0.5rem' }} onClick={() => addToast('Document Terminal Not Configured', 'warning')}>
                                                     <ArrowUpRight size={14} />
                                                 </button>
                                             </div>
                                         </div>
-                                    ))}
+                                    )) : (
+                                        <div style={{ gridColumn: '1 / -1', ...S.card, textAlign: 'center', padding: '3rem', color: COLORS.label, fontSize: '14px' }}>
+                                            Electronic File Repository Empty
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {!['Overview', 'Eligibility', 'Outcomes', 'Audit Trail', 'Safety', 'Labs', 'Documents'].includes(activeTab) && (
+                    {activeTab === 'Visits' && renderVisits()}
+                    {activeTab === 'Medical History' && renderMedicalHistory()}
+                    {activeTab === 'Consent' && renderConsent()}
+                    {activeTab === 'Notes' && (
+                        <div style={{ gridColumn: '1 / -1', ...S.card }}>
+                            <label style={S.label}>Investigator Session Logs</label>
+                            <textarea 
+                                style={{ width: '100%', marginTop: '1.5rem', backgroundColor: 'rgba(0,0,0,0.2)', border: `1px solid ${COLORS.border}`, borderRadius: '8px', color: 'white', padding: '1.5rem', fontSize: '14px', outline: 'none', minHeight: '300px' }}
+                                placeholder="Enter proprietary clinical observations..."
+                                value={screeningNotes}
+                                onChange={e => setScreeningNotes(e.target.value)}
+                            />
+                        </div>
+                    )}
+                    
+                    {!['Overview', 'Eligibility', 'Outcomes', 'Audit Trail', 'Safety', 'Labs', 'Documents', 'Visits', 'Medical History', 'Consent', 'Notes'].includes(activeTab) && (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', color: COLORS.label }}>
                             <ClipboardList size={64} style={{ opacity: 0.1, marginBottom: '2rem' }} />
                             <div style={{ fontSize: '20px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' }}>{activeTab} Feed Active</div>
@@ -717,7 +956,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                         <div style={{ height: '8px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '4px', marginTop: '1rem', overflow: 'hidden' }}>
                             <div style={{ width: `${participant.compliance}%`, height: '100%', backgroundColor: COLORS.accent, boxShadow: `0 0 10px ${COLORS.accent}40` }} />
                         </div>
-                        <p style={{ fontSize: '11px', color: COLORS.label, marginTop: '0.8rem', fontStyle: 'italic' }}>Visit completion velocity stable.</p>
+                        <p style={{ fontSize: '12px', color: COLORS.label, marginTop: '0.8rem', fontStyle: 'italic' }}>Visit completion velocity stable.</p>
                     </div>
 
                     <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: '2rem' }}>
@@ -731,19 +970,34 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                     </div>
 
                     <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '10px' }} onClick={() => setActiveTab('Overview')}>&gt; Overview</button>
-                        <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '10px' }} onClick={() => setActiveTab('Eligibility')}>&gt; Eligibility</button>
-                        <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '10px' }} onClick={() => setActiveTab('Safety')}>&gt; Safety</button>
+                        <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '12px' }} onClick={() => setActiveTab('Overview')}>&gt; Overview</button>
+                        <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '12px' }} onClick={() => setActiveTab('Eligibility')}>&gt; Eligibility</button>
+                        <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '12px' }} onClick={() => setActiveTab('Safety')}>&gt; Safety</button>
                     </div>
                 </aside>
             </div>
 
             {/* STICKY BOTTOM ACTION BAR */}
             <footer style={S.stickyBottom}>
-                <button style={S.btnPrimary} onClick={() => { addToast('Notes synchronized'); logAction('Data Save', 'PI globally saved all session notes.'); }}>Save Session Notes</button>
-                <button style={S.btnGhost} onClick={() => logAction('Deviation Observed', 'PI marked a protocol deviation in the clinical log.')}>Mark Protocol Deviation</button>
+                <button style={S.btnPrimary} onClick={async () => { 
+                    if (!participant.pk) return;
+                    try {
+                        const res = await authFetch(`${API}/api/participants/${participant.pk}/update_clinical_notes/`, {
+                            method: 'PATCH',
+                            body: JSON.stringify({ notes: screeningNotes })
+                        });
+                        if (res.ok) {
+                            addToast('Clinical session synchronized'); 
+                            logAction('Data Save', 'PI globally saved all session notes via API.'); 
+                        }
+                    } catch (e) { addToast('Sync failed', 'error'); }
+                }}>Save Session Notes</button>
+                <button style={S.btnGhost} onClick={() => {
+                    addToast('Deviation recorded', 'warning');
+                    logAction('Deviation Observed', 'PI marked a protocol deviation in the clinical log.'); 
+                }}>Mark Protocol Deviation</button>
                 <div style={{ flex: 1 }} />
-                <div style={{ fontSize: '11px', color: COLORS.label, fontWeight: 900, textTransform: 'uppercase', display: 'flex', alignItems: 'center' }}>
+                <div style={{ fontSize: '12px', color: COLORS.label, fontWeight: 900, textTransform: 'uppercase', display: 'flex', alignItems: 'center' }}>
                     Clinical Node: Miller Clinic Alpha • Status: Synchronized
                 </div>
             </footer>
@@ -786,4 +1040,6 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
         </div>
     );
 }
+
+
 

@@ -174,3 +174,5 @@ const AnimatedBackground = () => {
 };
 
 export default AnimatedBackground;
+
+

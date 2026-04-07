@@ -1331,14 +1331,14 @@ const ServiceCard = ({ icon: Icon, title, whoItsFor, whatWeDeliver, footerText, 
 
             <div className="space-y-6 flex-grow">
                 <div className="min-h-[100px]">
-                    <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-3">Who it's for:</h4>
+                    <h4 className="text-[12px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3">Who it's for:</h4>
                     <p className="text-slate-300 font-bold leading-relaxed">{whoItsFor}</p>
                 </div>
 
                 <div className={`transition-all duration-700 overflow-hidden ${isExpanded ? 'max-h-[1000px] opacity-100 mt-6' : 'max-h-0 opacity-0'}`}>
                     <div className="space-y-8">
                         <div>
-                            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-3">What we deliver:</h4>
+                            <h4 className="text-[12px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3">What we deliver:</h4>
                             <ul className="space-y-4">
                                 {whatWeDeliver.map((item: string, i: number) => (
                                     <li key={i} className="flex items-start gap-3">
@@ -1358,14 +1358,14 @@ const ServiceCard = ({ icon: Icon, title, whoItsFor, whatWeDeliver, footerText, 
 
                 <button
                     onClick={() => setIsExpanded(!isExpanded)}
-                    className={`mt-4 text-${accentColor}-400 hover:text-white font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-colors`}
+                    className={`mt-4 text-${accentColor}-400 hover:text-white font-black text-[12px] uppercase tracking-widest flex items-center gap-2 transition-colors`}
                 >
                     {isExpanded ? 'View Less' : 'View More'}
                     <ChevronDown className={`w-4 h-4 transition-transform duration-500 ${isExpanded ? 'rotate-180' : ''}`} />
                 </button>
             </div>
 
-            <Link to={linkTo} className={`mt-12 w-full bg-${accentColor}-500 text-slate-900 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2 group/btn`}>
+            <Link to={linkTo} className={`mt-12 w-full bg-${accentColor}-500 text-slate-900 py-5 rounded-2xl font-black text-[12px] uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2 group/btn`}>
                 {linkText}
                 <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
             </Link>
@@ -1443,7 +1443,7 @@ export default function Home() {
                                         <div className="space-y-12 flex flex-col items-center text-center">
                                             <div className="space-y-6 md:space-y-8 max-w-5xl relative">
                                                 <div className="animate-fade-in-up">
-                                                    <span className="text-[11px] md:text-sm font-black uppercase tracking-[0.2em] md:tracking-[0.6em] text-white whitespace-normal md:whitespace-nowrap block md:inline-block px-4 md:px-0">
+                                                    <span className="text-[12px] md:text-sm font-black uppercase tracking-[0.2em] md:tracking-[0.6em] text-white whitespace-normal md:whitespace-nowrap block md:inline-block px-4 md:px-0">
                                                         Bench to Bedside. Discovery to Validation.
                                                     </span>
 
@@ -1469,14 +1469,14 @@ export default function Home() {
                                             <div className="flex flex-col sm:flex-row items-center justify-center gap-5 md:gap-6 animate-fade-in-up stagger-2 w-full px-6">
                                                 <Link
                                                     to="/trials"
-                                                    className="w-full sm:w-auto bg-cyan-500 text-slate-900 px-6 md:px-8 py-4 md:py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-2 transition-all shadow-[0_20px_50px_-10px_rgba(6,182,212,0.6)] flex items-center justify-center gap-3 group"
+                                                    className="w-full sm:w-auto bg-cyan-500 text-slate-900 px-6 md:px-8 py-4 md:py-4 rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-2 transition-all shadow-[0_20px_50px_-10px_rgba(6,182,212,0.6)] flex items-center justify-center gap-3 group"
                                                 >
                                                     {slide.primaryCTA}
                                                     <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
                                                 </Link>
                                                 <Link
                                                     to="/contact"
-                                                    className="w-full sm:w-auto bg-white/5 border-2 border-white/20 text-white px-6 md:px-8 py-4 md:py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-white hover:text-slate-900 hover:-translate-y-2 transition-all backdrop-blur-xl group overflow-hidden relative flex items-center justify-center"
+                                                    className="w-full sm:w-auto bg-white/5 border-2 border-white/20 text-white px-6 md:px-8 py-4 md:py-4 rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] hover:bg-white hover:text-slate-900 hover:-translate-y-2 transition-all backdrop-blur-xl group overflow-hidden relative flex items-center justify-center"
                                                 >
                                                     <span className="relative z-10">{slide.secondaryCTA}</span>
                                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer"></div>
@@ -1505,7 +1505,7 @@ export default function Home() {
 
                         {/* Scroll Down Indicator */}
                         <div className="flex flex-col items-center gap-2 opacity-40 animate-float">
-                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white">Scroll</span>
+                            <span className="text-[12px] font-black uppercase tracking-[0.4em] text-white">Scroll</span>
                             <div className="w-0.5 h-8 md:h-12 bg-gradient-to-b from-cyan-400 to-transparent"></div>
                         </div>
 
@@ -1601,7 +1601,7 @@ export default function Home() {
                         <div className="max-w-[1700px] mx-auto px-6 md:px-12 relative z-10">
                             <div className="grid lg:grid-cols-2 gap-16 items-center">
                                 <div className="space-y-8 animate-fade-in-up">
-                                    <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 font-bold text-xs tracking-widest uppercase">
+                                    <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 font-bold text-[12px] tracking-widest uppercase">
                                         <Microscope className="w-4 h-4" /> Scientist-Led Growth
                                     </div>
                                     <h2 className="text-3xl md:text-5xl lg:text-7xl font-black text-white tracking-tight leading-[1.1] uppercase">
@@ -1626,14 +1626,14 @@ export default function Home() {
                                     <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 md:gap-6 pt-4">
                                         <Link
                                             to="/contact?type=general"
-                                            className="bg-cyan-500 text-slate-900 px-6 py-3 md:px-8 md:py-4 rounded-xl font-black text-xs md:text-sm uppercase tracking-wide hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/20 inline-flex items-center justify-center gap-2"
+                                            className="bg-cyan-500 text-slate-900 px-6 py-3 md:px-8 md:py-4 rounded-xl font-black text-[12px] md:text-sm uppercase tracking-wide hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/20 inline-flex items-center justify-center gap-2"
                                         >
                                             Start the Conversation
                                             <ArrowRight className="w-5 h-5" />
                                         </Link>
                                         <Link
                                             to="/capabilities"
-                                            className="bg-white/5 text-white border border-white/10 px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-white/10 hover:-translate-y-1 transition-all inline-flex items-center justify-center gap-2"
+                                            className="bg-white/5 text-white border border-white/10 px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-[12px] md:text-sm uppercase tracking-widest hover:bg-white/10 hover:-translate-y-1 transition-all inline-flex items-center justify-center gap-2"
                                         >
                                             Explore Our Capabilities
                                         </Link>
@@ -1750,8 +1750,8 @@ export default function Home() {
                                 </div>
 
                                 <div className="flex gap-4 pt-4">
-                                    <Link to="/facilities" className="bg-white/5 text-white px-8 py-5 rounded-xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-white/10 transition-all border border-white/10">View Our Facilities</Link>
-                                    <Link to="/contact?type=general" className="bg-cyan-400 text-slate-900 px-6 py-3 md:px-8 md:py-4 rounded-xl font-black text-xs md:text-sm uppercase tracking-wide hover:bg-white transition-all">Start the Conversation</Link>
+                                    <Link to="/facilities" className="bg-white/5 text-white px-8 py-5 rounded-xl font-black text-[12px] md:text-sm uppercase tracking-widest hover:bg-white/10 transition-all border border-white/10">View Our Facilities</Link>
+                                    <Link to="/contact?type=general" className="bg-cyan-400 text-slate-900 px-6 py-3 md:px-8 md:py-4 rounded-xl font-black text-[12px] md:text-sm uppercase tracking-wide hover:bg-white transition-all">Start the Conversation</Link>
                                 </div>
                             </div>
 
@@ -1794,7 +1794,7 @@ export default function Home() {
                                     <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-slate-900 group-hover:scale-110 transition-all duration-500 shadow-xl">
                                         <ShieldCheck className="w-10 h-10" />
                                     </div>
-                                    <span className="text-xs md:text-sm font-black uppercase tracking-widest text-slate-400 group-hover:text-white transition-colors text-center px-2 leading-tight">{cert.label}</span>
+                                    <span className="text-[12px] md:text-sm font-black uppercase tracking-widest text-slate-400 group-hover:text-white transition-colors text-center px-2 leading-tight">{cert.label}</span>
                                 </div>
                             ))}
                         </div>
@@ -1805,7 +1805,7 @@ export default function Home() {
                                     <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-slate-900 group-hover:scale-110 transition-all duration-500 shadow-xl">
                                         <ShieldCheck className="w-10 h-10" />
                                     </div>
-                                    <span className="text-xs md:text-sm font-black uppercase tracking-widest text-slate-400 group-hover:text-white transition-colors text-center px-2 leading-tight">{cert.label}</span>
+                                    <span className="text-[12px] md:text-sm font-black uppercase tracking-widest text-slate-400 group-hover:text-white transition-colors text-center px-2 leading-tight">{cert.label}</span>
                                 </div>
                             ))}
                         </div>
@@ -2134,11 +2134,11 @@ export default function Home() {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                                         <div className="bg-white/5 rounded-2xl p-6 border border-white/5">
-                                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Focus Area</div>
+                                            <div className="text-[12px] font-black uppercase tracking-widest text-slate-500 mb-2">Focus Area</div>
                                             <div className="text-white font-bold">Clinical & Translational Research</div>
                                         </div>
                                         <div className="bg-white/5 rounded-2xl p-6 border border-white/5">
-                                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Methodology</div>
+                                            <div className="text-[12px] font-black uppercase tracking-widest text-slate-500 mb-2">Methodology</div>
                                             <div className="text-white font-bold">Evidence-Based Validation</div>
                                         </div>
                                     </div>
@@ -2152,13 +2152,13 @@ export default function Home() {
                                 <Link
                                     to="/contact?type=research"
                                     onClick={() => setSelectedExpertise(null)}
-                                    className="flex-1 bg-cyan-500 text-slate-900 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all text-center shadow-lg shadow-cyan-500/20"
+                                    className="flex-1 bg-cyan-500 text-slate-900 py-4 rounded-xl font-black text-[12px] uppercase tracking-widest hover:bg-white transition-all text-center shadow-lg shadow-cyan-500/20"
                                 >
                                     Discuss Research
                                 </Link>
                                 <button
                                     onClick={() => setSelectedExpertise(null)}
-                                    className="flex-1 bg-white/5 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all border border-white/10"
+                                    className="flex-1 bg-white/5 text-white py-4 rounded-xl font-black text-[12px] uppercase tracking-widest hover:bg-white/10 transition-all border border-white/10"
                                 >
                                     Close Details
                                 </button>
@@ -2170,3 +2170,5 @@ export default function Home() {
         </div >
     );
 }
+
+

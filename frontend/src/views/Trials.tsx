@@ -133,7 +133,7 @@ export default function Trials() {
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.12)_0%,transparent_70%)] pointer-events-none"></div>
                     <div className="grid lg:grid-cols-2 gap-16 items-center relative z-10">
                         <div className="space-y-8">
-                            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 font-bold text-xs tracking-widest uppercase">
+                            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 font-bold text-[12px] tracking-widest uppercase">
                                 <HeartPulse className="w-4 h-4" /> Upcoming & Recruiting Trials
                             </div>
                             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[0.85] uppercase italic">
@@ -159,10 +159,10 @@ export default function Trials() {
                                 </a>
                             </div>
                             <div className="flex items-center gap-8 pt-6">
-                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                <div className="flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-slate-400">
                                     <ShieldCheck className="w-4 h-4 text-cyan-400" /> Confidential and secure
                                 </div>
-                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                <div className="flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-slate-400">
                                     <Zap className="w-4 h-4 text-cyan-400" /> Lab-tested products
                                 </div>
                             </div>
@@ -189,14 +189,14 @@ export default function Trials() {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-12 items-center text-center">
                             <div className="space-y-2">
                                 <div className="text-4xl font-black text-cyan-400">20+</div>
-                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Products Studied</div>
+                                <div className="text-[12px] font-black uppercase tracking-widest text-slate-400">Products Studied</div>
                             </div>
                             <div className="space-y-2">
                                 <div className="text-4xl font-black text-indigo-400">5,000+</div>
-                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Volunteers</div>
+                                <div className="text-[12px] font-black uppercase tracking-widest text-slate-400">Volunteers</div>
                             </div>
                             <div className="col-span-2 flex items-center justify-center gap-12 opacity-50 grayscale hover:grayscale-0 transition-all cursor-default">
-                                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 hidden lg:block">As Featured In:</div>
+                                <div className="text-[12px] font-black uppercase tracking-widest text-slate-400 hidden lg:block">As Featured In:</div>
                                 <div className="flex gap-8 items-center">
                                     <div className="h-4 w-24 bg-white/20 rounded"></div>
                                     <div className="h-4 w-32 bg-white/20 rounded"></div>
@@ -216,7 +216,7 @@ export default function Trials() {
                             </div>
                             <h3 className="text-3xl font-black text-white mb-4">No-Cost Study Product</h3>
                             <p className="text-slate-400 font-medium leading-relaxed mb-8">Receive a 2-6-week supply when eligible and participate in groundbreaking health research.</p>
-                            <a href="#current-studies" className="bg-cyan-500 text-slate-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest inline-block hover:bg-white transition-colors">Check Eligibility</a>
+                            <a href="#current-studies" className="bg-cyan-500 text-slate-900 px-8 py-4 rounded-2xl font-black text-[12px] uppercase tracking-widest inline-block hover:bg-white transition-colors">Check Eligibility</a>
                         </div>
                         <div className="group bg-slate-900/40 backdrop-blur-3xl p-8 md:p-12 rounded-[4rem] border border-white/5 hover:border-indigo-500/30 transition-all shadow-2xl">
                             <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-8 group-hover:scale-110 transition-transform">
@@ -224,7 +224,7 @@ export default function Trials() {
                             </div>
                             <h3 className="text-3xl font-black text-white mb-4">Contribute to Science</h3>
                             <p className="text-slate-400 font-medium leading-relaxed mb-8">Help validate natural health products for real people and shape the future of medicine.</p>
-                            <a href="#current-studies" className="bg-indigo-500 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest inline-block hover:bg-white hover:text-slate-900 transition-all">Check Eligibility</a>
+                            <a href="#current-studies" className="bg-indigo-500 text-white px-8 py-4 rounded-2xl font-black text-[12px] uppercase tracking-widest inline-block hover:bg-white hover:text-slate-900 transition-all">Check Eligibility</a>
                         </div>
                     </div>
                 </section >
@@ -273,7 +273,7 @@ export default function Trials() {
                                                 <item.icon className="w-8 h-8" />
                                             </div>
                                             <div className="space-y-4">
-                                                <div className="inline-block px-3 py-1 bg-white/5 rounded-lg text-[10px] font-black uppercase tracking-widest text-cyan-500/60 transition-colors uppercase italic">{item.step}</div>
+                                                <div className="inline-block px-3 py-1 bg-white/5 rounded-lg text-[12px] font-black uppercase tracking-widest text-cyan-500/60 transition-colors uppercase italic">{item.step}</div>
                                                 <h4 className="text-xl font-black text-white uppercase group-hover:text-cyan-400 transition-colors">{item.title}</h4>
                                                 <p className="text-slate-400 text-sm font-medium leading-relaxed">{item.desc}</p>
                                             </div>
@@ -311,7 +311,7 @@ export default function Trials() {
                             <button
                                 key={c}
                                 onClick={() => setSelectedCondition(c)}
-                                className={`px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${selectedCondition === c ? 'bg-cyan-500 text-slate-900' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                                className={`px-6 py-3 rounded-xl font-bold text-[12px] uppercase tracking-widest transition-all ${selectedCondition === c ? 'bg-cyan-500 text-slate-900' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
                             >
                                 {c}
                             </button>
@@ -327,7 +327,7 @@ export default function Trials() {
                                     <div className="absolute -inset-1 bg-gradient-to-tr from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                                     <div className="flex justify-between items-start mb-8">
                                         <div className="space-y-4">
-                                            <div className={`inline-block px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                            <div className={`inline-block px-4 py-1.5 rounded-full text-[12px] font-black uppercase tracking-widest ${
                                                 study.status === 'Recruiting' ? 'bg-cyan-500/10 text-cyan-400' : 
                                                 study.status === 'Upcoming' ? 'bg-emerald-500/10 text-emerald-400' :
                                                 study.status === 'Paused' ? 'bg-amber-500/10 text-amber-400' :
@@ -339,7 +339,7 @@ export default function Trials() {
                                         </div>
                                         <div className="flex flex-wrap gap-2 justify-end max-w-[200px]">
                                             {(study.tags || []).map((tag: string) => (
-                                                <span key={tag} className="px-2 py-1 bg-white/5 rounded-lg text-[9px] font-bold text-slate-500 uppercase tracking-widest">{tag}</span>
+                                                <span key={tag} className="px-2 py-1 bg-white/5 rounded-lg text-[12px] font-bold text-slate-500 uppercase tracking-widest">{tag}</span>
                                             ))}
                                         </div>
                                     </div>
@@ -350,7 +350,7 @@ export default function Trials() {
                                                 <DollarSign className="w-5 h-5" />
                                             </div>
                                             <div>
-                                                <div className="text-[9px] font-black uppercase tracking-widest text-slate-600 mb-1">Compensation</div>
+                                                <div className="text-[12px] font-black uppercase tracking-widest text-slate-600 mb-1">Compensation</div>
                                                 <div className="text-sm font-bold text-white">{study.compensation}</div>
                                             </div>
                                         </div>
@@ -359,7 +359,7 @@ export default function Trials() {
                                                 <Clock className="w-5 h-5" />
                                             </div>
                                             <div>
-                                                <div className="text-[9px] font-black uppercase tracking-widest text-slate-600 mb-1">Duration</div>
+                                                <div className="text-[12px] font-black uppercase tracking-widest text-slate-600 mb-1">Duration</div>
                                                 <div className="text-sm font-bold text-white">{study.duration}</div>
                                             </div>
                                         </div>
@@ -420,3 +420,5 @@ export default function Trials() {
         </div>
     );
 }
+
+

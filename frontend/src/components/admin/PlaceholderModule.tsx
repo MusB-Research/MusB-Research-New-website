@@ -22,7 +22,7 @@ const PlaceholderModule = ({ title, activeModule }: PlaceholderModuleProps) => (
             <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">
                 {title} <span className="text-cyan-400">Integrated</span>
             </h2>
-            <p className="text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] mt-2 italic">
+            <p className="text-slate-500 font-bold uppercase tracking-[0.4em] text-[12px] mt-2 italic">
                 Advanced Module Architecture Initialization in Progress
             </p>
         </div>
@@ -30,3 +30,5 @@ const PlaceholderModule = ({ title, activeModule }: PlaceholderModuleProps) => (
 );
 
 export default PlaceholderModule;
+
+

@@ -95,15 +95,15 @@ export default function JobDetail() {
             <section className="relative pt-40 pb-20 overflow-hidden z-10 border-b border-white/5">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.15)_0%,transparent_70%)]"></div>
                 <div className="max-w-[1400px] mx-auto px-6 md:px-12 relative z-10">
-                    <Link to="/careers" className="inline-flex items-center gap-2 text-slate-500 hover:text-cyan-400 font-black uppercase tracking-widest text-[10px] mb-12 transition-all group">
+                    <Link to="/careers" className="inline-flex items-center gap-2 text-slate-500 hover:text-cyan-400 font-black uppercase tracking-widest text-[12px] mb-12 transition-all group">
                         <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Back to Careers
                     </Link>
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12">
                         <div className="space-y-6 flex-1">
                             <div className="flex flex-wrap gap-4 items-center">
-                                <span className="px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-black uppercase tracking-widest italic">{job.department}</span>
+                                <span className="px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[12px] font-black uppercase tracking-widest italic">{job.department}</span>
                                 {job.isFeatured && (
-                                    <span className="px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-black uppercase tracking-widest italic flex items-center gap-2">
+                                    <span className="px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[12px] font-black uppercase tracking-widest italic flex items-center gap-2">
                                         <Star className="w-3 h-3 fill-amber-500" /> Featured
                                     </span>
                                 )}
@@ -111,7 +111,7 @@ export default function JobDetail() {
                             <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white uppercase italic tracking-tighter leading-none">
                                 {job.title}
                             </h1>
-                            <div className="flex flex-wrap gap-8 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] pt-4">
+                            <div className="flex flex-wrap gap-8 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] pt-4">
                                 <div className="flex items-center gap-3"><MapPin className="w-5 h-5 text-cyan-500" /> {job.location}</div>
                                 <div className="flex items-center gap-3"><Clock className="w-5 h-5 text-cyan-500" /> {job.type}</div>
                                 <div className="flex items-center gap-3"><Briefcase className="w-5 h-5 text-cyan-500" /> {job.experienceLevel}</div>
@@ -203,12 +203,12 @@ export default function JobDetail() {
                                 >
                                     <Send className="w-5 h-5" /> Email Application
                                 </a>
-                                <p className="text-xs text-slate-400 text-center italic mt-2">
+                                <p className="text-[12px] text-slate-400 text-center italic mt-2">
                                     Please remember to attach your CV/Resume to the email before hitting send!
                                 </p>
                             </div>
 
-                            <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest text-center pt-4">
+                            <p className="text-[12px] text-slate-600 font-bold uppercase tracking-widest text-center pt-4">
                                 MusB™ Research is an Equal Opportunity Employer
                             </p>
                         </div>
@@ -220,3 +220,5 @@ export default function JobDetail() {
         </div>
     );
 }
+
+

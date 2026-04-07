@@ -17,7 +17,7 @@ const ProfileView = ({
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-1">
                 <div>
                     <h2 className="text-2xl font-black italic tracking-tighter text-white uppercase italic">Your Profile</h2>
-                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+                    <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mt-1">
                         Manage your account information and contact preferences.
                     </p>
                 </div>
@@ -25,7 +25,7 @@ const ProfileView = ({
                     <ShieldCheck className="w-5 h-5 text-[#00e676]" />
                     <div className="flex flex-col">
                         <span className="text-[12px] font-black text-[#00e676] uppercase tracking-widest italic">Private and Secure</span>
-                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest leading-none mt-1 italic">Secure and Private Profile</span>
+                        <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest leading-none mt-1 italic">Secure and Private Profile</span>
                     </div>
                 </div>
             </div>
@@ -51,7 +51,7 @@ const ProfileView = ({
                         <div className="mt-8 flex justify-between items-start">
                             <div>
                                 <h3 className="text-xl font-black text-white italic tracking-tighter uppercase mb-1">{userName}</h3>
-                                <p className="text-[11px] font-black text-cyan-400 uppercase tracking-widest italic flex items-center gap-2">
+                                <p className="text-[12px] font-black text-cyan-400 uppercase tracking-widest italic flex items-center gap-2">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Verified Study Participant
                                 </p>
                             </div>
@@ -62,7 +62,7 @@ const ProfileView = ({
                             <div className="flex items-center gap-4">
                                 <Mail className="w-4 h-4 text-slate-500" />
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-[11px] font-black text-slate-600 uppercase tracking-widest italic mb-0.5">Email Address</p>
+                                    <p className="text-[12px] font-black text-slate-600 uppercase tracking-widest italic mb-0.5">Email Address</p>
                                     <p className="text-sm font-bold text-slate-200 uppercase truncate">{userEmail || 'UNLINKED'}</p>
                                 </div>
                                 <button onClick={() => onAction('Edit Email')} className="text-[12px] font-black text-cyan-400 hover:text-white transition-colors">EDIT</button>
@@ -70,7 +70,7 @@ const ProfileView = ({
                             <div className="flex items-center gap-4">
                                 <Phone className="w-4 h-4 text-slate-500" />
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-[11px] font-black text-slate-600 uppercase tracking-widest italic mb-0.5">Phone Number</p>
+                                    <p className="text-[12px] font-black text-slate-600 uppercase tracking-widest italic mb-0.5">Phone Number</p>
                                     <p className="text-sm font-bold text-slate-200 uppercase truncate">{userPhone || 'NOT PROVIDED'}</p>
                                 </div>
                                 <button onClick={() => onAction('Edit Phone')} className="text-[12px] font-black text-cyan-400 hover:text-white transition-colors">EDIT</button>
@@ -78,7 +78,7 @@ const ProfileView = ({
                             <div className="flex items-center gap-4">
                                 <MapPin className="w-4 h-4 text-slate-500" />
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-[11px] font-black text-slate-600 uppercase tracking-widest italic mb-0.5">Registered Site Location</p>
+                                    <p className="text-[12px] font-black text-slate-600 uppercase tracking-widest italic mb-0.5">Registered Site Location</p>
                                     <p className="text-sm font-bold text-slate-200 uppercase truncate">{userLocation || 'REMOTE ENROLLMENT'}</p>
                                 </div>
                                 <button onClick={() => onAction('Edit Location')} className="text-[12px] font-black text-cyan-400 hover:text-white transition-colors">EDIT</button>
@@ -96,7 +96,7 @@ const ProfileView = ({
                                 <Bell className="w-5 h-5 text-indigo-400" />
                                 <h3 className="text-sm font-black text-white uppercase tracking-[0.25em] italic">Notification Settings</h3>
                             </div>
-                            <p className="text-[11px] font-black text-[#00e676] uppercase tracking-[0.2em] italic underline underline-offset-8 decoration-emerald-500/30 shadow-glow">Active Delivery Channels (5/5)</p>
+                            <p className="text-[12px] font-black text-[#00e676] uppercase tracking-[0.2em] italic underline underline-offset-8 decoration-emerald-500/30 shadow-glow">Active Delivery Channels (5/5)</p>
                         </div>
 
                         <div className="space-y-4">
@@ -163,3 +163,5 @@ const ProfileView = ({
 };
 
 export default ProfileView;
+
+

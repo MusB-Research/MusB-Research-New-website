@@ -33,7 +33,7 @@ export const KnowledgeBase: React.FC = () => {
                         </div>
                         <div className="max-w-2xl space-y-6">
                              <h2 className="text-2xl lg:text-4xl font-black text-white italic uppercase tracking-tighter leading-tight">Intelligence Hub & Knowledge Repository</h2>
-                             <p className="text-[10px] lg:text-[11px] text-slate-500 font-black uppercase tracking-widest leading-relaxed italic">
+                             <p className="text-[12px] lg:text-[12px] text-slate-500 font-black uppercase tracking-widest leading-relaxed italic">
                                  Access training manuals, standard operating procedures, and platform video tutorials. 
                                  Our repository is cryptographically synced across global research nodes for unified protocol alignment.
                              </p>
@@ -52,8 +52,8 @@ export const KnowledgeBase: React.FC = () => {
                                      <div className="w-10 h-10 lg:w-12 lg:h-12 bg-white/5 rounded-2xl flex items-center justify-center text-slate-500 group-hover:text-indigo-400 group-hover:bg-indigo-500/10 transition-all">
                                          <kb.icon className="w-5 h-5 lg:w-6 lg:h-6" />
                                      </div>
-                                     <h4 className="text-[10px] lg:text-[11px] font-black text-white uppercase tracking-widest italic">{kb.label}</h4>
-                                     <p className="text-[8px] lg:text-[9px] text-slate-600 font-bold uppercase tracking-widest leading-relaxed italic line-clamp-2">{kb.desc}</p>
+                                     <h4 className="text-[12px] lg:text-[12px] font-black text-white uppercase tracking-widest italic">{kb.label}</h4>
+                                     <p className="text-[12px] lg:text-[12px] text-slate-600 font-bold uppercase tracking-widest leading-relaxed italic line-clamp-2">{kb.desc}</p>
                                  </button>
                              ))}
                         </div>
@@ -70,13 +70,13 @@ export const KnowledgeBase: React.FC = () => {
                             <div className="flex items-center gap-6">
                                 <button 
                                      onClick={() => setKbCategory(null)}
-                                     className="p-3 bg-white/5 rounded-2xl text-slate-400 hover:text-white transition-all hover:bg-white/10 italic text-[9px] font-black uppercase flex items-center gap-2"
+                                     className="p-3 bg-white/5 rounded-2xl text-slate-400 hover:text-white transition-all hover:bg-white/10 italic text-[12px] font-black uppercase flex items-center gap-2"
                                 >
                                     <X className="w-4 h-4" /> Back to Hub
                                 </button>
                                 <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">{kbCategory}</h2>
                             </div>
-                            <p className="text-[9px] text-slate-500 font-black italic uppercase">Repository Synced Oct 2024</p>
+                            <p className="text-[12px] text-slate-500 font-black italic uppercase">Repository Synced Oct 2024</p>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
@@ -98,13 +98,13 @@ export const KnowledgeBase: React.FC = () => {
                                              <Settings className="w-5 h-5" />}
                                         </div>
                                         <div>
-                                            <h5 className="text-[11px] font-black text-white uppercase italic tracking-wider">{doc.title || doc.desc}</h5>
+                                            <h5 className="text-[12px] font-black text-white uppercase italic tracking-wider">{doc.title || doc.desc}</h5>
                                             <div className="flex items-center gap-3 mt-1.5 font-mono">
-                                                <span className="text-[7px] text-indigo-400 font-black uppercase">
+                                                <span className="text-[12px] text-indigo-400 font-black uppercase">
                                                     {downloadingIdx === i ? 'TRANSMITTING...' : doc.type}
                                                 </span>
-                                                <span className="text-[7px] text-slate-700 uppercase italic">Last Updated: {doc.date}</span>
-                                                <span className="text-[7px] text-slate-800 font-black">{doc.size}</span>
+                                                <span className="text-[12px] text-slate-700 uppercase italic">Last Updated: {doc.date}</span>
+                                                <span className="text-[12px] text-slate-800 font-black">{doc.size}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -132,3 +132,7 @@ export const KnowledgeBase: React.FC = () => {
         </div>
     );
 };
+
+
+
+

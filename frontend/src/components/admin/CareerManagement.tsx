@@ -137,7 +137,7 @@ export default function CareerManagement() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-black text-white italic tracking-tight uppercase">Career <span className="text-cyan-400">Management</span></h1>
-          <p className="text-slate-500 font-bold mt-1 text-xs uppercase tracking-widest">Post and manage clinical trial opportunities</p>
+          <p className="text-slate-500 font-bold mt-1 text-[12px] uppercase tracking-widest">Post and manage clinical trial opportunities</p>
         </div>
         <button 
           onClick={() => {
@@ -157,7 +157,7 @@ export default function CareerManagement() {
             });
             setShowForm(true);
           }}
-          className="flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black px-6 py-3 rounded-xl transition-all shadow-lg active:scale-95 text-xs uppercase tracking-widest"
+          className="flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black px-6 py-3 rounded-xl transition-all shadow-lg active:scale-95 text-[12px] uppercase tracking-widest"
         >
           <Plus className="w-4 h-4" /> Post New Opening
         </button>
@@ -179,18 +179,18 @@ export default function CareerManagement() {
                   <div className="flex items-center gap-3">
                     <h3 className="text-lg font-black text-white uppercase tracking-tight italic group-hover:text-cyan-400 transition-colors">{job.title}</h3>
                     {job.is_featured && (
-                      <span className="px-2 py-0.5 bg-amber-500/20 text-amber-500 border border-amber-500/30 rounded text-[9px] font-black uppercase tracking-widest flex items-center gap-1">
+                      <span className="px-2 py-0.5 bg-amber-500/20 text-amber-500 border border-amber-500/30 rounded text-[12px] font-black uppercase tracking-widest flex items-center gap-1">
                         <Star className="w-3 h-3 fill-amber-500" /> Featured
                       </span>
                     )}
-                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border ${job.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'}`}>
+                    <span className={`px-2 py-0.5 rounded text-[12px] font-black uppercase tracking-widest border ${job.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'}`}>
                       {job.status}
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-4 mt-2">
-                    <span className="text-[10px] font-bold text-slate-500 flex items-center gap-1 uppercase tracking-widest"><MapPin className="w-3 h-3" /> {job.location}</span>
-                    <span className="text-[10px] font-bold text-slate-500 flex items-center gap-1 uppercase tracking-widest"><Clock className="w-3 h-3" /> {job.job_type}</span>
-                    <span className="text-[10px] font-bold text-slate-500 flex items-center gap-1 uppercase tracking-widest"><Calendar className="w-3 h-3" /> Expires: {job.expiry_date}</span>
+                    <span className="text-[12px] font-bold text-slate-500 flex items-center gap-1 uppercase tracking-widest"><MapPin className="w-3 h-3" /> {job.location}</span>
+                    <span className="text-[12px] font-bold text-slate-500 flex items-center gap-1 uppercase tracking-widest"><Clock className="w-3 h-3" /> {job.job_type}</span>
+                    <span className="text-[12px] font-bold text-slate-500 flex items-center gap-1 uppercase tracking-widest"><Calendar className="w-3 h-3" /> Expires: {job.expiry_date}</span>
                   </div>
                 </div>
               </div>
@@ -262,7 +262,7 @@ export default function CareerManagement() {
               <form onSubmit={handleCreateOrUpdate} className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Job Title</label>
+                    <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Job Title</label>
                     <input 
                       type="text" 
                       value={formData.title}
@@ -273,7 +273,7 @@ export default function CareerManagement() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Category</label>
+                    <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Category</label>
                     <input 
                       type="text" 
                       value={formData.category}
@@ -284,7 +284,7 @@ export default function CareerManagement() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Location</label>
+                    <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Location</label>
                     <input 
                       type="text" 
                       value={formData.location}
@@ -295,7 +295,7 @@ export default function CareerManagement() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Job Type</label>
+                    <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Job Type</label>
                     <select 
                       value={formData.job_type}
                       onChange={e => setFormData({...formData, job_type: e.target.value as any})}
@@ -307,7 +307,7 @@ export default function CareerManagement() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Experience Level</label>
+                    <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Experience Level</label>
                     <input 
                       type="text" 
                       value={formData.experience_level}
@@ -318,7 +318,7 @@ export default function CareerManagement() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Featured?</label>
+                    <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Featured?</label>
                     <div className="flex items-center gap-4 py-3">
                       <button 
                         type="button"
@@ -327,11 +327,11 @@ export default function CareerManagement() {
                       >
                         <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${formData.is_featured ? 'translate-x-6' : 'translate-x-0'}`} />
                       </button>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pin to top of list</span>
+                      <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Pin to top of list</span>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Publish Date</label>
+                    <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Publish Date</label>
                     <input 
                       type="date" 
                       value={formData.publish_date}
@@ -341,7 +341,7 @@ export default function CareerManagement() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Expiry Date (Auto-Archive)</label>
+                    <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Expiry Date (Auto-Archive)</label>
                     <input 
                       type="date" 
                       value={formData.expiry_date}
@@ -353,7 +353,7 @@ export default function CareerManagement() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Role Summary</label>
+                  <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Role Summary</label>
                   <textarea 
                     value={formData.role_summary}
                     onChange={e => setFormData({...formData, role_summary: e.target.value})}
@@ -365,11 +365,11 @@ export default function CareerManagement() {
 
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Requirements (Bullet Points)</label>
+                    <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Requirements (Bullet Points)</label>
                     <button 
                       type="button" 
                       onClick={addRequirement}
-                      className="text-[10px] font-black text-cyan-400 uppercase tracking-widest hover:text-cyan-300 flex items-center gap-1"
+                      className="text-[12px] font-black text-cyan-400 uppercase tracking-widest hover:text-cyan-300 flex items-center gap-1"
                     >
                       <Plus className="w-3 h-3" /> Add Point
                     </button>
@@ -400,14 +400,14 @@ export default function CareerManagement() {
                 <div className="pt-6 border-t border-white/5 flex gap-4">
                   <button 
                     type="submit"
-                    className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black py-4 rounded-xl transition-all shadow-lg active:scale-95 text-xs uppercase tracking-widest"
+                    className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black py-4 rounded-xl transition-all shadow-lg active:scale-95 text-[12px] uppercase tracking-widest"
                   >
                     {editingJob ? 'Update Job Posting' : 'Publish Job Opening'}
                   </button>
                   <button 
                     type="button"
                     onClick={() => setShowForm(false)}
-                    className="px-8 bg-white/5 text-slate-500 font-black hover:text-white transition-all rounded-xl text-xs uppercase tracking-widest border border-white/10"
+                    className="px-8 bg-white/5 text-slate-500 font-black hover:text-white transition-all rounded-xl text-[12px] uppercase tracking-widest border border-white/10"
                   >
                     Cancel
                   </button>
@@ -420,3 +420,5 @@ export default function CareerManagement() {
     </div>
   );
 }
+
+

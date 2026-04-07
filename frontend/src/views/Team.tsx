@@ -175,7 +175,7 @@ const TeamMemberCard = ({ member }: { member: any }) => {
                             {member.expertise_tags.slice(0, 4).map((tag: string, idx: number) => (
                                 <span
                                     key={idx}
-                                    className="px-2.5 py-1 text-[10px] font-black bg-cyan-400/10 text-cyan-400 rounded-lg border border-cyan-400/20 uppercase tracking-tighter"
+                                    className="px-2.5 py-1 text-[12px] font-black bg-cyan-400/10 text-cyan-400 rounded-lg border border-cyan-400/20 uppercase tracking-tighter"
                                 >
                                     {tag}
                                 </span>
@@ -211,7 +211,7 @@ const TeamMemberCard = ({ member }: { member: any }) => {
                     {/* Expanded Bio Text */}
                     {member.expanded_bio && (
                         <div className="space-y-4">
-                            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-cyan-400/50">Professional Background</h4>
+                            <h4 className="text-[12px] font-black uppercase tracking-[0.2em] text-cyan-400/50">Professional Background</h4>
                             <div className="prose prose-invert max-w-none text-slate-300 leading-relaxed text-sm lg:text-base">
                                 <p className="whitespace-pre-line">{member.expanded_bio}</p>
                             </div>
@@ -222,12 +222,12 @@ const TeamMemberCard = ({ member }: { member: any }) => {
                         {/* Areas of Expertise */}
                         {member.areas_of_expertise && member.areas_of_expertise.length > 0 && (
                             <div className="space-y-4">
-                                <h4 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-cyan-400">
+                                <h4 className="flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-cyan-400">
                                     <Activity className="w-4 h-4" /> Expertise
                                 </h4>
                                 <ul className="space-y-2.5">
                                     {member.areas_of_expertise.map((area: string, idx: number) => (
-                                        <li key={idx} className="flex items-start gap-3 text-slate-400 text-xs lg:text-sm font-medium">
+                                        <li key={idx} className="flex items-start gap-3 text-slate-400 text-[12px] lg:text-sm font-medium">
                                             <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/50 mt-1.5 flex-shrink-0"></div>
                                             {area}
                                         </li>
@@ -239,12 +239,12 @@ const TeamMemberCard = ({ member }: { member: any }) => {
                         {/* Affiliations */}
                         {member.affiliations && member.affiliations.length > 0 && (
                             <div className="space-y-4">
-                                <h4 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-cyan-400">
+                                <h4 className="flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-cyan-400">
                                     <Building2 className="w-4 h-4" /> Affiliations
                                 </h4>
                                 <ul className="space-y-2.5">
                                     {member.affiliations.map((aff: string, idx: number) => (
-                                        <li key={idx} className="flex items-start gap-3 text-slate-400 text-xs lg:text-sm font-medium">
+                                        <li key={idx} className="flex items-start gap-3 text-slate-400 text-[12px] lg:text-sm font-medium">
                                             <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/50 mt-1.5 flex-shrink-0"></div>
                                             {aff}
                                         </li>
@@ -257,14 +257,14 @@ const TeamMemberCard = ({ member }: { member: any }) => {
                     {/* Publications */}
                     {member.publications && member.publications.length > 0 && (
                         <div className="space-y-6 pt-8 border-t border-white/10">
-                            <h4 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-cyan-400">
+                            <h4 className="flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-cyan-400">
                                 <FileText className="w-4 h-4" /> Key Publications
                             </h4>
                             <div className="grid gap-4">
                                 {member.publications.map((pub: string, idx: number) => (
                                     <div key={idx} className="flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors">
                                         <span className="text-cyan-500/30 font-black text-xl leading-none">0{idx + 1}</span>
-                                        <p className="text-slate-400 text-xs lg:text-sm italic leading-relaxed">{pub}</p>
+                                        <p className="text-slate-400 text-[12px] lg:text-sm italic leading-relaxed">{pub}</p>
                                     </div>
                                 ))}
                             </div>
@@ -300,22 +300,22 @@ const AdvisorCard = ({ advisor }: { advisor: any }) => {
                 <div className="w-full space-y-4 text-center md:text-left">
                     <div className="space-y-1">
                         <h3 className="text-2xl font-black text-white leading-tight tracking-tight uppercase whitespace-pre-line">{advisor.name}</h3>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 leading-tight">
+                        <p className="text-[12px] font-black uppercase tracking-[0.2em] text-indigo-400 leading-tight">
                             {advisor.advisory_role}
                         </p>
                     </div>
 
                     <div className="space-y-4">
                         <div className="space-y-1.5 text-left">
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Expertise</span>
-                            <span className="px-3 py-1 text-[10px] font-black bg-indigo-400/10 text-indigo-400 rounded-lg border border-indigo-400/20 uppercase tracking-tight inline-block">
+                            <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest block">Expertise</span>
+                            <span className="px-3 py-1 text-[12px] font-black bg-indigo-400/10 text-indigo-400 rounded-lg border border-indigo-400/20 uppercase tracking-tight inline-block">
                                 {advisor.expertise_area}
                             </span>
                         </div>
 
                         {advisor.organization && (
                             <div className="space-y-1.5 text-left">
-                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Organization</span>
+                                <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest block">Organization</span>
                                 <p className="text-sm text-slate-300 font-bold tracking-tight">{advisor.organization}</p>
                             </div>
                         )}
@@ -359,7 +359,7 @@ const AdvisorCard = ({ advisor }: { advisor: any }) => {
                                 className="inline-flex items-center gap-2 text-slate-400 hover:text-indigo-400 transition-colors"
                             >
                                 <Linkedin className="w-4 h-4" />
-                                <span className="font-bold text-xs uppercase tracking-widest">LinkedIn Profile</span>
+                                <span className="font-bold text-[12px] uppercase tracking-widest">LinkedIn Profile</span>
                             </a>
                         </div>
                     )}
@@ -461,7 +461,7 @@ export default function Team() {
                                 Expert authority established through decades of clinical rigor and scientific innovation. Ideal for sponsors, CROs, and regulators.
                             </p>
                         </div>
-                        <div className="flex items-center gap-4 text-slate-400 font-bold uppercase tracking-widest text-xs h-fit bg-white/5 px-6 py-3 rounded-full border border-white/10">
+                        <div className="flex items-center gap-4 text-slate-400 font-bold uppercase tracking-widest text-[12px] h-fit bg-white/5 px-6 py-3 rounded-full border border-white/10">
                             <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
                             Featured Profiles
                         </div>
@@ -487,7 +487,7 @@ export default function Team() {
                                 Industry leaders and domain experts providing strategic guidance for global research excellence.
                             </p>
                         </div>
-                        <div className="flex items-center gap-4 text-slate-400 font-bold uppercase tracking-widest text-xs h-fit bg-white/5 px-6 py-3 rounded-full border border-white/10">
+                        <div className="flex items-center gap-4 text-slate-400 font-bold uppercase tracking-widest text-[12px] h-fit bg-white/5 px-6 py-3 rounded-full border border-white/10">
                             <div className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></div>
                             Strategic Counsel
                         </div>
@@ -522,7 +522,7 @@ export default function Team() {
                                 A scalable network of specialized institutions and clinics highlighting our translational research strength and sponsor-ready infrastructure.
                             </p>
                         </div>
-                        <div className="flex items-center gap-4 text-slate-400 font-bold uppercase tracking-widest text-xs h-fit bg-white/5 px-6 py-3 rounded-full border border-white/10">
+                        <div className="flex items-center gap-4 text-slate-400 font-bold uppercase tracking-widest text-[12px] h-fit bg-white/5 px-6 py-3 rounded-full border border-white/10">
                             <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse"></div>
                             Network Strength
                         </div>
@@ -601,7 +601,7 @@ export default function Team() {
                                 The dedicated professionals ensuring operational excellence, regulatory compliance, and seamless execution in every study.
                             </p>
                         </div>
-                        <div className="flex items-center gap-4 text-slate-400 font-bold uppercase tracking-widest text-xs h-fit bg-white/5 px-6 py-3 rounded-full border border-white/10">
+                        <div className="flex items-center gap-4 text-slate-400 font-bold uppercase tracking-widest text-[12px] h-fit bg-white/5 px-6 py-3 rounded-full border border-white/10">
                             <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
                             Execution Excellence
                         </div>
@@ -623,13 +623,13 @@ export default function Team() {
                                         <h3 className="text-xl font-black text-white leading-tight tracking-tight group-hover:text-cyan-400 transition-colors underline decoration-cyan-400/0 group-hover:decoration-cyan-400/30 underline-offset-4">
                                             {staff.name}
                                         </h3>
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400/70 py-1">
+                                        <p className="text-[12px] font-black uppercase tracking-[0.2em] text-cyan-400/70 py-1">
                                             {staff.role}
                                         </p>
                                     </div>
 
                                     <div className="pt-2">
-                                        <span className="inline-block px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-[9px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-slate-300 group-hover:border-white/20 transition-all">
+                                        <span className="inline-block px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-[12px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-slate-300 group-hover:border-white/20 transition-all">
                                             {staff.dept}
                                         </span>
                                     </div>
@@ -643,3 +643,5 @@ export default function Team() {
         </div>
     );
 }
+
+

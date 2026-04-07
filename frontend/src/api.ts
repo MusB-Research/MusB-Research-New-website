@@ -142,3 +142,5 @@ export const submitFacilityInquiry = (data: Record<string, any>) =>
         method: 'POST',
         body: JSON.stringify(data),
     });
+
+

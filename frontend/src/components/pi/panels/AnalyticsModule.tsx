@@ -69,7 +69,7 @@ export default function AnalyticsModule() {
                             </div>
                             <div className={`flex items-center gap-1.5 ${kpi.trend === 'up' ? 'text-emerald-400' : 'text-red-400'}`}>
                                 {kpi.trend === 'up' ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
-                                <span className="text-[10px] font-black uppercase tracking-tighter shadow-[0_0_10px_currentColor]">{kpi.trend === 'up' ? '+12%' : '-4%'}</span>
+                                <span className="text-[12px] font-black uppercase tracking-tighter shadow-[0_0_10px_currentColor]">{kpi.trend === 'up' ? '+12%' : '-4%'}</span>
                             </div>
                         </div>
                         <div>
@@ -96,7 +96,7 @@ export default function AnalyticsModule() {
                         {recruitmentFunnel.map((step, i) => (
                             <div key={i} className="space-y-3">
                                 <div className="flex justify-between items-end">
-                                    <span className="text-[11px] font-black text-slate-400 uppercase italic tracking-widest">{step.label}</span>
+                                    <span className="text-[12px] font-black text-slate-400 uppercase italic tracking-widest">{step.label}</span>
                                     <span className="text-xl font-black text-white italic">{step.count.toLocaleString()}</span>
                                 </div>
                                 <div className="h-4 w-full bg-white/5 border border-white/5 rounded-full overflow-hidden flex relative">
@@ -106,7 +106,7 @@ export default function AnalyticsModule() {
                                         className={`h-full rounded-full bg-${step.color}-600 bg-gradient-to-r from-transparent to-white/20`}
                                     />
                                     {i > 0 && (
-                                        <div className="absolute top-1/2 left-[5px] -translate-y-1/2 text-[8px] font-black text-white/40 uppercase tracking-tighter">
+                                        <div className="absolute top-1/2 left-[5px] -translate-y-1/2 text-[12px] font-black text-white/40 uppercase tracking-tighter">
                                             {((step.count / recruitmentFunnel[i-1].count) * 100).toFixed(0)}% Conversion
                                         </div>
                                     )}
@@ -118,11 +118,11 @@ export default function AnalyticsModule() {
                     <div className="pt-10 border-t border-white/5 flex items-center justify-between">
                         <div className="flex items-center gap-6">
                             <div>
-                                <p className="text-[9px] text-slate-700 font-black uppercase">Cohort Alpha Target</p>
+                                <p className="text-[12px] text-slate-700 font-black uppercase">Cohort Alpha Target</p>
                                 <p className="text-sm font-black text-emerald-400 italic">285 / 300 Complete</p>
                             </div>
                         </div>
-                        <button className="px-6 py-3 bg-white text-slate-950 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.05] transition-all italic">Simulation View</button>
+                        <button className="px-6 py-3 bg-white text-slate-950 rounded-xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.05] transition-all italic">Simulation View</button>
                     </div>
                 </div>
 
@@ -133,22 +133,22 @@ export default function AnalyticsModule() {
                         <div className="absolute -top-10 -right-10 p-20 opacity-5 group-hover:scale-110 transition-transform">
                             <Target className="w-32 h-32 text-indigo-400" />
                         </div>
-                        <h5 className="text-[11px] font-black text-indigo-400 uppercase tracking-widest italic underline decoration-indigo-800 underline-offset-4">ML Enrollment Predictor</h5>
+                        <h5 className="text-[12px] font-black text-indigo-400 uppercase tracking-widest italic underline decoration-indigo-800 underline-offset-4">ML Enrollment Predictor</h5>
                         <p className="text-4xl font-black text-white italic uppercase tracking-tighter leading-tight">LPO Date: <span className="text-indigo-400">MAY 2026</span></p>
-                        <p className="text-xs text-slate-500 font-bold uppercase italic leading-relaxed">System predicts 92% probability of reaching full randomization by Q2 2026 based on current screening velocity.</p>
-                        <button className="w-full py-4 bg-white/5 border border-white/5 text-indigo-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all">Generate Full Forecast</button>
+                        <p className="text-[12px] text-slate-500 font-bold uppercase italic leading-relaxed">System predicts 92% probability of reaching full randomization by Q2 2026 based on current screening velocity.</p>
+                        <button className="w-full py-4 bg-white/5 border border-white/5 text-indigo-400 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all">Generate Full Forecast</button>
                     </div>
 
                     {/* Data Quality */}
                     <div className="bg-[#0B101B]/40 border border-white/5 rounded-[2.5rem] p-10 space-y-8">
                         <div className="flex items-center gap-4">
                             <Database className="w-6 h-6 text-emerald-400" />
-                            <h5 className="text-[11px] font-black text-white uppercase tracking-widest italic">Data Quality Score</h5>
+                            <h5 className="text-[12px] font-black text-white uppercase tracking-widest italic">Data Quality Score</h5>
                         </div>
                         <div className="flex items-end justify-between">
                             <p className="text-5xl font-black text-emerald-400 italic tracking-tighter shadow-[0_0_20px_rgba(16,185,129,0.1)]">99.2<span className="text-2xl">%</span></p>
                             <div className="text-right">
-                                <p className="text-[9px] text-slate-500 font-black uppercase">Open Queries</p>
+                                <p className="text-[12px] text-slate-500 font-black uppercase">Open Queries</p>
                                 <p className="text-sm font-black text-white uppercase italic">08 Pending</p>
                             </div>
                         </div>
@@ -161,3 +161,6 @@ export default function AnalyticsModule() {
         </motion.div>
     );
 }
+
+
+

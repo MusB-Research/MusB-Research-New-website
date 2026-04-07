@@ -32,7 +32,7 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ participant, setActi
                 <div style={{ height: '8px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '4px', marginTop: '1rem', overflow: 'hidden' }}>
                     <div style={{ width: `${participant.compliance}%`, height: '100%', backgroundColor: COLORS.accent, boxShadow: `0 0 10px ${COLORS.accent}40` }} />
                 </div>
-                <p style={{ fontSize: '11px', color: COLORS.label, marginTop: '0.8rem', fontStyle: 'italic' }}>Visit completion velocity stable.</p>
+                <p style={{ fontSize: '12px', color: COLORS.label, marginTop: '0.8rem', fontStyle: 'italic' }}>Visit completion velocity stable.</p>
             </div>
 
             <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: '2rem' }}>
@@ -46,10 +46,12 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ participant, setActi
             </div>
 
             <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '10px' }} onClick={() => setActiveTab('Overview')}>&gt; Overview</button>
-                <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '10px' }} onClick={() => setActiveTab('Eligibility')}>&gt; Eligibility</button>
-                <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '10px' }} onClick={() => setActiveTab('Safety')}>&gt; Safety</button>
+                <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '12px' }} onClick={() => setActiveTab('Overview')}>&gt; Overview</button>
+                <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '12px' }} onClick={() => setActiveTab('Eligibility')}>&gt; Eligibility</button>
+                <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '12px' }} onClick={() => setActiveTab('Safety')}>&gt; Safety</button>
             </div>
         </aside>
     );
 };
+
+

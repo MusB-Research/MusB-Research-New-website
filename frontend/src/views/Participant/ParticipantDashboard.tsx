@@ -817,7 +817,7 @@ export default function ParticipantDashboard() {
                     </div>
                     <div className="flex flex-col min-w-0">
                         <p className="text-base font-black text-white uppercase truncate">{userProfile.userName}</p>
-                        <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest mt-1">Participant</p>
+                        <p className="text-[12px] font-black text-cyan-400 uppercase tracking-widest mt-1">Participant</p>
                     </div>
                 </div>
 
@@ -861,7 +861,7 @@ export default function ParticipantDashboard() {
                             <Zap className="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]" />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-[9px] font-black text-cyan-500/50 uppercase tracking-[0.3em] mb-0.5 italic hidden sm:block">Participant Suite</span>
+                            <span className="text-[12px] font-black text-cyan-500/50 uppercase tracking-[0.3em] mb-0.5 italic hidden sm:block">Participant Suite</span>
                             <div className="flex items-center gap-2">
                                 <h1 className="text-lg font-black text-white italic uppercase tracking-tighter leading-none">{activeNav}</h1>
                             </div>
@@ -872,7 +872,7 @@ export default function ParticipantDashboard() {
                             <span className="text-xl font-black text-cyan-400 font-mono tracking-tighter tabular-nums leading-none">
                                 {currentTime.toLocaleTimeString('en-US', { hour12: false })}
                             </span>
-                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">
+                            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">
                                 {currentTime.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase()}
                             </span>
                         </div>
@@ -896,11 +896,11 @@ export default function ParticipantDashboard() {
                                         <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.03]">
                                             <div className="flex flex-col gap-1">
                                                 <h3 className="text-[12px] font-black text-white uppercase tracking-[0.2em] italic">Notifications Hub</h3>
-                                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none">Updates & Alerts</span>
+                                                <span className="text-[12px] text-slate-500 font-bold uppercase tracking-widest leading-none">Updates & Alerts</span>
                                             </div>
                                             <button
                                                 onClick={() => setNotifications(notifications.map(n => ({ ...n, read: true })))}
-                                                className="px-4 py-2 bg-cyan-400/10 border border-cyan-400/20 text-[11px] font-black text-cyan-400 uppercase tracking-tighter hover:bg-cyan-400 hover:text-black rounded-xl transition-all"
+                                                className="px-4 py-2 bg-cyan-400/10 border border-cyan-400/20 text-[12px] font-black text-cyan-400 uppercase tracking-tighter hover:bg-cyan-400 hover:text-black rounded-xl transition-all"
                                             >
                                                 Mark all read
                                             </button>
@@ -920,7 +920,7 @@ export default function ParticipantDashboard() {
                                                     <div className="flex flex-col gap-2">
                                                         <div className="flex justify-between items-baseline gap-4">
                                                             <span className={`text-[13px] font-black uppercase italic tracking-tight leading-none ${n.type === 'protocol' ? 'text-amber-400' : 'text-white group-hover/notif:text-cyan-400'} transition-colors truncate`}>{n.title}</span>
-                                                            <span className="text-[11px] font-black text-slate-700 uppercase tracking-tighter flex-shrink-0">{n.time}</span>
+                                                            <span className="text-[12px] font-black text-slate-700 uppercase tracking-tighter flex-shrink-0">{n.time}</span>
                                                         </div>
                                                         <p className="text-[13px] text-slate-400 font-medium leading-relaxed">{n.desc}</p>
                                                     </div>
@@ -944,7 +944,7 @@ export default function ParticipantDashboard() {
                             >
                                 <div className="hidden sm:flex flex-col items-end mr-1">
                                     <span className="text-sm font-black text-white italic uppercase tracking-tighter leading-none mb-1.5">{userProfile.userName}</span>
-                                    <span className="text-[10px] text-cyan-400/60 font-black uppercase tracking-widest bg-cyan-400/[0.03] px-2 py-0.5 rounded border border-cyan-400/10 truncate max-w-[120px]">{userProfile.userEmail}</span>
+                                    <span className="text-[12px] text-cyan-400/60 font-black uppercase tracking-widest bg-cyan-400/[0.03] px-2 py-0.5 rounded border border-cyan-400/10 truncate max-w-[120px]">{userProfile.userEmail}</span>
                                 </div>
                                 <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-white/10 overflow-hidden shadow-2xl hover:border-cyan-500/40 transition-all ring-1 ring-white/5">
                                     {userProfile.userPicture ? <img src={userProfile.userPicture} className="w-full h-full object-cover" /> : <span className="text-sm font-black italic">{initials}</span>}
@@ -961,7 +961,7 @@ export default function ParticipantDashboard() {
                                         className="absolute right-0 top-full mt-6 w-60 bg-[#0d1424] border border-white/10 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl z-[150] overflow-hidden"
                                     >
                                         <div className="p-5 border-b border-white/5 bg-white/[0.02]">
-                                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] italic mb-1.5">Session Node</p>
+                                            <p className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic mb-1.5">Session Node</p>
                                             <p className="text-sm font-black text-white uppercase italic truncate tracking-tight">{userProfile.userName}</p>
                                         </div>
                                         <div className="p-2">
@@ -970,14 +970,14 @@ export default function ParticipantDashboard() {
                                                 className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-2xl transition-all group"
                                             >
                                                 <User className="w-4 h-4 text-cyan-500 group-hover:scale-110 transition-transform" />
-                                                <span className="text-xs font-bold uppercase tracking-widest italic">View Profile</span>
+                                                <span className="text-[12px] font-bold uppercase tracking-widest italic">View Profile</span>
                                             </button>
                                             <button
                                                 onClick={() => { setIsLogoutModalOpen(true); setIsDropdownOpen(false); }}
                                                 className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-2xl transition-all group"
                                             >
                                                 <LogOut className="w-4 h-4 text-red-500 group-hover:scale-110 transition-transform" />
-                                                <span className="text-xs font-bold uppercase tracking-widest italic">Sign Out</span>
+                                                <span className="text-[12px] font-bold uppercase tracking-widest italic">Sign Out</span>
                                             </button>
                                         </div>
                                     </motion.div>
@@ -1098,3 +1098,5 @@ export default function ParticipantDashboard() {
         </div>
     );
 }
+
+

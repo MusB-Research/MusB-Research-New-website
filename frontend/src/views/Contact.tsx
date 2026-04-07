@@ -161,7 +161,7 @@ export default function Contact() {
                             </div>
                             <h3 className="text-2xl font-black text-white leading-tight uppercase group-hover:text-cyan-400 transition-colors italic mb-4">{card.title}</h3>
                             <p className="text-slate-400 font-semibold leading-relaxed mb-8 flex-grow">{card.desc}</p>
-                            <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-white border-b-2 border-cyan-500 pb-1 group-hover:gap-4 transition-all group-hover:text-cyan-400">
+                            <div className="inline-flex items-center gap-2 text-[12px] font-black uppercase tracking-widest text-white border-b-2 border-cyan-500 pb-1 group-hover:gap-4 transition-all group-hover:text-cyan-400">
                                 {card.cta} <ArrowRight className="w-4 h-4" />
                             </div>
                         </button>
@@ -195,22 +195,22 @@ export default function Contact() {
                             <form onSubmit={handleSubmit} className="bg-slate-900/40 backdrop-blur-3xl p-6 md:p-16 rounded-[4.5rem] border border-white/5 space-y-10 shadow-2xl">
                                 <div className="grid md:grid-cols-2 gap-10">
                                     <div className="space-y-3">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400 ml-1">Full Name *</label>
+                                        <label className="text-[12px] font-black uppercase tracking-[0.3em] text-cyan-400 ml-1">Full Name *</label>
                                         <input required name="name" type="text" placeholder="John Doe" className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-cyan-500 font-bold text-white transition-all" />
                                     </div>
                                     <div className="space-y-3">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400 ml-1">Email Address *</label>
+                                        <label className="text-[12px] font-black uppercase tracking-[0.3em] text-cyan-400 ml-1">Email Address *</label>
                                         <input required name="email" type="email" placeholder="john@example.com" className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-cyan-500 font-bold text-white transition-all" />
                                     </div>
                                 </div>
 
                                 <div className="grid md:grid-cols-2 gap-10">
                                     <div className="space-y-3">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400 ml-1">Phone Number (Optional)</label>
+                                        <label className="text-[12px] font-black uppercase tracking-[0.3em] text-cyan-400 ml-1">Phone Number (Optional)</label>
                                         <input name="phone" type="tel" placeholder="+1 (555) 000-0000" className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-cyan-500 font-bold text-white transition-all" />
                                     </div>
                                     <div className="space-y-3">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400 ml-1">Inquiry Type *</label>
+                                        <label className="text-[12px] font-black uppercase tracking-[0.3em] text-cyan-400 ml-1">Inquiry Type *</label>
                                         <select
                                             value={inquiryType}
                                             onChange={(e) => setInquiryType(e.target.value)}
@@ -226,7 +226,7 @@ export default function Contact() {
                                 {inquiryType === 'participation' && (
                                     <div className="p-8 rounded-3xl bg-blue-500/10 border border-blue-500/20 flex flex-col md:flex-row items-center justify-between gap-6 animate-in slide-in-from-top-2">
                                         <p className="text-slate-300 font-bold">Ready to find a study near you?</p>
-                                        <Link to="/trials" className="bg-blue-500 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-white hover:text-slate-950 transition-all flex items-center gap-2">
+                                        <Link to="/trials" className="bg-blue-500 text-white px-8 py-3 rounded-xl font-black text-[12px] uppercase tracking-widest hover:bg-white hover:text-slate-950 transition-all flex items-center gap-2">
                                             Find a clinical study <ArrowRight className="w-4 h-4" />
                                         </Link>
                                     </div>
@@ -234,7 +234,7 @@ export default function Contact() {
 
                                 {(inquiryType === 'business' || inquiryType === 'research' || inquiryType === 'lab' || inquiryType === 'biorepository') && (
                                     <div className="space-y-6 p-8 rounded-3xl bg-cyan-500/5 border border-cyan-500/10 animate-in slide-in-from-top-2">
-                                        <label className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400">Areas of Interest</label>
+                                        <label className="text-[12px] font-black uppercase tracking-[0.3em] text-cyan-400">Areas of Interest</label>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                             {['Research & Innovation', 'Central Laboratory', 'Biorepository'].map((area) => (
                                                 <label key={area} className="flex items-center gap-3 cursor-pointer group">
@@ -242,7 +242,7 @@ export default function Contact() {
                                                         <input type="checkbox" className="absolute inset-0 opacity-0 cursor-pointer peer" />
                                                         <Check className="w-full h-full text-cyan-400 scale-0 peer-checked:scale-100 transition-transform" />
                                                     </div>
-                                                    <span className="text-slate-400 font-bold uppercase text-xs group-hover:text-white transition-colors">{area}</span>
+                                                    <span className="text-slate-400 font-bold uppercase text-[12px] group-hover:text-white transition-colors">{area}</span>
                                                 </label>
                                             ))}
                                         </div>
@@ -250,12 +250,12 @@ export default function Contact() {
                                 )}
 
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400 ml-1">Organization / Company (Optional)</label>
+                                    <label className="text-[12px] font-black uppercase tracking-[0.3em] text-cyan-400 ml-1">Organization / Company (Optional)</label>
                                     <input name="company" type="text" placeholder="Company Name" className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-cyan-500 font-bold text-white transition-all" />
                                 </div>
 
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400 ml-1">Message *</label>
+                                    <label className="text-[12px] font-black uppercase tracking-[0.3em] text-cyan-400 ml-1">Message *</label>
                                     <textarea name="message" required rows={5} placeholder="How can we help your program succeed?" className="w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 outline-none focus:ring-2 focus:ring-cyan-500 font-bold text-white transition-all resize-none"></textarea>
                                 </div>
 
@@ -354,7 +354,7 @@ export default function Contact() {
                             ></iframe>
                             <div className="absolute inset-0 bg-slate-950/20 group-hover:bg-transparent transition-colors z-10"></div>
                             <div className="absolute inset-0 flex items-center justify-center z-20">
-                                <div className="bg-slate-950/80 backdrop-blur-xl px-6 py-4 rounded-2xl border border-white/10 text-white font-black uppercase tracking-widest text-[10px] group-hover:bg-cyan-500 group-hover:text-slate-950 group-hover:border-cyan-400 transition-all">
+                                <div className="bg-slate-950/80 backdrop-blur-xl px-6 py-4 rounded-2xl border border-white/10 text-white font-black uppercase tracking-widest text-[12px] group-hover:bg-cyan-500 group-hover:text-slate-950 group-hover:border-cyan-400 transition-all">
                                     Open Google Maps
                                 </div>
                             </div>
@@ -395,7 +395,7 @@ export default function Contact() {
                         <Link
                             key={link.label}
                             to={link.path}
-                            className="bg-white/5 border border-white/5 px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] text-slate-400 hover:text-white hover:border-white/20 transition-all flex items-center gap-2"
+                            className="bg-white/5 border border-white/5 px-8 py-4 rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] text-slate-400 hover:text-white hover:border-white/20 transition-all flex items-center gap-2"
                         >
                             {link.label} <ChevronRight className="w-4 h-4" />
                         </Link>
@@ -425,3 +425,5 @@ export default function Contact() {
         </div>
     );
 }
+
+

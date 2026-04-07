@@ -197,7 +197,7 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
 
     const S = {
         title: { fontSize: '22px', fontWeight: 900, fontStyle: 'italic' as const, textTransform: 'uppercase' as const, letterSpacing: '-0.02em', color: 'white' },
-        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.4rem 1rem', borderRadius: '4px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
+        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.4rem 1rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
         btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(99, 102, 241, 0.2)' },
         btnGhost: { backgroundColor: 'transparent', color: 'white', border: COLORS.border, padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }
     };
@@ -219,7 +219,7 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
                     </div>
                     <div>
                         <h1 style={S.title}>Informed <span className="text-indigo-400">Consent</span></h1>
-                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] mt-1 italic">Protocol Regulatory & E-Signature Command</p>
+                        <p className="text-[12px] text-slate-500 font-black uppercase tracking-[0.3em] mt-1 italic">Protocol Regulatory & E-Signature Command</p>
                     </div>
                 </div>
                 <div className="flex items-center bg-white/5 p-2 rounded-2xl border border-white/10 w-full md:w-auto">
@@ -230,7 +230,7 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
                         <button 
                             key={tab.id}
                             onClick={() => setActiveView(tab.id)}
-                            className={`flex-1 md:flex-none flex items-center justify-center gap-3 px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeView === tab.id || (activeView === 'signature-setup' && tab.id === 'builder') ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/20' : 'text-slate-400 hover:text-white'}`}
+                            className={`flex-1 md:flex-none flex items-center justify-center gap-3 px-8 py-3 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${activeView === tab.id || (activeView === 'signature-setup' && tab.id === 'builder') ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/20' : 'text-slate-400 hover:text-white'}`}
                         >
                             <tab.icon size={16} /> {tab.label}
                         </button>
@@ -333,7 +333,7 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
             <div className="fixed bottom-10 right-10 z-[200] flex flex-col gap-4">
                 <AnimatePresence>
                     {toasts.map(t => (
-                        <motion.div key={t.id} initial={{ opacity: 0, x: 100 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 100 }} style={{ padding: '1.25rem 2.5rem', backgroundColor: t.type === 'error' ? COLORS.danger : t.type === 'warning' ? COLORS.warning : COLORS.success, color: 'white', borderRadius: '12px', fontWeight: 900, textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.1em', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <motion.div key={t.id} initial={{ opacity: 0, x: 100 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 100 }} style={{ padding: '1.25rem 2.5rem', backgroundColor: t.type === 'error' ? COLORS.danger : t.type === 'warning' ? COLORS.warning : COLORS.success, color: 'white', borderRadius: '12px', fontWeight: 900, textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.1em', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                             {t.type === 'success' ? <CheckCircle2 size={16} /> : <Filter size={16} />}
                             {t.message}
                         </motion.div>
@@ -361,3 +361,5 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
         </div>
     );
 }
+
+

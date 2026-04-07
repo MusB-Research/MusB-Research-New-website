@@ -309,7 +309,7 @@ export default function SponsorDashboard() {
 
       <aside className={`h-full flex-shrink-0 flex-col border-r border-white/[0.05] z-40 transition-transform duration-300 ${isMobile ? (isSidebarOpen ? 'fixed flex w-[260px] left-0 translate-x-0 bg-[#0d1525]/90 shadow-[0_0_50px_rgba(0,0,0,0.5)]' : 'hidden') : 'relative flex w-[260px] translate-x-0'}`} style={{ background: 'rgba(13, 21, 37, 0.8)', backdropFilter: 'blur(12px)' }}>
 
-        <div className="h-20 px-8 flex justify-between items-center border-b border-white/[0.05]">
+        <div className="h-24 px-8 flex justify-between items-center border-b border-white/[0.05]">
           <Link to="/">
             <img src="/logo.jpg" alt="MusB" className="h-14 w-auto object-contain rounded-2xl" />
           </Link>
@@ -342,7 +342,7 @@ export default function SponsorDashboard() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             <p style={{ fontSize: '16px', fontWeight: 900, color: 'white', textTransform: 'uppercase', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</p>
-            <p style={{ fontSize: '10px', fontWeight: 900, color: '#22d3ee', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '4px', margin: 0 }}>Sponsor</p>
+            <p style={{ fontSize: '12px', fontWeight: 900, color: '#22d3ee', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '4px', margin: 0 }}>Sponsor</p>
           </div>
         </div>
 
@@ -395,19 +395,7 @@ export default function SponsorDashboard() {
       {/* MAIN CONTENT AREA */}
       <main style={{ flex: 1, overflowY: 'auto', backgroundColor: 'transparent', position: 'relative', display: 'flex', flexDirection: 'column' }}>
 
-        <header style={{
-          height: '80px',
-          padding: isMobile ? '0 20px' : '0 40px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          position: 'sticky',
-          top: 0,
-          background: 'rgba(10, 14, 26, 0.6)',
-          backdropFilter: THEME.glass,
-          zIndex: 50,
-          borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
-        }}>
+        <header className="fixed top-0 left-0 right-0 h-24 bg-[#0b101b]/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-8 z-50">
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             {isMobile && (
               <button
@@ -419,13 +407,10 @@ export default function SponsorDashboard() {
               </button>
             )}
 
-            <div className="hidden lg:flex items-center gap-4">
-              <div className="w-12 h-12 bg-cyan-500/10 rounded-2xl flex items-center justify-center border border-cyan-500/20 group hover:border-cyan-500/40 transition-all shadow-[0_0_20px_rgba(6,182,212,0.1)]">
-                <Zap size={24} className="text-cyan-400 group-hover:scale-110 transition-transform" />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '9px', fontWeight: 900, color: '#22d3ee', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: '4px', fontStyle: 'italic', opacity: 0.6 }}>Active Mode</span>
-                <span style={{ fontSize: '20px', fontWeight: 900, color: 'white', fontStyle: 'italic', textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 1 }}>{activeModule.replace('_', ' ')}</span>
+            <div className="hidden lg:flex flex-col">
+              <h1 className="text-2xl lg:text-3xl font-black text-white tracking-tighter uppercase italic">SPONSOR COMMAND</h1>
+              <div className="flex items-center gap-2">
+                <span className="text-[12px] font-black uppercase tracking-[0.4em] text-cyan-400 font-mono italic">{activeModule.replace('_', ' ')} NODE</span>
               </div>
             </div>
 
@@ -434,7 +419,7 @@ export default function SponsorDashboard() {
               <span style={{ fontSize: isMobile ? '14px' : '20px', fontWeight: 900, color: '#22d3ee', fontFamily: 'monospace', letterSpacing: '-0.02em', lineHeight: 1 }}>
                 {currentTime.toLocaleTimeString('en-US', { hour12: false })}
               </span>
-              <span style={{ fontSize: '9px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '4px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '4px' }}>
                 {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()}
               </span>
             </div>
@@ -485,7 +470,7 @@ export default function SponsorDashboard() {
               >
                 <div className="hidden sm:flex flex-col items-end">
                   <span className="text-sm font-black text-white italic uppercase tracking-tight leading-none mb-1">{displayName.toUpperCase()}</span>
-                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest bg-white/5 px-2 py-1 rounded border border-white/5">
+                  <span className="text-[12px] text-slate-500 font-bold uppercase tracking-widest bg-white/5 px-2 py-1 rounded border border-white/5">
                     SPONSOR.ADMIN@MUSBRESEARCH.COM
                   </span>
                 </div>
@@ -505,7 +490,7 @@ export default function SponsorDashboard() {
         </header>
 
         {/* MODULE DEPLOYMENT */}
-        <div style={{ flex: 1, padding: isMobile ? '20px' : '40px', overflowY: 'auto' }}>
+        <div style={{ flex: 1, padding: isMobile ? '120px 20px 60px 20px' : '128px 40px 80px 40px', overflowY: 'auto' }}>
           {activeModule === 'DASHBOARD' && (
             <DashboardPanel
               protocols={protocols}
@@ -532,7 +517,7 @@ export default function SponsorDashboard() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           <div style={{ width: '100%', maxWidth: '500px', background: '#1e293b', border: `1px solid ${THEME.border}`, borderRadius: '24px', padding: '32px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', animation: 'fadeIn 0.3s' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <div style={{ padding: '8px 12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', color: '#60a5fa', fontSize: '10px', fontWeight: 900, letterSpacing: '0.1em' }}>{selectedNotification.title?.toUpperCase() || 'SYSTEM ALERT'}</div>
+              <div style={{ padding: '8px 12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', color: '#60a5fa', fontSize: '12px', fontWeight: 900, letterSpacing: '0.1em' }}>{selectedNotification.title?.toUpperCase() || 'SYSTEM ALERT'}</div>
               <button onClick={() => setSelectedNotification(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '24px', cursor: 'pointer' }}>×</button>
             </div>
 
@@ -555,3 +540,4 @@ export default function SponsorDashboard() {
     </div>
   );
 }
+

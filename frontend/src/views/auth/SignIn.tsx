@@ -467,7 +467,7 @@ export default function SignIn() {
                                     <span className="text-cyan-400">{mode === 'LOGIN' ? 'Back' : 'Journey'}</span>
                                 </motion.h1>
                             </AnimatePresence>
-                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center justify-center gap-3">
+                            <p className="text-[12px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center justify-center gap-3">
                                 <span className="w-1.5 h-[1px] bg-cyan-500/30"></span>
                                 {mode === 'LOGIN' ? 'Enter credentials to access MusB' : 'Participant Enrollment'}
                                 <span className="w-1.5 h-[1px] bg-cyan-500/30"></span>
@@ -496,17 +496,17 @@ export default function SignIn() {
 
                                     return (
                                         <div key={s.id} className="flex items-center gap-3 relative">
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all duration-500 z-20 ${isActive ? 'bg-cyan-500 text-slate-900 shadow-[0_0_20px_rgba(6,182,212,0.4)]' :
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-black transition-all duration-500 z-20 ${isActive ? 'bg-cyan-500 text-slate-900 shadow-[0_0_20px_rgba(6,182,212,0.4)]' :
                                                     isCompleted ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40' :
                                                         'bg-slate-900/50 border border-white/5 text-slate-600'
                                                 }`}>
                                                 {idx + 1}
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className={`text-[9px] font-black uppercase tracking-widest ${isActive ? 'text-cyan-400' : 'text-slate-600'}`}>
+                                                <span className={`text-[12px] font-black uppercase tracking-widest ${isActive ? 'text-cyan-400' : 'text-slate-600'}`}>
                                                     {s.label.split(' ')[0]}
                                                 </span>
-                                                <span className={`text-[9px] font-black uppercase tracking-widest ${isActive ? 'text-white' : 'text-slate-700'}`}>
+                                                <span className={`text-[12px] font-black uppercase tracking-widest ${isActive ? 'text-white' : 'text-slate-700'}`}>
                                                     {s.label.split(' ')[1]}
                                                 </span>
                                             </div>
@@ -535,7 +535,7 @@ export default function SignIn() {
                                 exit={{ opacity: 0, height: 0 }}
                                 className="mb-8 overflow-hidden"
                             >
-                                <div className="p-5 rounded-[2rem] bg-red-500/10 border border-red-500/20 flex items-center gap-4 text-red-500 text-xs font-black uppercase tracking-[0.2em] animate-pulse">
+                                <div className="p-5 rounded-[2rem] bg-red-500/10 border border-red-500/20 flex items-center gap-4 text-red-500 text-[12px] font-black uppercase tracking-[0.2em] animate-pulse">
                                     <AlertCircle className="w-5 h-5 flex-shrink-0" />
                                     {error}
                                 </div>
@@ -562,11 +562,11 @@ export default function SignIn() {
                                             </div>
                                             <div>
                                                 <h3 className="text-xl font-black text-white uppercase italic tracking-tighter">Email <span className="text-cyan-400">Sent</span></h3>
-                                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-2 px-8">We've sent a magic reset link to your inbox. Please check your email.</p>
+                                                <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest mt-2 px-8">We've sent a magic reset link to your inbox. Please check your email.</p>
                                             </div>
                                             <button
                                                 onClick={() => setMode('LOGIN')}
-                                                className="text-[10px] font-black uppercase tracking-widest text-cyan-400 hover:text-white transition-colors"
+                                                className="text-[12px] font-black uppercase tracking-widest text-cyan-400 hover:text-white transition-colors"
                                             >
                                                 Back to Login
                                             </button>
@@ -575,10 +575,10 @@ export default function SignIn() {
                                         <>
                                             <div className="space-y-4 text-center">
                                                 <h3 className="text-xl font-black text-white uppercase italic tracking-tighter">Recover <span className="text-cyan-400">Account</span></h3>
-                                                <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest">Enter your email and we'll send you a magic link to reset your password</p>
+                                                <p className="text-[12px] text-slate-600 font-black uppercase tracking-widest">Enter your email and we'll send you a magic link to reset your password</p>
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-6">Email Address</label>
+                                                <label className="text-[12px] font-black uppercase tracking-widest text-slate-500 ml-6">Email Address</label>
                                                 <div className="relative group">
                                                     <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
                                                     <input
@@ -594,7 +594,7 @@ export default function SignIn() {
                                             <button
                                                 type="submit"
                                                 disabled={isLoading}
-                                                className="w-full py-6 bg-cyan-500 text-slate-950 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-1 transition-all shadow-[0_20px_40px_-10px_rgba(6,182,212,0.4)] flex items-center justify-center gap-3 disabled:opacity-50"
+                                                className="w-full py-6 bg-cyan-500 text-slate-950 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-1 transition-all shadow-[0_20px_40px_-10px_rgba(6,182,212,0.4)] flex items-center justify-center gap-3 disabled:opacity-50"
                                             >
                                                 {isLoading ? 'Sending...' : 'Send Magic Link'}
                                                 <ArrowRight className="w-5 h-5" />
@@ -603,7 +603,7 @@ export default function SignIn() {
                                                 <button
                                                     type="button"
                                                     onClick={() => setMode('LOGIN')}
-                                                    className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors"
+                                                    className="text-[12px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors"
                                                 >
                                                     Cancel and return
                                                 </button>
@@ -622,7 +622,7 @@ export default function SignIn() {
                                 >
                                     <div className="space-y-4">
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Email or User ID</label>
+                                            <label className="text-[12px] font-black uppercase tracking-widest text-slate-500 ml-4">Email or User ID</label>
                                             <div className="relative group">
                                                 <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
                                                 <input
@@ -637,7 +637,7 @@ export default function SignIn() {
                                         </div>
  
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-4">Password</label>
+                                            <label className="text-[12px] font-black uppercase tracking-widest text-slate-500 ml-4">Password</label>
                                             <div className="relative group">
                                                 <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
                                                 <input
@@ -664,7 +664,7 @@ export default function SignIn() {
                                         <button
                                             type="button"
                                             onClick={() => { setMode('FORGOT'); setStep('INFO'); setError(null); }}
-                                            className="text-[10px] font-black uppercase tracking-widest text-cyan-400 hover:text-white transition-colors"
+                                            className="text-[12px] font-black uppercase tracking-widest text-cyan-400 hover:text-white transition-colors"
                                         >
                                             Forgot Password?
                                         </button>
@@ -674,7 +674,7 @@ export default function SignIn() {
                                     <button
                                         type="submit"
                                         disabled={isLoading}
-                                        className="w-full py-6 bg-cyan-500 text-slate-950 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-1 transition-all shadow-[0_20px_40px_-10px_rgba(6,182,212,0.4)] active:translate-y-0 flex items-center justify-center gap-3 group disabled:opacity-50"
+                                        className="w-full py-6 bg-cyan-500 text-slate-950 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-1 transition-all shadow-[0_20px_40px_-10px_rgba(6,182,212,0.4)] active:translate-y-0 flex items-center justify-center gap-3 group disabled:opacity-50"
                                     >
                                         {isLoading ? 'Processing...' : 'Sign In'}
                                         <LogIn className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -692,7 +692,7 @@ export default function SignIn() {
                                             className="space-y-6"
                                         >
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-6">Full Name</label>
+                                                <label className="text-[12px] font-black uppercase tracking-widest text-slate-500 ml-6">Full Name</label>
                                                 <div className="relative group">
                                                     <User className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400" />
                                                     <input
@@ -707,7 +707,7 @@ export default function SignIn() {
                                             </div>
 
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-6">Email Address</label>
+                                                <label className="text-[12px] font-black uppercase tracking-widest text-slate-500 ml-6">Email Address</label>
                                                 <div className="relative group">
                                                     <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400" />
                                                     <input
@@ -724,7 +724,7 @@ export default function SignIn() {
                                             <div className="space-y-4">
                                                 <div className="flex items-center gap-2 ml-6">
                                                     <ShieldCheck className="w-3 h-3 text-cyan-400" />
-                                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Human Verification</label>
+                                                    <label className="text-[12px] font-black uppercase tracking-widest text-slate-500">Human Verification</label>
                                                 </div>
                                                 <div className={`py-4 md:py-6 rounded-[2.5rem] bg-slate-950/40 border border-white/5 flex items-center justify-center shadow-inner transition-all overflow-hidden ${isFieldMissing('captcha') ? 'border-red-500/50 animate-error-pulse' : ''}`}>
                                                     <div className="flex items-center justify-center transform scale-[0.85] md:scale-100 origin-center">
@@ -741,7 +741,7 @@ export default function SignIn() {
                                             <button
                                                 type="submit"
                                                 disabled={isLoading}
-                                                className="w-full py-6 bg-cyan-500 text-slate-950 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-1 transition-all shadow-[0_20px_40px_-10px_rgba(6,182,212,0.4)] active:translate-y-0 flex items-center justify-center gap-3 group disabled:opacity-50"
+                                                className="w-full py-6 bg-cyan-500 text-slate-950 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-1 transition-all shadow-[0_20px_40px_-10px_rgba(6,182,212,0.4)] active:translate-y-0 flex items-center justify-center gap-3 group disabled:opacity-50"
                                             >
                                                 {isLoading ? 'Processing...' : 'Send Verification Code'}
                                                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -781,7 +781,7 @@ export default function SignIn() {
                                             <button
                                                 type="submit"
                                                 disabled={isLoading || otp.some(d => !d)}
-                                                className="w-full py-6 bg-cyan-500 text-slate-950 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-1 transition-all shadow-[0_20px_40px_-10px_rgba(6,182,212,0.4)] flex items-center justify-center gap-3"
+                                                className="w-full py-6 bg-cyan-500 text-slate-950 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-1 transition-all shadow-[0_20px_40px_-10px_rgba(6,182,212,0.4)] flex items-center justify-center gap-3"
                                             >
                                                 {isLoading ? 'Verifying...' : 'Verify Identity'}
                                                 <Key className="w-5 h-5" />
@@ -801,7 +801,7 @@ export default function SignIn() {
                                         >
                                             <div className="space-y-6">
                                                 <div className="space-y-2">
-                                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-6">Secure Password</label>
+                                                    <label className="text-[12px] font-black uppercase tracking-widest text-slate-500 ml-6">Secure Password</label>
                                                     <div className="relative group">
                                                         <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400" />
                                                         <input
@@ -827,7 +827,7 @@ export default function SignIn() {
                                                     {/* Strength Indicator */}
                                                     {password && (
                                                         <div className="px-6 space-y-2">
-                                                            <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest">
+                                                            <div className="flex justify-between items-center text-[12px] font-black uppercase tracking-widest">
                                                                 <span className="text-slate-500">Security Strength</span>
                                                                 <span className={passwordStrength.color.replace('bg-', 'text-')}>{passwordStrength.label}</span>
                                                             </div>
@@ -850,7 +850,7 @@ export default function SignIn() {
                                                                 ].map((req, i) => (
                                                                     <div key={i} className="flex items-center gap-2">
                                                                         <div className={`w-1 h-1 rounded-full ${req.met ? 'bg-cyan-500' : 'bg-slate-800'}`}></div>
-                                                                        <span className={`text-[8px] font-bold uppercase tracking-widest ${req.met ? 'text-slate-300' : 'text-slate-600'}`}>{req.label}</span>
+                                                                        <span className={`text-[12px] font-bold uppercase tracking-widest ${req.met ? 'text-slate-300' : 'text-slate-600'}`}>{req.label}</span>
                                                                     </div>
                                                                 ))}
                                                             </div>
@@ -859,7 +859,7 @@ export default function SignIn() {
                                                 </div>
 
                                                 <div className="space-y-2 pt-2">
-                                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-6">Confirm Password</label>
+                                                    <label className="text-[12px] font-black uppercase tracking-widest text-slate-500 ml-6">Confirm Password</label>
                                                     <div className="relative group">
                                                         <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400" />
                                                         <input
@@ -884,7 +884,7 @@ export default function SignIn() {
                                             <button
                                                 type="submit"
                                                 disabled={isLoading}
-                                                className="w-full py-6 bg-cyan-500 text-slate-950 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-1 transition-all shadow-[0_20px_40px_-10px_rgba(6,182,212,0.4)] flex items-center justify-center gap-3"
+                                                className="w-full py-6 bg-cyan-500 text-slate-950 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-1 transition-all shadow-[0_20px_40px_-10px_rgba(6,182,212,0.4)] flex items-center justify-center gap-3"
                                             >
                                                 {isLoading ? 'Finishing...' : 'Complete Registration'}
                                                 <CheckCircle2 className="w-5 h-5" />
@@ -913,7 +913,7 @@ export default function SignIn() {
 
                                             <button
                                                 onClick={() => navigate('/')}
-                                                className="w-full py-6 bg-white text-slate-950 rounded-[3rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-cyan-500 transition-all shadow-2xl"
+                                                className="w-full py-6 bg-white text-slate-950 rounded-[3rem] font-black text-[12px] uppercase tracking-[0.2em] hover:bg-cyan-500 transition-all shadow-2xl"
                                             >
                                                 Enter Dashboard
                                             </button>
@@ -936,7 +936,7 @@ export default function SignIn() {
                                 <div className="absolute inset-0 flex items-center">
                                     <div className="w-full border-t border-white/5"></div>
                                 </div>
-                                <span className="relative px-6 bg-[#0a0f1e] text-[9px] font-black uppercase tracking-[0.4em] text-slate-600">
+                                <span className="relative px-6 bg-[#0a0f1e] text-[12px] font-black uppercase tracking-[0.4em] text-slate-600">
                                     Or Continue With
                                 </span>
                             </div>
@@ -946,7 +946,7 @@ export default function SignIn() {
                                 className="w-full flex justify-center py-2 min-h-[50px]"
                             >
                                 {!import.meta.env.VITE_GOOGLE_CLIENT_ID && (
-                                    <div className="text-[10px] text-red-500/50 font-black uppercase tracking-widest text-center py-2 border border-red-500/20 rounded-xl px-4">
+                                    <div className="text-[12px] text-red-500/50 font-black uppercase tracking-widest text-center py-2 border border-red-500/20 rounded-xl px-4">
                                         Configuration Error: Missing Google Client ID in Environment
                                     </div>
                                 )}
@@ -956,7 +956,7 @@ export default function SignIn() {
 
                     {/* Mode Toggle */}
                     <div className="mt-12 text-center relative z-10">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center justify-center gap-3">
+                        <p className="text-[12px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center justify-center gap-3">
                             {mode === 'LOGIN' ? (
                                 <>Don't have an account? <button onClick={() => { setMode('REGISTER'); setStep('INFO'); }} className="text-cyan-400 hover:text-white transition-all border-b border-cyan-400/30 hover:border-white font-black">Register Now</button></>
                             ) : (
@@ -971,7 +971,7 @@ export default function SignIn() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 1 }}
-                    className="mt-10 flex justify-center gap-10 text-[10px] font-black uppercase tracking-[0.3em] text-slate-700"
+                    className="mt-10 flex justify-center gap-10 text-[12px] font-black uppercase tracking-[0.3em] text-slate-700"
                 >
                     <Link to="#" className="hover:text-cyan-600 transition-colors">Privacy Policy</Link>
                     <Link to="#" className="hover:text-cyan-600 transition-colors">Terms of Service</Link>
@@ -981,3 +981,6 @@ export default function SignIn() {
         </div>
     );
 }
+
+
+

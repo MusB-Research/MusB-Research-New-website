@@ -27,7 +27,7 @@ export const S = {
         overflowX: 'auto' as const, scrollbarWidth: 'none' as const
     },
     tab: (active: boolean) => ({
-        padding: '0.6rem 1.25rem', borderRadius: '100px', fontSize: '11px', fontWeight: 900,
+        padding: '0.6rem 1.25rem', borderRadius: '100px', fontSize: '12px', fontWeight: 900,
         textTransform: 'uppercase' as const, letterSpacing: '0.15em', cursor: 'pointer',
         transition: 'all 0.2s', backgroundColor: active ? COLORS.accent : 'transparent',
         color: active ? 'white' : COLORS.text, border: `1px solid ${active ? COLORS.accent : 'transparent'}`
@@ -37,7 +37,7 @@ export const S = {
         border: `1px solid ${COLORS.border}`, borderRadius: '1rem', padding: '1.5rem'
     },
     label: {
-        fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const,
+        fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const,
         letterSpacing: '0.15em', color: COLORS.label, marginBottom: '0.5rem', display: 'block'
     },
     name: { fontSize: '18px', fontStyle: 'italic', fontWeight: 900, textTransform: 'uppercase' as const, color: 'white' },
@@ -66,7 +66,9 @@ export const S = {
     },
     title: { fontSize: '14px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: '1rem' },
     badge: (color: string) => ({
-        padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '10px', fontWeight: 900 as const,
+        padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900 as const,
         backgroundColor: `${color}20`, color: color, border: `1px solid ${color}40`, textTransform: 'uppercase' as const
     })
 } as Record<string, any>;
+
+

@@ -138,8 +138,8 @@ export const SignatureConfiguration: React.FC<SignatureConfigurationProps> = ({
                         {activeConsent?.placedFields.map((f: any) => (
                             <div key={f.id} style={{ padding: '0.75rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '8px', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: COLORS.border }}>
                                 <div>
-                                    <div style={{ fontSize: '11px', fontWeight: 900, color: 'white' }}>{f.type}</div>
-                                    <div style={{ fontSize: '9px', color: COLORS.label }}>Page {f.page} · {Math.round(f.x)}% x {Math.round(f.y)}%</div>
+                                    <div style={{ fontSize: '12px', fontWeight: 900, color: 'white' }}>{f.type}</div>
+                                    <div style={{ fontSize: '12px', color: COLORS.label }}>Page {f.page} · {Math.round(f.x)}% x {Math.round(f.y)}%</div>
                                 </div>
                                 <button 
                                     style={{ background: 'none', border: 'none', color: COLORS.danger, cursor: 'pointer' }}
@@ -155,3 +155,5 @@ export const SignatureConfiguration: React.FC<SignatureConfigurationProps> = ({
         </div>
     );
 };
+
+

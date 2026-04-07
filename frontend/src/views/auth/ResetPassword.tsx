@@ -91,7 +91,7 @@ const ResetPassword = () => {
                    <h1 className="text-5xl font-black text-white italic uppercase tracking-tighter leading-none mb-4">
                         Reset <span className="text-cyan-400">Credentials</span>
                    </h1>
-                   <div className="flex items-center justify-center gap-4 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+                   <div className="flex items-center justify-center gap-4 text-[12px] font-black uppercase tracking-[0.3em] text-slate-500">
                         <ShieldCheck className="w-3 h-3 text-cyan-500" />
                         SECURE IDENTITY RECOVERY NODE
                         <ShieldCheck className="w-3 h-3 text-cyan-500" />
@@ -113,16 +113,16 @@ const ResetPassword = () => {
                                 </div>
                                 <div className="space-y-4">
                                     <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">Identity <span className="text-emerald-500">Secured</span></h2>
-                                    <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">Your password has been successfully updated in our persistence layers.</p>
+                                    <p className="text-[12px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">Your password has been successfully updated in our persistence layers.</p>
                                 </div>
                                 <div className="pt-8 flex flex-col items-center gap-4">
-                                    <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-[#555a7a]">
+                                    <div className="flex items-center gap-3 text-[12px] font-black uppercase tracking-widest text-[#555a7a]">
                                         <Zap className="w-3 h-3 text-[#7c3aed] animate-pulse" />
                                         Redirecting to Sign-In Interface
                                     </div>
                                     <button 
                                         onClick={() => navigate('/signin')}
-                                        className="text-[11px] font-black uppercase tracking-[0.2em] text-[#7c3aed] hover:text-white transition-colors"
+                                        className="text-[12px] font-black uppercase tracking-[0.2em] text-[#7c3aed] hover:text-white transition-colors"
                                     >
                                         Skip Wait Time
                                     </button>
@@ -137,14 +137,14 @@ const ResetPassword = () => {
                                 className="space-y-8"
                             >
                                 {error && (
-                                    <div className="p-6 rounded-[2rem] bg-red-500/10 border border-red-500/20 flex items-center gap-4 text-red-500 text-[11px] font-black uppercase tracking-widest animate-pulse italic">
+                                    <div className="p-6 rounded-[2rem] bg-red-500/10 border border-red-500/20 flex items-center gap-4 text-red-500 text-[12px] font-black uppercase tracking-widest animate-pulse italic">
                                         <AlertCircle className="w-5 h-5 flex-shrink-0" />
                                         {error}
                                     </div>
                                 )}
 
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 ml-6 italic">Define New Key</label>
+                                    <label className="text-[12px] font-black uppercase tracking-[0.3em] text-slate-500 ml-6 italic">Define New Key</label>
                                     <div className="relative group">
                                         <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
                                         <input
@@ -163,11 +163,11 @@ const ResetPassword = () => {
                                             {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                         </button>
                                     </div>
-                                    <p className="text-[9px] text-slate-600 ml-6 tracking-widest uppercase font-black">Min. 10 characters + alphanumeric complexity</p>
+                                    <p className="text-[12px] text-slate-600 ml-6 tracking-widest uppercase font-black">Min. 10 characters + alphanumeric complexity</p>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 ml-6 italic">Confirm New Key</label>
+                                    <label className="text-[12px] font-black uppercase tracking-[0.3em] text-slate-500 ml-6 italic">Confirm New Key</label>
                                     <div className="relative group">
                                         <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-indigo-400 transition-colors" />
                                         <input
@@ -192,7 +192,7 @@ const ResetPassword = () => {
                                     <button
                                         type="submit"
                                         disabled={isLoading || !token}
-                                        className="w-full py-5 bg-gradient-to-r from-cyan-600 to-indigo-600 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.3em] italic shadow-2xl shadow-indigo-900/40 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
+                                        className="w-full py-5 bg-gradient-to-r from-cyan-600 to-indigo-600 text-white rounded-[1.5rem] font-black text-[12px] uppercase tracking-[0.3em] italic shadow-2xl shadow-indigo-900/40 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
                                     >
                                         <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                                         {isLoading ? 'Encrypting Key...' : 'Secure & Initialize Account'}
@@ -201,7 +201,7 @@ const ResetPassword = () => {
                                     <button
                                         type="button"
                                         onClick={() => navigate('/signin')}
-                                        className="w-full flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest text-[#555a7a] hover:text-white transition-all group"
+                                        className="w-full flex items-center justify-center gap-3 text-[12px] font-black uppercase tracking-widest text-[#555a7a] hover:text-white transition-all group"
                                     >
                                         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                                         Return to Access Terminal
@@ -210,7 +210,7 @@ const ResetPassword = () => {
 
                                 <div className="mt-8 p-6 bg-amber-500/5 border border-amber-500/10 rounded-[2rem] flex items-start gap-4">
                                     <ShieldAlert className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed">
+                                    <p className="text-[12px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed">
                                         Security Warning: Password resets invalidate all active sessions across all devices for your protection.
                                     </p>
                                 </div>
@@ -220,7 +220,7 @@ const ResetPassword = () => {
                 </div>
 
                 {/* Footer Copy */}
-                <div className="text-center mt-12 text-[10px] font-black text-slate-700 uppercase tracking-[0.4em]">
+                <div className="text-center mt-12 text-[12px] font-black text-slate-700 uppercase tracking-[0.4em]">
                     © MMXXVI MusB GLOBAL • SECURE DATA PROTOCOL
                 </div>
             </motion.div>
@@ -229,3 +229,5 @@ const ResetPassword = () => {
 };
 
 export default ResetPassword;
+
+

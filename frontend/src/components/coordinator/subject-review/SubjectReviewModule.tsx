@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { authFetch, API } from '../../../utils/auth';
 import { 
     AlertCircle, Info, ShieldAlert, Bookmark, ArrowLeft, Target 
 } from 'lucide-react';
@@ -85,22 +86,32 @@ const MOCK_PARTICIPANT = {
 // --- COMPONENT ---
 export default function CCC_SubjectReviewModule({ participantId = 'BTB-023', selectedStudyId }: { participantId?: string, selectedStudyId?: string }) {
     // State
-    const [participant, setParticipant] = useState(MOCK_PARTICIPANT);
+    const [participant, setParticipant] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('Overview');
     const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
     const [toasts, setToasts] = useState<{ id: string, type: string, message: string }[]>([]);
     const [confirmModal, setConfirmModal] = useState<{ message: string, type: string, onConfirm: () => void } | null>(null);
     const [screeningNotes, setScreeningNotes] = useState('');
 
-    // Dynamic Data
-    const alerts = useMemo(() => {
-        const list = [];
-        if (participant.compliance < 75) list.push({ id: 'a1', text: `Compliance low: ${participant.compliance}%`, color: COLORS.danger });
-        if (participant.adverseEvents.some(ae => ae.severity === 'Severe')) list.push({ id: 'a2', text: 'Severe AE Reported', color: COLORS.danger });
-        if (participant.exclusions.some(e => e.present)) list.push({ id: 'a3', text: 'Exclusion Criterion Present', color: COLORS.warning });
-        if (participant.labs.some(l => l.status === 'High')) list.push({ id: 'a4', text: 'Abnormal Lab Results', color: COLORS.danger });
-        return list;
-    }, [participant]);
+    const fetchData = useCallback(async () => {
+        try {
+            setLoading(true);
+            const res = await authFetch(`${API}/api/participants/${participantId}/`);
+            if (res.ok) {
+                const data = await res.json();
+                setParticipant(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch participant:", err);
+        } finally {
+            setLoading(false);
+        }
+    }, [participantId]);
+
+    React.useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
     // Helpers
     const addToast = useCallback((message: string, type: string = 'success') => {
@@ -117,20 +128,59 @@ export default function CCC_SubjectReviewModule({ participantId = 'BTB-023', sel
         setAuditLog(prev => [entry, ...prev]);
     }, []);
 
-    const handleAction = (label: string, executor: () => void, modalConfig?: { message: string, type: string }) => {
-        if (modalConfig) {
-            setConfirmModal({
-                message: modalConfig.message,
-                type: modalConfig.type,
-                onConfirm: () => {
-                    executor();
-                    setConfirmModal(null);
-                }
+    const handleReviewDecision = async (decision: string) => {
+        try {
+            const res = await authFetch(`${API}/api/participants/${participantId}/review_eligibility/`, {
+                method: 'POST',
+                body: JSON.stringify({ decision, notes: screeningNotes })
             });
-        } else {
-            executor();
+            if (res.ok) {
+                addToast(`Subject Eligibility: ${decision}`);
+                fetchData();
+            }
+        } catch (err) {
+            console.error("Review failed:", err);
         }
     };
+
+    const handleWithdraw = async (reason: string) => {
+        try {
+            const res = await authFetch(`${API}/api/participants/${participantId}/withdraw/`, {
+                method: 'POST',
+                body: JSON.stringify({ reason })
+            });
+            if (res.ok) {
+                addToast('Subject Withdrawn', 'error');
+                fetchData();
+            }
+        } catch (err) {
+             console.error("Withdrawal failed:", err);
+        }
+    };
+
+    const handleToggleFlag = async () => {
+        try {
+            const res = await authFetch(`${API}/api/participants/${participantId}/toggle_flag/`, {
+                method: 'POST'
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                addToast(updated.is_flagged ? 'Subject Flagged' : 'Flag Cleared', 'warning');
+                fetchData();
+            }
+        } catch (err) {
+            console.error("Flag toggle failed:", err);
+        }
+    };
+
+    if (loading || !participant) return (
+        <div style={{ ...S.panel, justifyContent: 'center', alignItems: 'center' }}>
+            <Target size={48} className="animate-pulse text-indigo-500 mb-6" />
+            <h1 style={{ fontSize: '24px', fontWeight: 900, textTransform: 'uppercase', fontStyle: 'italic', letterSpacing: '0.05em' }}>Loading Clinical Profile...</h1>
+        </div>
+    );
+
+    const alerts: any[] = []; // In a real app, derive from participant.ae_reports etc.
 
     return (
         <div style={S.panel}>
@@ -145,43 +195,35 @@ export default function CCC_SubjectReviewModule({ participantId = 'BTB-023', sel
                         <ArrowLeft size={20} />
                     </button>
                     <div>
-                        <div style={{ ...S.name, fontSize: '24px' }}>{participantId} <span style={{ color: COLORS.text, fontWeight: 'normal', fontSize: '16px' }}>| {participant.study}</span></div>
+                        <div style={{ ...S.name, fontSize: '24px' }}>{participant.participant_sid} <span style={{ color: COLORS.text, fontWeight: 'normal', fontSize: '16px' }}>| {participant.study_name}</span></div>
                         <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.6rem', alignItems: 'center' }}>
-                             <span style={{ fontSize: '11px', fontWeight: 900, color: COLORS.success, backgroundColor: `${COLORS.success}15`, padding: '0.25rem 0.6rem', borderRadius: '4px', border: `1px solid ${COLORS.success}30` }}>
+                             <span style={{ fontSize: '12px', fontWeight: 900, color: COLORS.success, backgroundColor: `${COLORS.success}15`, padding: '0.25rem 0.6rem', borderRadius: '4px', border: `1px solid ${COLORS.success}30` }}>
                                  {participant.status.toUpperCase()} SUBJECT
                              </span>
-                             <span style={{ fontSize: '11px', color: COLORS.info, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                 <Target size={12} /> {participant.arm} Arm
+                             <span style={{ fontSize: '12px', color: COLORS.info, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                 <Target size={12} /> {participant.assigned_arm || 'Discovery'} Arm
                              </span>
                         </div>
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: '1.25rem' }}>
-                    <button style={S.btnGhost} onClick={() => {
-                        setParticipant(p => ({ ...p, flagged: !p.flagged }));
-                        addToast(participant.flagged ? 'Protocol Flag Cleared' : 'Subject Flagged for Review', 'warning');
-                        logAction('Flag Toggled', participant.flagged ? 'Coordinator cleared the protocol flag.' : 'Coordinator flagged subject for secondary review.');
-                    }}>
-                        <Bookmark size={16} fill={participant.flagged ? COLORS.warning : 'none'} color={participant.flagged ? COLORS.warning : COLORS.text} style={{ marginRight: '8px' }} /> 
-                        {participant.flagged ? 'FLAGGED' : 'FLAG'}
+                    <button style={S.btnGhost} onClick={handleToggleFlag}>
+                        <Bookmark size={16} fill={participant.is_flagged ? COLORS.warning : 'none'} color={participant.is_flagged ? COLORS.warning : COLORS.text} style={{ marginRight: '8px' }} /> 
+                        {participant.is_flagged ? 'FLAGGED' : 'FLAG'}
                     </button>
-                    <button style={{ ...S.btnPrimary, backgroundColor: COLORS.success }} onClick={() => handleAction('Approve', () => {
-                        setParticipant(p => ({ ...p, eligibility: 'Approved' }));
-                        addToast('Subject Status Validated');
-                        logAction('Subject Validated', 'Coordinator finalized clinical review and approved participant.');
-                    })}>Approve</button>
-                    <button style={{ ...S.btnPrimary, backgroundColor: COLORS.danger }} onClick={() => handleAction('Withdraw', () => {
-                        setParticipant(p => ({ ...p, status: 'Withdrawn' }));
-                        addToast('Subject Withdrawn', 'error');
-                        logAction('Subject Withdrawn', 'Critical Action: Coordinator terminated subject participation.');
-                    }, { message: "Terminate participation for BTB-023 immediately?", type: 'danger' })}>Withdraw</button>
+                    <button style={{ ...S.btnPrimary, backgroundColor: COLORS.success }} onClick={() => handleReviewDecision('ELIGIBLE')}>Approve</button>
+                    <button style={{ ...S.btnPrimary, backgroundColor: COLORS.danger }} onClick={() => setConfirmModal({
+                        message: `Terminate participation for ${participant.participant_sid} immediately?`,
+                        type: 'danger',
+                        onConfirm: () => handleWithdraw('PI decision during subject review.')
+                    })}>Withdraw</button>
                 </div>
             </header>
 
             {/* TAB BAR */}
             <div style={S.tabBar}>
                 {['Overview', 'Eligibility', 'Medical History', 'Consent', 'Visits', 'Outcomes', 'Safety', 'Labs', 'Documents', 'Notes', 'Audit Trail'].map(tab => {
-                    const hasAlert = (tab === 'Safety' && participant.adverseEvents.length > 0) || (tab === 'Labs' && alerts.length > 0);
+                    const hasAlert = (tab === 'Safety' && participant.ae_reports?.length > 0) || (tab === 'Labs' && participant.lab_results?.some((l: any) => l.status === 'High'));
                     return (
                         <div key={tab} style={{ position: 'relative' }}>
                             <button onClick={() => setActiveTab(tab)} style={S.tab(activeTab === tab)}>{tab}</button>
@@ -206,7 +248,7 @@ export default function CCC_SubjectReviewModule({ participantId = 'BTB-023', sel
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', color: COLORS.label }}>
                             <AlertCircle size={64} style={{ opacity: 0.1, marginBottom: '2rem' }} />
                             <div style={{ fontSize: '20px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' }}>{activeTab} Feed Active</div>
-                            <div style={{ fontSize: '12px', marginTop: '1rem' }}>Streaming clinical parameters for {participant.id}...</div>
+                            <div style={{ fontSize: '14px', marginTop: '1rem' }}>Streaming clinical parameters for {participant.participant_sid}...</div>
                         </div>
                     )}
                 </main>
@@ -254,5 +296,8 @@ export default function CCC_SubjectReviewModule({ participantId = 'BTB-023', sel
         </div>
     );
 }
+
+
+
 
 

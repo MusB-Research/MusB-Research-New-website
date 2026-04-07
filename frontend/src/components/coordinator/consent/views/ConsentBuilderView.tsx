@@ -27,7 +27,7 @@ interface BuilderProps {
 }
 
 const S = {
-    badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.4rem 1rem', borderRadius: '4px', fontSize: '11px', fontWeight: 900 as const, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
+    badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.4rem 1rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900 as const, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
     title: { fontSize: '22px', fontWeight: 900 as const, fontStyle: 'italic' as const, textTransform: 'uppercase' as const, letterSpacing: '-0.02em', color: 'white' },
     label: { fontSize: '12px', fontWeight: 900 as const, textTransform: 'uppercase' as const, letterSpacing: '0.15em', color: COLORS.text, opacity: 0.6 },
     btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900 as const, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(99, 102, 241, 0.2)' },
@@ -59,7 +59,7 @@ export const ConsentBuilderView: React.FC<BuilderProps> = (props) => {
                                 <span style={{ ...S.title, fontSize: '13px' }}>{c.title}</span>
                                 <span style={S.badge(COLORS.accent)}>{c.version}</span>
                             </div>
-                            <div style={{ fontSize: '11px', color: COLORS.label, marginBottom: '1rem' }}>{c.study}</div>
+                            <div style={{ fontSize: '12px', color: COLORS.label, marginBottom: '1rem' }}>{c.study}</div>
                             <div style={S.badge(c.status === 'Active' ? COLORS.success : c.status === 'Draft' ? COLORS.label : COLORS.warning)}>{c.status}</div>
                         </div>
                     ))}
@@ -156,3 +156,5 @@ export const ConsentBuilderView: React.FC<BuilderProps> = (props) => {
         </div>
     );
 };
+
+

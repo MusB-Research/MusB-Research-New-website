@@ -27,31 +27,31 @@ export const TicketChat: React.FC<TicketChatProps> = ({
                         <MessageCircle className="w-5 h-5" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-black text-white italic uppercase tracking-wider">{selectedTicket.title}</h3>
-                        <p className="text-[9px] text-indigo-400 font-black uppercase tracking-widest mt-1">
+                        <h3 className="text-[15px] font-black text-white italic uppercase tracking-wider">{selectedTicket.title}</h3>
+                        <p className="text-[12px] text-indigo-400 font-black uppercase tracking-widest mt-1 italic">
                             {selectedTicket.category} Incident Hub • Participant #{selectedTicket.participantId || 'N/A'}
                         </p>
                     </div>
                 </div>
-                <button className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center gap-2">
+                <button className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[12px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center gap-2">
                     <History className="w-4 h-4" /> Audit Log
                 </button>
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-8 scroll-smooth">
-                {selectedTicket.messages.map((m, i) => (
+                 {selectedTicket.messages.map((m, i) => (
                     <div key={m.id} className={`flex flex-col ${m.role === 'Principal Investigator' || m.role === 'Coordinator' ? 'items-end' : 'items-start'}`}>
-                        <div className="flex items-center gap-3 mb-2 px-1">
-                            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest italic">{m.sender}</span>
-                            <span className="text-[8px] font-black text-slate-800 uppercase italic">{m.role}</span>
-                            <span className="text-[7px] text-slate-900 font-mono tracking-tighter">{m.timestamp}</span>
-                        </div>
                         <div className={`p-6 rounded-[2rem] max-w-[80%] border ${
                             m.role === 'Principal Investigator' || m.role === 'Coordinator'
-                                ? 'bg-indigo-600 text-white border-indigo-500 shadow-xl shadow-indigo-600/10 rounded-tr-none' 
-                                : 'bg-white/5 text-slate-300 border-white/10 rounded-tl-none'
+                                ? 'bg-indigo-600 text-white border-indigo-500 shadow-xl shadow-indigo-600/10 rounded-br-none' 
+                                : 'bg-white/5 text-slate-300 border-white/10 rounded-bl-none'
                         }`}>
-                            <p className="text-sm font-black leading-relaxed uppercase tracking-tight italic">{m.content}</p>
+                            <p className="text-[13px] font-black leading-relaxed uppercase tracking-tight italic">{m.content}</p>
+                        </div>
+                        <div className={`flex items-center gap-3 mt-3 px-2 ${m.role === 'Principal Investigator' || m.role === 'Coordinator' ? 'flex-row-reverse' : ''}`}>
+                            <span className="text-[12px] font-black text-slate-600 uppercase tracking-widest italic">{m.sender}</span>
+                            <span className="text-[12px] font-black text-slate-800 uppercase italic tracking-widest">{m.role}</span>
+                            <span className="text-[12px] text-slate-500 font-mono tracking-tighter">{m.timestamp}</span>
                         </div>
                     </div>
                 ))}
@@ -59,11 +59,11 @@ export const TicketChat: React.FC<TicketChatProps> = ({
 
             <div className="p-8 bg-white/[0.01] border-t border-white/5">
                 <div className="bg-[#0B101B] border border-white/10 rounded-[2.5rem] p-4 flex flex-col gap-4 focus-within:border-indigo-500/50 transition-all">
-                    <textarea 
+                     <textarea 
                         placeholder="Type your strategic response..." 
                         value={messageInput}
                         onChange={(e) => setMessageInput(e.target.value)}
-                        className="w-full bg-transparent p-4 text-sm text-white placeholder-slate-800 outline-none resize-none font-black uppercase tracking-tight h-24"
+                        className="w-full bg-transparent p-4 text-[13px] text-white placeholder-slate-800 outline-none resize-none font-black uppercase tracking-tight h-24"
                     />
                     <div className="flex items-center justify-between pt-4 border-t border-white/5">
                         <div className="flex gap-2 relative">
@@ -89,10 +89,10 @@ export const TicketChat: React.FC<TicketChatProps> = ({
                         </div>
 
                         <div className="flex gap-4">
-                            <button className="px-6 py-3 text-[9px] font-black text-slate-700 uppercase tracking-widest hover:text-white transition-colors">Clear</button>
-                            <button 
+                            <button className="px-6 py-3 text-[12px] font-black text-slate-700 uppercase tracking-widest hover:text-white transition-colors">Clear</button>
+                             <button 
                                 onClick={handleSendMessage}
-                                className="px-8 py-3 bg-indigo-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-xl shadow-indigo-900/40 hover:scale-105 transition-all flex items-center gap-2"
+                                className="px-8 py-3 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest shadow-xl shadow-indigo-900/40 hover:scale-105 transition-all flex items-center gap-2"
                             >
                                 Send Response <Send className="w-4 h-4" />
                             </button>
@@ -103,3 +103,5 @@ export const TicketChat: React.FC<TicketChatProps> = ({
         </div>
     );
 };
+
+

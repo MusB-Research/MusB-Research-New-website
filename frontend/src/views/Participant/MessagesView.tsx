@@ -159,7 +159,7 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
                         <input 
                             type="text" 
                             placeholder="Search Conversations..."
-                            className="w-full bg-white/5 border border-white/5 rounded-2xl py-3 pl-11 pr-4 text-white text-[11px] font-black uppercase tracking-widest outline-none focus:border-cyan-500/50 transition-all"
+                            className="w-full bg-white/5 border border-white/5 rounded-2xl py-3 pl-11 pr-4 text-white text-[12px] font-black uppercase tracking-widest outline-none focus:border-cyan-500/50 transition-all"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -185,24 +185,24 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
                                 <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 text-slate-500 group-hover:text-cyan-400 transition-colors">
                                     <User className="w-6 h-6" />
                                 </div>
-                                <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{thread.timestamp}</span>
+                                <span className="text-[12px] font-black text-slate-600 uppercase tracking-widest">{thread.timestamp}</span>
                             </div>
                             <h4 className={`text-[13px] font-black uppercase tracking-tight mb-1 truncate ${selectedThreadId === thread.id ? 'text-white italic' : 'text-slate-400'}`}>
                                 {thread.title}
                             </h4>
-                            <p className="text-[11px] font-bold text-slate-600 line-clamp-2 leading-relaxed uppercase tracking-widest group-hover:text-slate-400 transition-colors">
+                            <p className="text-[12px] font-bold text-slate-600 line-clamp-2 leading-relaxed uppercase tracking-widest group-hover:text-slate-400 transition-colors">
                                 {thread.last_message}
                             </p>
                             <div className="flex items-center justify-between mt-4">
                                 <div className="flex gap-2">
                                     {thread.is_urgent && <Badge color="red">URGENT</Badge>}
                                     {thread.unread_count > 0 && (
-                                        <span className="bg-cyan-500 text-slate-950 text-[11px] font-black px-2 py-0.5 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+                                        <span className="bg-cyan-500 text-slate-950 text-[12px] font-black px-2 py-0.5 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.4)]">
                                             {thread.unread_count}
                                         </span>
                                     )}
                                 </div>
-                                <span className="text-[9px] font-black text-slate-700 uppercase tracking-widest">{thread.status}</span>
+                                <span className="text-[12px] font-black text-slate-700 uppercase tracking-widest">{thread.status}</span>
                             </div>
                         </motion.div>
                     ))}
@@ -223,9 +223,9 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
                         <div>
                             <h4 className="text-[17px] font-black text-white italic uppercase tracking-tighter leading-none">{activeThread?.title}</h4>
                             <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">{activeThread?.staff_name}</span>
+                                <span className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">{activeThread?.staff_name}</span>
                                 <div className="w-1 h-1 rounded-full bg-slate-700" />
-                                <span className="text-[11px] font-black text-cyan-400 uppercase tracking-[0.2em] italic">{activeThread?.staff_role}</span>
+                                <span className="text-[12px] font-black text-cyan-400 uppercase tracking-[0.2em] italic">{activeThread?.staff_role}</span>
                             </div>
                         </div>
                     </div>
@@ -239,8 +239,8 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
                     {messages.map((msg, i) => (
                         <div key={msg.id} className={`flex flex-col ${msg.is_from_me ? 'items-end' : 'items-start'}`}>
                             <div className="flex items-center gap-3 mb-2 px-2">
-                                {!msg.is_from_me && <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest italic">{msg.sender_name}</span>}
-                                <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{msg.timestamp}</span>
+                                {!msg.is_from_me && <span className="text-[12px] font-black text-cyan-400 uppercase tracking-widest italic">{msg.sender_name}</span>}
+                                <span className="text-[12px] font-black text-slate-600 uppercase tracking-widest">{msg.timestamp}</span>
                             </div>
                             <div className="group relative max-w-[85%]">
                                 <div className={`p-6 rounded-[2rem] text-[13px] font-bold leading-relaxed transition-all shadow-xl ${
@@ -250,7 +250,7 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
                                 } ${msg.tag === 'URGENT' ? 'border-red-500/50 border-2' : ''}`}>
                                     {msg.text}
                                     {msg.tag && (
-                                        <div className={`mt-4 pt-3 border-t text-[11px] font-black uppercase tracking-widest flex items-center gap-2 ${msg.is_from_me ? 'border-black/10' : 'border-white/5'}`}>
+                                        <div className={`mt-4 pt-3 border-t text-[12px] font-black uppercase tracking-widest flex items-center gap-2 ${msg.is_from_me ? 'border-black/10' : 'border-white/5'}`}>
                                             <AlertTriangle className={`w-3 h-3 ${msg.tag === 'URGENT' ? 'text-red-500' : 'text-amber-500'}`} />
                                             {msg.tag}
                                         </div>
@@ -259,7 +259,7 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
                                 {msg.is_from_me && (
                                     <div className="flex items-center gap-1 mt-2 px-4">
                                         <CheckCheck className="w-3 h-3 text-cyan-400" />
-                                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">MESSAGE READ</span>
+                                        <span className="text-[12px] font-black text-slate-600 uppercase tracking-widest">MESSAGE READ</span>
                                     </div>
                                 )}
                             </div>
@@ -282,7 +282,7 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
 
                                 <button 
                                     onClick={() => setIsUrgentMode(!isUrgentMode)}
-                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all border ${
+                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all border ${
                                         isUrgentMode ? 'bg-red-500 text-white border-red-400 shadow-[0_0_20px_rgba(239,68,68,0.35)]' : 'bg-white/5 text-slate-500 border-white/5 hover:border-white/10'
                                     }`}
                                 >
@@ -315,3 +315,5 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
 };
 
 export default MessagesView;
+
+

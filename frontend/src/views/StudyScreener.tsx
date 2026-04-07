@@ -470,7 +470,7 @@ export default function StudyScreener() {
                                                                     <div key={i} className="space-y-4">
                                                                         <label className={`text-sm font-black uppercase tracking-widest transition-colors flex items-center gap-3 ${isMissing ? 'text-red-500' : 'text-slate-300'}`}>
                                                                             {q.label}
-                                                                            {q.required && <span className="text-cyan-500 text-[10px]">*</span>}
+                                                                            {q.required && <span className="text-cyan-500 text-[12px]">*</span>}
                                                                         </label>
                                                                         
                                                                         {(type === 'text' || type === 'file') && (
@@ -498,7 +498,7 @@ export default function StudyScreener() {
                                                                                     <button
                                                                                         key={opt}
                                                                                         onClick={() => setFormData({ ...formData, [fieldId]: opt })}
-                                                                                        className={`flex-1 py-5 rounded-2xl border text-xs font-black uppercase tracking-widest transition-all ${formData[fieldId] === opt ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-white/5 border-white/10 text-slate-500 hover:border-white/30'}`}
+                                                                                        className={`flex-1 py-5 rounded-2xl border text-[12px] font-black uppercase tracking-widest transition-all ${formData[fieldId] === opt ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-white/5 border-white/10 text-slate-500 hover:border-white/30'}`}
                                                                                     >
                                                                                         {opt}
                                                                                     </button>
@@ -512,7 +512,7 @@ export default function StudyScreener() {
                                                                                     <button
                                                                                         key={opt}
                                                                                         onClick={() => setFormData({ ...formData, [fieldId]: opt })}
-                                                                                        className={`w-full p-5 rounded-2xl border text-left text-xs font-black uppercase tracking-widest transition-all ${formData[fieldId] === opt ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-400' : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'}`}
+                                                                                        className={`w-full p-5 rounded-2xl border text-left text-[12px] font-black uppercase tracking-widest transition-all ${formData[fieldId] === opt ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-400' : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'}`}
                                                                                     >
                                                                                         {opt}
                                                                                     </button>
@@ -527,7 +527,7 @@ export default function StudyScreener() {
                                                 ) : (
                                                     <>
                                                         <div className="space-y-4">
-                                                            <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 italic">Major Exclusion Check</h4>
+                                                            <h4 className="text-[12px] font-black uppercase tracking-widest text-slate-500 italic">Major Exclusion Check</h4>
                                                     <div className="space-y-4">
                                                         <p className={`text-sm font-bold transition-colors ${isFieldMissing('trialsInLast30Days') ? 'text-red-500' : 'text-slate-400'}`}>Have you participated in any other clinical trial in the last 30 days?</p>
                                                         <div className="flex gap-4">
@@ -535,7 +535,7 @@ export default function StudyScreener() {
                                                                 <button
                                                                     key={opt}
                                                                     onClick={() => setFormData({ ...formData, trialsInLast30Days: opt })}
-                                                                    className={`flex-1 py-5 rounded-xl border text-xs font-black uppercase tracking-widest transition-all ${formData.trialsInLast30Days === opt ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-white/5 border-white/10 text-slate-500 hover:bg-white/10'}`}
+                                                                    className={`flex-1 py-5 rounded-xl border text-[12px] font-black uppercase tracking-widest transition-all ${formData.trialsInLast30Days === opt ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-white/5 border-white/10 text-slate-500 hover:bg-white/10'}`}
                                                                 >
                                                                     {opt}
                                                                 </button>
@@ -593,7 +593,7 @@ export default function StudyScreener() {
                                                                             >
                                                                                 <div className="ml-9 p-5 bg-white/5 border border-white/5 rounded-2xl space-y-4">
                                                                                     <div className="space-y-2">
-                                                                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">How long have you had this condition?</label>
+                                                                                        <label className="text-[12px] font-black uppercase tracking-widest text-slate-500">How long have you had this condition?</label>
                                                                                         <select
                                                                                             value={conditionDetails[condition]?.managed || ''}
                                                                                             onChange={(e) => setConditionDetails(prev => ({ ...prev, [condition]: { ...prev[condition], managed: e.target.value } }))}
@@ -606,13 +606,13 @@ export default function StudyScreener() {
                                                                                         </select>
                                                                                     </div>
                                                                                     <div className="space-y-2">
-                                                                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Severity Level</label>
+                                                                                        <label className="text-[12px] font-black uppercase tracking-widest text-slate-500">Severity Level</label>
                                                                                         <div className="flex gap-2">
                                                                                             {['Mild', 'Moderate', 'Severe'].map(sev => (
                                                                                                 <button
                                                                                                     key={sev}
                                                                                                     onClick={() => setConditionDetails(prev => ({ ...prev, [condition]: { ...prev[condition], severity: sev } }))}
-                                                                                                    className={`flex-1 py-3 rounded-lg border text-[10px] font-black uppercase tracking-widest transition-all ${conditionDetails[condition]?.severity === sev ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-white/5 border-white/5 text-slate-500 hover:text-white'}`}
+                                                                                                    className={`flex-1 py-3 rounded-lg border text-[12px] font-black uppercase tracking-widest transition-all ${conditionDetails[condition]?.severity === sev ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-white/5 border-white/5 text-slate-500 hover:text-white'}`}
                                                                                                 >
                                                                                                     {sev}
                                                                                                 </button>
@@ -694,7 +694,7 @@ export default function StudyScreener() {
                                                             />
                                                             <div className="space-y-1">
                                                                 <span className={`text-sm font-black uppercase tracking-widest transition-colors ${isFieldMissing('cvConsent') ? 'text-red-500' : 'text-slate-300'}`}>Consent to Contact</span>
-                                                                <p className="text-xs text-slate-500 leading-relaxed">
+                                                                <p className="text-[12px] text-slate-500 leading-relaxed">
                                                                     By checking this box, I agree that the research team may contact me via email or phone regarding my eligibility and potential study participation.
                                                                 </p>
                                                             </div>
@@ -714,7 +714,7 @@ export default function StudyScreener() {
                                         exit={{ opacity: 0, height: 0 }}
                                         className="mb-6 overflow-hidden"
                                     >
-                                        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex items-center gap-3 text-red-500 text-xs font-bold uppercase tracking-widest animate-pulse">
+                                        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex items-center gap-3 text-red-500 text-[12px] font-bold uppercase tracking-widest animate-pulse">
                                             <AlertCircle className="w-4 h-4" />
                                             {error}
                                         </div>
@@ -726,21 +726,21 @@ export default function StudyScreener() {
                             <div className="flex items-center justify-between pt-8 border-t border-white/5">
                                 <button
                                     onClick={() => { setError(null); handleBack(); }}
-                                    className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${ step === 'STEP1' ? 'opacity-0 pointer-events-none' : 'text-slate-500 hover:text-white'}`}
+                                    className={`flex items-center gap-2 text-[12px] font-black uppercase tracking-[0.2em] transition-all ${ step === 'STEP1' ? 'opacity-0 pointer-events-none' : 'text-slate-500 hover:text-white'}`}
                                 >
                                     <ChevronLeft className="w-4 h-4" /> BACK
                                 </button>
                                 <button
                                     onClick={handleNext}
                                     disabled={isLoading}
-                                    className="px-10 py-4 bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-300 rounded-xl font-black text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 shadow-2xl group active:scale-95"
+                                    className="px-10 py-4 bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-300 rounded-xl font-black text-[12px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 shadow-2xl group active:scale-95"
                                 >
                                     {isLoading ? 'PROCESSING...' : ((step === 'STEP3' || (step === 'STEP2' && isExistingParticipant)) ? 'CHECK RESULT' : 'NEXT')}
                                     {!isLoading && <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
                                 </button>
                             </div>
 
-                            <div className="mt-8 flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest text-slate-600">
+                            <div className="mt-8 flex items-center justify-center gap-2 text-[12px] font-black uppercase tracking-widest text-slate-600">
                                 <ShieldCheck className="w-3.5 h-3.5" /> Secure HIPAA-Compliant Screening
                             </div>
                         </motion.div>
@@ -808,7 +808,7 @@ export default function StudyScreener() {
                                             <Calendar className="w-5 h-5 text-cyan-400" /> Schedule Call Now
                                         </button>
                                     </div>
-                                    <Link to="/trials" className="block text-cyan-400 font-bold text-xs uppercase tracking-widest hover:text-white transition-colors">
+                                    <Link to="/trials" className="block text-cyan-400 font-bold text-[12px] uppercase tracking-widest hover:text-white transition-colors">
                                         Browse Other Studies
                                     </Link>
                                 </div>
@@ -840,10 +840,10 @@ export default function StudyScreener() {
                             )}
 
                             <div className="pt-8 border-t border-white/5 grid grid-cols-2 gap-4">
-                                <div className="flex items-center gap-2 text-xs font-black tracking-widest text-slate-600 uppercase">
+                                <div className="flex items-center gap-2 text-[12px] font-black tracking-widest text-slate-600 uppercase">
                                     <Mail className="w-4 h-4 text-cyan-500" /> info@musbresearch.com
                                 </div>
-                                <div className="flex items-center gap-2 text-xs font-black tracking-widest text-slate-600 uppercase justify-end">
+                                <div className="flex items-center gap-2 text-[12px] font-black tracking-widest text-slate-600 uppercase justify-end">
                                     <Phone className="w-4 h-4 text-cyan-500" /> (813) 555-0123
                                 </div>
                             </div>
@@ -854,3 +854,5 @@ export default function StudyScreener() {
         </div>
     );
 }
+
+

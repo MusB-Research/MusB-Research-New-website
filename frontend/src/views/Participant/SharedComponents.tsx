@@ -265,3 +265,5 @@ export const LogoutConfirmationModal = ({ isOpen, onClose, onConfirm }: any) => 
         </div>
     );
 };
+
+

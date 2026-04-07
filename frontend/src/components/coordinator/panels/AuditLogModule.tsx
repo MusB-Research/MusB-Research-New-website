@@ -68,10 +68,10 @@ export default function AuditLogModule({ selectedStudyId }: { selectedStudyId?: 
                     <p className="text-[13px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">21 CFR Part 11 Compliant Digital Ledger</p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <button className="px-6 py-3.5 bg-white/5 border border-white/10 text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:text-white transition-all flex items-center gap-2">
-                        <Terminal className="w-4 h-4" /> View Rawlings
+                    <button className="px-6 py-3.5 bg-white/5 border border-white/10 text-slate-400 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:text-white transition-all flex items-center gap-2">
+                        <Terminal className="w-4 h-4" /> View Rawls
                     </button>
-                    <button className="px-8 py-3.5 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.03] transition-all shadow-xl shadow-indigo-600/30 flex items-center gap-3">
+                    <button className="px-8 py-3.5 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.03] transition-all shadow-xl shadow-indigo-600/30 flex items-center gap-3">
                         Generate PDF Export <Download className="w-5 h-5" />
                     </button>
                 </div>
@@ -84,7 +84,7 @@ export default function AuditLogModule({ selectedStudyId }: { selectedStudyId?: 
                         <button
                             key={cat}
                             onClick={() => setActiveCategory(cat)}
-                            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                            className={`px-6 py-2.5 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${
                                 activeCategory === cat ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'
                             }`}
                         >
@@ -99,7 +99,7 @@ export default function AuditLogModule({ selectedStudyId }: { selectedStudyId?: 
                         placeholder="Search Trace Log..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3 text-xs text-white font-bold outline-none focus:border-indigo-500/50 transition-all w-72 uppercase tracking-widest font-mono placeholder:text-slate-700"
+                        className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3 text-[12px] text-white font-bold outline-none focus:border-indigo-500/50 transition-all w-72 uppercase tracking-widest font-mono placeholder:text-slate-700"
                     />
                 </div>
             </div>
@@ -117,8 +117,8 @@ export default function AuditLogModule({ selectedStudyId }: { selectedStudyId?: 
                                 <HistoryIcon className="w-6 h-6" />
                             </div>
                             <div>
-                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest italic">{log.timestamp}</p>
-                                <div className={`inline-flex px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest mt-1 border ${getCategoryStyle(log.category)}`}>
+                                <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest italic">{log.timestamp}</p>
+                                <div className={`inline-flex px-2 py-0.5 rounded-md text-[12px] font-black uppercase tracking-widest mt-1 border ${getCategoryStyle(log.category)}`}>
                                     {log.category}
                                 </div>
                             </div>
@@ -129,13 +129,13 @@ export default function AuditLogModule({ selectedStudyId }: { selectedStudyId?: 
                                 {log.action}
                                 <span className="opacity-0 group-hover:opacity-100 transition-opacity"><ShieldCheck className="w-4 h-4 text-emerald-400" /></span>
                             </h4>
-                            <p className="text-xs text-slate-500 font-bold uppercase tracking-tight italic leading-relaxed">{log.details}</p>
+                            <p className="text-[12px] text-slate-500 font-bold uppercase tracking-tight italic leading-relaxed">{log.details}</p>
                         </div>
 
                         <div className="lg:col-span-1 flex items-center justify-end gap-10">
                             <div className="text-right">
                                 <p className="text-[13px] text-white font-black uppercase tracking-widest">{log.user}</p>
-                                <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">{log.role}</p>
+                                <p className="text-[12px] text-slate-600 font-black uppercase tracking-widest">{log.role}</p>
                             </div>
                             <button className="p-3 bg-white/5 border border-white/5 rounded-xl text-slate-600 hover:text-white transition-all"><Eye className="w-5 h-5" /></button>
                         </div>
@@ -161,9 +161,11 @@ export default function AuditLogModule({ selectedStudyId }: { selectedStudyId?: 
                     </div>
                 </div>
                 <div className="flex gap-4">
-                    <button className="px-8 py-4 bg-white/5 border border-white/10 text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:text-white transition-all">Verify Chain</button>
+                    <button className="px-8 py-4 bg-white/5 border border-white/10 text-slate-400 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:text-white transition-all">Verify Chain</button>
                 </div>
             </div>
         </motion.div>
     );
 }
+
+

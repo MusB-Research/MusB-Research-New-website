@@ -65,11 +65,11 @@ export const ComplianceLensModal: React.FC<ComplianceLensModalProps> = ({ doc, o
                                                 <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,1)]" />
                                             </div>
                                             <div className="space-y-2">
-                                                <p className="text-[10px] text-slate-600 font-black uppercase italic tracking-widest">{log.time}</p>
+                                                <p className="text-[12px] text-slate-600 font-black uppercase italic tracking-widest">{log.time}</p>
                                                 <p className="text-[15px] text-white font-black uppercase italic tracking-wider leading-none">{log.label}</p>
                                                 <p className="text-[12px] text-slate-400 font-bold uppercase tracking-tight">{log.user}</p>
                                             </div>
-                                            <div className="ml-auto px-4 py-1.5 bg-white/5 rounded-xl border border-white/5 text-[9px] font-black text-emerald-400 uppercase tracking-widest shadow-lg">{log.status}</div>
+                                            <div className="ml-auto px-4 py-1.5 bg-white/5 rounded-xl border border-white/5 text-[12px] font-black text-emerald-400 uppercase tracking-widest shadow-lg">{log.status}</div>
                                         </div>
                                     ))}
                                 </div>
@@ -83,11 +83,11 @@ export const ComplianceLensModal: React.FC<ComplianceLensModalProps> = ({ doc, o
                                 </h4>
                                 <div className="space-y-6">
                                     <div>
-                                        <p className="text-[11px] text-slate-600 font-black uppercase tracking-widest mb-2 shadow-sm">Document Hash (SHA-256)</p>
+                                        <p className="text-[12px] text-slate-600 font-black uppercase tracking-widest mb-2 shadow-sm">Document Hash (SHA-256)</p>
                                         <p className="text-[12px] text-indigo-200/80 font-mono break-all bg-[#0B101B] p-5 rounded-2xl border border-white/5 leading-relaxed uppercase tracking-tighter shadow-inner">e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</p>
                                     </div>
                                     <div>
-                                        <p className="text-[11px] text-slate-600 font-black uppercase tracking-widest mb-1">Digital Signature Node</p>
+                                        <p className="text-[12px] text-slate-600 font-black uppercase tracking-widest mb-1">Digital Signature Node</p>
                                         <p className="text-[13px] text-emerald-400 font-black uppercase italic tracking-[0.1em] mt-2 flex items-center gap-2">
                                             <CheckCircle2 className="w-4 h-4 shadow-[0_0_10px_rgba(52,211,153,0.5)]" /> VERIFIED_AUTH_NODE_0921X
                                         </p>
@@ -116,3 +116,5 @@ export const ComplianceLensModal: React.FC<ComplianceLensModalProps> = ({ doc, o
         </AnimatePresence>
     );
 };
+
+

@@ -49,7 +49,7 @@ export const ConsentBuilder: React.FC<ConsentBuilderProps> = ({
     const S = {
         title: { fontSize: '22px', fontWeight: 900, fontStyle: 'italic' as const, textTransform: 'uppercase' as const, letterSpacing: '-0.02em', color: 'white' },
         label: { fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.15em', color: COLORS.text, opacity: 0.6 },
-        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.4rem 1rem', borderRadius: '4px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
+        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.4rem 1rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
         btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(99, 102, 241, 0.2)' },
         btnGhost: { backgroundColor: 'transparent', color: 'white', border: COLORS.border, padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' },
         input: { backgroundColor: 'rgba(255,255,255,0.03)', border: COLORS.border, borderRadius: '8px', padding: '1rem 1.5rem', color: 'white', fontSize: '16px', outline: 'none' }
@@ -77,7 +77,7 @@ export const ConsentBuilder: React.FC<ConsentBuilderProps> = ({
                                 <span style={{ ...S.title, fontSize: '13px' }}>{c.title}</span>
                                 <span style={S.badge(COLORS.accent)}>{c.version}</span>
                             </div>
-                            <div style={{ fontSize: '11px', color: COLORS.label, marginBottom: '1rem' }}>{c.study}</div>
+                            <div style={{ fontSize: '12px', color: COLORS.label, marginBottom: '1rem' }}>{c.study}</div>
                             <div style={S.badge(c.status === 'Active' ? COLORS.success : c.status === 'Draft' ? COLORS.label : COLORS.warning)}>{c.status}</div>
                         </div>
                     ))}
@@ -113,7 +113,7 @@ export const ConsentBuilder: React.FC<ConsentBuilderProps> = ({
                             <User size={18} /> <span className="hidden md:inline">Preview Signing</span><span className="md:hidden">Preview</span>
                         </button>
                         {activeConsent?.status === 'Active' && (
-                            <div className="md:col-span-1 border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 px-6 py-4 rounded-xl flex items-center justify-center gap-3 text-[11px] font-black uppercase tracking-widest italic animate-pulse">
+                            <div className="md:col-span-1 border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 px-6 py-4 rounded-xl flex items-center justify-center gap-3 text-[12px] font-black uppercase tracking-widest italic animate-pulse">
                                 <ShieldCheck size={18} /> READ ONLY
                             </div>
                         )}
@@ -145,3 +145,5 @@ export const ConsentBuilder: React.FC<ConsentBuilderProps> = ({
         </div>
     );
 };
+
+

@@ -65,7 +65,7 @@ const CookieConsent = () => {
                             </div>
                             <div>
                                 <h4 className="text-white font-black uppercase tracking-widest text-sm italic">Privacy Matters</h4>
-                                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Cookie & Data Policy</p>
+                                <p className="text-slate-500 text-[12px] font-bold uppercase tracking-widest">Cookie & Data Policy</p>
                             </div>
                         </div>
 
@@ -76,7 +76,7 @@ const CookieConsent = () => {
 
                             <button 
                                 onClick={() => setShowDetails(!showDetails)}
-                                className="text-cyan-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:text-white transition-colors"
+                                className="text-cyan-400 text-[12px] font-black uppercase tracking-widest flex items-center gap-2 hover:text-white transition-colors"
                             >
                                 <Settings className="w-3 h-3" />
                                 {showDetails ? 'Hide Details' : 'Manage Preferences'}
@@ -92,19 +92,19 @@ const CookieConsent = () => {
                                     >
                                         <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-white text-[10px] font-black uppercase tracking-widest">Necessary</span>
-                                                <div className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 text-[8px] font-black uppercase">Required</div>
+                                                <span className="text-white text-[12px] font-black uppercase tracking-widest">Necessary</span>
+                                                <div className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 text-[12px] font-black uppercase">Required</div>
                                             </div>
-                                            <p className="text-slate-500 text-[11px] leading-snug">Essential for login, security, and core functionality. Cannot be turned off.</p>
+                                            <p className="text-slate-500 text-[12px] leading-snug">Essential for login, security, and core functionality. Cannot be turned off.</p>
                                         </div>
                                         <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2 opacity-60">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-white text-[10px] font-black uppercase tracking-widest">Analytics</span>
+                                                <span className="text-white text-[12px] font-black uppercase tracking-widest">Analytics</span>
                                                 <div className="w-8 h-4 rounded-full bg-slate-800 relative">
                                                     <div className="absolute left-1 top-1 w-2 h-2 rounded-full bg-slate-600"></div>
                                                 </div>
                                             </div>
-                                            <p className="text-slate-500 text-[11px] leading-snug">Helps us understand how visitors interact with our research platform.</p>
+                                            <p className="text-slate-500 text-[12px] leading-snug">Helps us understand how visitors interact with our research platform.</p>
                                         </div>
                                     </motion.div>
                                 )}
@@ -114,7 +114,7 @@ const CookieConsent = () => {
                         <div className="flex flex-col gap-3 pt-4">
                             <button
                                 onClick={handleAcceptAll}
-                                className="w-full bg-cyan-500 text-slate-900 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/20 flex items-center justify-center gap-2 group/btn"
+                                className="w-full bg-cyan-500 text-slate-900 py-4 rounded-2xl font-black text-[12px] uppercase tracking-widest hover:bg-white hover:-translate-y-1 transition-all shadow-xl shadow-cyan-500/20 flex items-center justify-center gap-2 group/btn"
                             >
                                 Accept All Cookies
                                 <Check className="w-4 h-4 group-hover/btn:scale-125 transition-transform" />
@@ -123,20 +123,20 @@ const CookieConsent = () => {
                             <div className="grid grid-cols-2 gap-3">
                                 <button
                                     onClick={handleAcceptNecessary}
-                                    className="bg-white/5 border border-white/10 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all text-center"
+                                    className="bg-white/5 border border-white/10 text-white py-4 rounded-2xl font-black text-[12px] uppercase tracking-widest hover:bg-white/10 transition-all text-center"
                                 >
                                     Necessary Only
                                 </button>
                                 <button
                                     onClick={handleRejectAll}
-                                    className="bg-red-500/10 border border-red-500/20 text-red-500 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all text-center"
+                                    className="bg-red-500/10 border border-red-500/20 text-red-500 py-4 rounded-2xl font-black text-[12px] uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all text-center"
                                 >
                                     Reject All
                                 </button>
                             </div>
                         </div>
 
-                        <p className="text-center text-slate-600 text-[9px] font-medium uppercase tracking-widest pt-2">
+                        <p className="text-center text-slate-600 text-[12px] font-medium uppercase tracking-widest pt-2">
                             Read our <Link to="#" className="text-slate-400 hover:text-cyan-400 transition-colors">Privacy Policy</Link> for more info.
                         </p>
                     </div>
@@ -147,3 +147,6 @@ const CookieConsent = () => {
 };
 
 export default CookieConsent;
+
+
+

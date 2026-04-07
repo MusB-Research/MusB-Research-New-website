@@ -449,6 +449,45 @@ class ParticipantViewSet(viewsets.ModelViewSet):
             )
 
         return Response({'status': 'reviewed', 'new_status': participant.status})
+        
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrCoordinator])
+    def withdraw(self, request, pk=None):
+        """Terminate subject participation and set status to DROPPED"""
+        participant = self.get_object()
+        reason = request.data.get('reason', 'PI Initiated Withdrawal')
+        
+        participant.status = 'DROPPED'
+        participant.status_notes += f"\n[WITHDRAWAL {now().date()}]: {reason}"
+        participant.save()
+        
+        # Log to Audit Trail
+        from .models import DataAuditLog
+        DataAuditLog.objects.create(
+            user=request.user,
+            entity_type='PARTICIPANT',
+            entity_id=participant.participant_sid,
+            action='WITHDRAWAL',
+            details=f"Subject withdrawn by {request.user.email}. Reason: {reason}"
+        )
+        
+        return Response({'status': 'withdrawn', 'new_status': 'DROPPED'})
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrCoordinator])
+    def toggle_flag(self, request, pk=None):
+        """Toggle manual review flag for the participant"""
+        participant = self.get_object()
+        participant.is_locked = not participant.is_locked # Using is_locked as flagging mechanism
+        participant.save()
+        return Response({'status': 'toggled', 'is_flagged': participant.is_locked})
+
+    @action(detail=True, methods=['patch'], permission_classes=[IsAdminOrCoordinator])
+    def update_clinical_notes(self, request, pk=None):
+        """Update screening or clinical notes for the subject"""
+        participant = self.get_object()
+        notes = request.data.get('notes', '')
+        participant.status_notes = notes
+        participant.save()
+        return Response({'status': 'updated'})
 
     def get_serializer_class(self):
         if self.request.user.role.upper() == 'SPONSOR':
@@ -531,8 +570,17 @@ class LabResultViewSet(viewsets.ModelViewSet):
         if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']:
             return LabResult.objects.all().order_by('-lab_date')
         if user.role.upper() == 'PARTICIPANT':
-            return LabResult.objects.filter(participant__user=user).order_by('-lab_date')
+            return LabResult.objects.filter(participant__user=user, is_released=True).order_by('-lab_date')
         return LabResult.objects.filter(participant__study__assignments__user=user).distinct().order_by('-lab_date')
+    
+    @action(detail=True, methods=['post'])
+    def release(self, request, pk=None):
+        from django.utils.timezone import now
+        lab = self.get_object()
+        lab.is_released = True
+        lab.released_at = now()
+        lab.save()
+        return Response({'status': 'released', 'released_at': lab.released_at})
 
 class ProgressReportViewSet(viewsets.ModelViewSet):
     queryset = ProgressReport.objects.all()
@@ -573,7 +621,7 @@ class ConsentTemplateViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         # Filter templates by studies the user is assigned to
         queryset = ConsentTemplate.objects.filter(study__assignments__user=user).distinct().order_by('-created_at')
         
-        if study_id:
+        if study_id and study_id != 'all':
             import bson
             if bson.ObjectId.is_valid(study_id):
                 queryset = queryset.filter(study_id=study_id)
@@ -596,8 +644,12 @@ class DocumentViewSet(viewsets.ModelViewSet):
         study_id = self.request.query_params.get('study_id')
         queryset = Document.objects.all()
         
-        if study_id:
-            queryset = queryset.filter(study_id=study_id)
+        if study_id and study_id != 'all':
+            import bson
+            if bson.ObjectId.is_valid(study_id):
+                queryset = queryset.filter(study_id=study_id)
+            else:
+                queryset = queryset.filter(study__protocol_id=study_id)
 
         # Super Admin and Admin see all
         if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']:
@@ -646,8 +698,16 @@ class ConsentViewSet(viewsets.ModelViewSet):
         study_id = self.request.query_params.get('study_id')
         participant_id = self.request.query_params.get('participant_id')
         
-        if study_id: queryset = queryset.filter(study_id=study_id)
-        if participant_id: queryset = queryset.filter(participant_id=participant_id)
+        if study_id and study_id != 'all':
+            import bson
+            if bson.ObjectId.is_valid(study_id):
+                queryset = queryset.filter(study_id=study_id)
+            else:
+                # Fallback to protocol ID if it's not a hex ObjectId
+                queryset = queryset.filter(study__protocol_id=study_id)
+                
+        if participant_id:
+            queryset = queryset.filter(participant_id=participant_id)
         return queryset
 
     def perform_create(self, serializer):
@@ -972,7 +1032,12 @@ class FormViewSet(viewsets.ModelViewSet):
             qs = Form.objects.filter(study__participants__user=user).distinct()
         else:
             qs = Form.objects.filter(study__assignments__user=user).distinct()
-        if study_id: qs = qs.filter(study_id=study_id)
+        if study_id and study_id != 'all':
+            import bson
+            if bson.ObjectId.is_valid(study_id):
+                qs = qs.filter(study_id=study_id)
+            else:
+                qs = qs.filter(study__protocol_id=study_id)
         return qs
     def perform_create(self, serializer):
         form = serializer.save()
@@ -994,8 +1059,14 @@ class TaskViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     def get_queryset(self):
         study_id = self.request.query_params.get('study_id')
-        if study_id: return Task.objects.filter(study_id=study_id)
-        return Task.objects.all()
+        queryset = Task.objects.all()
+        if study_id and study_id != 'all':
+            import bson
+            if bson.ObjectId.is_valid(study_id):
+                queryset = queryset.filter(study_id=study_id)
+            else:
+                queryset = queryset.filter(study__protocol_id=study_id)
+        return queryset
 
 class ParticipantTaskViewSet(viewsets.ModelViewSet):
     queryset = ParticipantTask.objects.all()
@@ -1033,8 +1104,31 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return User.objects.none()
+        
+        # Super Admins and Admins see everyone
         if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
-            return User.objects.all()
+            return User.objects.all().order_by('-date_joined')
+            
+        # PIs and Coordinators see:
+        # 1. Themselves
+        # 2. Users assigned to studies they are assigned to
+        # 3. Users they created
+        if user.role.upper() in ['PI', 'COORDINATOR']:
+            from django.db.models import Q
+            from api.models import StudyAssignment
+            
+            # Get IDs of all studies the current user is assigned to
+            assigned_study_ids = StudyAssignment.objects.filter(user=user).values_list('study_id', flat=True)
+            
+            # Get IDs of all users assigned to those same studies
+            team_member_ids = StudyAssignment.objects.filter(study_id__in=assigned_study_ids).values_list('user_id', flat=True)
+            
+            return User.objects.filter(
+                Q(id=user.id) | 
+                Q(id__in=team_member_ids) | 
+                Q(created_by=user)
+            ).distinct().order_by('-date_joined')
+
         return User.objects.filter(id=user.id)
 
     @action(detail=False, methods=['get', 'patch'], permission_classes=[permissions.IsAuthenticated])

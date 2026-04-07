@@ -29,7 +29,7 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
         input: { width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: COLORS.border, borderRadius: '4px', padding: '1rem', color: 'white', fontSize: '12px', outline: 'none', marginTop: '0.5rem' },
         btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(99, 102, 241, 0.2)' },
         btnGhost: { backgroundColor: 'transparent', color: 'white', border: COLORS.border, padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' },
-        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.4rem 1rem', borderRadius: '4px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
+        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.4rem 1rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
     };
 
     return (
@@ -100,7 +100,7 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
                                             ...S.btnGhost, padding: '0.6rem 1.25rem',
                                             border: `1px solid ${selected ? COLORS.accent : COLORS.border}`,
                                             backgroundColor: selected ? `${COLORS.accent}20` : 'transparent',
-                                            color: selected ? 'white' : COLORS.text, fontSize: '10px'
+                                            color: selected ? 'white' : COLORS.text, fontSize: '12px'
                                         }}
                                     >{p}</button>
                                 );
@@ -134,7 +134,7 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
                                         {doc.status === 'Valid' ? <CheckCircle2 size={18} color={COLORS.success} /> : <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: `2px dashed ${COLORS.label}` }} />}
                                         <div>
                                             <div style={{ fontSize: '13px', fontWeight: 900, color: 'white' }}>{doc.name}</div>
-                                            <div style={{ fontSize: '10px', color: COLORS.label }}>{doc.status === 'Valid' ? `Uploaded: ${doc.uploadDate}` : 'Pending Verification'}</div>
+                                            <div style={{ fontSize: '12px', color: COLORS.label }}>{doc.status === 'Valid' ? `Uploaded: ${doc.uploadDate}` : 'Pending Verification'}</div>
                                         </div>
                                     </div>
                                     <button style={{ ...S.btnGhost, padding: '0.5rem 1.25rem', borderColor: doc.status === 'Valid' ? COLORS.success : COLORS.accent, color: doc.status === 'Valid' ? COLORS.success : 'white' }} onClick={() => triggerUpload(doc.id)}>
@@ -157,3 +157,5 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
         </div>
     );
 };
+
+

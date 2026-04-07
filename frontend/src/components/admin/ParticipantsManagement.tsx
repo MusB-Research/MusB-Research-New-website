@@ -86,18 +86,18 @@ export default function ParticipantsManagement({ allParticipants = [], allStudie
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div>
           <h1 className="text-3xl sm:text-5xl font-black text-white italic uppercase tracking-tighter">Registered <span className="text-[#22c55e]">Participants</span></h1>
-          <p className="text-xs sm:text-sm text-[#8b8fa8] uppercase tracking-[0.2em] font-black mt-3">Oversee global participant engagement and study enrollment history</p>
+          <p className="text-[12px] sm:text-sm text-[#8b8fa8] uppercase tracking-[0.2em] font-black mt-3">Oversee global participant engagement and study enrollment history</p>
         </div>
         <div className="flex gap-6">
           <button 
             onClick={() => alert('Exporting data...')}
-            className="px-8 py-4 bg-white/5 border border-white/10 text-white rounded-3xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-white/10 transition-all active:scale-95"
+            className="px-8 py-4 bg-white/5 border border-white/10 text-white rounded-3xl font-black text-[12px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-white/10 transition-all active:scale-95"
           >
             <Download className="w-5 h-5" /> Export Data
           </button>
           <button 
             onClick={onRegister}
-            className="px-8 py-4 bg-[#22c55e] text-white rounded-3xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl shadow-green-500/20 hover:bg-[#16a34a] transition-all active:scale-95"
+            className="px-8 py-4 bg-[#22c55e] text-white rounded-3xl font-black text-[12px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl shadow-green-500/20 hover:bg-[#16a34a] transition-all active:scale-95"
           >
             <UserIcon className="w-5 h-5" /> Manual Registration
           </button>
@@ -118,7 +118,7 @@ export default function ParticipantsManagement({ allParticipants = [], allStudie
           </div>
           <div className="flex gap-4">
              <select 
-              className="bg-[#0a0b1a] border border-white/5 rounded-3xl px-6 text-xs font-black uppercase text-slate-400 tracking-[0.2em] outline-none focus:border-green-500/30 cursor-pointer"
+              className="bg-[#0a0b1a] border border-white/5 rounded-3xl px-6 text-[12px] font-black uppercase text-slate-400 tracking-[0.2em] outline-none focus:border-green-500/30 cursor-pointer"
              >
                <option>All Statuses</option>
                <option>Active Only</option>
@@ -130,7 +130,7 @@ export default function ParticipantsManagement({ allParticipants = [], allStudie
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-white/[0.02] text-xs font-black text-[#555a7a] uppercase tracking-[0.3em] italic border-b border-white/5">
+              <tr className="bg-white/[0.02] text-[12px] font-black text-[#555a7a] uppercase tracking-[0.3em] italic border-b border-white/5">
                 <th className="px-10 py-8">Participant Identity</th>
                 <th className="px-10 py-8">Registration Date</th>
                 <th className="px-10 py-8">Enrolled Studies & Status</th>
@@ -141,7 +141,7 @@ export default function ParticipantsManagement({ allParticipants = [], allStudie
             <tbody className="divide-y divide-white/5">
               {filtered.length === 0 ? (
                 <tr>
-                   <td colSpan={5} className="px-10 py-20 text-center opacity-30 italic uppercase tracking-[0.2em] text-xs">No registered participants in persistence layers</td>
+                   <td colSpan={5} className="px-10 py-20 text-center opacity-30 italic uppercase tracking-[0.2em] text-[12px]">No registered participants in persistence layers</td>
                 </tr>
               ) : (
                 filtered.map((p) => (
@@ -153,29 +153,29 @@ export default function ParticipantsManagement({ allParticipants = [], allStudie
                         </div>
                         <div>
                           <p className="text-base font-black text-white italic group-hover:text-green-400 transition-colors uppercase tracking-tight">{p.name}</p>
-                          <p className="text-[10px] text-[#555a7a] font-black uppercase tracking-widest mt-1.5">{p.email} • ID: {p.id}</p>
+                          <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-widest mt-1.5">{p.email} • ID: {p.id}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-10 py-8 text-xs font-black text-slate-400 uppercase tracking-widest italic">{p.registeredDate}</td>
+                    <td className="px-10 py-8 text-[12px] font-black text-slate-400 uppercase tracking-widest italic">{p.registeredDate}</td>
                     <td className="px-10 py-8">
                       <div className="space-y-3">
                          {p.enrolledStudies.length > 0 ? p.enrolledStudies.map((s, i) => (
                            <div key={i} className="flex gap-4 items-center">
-                              <span className="text-xs font-black text-slate-500 uppercase italic truncate max-w-[180px]">{s.studyName}</span>
-                              <span className={`px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest ${
+                              <span className="text-[12px] font-black text-slate-500 uppercase italic truncate max-w-[180px]">{s.studyName}</span>
+                              <span className={`px-3 py-1 rounded text-[12px] font-black uppercase tracking-widest ${
                                 s.status === 'ACTIVE' || s.status === 'ENROLLED' ? 'bg-blue-500/10 text-blue-400 outline outline-1 outline-blue-500/20' : 
                                 s.status === 'COMPLETED' ? 'bg-green-500/10 text-green-400' : 'bg-white/5 text-slate-500'
                               }`}>{s.status}</span>
                            </div>
-                         )) : <span className="text-[10px] text-slate-700 font-bold uppercase tracking-widest italic">No Studies</span>}
+                         )) : <span className="text-[12px] text-slate-700 font-bold uppercase tracking-widest italic">No Studies</span>}
                       </div>
                     </td>
                     <td className="px-10 py-8">
                       <button 
                         onClick={() => handleToggleStatus(p)}
                         disabled={updatingId === p.internal_id}
-                        className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border transition-all flex items-center gap-2 ${
+                        className={`px-4 py-2 rounded-full text-[12px] font-black uppercase tracking-[0.2em] border transition-all flex items-center gap-2 ${
                         p.status === 'ACTIVE' || p.status === 'ELIGIBLE' || p.status === 'CONSENTED' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20'
                         } disabled:opacity-50`}
                       >
@@ -209,3 +209,5 @@ export default function ParticipantsManagement({ allParticipants = [], allStudie
     </div>
   );
 }
+
+

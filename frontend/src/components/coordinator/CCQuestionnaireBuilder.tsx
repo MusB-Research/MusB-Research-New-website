@@ -219,7 +219,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                         </div>
                         <div>
                             <h2 className="text-3xl lg:text-5xl font-black text-white italic uppercase tracking-tighter leading-none mb-3">ELIGIBILITY QUESTIONNAIRES</h2>
-                            <p className="text-[10px] lg:text-[11px] text-indigo-400 font-bold uppercase tracking-[0.3em] lg:tracking-[0.4em] italic opacity-80 max-w-2xl">Design logical recruitment funnels with dynamic branching and integrated validation triggers.</p>
+                            <p className="text-[12px] lg:text-[12px] text-indigo-400 font-bold uppercase tracking-[0.3em] lg:tracking-[0.4em] italic opacity-80 max-w-2xl">Design logical recruitment funnels with dynamic branching and integrated validation triggers.</p>
                         </div>
                     </div>
 
@@ -231,8 +231,8 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                         >
                             <Save className="w-5 h-5 group-hover:scale-110 transition-transform" />
                             <div className="text-left">
-                                <p className="text-[10px] font-black uppercase tracking-widest leading-none">SAVE</p>
-                                <p className="text-[9px] font-black uppercase tracking-widest leading-none mt-1 opacity-50">DRAFT</p>
+                                <p className="text-[12px] font-black uppercase tracking-widest leading-none">SAVE</p>
+                                <p className="text-[12px] font-black uppercase tracking-widest leading-none mt-1 opacity-50">DRAFT</p>
                             </div>
                         </button>
 
@@ -241,7 +241,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                             className="px-6 py-4 lg:py-5 bg-white/5 border border-white/10 text-slate-400 rounded-2xl hover:bg-white/10 hover:text-white transition-all flex items-center gap-4 group shadow-xl"
                         >
                             <Eye className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                            <div className="text-left font-black uppercase tracking-widest text-[10px]">PREVIEW</div>
+                            <div className="text-left font-black uppercase tracking-widest text-[12px]">PREVIEW</div>
                         </button>
 
                         <button 
@@ -250,8 +250,8 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                         >
                             <Calculator className="w-5 h-5 group-hover:scale-110 transition-transform" />
                             <div className="text-left">
-                                <p className="text-[10px] font-black uppercase tracking-widest leading-none">SCORING</p>
-                                <p className="text-[9px] font-black uppercase tracking-widest leading-none mt-1 opacity-50">ENGINE</p>
+                                <p className="text-[12px] font-black uppercase tracking-widest leading-none">SCORING</p>
+                                <p className="text-[12px] font-black uppercase tracking-widest leading-none mt-1 opacity-50">ENGINE</p>
                             </div>
                         </button>
 
@@ -262,8 +262,8 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                         >
                             <Rocket className="w-5 h-5 group-hover:animate-bounce" />
                             <div className="text-left">
-                                <p className="text-[10px] font-black uppercase tracking-widest leading-none">{isLoading ? "SYNCING..." : "PUBLISH"}</p>
-                                <p className="text-[9px] font-black uppercase tracking-widest leading-none mt-1 opacity-80">& ASSIGN</p>
+                                <p className="text-[12px] font-black uppercase tracking-widest leading-none">{isLoading ? "SYNCING..." : "PUBLISH"}</p>
+                                <p className="text-[12px] font-black uppercase tracking-widest leading-none mt-1 opacity-80">& ASSIGN</p>
                             </div>
                         </button>
                     </div>
@@ -275,7 +275,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                         <button 
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`pb-5 pt-2 text-[10px] lg:text-[11px] font-bold uppercase tracking-[0.25em] transition-all relative ${
+                            className={`pb-5 pt-2 text-[12px] lg:text-[12px] font-bold uppercase tracking-[0.25em] transition-all relative ${
                                 activeTab === tab ? 'text-white italic' : 'text-slate-600 hover:text-slate-300'
                             }`}
                         >
@@ -290,7 +290,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                 {/* Left Panel: Structure Orchestration */}
                 <div className="w-full 2xl:w-[340px] border-b 2xl:border-b-0 2xl:border-r border-white/5 flex flex-col overflow-hidden bg-[#0B101B]">
                     <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                        <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest italic">Protocol map</span>
+                        <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Protocol map</span>
                         <div className="flex gap-2">
                             <button 
                                 onClick={() => {
@@ -310,9 +310,9 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                 <div className="flex items-center justify-between group">
                                     <div className="flex items-center gap-3">
                                         <ChevronDown className="w-4 h-4 text-slate-700" />
-                                        <h4 className="text-[11px] font-black text-white uppercase italic tracking-widest leading-tight w-40 truncate">{section.title}</h4>
+                                        <h4 className="text-[12px] font-black text-white uppercase italic tracking-widest leading-tight w-40 truncate">{section.title}</h4>
                                     </div>
-                                    <button onClick={() => addQuestion(section.id)} className="p-1 px-2 bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 rounded-md text-[10px] font-black uppercase opacity-0 group-hover:opacity-100 transition-opacity">Add</button>
+                                    <button onClick={() => addQuestion(section.id)} className="p-1 px-2 bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 rounded-md text-[12px] font-black uppercase opacity-0 group-hover:opacity-100 transition-opacity">Add</button>
                                 </div>
                                 <div className="pl-4 space-y-2 relative">
                                     <div className="absolute left-1.5 top-0 bottom-0 w-[1px] bg-white/5" />
@@ -327,7 +327,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                             }`}
                                         >
                                             <GripVertical className="w-3.5 h-3.5 text-slate-800" />
-                                            <span className="text-[11px] font-black uppercase tracking-tight truncate flex-1 text-left italic">{q.label}</span>
+                                            <span className="text-[12px] font-black uppercase tracking-tight truncate flex-1 text-left italic">{q.label}</span>
                                             <XCircle className="w-4 h-4 text-red-900 opacity-0 group-hover:opacity-60 hover:opacity-100 transition-opacity" onClick={(e: React.MouseEvent) => { e.stopPropagation(); deleteQuestion(q.id); }} />
                                         </button>
                                     ))}
@@ -344,7 +344,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                 <div className="flex-1 min-w-0 space-y-6 w-full">
                                      <div className="flex items-center gap-4">
                                          <div className="w-1.5 h-6 bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
-                                         <label className="text-[11px] text-slate-600 font-black uppercase tracking-widest italic whitespace-nowrap">Inventory Strategic Title</label>
+                                         <label className="text-[12px] text-slate-600 font-black uppercase tracking-widest italic whitespace-nowrap">Inventory Strategic Title</label>
                                      </div>
                                      <input 
                                          type="text" 
@@ -357,7 +357,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
 
                                  <div className="w-full xl:w-auto flex flex-row xl:flex-col items-center xl:items-start gap-8 shrink-0">
                                      <div className="space-y-4 min-w-[240px] relative group/select">
-                                         <label className="text-[10px] text-slate-700 font-black uppercase tracking-widest italic">Target Study</label>
+                                         <label className="text-[12px] text-slate-700 font-black uppercase tracking-widest italic">Target Study</label>
                                          
                                          {/* Custom Dropdown Button */}
                                          <div className="relative">
@@ -365,7 +365,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                                 onClick={() => setIsStudyDropdownOpen(!isStudyDropdownOpen)}
                                                 className="w-full py-4 px-6 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between cursor-pointer hover:border-indigo-500/50 transition-all shadow-lg select-none"
                                              >
-                                                 <span className="text-[11px] font-black text-indigo-400 uppercase italic">
+                                                 <span className="text-[12px] font-black text-indigo-400 uppercase italic">
                                                      {studies.find(s => s.id === selectedStudyId)?.protocol_id || (isLoading ? 'Loading...' : 'Select Study')}
                                                  </span>
                                                  <ChevronDown className={`w-4 h-4 text-indigo-400 transition-transform ${isStudyDropdownOpen ? 'rotate-180' : ''}`} />
@@ -384,20 +384,20 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                                                     setSelectedStudyId(s.id);
                                                                     setIsStudyDropdownOpen(false);
                                                                 }}
-                                                                className="px-6 py-4 text-[11px] font-bold text-slate-300 uppercase italic hover:bg-indigo-600 hover:text-white cursor-pointer transition-colors border-b border-white/5 last:border-0"
+                                                                className="px-6 py-4 text-[12px] font-bold text-slate-300 uppercase italic hover:bg-indigo-600 hover:text-white cursor-pointer transition-colors border-b border-white/5 last:border-0"
                                                             >
                                                                 {s.protocol_id}
                                                             </div>
                                                         ))}
-                                                        {studies.length === 0 && <div className="px-6 py-4 text-[11px] italic text-slate-500">No studies available</div>}
+                                                        {studies.length === 0 && <div className="px-6 py-4 text-[12px] italic text-slate-500">No studies available</div>}
                                                     </motion.div>
                                                 )}
                                              </AnimatePresence>
                                          </div>
                                      </div>
                                      <div className="space-y-4 min-w-[120px]">
-                                         <label className="text-[10px] text-slate-700 font-black uppercase tracking-widest italic">Version</label>
-                                         <div className="py-4 px-6 bg-white/5 border border-white/10 rounded-2xl text-[11px] font-black text-slate-500 uppercase italic shadow-lg">v1.0.0 [DRAFT]</div>
+                                         <label className="text-[12px] text-slate-700 font-black uppercase tracking-widest italic">Version</label>
+                                         <div className="py-4 px-6 bg-white/5 border border-white/10 rounded-2xl text-[12px] font-black text-slate-500 uppercase italic shadow-lg">v1.0.0 [DRAFT]</div>
                                      </div>
                                  </div>
                             </div>
@@ -430,7 +430,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                                 }`}
                                             >
                                                 <div className="flex items-center justify-between mb-8">
-                                                    <span className={`text-[11px] font-black uppercase tracking-widest italic ${selectedQId === q.id ? 'text-indigo-200' : 'text-slate-600'}`}>
+                                                    <span className={`text-[12px] font-black uppercase tracking-widest italic ${selectedQId === q.id ? 'text-indigo-200' : 'text-slate-600'}`}>
                                                         {q.type} Field • ID-{q.id.split('-').pop()}
                                                     </span>
                                                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -456,7 +456,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                                     {q.label} {q.required && <span className="text-red-500 ml-1">*</span>}
                                                 </h5>
                                                 
-                                                <div className="h-16 w-full bg-black/20 rounded-2xl border border-white/10 border-dashed flex items-center px-6 italic text-slate-800 uppercase tracking-widest text-[11px] font-black">
+                                                <div className="h-16 w-full bg-black/20 rounded-2xl border border-white/10 border-dashed flex items-center px-6 italic text-slate-800 uppercase tracking-widest text-[12px] font-black">
                                                     Interactive Participant Node Preview
                                                 </div>
                                                 
@@ -468,7 +468,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                         
                                         <button 
                                             onClick={() => addQuestion(section.id)}
-                                            className="w-full py-8 border-2 border-dashed border-white/5 rounded-[3rem] text-[10px] font-black text-slate-600 uppercase tracking-widest hover:border-indigo-500/40 hover:text-indigo-400 transition-all flex items-center justify-center gap-3"
+                                            className="w-full py-8 border-2 border-dashed border-white/5 rounded-[3rem] text-[12px] font-black text-slate-600 uppercase tracking-widest hover:border-indigo-500/40 hover:text-indigo-400 transition-all flex items-center justify-center gap-3"
                                         >
                                             <Plus className="w-5 h-5" /> Append Protocol Question
                                         </button>
@@ -492,20 +492,20 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                 <div className="space-y-6">
                                     <div className="flex items-center gap-4 px-2">
                                         <div className="w-1 h-3 bg-indigo-500 rounded-full" />
-                                        <h5 className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.3em] italic">Strategic Specs</h5>
+                                        <h5 className="text-[12px] text-indigo-400 font-black uppercase tracking-[0.3em] italic">Strategic Specs</h5>
                                     </div>
                                     
                                     {/* Card: Protocol Format */}
                                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-white/[0.03] border border-white/10 rounded-[2rem] shadow-xl group/card hover:bg-white/[0.05] transition-all">
-                                        <label className="text-[9px] text-slate-700 font-black uppercase tracking-widest italic mb-4 block">Question Format</label>
+                                        <label className="text-[12px] text-slate-700 font-black uppercase tracking-widest italic mb-4 block">Question Format</label>
                                         <div className="relative group/type">
                                             <div className="w-full py-4 px-6 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between cursor-pointer hover:border-indigo-500/50 transition-all select-none">
-                                                <span className="text-[10px] font-black text-white uppercase italic tracking-widest">{selectedQuestion.type}</span>
+                                                <span className="text-[12px] font-black text-white uppercase italic tracking-widest">{selectedQuestion.type}</span>
                                                 <ChevronDown className="w-4 h-4 text-indigo-400 group-hover/type:rotate-180 transition-transform" />
                                             </div>
                                             <div className="absolute top-full left-0 right-0 mt-2 bg-slate-950 border border-white/10 rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden opacity-0 invisible group-hover/type:opacity-100 group-hover/type:visible transition-all z-[70] backdrop-blur-3xl translate-y-2 group-hover/type:translate-y-0 text-left">
                                                 {['Short Text', 'Likert Scale (1-7)', 'Dropdown', 'Number', 'Date'].map(type => (
-                                                    <div key={type} onClick={() => updateQuestion(selectedQuestion.id, { type })} className={`px-6 py-4 text-[9px] font-black uppercase italic transition-all cursor-pointer border-b border-white/5 last:border-0 hover:bg-indigo-600 hover:text-white ${selectedQuestion.type === type ? 'text-indigo-400' : 'text-slate-500'}`}>
+                                                    <div key={type} onClick={() => updateQuestion(selectedQuestion.id, { type })} className={`px-6 py-4 text-[12px] font-black uppercase italic transition-all cursor-pointer border-b border-white/5 last:border-0 hover:bg-indigo-600 hover:text-white ${selectedQuestion.type === type ? 'text-indigo-400' : 'text-slate-500'}`}>
                                                         {type}
                                                     </div>
                                                 ))}
@@ -516,11 +516,11 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                     {/* Card: Options Registry */}
                                     {(selectedQuestion.type === 'Dropdown' || selectedQuestion.type.includes('Likert')) && (
                                         <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="p-6 bg-white/[0.03] border border-white/10 rounded-[2rem] shadow-xl">
-                                            <label className="text-[9px] text-slate-700 font-black uppercase tracking-widest italic mb-4 block">Options Registry</label>
+                                            <label className="text-[12px] text-slate-700 font-black uppercase tracking-widest italic mb-4 block">Options Registry</label>
                                             <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
                                                 {(selectedQuestion.options || ['Option 1']).map((opt, i) => (
                                                     <div key={i} className="flex items-center gap-3 p-3 bg-white/5 border border-white/5 rounded-xl group/opt hover:border-indigo-500/30 transition-all">
-                                                        <span className="text-[9px] font-black text-slate-800 w-3">{i + 1}</span>
+                                                        <span className="text-[12px] font-black text-slate-800 w-3">{i + 1}</span>
                                                         <input 
                                                             value={opt}
                                                             onChange={(e) => {
@@ -528,7 +528,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                                                 newOpts[i] = e.target.value;
                                                                 updateQuestion(selectedQuestion.id, { options: newOpts });
                                                             }}
-                                                            className="flex-1 bg-transparent border-none text-[10px] font-black text-white italic uppercase focus:outline-none placeholder-slate-900" 
+                                                            className="flex-1 bg-transparent border-none text-[12px] font-black text-white italic uppercase focus:outline-none placeholder-slate-900" 
                                                         />
                                                         <XCircle className="w-4 h-4 text-slate-900 group-hover/opt:text-red-500/50 hover:text-red-500 cursor-pointer transition-all" onClick={() => {
                                                             const newOpts = (selectedQuestion.options || []).filter((_, idx) => idx !== i);
@@ -536,7 +536,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                                         }} />
                                                     </div>
                                                 ))}
-                                                <button onClick={() => updateQuestion(selectedQuestion.id, { options: [...(selectedQuestion.options || []), `New Node`] })} className="w-full py-3 border border-dashed border-indigo-500/10 rounded-xl text-[9px] font-black text-indigo-400/40 uppercase italic hover:bg-indigo-500/5 hover:text-indigo-400 transition-all">
+                                                <button onClick={() => updateQuestion(selectedQuestion.id, { options: [...(selectedQuestion.options || []), `New Node`] })} className="w-full py-3 border border-dashed border-indigo-500/10 rounded-xl text-[12px] font-black text-indigo-400/40 uppercase italic hover:bg-indigo-500/5 hover:text-indigo-400 transition-all">
                                                     + Append Node
                                                 </button>
                                             </div>
@@ -548,13 +548,13 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                 <div className="space-y-6">
                                     <div className="flex items-center gap-4 px-2">
                                         <div className="w-1 h-3 bg-slate-700 rounded-full" />
-                                        <h5 className="text-[10px] text-slate-700 font-black uppercase tracking-[0.3em] italic">Narrative Config</h5>
+                                        <h5 className="text-[12px] text-slate-700 font-black uppercase tracking-[0.3em] italic">Narrative Config</h5>
                                     </div>
                                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-white/[0.03] border border-white/10 rounded-[2rem] shadow-xl">
                                         <textarea 
                                             value={selectedQuestion.label}
                                             onChange={(e) => updateQuestion(selectedQuestion.id, { label: e.target.value })}
-                                            className="w-full bg-transparent border-none text-[11px] font-black text-white italic uppercase outline-none resize-none h-24 placeholder-slate-900" 
+                                            className="w-full bg-transparent border-none text-[12px] font-black text-white italic uppercase outline-none resize-none h-24 placeholder-slate-900" 
                                             placeholder="Translate architectural requirements into question narrative..."
                                         />
                                     </motion.div>
@@ -564,12 +564,12 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                 <div className="space-y-6">
                                     <div className="flex items-center gap-4 px-2">
                                         <div className="w-1 h-3 bg-indigo-500 rounded-full" />
-                                        <h5 className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.3em] italic">Architecture Logic</h5>
+                                        <h5 className="text-[12px] text-indigo-400 font-black uppercase tracking-[0.3em] italic">Architecture Logic</h5>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <button 
                                             onClick={() => updateQuestion(selectedQuestion.id, { required: !selectedQuestion.required })}
-                                            className={`p-6 rounded-[2rem] border transition-all text-[10px] font-black uppercase tracking-widest italic flex flex-col items-center gap-3 ${
+                                            className={`p-6 rounded-[2rem] border transition-all text-[12px] font-black uppercase tracking-widest italic flex flex-col items-center gap-3 ${
                                                 selectedQuestion.required ? 'bg-indigo-600 border-indigo-400 text-white shadow-indigo-500/20 shadow-xl' : 'bg-white/5 border-white/10 text-slate-700 hover:bg-white/10'
                                             }`}
                                         >
@@ -578,7 +578,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                         </button>
                                         <button 
                                             onClick={() => alert(`Logic Pathing Active for [${selectedQuestion.id}]`)}
-                                            className="p-6 bg-white/5 border border-white/10 rounded-[2rem] text-[10px] font-black text-indigo-400 uppercase italic flex flex-col items-center gap-3 hover:bg-white/10 transition-all shadow-xl"
+                                            className="p-6 bg-white/5 border border-white/10 rounded-[2rem] text-[12px] font-black text-indigo-400 uppercase italic flex flex-col items-center gap-3 hover:bg-white/10 transition-all shadow-xl"
                                         >
                                             <Share2 className="w-5 h-5 text-indigo-500/50" />
                                             BRANCHING
@@ -590,9 +590,9 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="p-8 bg-indigo-500/[0.02] border border-indigo-500/10 rounded-[2.5rem] relative overflow-hidden group shadow-inner">
                                     <div className="flex items-center gap-4 mb-4">
                                         <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]" />
-                                        <h5 className="text-[10px] font-black text-indigo-400 uppercase italic tracking-widest leading-none">AI Structural Diagnostic</h5>
+                                        <h5 className="text-[12px] font-black text-indigo-400 uppercase italic tracking-widest leading-none">AI Structural Diagnostic</h5>
                                     </div>
-                                    <p className="text-[10px] text-slate-600 font-black uppercase tracking-tight italic leading-relaxed opacity-60">
+                                    <p className="text-[12px] text-slate-600 font-black uppercase tracking-tight italic leading-relaxed opacity-60">
                                         High validation strength detected. Logic branch for node [{selectedQuestion.id.split('-').pop()}] is optimized for GSRS-Score aggregation.
                                     </p>
                                 </motion.div>
@@ -600,7 +600,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                         ) : (
                             <div className="h-full flex flex-col items-center justify-center text-center p-12 space-y-6 opacity-30">
                                 <Search className="w-16 h-16 text-slate-800" />
-                                <p className="text-[11px] font-black text-slate-600 uppercase tracking-widest italic">Select an architectural node to modify its properties</p>
+                                <p className="text-[12px] font-black text-slate-600 uppercase tracking-widest italic">Select an architectural node to modify its properties</p>
                             </div>
                         )}
                     </div>
@@ -626,7 +626,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                     </div>
                                     <div>
                                         <h3 className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter leading-none">Situational Scoring Engine</h3>
-                                        <p className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.3em] mt-3 italic opacity-70">Calculated Endpoints and Risk Assessment Formulae</p>
+                                        <p className="text-[12px] text-indigo-400 font-black uppercase tracking-[0.3em] mt-3 italic opacity-70">Calculated Endpoints and Risk Assessment Formulae</p>
                                     </div>
                                 </div>
                                 <div className="p-3 bg-white/5 rounded-2xl hover:bg-white/10 cursor-pointer transition-all active:scale-90" onClick={() => setIsFormulaOpen(false)}>
@@ -638,7 +638,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                 {/* Left: Formulas List */}
                                 <div className="col-span-4 border-r border-white/5 p-8 overflow-y-auto custom-scrollbar space-y-8">
                                      <section>
-                                         <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-6 border-b border-white/5 pb-3 italic">Available Output Scores</h4>
+                                         <h4 className="text-[12px] font-black text-slate-500 uppercase tracking-[0.3em] mb-6 border-b border-white/5 pb-3 italic">Available Output Scores</h4>
                                          <div className="space-y-4">
                                              {formulas.map((s, i) => (
                                                  <div 
@@ -651,10 +651,10 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                                  >
                                                      <div className="space-y-1">
                                                          <p className="text-base lg:text-lg font-black text-white italic uppercase tracking-tighter leading-none">{s.label}</p>
-                                                         <p className="text-[10px] text-slate-600 font-mono tracking-tight">{s.val}</p>
+                                                         <p className="text-[12px] text-slate-600 font-mono tracking-tight">{s.val}</p>
                                                      </div>
                                                      <div className="flex items-center gap-3">
-                                                         <span className={`text-[8px] font-black uppercase tracking-widest px-3 py-0.5 rounded-full border ${
+                                                         <span className={`text-[12px] font-black uppercase tracking-widest px-3 py-0.5 rounded-full border ${
                                                              s.color === 'red' ? 'text-red-500 border-red-500/20' : 
                                                              s.color === 'indigo' ? 'text-indigo-400 border-indigo-500/20' : 
                                                              'text-slate-600 border-white/10'
@@ -667,7 +667,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                      </section>
                                      <button 
                                         onClick={addFormula}
-                                        className="w-full py-5 bg-indigo-600 text-white shadow-xl shadow-indigo-900/20 hover:bg-indigo-700 transition-all rounded-2xl text-[10px] font-black uppercase italic tracking-widest flex items-center justify-center gap-3"
+                                        className="w-full py-5 bg-indigo-600 text-white shadow-xl shadow-indigo-900/20 hover:bg-indigo-700 transition-all rounded-2xl text-[12px] font-black uppercase italic tracking-widest flex items-center justify-center gap-3"
                                      >
                                         <Plus className="w-4 h-4" /> Define New Endpoint Formula
                                      </button>
@@ -683,14 +683,14 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                      </div>
                                      <div className="max-w-md space-y-6">
                                          <h4 className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter leading-tight">{selectedFormula?.label || "Formula Analysis Node"}</h4>
-                                         <p className="text-[11px] lg:text-[12px] text-slate-500 font-bold uppercase tracking-[0.1em] lg:tracking-[0.2em] leading-relaxed italic opacity-80">
+                                         <p className="text-[12px] lg:text-[12px] text-slate-500 font-bold uppercase tracking-[0.1em] lg:tracking-[0.2em] leading-relaxed italic opacity-80">
                                              {selectedFormula ? `Current Logic: ${selectedFormula.val}` : "Select a strategic score definition from the registry to modify algebraic weights, reverse-scoring logic, and risk categorization thresholds in real-time."}
                                          </p>
                                      </div>
                                      <div className="grid grid-cols-3 gap-4 w-full max-w-xl pt-8 border-t border-white/5">
                                          {['Algebraic Node', 'Logic Branch', 'Audit Trail'].map((t, i) => (
                                              <div key={i} className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                                                 <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest">{t}</p>
+                                                 <p className="text-[12px] font-black text-slate-700 uppercase tracking-widest">{t}</p>
                                                  <div className="h-1 bg-white/5 rounded-full mt-3 overflow-hidden">
                                                      <div className="h-full bg-indigo-500 w-1/2" />
                                                  </div>
@@ -704,8 +704,8 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                 <div className="flex items-center gap-4">
                                     <ShieldCheck className="w-6 h-6 text-indigo-500" />
                                     <div>
-                                        <p className="text-[10px] text-white font-black italic uppercase tracking-widest">Protocol Compliance Guaranteed</p>
-                                        <p className="text-[8px] text-slate-700 font-black italic uppercase tracking-widest mt-1">Formula versioning tracked via Epoch-0992-X [GSRS-AUDITED]</p>
+                                        <p className="text-[12px] text-white font-black italic uppercase tracking-widest">Protocol Compliance Guaranteed</p>
+                                        <p className="text-[12px] text-slate-700 font-black italic uppercase tracking-widest mt-1">Formula versioning tracked via Epoch-0992-X [GSRS-AUDITED]</p>
                                     </div>
                                 </div>
                                 <button 
@@ -715,7 +715,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                         setTimeout(() => setIsFormulaOpen(false), 800);
                                     }} 
                                     id="sync-btn"
-                                    className="w-full sm:w-auto px-12 lg:px-20 py-4 lg:py-5 bg-indigo-600 text-white rounded-2xl text-[11px] lg:text-[12px] font-black uppercase tracking-[0.2em] italic shadow-xl shadow-indigo-900/40 hover:scale-[1.02] transition-all active:scale-95"
+                                    className="w-full sm:w-auto px-12 lg:px-20 py-4 lg:py-5 bg-indigo-600 text-white rounded-2xl text-[12px] lg:text-[12px] font-black uppercase tracking-[0.2em] italic shadow-xl shadow-indigo-900/40 hover:scale-[1.02] transition-all active:scale-95"
                                 >
                                     Synchronize Scoring Engine
                                 </button>
@@ -738,7 +738,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                     <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner"><Eye className="w-6 h-6" /></div>
                                     <div>
                                         <h4 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none">Participant Experience</h4>
-                                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-2">{formTitle}</p>
+                                        <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest mt-2">{formTitle}</p>
                                     </div>
                                 </div>
                                 <X className="w-10 h-10 text-slate-700 cursor-pointer hover:text-white transition-all hover:scale-110" onClick={() => setIsPreviewOpen(false)} />
@@ -748,12 +748,12 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                 <div className="space-y-12">
                                     {sections.map(section => (
                                         <div key={section.id} className="space-y-6">
-                                            <h6 className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.3em] italic border-b border-indigo-500/10 pb-3">{section.title}</h6>
+                                            <h6 className="text-[12px] font-black text-indigo-400 uppercase tracking-[0.3em] italic border-b border-indigo-500/10 pb-3">{section.title}</h6>
                                             <div className="space-y-8">
                                                 {section.questions.map(q => (
                                                     <div key={q.id} className="space-y-4">
                                                         <label className="text-sm font-black text-white italic uppercase tracking-tight">{q.label} {q.required && <span className="text-red-500">*</span>}</label>
-                                                        <div className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center px-6 text-slate-700 text-[11px] font-black uppercase tracking-widest italic border-dashed">
+                                                        <div className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center px-6 text-slate-700 text-[12px] font-black uppercase tracking-widest italic border-dashed">
                                                             {q.type} Input Node
                                                         </div>
                                                     </div>
@@ -768,7 +768,7 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
                                 <button className="w-full py-5 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest italic shadow-xl shadow-indigo-900/40 opacity-50 cursor-not-allowed">
                                     SUBMIT PROTOCOL ENTRY (PREVIEW)
                                 </button>
-                                <p className="text-[9px] text-center text-slate-700 font-black uppercase tracking-[0.2em]">Validated via PhotoVault Behavioral Engine</p>
+                                <p className="text-[12px] text-center text-slate-700 font-black uppercase tracking-[0.2em]">Validated via PhotoVault Behavioral Engine</p>
                             </div>
                         </motion.div>
                     </>
@@ -777,3 +777,6 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
         </div>
     );
 }
+
+
+

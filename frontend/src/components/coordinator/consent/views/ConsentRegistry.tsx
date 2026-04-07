@@ -34,7 +34,7 @@ export const ConsentRegistry: React.FC<ConsentRegistryProps> = ({
 
     const S = {
         title: { fontSize: '22px', fontWeight: 900, fontStyle: 'italic' as const, textTransform: 'uppercase' as const, letterSpacing: '-0.02em', color: 'white' },
-        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.4rem 1rem', borderRadius: '4px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
+        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.4rem 1rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
         input: { backgroundColor: 'rgba(255,255,255,0.03)', border: COLORS.border, borderRadius: '8px', padding: '1rem 1.5rem', color: 'white', fontSize: '16px', outline: 'none' }
     };
 
@@ -98,7 +98,7 @@ export const ConsentRegistry: React.FC<ConsentRegistryProps> = ({
                                     <div className="flex gap-4">
                                         <button className="p-4 bg-white/5 border border-white/10 text-slate-400 rounded-xl hover:text-white transition-all" onClick={() => { setActiveRecordId(r.id); setActiveView('pi-verify'); }}><Eye size={18} /></button>
                                         {!(r.pi_verified || r.piVerified) && (
-                                            <button className="px-6 py-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl font-black uppercase tracking-widest text-[11px] italic hover:bg-indigo-500 hover:text-white transition-all flex items-center gap-3" onClick={() => { setActiveRecordId(r.id); setActiveView('pi-verify'); }}><ShieldCheck size={18} /> Verify</button>
+                                            <button className="px-6 py-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl font-black uppercase tracking-widest text-[12px] italic hover:bg-indigo-500 hover:text-white transition-all flex items-center gap-3" onClick={() => { setActiveRecordId(r.id); setActiveView('pi-verify'); }}><ShieldCheck size={18} /> Verify</button>
                                         )}
                                         <button className="p-4 bg-white/5 border border-white/10 text-slate-400 rounded-xl hover:text-white transition-all" onClick={() => { setAuditDrawerRecordId(r.id); setAuditDrawerOpen(true); }}><History size={18} /></button>
                                     </div>
@@ -111,3 +111,5 @@ export const ConsentRegistry: React.FC<ConsentRegistryProps> = ({
         </div>
     );
 };
+
+

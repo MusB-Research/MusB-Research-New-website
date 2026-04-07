@@ -54,13 +54,13 @@ export default function StudiesModule({ studies, onAdd, onEdit, onLaunch }: Stud
                     <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">
                         Study <span className="text-cyan-400">Lifecycle</span>
                     </h2>
-                    <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px] mt-2 italic">
+                    <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[12px] mt-2 italic">
                         Protocol management and recruitment tracking
                     </p>
                 </div>
                 <button 
                     onClick={onAdd}
-                    className="px-8 py-4 bg-cyan-500 text-slate-950 rounded-[2rem] text-[10px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-xl shadow-cyan-500/20 hover:scale-[1.02] transition-all self-start"
+                    className="px-8 py-4 bg-cyan-500 text-slate-950 rounded-[2rem] text-[12px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-xl shadow-cyan-500/20 hover:scale-[1.02] transition-all self-start"
                 >
                     <Rocket className="w-4 h-4" /> LAUNCH A STUDY
                 </button>
@@ -75,7 +75,7 @@ export default function StudiesModule({ studies, onAdd, onEdit, onLaunch }: Stud
                         placeholder="Search protocols, sponsors, or study IDs..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-6 py-4 text-xs text-white outline-none focus:border-cyan-500/50 transition-all font-bold uppercase tracking-widest placeholder:text-slate-700 placeholder:italic"
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-6 py-4 text-[12px] text-white outline-none focus:border-cyan-500/50 transition-all font-bold uppercase tracking-widest placeholder:text-slate-700 placeholder:italic"
                     />
                 </div>
                 <div className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/10 rounded-2xl">
@@ -83,7 +83,7 @@ export default function StudiesModule({ studies, onAdd, onEdit, onLaunch }: Stud
                         <button
                             key={status}
                             onClick={() => setStatusFilter(status)}
-                            className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                            className={`px-4 py-2 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${
                                 statusFilter === status 
                                 ? 'bg-cyan-500 text-slate-950 shadow-lg' 
                                 : 'text-slate-500 hover:text-white'
@@ -115,14 +115,14 @@ export default function StudiesModule({ studies, onAdd, onEdit, onLaunch }: Stud
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
                                         <Beaker className="w-4 h-4 text-cyan-400" />
-                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">{study.protocol_id}</span>
+                                        <span className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">{study.protocol_id}</span>
                                     </div>
                                     <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter line-clamp-2 leading-none">
                                         {study.title}
                                     </h3>
                                 </div>
                                 <div className="flex flex-col items-end gap-2">
-                                    <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
+                                    <span className={`px-4 py-1.5 rounded-full text-[12px] font-black uppercase tracking-widest border ${
                                         study.status === 'UPCOMING' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                                         study.status === 'RECRUITING' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
                                         study.status === 'PAUSED' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
@@ -137,7 +137,7 @@ export default function StudiesModule({ studies, onAdd, onEdit, onLaunch }: Stud
                             {/* Metrics Section */}
                             <div className="space-y-6 bg-white/5 rounded-[2rem] p-6 border border-white/5">
                                 <div className="space-y-3">
-                                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                                    <div className="flex justify-between items-center text-[12px] font-black uppercase tracking-widest">
                                         <div className="flex items-center gap-2 text-slate-500">
                                             <Target className="w-3 h-3" />
                                             <span>Recruitment Progress</span>
@@ -155,11 +155,11 @@ export default function StudiesModule({ studies, onAdd, onEdit, onLaunch }: Stud
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest italic">Retention</p>
+                                        <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Retention</p>
                                         <p className="text-lg font-black text-white italic tracking-tighter mt-1">98.2%</p>
                                     </div>
                                     <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest italic">Compliance</p>
+                                        <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Compliance</p>
                                         <p className="text-lg font-black text-white italic tracking-tighter mt-1">94.5%</p>
                                     </div>
                                 </div>
@@ -170,21 +170,21 @@ export default function StudiesModule({ studies, onAdd, onEdit, onLaunch }: Stud
                                 {['PAUSED'].includes(study.status) ? (
                                     <button 
                                         onClick={() => onLaunch(study.id)}
-                                        className="w-full py-4 bg-cyan-500 text-slate-950 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-cyan-500/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-3"
+                                        className="w-full py-4 bg-cyan-500 text-slate-950 rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] shadow-lg shadow-cyan-500/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-3"
                                     >
                                         <Activity className="w-4 h-4 animate-pulse" /> Launch Protocol
                                     </button>
                                 ) : (
                                     <button 
                                         onClick={() => onEdit(study)}
-                                        className="w-full py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-white hover:text-slate-950 transition-all flex items-center justify-center gap-3 group/btn"
+                                        className="w-full py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] hover:bg-white hover:text-slate-950 transition-all flex items-center justify-center gap-3 group/btn"
                                     >
                                         Manage Study <ArrowRight className="w-3 h-3 group-hover/btn:translate-x-1 transition-transform" />
                                     </button>
                                 )}
                                 
                                 <div className="flex justify-between gap-3">
-                                    <button className="flex-1 py-3 bg-white/5 border border-white/10 text-slate-500 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:text-white transition-all">Analytics</button>
+                                    <button className="flex-1 py-3 bg-white/5 border border-white/10 text-slate-500 rounded-2xl font-black text-[12px] uppercase tracking-widest hover:text-white transition-all">Analytics</button>
                                     <button className="px-4 py-3 bg-white/5 border border-white/10 text-slate-500 rounded-2xl hover:text-white transition-all">
                                         <MoreHorizontal className="w-4 h-4" />
                                     </button>
@@ -204,7 +204,7 @@ export default function StudiesModule({ studies, onAdd, onEdit, onLaunch }: Stud
                             </div>
                             <div>
                                 <h4 className="text-white font-black uppercase italic tracking-tight">No Protocols Found</h4>
-                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Adjust filters or search criteria</p>
+                                <p className="text-[12px] text-slate-500 font-bold uppercase tracking-widest mt-1">Adjust filters or search criteria</p>
                             </div>
                         </motion.div>
                     )}
@@ -213,3 +213,6 @@ export default function StudiesModule({ studies, onAdd, onEdit, onLaunch }: Stud
         </motion.div>
     );
 }
+
+
+

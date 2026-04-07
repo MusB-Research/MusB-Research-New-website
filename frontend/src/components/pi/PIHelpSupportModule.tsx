@@ -319,25 +319,21 @@ export default function PIHelpSupportModule() {
         }
     };
 
-    const executeStatusChange = (newStatus: string) => {
+    const executeStatusChange = async (newStatus: string) => {
         if (!activeTicket) return;
-        const sysMsg: Message = {
-            id: 'sys-' + Date.now(),
-            sender: 'System',
-            role: 'System',
-            time: 'Now',
-            text: `Status updated: ${newStatus}`,
-            tag: null,
-            attachment: null,
-            isSystem: true
-        };
-        setTickets(prev => prev.map(t => t.id === activeTicketId ? {
-            ...t,
-            status: newStatus,
-            messages: [...t.messages, sysMsg],
-            auditLog: [...t.auditLog, { time: 'Now', user: 'PI (You)', action: `Status changed to ${newStatus}` }]
-        } : t));
-        addToast(`Ticket marked as ${newStatus}`);
+        try {
+            const res = await authFetch(`${API}/api/support/tickets/${activeTicketId}/update_status/`, {
+                method: 'POST',
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            if (res.ok) {
+                fetchTickets(); // Refresh data to get the system message and audit log
+                addToast(`Ticket marked as ${newStatus}`);
+            }
+        } catch (e) {
+            addToast('Network synchronization failure', 'error');
+        }
     };
 
     const requestStatusChange = (newStatus: string) => {
@@ -392,8 +388,8 @@ export default function PIHelpSupportModule() {
         glass: { backgroundColor: COLORS.glass, backdropFilter: 'blur(12px)', border: `1px solid ${COLORS.border}` },
         label: { fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.15em', color: COLORS.label },
         title: { fontSize: '20px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' as const, color: 'white' },
-        btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '0.6rem 1.25rem', borderRadius: '4px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' },
-        btnGhost: { backgroundColor: 'transparent', color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: '0.6rem 1.25rem', borderRadius: '4px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' }
+        btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '0.6rem 1.25rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' },
+        btnGhost: { backgroundColor: 'transparent', color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: '0.6rem 1.25rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' }
     };
 
     return (
@@ -409,8 +405,8 @@ export default function PIHelpSupportModule() {
                 <div style={{ flex: 1, maxWidth: '500px', margin: '0 2rem', position: 'relative' }}>
                     <Search size={16} color={COLORS.label} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
                     <input 
-                        style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, borderRadius: '100px', padding: '0.6rem 1rem 0.6rem 2.8rem', color: 'white', outline: 'none', fontSize: '14px' }}
-                        placeholder="Search ticket IDs, titles, study nodes..."
+                        style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, borderRadius: '100px', padding: '0.6rem 1rem 0.6rem 2.8rem', color: 'white', outline: 'none', fontSize: '12px' }}
+                        placeholder="SEARCH TICKET IDS, TITLES, STUDY NODES..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                     />
@@ -443,7 +439,7 @@ export default function PIHelpSupportModule() {
                             <button 
                                 key={s} 
                                 onClick={() => setFilterStatus(s)}
-                                style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', padding: '0.4rem 0.8rem', borderRadius: '6px', border: `1px solid ${filterStatus === s ? COLORS.accent : COLORS.border}`, backgroundColor: filterStatus === s ? `${COLORS.accent}20` : 'transparent', color: filterStatus === s ? 'white' : COLORS.label, cursor: 'pointer' }}
+                                style={{ fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', padding: '0.4rem 0.8rem', borderRadius: '6px', border: `1px solid ${filterStatus === s ? COLORS.accent : COLORS.border}`, backgroundColor: filterStatus === s ? `${COLORS.accent}20` : 'transparent', color: filterStatus === s ? 'white' : COLORS.label, cursor: 'pointer' }}
                             >
                                 {s}
                             </button>
@@ -462,11 +458,11 @@ export default function PIHelpSupportModule() {
                                 }}
                             >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                                    <span style={{ fontSize: '10px', fontWeight: 900, color: COLORS.accent, fontFamily: 'monospace' }}>{t.id}</span>
-                                    <span style={{ fontSize: '10px', color: COLORS.label }}>{t.lastUpdated}</span>
+                                    <span style={{ fontSize: '12px', fontWeight: 900, color: COLORS.accent, fontFamily: 'monospace' }}>{t.id}</span>
+                                    <span style={{ fontSize: '12px', color: COLORS.label }}>{t.lastUpdated}</span>
                                 </div>
                                 <div style={{ fontSize: '14px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase', marginBottom: '0.4rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
-                                <div style={{ fontSize: '11px', color: COLORS.label, marginBottom: '0.75rem' }}>{t.study} • {t.participantId || 'Global'}</div>
+                                <div style={{ fontSize: '12px', color: COLORS.label, marginBottom: '0.75rem' }}>{t.study} • {t.participantId || 'Global'}</div>
                                 <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                                     <span style={{ fontSize: '8px', fontWeight: 900, textTransform: 'uppercase', padding: '0.2rem 0.4rem', borderRadius: '2px', backgroundColor: 'rgba(255,255,255,0.05)', color: COLORS.text }}>{t.category}</span>
                                     <span style={{ 
@@ -528,12 +524,12 @@ export default function PIHelpSupportModule() {
                                 {activeTicket.messages.map(m => (
                                     <div key={m.id} style={{ alignSelf: m.isSystem ? 'center' : (m.fromPI ? 'flex-end' : 'flex-start'), maxWidth: m.isSystem ? '100%' : '75%' }}>
                                         {m.isSystem ? (
-                                            <div style={{ fontSize: '11px', color: COLORS.label, fontStyle: 'italic', padding: '1rem', textAlign: 'center' }}>
+                                            <div style={{ fontSize: '12px', color: COLORS.label, fontStyle: 'italic', padding: '1rem', textAlign: 'center' }}>
                                                 — {m.text} at {m.time} —
                                             </div>
                                         ) : (
                                             <>
-                                                <div style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', color: COLORS.label, marginBottom: '0.5rem', textAlign: m.fromPI ? 'right' : 'left' }}>
+                                                <div style={{ fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', color: COLORS.label, marginBottom: '0.5rem', textAlign: m.fromPI ? 'right' : 'left' }}>
                                                     {m.sender} <span style={{ color: COLORS.accent }}>[{m.role}]</span> • {m.time}
                                                 </div>
                                                 <div style={{ 
@@ -546,7 +542,7 @@ export default function PIHelpSupportModule() {
                                                     {m.attachment && (
                                                         <div style={{ marginTop: '0.75rem', padding: '0.5rem', borderRadius: '4px', backgroundColor: 'rgba(0,0,0,0.2)', border: `1px solid ${COLORS.border}`, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                             <Paperclip size={12} color={COLORS.accent} />
-                                                            <span style={{ fontSize: '11px', fontWeight: 'bold' }}>{m.attachment}</span>
+                                                            <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{m.attachment}</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -584,7 +580,7 @@ export default function PIHelpSupportModule() {
                                         {attachedFile && (
                                             <div style={{ position: 'absolute', top: '-40px', left: 0, padding: '0.4rem 0.8rem', backgroundColor: `${COLORS.accent}15`, borderRadius: '4px', border: `1px solid ${COLORS.accent}40`, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                                 <Paperclip size={12} color={COLORS.accent} />
-                                                <span style={{ fontSize: '11px', fontWeight: 900 }}>{attachedFile.name}</span>
+                                                <span style={{ fontSize: '12px', fontWeight: 900 }}>{attachedFile.name}</span>
                                                 <X size={12} color={COLORS.accent} style={{ cursor: 'pointer' }} onClick={() => setAttachedFile(null)} />
                                             </div>
                                         )}
@@ -618,15 +614,15 @@ export default function PIHelpSupportModule() {
                                 <label style={G.label}>Origin Parameters</label>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
                                     <div>
-                                        <div style={{ fontSize: '11px', color: COLORS.label }}>Ticket Identity</div>
+                                        <div style={{ fontSize: '12px', color: COLORS.label }}>Ticket Identity</div>
                                         <div style={{ fontSize: '15px', fontWeight: 900, fontFamily: 'monospace', color: COLORS.accent }}>{activeTicket.id}</div>
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: '11px', color: COLORS.label }}>Created By</div>
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{activeTicket.createdBy} <span style={{ color: COLORS.label, fontSize: '10px' }}>[{activeTicket.createdRole}]</span></div>
+                                        <div style={{ fontSize: '12px', color: COLORS.label }}>Created By</div>
+                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{activeTicket.createdBy} <span style={{ color: COLORS.label, fontSize: '12px' }}>[{activeTicket.createdRole}]</span></div>
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: '11px', color: COLORS.label }}>Study Node</div>
+                                        <div style={{ fontSize: '12px', color: COLORS.label }}>Study Node</div>
                                         <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{activeTicket.study}</div>
                                     </div>
                                 </div>
@@ -637,11 +633,20 @@ export default function PIHelpSupportModule() {
                                 <select 
                                     style={{ ...G.btnGhost, width: '100%', marginTop: '1rem', outline: 'none', textAlign: 'left', backgroundColor: '#0B101B' }}
                                     value={activeTicket.assignedTo}
-                                    onChange={(e) => {
+                                    onChange={async (e) => {
                                         const name = e.target.value;
-                                        const sysMsg: Message = { id: 'sys-'+Date.now(), sender: 'System', role: 'System', time: 'Now', text: `Assigned to ${name}`, tag: null, attachment: null, isSystem: true };
-                                        setTickets(prev => prev.map(t => t.id === activeTicketId ? { ...t, assignedTo: name, messages: [...t.messages, sysMsg] } : t));
-                                        addToast(`Routed to ${name}`);
+                                        try {
+                                            const res = await authFetch(`${API}/api/support/tickets/${activeTicketId}/update_assignment/`, {
+                                                method: 'POST',
+                                                body: JSON.stringify({ assigned_to: name })
+                                            });
+                                            if (res.ok) {
+                                                fetchTickets();
+                                                addToast(`Routed to ${name}`);
+                                            }
+                                        } catch (e) {
+                                            addToast('Routing synchronization failure', 'error');
+                                        }
                                     }}
                                 >
                                     <option>Super Admin</option>
@@ -733,7 +738,7 @@ export default function PIHelpSupportModule() {
                                             <button 
                                                 key={p} 
                                                 onClick={() => setNewRequestForm({ ...newRequestForm, priority: p })}
-                                                style={{ border: `1px solid ${newRequestForm.priority === p ? COLORS.accent : COLORS.border}`, background: newRequestForm.priority === p ? `${COLORS.accent}20` : 'transparent', color: newRequestForm.priority === p ? 'white' : COLORS.label, flex: 1, padding: '0.75rem', fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', borderRadius: '4px', cursor: 'pointer' }}
+                                                style={{ border: `1px solid ${newRequestForm.priority === p ? COLORS.accent : COLORS.border}`, background: newRequestForm.priority === p ? `${COLORS.accent}20` : 'transparent', color: newRequestForm.priority === p ? 'white' : COLORS.label, flex: 1, padding: '0.75rem', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', borderRadius: '4px', cursor: 'pointer' }}
                                             >
                                                 {p}
                                             </button>
@@ -775,7 +780,7 @@ export default function PIHelpSupportModule() {
                     <div key={t.id} style={{ 
                         padding: '1rem 2rem', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '1rem',
                         backgroundColor: t.type === 'success' ? COLORS.success : t.type === 'error' ? COLORS.danger : (t.type === 'warning' ? COLORS.warning : COLORS.info),
-                        color: 'white', fontWeight: 900, textTransform: 'uppercase', fontSize: '11px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                        color: 'white', fontWeight: 900, textTransform: 'uppercase', fontSize: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
                         animation: 'slideIn 0.3s forwards'
                     }}>
                         <Bell size={16} /> {t.message}
@@ -792,3 +797,5 @@ export default function PIHelpSupportModule() {
         </div>
     );
 }
+
+

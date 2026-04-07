@@ -30,7 +30,7 @@ export default function SettingsModule() {
                     <h2 className="text-4xl sm:text-6xl font-black text-white italic uppercase tracking-tighter">
                         Global <span className="text-cyan-400">Settings</span>
                     </h2>
-                    <p className="text-xs sm:text-base text-slate-500 font-black uppercase tracking-[0.3em] mt-4 italic">
+                    <p className="text-[12px] sm:text-base text-slate-500 font-black uppercase tracking-[0.3em] mt-4 italic">
                         System Configuration & Integration Architecture
                     </p>
                 </div>
@@ -62,7 +62,7 @@ export default function SettingsModule() {
                                     <ChevronRight className="w-6 h-6 text-slate-800 group-hover:text-white transition-colors" />
                                 </div>
                                 <h4 className="text-base font-black text-white italic uppercase tracking-tight">{s.title}</h4>
-                                <p className="text-xs text-slate-500 font-black uppercase tracking-[0.2em] mt-2 italic transform group-hover:translate-x-1 transition-transform">{s.desc}</p>
+                                <p className="text-[12px] text-slate-500 font-black uppercase tracking-[0.2em] mt-2 italic transform group-hover:translate-x-1 transition-transform">{s.desc}</p>
                             </div>
                         ))}
                     </div>
@@ -88,8 +88,8 @@ export default function SettingsModule() {
                                             <pipe.icon className="w-6 h-6 text-slate-600 group-hover:text-white transition-colors" />
                                         </div>
                                         <div>
-                                            <p className="text-xs font-black text-white uppercase italic tracking-wider">{pipe.name}</p>
-                                            <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.3em] mt-2 leading-none">Version 2.4.x</p>
+                                            <p className="text-[12px] font-black text-white uppercase italic tracking-wider">{pipe.name}</p>
+                                            <p className="text-[12px] text-slate-600 font-black uppercase tracking-[0.3em] mt-2 leading-none">Version 2.4.x</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -100,13 +100,13 @@ export default function SettingsModule() {
                         </div>
                         
                         <div className="p-8 bg-indigo-500/5 border border-indigo-500/10 rounded-[2.5rem] space-y-6 shadow-inner">
-                            <p className="text-xs font-black text-indigo-400 uppercase italic tracking-tight">API Infrastructure Core</p>
-                            <p className="text-xs text-slate-500 leading-relaxed font-black uppercase tracking-[0.2em] italic">All systems are currently routing through the primary AWS-managed gateway.</p>
-                            <button className="w-full py-5 bg-white/5 border border-white/10 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] hover:text-white hover:bg-white/10 transition-all italic shadow-xl">Regenerate Master Key</button>
+                            <p className="text-[12px] font-black text-indigo-400 uppercase italic tracking-tight">API Infrastructure Core</p>
+                            <p className="text-[12px] text-slate-500 leading-relaxed font-black uppercase tracking-[0.2em] italic">All systems are currently routing through the primary AWS-managed gateway.</p>
+                            <button className="w-full py-5 bg-white/5 border border-white/10 text-slate-500 rounded-2xl text-[12px] font-black uppercase tracking-[0.3em] hover:text-white hover:bg-white/10 transition-all italic shadow-xl">Regenerate Master Key</button>
                         </div>
                     </div>
 
-                    <button className="w-full py-8 bg-white/10 border border-white/10 text-white rounded-[4rem] font-black text-xs sm:text-sm uppercase tracking-[0.4em] hover:bg-red-500 hover:text-white transition-all italic shadow-2xl hover:scale-[1.02] active:scale-[0.98]">
+                    <button className="w-full py-8 bg-white/10 border border-white/10 text-white rounded-[4rem] font-black text-[12px] sm:text-sm uppercase tracking-[0.4em] hover:bg-red-500 hover:text-white transition-all italic shadow-2xl hover:scale-[1.02] active:scale-[0.98]">
                         Purge Application Cache
                     </button>
                 </div>
@@ -114,3 +114,5 @@ export default function SettingsModule() {
         </motion.div>
     );
 }
+
+

@@ -121,11 +121,11 @@ export default function SponsorsManagement({ allUsers = [], allStudies = [], onR
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div>
           <h1 className="text-3xl sm:text-5xl font-black text-white italic uppercase tracking-tighter">Research <span className="text-cyan-400">Sponsors</span></h1>
-          <p className="text-xs sm:text-sm text-[#8b8fa8] uppercase tracking-[0.2em] font-black mt-3">Delegate platform access & study funding credentials</p>
+          <p className="text-[12px] sm:text-sm text-[#8b8fa8] uppercase tracking-[0.2em] font-black mt-3">Delegate platform access & study funding credentials</p>
         </div>
         <button 
           onClick={() => setShowCreateModal(true)}
-          className="px-8 py-4 bg-cyan-600 text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl shadow-cyan-500/20 hover:bg-cyan-500 transition-all font-mono"
+          className="px-8 py-4 bg-cyan-600 text-white rounded-xl font-black text-[12px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl shadow-cyan-500/20 hover:bg-cyan-500 transition-all font-mono"
         >
           <UserPlus className="w-5 h-5" /> Generate Sponsor Account
         </button>
@@ -148,7 +148,7 @@ export default function SponsorsManagement({ allUsers = [], allStudies = [], onR
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-white/[0.02] text-xs font-black text-[#555a7a] uppercase tracking-[0.3em] italic border-b border-white/5">
+              <tr className="bg-white/[0.02] text-[12px] font-black text-[#555a7a] uppercase tracking-[0.3em] italic border-b border-white/5">
                 <th className="px-10 py-8">Sponsor Personnel</th>
                 <th className="px-10 py-8">Affiliation / Company</th>
                 <th className="px-10 py-8">Portfolio</th>
@@ -160,7 +160,7 @@ export default function SponsorsManagement({ allUsers = [], allStudies = [], onR
             <tbody className="divide-y divide-white/5">
               {filteredSponsors.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-10 py-20 text-center opacity-30 italic uppercase tracking-[0.2em] text-xs font-black">No sponsor records in cross-project sync</td>
+                  <td colSpan={5} className="px-10 py-20 text-center opacity-30 italic uppercase tracking-[0.2em] text-[12px] font-black">No sponsor records in cross-project sync</td>
                 </tr>
               ) : (
                 filteredSponsors.map((s) => (
@@ -172,30 +172,30 @@ export default function SponsorsManagement({ allUsers = [], allStudies = [], onR
                         </div>
                         <div>
                           <p className="text-base font-black text-white italic group-hover:text-cyan-400 transition-colors uppercase tracking-tight">{s.name}</p>
-                          <p className="text-xs text-[#555a7a] font-black uppercase tracking-widest mt-1.5">{s.email}</p>
+                          <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-widest mt-1.5">{s.email}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-10 py-8">
-                       <span className="text-xs font-black text-slate-400 uppercase tracking-widest italic">{s.company}</span>
+                       <span className="text-[12px] font-black text-slate-400 uppercase tracking-widest italic">{s.company}</span>
                     </td>
                     <td className="px-10 py-8">
                       <div className="flex flex-wrap gap-2">
                         {s.studies.length > 0 ? (
                           s.studies.map((st, i) => (
-                            <span key={i} className="px-3 py-1 bg-white/5 border border-white/10 rounded-md text-[9px] font-black text-slate-500 uppercase tracking-widest">{st}</span>
+                            <span key={i} className="px-3 py-1 bg-white/5 border border-white/10 rounded-md text-[12px] font-black text-slate-500 uppercase tracking-widest">{st}</span>
                           ))
                         ) : (
-                          <span className="text-[10px] text-slate-700 italic font-black uppercase tracking-widest">No Projects Linked</span>
+                          <span className="text-[12px] text-slate-700 italic font-black uppercase tracking-widest">No Projects Linked</span>
                         )}
                       </div>
                     </td>
-                    <td className="px-10 py-8 text-[11px] font-black text-slate-400 uppercase tracking-widest italic">{s.registeredDate}</td>
+                    <td className="px-10 py-8 text-[12px] font-black text-slate-400 uppercase tracking-widest italic">{s.registeredDate}</td>
                     <td className="px-10 py-8">
                       <button 
                         onClick={() => handleToggleStatus(s)}
                         disabled={updatingId === s.id}
-                        className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border transition-all flex items-center gap-2 ${
+                        className={`px-4 py-2 rounded-full text-[12px] font-black uppercase tracking-[0.2em] border transition-all flex items-center gap-2 ${
                         s.status === 'Active' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20'
                         } disabled:opacity-50`}
                       >
@@ -238,7 +238,7 @@ export default function SponsorsManagement({ allUsers = [], allStudies = [], onR
                     <UserPlus className="w-6 h-6" />
                   </div>
                   <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Sponsor <span className="text-cyan-400">Onboarding</span></h2>
-                  <p className="text-[10px] text-[#555a7a] font-black uppercase tracking-widest text-[#8b8fa8]">Generate secure clinical trial funding credentials</p>
+                  <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-widest text-[#8b8fa8]">Generate secure clinical trial funding credentials</p>
                 </div>
                 <button
                   onClick={() => setShowCreateModal(false)}
@@ -290,8 +290,8 @@ export default function SponsorsManagement({ allUsers = [], allStudies = [], onR
                   <div className="p-8 bg-cyan-500/5 rounded-[2rem] border border-cyan-500/10 flex items-center gap-6 mb-8">
                     <ShieldAlert className="w-10 h-10 text-cyan-400 opacity-50 shrink-0" />
                     <div>
-                      <p className="text-[11px] text-white font-black uppercase tracking-widest leading-relaxed italic">Access Delegation Rule:</p>
-                      <p className="text-[10px] text-[#8b8fa8] font-bold leading-relaxed uppercase tracking-tighter mt-1 italic">As Muscle Research Staff, you are authorized to provision Sponsor credentials for portfolio collaboration.</p>
+                      <p className="text-[12px] text-white font-black uppercase tracking-widest leading-relaxed italic">Access Delegation Rule:</p>
+                      <p className="text-[12px] text-[#8b8fa8] font-bold leading-relaxed uppercase tracking-tighter mt-1 italic">As Muscle Research Staff, you are authorized to provision Sponsor credentials for portfolio collaboration.</p>
                     </div>
                   </div>
 
@@ -319,3 +319,5 @@ export default function SponsorsManagement({ allUsers = [], allStudies = [], onR
     </div>
   );
 }
+
+

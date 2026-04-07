@@ -50,7 +50,7 @@ const LogDetailModal = ({ log, onClose }: { log: any; onClose: () => void }) => 
                 <Icon className="w-4 h-4" />
             </div>
             <div className="space-y-1">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{label}</p>
+                <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest">{label}</p>
                 <p className="text-[14px] font-bold text-white uppercase tracking-tight">{value || 'N/A'}</p>
             </div>
         </div>
@@ -113,7 +113,7 @@ const LogDetailModal = ({ log, onClose }: { log: any; onClose: () => void }) => 
                         {log.noticed_side_effects ? (
                             <div className="space-y-4">
                                 <div className="p-6 bg-red-500/5 border border-red-500/10 rounded-2xl space-y-2">
-                                    <p className="text-[10px] font-black text-red-400/60 uppercase tracking-widest px-1">Symptom Description</p>
+                                    <p className="text-[12px] font-black text-red-400/60 uppercase tracking-widest px-1">Symptom Description</p>
                                     <p className="text-white font-bold leading-relaxed">{log.side_effect_description}</p>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -124,7 +124,7 @@ const LogDetailModal = ({ log, onClose }: { log: any; onClose: () => void }) => 
                                 </div>
                                 {log.ae_additional_comments && (
                                     <div className="p-4 bg-white/5 border border-white/5 rounded-2xl">
-                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Additional AE Comments</p>
+                                        <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest mb-2">Additional AE Comments</p>
                                         <p className="text-slate-300 font-bold italic">"{log.ae_additional_comments}"</p>
                                     </div>
                                 )}
@@ -151,7 +151,7 @@ const LogDetailModal = ({ log, onClose }: { log: any; onClose: () => void }) => 
                                         <FileUp className="w-4 h-4" />
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Attachment</p>
+                                        <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest">Attachment</p>
                                         <a href={log.supporting_file} target="_blank" rel="noreferrer" className="text-[14px] font-bold text-cyan-400 uppercase hover:underline">View Uploaded File</a>
                                     </div>
                                 </div>
@@ -159,7 +159,7 @@ const LogDetailModal = ({ log, onClose }: { log: any; onClose: () => void }) => 
                         </div>
                         {log.health_updates && (
                             <div className="p-6 bg-purple-500/5 border border-purple-500/10 rounded-2xl space-y-2">
-                                <p className="text-[10px] font-black text-purple-400/60 uppercase tracking-widest px-1">Health Updates</p>
+                                <p className="text-[12px] font-black text-purple-400/60 uppercase tracking-widest px-1">Health Updates</p>
                                 <p className="text-white font-bold leading-relaxed italic">"{log.health_updates}"</p>
                             </div>
                         )}
@@ -312,7 +312,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                         History
                     </button>
                 </div>
-                <div className="px-6 text-[11px] font-black text-slate-600 uppercase tracking-[0.3em]">
+                <div className="px-6 text-[12px] font-black text-slate-600 uppercase tracking-[0.3em]">
                     SECURE HUB v2.4
                 </div>
             </div>
@@ -651,7 +651,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                                         </div>
                                         <div>
                                             <h5 className="text-[15px] font-black text-white italic uppercase tracking-tighter">Entry: {new Date(log.date).toLocaleDateString()}</h5>
-                                            <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] group-hover:text-cyan-400 transition-colors">{log.took_medicine ? 'Dose Taken' : 'Dose Missed'} • {log.overall_feeling?.replace('_', ' ') || 'No feeling reported'}</p>
+                                            <p className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] group-hover:text-cyan-400 transition-colors">{log.took_medicine ? 'Dose Taken' : 'Dose Missed'} • {log.overall_feeling?.replace('_', ' ') || 'No feeling reported'}</p>
                                         </div>
                                     </div>
                                     <button className="p-3 bg-white/5 rounded-xl text-slate-400 group-hover:text-white group-hover:bg-cyan-500/20 transition-all"><ChevronRight className="w-5 h-5" /></button>
@@ -670,3 +670,5 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
 };
 
 export default LogsView;
+
+

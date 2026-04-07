@@ -33,7 +33,7 @@ export const LabParameters: React.FC<LabParametersProps> = ({ participant }) => 
                                     <td style={{ padding: '1.25rem 2rem', fontSize: '13px' }}>{r.v1}</td>
                                     <td style={{ padding: '1.25rem 2rem', fontSize: '13px', color: r.alert ? COLORS.warning : 'white' }}>{r.v2}</td>
                                     <td style={{ padding: '1.25rem 2rem', fontSize: '13px' }}>{r.v3}</td>
-                                    <td style={{ padding: '1.25rem 2rem', fontSize: '11px', color: COLORS.label }}>{r.ref}</td>
+                                    <td style={{ padding: '1.25rem 2rem', fontSize: '12px', color: COLORS.label }}>{r.ref}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -43,3 +43,5 @@ export const LabParameters: React.FC<LabParametersProps> = ({ participant }) => 
         </div>
     );
 };
+
+

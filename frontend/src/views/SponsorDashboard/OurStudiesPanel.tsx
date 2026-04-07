@@ -256,7 +256,7 @@ export default function OurStudiesPanel({ protocols, setProtocols, addToast, win
                   {/* Row 3 - Charts */}
                   <div style={{ padding: '16px 24px', borderBottom: '1px solid #334155' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.05em' }}>Study Charts</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', letterSpacing: '0.05em' }}>Study Charts</div>
                       <div style={{ display: 'flex', gap: 4 }}>
                         {['Enrollment', 'Completion', 'Questionnaires', 'Samples'].map(tab => (
                           <button key={tab} onClick={() => setCardChartTabs({ ...cardChartTabs, [study.id]: tab })} style={{ background: activeTab === tab ? '#334155' : 'transparent', color: activeTab === tab ? '#f1f5f9' : '#94a3b8', border: 'none', padding: '4px 12px', fontSize: 12, borderRadius: 999, fontWeight: 600, cursor: 'pointer' }}>{tab}</button>
@@ -350,12 +350,12 @@ export default function OurStudiesPanel({ protocols, setProtocols, addToast, win
 
             {(cardChartTabs[`detail_${activeStudyForDetail.id}`] || 'Overview') === 'Overview' && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '36px 56px' }}>
-                <div><div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 10, letterSpacing: '0.08em' }}>Principal Investigator</div><div style={{ fontSize: 22, color: '#f1f5f9', fontWeight: 700 }}>{activeStudyForDetail.pi}</div></div>
-                <div><div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 10, letterSpacing: '0.08em' }}>Assigned Site</div><div style={{ fontSize: 22, color: '#f1f5f9', fontWeight: 700 }}>{activeStudyForDetail.site}</div></div>
-                <div><div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 10, letterSpacing: '0.08em' }}>Study Type & Area</div><div style={{ fontSize: 22, color: '#f1f5f9', fontWeight: 700 }}>{activeStudyForDetail.studyType} • {activeStudyForDetail.researchArea}</div></div>
-                <div><div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 10, letterSpacing: '0.08em' }}>IRB Status</div><div><StatusBadge status={activeStudyForDetail.irbStatus} /></div></div>
-                <div><div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 10, letterSpacing: '0.08em' }}>Start Date</div><div style={{ fontSize: 22, color: '#f1f5f9', fontWeight: 700 }}>{activeStudyForDetail.startDate}</div></div>
-                <div><div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 10, letterSpacing: '0.08em' }}>Estimated End Date</div><div style={{ fontSize: 22, color: '#f1f5f9', fontWeight: 700 }}>{activeStudyForDetail.endDate}</div></div>
+                <div><div style={{ fontSize: 12, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 10, letterSpacing: '0.08em' }}>Principal Investigator</div><div style={{ fontSize: 22, color: '#f1f5f9', fontWeight: 700 }}>{activeStudyForDetail.pi}</div></div>
+                <div><div style={{ fontSize: 12, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 10, letterSpacing: '0.08em' }}>Assigned Site</div><div style={{ fontSize: 22, color: '#f1f5f9', fontWeight: 700 }}>{activeStudyForDetail.site}</div></div>
+                <div><div style={{ fontSize: 12, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 10, letterSpacing: '0.08em' }}>Study Type & Area</div><div style={{ fontSize: 22, color: '#f1f5f9', fontWeight: 700 }}>{activeStudyForDetail.studyType} • {activeStudyForDetail.researchArea}</div></div>
+                <div><div style={{ fontSize: 12, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 10, letterSpacing: '0.08em' }}>IRB Status</div><div><StatusBadge status={activeStudyForDetail.irbStatus} /></div></div>
+                <div><div style={{ fontSize: 12, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 10, letterSpacing: '0.08em' }}>Start Date</div><div style={{ fontSize: 22, color: '#f1f5f9', fontWeight: 700 }}>{activeStudyForDetail.startDate}</div></div>
+                <div><div style={{ fontSize: 12, color: '#64748b', textTransform: 'uppercase', fontWeight: 800, marginBottom: 10, letterSpacing: '0.08em' }}>Estimated End Date</div><div style={{ fontSize: 22, color: '#f1f5f9', fontWeight: 700 }}>{activeStudyForDetail.endDate}</div></div>
               </div>
             )}
 
@@ -454,3 +454,5 @@ export default function OurStudiesPanel({ protocols, setProtocols, addToast, win
     </div>
   );
 }
+
+

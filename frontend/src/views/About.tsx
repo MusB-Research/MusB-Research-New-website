@@ -40,7 +40,7 @@ export default function About() {
                 <div className="max-w-6xl mx-auto w-full">
                     {/* Header */}
                     <div className="text-center mb-20">
-                        <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-purple-400/10 border border-purple-400/20 text-purple-400 font-bold text-xs tracking-widest uppercase mb-8">
+                        <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-purple-400/10 border border-purple-400/20 text-purple-400 font-bold text-[12px] tracking-widest uppercase mb-8">
                             <Building2 className="w-4 h-4" /> About MusB™ Research
                         </div>
                         <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight mb-6">
@@ -97,3 +97,5 @@ export default function About() {
         </div>
     );
 }
+
+

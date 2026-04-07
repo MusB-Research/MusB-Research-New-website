@@ -57,7 +57,7 @@ const CompensationView = ({ study, compensations = [], onAction }: any) => {
                             <h2 className="text-2xl lg:text-3xl font-black italic tracking-tighter text-white uppercase leading-none">Your Clinical Rewards Hub</h2>
                         </div>
                         <div className="flex flex-col items-end">
-                            <span className="text-[11px] font-black text-[#00e676] uppercase tracking-[0.3em] mb-1 italic">Total Rewards Earned</span>
+                            <span className="text-[12px] font-black text-[#00e676] uppercase tracking-[0.3em] mb-1 italic">Total Rewards Earned</span>
                             <span className="text-4xl lg:text-5xl font-black italic tracking-tighter text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">${totalEarned.toFixed(2)}</span>
                         </div>
                     </div>
@@ -128,7 +128,7 @@ const CompensationView = ({ study, compensations = [], onAction }: any) => {
                             </div>
                             <div className="bg-cyan-500/10 p-6 rounded-2xl border border-cyan-500/20 flex items-center justify-between">
                                 <div>
-                                    <p className="text-[11px] font-black text-cyan-200 uppercase tracking-widest mb-1">Bonus Reward</p>
+                                    <p className="text-[12px] font-black text-cyan-200 uppercase tracking-widest mb-1">Bonus Reward</p>
                                     <p className="text-2xl font-black text-white italic tracking-tighter">$250.00</p>
                                 </div>
                                 <div className="w-10 h-10 bg-cyan-500 text-slate-950 rounded-xl flex items-center justify-center shadow-lg"><Trophy className="w-5 h-5" /></div>
@@ -182,7 +182,7 @@ const CompensationView = ({ study, compensations = [], onAction }: any) => {
                                         <div className="flex flex-col items-center gap-4 opacity-30">
                                             <History className="w-12 h-12 text-slate-500 mb-2" />
                                             <p className="text-sm font-black text-slate-500 uppercase tracking-[0.2em] italic">No Transactions Authenticated Yet</p>
-                                            <p className="text-[11px] font-bold text-slate-600 uppercase tracking-widest max-w-[300px]">Clinical rewards are disbursed upon protocol verification. Complete your next task to trigger a payment cycle.</p>
+                                            <p className="text-[12px] font-bold text-slate-600 uppercase tracking-widest max-w-[300px]">Clinical rewards are disbursed upon protocol verification. Complete your next task to trigger a payment cycle.</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -201,3 +201,5 @@ const CompensationView = ({ study, compensations = [], onAction }: any) => {
 };
 
 export default CompensationView;
+
+

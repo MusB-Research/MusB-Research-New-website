@@ -55,7 +55,7 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div>
                     <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Study <span className="text-cyan-400">Kit Management</span></h2>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">Clinical Logistics & Specimen Collection Gear</p>
+                    <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">Clinical Logistics & Specimen Collection Gear</p>
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="relative">
@@ -65,10 +65,10 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                             placeholder="Kit ID / Participant..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3.5 text-xs text-white font-bold outline-none focus:border-cyan-500/50 transition-all w-72 uppercase tracking-widest placeholder:text-slate-700 font-mono"
+                            className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3.5 text-[12px] text-white font-bold outline-none focus:border-cyan-500/50 transition-all w-72 uppercase tracking-widest placeholder:text-slate-700 font-mono"
                         />
                     </div>
-                    <button className="flex items-center gap-2 px-6 py-3.5 bg-cyan-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.03] transition-all shadow-xl shadow-cyan-600/20">
+                    <button className="flex items-center gap-2 px-6 py-3.5 bg-cyan-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.03] transition-all shadow-xl shadow-cyan-600/20">
                         Assign New Kit <Plus className="w-4 h-4" />
                     </button>
                 </div>
@@ -89,7 +89,7 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                             <div className={`p-2 bg-cyan-500/10 rounded-xl border border-cyan-500/20 text-cyan-400`}>
                                 <kpi.icon className="w-4 h-4" />
                             </div>
-                            <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest">{kpi.label}</span>
+                            <span className="text-[12px] text-slate-500 font-black uppercase tracking-widest">{kpi.label}</span>
                         </div>
                         <p className="text-3xl font-black text-white italic tracking-tighter">{kpi.val}</p>
                     </div>
@@ -100,11 +100,11 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                 <table className="w-full text-left">
                     <thead>
                         <tr className="bg-white/5 border-b border-white/5">
-                            <th className="px-10 py-6 text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Kit Details</th>
-                            <th className="px-10 py-6 text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Assigned To</th>
-                            <th className="px-10 py-6 text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Operational Status</th>
-                            <th className="px-10 py-6 text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Last Update</th>
-                            <th className="px-10 py-6 text-[9px] font-black text-slate-500 uppercase tracking-widest italic text-right">Actions</th>
+                            <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Kit Details</th>
+                            <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Assigned To</th>
+                            <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Operational Status</th>
+                            <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Last Update</th>
+                            <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest italic text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -117,13 +117,13 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                                         </div>
                                         <div>
                                             <p className="text-sm font-black text-white italic truncate tracking-tight">{kit.kit_number}</p>
-                                            <p className="text-[10px] text-slate-500 font-mono uppercase tracking-[0.2em]">{kit.protocol_id}</p>
+                                            <p className="text-[12px] text-slate-500 font-mono uppercase tracking-[0.2em]">{kit.protocol_id}</p>
                                         </div>
                                     </div>
                                 </td>
                                 <td className="px-10 py-8">
                                     <p className="text-sm font-black text-white italic">{kit.participant_name}</p>
-                                    <div className="flex items-center gap-1.5 mt-1 text-[9px] text-slate-600 font-bold uppercase tracking-widest italic">
+                                    <div className="flex items-center gap-1.5 mt-1 text-[12px] text-slate-600 font-bold uppercase tracking-widest italic">
                                         <MapPin className="w-3 h-3" /> Household Location
                                     </div>
                                 </td>
@@ -136,7 +136,7 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                                                     const updated = kits.map(k => k.id === kit.id ? { ...k, carrier: e.target.value as any } : k);
                                                     setKits(updated);
                                                 }}
-                                                className="bg-transparent text-[10px] font-black text-slate-400 uppercase tracking-widest outline-none cursor-pointer w-full px-2"
+                                                className="bg-transparent text-[12px] font-black text-slate-400 uppercase tracking-widest outline-none cursor-pointer w-full px-2"
                                             >
                                                 <option value="FedEx" className="bg-[#0B101B]">FEDEX</option>
                                                 <option value="UPS" className="bg-[#0B101B]">UPS</option>
@@ -151,7 +151,7 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                                                     const updated = kits.map(k => k.id === kit.id ? { ...k, status: e.target.value as any } : k);
                                                     setKits(updated);
                                                 }}
-                                                className={`bg-transparent text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer w-full px-2 ${getStatusStyle(kit.status).split(' ')[0]}`}
+                                                className={`bg-transparent text-[12px] font-black uppercase tracking-widest outline-none cursor-pointer w-full px-2 ${getStatusStyle(kit.status).split(' ')[0]}`}
                                             >
                                                 <option value="In Preparation" className="bg-[#0B101B]">IN PREPARATION</option>
                                                 <option value="Shipped from Center" className="bg-[#0B101B]">SHIPPED FROM CENTER</option>
@@ -162,19 +162,28 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                                         </div>
                                     </div>
                                 </td>
-                                <td className="px-10 py-8 text-slate-400 font-bold uppercase text-[10px]">
+                                 <td className="px-10 py-8 text-slate-400 font-bold uppercase text-[12px]">
                                     {kit.last_updated}
                                 </td>
-                                <td className="px-10 py-8">
-                                    <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button className="px-6 py-2.5 bg-cyan-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-[1.03] transition-all">Push Updates <Ship className="w-4 h-4" /></button>
+                                 <td className="px-10 py-8">
+                                    <div className="flex items-center justify-end gap-3 transition-opacity">
+                                        <button 
+                                            onClick={() => {
+                                                alert(`Pushing clinical status for Kit ${kit.kit_number} to ${kit.carrier}...`);
+                                                const updated = kits.map(k => k.id === kit.id ? { ...k, last_updated: new Date().toISOString().split('T')[0] } : k);
+                                                setKits(updated);
+                                            }}
+                                            className="px-6 py-2.5 bg-cyan-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-[1.03] transition-all"
+                                        >
+                                            Push Updates <Ship className="w-4 h-4" />
+                                        </button>
                                     </div>
                                 </td>
                             </motion.tr>
                         ))}
                         {filteredKits.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="px-10 py-20 text-center text-slate-500 font-black uppercase tracking-widest text-xs italic">
+                                <td colSpan={5} className="px-10 py-20 text-center text-slate-500 font-black uppercase tracking-widest text-[12px] italic">
                                     No kits found matching your parameters
                                 </td>
                             </tr>
@@ -203,3 +212,5 @@ const Activity = (props: any) => (
     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
   </svg>
 );
+
+

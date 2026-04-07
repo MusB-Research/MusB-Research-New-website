@@ -3,8 +3,9 @@ import {
     Users, Shield, CheckCircle2, Building2, AlertTriangle,
     Search, Edit2, Lock, Unlock, Trash2, Mail, Phone,
     ChevronRight, X, Upload, Check, FileText, AlertCircle,
-    ChevronDown, User, Briefcase, Database, MoreVertical
+    ChevronDown, User, Briefcase, Database
 } from 'lucide-react';
+import { authFetch, API } from '../../utils/auth';
 
 // --- TYPES ---
 interface Document {
@@ -121,10 +122,10 @@ export default function PITeamModule({
         if (allUsers.length > 0) {
             const mapped = allUsers.map((u: any) => ({
                 id: u.id,
-                name: u.full_name || u.email,
+                name: (u.full_name || u.email || 'Unknown User').replace(/^gAAAA.*$/, 'Encrypted User'),
                 email: u.email,
                 phone: u.phone_number || 'N/A',
-                role: u.role?.toUpperCase() || 'MEMBER',
+                role: (u.role || 'MEMBER').toUpperCase().replace('_', ' '),
                 type: u.affiliation === 'onsite' ? 'Office' : 'MusB',
                 status: (u.status || '').toLowerCase() === 'active' ? 'Active' : 'Inactive',
                 assignedStudies: u.assigned_studies || [],
@@ -132,14 +133,12 @@ export default function PITeamModule({
                 documents: []
             } as TeamMember));
             
-            // Filter by selectedStudyId if provided
             const filtered = selectedStudyId && selectedStudyId !== 'all'
                 ? mapped.filter(m => m.assignedStudies.includes(selectedStudyId))
                 : mapped;
 
-            // Filter out sponsors as they have their own module now
-            setOfficeTeam(filtered.filter(m => m.type === 'Office' && m.role !== 'SPONSOR'));
-            setMusbTeam(filtered.filter(m => m.type === 'MusB' && m.role !== 'SPONSOR'));
+            setOfficeTeam(filtered.filter(m => m.type === 'Office' && !m.role.includes('SPONSOR') && !m.role.includes('ADMIN')));
+            setMusbTeam(filtered.filter(m => m.type === 'MusB' && !m.role.includes('SPONSOR') && !m.role.includes('ADMIN')));
         }
     }, [allUsers, selectedStudyId]);
 
@@ -177,52 +176,76 @@ export default function PITeamModule({
     };
 
     // --- LOGIC: CRUD ---
-    const handleSaveMember = () => {
-        // Validation
+    const handleSaveMember = async () => {
         if (!editedMember.name || !editedMember.email || !editedMember.role) {
             addToast('Please fill all required identity fields', 'error');
             return;
         }
 
-        if (panelMode === 'add') {
-            const newMember: TeamMember = {
-                id: 'o-' + Math.random().toString(36).substr(2, 5),
-                name: editedMember.name!,
-                email: editedMember.email!,
-                phone: editedMember.phone || 'N/A',
-                role: editedMember.role!,
-                type: 'Office',
-                status: 'Draft',
-                assignedStudies: editedMember.assignedStudies || [],
-                permissionLevel: editedMember.permissionLevel || 'Read-only',
-                documents: editedMember.documents || []
+        try {
+            const payload = {
+                full_name: editedMember.name,
+                email: editedMember.email,
+                role: editedMember.role?.toLowerCase() || 'team_member',
+                phone_number: editedMember.phone || '',
+                affiliation: 'onsite',
+                assigned_studies: editedMember.assignedStudies || [],
+                status: 'active'
             };
-            setOfficeTeam(prev => [...prev, newMember]);
-            addToast('New personnel registered to PI Office');
-        } else {
-            setOfficeTeam(prev => prev.map(m => m.id === editedMember.id ? { ...m, ...editedMember } as TeamMember : m));
-            addToast('Personnel record updated successfully');
+
+            if (panelMode === 'add') {
+                const res = await authFetch(`${API}/api/auth/admin/create-user/`, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    addToast('New personnel registered and invitation sent');
+                    onRefresh?.();
+                    setPanelOpen(false);
+                } else {
+                    const err = await res.json();
+                    addToast(err.detail || 'Could not register member', 'error');
+                }
+            } else {
+                const res = await authFetch(`${API}/api/users/${editedMember.id}/`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    addToast('Personnel record updated successfully');
+                    onRefresh?.();
+                    setPanelOpen(false);
+                } else {
+                    addToast('Could not update member record', 'error');
+                }
+            }
+        } catch (error) {
+            addToast('Network error during save', 'error');
         }
-        setPanelOpen(false);
     };
 
-    const handleActivateUser = () => {
-        // Validation for missing docs
-        const missingDocs = (editedMember.documents || []).filter(d => d.isRequired && d.status !== 'Valid');
-        if (missingDocs.length > 0) {
-            addToast('Cannot activate: Credentials incomplete', 'error');
-            return;
-        }
+    const handleActivateUser = async (memberID?: string) => {
+        const id = memberID || editedMember.id;
+        if (!id) return;
 
-        const activated = { ...editedMember, status: 'Active' as const };
-        setOfficeTeam(prev => prev.map(m => m.id === editedMember.id ? { ...m, ...activated } as TeamMember : m));
-        setEditedMember(activated); // Update local panel state too
-        addToast('User activated successfully', 'success');
-        setPanelOpen(false);
+        try {
+            const res = await authFetch(`${API}/api/users/${id}/`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status: 'active' })
+            });
+            if (res.ok) {
+                addToast('User account activated', 'success');
+                onRefresh?.();
+                setPanelOpen(false);
+            } else {
+                addToast('Activation failed', 'error');
+            }
+        } catch {
+            addToast('Connection error', 'error');
+        }
     };
 
-    const handleDelete = (member: TeamMember) => {
-        // Blocking logic
+    const handleDelete = async (member: TeamMember) => {
         if (member.assignedStudies.length > 0) {
             addToast('Cannot delete — user has active study assignments. Inactivate instead.', 'error');
             return;
@@ -231,30 +254,51 @@ export default function PITeamModule({
         setConfirmModal({
             message: `This action will permanently remove ${member.name}. Continue?`,
             type: 'danger',
-            onConfirm: () => {
-                setOfficeTeam(prev => prev.filter(m => m.id !== member.id));
-                addToast('Member removed from system');
+            onConfirm: async () => {
+                try {
+                    const res = await authFetch(`${API}/api/users/${member.id}/`, { method: 'DELETE' });
+                    if (res.ok) {
+                        addToast('Member removed from system');
+                        onRefresh?.();
+                    } else {
+                        addToast('Delete failed', 'error');
+                    }
+                } catch {
+                    addToast('Connection error', 'error');
+                }
                 setConfirmModal(null);
-                if (panelOpen && selectedMember?.id === member.id) setPanelOpen(false);
             }
         });
     };
 
-    const handleInactivateToggle = (member: TeamMember) => {
-        const newStatus = member.status === 'Active' ? 'Inactive' : 'Active';
-        const msg = newStatus === 'Inactive'
+    const handleInactivateToggle = async (member: TeamMember) => {
+        const newStatus = member.status === 'Active' ? 'inactive' : 'active';
+        const msg = newStatus === 'inactive'
             ? "Access suspension will revoke all protocol-level edit permissions. Continue?"
             : `Restore access for ${member.name}?`;
 
         setConfirmModal({
             message: msg,
-            onConfirm: () => {
-                setOfficeTeam(prev => prev.map(m => m.id === member.id ? { ...m, status: newStatus as any } : m));
-                addToast(`User status updated to ${newStatus}`);
+            onConfirm: async () => {
+                try {
+                    const res = await authFetch(`${API}/api/users/${member.id}/`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ status: newStatus })
+                    });
+                    if (res.ok) {
+                        addToast(`User status updated to ${newStatus}`);
+                        onRefresh?.();
+                    } else {
+                        addToast('Status update failed', 'error');
+                    }
+                } catch {
+                    addToast('Connection error', 'error');
+                }
                 setConfirmModal(null);
             }
         });
     };
+
 
     // --- LOGIC: DOCUMENT UPLOAD ---
     const triggerUpload = (docId: string) => {
@@ -366,7 +410,7 @@ export default function PITeamModule({
             border: '1px solid rgba(255,255,255,0.1)',
             padding: '1rem 2rem',
             borderRadius: '6px',
-            fontSize: '11px',
+            fontSize: '12px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             letterSpacing: '0.12em',
@@ -403,7 +447,7 @@ export default function PITeamModule({
             textShadow: '0 0 30px rgba(99, 102, 241, 0.3)'
         },
         kpiLabel: {
-            fontSize: '11px',
+            fontSize: '12px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             letterSpacing: '0.25em',
@@ -468,7 +512,7 @@ export default function PITeamModule({
             position: 'sticky' as const,
             top: isMobile ? '64px' : 0,
             padding: isMobile ? '0.75rem' : isTablet ? '1rem' : '1.25rem 1.5rem',
-            fontSize: '11px',
+            fontSize: '12px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             letterSpacing: '0.05em',
@@ -575,7 +619,7 @@ export default function PITeamModule({
             </div>
             <div>
                 <div style={{ ...S.kpiValue, color: label === 'Action Required' && value > 0 ? '#f59e0b' : 'inherit' }}>{value.toString().padStart(2, '0')}</div>
-                <div style={{ ...S.kpiLabel, fontSize: '11px' }}>{label}</div>
+                <div style={{ ...S.kpiLabel, fontSize: '12px' }}>{label}</div>
             </div>
         </div>
     );
@@ -679,9 +723,8 @@ export default function PITeamModule({
                             <th style={{ ...S.th, textAlign: 'right' }}>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        {getVisibleTeam().map(m => (
-                            <tr key={m.id}>
+                    <tbody>                        {getVisibleTeam().map(m => (
+                            <tr key={m.id} className="group-row">
                                 <td style={S.td}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                         <div style={{ width: '40px', height: '40px', borderRadius: '4px', backgroundColor: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -689,13 +732,13 @@ export default function PITeamModule({
                                         </div>
                                         <div>
                                             <div style={S.name}>{m.name}</div>
-                                            <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 'bold', letterSpacing: '0.05em' }}>{m.email}</div>
+                                            <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 'bold', letterSpacing: '0.05em' }}>{m.email}</div>
                                         </div>
                                     </div>
                                 </td>
                                 <td style={S.td}>
                                     <div style={{ fontSize: '12px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{m.role}</div>
-                                    {m.expertise && <div style={{ fontSize: '11px', color: '#6366f1', marginTop: '6px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.expertise}</div>}
+                                    {m.expertise && <div style={{ fontSize: '12px', color: '#6366f1', marginTop: '6px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.expertise}</div>}
                                 </td>
                                 <td style={S.td}>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
@@ -708,58 +751,42 @@ export default function PITeamModule({
                                     <span style={S.statusBadge(m.status)}>{m.status}</span>
                                 </td>
                                 <td style={{ ...S.td, textAlign: 'right' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', position: 'relative' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                                         {m.type === 'Office' ? (
-                                            <div ref={activeRowMenu === m.id ? rowMenuRef : null}>
+                                            <>
                                                 <button 
-                                                    style={{ ...S.btnGhost, padding: '0.5rem' }} 
-                                                    onClick={() => setActiveRowMenu(activeRowMenu === m.id ? null : m.id)}
+                                                    title="Edit Personnel"
+                                                    style={{ ...S.btnGhost, padding: '0.6rem', color: '#6366f1', borderColor: 'rgba(99,102,241,0.2)' }} 
+                                                    onClick={() => {
+                                                        setPanelMode('edit');
+                                                        setEditedMember({ ...m });
+                                                        setSelectedMember(m);
+                                                        setPanelOpen(true);
+                                                    }}
                                                 >
-                                                    <MoreVertical size={16} />
+                                                    <Edit2 size={16} />
                                                 </button>
-
-                                                {activeRowMenu === m.id && (
-                                                    <div style={{
-                                                        position: 'absolute', right: 0, top: '100%',
-                                                        backgroundColor: '#0B101B', border: '1px solid rgba(255,255,255,0.1)',
-                                                        borderRadius: '8px', zIndex: 50, width: '200px',
-                                                        boxShadow: '0 20px 40px rgba(0,0,0,0.6)', marginTop: '0.5rem', overflow: 'hidden'
-                                                    }}>
-                                                        <button 
-                                                            style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '100%', padding: '1rem', background: 'none', border: 'none', color: 'white', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}
-                                                            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
-                                                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                                                            onClick={() => {
-                                                                setPanelMode('edit');
-                                                                setEditedMember({ ...m });
-                                                                setSelectedMember(m);
-                                                                setPanelOpen(true);
-                                                                setActiveRowMenu(null);
-                                                            }}
-                                                        >
-                                                            <Edit2 size={14} color="#6366f1" /> EDIT PERSONNEL
-                                                        </button>
-                                                        <button 
-                                                            style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '100%', padding: '1rem', background: 'none', border: 'none', color: 'white', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}
-                                                            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
-                                                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                                                            onClick={() => { handleInactivateToggle(m); setActiveRowMenu(null); }}
-                                                        >
-                                                            {m.status === 'Inactive' ? <><Unlock size={14} color="#10b981" /> ACTIVATE USER</> : <><Lock size={14} color="#f59e0b" /> LOCK ACCESS</>}
-                                                        </button>
-                                                        <button 
-                                                            style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '100%', padding: '1rem', background: 'none', border: 'none', color: '#ef4444', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s' }}
-                                                            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.05)'}
-                                                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                                                            onClick={() => { handleDelete(m); setActiveRowMenu(null); }}
-                                                        >
-                                                            <Trash2 size={14} /> REMOVE MEMBER
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
+                                                <button 
+                                                    title={m.status === 'Inactive' ? "Activate" : "Lock Access"}
+                                                    style={{ ...S.btnGhost, padding: '0.6rem', color: m.status === 'Inactive' ? '#10b981' : '#f59e0b', borderColor: 'rgba(255,255,255,0.1)' }} 
+                                                    onClick={() => handleInactivateToggle(m)}
+                                                >
+                                                    {m.status === 'Inactive' ? <Unlock size={16} /> : <Lock size={16} />}
+                                                </button>
+                                                <button 
+                                                    title="Remove Member"
+                                                    style={{ ...S.btnGhost, padding: '0.6rem', color: '#ef4444', borderColor: 'rgba(239,68,68,0.1)' }} 
+                                                    onClick={() => handleDelete(m)}
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </>
                                         ) : (
-                                            <button style={{ ...S.btnGhost, padding: '0.5rem' }} onClick={() => addToast('MUSB CREDENTIALS MANAGED BY NETWORK ADMIN', 'warning')}>
+                                            <button 
+                                                title="MUSB NETWORK USER"
+                                                style={{ ...S.btnGhost, padding: '0.6rem' }} 
+                                                onClick={() => addToast('MUSB CREDENTIALS MANAGED BY NETWORK ADMIN', 'warning')}
+                                            >
                                                 <Shield size={16} />
                                             </button>
                                         )}
@@ -767,6 +794,7 @@ export default function PITeamModule({
                                 </td>
                             </tr>
                         ))}
+
                     </tbody>
                 </table>
             </div>
@@ -852,7 +880,7 @@ export default function PITeamModule({
                                     onClick={() => setEditedMember({ ...editedMember, permissionLevel: lvl as any })}
                                     style={{
                                         flex: 1, padding: '0.75rem', border: 'none', borderRadius: '4px',
-                                        fontSize: '11px', fontWeight: 900, textTransform: 'uppercase',
+                                        fontSize: '12px', fontWeight: 900, textTransform: 'uppercase',
                                         backgroundColor: editedMember.permissionLevel === lvl ? '#6366f1' : 'transparent',
                                         color: editedMember.permissionLevel === lvl ? 'white' : '#475569',
                                         cursor: 'pointer'
@@ -878,7 +906,7 @@ export default function PITeamModule({
                                         {doc.status === 'Valid' ? <CheckCircle2 size={16} color="#10b981" /> : <AlertCircle size={16} color="#475569" />}
                                         <div>
                                             <div style={{ fontSize: '12px', fontWeight: 'bold', color: doc.status === 'Valid' ? 'white' : '#475569' }}>{doc.name}</div>
-                                            {doc.uploadDate && <div style={{ fontSize: '10px', color: '#10b981', marginTop: '2px' }}>VERIFIED: {doc.uploadDate}</div>}
+                                            {doc.uploadDate && <div style={{ fontSize: '12px', color: '#10b981', marginTop: '2px' }}>VERIFIED: {doc.uploadDate}</div>}
                                         </div>
                                     </div>
                                     <button style={{ ...S.btnGhost, padding: '0.4rem 0.8rem' }} onClick={() => triggerUpload(doc.id)}>
@@ -902,12 +930,12 @@ export default function PITeamModule({
                             {(editedMember.documents || []).every(d => d.status === 'Valid') ? (
                                 <>
                                     <CheckCircle2 size={20} color="#10b981" />
-                                    <div style={{ fontSize: '11px', fontWeight: 900, color: '#10b981' }}>ALL CREDENTIALS VERIFIED. READY FOR ACTIVATION.</div>
+                                    <div style={{ fontSize: '12px', fontWeight: 900, color: '#10b981' }}>ALL CREDENTIALS VERIFIED. READY FOR ACTIVATION.</div>
                                 </>
                             ) : (
                                 <>
                                     <AlertCircle size={20} color="#ef4444" />
-                                    <div style={{ fontSize: '11px', fontWeight: 900, color: '#ef4444' }}>
+                                    <div style={{ fontSize: '12px', fontWeight: 900, color: '#ef4444' }}>
                                         INELIGIBLE: {(editedMember.documents || []).filter(d => d.status !== 'Valid').length} DOCUMENTS REMAINING
                                     </div>
                                 </>
@@ -925,7 +953,7 @@ export default function PITeamModule({
                             ...S.btnPrimary,
                             backgroundColor: (editedMember.documents || []).every(d => d.status === 'Valid') ? '#10b981' : '#1e293b',
                             cursor: (editedMember.documents || []).every(d => d.status === 'Valid') ? 'pointer' : 'not-allowed'
-                        }} onClick={handleActivateUser}>
+                        }} onClick={() => handleActivateUser()}>
                             {(editedMember.documents || []).every(d => d.status === 'Valid') ? 'ACTIVATE USER' : 'LOCKED'}
                         </button>
                         <button style={S.btnPrimary} onClick={handleSaveMember}>SAVE PROGRESSION</button>
@@ -945,7 +973,7 @@ export default function PITeamModule({
                         <button onClick={() => setMusbModalOpen(false)} style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer' }}><X size={20} /></button>
                     </div>
                     <div style={{ padding: '1.5rem', maxHeight: '500px', overflowY: 'auto' }}>
-                        {MOCK_MUSB.map(m => (
+                        {musbTeam.length > 0 ? musbTeam.map(m => (
                             <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.03)', cursor: 'pointer' }}
                                 onClick={() => {
                                     setTempMusbSelected(prev => prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id]);
@@ -953,10 +981,12 @@ export default function PITeamModule({
                                 <input type="checkbox" checked={tempMusbSelected.includes(m.id)} readOnly style={{ width: '22px', height: '22px', accentColor: '#6366f1', cursor: 'pointer' }} />
                                 <div>
                                     <div style={{ fontSize: '18px', fontWeight: 900, color: 'white', textTransform: 'uppercase', letterSpacing: '-0.02em' }}>{m.name}</div>
-                                    <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 'bold', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.expertise} <span style={{ opacity: 0.3, margin: '0 8px' }}>|</span> {m.email}</div>
+                                    <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 'bold', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.expertise || m.role} <span style={{ opacity: 0.3, margin: '0 8px' }}>|</span> {m.email}</div>
                                 </div>
                             </div>
-                        ))}
+                        )) : (
+                            <div style={{ padding: '2rem', textAlign: 'center', color: '#475569', fontSize: '14px', fontWeight: 'bold' }}>NO MUSB PERSONNEL FOUND</div>
+                        )}
                     </div>
                     <div style={{ padding: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
                         <button style={S.btnGhost} onClick={() => setMusbModalOpen(false)}>CANCEL</button>
@@ -999,3 +1029,5 @@ export default function PITeamModule({
         </div>
     );
 }
+
+

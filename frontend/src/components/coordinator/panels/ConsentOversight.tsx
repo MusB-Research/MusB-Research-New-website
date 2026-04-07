@@ -69,14 +69,14 @@ export default function ConsentOversight() {
                     <div className="flex items-center gap-3 px-6 py-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
                         <ShieldCheck className="w-5 h-5 text-emerald-400" />
                         <div>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase">Compliance</p>
+                            <p className="text-[12px] text-slate-500 font-bold uppercase">Compliance</p>
                             <p className="text-sm font-black text-white italic">94.2% Verified</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3 px-6 py-4 bg-red-500/5 border border-red-500/10 rounded-2xl">
                         <AlertTriangle className="w-5 h-5 text-red-400" />
                         <div>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase">Actions Req.</p>
+                            <p className="text-[12px] text-slate-500 font-bold uppercase">Actions Req.</p>
                             <p className="text-sm font-black text-white italic">03 Pending</p>
                         </div>
                     </div>
@@ -90,7 +90,7 @@ export default function ConsentOversight() {
                         <button
                             key={f}
                             onClick={() => setActiveFilter(f)}
-                            className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                            className={`px-5 py-2.5 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${
                                 activeFilter === f ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-white'
                             }`}
                         >
@@ -105,7 +105,7 @@ export default function ConsentOversight() {
                         placeholder="Search Records..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="bg-white/5 border border-white/10 rounded-xl pl-10 pr-6 py-2.5 text-xs text-white font-bold outline-none focus:border-indigo-500/50 transition-all w-60 uppercase tracking-widest placeholder:text-slate-700"
+                        className="bg-white/5 border border-white/10 rounded-xl pl-10 pr-6 py-2.5 text-[12px] text-white font-bold outline-none focus:border-indigo-500/50 transition-all w-60 uppercase tracking-widest placeholder:text-slate-700"
                     />
                 </div>
             </div>
@@ -127,22 +127,22 @@ export default function ConsentOversight() {
                             </div>
 
                             <div className="flex items-center justify-between relative z-10">
-                                <div className={`px-3 py-1 rounded-lg border text-[8px] font-black uppercase tracking-tighter ${getStatusStyle(r.status)} shadow-[0_0_10px_rgba(var(--status-rgb),0.1)]`}>
+                                <div className={`px-3 py-1 rounded-lg border text-[12px] font-black uppercase tracking-tighter ${getStatusStyle(r.status)} shadow-[0_0_10px_rgba(var(--status-rgb),0.1)]`}>
                                     {r.status}
                                 </div>
-                                <p className="text-[10px] text-slate-700 font-mono tracking-widest">{r.signedDate}</p>
+                                <p className="text-[12px] text-slate-700 font-mono tracking-widest">{r.signedDate}</p>
                             </div>
 
                             <div className="space-y-1">
-                                <p className="text-[9px] text-indigo-400 font-black uppercase tracking-[0.2em] italic underline decoration-indigo-800 underline-offset-4">{r.type}</p>
+                                <p className="text-[12px] text-indigo-400 font-black uppercase tracking-[0.2em] italic underline decoration-indigo-800 underline-offset-4">{r.type}</p>
                                 <h4 className="text-xl font-black text-white italic truncate">{r.subjectName}</h4>
-                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{r.subjectId} • {r.method}</p>
+                                <p className="text-[12px] text-slate-500 font-bold uppercase tracking-widest">{r.subjectId} • {r.method}</p>
                             </div>
 
                             <div className="pt-6 border-t border-white/5 flex items-center justify-between">
                                 <div>
-                                    <p className="text-[9px] text-slate-600 font-black uppercase">Active Version</p>
-                                    <p className="text-[10px] text-white font-black uppercase italic tracking-widest mt-0.5">{r.version}</p>
+                                    <p className="text-[12px] text-slate-600 font-black uppercase">Active Version</p>
+                                    <p className="text-[12px] text-white font-black uppercase italic tracking-widest mt-0.5">{r.version}</p>
                                 </div>
                                 <div className="flex gap-2">
                                     <button className="p-3 bg-white/5 border border-white/5 rounded-xl text-slate-400 hover:text-white transition-all"><Download className="w-4 h-4" /></button>
@@ -156,3 +156,5 @@ export default function ConsentOversight() {
         </motion.div>
     );
 }
+
+

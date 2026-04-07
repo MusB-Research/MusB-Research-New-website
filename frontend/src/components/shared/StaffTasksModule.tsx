@@ -66,13 +66,13 @@ export default function StaffTasksModule({ primaryColor = 'indigo' }: StaffTasks
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
             <div>
                 <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">My <span className={primaryColor === 'teal' ? 'text-[#14b8a6]' : 'text-indigo-400'}>Tasks</span></h2>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">Outstanding Actions & Signatures</p>
+                <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">Outstanding Actions & Signatures</p>
             </div>
 
             {loading ? (
                 <div className="py-20 text-center animate-pulse">
                     <Activity className={`w-12 h-12 ${primaryColor === 'teal' ? 'text-[#14b8a6]/50' : 'text-indigo-500/50'} mx-auto mb-4`} />
-                    <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Loading Tasks...</p>
+                    <p className="text-slate-500 font-black uppercase tracking-widest text-[12px]">Loading Tasks...</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -82,14 +82,14 @@ export default function StaffTasksModule({ primaryColor = 'indigo' }: StaffTasks
                             <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
                                 <Clock className={`w-4 h-4 ${primaryColor === 'teal' ? 'text-[#14b8a6]' : 'text-indigo-400'}`} /> Pending Actions
                             </h3>
-                            <span className={`px-3 py-1 rounded-full text-[10px] font-black ${colorStyle}`}>{pendingTasks.length}</span>
+                            <span className={`px-3 py-1 rounded-full text-[12px] font-black ${colorStyle}`}>{pendingTasks.length}</span>
                         </div>
                         
                         <AnimatePresence>
                             {pendingTasks.length === 0 ? (
                                 <div className="p-10 text-center border border-dashed border-white/10 rounded-2xl">
                                     <CheckCircle2 className="w-8 h-8 text-slate-600 mx-auto mb-3" />
-                                    <p className="text-xs text-slate-500 font-bold uppercase">No pending tasks</p>
+                                    <p className="text-[12px] text-slate-500 font-bold uppercase">No pending tasks</p>
                                 </div>
                             ) : (
                                 pendingTasks.map(task => (
@@ -108,15 +108,15 @@ export default function StaffTasksModule({ primaryColor = 'indigo' }: StaffTasks
                                                 </div>
                                                 <div>
                                                     <h4 className="text-sm font-black text-white uppercase tracking-widest">{task.title}</h4>
-                                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{new Date(task.created_at).toLocaleDateString()}</p>
+                                                    <p className="text-[12px] text-slate-500 font-bold uppercase tracking-widest">{new Date(task.created_at).toLocaleDateString()}</p>
                                                 </div>
                                             </div>
                                         </div>
-                                        <p className="text-xs text-slate-400 leading-relaxed font-medium">{task.description}</p>
+                                        <p className="text-[12px] text-slate-400 leading-relaxed font-medium">{task.description}</p>
                                         <div className="flex justify-end pt-4">
                                             <button 
                                                 onClick={() => markComplete(task.id)}
-                                                className={`px-5 py-2.5 ${btnColor} text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95 shadow-lg max-w-max`}
+                                                className={`px-5 py-2.5 ${btnColor} text-white rounded-xl text-[12px] font-black uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95 shadow-lg max-w-max`}
                                             >
                                                 MARK COMPLETE <ChevronRight className="w-4 h-4" />
                                             </button>
@@ -133,12 +133,12 @@ export default function StaffTasksModule({ primaryColor = 'indigo' }: StaffTasks
                             <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                 <CheckCircle2 className="w-4 h-4 text-slate-500" /> Completed
                             </h3>
-                            <span className="px-3 py-1 rounded-full text-[10px] font-black text-slate-400 bg-white/5 border border-white/10">{completedTasks.length}</span>
+                            <span className="px-3 py-1 rounded-full text-[12px] font-black text-slate-400 bg-white/5 border border-white/10">{completedTasks.length}</span>
                         </div>
                         
                         <div className="space-y-4 opacity-70">
                             {completedTasks.length === 0 ? (
-                                <div className="p-8 text-center text-slate-600 text-[11px] font-black uppercase tracking-widest">
+                                <div className="p-8 text-center text-slate-600 text-[12px] font-black uppercase tracking-widest">
                                     No recently completed tasks
                                 </div>
                             ) : (
@@ -147,8 +147,8 @@ export default function StaffTasksModule({ primaryColor = 'indigo' }: StaffTasks
                                         <div className="flex items-center gap-4">
                                             <CheckCircle2 className="w-6 h-6 text-emerald-500/50" />
                                             <div>
-                                                <h4 className="text-xs font-black text-slate-300 line-through uppercase tracking-wide">{task.title}</h4>
-                                                <p className="text-[10px] text-slate-600 uppercase mt-1">{task.description}</p>
+                                                <h4 className="text-[12px] font-black text-slate-300 line-through uppercase tracking-wide">{task.title}</h4>
+                                                <p className="text-[12px] text-slate-600 uppercase mt-1">{task.description}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -161,3 +161,5 @@ export default function StaffTasksModule({ primaryColor = 'indigo' }: StaffTasks
         </motion.div>
     );
 }
+
+

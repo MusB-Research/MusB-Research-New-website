@@ -35,7 +35,7 @@ export const PIVerification: React.FC<PIVerificationProps> = ({
     const S = {
         title: { fontSize: '22px', fontWeight: 900, fontStyle: 'italic' as const, textTransform: 'uppercase' as const, letterSpacing: '-0.02em', color: 'white' },
         label: { fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.15em', color: COLORS.text, opacity: 0.6 },
-        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.4rem 1rem', borderRadius: '4px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
+        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.4rem 1rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
         btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(99, 102, 241, 0.2)' },
         btnGhost: { backgroundColor: 'transparent', color: 'white', border: COLORS.border, padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }
     };
@@ -47,8 +47,8 @@ export const PIVerification: React.FC<PIVerificationProps> = ({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
                         <button style={S.btnGhost} onClick={() => setActiveView('records')}><ArrowLeft size={14} /> Back to Registry</button>
                         <div style={{ display: 'flex', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: '8px', padding: '0.25rem' }}>
-                            <button onClick={() => setPiDocTab('signed')} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: 900, backgroundColor: piDocTab === 'signed' ? COLORS.accent : 'transparent', color: 'white', cursor: 'pointer' }}>Signed Record</button>
-                            <button onClick={() => setPiDocTab('original')} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: 900, backgroundColor: piDocTab === 'original' ? COLORS.accent : 'transparent', color: 'white', cursor: 'pointer' }}>IRB Original</button>
+                            <button onClick={() => setPiDocTab('signed')} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 900, backgroundColor: piDocTab === 'signed' ? COLORS.accent : 'transparent', color: 'white', cursor: 'pointer' }}>Signed Record</button>
+                            <button onClick={() => setPiDocTab('original')} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 900, backgroundColor: piDocTab === 'original' ? COLORS.accent : 'transparent', color: 'white', cursor: 'pointer' }}>IRB Original</button>
                         </div>
                     </div>
                     <div style={S.badge(COLORS.accent)}><Clock size={12} /> Received: {activeRecord?.participantSignedDate}</div>
@@ -69,7 +69,7 @@ export const PIVerification: React.FC<PIVerificationProps> = ({
                     <h2 style={{ ...S.title, fontSize: '20px' }}>Protocol Verification</h2>
                     <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
                         <span style={S.label}>Participant:</span>
-                        <span style={{ fontSize: '11px', fontWeight: 900, color: 'white' }}>{activeRecord?.participantId || activeRecord?.full_name}</span>
+                        <span style={{ fontSize: '12px', fontWeight: 900, color: 'white' }}>{activeRecord?.participantId || activeRecord?.full_name}</span>
                     </div>
                 </div>
 
@@ -98,7 +98,7 @@ export const PIVerification: React.FC<PIVerificationProps> = ({
                     {piSignature ? (
                         <div>
                             <div style={{ fontFamily: 'cursive', fontSize: '28px', color: COLORS.success }}>Dr. Yadav — PI</div>
-                            <div style={{ fontSize: '10px', color: COLORS.label, marginTop: '0.5rem' }}>TIMESTAMP: {new Date().toLocaleString()}</div>
+                            <div style={{ fontSize: '12px', color: COLORS.label, marginTop: '0.5rem' }}>TIMESTAMP: {new Date().toLocaleString()}</div>
                         </div>
                     ) : (
                         <div style={{ opacity: 0.3 }}>
@@ -137,3 +137,5 @@ export const PIVerification: React.FC<PIVerificationProps> = ({
         </div>
     );
 };
+
+

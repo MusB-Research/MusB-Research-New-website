@@ -28,6 +28,7 @@ interface LabSample {
     unit: string;
     date: string;
     critical: boolean;
+    isReleased: boolean;
 }
 
 export default function LabResultsModule({ selectedStudyId }: { selectedStudyId?: string }) {
@@ -53,7 +54,8 @@ export default function LabResultsModule({ selectedStudyId }: { selectedStudyId?
                         value: l.value,
                         unit: l.units,
                         date: l.lab_date,
-                        critical: l.is_critical
+                        critical: l.is_critical,
+                        isReleased: l.is_released
                     }));
                     setSamples(mapped);
                 }
@@ -82,6 +84,23 @@ export default function LabResultsModule({ selectedStudyId }: { selectedStudyId?
             default: return 'text-slate-400 bg-white/5 border-white/10';
         }
     };
+    const handleRelease = async (id: string) => {
+        try {
+            const res = await authFetch(`${apiUrl}/api/lab-results/${id}/release/`, {
+                method: 'POST'
+            });
+            if (res.ok) {
+                setSamples(prev => prev.map(s => s.id === id ? { ...s, isReleased: true } : s));
+            }
+        } catch (err) {
+            console.error("Release failed:", err);
+        }
+    };
+
+    const handleReview = (id: string) => {
+        console.log("Reviewing sample:", id);
+        // Navigate or open modal
+    };
 
     return (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
@@ -89,7 +108,7 @@ export default function LabResultsModule({ selectedStudyId }: { selectedStudyId?
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div>
                     <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Health Check <span className="text-indigo-400">Reports</span></h2>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">Global Specimen Tracking & Bio-Analysis</p>
+                    <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">Global Specimen Tracking & Bio-Analysis</p>
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="relative">
@@ -99,10 +118,10 @@ export default function LabResultsModule({ selectedStudyId }: { selectedStudyId?
                             placeholder="Sample ID / Subject Name..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3.5 text-xs text-white font-bold outline-none focus:border-indigo-500/50 transition-all w-72 uppercase tracking-widest placeholder:text-slate-700 font-mono"
+                            className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3.5 text-[12px] text-white font-bold outline-none focus:border-indigo-500/50 transition-all w-72 uppercase tracking-widest placeholder:text-slate-700 font-mono"
                         />
                     </div>
-                    <button className="flex items-center gap-2 px-6 py-3.5 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.03] transition-all shadow-xl shadow-indigo-600/20">
+                    <button className="flex items-center gap-2 px-6 py-3.5 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.03] transition-all shadow-xl shadow-indigo-600/20">
                         Request Re-run <FlaskConical className="w-4 h-4" />
                     </button>
                 </div>
@@ -124,7 +143,7 @@ export default function LabResultsModule({ selectedStudyId }: { selectedStudyId?
                             <div className={`p-2 bg-${kpi.color}-500/10 rounded-xl border border-${kpi.color}-500/20 text-${kpi.color}-400`}>
                                 <kpi.icon className="w-4 h-4" />
                             </div>
-                            <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest">{kpi.label}</span>
+                            <span className="text-[12px] text-slate-500 font-black uppercase tracking-widest">{kpi.label}</span>
                         </div>
                         <p className="text-3xl font-black text-white italic tracking-tighter">{kpi.val}</p>
                     </div>
@@ -136,11 +155,11 @@ export default function LabResultsModule({ selectedStudyId }: { selectedStudyId?
                 <table className="w-full text-left">
                     <thead>
                         <tr className="bg-white/5 border-b border-white/5">
-                            <th className="px-10 py-6 text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Sample Track</th>
-                            <th className="px-10 py-6 text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Clinical Subject</th>
-                            <th className="px-10 py-6 text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Specimen Status</th>
-                            <th className="px-10 py-6 text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Analysis Result</th>
-                            <th className="px-10 py-6 text-[9px] font-black text-slate-500 uppercase tracking-widest italic text-right">Actions</th>
+                            <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Sample Track</th>
+                            <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Clinical Subject</th>
+                            <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Specimen Status</th>
+                            <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Analysis Result</th>
+                            <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest italic text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -148,7 +167,7 @@ export default function LabResultsModule({ selectedStudyId }: { selectedStudyId?
                             <tr>
                                 <td colSpan={5} className="py-20 text-center">
                                     <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 italic">Syncing Bio-Specimen Feed...</p>
+                                    <p className="text-[12px] font-black uppercase tracking-[0.2em] text-slate-500 italic">Syncing Bio-Specimen Feed...</p>
                                 </td>
                             </tr>
                         ) : filteredSamples.map((s) => (
@@ -160,33 +179,54 @@ export default function LabResultsModule({ selectedStudyId }: { selectedStudyId?
                                         </div>
                                         <div>
                                             <p className="text-sm font-black text-white italic truncate tracking-tight">{s.type}</p>
-                                            <p className="text-[10px] text-slate-500 font-mono uppercase tracking-[0.2em]">{s.id}</p>
+                                            <p className="text-[12px] text-slate-500 font-mono uppercase tracking-[0.2em]">{s.id}</p>
                                         </div>
                                     </div>
                                 </td>
                                 <td className="px-10 py-8">
                                     <p className="text-sm font-black text-white italic">{s.subjectName}</p>
-                                    <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">{s.subjectId}</p>
+                                    <p className="text-[12px] text-slate-600 font-bold uppercase tracking-widest">{s.subjectId}</p>
                                 </td>
                                 <td className="px-10 py-8">
-                                    <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest ${getStatusStyle(s.status)}`}>
+                                    <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-[12px] font-black uppercase tracking-widest ${getStatusStyle(s.status)}`}>
                                         <div className="w-1.5 h-1.5 rounded-full bg-current shadow-[0_0_10px_currentColor] animate-pulse" />
                                         {s.status}
                                     </div>
-                                    <p className="text-[9px] text-slate-700 font-medium uppercase font-mono ml-4 mt-2">DUE: {s.date}</p>
+                                    <p className="text-[12px] text-slate-700 font-medium uppercase font-mono ml-4 mt-2">DUE: {s.date}</p>
                                 </td>
                                 <td className="px-10 py-8">
                                     <div className="flex items-end gap-2">
                                         <p className={`text-2xl font-black italic tracking-tighter ${s.critical ? 'text-red-400 animate-pulse' : 'text-slate-200'}`}>{s.value}</p>
-                                        <p className="text-[10px] text-slate-600 font-black uppercase mb-1.5">{s.unit}</p>
+                                        <p className="text-[12px] text-slate-600 font-black uppercase mb-1.5">{s.unit}</p>
                                     </div>
-                                    {s.critical && <p className="text-[8px] font-black text-red-500 uppercase tracking-[0.2em] mt-1 shrink-0">Critical High</p>}
+                                    {s.critical && <p className="text-[12px] font-black text-red-500 uppercase tracking-[0.2em] mt-1 shrink-0">Critical High</p>}
                                 </td>
-                                <td className="px-10 py-8">
-                                    <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button className="px-6 py-2.5 bg-indigo-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-[1.03] transition-all">Push to Participant <CheckCircle2 className="w-4 h-4" /></button>
-                                        <button className="p-3 bg-white/5 border border-white/5 rounded-2xl text-slate-400 hover:text-white hover:bg-white/10 transition-all"><TrendingUp className="w-4 h-4" /></button>
-                                        <button className="px-6 py-2.5 bg-white text-slate-950 rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-[1.03] transition-all">Review <ChevronRight className="w-4 h-4" /></button>
+                                <td className="px-10 py-8 text-right">
+                                    <div className="flex items-center justify-end gap-3 opacity-60 group-hover:opacity-100 transition-opacity">
+                                        {s.status === 'Resulted' && !s.isReleased && (
+                                            <button 
+                                                onClick={() => handleRelease(s.id)}
+                                                className="px-6 py-2.5 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-[1.03] transition-all"
+                                            >
+                                                Push to Participant <CheckCircle2 className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                        {s.isReleased && (
+                                            <div className="flex items-center gap-2 px-6 py-2.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-2xl text-[12px] font-black uppercase tracking-widest">
+                                                Released <CheckCircle2 className="w-4 h-4" />
+                                            </div>
+                                        )}
+                                        <button className="p-3 bg-white/5 border border-white/5 rounded-2xl text-slate-400 hover:text-white hover:bg-white/10 transition-all">
+                                            <TrendingUp className="w-4 h-4" />
+                                        </button>
+                                        {(s.status === 'Resulted' || s.status === 'Alert') && (
+                                            <button 
+                                                onClick={() => handleReview(s.id)}
+                                                className="px-6 py-2.5 bg-white text-slate-950 rounded-2xl text-[12px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-[1.03] transition-all"
+                                            >
+                                                Review <ChevronRight className="w-4 h-4" />
+                                            </button>
+                                        )}
                                     </div>
                                 </td>
                             </motion.tr>
@@ -197,3 +237,5 @@ export default function LabResultsModule({ selectedStudyId }: { selectedStudyId?
         </motion.div>
     );
 }
+
+

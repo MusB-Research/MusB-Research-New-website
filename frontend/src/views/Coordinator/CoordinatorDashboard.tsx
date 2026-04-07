@@ -74,7 +74,10 @@ export default function CoordinatorDashboard() {
     const location = useLocation();
 
     const [activeModule, setActiveModule] = useState<CCModule>(() => {
-        const route = location.pathname.split('/').pop();
+        const path = location.pathname.toLowerCase().replace(/\/$/, "");
+        const parts = path.split('/');
+        const route = parts[parts.length - 1];
+        
         if (route === 'studies') return 'STUDIES';
         if (route === 'team') return 'TEAM';
         if (route === 'participants') return 'PARTICIPANTS';
@@ -94,33 +97,43 @@ export default function CoordinatorDashboard() {
         if (route === 'analytics') return 'ANALYTICS';
         if (route === 'sponsors') return 'SPONSORS';
         if (route === 'tasks') return 'TASKS';
+        if (route === 'kits') return 'KITS';
+        if (route === 'participant-tasks') return 'PARTICIPANT_TASKS';
         return 'OVERSIGHT';
     });
 
-    // Sync activeModule when URL changes
+    // Sync activeModule when URL changes (for browser back button support)
     useEffect(() => {
-        const route = location.pathname.split('/').pop();
-        if (route === 'studies') setActiveModule('STUDIES');
-        else if (route === 'team') setActiveModule('TEAM');
+        const path = location.pathname.toLowerCase().replace(/\/$/, "");
+        const parts = path.split('/');
+        const route = parts[parts.length - 1];
+        
+        if (route === 'coordinator' || !route || route === 'oversight') setActiveModule('OVERSIGHT');
+        else if (route === 'studies') setActiveModule('STUDIES');
         else if (route === 'participants') setActiveModule('PARTICIPANTS');
-        else if (route === 'subject-review') setActiveModule('SUBJECT_REVIEW');
         else if (route === 'forms') setActiveModule('FORMS');
         else if (route === 'consent') setActiveModule('CONSENT');
         else if (route === 'visits') setActiveModule('VISITS');
+        else if (route === 'subject-review' || route === 'review') setActiveModule('SUBJECT_REVIEW');
+        else if (route === 'team') setActiveModule('TEAM');
+        else if (route === 'messages') setActiveModule('MESSAGES');
         else if (route === 'labs') setActiveModule('LABS');
         else if (route === 'reports') setActiveModule('REPORTS');
-        else if (route === 'study-docs') setActiveModule('STUDY_DOCS');
+        else if (route === 'study-docs' || route === 'docs') setActiveModule('STUDY_DOCS');
         else if (route === 'my-docs') setActiveModule('MY_DOCS');
-        else if (route === 'messages') setActiveModule('MESSAGES');
         else if (route === 'alerts') setActiveModule('ALERTS');
         else if (route === 'launch-study') setActiveModule('LAUNCH_STUDY');
-        else if (route === 'support') setActiveModule('SUPPORT');
-        else if (route === 'audit-log') setActiveModule('AUDIT_LOG');
+        else if (route === 'support' || route === 'help') setActiveModule('SUPPORT');
+        else if (route === 'audit-log' || route === 'audit') setActiveModule('AUDIT_LOG');
         else if (route === 'analytics') setActiveModule('ANALYTICS');
         else if (route === 'tasks') setActiveModule('TASKS');
+        else if (route === 'participant-tasks') setActiveModule('PARTICIPANT_TASKS');
         else if (route === 'sponsors') setActiveModule('SPONSORS');
         else if (route === 'kits') setActiveModule('KITS');
-        else if (location.pathname.endsWith('/coordinator') || !route || route === 'coordinator') setActiveModule('OVERSIGHT');
+        else if (location.pathname.includes('/dashboard/coordinator')) {
+            // Stay consistent with dashboard root
+            if (location.pathname.endsWith('/coordinator')) setActiveModule('OVERSIGHT');
+        }
     }, [location.pathname]);
 
     const handleModuleChange = (mod: CCModule) => {
@@ -321,7 +334,7 @@ export default function CoordinatorDashboard() {
             items: [
                 { id: 'STUDIES', label: 'Study Directory', icon: Beaker },
                 { id: 'TEAM', label: 'Medical Team', icon: Users },
-                { id: 'PARTICIPANTS', label: 'Participant Management', icon: UsersRound },
+                { id: 'PARTICIPANTS', label: 'Participant Oversight', icon: UsersRound },
                 { id: 'SUBJECT_REVIEW', label: 'Screening Review', icon: Activity },
                 { id: 'FORMS', label: 'Study Questionnaires', icon: ClipboardList },
                 { id: 'CONSENT', label: 'Consent Oversight', icon: ShieldCheck },
@@ -364,7 +377,7 @@ export default function CoordinatorDashboard() {
         } catch (e) { }
 
         return (
-            <header className="fixed top-0 left-0 lg:left-[260px] right-0 h-20 lg:h-24 z-[60] bg-[#0B101B]/95 backdrop-blur-3xl border-b border-white/5 flex items-center justify-between px-6 md:px-8">
+            <header className="fixed top-0 left-0 lg:left-80 right-0 h-24 z-[60] bg-[#0B101B]/95 backdrop-blur-3xl border-b border-white/5 flex items-center justify-between px-6 md:px-8">
                 <div className="flex items-center gap-4 lg:hidden">
                     <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:text-white transition-all h-10 w-10 shrink-0">
                         {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -372,16 +385,16 @@ export default function CoordinatorDashboard() {
                 </div>
 
                 <div className="hidden lg:flex flex-col h-full justify-center">
-                    <h1 className="text-xl font-black text-white uppercase italic tracking-tighter leading-none">COORDINATOR TERMINAL</h1>
+                    <h1 className="text-2xl lg:text-3xl font-black text-white uppercase italic tracking-tighter leading-none">COORDINATOR TERMINAL</h1>
                 </div>
 
                 <div className="flex items-center gap-6">
                     <div className="hidden xl:flex items-center gap-3 bg-white/5 p-1.5 rounded-2xl border border-white/10">
-                        <div className="px-4 text-[10px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/10">PROTOCOL NODE</div>
+                        <div className="px-4 text-[12px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/10">PROTOCOL NODE</div>
                         <select
                             value={globalSelectedStudyId}
                             onChange={(e) => setGlobalSelectedStudyId(e.target.value)}
-                            className="bg-transparent text-[11px] font-black text-indigo-400 uppercase tracking-widest outline-none cursor-pointer px-4"
+                            className="bg-transparent text-[12px] font-black text-[#14b8a6] uppercase tracking-widest outline-none cursor-pointer px-4"
                         >
                             <option value="all" className="bg-[#0B101B]">ALL STUDIES</option>
                             {studies.map(s => (
@@ -396,7 +409,7 @@ export default function CoordinatorDashboard() {
                         <span className="text-sm md:text-xl font-black text-[#14b8a6] font-mono tracking-tighter tabular-nums leading-none">
                             {currentTime.toLocaleTimeString('en-US', { hour12: false })}
                         </span>
-                        <span className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 md:mt-1.5">
+                        <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mt-1 md:mt-1.5">
                             {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()}
                         </span>
                     </div>
@@ -412,14 +425,14 @@ export default function CoordinatorDashboard() {
                             {isNotificationOpen && (
                                 <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="absolute right-0 mt-4 w-80 md:w-96 bg-[#0F172A]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl z-[100] overflow-hidden">
                                     <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                                        <h3 className="text-xs font-black text-white uppercase tracking-widest">Live Events</h3>
-                                        {unreadCount > 0 && <button onClick={markAllAsRead} className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Clear All</button>}
+                                        <h3 className="text-[12px] font-black text-white uppercase tracking-widest">Live Events</h3>
+                                        {unreadCount > 0 && <button onClick={markAllAsRead} className="text-[12px] font-bold text-indigo-400 uppercase tracking-widest">Clear All</button>}
                                     </div>
                                     <div className="max-h-[70vh] overflow-y-auto custom-scrollbar p-0">
                                         {notifications.length === 0 ? (
                                             <div className="p-12 text-center">
                                                 <Bell className="w-6 h-6 text-slate-600 mx-auto mb-4" />
-                                                <p className="text-xs text-slate-500 uppercase tracking-widest text-pretty">No new alerts recorded</p>
+                                                <p className="text-[12px] text-slate-500 uppercase tracking-widest text-pretty">No new alerts recorded</p>
                                             </div>
                                         ) : (
                                             <div className="divide-y divide-white/5">
@@ -430,10 +443,10 @@ export default function CoordinatorDashboard() {
                                                         </div>
                                                         <div className="space-y-1">
                                                             <div className="flex items-center justify-between gap-2">
-                                                                <h4 className={`text-xs font-bold uppercase tracking-wide ${!notif.is_read ? 'text-white' : 'text-slate-400'}`}>{notif.title}</h4>
-                                                                <span className="text-[9px] text-slate-500 uppercase">{new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                                <h4 className={`text-[12px] font-bold uppercase tracking-wide ${!notif.is_read ? 'text-white' : 'text-slate-400'}`}>{notif.title}</h4>
+                                                                <span className="text-[12px] text-slate-500 uppercase">{new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                                             </div>
-                                                            <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">{notif.message}</p>
+                                                            <p className="text-[12px] text-slate-500 line-clamp-2 leading-relaxed">{notif.message}</p>
                                                         </div>
                                                     </button>
                                                 ))}
@@ -450,7 +463,7 @@ export default function CoordinatorDashboard() {
                     <div className="flex items-center gap-4 relative h-full" ref={profileRef}>
                         <div className="text-right hidden lg:flex flex-col h-full justify-center">
                             <p className="text-[16px] font-black text-white uppercase italic leading-none tracking-tight">{userName}</p>
-                            <p className="text-[10px] text-[#14b8a6] font-bold uppercase tracking-[0.2em] mt-2">Clinical Coordinator</p>
+                            <p className="text-[12px] text-[#14b8a6] font-bold uppercase tracking-[0.2em] mt-2">Clinical Coordinator</p>
                         </div>
                         <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white/5 border border-white/10 p-0.5 hover:border-[#14b8a6] transition-all active:scale-95 group overflow-hidden shadow-2xl">
                             <div className="w-full h-full rounded-[0.9rem] flex items-center justify-center bg-white/10 group-hover:bg-[#14b8a6]/20 transition-colors">
@@ -477,7 +490,7 @@ export default function CoordinatorDashboard() {
             <AnimatedBackground />
             {renderHeader()}
 
-            <aside className={`fixed left-0 top-0 bottom-0 w-[260px] bg-[#0B101B] border-r border-white/5 z-[70] transition-transform duration-300 lg:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+            <aside className={`fixed left-0 top-0 bottom-0 w-80 bg-[#0B101B] border-r border-white/5 z-[70] transition-transform duration-300 lg:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
                 <div className="h-24 px-8 flex justify-between items-center border-b border-white/[0.05] shrink-0">
                     <Link to="/" target="_blank" rel="noopener noreferrer" className="group transition-all">
                         <div className="bg-white p-2 rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
@@ -488,7 +501,7 @@ export default function CoordinatorDashboard() {
                 <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-6 custom-scrollbar">
                     {sidebarGroups.map((group, i) => (
                         <div key={i} className="space-y-2">
-                            <p className="px-4 text-[10px] font-bold text-white/40 uppercase tracking-widest">{group.group}</p>
+                            <p className="px-4 text-[12px] font-bold text-white/40 uppercase tracking-widest">{group.group}</p>
                             <div className="space-y-1.5">
                                 {group.items.map((item, j) => (
                                     <button key={j} onClick={() => { if (item.id === 'WEBSITE') window.open('/', '_blank'); else { handleModuleChange(item.id as CCModule); setIsSidebarOpen(false); } }} className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group relative ${activeModule === item.id ? 'bg-[#14b8a6]/20 text-[#14b8a6] border border-[#14b8a6]/30' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'}`}>
@@ -502,7 +515,7 @@ export default function CoordinatorDashboard() {
                 </nav>
             </aside>
 
-            <main className="lg:ml-[260px] pt-32 pb-24 px-8 overflow-x-hidden bg-[#0F172A] min-h-screen">
+            <main className="flex-1 lg:pl-80 pt-32 pb-24 px-8 overflow-x-hidden bg-[#0F172A] min-h-screen">
                 <AnimatePresence mode="wait">
                     {activeModule === 'OVERSIGHT' && (
                         <OversightModule studyCount={studies.length} stats={oversightStats} currentTime={currentTime} onLaunch={() => setActiveModule('LAUNCH_STUDY')} onNavigate={(id) => setActiveModule(id as CCModule)} />
@@ -550,9 +563,9 @@ function OversightModule({ studyCount, stats, currentTime, onLaunch, onNavigate 
                     <div className="flex items-center gap-6 py-2">
                         <span className="text-xl font-black text-[#14b8a6] italic tracking-tighter tabular-nums">{currentTime.toLocaleTimeString('en-US', { hour12: false })}</span>
                         <div className="w-px h-3 bg-white/10" />
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">{currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}</span>
+                        <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic">{currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}</span>
                     </div>
-                    <p className="text-[11px] text-white/50 font-bold uppercase tracking-[0.4em] italic">Clinical Research Execution & Velocity</p>
+                    <p className="text-[12px] text-white/50 font-bold uppercase tracking-[0.4em] italic">Clinical Research Execution & Velocity</p>
                 </div>
                 <button onClick={onLaunch} className="px-10 py-5 bg-[#14b8a6] text-white rounded-[2rem] text-[12px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-2xl shadow-teal-900/40 hover:scale-105 transition-all"><Rocket className="w-5 h-5" /> INITIALIZE STUDY</button>
             </div>
@@ -584,7 +597,7 @@ function OversightModule({ studyCount, stats, currentTime, onLaunch, onNavigate 
                         <h4 className="text-sm font-black text-white/50 uppercase tracking-widest italic group-hover:text-white">{widget.label}</h4>
                         <div className="flex items-end gap-4 mt-6">
                             <p className="text-2xl font-black text-white italic tracking-tighter uppercase">{widget.val}</p>
-                            <p className="text-[11px] text-white/40 font-black uppercase tracking-widest mb-2 italic">{widget.sub}</p>
+                            <p className="text-[12px] text-white/40 font-black uppercase tracking-widest mb-2 italic">{widget.sub}</p>
                         </div>
                     </div>
                 ))}
@@ -599,14 +612,14 @@ function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd
             <div className="flex justify-between items-center">
                 <div>
                     <h2 className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter">Study <span className="text-[#14b8a6]">Directory</span></h2>
-                    <p className="text-[10px] md:text-[11px] text-slate-500 uppercase tracking-widest font-black mt-2">Managing {studies.length} active research protocols</p>
+                    <p className="text-[12px] text-slate-500 uppercase tracking-widest font-black mt-2">Managing {studies.length} active research protocols</p>
                 </div>
-                <button onClick={onAdd} className="px-8 py-4 bg-white text-black rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 hover:scale-105 transition-all shadow-xl"><Plus className="w-4 h-4" /> Setup Protocol</button>
+                <button onClick={onAdd} className="px-8 py-4 bg-white text-black rounded-2xl font-black text-[12px] uppercase tracking-widest flex items-center gap-3 hover:scale-105 transition-all shadow-xl"><Plus className="w-4 h-4" /> Setup Protocol</button>
             </div>
             <div className="bg-[#0B101B] border border-white/5 rounded-[3rem] overflow-hidden">
                 <table className="w-full text-left">
                     <thead>
-                        <tr className="bg-white/[0.03] border-b border-white/5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] italic">
+                        <tr className="bg-white/[0.03] border-b border-white/5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic">
                             <th className="px-8 py-6">Protocol ID</th>
                             <th className="px-8 py-6">Title & Type</th>
                             <th className="px-8 py-6">Sponsor</th>
@@ -620,10 +633,10 @@ function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd
                                 <td className="px-8 py-6 text-sm font-black text-[#14b8a6] italic">{s.protocol_id}</td>
                                 <td className="px-8 py-6">
                                     <p className="text-sm font-black text-white uppercase tracking-widest group-hover:text-[#14b8a6]">{s.title}</p>
-                                    <p className="text-[10px] text-slate-500 font-bold uppercase">{s.study_type}</p>
+                                    <p className="text-[12px] text-slate-500 font-bold uppercase">{s.study_type}</p>
                                 </td>
                                 <td className="px-8 py-6 text-sm font-black text-slate-400 uppercase">{s.sponsor_name || 'Internal'}</td>
-                                <td className="px-8 py-6"><span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${s.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-white/5 text-slate-500 border-white/10'}`}>{s.status}</span></td>
+                                <td className="px-8 py-6"><span className={`px-4 py-1.5 rounded-full text-[12px] font-black uppercase tracking-widest border ${s.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-white/5 text-slate-500 border-white/10'}`}>{s.status}</span></td>
                                 <td className="px-8 py-6 text-right text-slate-500 group-hover:text-white transition-colors"><ChevronDown className="w-5 h-5 ml-auto -rotate-90" /></td>
                             </tr>
                         ))}
@@ -633,3 +646,5 @@ function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd
         </motion.div>
     );
 }
+
+

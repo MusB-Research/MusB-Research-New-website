@@ -69,11 +69,11 @@ export default function LiveActiveUsers({ allUsers }: { allUsers?: any[] }) {
              <span className="text-sm font-black text-emerald-500 uppercase tracking-[0.4em] italic leading-none">Stream Live</span>
            </div>
           <h1 className="text-3xl sm:text-5xl font-black text-white italic uppercase tracking-tighter">Live Active <span className="text-[#f59e0b]">Users</span></h1>
-          <p className="text-xs sm:text-base text-[#8b8fa8] uppercase tracking-[0.2em] font-black mt-3">Real-time session occupancy and global activity stream</p>
+          <p className="text-[12px] sm:text-base text-[#8b8fa8] uppercase tracking-[0.2em] font-black mt-3">Real-time session occupancy and global activity stream</p>
         </div>
           <div className="px-8 py-5 bg-[#f59e0b]/10 border border-[#f59e0b]/20 rounded-3xl flex items-center gap-6 shadow-xl shadow-amber-900/20">
              <div className="text-right">
-                <p className="text-xs font-black text-[#f59e0b] uppercase tracking-[0.3em]">{isDemo ? 'Simulation' : 'Active Now'}</p>
+                <p className="text-[12px] font-black text-[#f59e0b] uppercase tracking-[0.3em]">{isDemo ? 'Simulation' : 'Active Now'}</p>
                 <p className="text-2xl sm:text-3xl font-black text-white italic tracking-tighter mt-1">{users.length} {isDemo ? 'VIRTUAL' : 'GLOBAL'}</p>
              </div>
              <Activity className="w-8 h-8 text-[#f59e0b]" />
@@ -97,7 +97,7 @@ export default function LiveActiveUsers({ allUsers }: { allUsers?: any[] }) {
                      <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white italic font-black text-xl shadow-inner group-hover:scale-110 transition-transform">
                         {user.name.split(' ').map(n=>n[0]).join('')}
                      </div>
-                     <span className="text-xs font-black px-3 py-1.5 rounded-lg bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/20 tracking-widest uppercase">{user.role}</span>
+                     <span className="text-[12px] font-black px-3 py-1.5 rounded-lg bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/20 tracking-widest uppercase">{user.role}</span>
                   </div>
 
                   <div className="space-y-6">
@@ -126,14 +126,14 @@ export default function LiveActiveUsers({ allUsers }: { allUsers?: any[] }) {
                   </div>
 
                   <div className="mt-8 pt-6 flex justify-end">
-                     <button className="text-xs font-black text-slate-700 hover:text-white uppercase tracking-[0.4em] transition-all italic leading-none">Intercept Node</button>
+                     <button className="text-[12px] font-black text-slate-700 hover:text-white uppercase tracking-[0.4em] transition-all italic leading-none">Intercept Node</button>
                   </div>
                </motion.div>
             )) : (
               <div className="col-span-1 md:col-span-2 lg:col-span-4 h-80 flex flex-col items-center justify-center border border-dashed border-white/10 rounded-[4rem] bg-white/[0.01]">
                 <Activity className="w-16 h-16 text-[#555a7a] mb-6 animate-pulse" />
                 <h3 className="text-2xl font-black text-[#555a7a] uppercase italic tracking-tighter">No Active Trace Detected</h3>
-                <p className="text-xs text-slate-600 font-black uppercase tracking-[0.3em] mt-3">{allUsers ? 'Real-time synchronization active' : 'Waiting for cluster handshake...'}</p>
+                <p className="text-[12px] text-slate-600 font-black uppercase tracking-[0.3em] mt-3">{allUsers ? 'Real-time synchronization active' : 'Waiting for cluster handshake...'}</p>
               </div>
             )}
          </AnimatePresence>
@@ -142,7 +142,7 @@ export default function LiveActiveUsers({ allUsers }: { allUsers?: any[] }) {
       <div className="bg-[#0f1133] border border-white/5 rounded-[4rem] p-12 h-80 relative overflow-hidden hidden lg:block shadow-2xl">
          <div className="flex justify-between items-center mb-10">
             <h3 className="text-sm font-black text-white uppercase italic tracking-[0.3em]">Platform Load & Concurrency Matrix</h3>
-            <span className="text-xs font-black text-emerald-500 uppercase tracking-[0.5em] animate-pulse">Capacity 0.4%</span>
+            <span className="text-[12px] font-black text-emerald-500 uppercase tracking-[0.5em] animate-pulse">Capacity 0.4%</span>
          </div>
          <div className="grid grid-cols-24 gap-4 h-24">
             {Array.from({length: 48}).map((_, i) => (
@@ -156,3 +156,5 @@ export default function LiveActiveUsers({ allUsers }: { allUsers?: any[] }) {
     </div>
   );
 }
+
+

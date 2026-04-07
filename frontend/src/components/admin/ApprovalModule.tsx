@@ -53,7 +53,7 @@ export default function ApprovalModule() {
                     <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">
                         Team <span className="text-emerald-500 underline decoration-emerald-500/30">Approvals</span>
                     </h1>
-                    <p className="text-slate-500 font-bold mt-2 uppercase tracking-widest text-[10px] italic">
+                    <p className="text-slate-500 font-bold mt-2 uppercase tracking-widest text-[12px] italic">
                         Security Clearance & Credential Verification Sector
                     </p>
                 </div>
@@ -63,7 +63,7 @@ export default function ApprovalModule() {
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${
+                            className={`px-6 py-2.5 rounded-xl font-black text-[12px] uppercase tracking-widest transition-all ${
                                 activeTab === tab 
                                 ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20' 
                                 : 'text-slate-500 hover:text-white'
@@ -78,14 +78,14 @@ export default function ApprovalModule() {
             {loading ? (
                 <div className="flex flex-col items-center justify-center p-40 gap-6">
                     <div className="w-16 h-16 border-4 border-emerald-500/10 border-t-emerald-500 rounded-full animate-spin shadow-2xl shadow-emerald-500/20" />
-                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.5em] animate-pulse">Synchronizing Security Nodes...</p>
+                    <p className="text-[12px] font-black text-slate-600 uppercase tracking-[0.5em] animate-pulse">Synchronizing Security Nodes...</p>
                 </div>
             ) : requests.length === 0 ? (
                 <div className="bg-white/[0.02] border border-white/5 rounded-[3rem] p-32 text-center backdrop-blur-3xl shadow-2xl">
                     <div className="w-24 h-24 bg-white/5 border border-white/5 rounded-full flex items-center justify-center mx-auto mb-8">
                         <Shield className="w-10 h-10 text-slate-800 opacity-20" />
                     </div>
-                    <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-[10px] italic">
+                    <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-[12px] italic">
                         Sector Clear — No {activeTab} transmissions detected
                     </p>
                 </div>
@@ -112,7 +112,7 @@ export default function ApprovalModule() {
                                             <h3 className="text-xl lg:text-2xl font-black text-white uppercase tracking-tight italic group-hover:text-emerald-400 transition-colors">
                                                 {req.target_name}
                                             </h3>
-                                            <span className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-[0.2em] border shadow-sm ${
+                                            <span className={`px-4 py-1.5 rounded-full text-[12px] font-black uppercase tracking-[0.2em] border shadow-sm ${
                                                 req.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                                                 req.status === 'rejected' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
                                                 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
@@ -124,23 +124,23 @@ export default function ApprovalModule() {
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 mt-6">
                                             <div className="flex items-center gap-3 text-slate-500 group/item">
                                                 <Mail className="w-3.5 h-3.5 text-slate-700 group-hover/item:text-emerald-500 transition-colors" />
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{req.target_email}</span>
+                                                <span className="text-[12px] font-black uppercase tracking-widest text-slate-400">{req.target_email}</span>
                                             </div>
                                             <div className="flex items-center gap-3 text-slate-500 group/item">
                                                 <User className="w-3.5 h-3.5 text-slate-700 group-hover/item:text-emerald-500 transition-colors" />
-                                                <span className="text-[10px] font-bold uppercase tracking-widest italic text-slate-500">
+                                                <span className="text-[12px] font-bold uppercase tracking-widest italic text-slate-500">
                                                     Source: PI <span className="text-slate-300 font-black">{req.requested_by}</span>
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-3 text-slate-500 group/item">
                                                 <Clock className="w-3.5 h-3.5 text-slate-700 group-hover/item:text-emerald-500 transition-colors" />
-                                                <span className="text-[10px] font-bold uppercase tracking-widest italic text-slate-400">
+                                                <span className="text-[12px] font-bold uppercase tracking-widest italic text-slate-400">
                                                     Transmitted: {new Date(req.created_at).toLocaleDateString()} @ {new Date(req.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-3 text-slate-500 group/item">
                                                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-900 group-hover/item:text-emerald-500 transition-colors" />
-                                                <span className="text-[10px] font-black uppercase tracking-widest italic text-emerald-500/70">
+                                                <span className="text-[12px] font-black uppercase tracking-widest italic text-emerald-500/70">
                                                     Node Assignment: {req.studies?.join(', ') || 'No protocol assigned'}
                                                 </span>
                                             </div>
@@ -149,7 +149,7 @@ export default function ApprovalModule() {
                                         {req.reviewed_by && (
                                             <div className="mt-6 pt-6 border-t border-white/5 flex items-center gap-4">
                                                 <History className="w-3 h-3 text-slate-700" />
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 italic">
+                                                <span className="text-[12px] font-black uppercase tracking-widest text-slate-600 italic">
                                                     Processed by {req.reviewed_by} on {new Date(req.reviewed_at).toLocaleString()}
                                                 </span>
                                             </div>
@@ -168,7 +168,7 @@ export default function ApprovalModule() {
                                         </button>
                                         <button 
                                             onClick={() => handleAction(req.id, 'approve')}
-                                            className="flex-1 lg:flex-none px-12 py-7 bg-emerald-500 text-black rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 italic"
+                                            className="flex-1 lg:flex-none px-12 py-7 bg-emerald-500 text-black rounded-3xl font-black text-[12px] uppercase tracking-[0.2em] shadow-2xl shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 italic"
                                         >
                                             <Check className="w-5 h-5" /> Grant Access
                                         </button>
@@ -182,3 +182,6 @@ export default function ApprovalModule() {
         </div>
     );
 }
+
+
+

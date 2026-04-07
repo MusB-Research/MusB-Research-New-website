@@ -26,11 +26,11 @@ export const CredentialCard: React.FC<CredentialCardProps> = ({ doc, onSelect })
                         <Stethoscope className="w-7 h-7" />
                     </div>
                     <div className="space-y-1">
-                        <p className="text-[10px] text-indigo-400 font-black uppercase tracking-widest italic">{doc.type}</p>
+                        <p className="text-[12px] text-indigo-400 font-black uppercase tracking-widest italic">{doc.type}</p>
                         <h4 className="text-xl font-black text-white italic uppercase tracking-tight">{doc.name}</h4>
                     </div>
                 </div>
-                <div className={`px-4 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-widest ${getStatusStyle(doc.status)}`}>
+                <div className={`px-4 py-1.5 rounded-xl border text-[12px] font-black uppercase tracking-widest ${getStatusStyle(doc.status)}`}>
                     {doc.status}
                 </div>
             </div>
@@ -38,12 +38,12 @@ export const CredentialCard: React.FC<CredentialCardProps> = ({ doc, onSelect })
             <div className="flex items-center justify-between pt-8 border-t border-white/5">
                 <div className="flex items-center gap-10">
                     <div>
-                        <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Expiration</p>
-                        <p className={`text-[10px] font-black uppercase tracking-widest mt-1 ${doc.status === 'Expiring Soon' ? 'text-amber-400 animate-pulse' : 'text-slate-300'}`}>{doc.expiryDate}</p>
+                        <p className="text-[12px] text-slate-600 font-black uppercase tracking-widest">Expiration</p>
+                        <p className={`text-[12px] font-black uppercase tracking-widest mt-1 ${doc.status === 'Expiring Soon' ? 'text-amber-400 animate-pulse' : 'text-slate-300'}`}>{doc.expiryDate}</p>
                     </div>
                     <div>
-                        <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">Audit Track</p>
-                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">Verified 2026-01-01</p>
+                        <p className="text-[12px] text-slate-600 font-black uppercase tracking-widest">Audit Track</p>
+                        <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest mt-1">Verified 2026-01-01</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -64,3 +64,5 @@ export const CredentialCard: React.FC<CredentialCardProps> = ({ doc, onSelect })
         </motion.div>
     );
 };
+
+

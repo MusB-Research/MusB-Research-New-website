@@ -84,7 +84,7 @@ export default function ResetForced() {
                         <Lock className="w-10 h-10" />
                     </div>
                     <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter mb-4">Secure Your <span className="text-[#7c3aed]">Identity</span></h1>
-                    <p className="text-[10px] text-[#555a7a] font-black uppercase tracking-[0.3em]">Mandatory first-login security protocol</p>
+                    <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-[0.3em]">Mandatory first-login security protocol</p>
                 </div>
 
                 {success ? (
@@ -98,13 +98,13 @@ export default function ResetForced() {
                         </div>
                         <div className="space-y-2">
                             <h3 className="text-2xl font-black text-white uppercase italic tracking-tight">Security Handshake <span className="text-emerald-500">Verified</span></h3>
-                            <p className="text-[10px] text-[#555a7a] font-black uppercase tracking-widest">Re-initializing environment...</p>
+                            <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-widest">Re-initializing environment...</p>
                         </div>
                     </motion.div>
                 ) : (
                     <form onSubmit={handleReset} className="space-y-8">
                         {error && (
-                            <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-[2rem] flex items-center gap-4 text-red-500 text-xs font-black uppercase tracking-widest">
+                            <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-[2rem] flex items-center gap-4 text-red-500 text-[12px] font-black uppercase tracking-widest">
                                 <AlertCircle className="w-5 h-5 flex-shrink-0" />
                                 {error}
                             </div>
@@ -112,7 +112,7 @@ export default function ResetForced() {
 
                         <div className="space-y-6">
                             <div className="space-y-3 px-4">
-                                <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic flex items-center gap-2">
+                                <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic flex items-center gap-2">
                                    <Key className="w-3 h-3" /> System Security Key (Temporary Password)
                                 </label>
                                 <div className="relative group">
@@ -136,7 +136,7 @@ export default function ResetForced() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-3 px-4">
-                                    <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic">New Security Key</label>
+                                    <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic">New Security Key</label>
                                     <div className="relative group">
                                         <input
                                             type={showNew ? "text" : "password"}
@@ -156,7 +156,7 @@ export default function ResetForced() {
                                     </div>
                                 </div>
                                 <div className="space-y-3 px-4">
-                                    <label className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest italic">Confirm Key</label>
+                                    <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic">Confirm Key</label>
                                     <div className="relative group">
                                         <input
                                             type={showConfirm ? "text" : "password"}
@@ -181,15 +181,15 @@ export default function ResetForced() {
                         <div className="p-6 bg-[#0a0b1a] border border-white/5 rounded-[2rem] flex items-center gap-6">
                             <ShieldCheck className="w-10 h-10 text-purple-500 opacity-40" />
                             <div>
-                                <p className="text-[10px] text-white font-black uppercase tracking-widest mb-1 italic">Protocol Requirement:</p>
-                                <p className="text-[9px] text-[#555a7a] font-medium leading-relaxed">Password must be at least 8 characters, containing uppercase, lowercase, and a symbol.</p>
+                                <p className="text-[12px] text-white font-black uppercase tracking-widest mb-1 italic">Protocol Requirement:</p>
+                                <p className="text-[12px] text-[#555a7a] font-medium leading-relaxed">Password must be at least 8 characters, containing uppercase, lowercase, and a symbol.</p>
                             </div>
                         </div>
 
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full py-6 bg-[#7c3aed] text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] italic shadow-xl shadow-purple-900/40 hover:scale-[1.02] transition-all flex items-center justify-center gap-4 disabled:opacity-50"
+                            className="w-full py-6 bg-[#7c3aed] text-white rounded-[2rem] font-black text-[12px] uppercase tracking-[0.3em] italic shadow-xl shadow-purple-900/40 hover:scale-[1.02] transition-all flex items-center justify-center gap-4 disabled:opacity-50"
                         >
                             {isLoading ? 'Synchronizing...' : 'Update & Proceed'}
                             <ArrowRight className="w-5 h-5" />
@@ -200,3 +200,5 @@ export default function ResetForced() {
         </div>
     );
 }
+
+

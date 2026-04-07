@@ -47,18 +47,18 @@ export default function FormsQuestionnairesModule() {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div>
                     <h2 className="text-lg md:text-xl font-black text-white italic uppercase tracking-tighter">ELIGIBILITY <span className="text-indigo-400">QUESTIONNAIRES</span></h2>
-                    <p className="text-[8px] md:text-[10px] text-white/50 font-bold uppercase tracking-[0.2em] md:tracking-[0.4em] mt-3 md:mt-4 italic">eCRF Management & Dynamic Instrument Design</p>
+                    <p className="text-[12px] md:text-[12px] text-white/50 font-bold uppercase tracking-[0.2em] md:tracking-[0.4em] mt-3 md:mt-4 italic">eCRF Management & Dynamic Instrument Design</p>
                 </div>
                 <div className="flex bg-white/5 p-1.5 md:p-2 rounded-2xl border border-white/10 w-full lg:w-auto">
                     <button
                         onClick={() => setView('Tracking')}
-                        className={`flex-1 lg:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl text-[7px] md:text-[9px] font-black uppercase tracking-widest transition-all ${view === 'Tracking' ? 'bg-[#1e1b4b] border border-indigo-500/30 text-white shadow-lg shadow-indigo-600/10' : 'text-slate-500 hover:text-white'}`}
+                        className={`flex-1 lg:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl text-[12px] md:text-[12px] font-black uppercase tracking-widest transition-all ${view === 'Tracking' ? 'bg-[#1e1b4b] border border-indigo-500/30 text-white shadow-lg shadow-indigo-600/10' : 'text-slate-500 hover:text-white'}`}
                     >
                         Form Tracking
                     </button>
                     <button
                         onClick={() => setView('Splash')}
-                        className={`flex-1 lg:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl text-[7px] md:text-[9px] font-black uppercase tracking-widest transition-all ${view === 'Splash' || view === 'Architect' ? 'bg-[#1e1b4b] border border-indigo-500/30 text-white shadow-lg shadow-indigo-600/10' : 'text-slate-500 hover:text-white'}`}
+                        className={`flex-1 lg:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl text-[12px] md:text-[12px] font-black uppercase tracking-widest transition-all ${view === 'Splash' || view === 'Architect' ? 'bg-[#1e1b4b] border border-indigo-500/30 text-white shadow-lg shadow-indigo-600/10' : 'text-slate-500 hover:text-white'}`}
                     >
                         Form Builder
                     </button>
@@ -84,7 +84,7 @@ export default function FormsQuestionnairesModule() {
                                         <div className={`flex-shrink-0 p-2.5 md:p-3 bg-${stat.color}-500/10 rounded-xl md:rounded-2xl border border-${stat.color}-500/20 text-${stat.color}-400`}>
                                             <stat.icon className="w-4 h-4 md:w-5 md:h-5" />
                                         </div>
-                                        <span className="text-[9px] md:text-[10px] text-white/50 font-black uppercase tracking-widest italic leading-tight">{stat.label}</span>
+                                        <span className="text-[12px] md:text-[12px] text-white/50 font-black uppercase tracking-widest italic leading-tight">{stat.label}</span>
                                     </div>
                                     <p className="text-2xl md:text-3xl font-black text-white italic tracking-tighter leading-none relative z-10">{stat.val}</p>
                                 </div>
@@ -96,11 +96,11 @@ export default function FormsQuestionnairesModule() {
                             <table className="w-full text-left min-w-[900px]">
                                 <thead>
                                     <tr className="bg-white/5 border-b border-white/10">
-                                        <th className="w-[30%] px-6 py-6 text-[10px] md:text-[11px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">eCRF Instrument</th>
-                                        <th className="w-[15%] px-6 py-6 text-[10px] md:text-[11px] font-black text-white/80 uppercase tracking-widest italic text-center border-r border-white/5">Subject ID</th>
-                                        <th className="w-[20%] px-6 py-6 text-[10px] md:text-[11px] font-black text-white/80 uppercase tracking-widest italic text-center border-r border-white/5">Protocol Visit</th>
-                                        <th className="w-[20%] px-6 py-6 text-[10px] md:text-[11px] font-black text-white/80 uppercase tracking-widest italic text-center border-r border-white/5">Form Health</th>
-                                        <th className="w-[15%] px-6 py-6 text-[10px] md:text-[11px] font-black text-white/80 uppercase tracking-widest italic text-right">Actions</th>
+                                        <th className="w-[30%] px-6 py-6 text-[12px] md:text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">eCRF Instrument</th>
+                                        <th className="w-[15%] px-6 py-6 text-[12px] md:text-[12px] font-black text-white/80 uppercase tracking-widest italic text-center border-r border-white/5">Subject ID</th>
+                                        <th className="w-[20%] px-6 py-6 text-[12px] md:text-[12px] font-black text-white/80 uppercase tracking-widest italic text-center border-r border-white/5">Protocol Visit</th>
+                                        <th className="w-[20%] px-6 py-6 text-[12px] md:text-[12px] font-black text-white/80 uppercase tracking-widest italic text-center border-r border-white/5">Form Health</th>
+                                        <th className="w-[15%] px-6 py-6 text-[12px] md:text-[12px] font-black text-white/80 uppercase tracking-widest italic text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
@@ -113,7 +113,7 @@ export default function FormsQuestionnairesModule() {
                                                     </div>
                                                     <div>
                                                         <p className="text-sm md:text-base font-black text-white italic truncate tracking-tight uppercase leading-none">{f.formName}</p>
-                                                        <p className="text-[10px] text-slate-500 font-mono tracking-widest mt-1.5">{f.id}</p>
+                                                        <p className="text-[12px] text-slate-500 font-mono tracking-widest mt-1.5">{f.id}</p>
                                                     </div>
                                                 </div>
                                             </td>
@@ -121,8 +121,8 @@ export default function FormsQuestionnairesModule() {
                                                 <p className="text-sm md:text-base font-black text-white italic uppercase tracking-tighter leading-none">{f.subjectId}</p>
                                             </td>
                                             <td className="px-6 py-8 text-center border-r border-white/5">
-                                                <p className="text-[11px] md:text-[12px] text-indigo-300/60 font-black uppercase tracking-widest italic mb-1.5">{f.visit}</p>
-                                                <div className="flex flex-col items-center gap-2 text-[9px] text-slate-500 font-bold uppercase tracking-widest italic opacity-60">
+                                                <p className="text-[12px] md:text-[12px] text-indigo-300/60 font-black uppercase tracking-widest italic mb-1.5">{f.visit}</p>
+                                                <div className="flex flex-col items-center gap-2 text-[12px] text-slate-500 font-bold uppercase tracking-widest italic opacity-60">
                                                     <div className="flex items-center gap-2">
                                                         <Clock className="w-3 h-3" />
                                                         <span>UPDATED: <span className="text-slate-400">{f.lastUpdated}</span></span>
@@ -131,7 +131,7 @@ export default function FormsQuestionnairesModule() {
                                             </td>
                                             <td className="px-6 py-8 text-center border-r border-white/5">
                                                 <div className="flex flex-col items-center gap-4">
-                                                    <div className={`px-5 py-2 rounded-xl border text-[10px] md:text-[11px] font-black uppercase tracking-widest shadow-lg ${f.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10' :
+                                                    <div className={`px-5 py-2 rounded-xl border text-[12px] md:text-[12px] font-black uppercase tracking-widest shadow-lg ${f.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10' :
                                                             f.status === 'Query Open' ? 'bg-red-500/10 text-red-500 border-red-500/40 animate-pulse shadow-red-500/10' :
                                                                 f.status === 'Pending' ? 'bg-amber-500/10 text-amber-500 border-amber-500/40 shadow-amber-500/10' :
                                                                     'bg-white/5 border-white/10 text-slate-500'
@@ -150,7 +150,7 @@ export default function FormsQuestionnairesModule() {
                                                     </button>
                                                     <button
                                                         onClick={() => alert(`Reviewing Instrument ${f.formName} for Subject ${f.subjectId}...`)}
-                                                        className="px-8 py-4 bg-gradient-to-br from-indigo-600 to-indigo-800 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-indigo-900 shadow-[0_20px_40px_-10px_rgba(99,102,241,0.3)] active:scale-95 transition-all flex items-center gap-3 whitespace-nowrap"
+                                                        className="px-8 py-4 bg-gradient-to-br from-indigo-600 to-indigo-800 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-white hover:text-indigo-900 shadow-[0_20px_40px_-10px_rgba(99,102,241,0.3)] active:scale-95 transition-all flex items-center gap-3 whitespace-nowrap"
                                                     >
                                                         Open <span className="hidden xl:inline">eCRF</span> <ChevronRight className="w-5 h-5" />
                                                     </button>
@@ -171,11 +171,11 @@ export default function FormsQuestionnairesModule() {
                         </div>
                         <div className="max-w-xl space-y-4">
                             <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Instrument Architect</h3>
-                            <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed italic">Design multi-page electronic case report forms (eCRF) with built-in edit checks, logic branching, and dynamic field visibility.</p>
+                            <p className="text-[12px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed italic">Design multi-page electronic case report forms (eCRF) with built-in edit checks, logic branching, and dynamic field visibility.</p>
                         </div>
                         <div className="grid grid-cols-2 gap-4 w-full max-w-lg">
-                            <button onClick={() => { setBuilderTab('Create New'); setView('Architect'); }} className="py-5 bg-white text-slate-950 rounded-[2rem] text-[10px] font-black uppercase tracking-widest hover:scale-[1.05] transition-all">Create New eCRF</button>
-                            <button onClick={() => { setBuilderTab('Templates'); setView('Architect'); }} className="py-5 bg-white/5 border border-white/10 text-slate-400 rounded-[2rem] text-[10px] font-black uppercase tracking-widest hover:text-white transition-all">Import Template</button>
+                            <button onClick={() => { setBuilderTab('Create New'); setView('Architect'); }} className="py-5 bg-white text-slate-950 rounded-[2rem] text-[12px] font-black uppercase tracking-widest hover:scale-[1.05] transition-all">Create New eCRF</button>
+                            <button onClick={() => { setBuilderTab('Templates'); setView('Architect'); }} className="py-5 bg-white/5 border border-white/10 text-slate-400 rounded-[2rem] text-[12px] font-black uppercase tracking-widest hover:text-white transition-all">Import Template</button>
                         </div>
                     </motion.div>
                 )}
@@ -183,7 +183,7 @@ export default function FormsQuestionnairesModule() {
                 {view === 'Architect' && (
                     <motion.div key="architect" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
                         <div className="mb-6">
-                            <button onClick={() => setView('Splash')} className="text-[9px] font-black text-slate-600 uppercase tracking-widest hover:text-white transition-all">← Back to Architect Home</button>
+                            <button onClick={() => setView('Splash')} className="text-[12px] font-black text-slate-600 uppercase tracking-widest hover:text-white transition-all">← Back to Architect Home</button>
                         </div>
                         <QuestionnaireBuilder initialTab={builderTab} />
                     </motion.div>
@@ -194,3 +194,7 @@ export default function FormsQuestionnairesModule() {
 }
 
 import QuestionnaireBuilder from '../QuestionnaireBuilder';
+
+
+
+

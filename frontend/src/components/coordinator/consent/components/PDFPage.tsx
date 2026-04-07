@@ -17,7 +17,7 @@ const S = {
         border: `1px solid ${c}30`, 
         padding: '0.4rem 1rem', 
         borderRadius: '4px', 
-        fontSize: '11px', 
+        fontSize: '12px', 
         fontWeight: 900, 
         textTransform: 'uppercase' as const, 
         display: 'inline-flex', 
@@ -87,7 +87,7 @@ export const PDFPage: React.FC<PDFPageProps> = ({
                         position: 'absolute', top: `${f.y}%`, left: `${f.x}%`, transform: 'translate(-50%, -50%)',
                         border: `2px ${isSigned ? 'solid' : 'dashed'} ${colorMap[f.type] || COLORS.label}`,
                         backgroundColor: isSigned ? `${colorMap[f.type]}15` : 'transparent',
-                        padding: '0.6rem 1.2rem', borderRadius: '4px', color: colorMap[f.type] || COLORS.label, fontSize: '10px', fontWeight: 900, textTransform: 'uppercase'
+                        padding: '0.6rem 1.2rem', borderRadius: '4px', color: colorMap[f.type] || COLORS.label, fontSize: '12px', fontWeight: 900, textTransform: 'uppercase'
                     }}
                 >
                     {isSigned ? (
@@ -101,3 +101,5 @@ export const PDFPage: React.FC<PDFPageProps> = ({
         })}
     </div>
 );
+
+

@@ -177,15 +177,15 @@ export default function TeamManagementPanel({ addToast }: any) {
       {/* STAT CARDS: 3col desktop, 2col tablet+mobile */}
       <div style={{ display: 'grid', gridTemplateColumns: windowWidth > 900 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: windowWidth > 768 ? '24px' : '12px', marginBottom: windowWidth > 768 ? '48px' : '28px' }}>
         <div style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(8px)', padding: windowWidth > 768 ? '28px 32px' : '20px', borderRadius: '20px', border: `1px solid ${THEME.border}` }}>
-          <div style={{ color: THEME.muted, fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Total Members</div>
+          <div style={{ color: THEME.muted, fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Total Members</div>
           <div style={{ fontSize: windowWidth > 768 ? 48 : 36, fontWeight: 900, marginTop: '12px', color: THEME.text, letterSpacing: '-0.02em' }}>{members.length}</div>
         </div>
         <div style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(8px)', padding: windowWidth > 768 ? '28px 32px' : '20px', borderRadius: '20px', border: `1px solid ${THEME.border}` }}>
-          <div style={{ color: THEME.muted, fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Active</div>
+          <div style={{ color: THEME.muted, fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Active</div>
           <div style={{ fontSize: windowWidth > 768 ? 48 : 36, fontWeight: 900, marginTop: '12px', color: THEME.success, letterSpacing: '-0.02em' }}>{members.filter(m => m.status === 'ACTIVE').length}</div>
         </div>
         <div style={{ background: 'rgba(30, 41, 59, 0.4)', backdropFilter: 'blur(8px)', padding: windowWidth > 768 ? '28px 32px' : '20px', borderRadius: '20px', border: `1px solid ${THEME.border}`, gridColumn: windowWidth > 900 ? 'auto' : '1 / -1' }}>
-          <div style={{ color: THEME.muted, fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Pending</div>
+          <div style={{ color: THEME.muted, fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Pending</div>
           <div style={{ fontSize: windowWidth > 768 ? 48 : 36, fontWeight: 900, marginTop: '12px', color: '#f59e0b', letterSpacing: '-0.02em' }}>{members.filter(m => m.status === 'PENDING').length}</div>
         </div>
       </div>
@@ -378,3 +378,5 @@ export default function TeamManagementPanel({ addToast }: any) {
     </div>
   );
 }
+
+

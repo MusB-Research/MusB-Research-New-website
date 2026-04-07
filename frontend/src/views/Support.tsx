@@ -161,12 +161,12 @@ const Support: React.FC = () => {
                                 <div className="flex flex-col sm:flex-row items-center justify-start gap-8 pt-8">
                                     <Link
                                         to="/facilities#lead-capture"
-                                        className="bg-cyan-500 text-slate-900 px-8 py-4 md:px-10 md:py-5 rounded-2xl font-black text-xs md:text-sm uppercase tracking-widest hover:bg-white hover:-translate-y-1 transition-all shadow-2xl shadow-cyan-500/30 inline-flex items-center justify-center gap-4 group"
+                                        className="bg-cyan-500 text-slate-900 px-8 py-4 md:px-10 md:py-5 rounded-2xl font-black text-[12px] md:text-sm uppercase tracking-widest hover:bg-white hover:-translate-y-1 transition-all shadow-2xl shadow-cyan-500/30 inline-flex items-center justify-center gap-4 group"
                                     >
                                         Start the Conversation
                                         <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                                     </Link>
-                                    <Link to="/capabilities" className="text-white hover:text-cyan-400 font-black text-xs md:text-sm uppercase tracking-[0.2em] flex items-center gap-3 transition-colors group">
+                                    <Link to="/capabilities" className="text-white hover:text-cyan-400 font-black text-[12px] md:text-sm uppercase tracking-[0.2em] flex items-center gap-3 transition-colors group">
                                         Explore Our Capabilities <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                                     </Link>
                                 </div>
@@ -178,7 +178,7 @@ const Support: React.FC = () => {
                                     <div className="w-full aspect-square lg:aspect-[4.5/5] bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 transition-all duration-700"></div>
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60"></div>
                                     <div className="absolute bottom-12 left-12 right-12 space-y-2">
-                                        <p className="text-cyan-400 font-black text-[10px] uppercase tracking-[0.4em]">Integrated Research</p>
+                                        <p className="text-cyan-400 font-black text-[12px] uppercase tracking-[0.4em]">Integrated Research</p>
                                         <h3 className="text-white text-3xl font-black uppercase tracking-tight leading-none italic">
                                             Bench to Bedside.<br />
                                             <span className="text-slate-400">Discovery to Validation.</span>
@@ -217,7 +217,7 @@ const Support: React.FC = () => {
                                     <h3 className="text-3xl font-black text-white mb-6 group-hover:text-cyan-400 transition-colors uppercase relative z-10 text-left">Research & Innovation</h3>
                                     <p className="text-slate-300 font-bold leading-relaxed mb-8 relative z-10 text-left">From concept to evidence—preclinical and clinical research that moves products forward.</p>
                                     <div className="space-y-6 flex-grow relative z-10">
-                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-500/60 text-left">Highlights:</h4>
+                                        <h4 className="text-[12px] font-black uppercase tracking-[0.2em] text-cyan-500/60 text-left">Highlights:</h4>
                                         <ul className="space-y-4">
                                             {[
                                                 "In vitro screening and mechanistic validation",
@@ -232,7 +232,7 @@ const Support: React.FC = () => {
                                             ))}
                                         </ul>
                                     </div>
-                                    <Link to="/contact?type=research" className="mt-12 w-full bg-cyan-500 text-slate-900 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2 group/btn relative z-10">
+                                    <Link to="/contact?type=research" className="mt-12 w-full bg-cyan-500 text-slate-900 py-5 rounded-2xl font-black text-[12px] uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2 group/btn relative z-10">
                                         Discuss a Research Project
                                         <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                                     </Link>
@@ -247,7 +247,7 @@ const Support: React.FC = () => {
                                     <h3 className="text-3xl font-black text-white mb-6 group-hover:text-cyan-400 transition-colors uppercase relative z-10">Central Lab Services</h3>
                                     <p className="text-slate-300 font-bold leading-relaxed mb-8 relative z-10">Reliable, scalable testing to support studies, product validation, and regulatory-ready reporting.</p>
                                     <div className="space-y-6 flex-grow relative z-10">
-                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-500/60">Highlights:</h4>
+                                        <h4 className="text-[12px] font-black uppercase tracking-[0.2em] text-cyan-500/60">Highlights:</h4>
                                         <ul className="space-y-4">
                                             {[
                                                 "Clinical and research biomarker testing",
@@ -262,7 +262,7 @@ const Support: React.FC = () => {
                                             ))}
                                         </ul>
                                     </div>
-                                    <Link to="/contact?type=lab" className="mt-12 w-full bg-cyan-500 text-slate-900 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2 group/btn relative z-10">
+                                    <Link to="/contact?type=lab" className="mt-12 w-full bg-cyan-500 text-slate-900 py-5 rounded-2xl font-black text-[12px] uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2 group/btn relative z-10">
                                         Inquire About Lab Services
                                         <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                                     </Link>
@@ -277,7 +277,7 @@ const Support: React.FC = () => {
                                     <h3 className="text-3xl font-black text-white mb-6 group-hover:text-cyan-400 transition-colors uppercase relative z-10">Biorepository</h3>
                                     <p className="text-slate-300 font-bold leading-relaxed mb-8 relative z-10">Secure biospecimen processing, tracking, and storage for longitudinal research.</p>
                                     <div className="space-y-6 flex-grow relative z-10">
-                                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-500/60">Highlights:</h4>
+                                        <h4 className="text-[12px] font-black uppercase tracking-[0.2em] text-cyan-500/60">Highlights:</h4>
                                         <ul className="space-y-4">
                                             {[
                                                 "Sample processing and standardized aliquoting",
@@ -292,7 +292,7 @@ const Support: React.FC = () => {
                                             ))}
                                         </ul>
                                     </div>
-                                    <Link to="/contact?type=biorepository" className="mt-12 w-full bg-cyan-500 text-slate-900 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2 group/btn relative z-10">
+                                    <Link to="/contact?type=biorepository" className="mt-12 w-full bg-cyan-500 text-slate-900 py-5 rounded-2xl font-black text-[12px] uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2 group/btn relative z-10">
                                         Request Biorepository Support
                                         <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                                     </Link>
@@ -314,8 +314,8 @@ const Support: React.FC = () => {
                                 </p>
                             </div>
                             <div className="flex gap-4">
-                                <Link to="/news" className="bg-white/5 text-white px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all border border-white/10">See All Success Stories</Link>
-                                <Link to="/facilities#lead-capture" className="bg-cyan-500 text-slate-900 px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg">Start the Conversation</Link>
+                                <Link to="/news" className="bg-white/5 text-white px-8 py-4 rounded-xl font-black text-[12px] uppercase tracking-widest hover:bg-white/10 transition-all border border-white/10">See All Success Stories</Link>
+                                <Link to="/facilities#lead-capture" className="bg-cyan-500 text-slate-900 px-8 py-4 rounded-xl font-black text-[12px] uppercase tracking-widest hover:bg-white transition-all shadow-lg">Start the Conversation</Link>
                             </div>
                         </div>
 
@@ -395,9 +395,9 @@ const Support: React.FC = () => {
                             </div>
                         </div>
                         <div className="flex flex-wrap justify-center gap-6">
-                            <button onClick={() => setShowRouter(true)} className="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white hover:text-slate-900 transition-all">Discuss Research</button>
-                            <button onClick={() => setShowRouter(true)} className="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white hover:text-slate-900 transition-all">Request Testing</button>
-                            <button onClick={() => setShowRouter(true)} className="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white hover:text-slate-900 transition-all">Biorepository Support</button>
+                            <button onClick={() => setShowRouter(true)} className="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-xl font-black text-[12px] uppercase tracking-widest hover:bg-white hover:text-slate-900 transition-all">Discuss Research</button>
+                            <button onClick={() => setShowRouter(true)} className="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-xl font-black text-[12px] uppercase tracking-widest hover:bg-white hover:text-slate-900 transition-all">Request Testing</button>
+                            <button onClick={() => setShowRouter(true)} className="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-xl font-black text-[12px] uppercase tracking-widest hover:bg-white hover:text-slate-900 transition-all">Biorepository Support</button>
                         </div>
                     </div>
                 </section>
@@ -419,7 +419,7 @@ const Support: React.FC = () => {
                             <Link to="/contact?type=business" className="bg-cyan-500 text-slate-900 px-12 py-6 rounded-3xl font-black text-lg uppercase tracking-widest hover:bg-white hover:scale-105 transition-all shadow-xl">
                                 Request a Consultation
                             </Link>
-                            <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">
+                            <p className="text-slate-400 font-bold uppercase tracking-widest text-[12px]">
                                 Typical response time: 1–2 business days. <br />Confidential discussions welcomed.
                             </p>
                         </div>
@@ -431,4 +431,6 @@ const Support: React.FC = () => {
 };
 
 export default Support;
+
+
 

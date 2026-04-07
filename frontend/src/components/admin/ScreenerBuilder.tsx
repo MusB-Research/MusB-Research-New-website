@@ -137,7 +137,7 @@ export default function ScreenerBuilder() {
             <div className="p-3 bg-pink-500/10 rounded-2xl border border-pink-500/20">
               <Layout className="w-6 h-6 text-pink-500" />
             </div>
-            <span className="text-[11px] font-black text-pink-500 uppercase tracking-[0.4em] italic font-black">Architecture: Protocol Design</span>
+            <span className="text-[12px] font-black text-pink-500 uppercase tracking-[0.4em] italic font-black">Architecture: Protocol Design</span>
           </div>
           <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic">Screener Builder</h1>
           <p className="text-slate-500 font-bold mt-3 max-w-xl text-lg leading-relaxed">Design logical recruitment funnels with dynamic branching and integrated validation triggers.</p>
@@ -147,7 +147,7 @@ export default function ScreenerBuilder() {
            <select 
             value={selectedStudy}
             onChange={(e) => setSelectedStudy(e.target.value)}
-            className="bg-slate-950/50 border border-white/10 rounded-2xl px-8 py-5 text-white font-black text-xs uppercase tracking-widest outline-none focus:border-pink-500/50 transition-all shadow-2xl"
+            className="bg-slate-950/50 border border-white/10 rounded-2xl px-8 py-5 text-white font-black text-[12px] uppercase tracking-widest outline-none focus:border-pink-500/50 transition-all shadow-2xl"
           >
             <option value="">Select Context Protocol</option>
             {studies.map(s => <option key={s.id} value={s.id} className="bg-[#0a0b1a]">{s.protocol_id} - {s.title}</option>)}
@@ -168,7 +168,7 @@ export default function ScreenerBuilder() {
           <div className="bg-white/5 border border-white/5 rounded-[2.5rem] p-10 flex flex-col gap-10 group hover:border-white/10 transition-all">
             <div className="space-y-2">
               <h3 className="text-white font-black text-lg italic uppercase tracking-widest">Question Toolbox</h3>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-loose">Tap component to append to architecture</p>
+              <p className="text-[12px] text-slate-500 font-bold uppercase tracking-widest leading-loose">Tap component to append to architecture</p>
             </div>
             
             <div className="grid grid-cols-1 gap-6">
@@ -187,7 +187,7 @@ export default function ScreenerBuilder() {
                     <div className="w-12 h-12 bg-slate-900 border border-white/5 rounded-xl flex items-center justify-center text-slate-500 group-hover:text-pink-400 group-hover:scale-110 transition-all">
                       <ft.icon className="w-5 h-5" />
                     </div>
-                    <span className="text-[11px] font-black text-slate-300 uppercase tracking-[0.2em] group-hover:text-pink-400 transition-colors">{ft.label}</span>
+                    <span className="text-[12px] font-black text-slate-300 uppercase tracking-[0.2em] group-hover:text-pink-400 transition-colors">{ft.label}</span>
                   </div>
                   <Plus className="w-5 h-5 text-slate-600 group-hover:text-pink-400 transform group-hover:rotate-90 transition-all" />
                 </button>
@@ -210,7 +210,7 @@ export default function ScreenerBuilder() {
               </div>
               <div className="space-y-4">
                 <h3 className="text-slate-400 font-black text-3xl uppercase tracking-tighter italic">VIRTUAL CANVAS EMPTY</h3>
-                <p className="text-slate-700 font-black uppercase text-xs tracking-[0.4em]">DEPLOY COMPONENTS FROM THE TOOLBOX</p>
+                <p className="text-slate-700 font-black uppercase text-[12px] tracking-[0.4em]">DEPLOY COMPONENTS FROM THE TOOLBOX</p>
               </div>
             </div>
           ) : (
@@ -241,7 +241,7 @@ export default function ScreenerBuilder() {
                         placeholder="Enter your question prompt here..."
                       />
                       <div className="flex items-center gap-4 bg-[#0a0b1a] px-6 py-3 rounded-xl border border-white/5 shadow-inner">
-                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] flex items-center gap-3 cursor-pointer hover:text-white transition-colors">
+                        <label className="text-[12px] font-black uppercase text-slate-400 tracking-[0.2em] flex items-center gap-3 cursor-pointer hover:text-white transition-colors">
                           <input 
                             type="checkbox" 
                             checked={field.required}
@@ -259,7 +259,7 @@ export default function ScreenerBuilder() {
 
                     {(field.type === 'choice' || field.type === 'dropdown') && field.options && (
                       <div className="pl-10 space-y-6 border-l-2 border-white/5">
-                        <p className="text-[10px] font-black uppercase text-slate-600 tracking-[0.3em]">Configure Options</p>
+                        <p className="text-[12px] font-black uppercase text-slate-600 tracking-[0.3em]">Configure Options</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
                           {field.options.map((option, oIdx) => (
                             <div key={oIdx} className="flex gap-4 items-center group/opt relative">
@@ -294,7 +294,7 @@ export default function ScreenerBuilder() {
                               nf[idx].options?.push(`Option ${nf[idx].options?.length + 1}`);
                               setFields(nf);
                             }}
-                            className="text-[10px] font-black uppercase tracking-widest text-slate-700 hover:text-pink-500 transition-colors flex items-center gap-3 bg-white/5 self-start px-6 py-3 rounded-xl border border-dashed border-white/10"
+                            className="text-[12px] font-black uppercase tracking-widest text-slate-700 hover:text-pink-500 transition-colors flex items-center gap-3 bg-white/5 self-start px-6 py-3 rounded-xl border border-dashed border-white/10"
                           >
                             <Plus className="w-4 h-4" /> Append Configuration
                           </button>
@@ -316,3 +316,5 @@ export default function ScreenerBuilder() {
     </div>
   );
 }
+
+

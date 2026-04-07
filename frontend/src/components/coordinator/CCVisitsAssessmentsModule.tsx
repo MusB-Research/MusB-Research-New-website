@@ -300,11 +300,11 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
     // --- STYLES ---
     const G = {
         glass: { backgroundColor: COLORS.glass, backdropFilter: 'blur(12px)', border: `1px solid ${COLORS.border}` },
-        label: { fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.15em', color: COLORS.label },
+        label: { fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.15em', color: COLORS.label },
         title: { fontSize: '20px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' as const, color: 'white' },
-        btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '0.6rem 1.25rem', borderRadius: '4px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' },
-        btnGhost: { backgroundColor: 'transparent', color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: '0.6rem 1.25rem', borderRadius: '4px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' },
-        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '10px', fontWeight: 900 as const, textTransform: 'uppercase' as const })
+        btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '0.6rem 1.25rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' },
+        btnGhost: { backgroundColor: 'transparent', color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: '0.6rem 1.25rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' },
+        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900 as const, textTransform: 'uppercase' as const })
     } as Record<string, any>;
 
     return (
@@ -374,10 +374,10 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
                                         COLORS.danger
                                     )}>{p.status}</span>
                                 </div>
-                                <div style={{ fontSize: '10px', color: COLORS.label, fontFamily: 'monospace', marginBottom: '0.75rem' }}>ID: {p.id.slice(-8).toUpperCase()} • {p.study}</div>
+                                <div style={{ fontSize: '12px', color: COLORS.label, fontFamily: 'monospace', marginBottom: '0.75rem' }}>ID: {p.id.slice(-8).toUpperCase()} • {p.study}</div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: p.compliance > 80 ? COLORS.success : COLORS.warning }} />
-                                    <span style={{ fontSize: '11px', fontWeight: 'bold', color: COLORS.text }}>{p.compliance}% Compliance</span>
+                                    <span style={{ fontSize: '12px', fontWeight: 'bold', color: COLORS.text }}>{p.compliance}% Compliance</span>
                                 </div>
                             </div>
                         ))}
@@ -387,7 +387,7 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
                             </div>
                         )}
                         {isLoading && (
-                            <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: COLORS.accent, fontSize: '11px', fontWeight: 900 }}>
+                            <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: COLORS.accent, fontSize: '12px', fontWeight: 900 }}>
                                 <RefreshCw size={16} className="animate-spin" style={{ margin: '0 auto 1rem' }} />
                                 SYNCING CLINICAL DATABASE...
                             </div>
@@ -413,9 +413,9 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
                                 ))}
                                 {Array.from({ length: 35 }).map((_, i) => (
                                     <div key={i} style={{ height: '120px', backgroundColor: COLORS.bg, padding: '0.75rem', position: 'relative' }}>
-                                        <span style={{ fontSize: '11px', color: COLORS.label }}>{i + 1}</span>
+                                        <span style={{ fontSize: '12px', color: COLORS.label }}>{i + 1}</span>
                                         {i === 12 && (
-                                            <div style={{ marginTop: '0.5rem', padding: '0.3rem 0.6rem', backgroundColor: `${COLORS.accent}20`, borderRadius: '4px', border: `1px solid ${COLORS.accent}40`, fontSize: '10px', fontWeight: 900 }}>
+                                            <div style={{ marginTop: '0.5rem', padding: '0.3rem 0.6rem', backgroundColor: `${COLORS.accent}20`, borderRadius: '4px', border: `1px solid ${COLORS.accent}40`, fontSize: '12px', fontWeight: 900 }}>
                                                 BTB-023 · Week 4
                                             </div>
                                         )}
@@ -445,8 +445,8 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
                                                 {v.status === 'Completed' ? <CheckCircle2 size={20} /> : <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: COLORS.label }} />}
                                             </div>
                                             <div style={{ position: 'absolute', top: '50px', whiteSpace: 'nowrap', textAlign: 'center' }}>
-                                                <div style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' }}>{v.name}</div>
-                                                <div style={{ fontSize: '10px', color: COLORS.label, marginTop: '2px' }}>{v.scheduledDate}</div>
+                                                <div style={{ fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' }}>{v.name}</div>
+                                                <div style={{ fontSize: '12px', color: COLORS.label, marginTop: '2px' }}>{v.scheduledDate}</div>
                                             </div>
                                         </div>
                                     ))}
@@ -464,7 +464,7 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
                                             <span style={{ fontSize: '14px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' }}>{v.name} Assessment</span>
                                             <span style={G.badge(v.status === 'Completed' ? COLORS.success : COLORS.warning)}>{v.status}</span>
                                         </div>
-                                        <div style={{ display: 'flex', gap: '1rem', color: COLORS.label, fontSize: '11px' }}>
+                                        <div style={{ display: 'flex', gap: '1rem', color: COLORS.label, fontSize: '12px' }}>
                                             <Clock size={12} /> {v.scheduledDate}
                                             <MapPin size={12} /> {v.location}
                                         </div>
@@ -480,11 +480,11 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
                     {activeVisit ? (
                         <>
                              <div style={{ padding: '2rem 1.5rem', borderBottom: `1px solid ${COLORS.border}` }}>
-                                <div style={{ fontSize: '10px', fontWeight: 900, color: COLORS.accent, marginBottom: '0.4rem' }}>STUDY: {activeParticipant?.study}</div>
+                                <div style={{ fontSize: '12px', fontWeight: 900, color: COLORS.accent, marginBottom: '0.4rem' }}>STUDY: {activeParticipant?.study}</div>
                                 <h2 style={{ ...G.title, fontSize: '18px', color: 'white', fontStyle: 'normal' }}>{activeParticipant?.name}</h2>
-                                <div style={{ marginTop: '0.6rem', fontSize: '11px', color: COLORS.label }}>{activeParticipant?.email}</div>
+                                <div style={{ marginTop: '0.6rem', fontSize: '12px', color: COLORS.label }}>{activeParticipant?.email}</div>
                                 <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                    <div style={{ fontSize: '11px', color: COLORS.label }}>Internal PID: {activeParticipant?.id}</div>
+                                    <div style={{ fontSize: '12px', color: COLORS.label }}>Internal PID: {activeParticipant?.id}</div>
                                     <div style={G.badge(activeVisit.status === 'Completed' ? COLORS.success : COLORS.warning)}>{activeVisit.status}</div>
                                 </div>
                             </div>
@@ -492,8 +492,8 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
                             <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 <button style={G.btnIndigo} onClick={() => handleUpdateVisit(activeVisit.id, { status: 'In Progress' })}>Start Assessment</button>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button style={{ ...G.btnGhost, flex: 1, fontSize: '9px' }}>Reschedule</button>
-                                    <button style={{ ...G.btnGhost, flex: 1, fontSize: '9px', borderColor: COLORS.danger, color: COLORS.danger }}>Missed</button>
+                                    <button style={{ ...G.btnGhost, flex: 1, fontSize: '12px' }}>Reschedule</button>
+                                    <button style={{ ...G.btnGhost, flex: 1, fontSize: '12px', borderColor: COLORS.danger, color: COLORS.danger }}>Missed</button>
                                 </div>
                             </div>
 
@@ -512,7 +512,7 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
                                                     {item.checked ? <CheckCircle2 size={16} color={COLORS.success} /> : <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `1px solid ${COLORS.border}` }} />}
                                                     <div style={{ flex: 1 }}>
                                                         <div style={{ fontSize: '13px', color: item.checked ? 'white' : COLORS.text }}>{item.label}</div>
-                                                        {item.checked && <div style={{ fontSize: '9px', color: COLORS.label, marginTop: '2px' }}>{item.by} · {item.time}</div>}
+                                                        {item.checked && <div style={{ fontSize: '12px', color: COLORS.label, marginTop: '2px' }}>{item.by} · {item.time}</div>}
                                                     </div>
                                                 </div>
                                             ))}
@@ -529,7 +529,7 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
                                     {openAccordions.has('vitals') && (
                                         <div style={{ padding: '0 1.5rem 1.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                             <div>
-                                                <span style={{ fontSize: '10px', color: COLORS.label }}>Weight (kg)</span>
+                                                <span style={{ fontSize: '12px', color: COLORS.label }}>Weight (kg)</span>
                                                 <input 
                                                     style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, padding: '0.5rem', borderRadius: '4px', color: 'white', marginTop: '0.3rem' }}
                                                     value={activeVisit.vitals.weight}
@@ -537,7 +537,7 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
                                                 />
                                             </div>
                                             <div>
-                                                <span style={{ fontSize: '10px', color: COLORS.label }}>Height (cm)</span>
+                                                <span style={{ fontSize: '12px', color: COLORS.label }}>Height (cm)</span>
                                                 <input 
                                                     style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, padding: '0.5rem', borderRadius: '4px', color: 'white', marginTop: '0.3rem' }}
                                                     value={activeVisit.vitals.height}
@@ -547,7 +547,7 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
                                             {calculateBMI(activeVisit.vitals.weight, activeVisit.vitals.height) && (
                                                 <div style={{ gridColumn: '1 / -1', padding: '1rem', backgroundColor: `${calculateBMI(activeVisit.vitals.weight, activeVisit.vitals.height)?.color}10`, borderRadius: '8px', border: `1px solid ${calculateBMI(activeVisit.vitals.weight, activeVisit.vitals.height)?.color}30`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <div>
-                                                        <span style={{ fontSize: '10px', color: COLORS.label }}>Calculated BMI</span>
+                                                        <span style={{ fontSize: '12px', color: COLORS.label }}>Calculated BMI</span>
                                                         <div style={{ fontSize: '18px', fontWeight: 900 }}>{calculateBMI(activeVisit.vitals.weight, activeVisit.vitals.height)?.bmi}</div>
                                                     </div>
                                                     <span style={G.badge(calculateBMI(activeVisit.vitals.weight, activeVisit.vitals.height)?.color || COLORS.success)}>{calculateBMI(activeVisit.vitals.weight, activeVisit.vitals.height)?.cat}</span>
@@ -579,7 +579,7 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: COLORS.label }}>
                             <Stethoscope size={48} style={{ opacity: 0.1, marginBottom: '2rem' }} />
                             <div style={{ ...G.title, fontSize: '16px' }}>Terminal Standby</div>
-                            <div style={{ fontSize: '10px', marginTop: '0.5rem' }}>Select participant protocol node...</div>
+                            <div style={{ fontSize: '12px', marginTop: '0.5rem' }}>Select participant protocol node...</div>
                         </div>
                     )}
                 </div>
@@ -591,7 +591,7 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
                     <div key={t.id} style={{ 
                         padding: '1rem 2rem', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '1rem',
                         backgroundColor: t.type === 'success' ? COLORS.success : t.type === 'error' ? COLORS.danger : COLORS.warning,
-                        color: 'white', fontWeight: 900, textTransform: 'uppercase', fontSize: '11px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                        color: 'white', fontWeight: 900, textTransform: 'uppercase', fontSize: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
                         animation: 'slideIn 0.3s forwards'
                     }}>
                         <Info size={16} /> {t.message}
@@ -709,3 +709,5 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
         </div>
     );
 }
+
+

@@ -125,3 +125,5 @@ export interface JobOpening {
     isFeatured: boolean;
     status: 'Draft' | 'Live' | 'Closed';
 }
+
+

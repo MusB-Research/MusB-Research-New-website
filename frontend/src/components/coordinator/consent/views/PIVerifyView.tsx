@@ -15,7 +15,7 @@ interface VerifyProps {
 }
 
 const S = {
-    badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.4rem 1rem', borderRadius: '4px', fontSize: '11px', fontWeight: 900 as const, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
+    badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.4rem 1rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900 as const, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
     title: { fontSize: '22px', fontWeight: 900 as const, fontStyle: 'italic' as const, textTransform: 'uppercase' as const, letterSpacing: '-0.02em', color: 'white' },
     label: { fontSize: '12px', fontWeight: 900 as const, textTransform: 'uppercase' as const, letterSpacing: '0.15em', color: COLORS.text, opacity: 0.6 },
     btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900 as const, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(99, 102, 241, 0.2)' },
@@ -34,8 +34,8 @@ export const PIVerifyView: React.FC<VerifyProps> = (props) => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
                         <button style={S.btnGhost} onClick={() => setActiveView('records')}><ArrowLeft size={16} /> Back to Registry</button>
                         <div style={{ display: 'flex', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: '8px', padding: '0.25rem' }}>
-                            <button onClick={() => setPiDocTab('signed')} className={`px-6 py-2.5 rounded-lg text-[11px] font-black uppercase tracking-widest ${piDocTab === 'signed' ? 'bg-indigo-600 text-white' : 'text-slate-500'}`}>Signed Record</button>
-                            <button onClick={() => setPiDocTab('original')} className={`px-6 py-2.5 rounded-lg text-[11px] font-black uppercase tracking-widest ${piDocTab === 'original' ? 'bg-indigo-600 text-white' : 'text-slate-500'}`}>IRB Original</button>
+                            <button onClick={() => setPiDocTab('signed')} className={`px-6 py-2.5 rounded-lg text-[12px] font-black uppercase tracking-widest ${piDocTab === 'signed' ? 'bg-indigo-600 text-white' : 'text-slate-500'}`}>Signed Record</button>
+                            <button onClick={() => setPiDocTab('original')} className={`px-6 py-2.5 rounded-lg text-[12px] font-black uppercase tracking-widest ${piDocTab === 'original' ? 'bg-indigo-600 text-white' : 'text-slate-500'}`}>IRB Original</button>
                         </div>
                     </div>
                 </div>
@@ -71,7 +71,7 @@ export const PIVerifyView: React.FC<VerifyProps> = (props) => {
                     {piSignature ? (
                         <div className="flex flex-col items-center gap-3">
                             <div style={{ fontFamily: 'cursive', fontSize: '32px', color: COLORS.accent }}>Dr. Yadav — PI</div>
-                            <div className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] italic">Validated {new Date().toLocaleTimeString()}</div>
+                            <div className="text-[12px] font-black text-indigo-400 uppercase tracking-[0.2em] italic">Validated {new Date().toLocaleTimeString()}</div>
                         </div>
                     ) : (
                         <div className="opacity-30 group flex flex-col items-center gap-4">
@@ -88,3 +88,5 @@ export const PIVerifyView: React.FC<VerifyProps> = (props) => {
         </div>
     );
 };
+
+

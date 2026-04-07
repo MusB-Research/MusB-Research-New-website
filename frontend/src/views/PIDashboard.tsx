@@ -119,6 +119,9 @@ export default function PIDashboard() {
         console.log("[PIDashboard] Route sync:", { path, route });
         
         if (route === 'pi' || !route || route === 'oversight') setActiveModule('OVERSIGHT');
+        else if (route === 'studies') setActiveModule('STUDIES');
+        else if (route === 'participants') setActiveModule('PARTICIPANTS');
+        else if (route === 'forms') setActiveModule('FORMS');
         else if (route === 'consent') setActiveModule('CONSENT');
         else if (route === 'visits') setActiveModule('VISITS');
         else if (route === 'subject-review' || route === 'review') setActiveModule('SUBJECT_REVIEW');
@@ -134,6 +137,7 @@ export default function PIDashboard() {
         else if (route === 'audit-log' || route === 'audit') setActiveModule('AUDIT_LOG');
         else if (route === 'analytics') setActiveModule('ANALYTICS');
         else if (route === 'tasks') setActiveModule('TASKS');
+        else if (route === 'participant-tasks') setActiveModule('PARTICIPANT_TASKS');
         else if (route === 'sponsors') setActiveModule('SPONSORS');
         else if (route === 'kits') setActiveModule('KITS');
         else setActiveModule('OVERSIGHT');
@@ -357,7 +361,7 @@ export default function PIDashboard() {
         } catch (e) { }
 
         return (
-            <header className="fixed top-0 left-0 lg:left-[260px] right-0 h-16 md:h-18 lg:h-24 z-[60] bg-[#0B101B]/95 backdrop-blur-3xl border-b border-white/5 flex items-center justify-between px-6 md:px-8">
+            <header className="fixed top-0 left-0 lg:left-80 right-0 h-24 z-[60] bg-[#0B101B]/95 backdrop-blur-3xl border-b border-white/5 flex items-center justify-between px-6 md:px-8">
 
                 <div className="flex items-center lg:hidden">
                     <button
@@ -371,17 +375,17 @@ export default function PIDashboard() {
                 <div className="hidden lg:flex flex-col">
                     <h1 className="text-xl font-black text-white uppercase italic tracking-tighter leading-none">PI DASHBOARD</h1>
                     <div className="flex items-center gap-2 mt-2">
-                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400 font-mono">RESEARCH TERMINAL</span>
+                        <span className="text-[12px] font-black uppercase tracking-[0.4em] text-indigo-400 font-mono">RESEARCH TERMINAL</span>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-6">
                     <div className="hidden xl:flex items-center gap-3 bg-white/5 p-1.5 rounded-2xl border border-white/10">
-                        <div className="px-4 text-[10px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/10">PROTOCOL NODE</div>
+                        <div className="px-4 text-[12px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/10">PROTOCOL NODE</div>
                         <select
                             value={globalSelectedStudyId}
                             onChange={(e) => setGlobalSelectedStudyId(e.target.value)}
-                            className="bg-transparent text-[11px] font-black text-indigo-400 uppercase tracking-widest outline-none cursor-pointer px-4"
+                            className="bg-transparent text-[12px] font-black text-indigo-400 uppercase tracking-widest outline-none cursor-pointer px-4"
                         >
                             <option value="all" className="bg-[#0B101B]">ALL STUDIES</option>
                             {studies.map(s => (
@@ -398,7 +402,7 @@ export default function PIDashboard() {
                         <span className="text-sm md:text-xl font-black text-cyan-400 font-mono tracking-tighter tabular-nums leading-none">
                             {currentTime.toLocaleTimeString('en-US', { hour12: false })}
                         </span>
-                        <span className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 md:mt-1.5">
+                        <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mt-1 md:mt-1.5">
                             {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()}
                         </span>
                     </div>
@@ -414,7 +418,7 @@ export default function PIDashboard() {
                     <div className="flex items-center gap-4 relative" ref={profileRef}>
                         <div className="text-right hidden lg:block">
                             <p className="text-[14px] font-black text-white uppercase italic leading-none tracking-tight">{userName}</p>
-                            <p className="text-[9px] text-indigo-400 font-bold uppercase tracking-[0.2em] mt-2">Principal Investigator</p>
+                            <p className="text-[12px] text-indigo-400 font-bold uppercase tracking-[0.2em] mt-2">Principal Investigator</p>
                         </div>
                         <button
                             onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -441,8 +445,8 @@ export default function PIDashboard() {
                                     className="absolute right-0 top-full mt-4 w-56 bg-[#0B101B] border border-white/10 rounded-2xl shadow-2xl p-2 z-50 overflow-hidden"
                                 >
                                     <div className="p-3 border-b border-white/5 mb-2">
-                                        <p className="text-xs font-bold text-white truncate">{userName}</p>
-                                        <p className="text-[9px] text-slate-500 truncate">{getUser()?.email}</p>
+                                        <p className="text-[12px] font-bold text-white truncate">{userName}</p>
+                                        <p className="text-[12px] text-slate-500 truncate">{getUser()?.email}</p>
                                     </div>
                                     <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-100 hover:text-white hover:bg-red-500/20 transition-all text-[12px] font-black uppercase tracking-widest">
                                         <LogOut className="w-4 h-4" /> Sign Out
@@ -473,7 +477,7 @@ export default function PIDashboard() {
                 )}
             </AnimatePresence>
 
-            <aside className={`fixed left-0 top-0 bottom-0 w-[260px] bg-[#0B101B] border-r border-white/5 z-[70] transition-transform duration-300 lg:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+            <aside className={`fixed left-0 top-0 bottom-0 w-80 bg-[#0B101B] border-r border-white/5 z-[70] transition-transform duration-300 lg:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
                 <div className="h-24 px-8 flex justify-between items-center border-b border-white/[0.05]">
                     <Link to="/" target="_blank" rel="noopener noreferrer" className="group transition-all">
                         <div className="bg-white p-2 rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
@@ -485,7 +489,7 @@ export default function PIDashboard() {
                 <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-6 custom-scrollbar">
                     {sidebarGroups.map((group, i) => (
                         <div key={i} className="space-y-2">
-                            <p className="px-4 text-[10px] font-bold text-white/40 uppercase tracking-widest">{group.group}</p>
+                            <p className="px-4 text-[12px] font-bold text-white/40 uppercase tracking-widest">{group.group}</p>
                             <div className="space-y-1.5">
                                 {group.items.map((item, j) => (
                                     <button
@@ -523,7 +527,7 @@ export default function PIDashboard() {
             </aside>
 
 
-            <main className="lg:ml-[260px] pt-20 md:pt-28 lg:pt-32 pb-12 md:pb-24 px-4 md:px-8 overflow-x-hidden bg-[#0F172A] min-h-screen">
+            <main className="flex-1 lg:pl-80 pt-24 lg:pt-32 pb-12 md:pb-24 px-4 md:px-8 overflow-x-hidden bg-[#0F172A] min-h-screen">
                 <AnimatePresence mode="wait">
                     {activeModule === 'OVERSIGHT' && (
                         <OversightModule
@@ -614,16 +618,16 @@ function OversightModule({ studyCount, stats, onLaunch, onNavigate }: { studyCou
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-2 md:space-y-3">
-                    <h2 className="text-base md:text-lg font-black text-white italic uppercase tracking-tighter line-clamp-2 leading-none">
+                    <h2 className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter line-clamp-2 leading-none">
                         Scientific <span className="text-indigo-400">Oversight</span>
                     </h2>
-                    <p className="text-[9px] md:text-[10px] lg:text-[11px] text-white/50 font-bold uppercase tracking-[0.2em] md:tracking-[0.4em] mt-3 md:mt-4 italic">
+                    <p className="text-[12px] md:text-sm text-white/50 font-bold uppercase tracking-[0.2em] md:tracking-[0.4em] mt-3 md:mt-4 italic">
                         Portfolio Performance & clinical research velocity
                     </p>
                 </div>
                 <button
                     onClick={onLaunch}
-                    className="w-full md:w-auto px-6 md:px-10 py-4 md:py-5 bg-gradient-to-r from-indigo-600 to-indigo-800 text-white rounded-2xl md:rounded-[2rem] text-[10px] md:text-[11px] font-black uppercase tracking-widest italic flex items-center justify-center gap-3 shadow-[0_20px_50px_-10px_rgba(99,102,241,0.4)] hover:shadow-[0_25px_60px_-12px_rgba(99,102,241,0.5)] hover:scale-[1.02] active:scale-95 transition-all font-mono"
+                    className="w-full md:w-auto px-6 md:px-10 py-4 md:py-5 bg-gradient-to-r from-indigo-600 to-indigo-800 text-white rounded-2xl md:rounded-[2rem] text-[12px] font-black uppercase tracking-widest italic flex items-center justify-center gap-3 shadow-[0_20px_50px_-10px_rgba(99,102,241,0.4)] hover:shadow-[0_25px_60px_-12px_rgba(99,102,241,0.5)] hover:scale-[1.02] active:scale-95 transition-all font-mono"
                 >
                     <Rocket className="w-5 h-5" /> LAUNCH A STUDY
                 </button>
@@ -650,7 +654,7 @@ function OversightModule({ studyCount, stats, onLaunch, onNavigate }: { studyCou
                             <stat.icon className={`w-5 h-5 md:w-8 md:h-8 text-${stat.color}-400`} />
                         </div>
                         <div className="mt-3 md:mt-8 relative z-10">
-                            <h4 className="text-[10px] md:text-[11px] font-black text-white/50 uppercase tracking-[0.1em] md:tracking-[0.2em] italic mb-1 md:mb-4 group-hover:text-white transition-colors uppercase">{stat.label}</h4>
+                            <h4 className="text-[12px] font-black text-white/50 uppercase tracking-[0.1em] md:tracking-[0.2em] italic mb-1 md:mb-4 group-hover:text-white transition-colors uppercase">{stat.label}</h4>
                             <p className="text-sm md:text-base lg:text-lg font-black text-white italic tracking-tighter leading-none group-hover:text-indigo-400 transition-colors uppercase">{stat.val}</p>
                         </div>
                     </div>
@@ -666,10 +670,10 @@ function OversightModule({ studyCount, stats, onLaunch, onNavigate }: { studyCou
                 ].map((widget, i) => (
                     <div key={i} onClick={widget.action} className="bg-[#0F172A] border border-white/[0.08] rounded-2xl md:rounded-[2.5rem] p-5 md:p-8 hover:bg-[#0B101B] hover:border-white/20 transition-all duration-500 cursor-pointer relative overflow-hidden group shadow-2xl shadow-black/40">
                         {widget.alert && <div className="absolute top-4 right-4 md:top-6 md:right-6 w-2.5 h-2.5 md:w-3 h-3 bg-red-500 rounded-full animate-ping shadow-[0_0_15px_rgba(239,68,68,0.5)]" />}
-                        <h4 className="text-[11px] md:text-sm font-black text-white/50 uppercase tracking-widest italic group-hover:text-white transition-colors">{widget.label}</h4>
+                        <h4 className="text-[12px] md:text-sm font-black text-white/50 uppercase tracking-widest italic group-hover:text-white transition-colors">{widget.label}</h4>
                         <div className="flex items-end gap-3 md:gap-4 mt-3 md:mt-6">
                             <p className={`text-base md:text-xl font-black text-${widget.color}-400 italic tracking-tighter leading-none group-hover:scale-105 transition-transform origin-left uppercase`}>{widget.val}</p>
-                            <p className="text-[8px] md:text-[10px] text-white/40 font-black uppercase tracking-widest mb-1 md:mb-2 italic">{widget.sub}</p>
+                            <p className="text-[12px] text-white/40 font-black uppercase tracking-widest mb-1 md:mb-2 italic">{widget.sub}</p>
                         </div>
                     </div>
                 ))}
@@ -678,12 +682,12 @@ function OversightModule({ studyCount, stats, onLaunch, onNavigate }: { studyCou
             {/* Row 3 — Calendar Widget Placeholder */}
             <div className="bg-[#0B101B] border border-white/10 rounded-2xl md:rounded-[3rem] p-5 md:p-10 space-y-5 md:space-y-8 shadow-2xl shadow-black/50">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                    <h3 className="text-[10px] md:text-lg font-black text-white italic uppercase tracking-widest">Active Schedule <span className="text-indigo-400">Calendar</span></h3>
+                    <h3 className="text-[12px] md:text-lg font-black text-white italic uppercase tracking-widest">Active Schedule <span className="text-indigo-400">Calendar</span></h3>
                     <div className="flex flex-wrap gap-1.5 md:gap-2">
                         {['Confirmed', 'Pending', 'Overdue'].map((label, idx) => (
                             <div key={idx} className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-white/5 rounded-full border border-white/5">
                                 <div className={`w-1 md:w-1.5 h-1 md:h-1.5 rounded-full ${idx === 0 ? 'bg-emerald-500' : idx === 1 ? 'bg-amber-500' : 'bg-red-500'}`} />
-                                <span className="text-[7px] md:text-[10px] font-black text-white/40 uppercase tracking-widest">{label}</span>
+                                <span className="text-[12px] font-black text-white/40 uppercase tracking-widest">{label}</span>
                             </div>
                         ))}
                     </div>
@@ -692,17 +696,17 @@ function OversightModule({ studyCount, stats, onLaunch, onNavigate }: { studyCou
                     <div className="grid grid-cols-7 gap-2 md:gap-4 min-w-[700px] lg:min-w-0 md:min-h-[300px]">
                         {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day, i) => (
                             <div key={i} className="space-y-4">
-                                <div className="text-center py-2 bg-white/5 border border-white/5 rounded-xl text-[11px] font-black text-white/50 uppercase tracking-widest">{day}</div>
+                                <div className="text-center py-2 bg-white/5 border border-white/5 rounded-xl text-[12px] font-black text-white/50 uppercase tracking-widest">{day}</div>
                                 {i === 1 && (
                                     <div className="p-2.5 md:p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl md:rounded-2xl space-y-1 md:space-y-2 snap-center">
-                                        <p className="text-[10px] md:text-[13px] font-black text-emerald-400 uppercase leading-tight">BTB-021</p>
-                                        <p className="text-[8px] md:text-[11px] text-white/40 font-bold uppercase tracking-widest">Visit 3 @ 10:00</p>
+                                        <p className="text-[12px] md:text-[13px] font-black text-emerald-400 uppercase leading-tight">BTB-021</p>
+                                        <p className="text-[12px] text-white/40 font-bold uppercase tracking-widest">Visit 3 @ 10:00</p>
                                     </div>
                                 )}
                                 {i === 3 && (
                                     <div className="p-2.5 md:p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl md:rounded-2xl space-y-1 md:space-y-2 snap-center">
-                                        <p className="text-[10px] md:text-[13px] font-black text-amber-400 uppercase leading-tight">MHC-104</p>
-                                        <p className="text-[8px] md:text-[11px] text-white/40 font-bold uppercase tracking-widest">Screening @ 14:00</p>
+                                        <p className="text-[12px] md:text-[13px] font-black text-amber-400 uppercase leading-tight">MHC-104</p>
+                                        <p className="text-[12px] text-white/40 font-bold uppercase tracking-widest">Screening @ 14:00</p>
                                     </div>
                                 )}
                             </div>
@@ -723,7 +727,7 @@ function OversightModule({ studyCount, stats, onLaunch, onNavigate }: { studyCou
                         <card.icon className="w-6 h-6 md:w-8 md:h-8 text-indigo-400 group-hover:scale-110 transition-transform" />
                         <div>
                             <h4 className="text-base md:text-lg font-black text-white italic uppercase tracking-tighter leading-none">{card.label}</h4>
-                            <p className="text-[8px] md:text-[10px] text-slate-500 font-black uppercase tracking-widest mt-2 md:mt-3">{card.sub}</p>
+                            <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest mt-2 md:mt-3">{card.sub}</p>
                         </div>
                     </button>
                 ))}
@@ -749,8 +753,8 @@ function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10">
             <div className="flex justify-between items-center">
-                <h2 className="text-base lg:text-lg font-black text-white italic uppercase tracking-tighter">Research <span className="text-indigo-400">Portfolio</span></h2>
-                <button onClick={onAdd} className="px-6 py-3.5 bg-indigo-700 text-white rounded-[2rem] text-[11px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-xl shadow-indigo-900/40 hover:scale-[1.02] transition-all">
+                <h2 className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter leading-none">Research <span className="text-indigo-400">Portfolio</span></h2>
+                <button onClick={onAdd} className="px-6 py-3.5 bg-indigo-700 text-white rounded-[2rem] text-[12px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-xl shadow-indigo-900/40 hover:scale-[1.02] transition-all">
                     <Rocket className="w-4 h-4" /> LAUNCH A STUDY
                 </button>
             </div>
@@ -768,8 +772,8 @@ function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd
                         <cat.icon className={`w-8 h-8 ${filter === cat.id ? 'text-white' : 'text-indigo-400 group-hover:scale-110 transition-transform'}`} />
                         <div>
                             <p className={`text-2xl font-black italic tracking-tighter leading-none ${filter === cat.id ? 'text-white' : 'text-white'}`}>{cat.count.toString().padStart(2, '0')}</p>
-                            <p className={`text-[11px] font-black uppercase tracking-widest mt-2 ${filter === cat.id ? 'text-indigo-200' : 'text-slate-500 font-bold'}`}>{cat.label}</p>
-                            <p className={`text-[9px] font-bold uppercase tracking-widest mt-1 italic ${filter === cat.id ? 'text-indigo-300/80' : 'text-slate-600'}`}>{cat.subtext}</p>
+                            <p className="text-[12px] font-black uppercase tracking-widest mt-2 {filter === cat.id ? 'text-indigo-200' : 'text-slate-500 font-bold'}">{cat.label}</p>
+                            <p className="text-[12px] font-bold uppercase tracking-widest mt-1 italic {filter === cat.id ? 'text-indigo-300/80' : 'text-slate-600'}">{cat.subtext}</p>
                         </div>
                     </button>
                 ))}
@@ -795,25 +799,25 @@ function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd
                         </div>
                         <div>
                             <h3 className="text-xl font-black text-white uppercase italic tracking-tighter truncate leading-tight group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{study.title}</h3>
-                            <p className="text-[14px] text-white/40 font-black uppercase tracking-widest mt-2 italic">Protocol #{study.protocol_id || '---'}</p>
+                            <p className="text-sm text-white/40 font-black uppercase tracking-widest mt-2 italic">Protocol #{study.protocol_id || '---'}</p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/5">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Enrollment</p>
+                                <p className="text-[12px] font-black text-slate-400 uppercase tracking-widest">Enrollment</p>
                                 <p className="text-2xl font-black text-white italic mt-1.5">{study.actual_screened || '0'}<span className="text-[12px] text-slate-500 ml-1">/{study.target_screened || '100'}</span></p>
                             </div>
                             <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/5">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Completion</p>
+                                <p className="text-[12px] font-black text-slate-400 uppercase tracking-widest">Completion</p>
                                 <p className="text-2xl font-black text-white italic mt-1.5">{study.completed_count || '0'}<span className="text-[12px] text-slate-500 ml-1">/{study.total_required || '90'}</span></p>
                             </div>
                         </div>
                         <div className="p-6 rounded-2xl bg-indigo-500/5 border border-indigo-500/10">
-                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Next Milestone</p>
-                            <p className="text-[15px] font-black text-white italic mt-2 uppercase tracking-tight">{study.next_milestone || "Recruitment Closing"}</p>
+                            <p className="text-[12px] font-black text-indigo-400 uppercase tracking-widest">Next Milestone</p>
+                            <p className="text-sm font-black text-white italic mt-2 uppercase tracking-tight">{study.next_milestone || "Recruitment Closing"}</p>
                         </div>
                         <button
                             onClick={() => onEdit(study)}
-                            className="w-full py-4 bg-white/5 border border-white/10 text-white rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] hover:bg-white hover:text-slate-950 transition-all shadow-lg"
+                            className="w-full py-4 bg-white/5 border border-white/10 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] hover:bg-white hover:text-slate-950 transition-all shadow-lg"
                         >
                             Configure Protocol Matrix
                         </button>
@@ -833,7 +837,7 @@ function ComplianceModule() {
                 <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none">
                     Compliance <span className="text-indigo-400">& Credentials</span>
                 </h2>
-                <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-3 italic">
+                <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-3 italic">
                     Verified professional documentation and node synchronization
                 </p>
             </div>
@@ -855,12 +859,12 @@ function ComplianceModule() {
                                 {doc.path ? (
                                     <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center gap-2">
                                         <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(16,185,129,1)]" />
-                                        <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">Verified</span>
+                                        <span className="text-[12px] font-black text-emerald-400 uppercase tracking-widest">Verified</span>
                                     </div>
                                 ) : (
                                     <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center gap-2">
                                         <div className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
-                                        <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest">Pending</span>
+                                        <span className="text-[12px] font-black text-amber-500 uppercase tracking-widest">Pending</span>
                                     </div>
                                 )}
                             </div>
@@ -874,12 +878,12 @@ function ComplianceModule() {
                                         href={`${API}/media/${doc.path}`}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="w-full py-4 bg-white/5 hover:bg-white text-white hover:text-slate-950 border border-white/10 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 group/link"
+                                        className="w-full py-4 bg-white/5 hover:bg-white text-white hover:text-slate-950 border border-white/10 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 group/link"
                                     >
                                         <Globe className="w-4 h-4 group-hover/link:rotate-12 transition-transform" /> VIEW DOCUMENT
                                     </a>
                                 ) : (
-                                    <button className="w-full py-4 bg-amber-500/5 text-amber-500 border border-amber-500/20 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] opacity-50 cursor-not-allowed">
+                                    <button className="w-full py-4 bg-amber-500/5 text-amber-500 border border-amber-500/20 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] opacity-50 cursor-not-allowed">
                                         UPLOAD REQUIRED
                                     </button>
                                 )}
@@ -895,15 +899,17 @@ function ComplianceModule() {
                         <ShieldCheck className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                        <p className="text-xs font-black text-white uppercase italic tracking-widest">Authorization Status</p>
+                        <p className="text-[12px] font-black text-white uppercase italic tracking-widest">Authorization Status</p>
                         <p className="text-[12px] text-indigo-300/60 font-black uppercase tracking-widest mt-1">Global Scientific Network Verification</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,1)]" />
-                    <span className="text-xs font-black text-emerald-400 uppercase tracking-widest line-clamp-1 italic">Synchronization Complete</span>
+                    <span className="text-[12px] font-black text-emerald-400 uppercase tracking-widest line-clamp-1 italic">Synchronization Complete</span>
                 </div>
             </div>
         </motion.div>
     );
 }
+
+

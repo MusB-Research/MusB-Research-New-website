@@ -30,7 +30,7 @@ const CollectionGuideView = ({ onBack }: { onBack: () => void }) => {
                 <div className="flex items-center gap-4">
                     <button 
                         onClick={onBack}
-                        className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-colors group"
+                        className="flex items-center gap-2 text-[12px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-colors group"
                     >
                         <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                         Back
@@ -57,7 +57,7 @@ const CollectionGuideView = ({ onBack }: { onBack: () => void }) => {
                     <a 
                         href="/booklets/movix_booklet.pdf"
                         download="Collection_Guide_MUSB.pdf"
-                        className="flex items-center gap-2 px-6 py-3 bg-cyan-500 text-slate-950 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-cyan-400 transition-all shadow-lg shadow-cyan-500/20"
+                        className="flex items-center gap-2 px-6 py-3 bg-cyan-500 text-slate-950 rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-cyan-400 transition-all shadow-lg shadow-cyan-500/20"
                     >
                         <Download className="w-4 h-4" />
                         Download PDF
@@ -79,8 +79,8 @@ const CollectionGuideView = ({ onBack }: { onBack: () => void }) => {
                     {/* DOC TITLE */}
                     <div className="pb-8 border-b border-white/5">
                         <div className="flex items-center gap-3 mb-4">
-                            <Badge color="cyan" className="text-[9px] py-1 px-3">PROTOCOL-V2.4</Badge>
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Official Clinical Guide</span>
+                            <Badge color="cyan" className="text-[12px] py-1 px-3">PROTOCOL-V2.4</Badge>
+                            <span className="text-[12px] font-black text-slate-500 uppercase tracking-[0.3em]">Official Clinical Guide</span>
                         </div>
                         <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">
                             Collection <span className="text-cyan-400">Guide</span> & Protocol
@@ -100,9 +100,9 @@ const CollectionGuideView = ({ onBack }: { onBack: () => void }) => {
                         <div className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
                              <div className="flex items-center gap-2 text-amber-500 mb-3">
                                  <AlertCircle className="w-4 h-4" />
-                                 <span className="text-[10px] font-black uppercase tracking-widest">Critical Alpha</span>
+                                 <span className="text-[12px] font-black uppercase tracking-widest">Critical Alpha</span>
                              </div>
-                             <p className="text-[11px] font-bold text-slate-500 leading-loose uppercase">
+                             <p className="text-[12px] font-bold text-slate-500 leading-loose uppercase">
                                  Failure to sync within 2 hours of collection may lead to specimen degradation.
                              </p>
                         </div>
@@ -131,21 +131,21 @@ const CollectionGuideView = ({ onBack }: { onBack: () => void }) => {
                         <div className="flex flex-col gap-2">
                              <div className="flex items-center gap-2 text-indigo-400">
                                  <Thermometer className="w-4 h-4" />
-                                 <span className="text-[9px] font-black uppercase tracking-widest">Temperature</span>
+                                 <span className="text-[12px] font-black uppercase tracking-widest">Temperature</span>
                              </div>
                              <span className="text-md font-black text-white italic">20°C - 25°C</span>
                         </div>
                         <div className="flex flex-col gap-2">
                              <div className="flex items-center gap-2 text-cyan-400">
                                  <Droplets className="w-4 h-4" />
-                                 <span className="text-[9px] font-black uppercase tracking-widest">Stability</span>
+                                 <span className="text-[12px] font-black uppercase tracking-widest">Stability</span>
                              </div>
                              <span className="text-md font-black text-white italic">99.2% RECOVERY</span>
                         </div>
                         <div className="flex flex-col gap-2">
                              <div className="flex items-center gap-2 text-green-400">
                                  <ShieldCheck className="w-4 h-4" />
-                                 <span className="text-[9px] font-black uppercase tracking-widest">Confidential</span>
+                                 <span className="text-[12px] font-black uppercase tracking-widest">Confidential</span>
                              </div>
                              <span className="text-md font-black text-white italic">AES-256 SYNC</span>
                         </div>
@@ -154,7 +154,7 @@ const CollectionGuideView = ({ onBack }: { onBack: () => void }) => {
 
                 {/* FOOTER */}
                 <div className="mt-12 pt-8 border-t border-white/5 text-center">
-                    <p className="text-[9px] font-black text-slate-700 uppercase tracking-[0.4em] italic mb-4">
+                    <p className="text-[12px] font-black text-slate-700 uppercase tracking-[0.4em] italic mb-4">
                         PROPRIETARY DOCUMENT • MUS-B CLINICAL NODE SITE-B
                     </p>
                     <div className="flex items-center justify-center gap-6 opacity-20">
@@ -169,3 +169,5 @@ const CollectionGuideView = ({ onBack }: { onBack: () => void }) => {
 };
 
 export default CollectionGuideView;
+
+

@@ -41,9 +41,11 @@ export default function Layout({ children }: LayoutProps) {
         userRole === 'SUPER_ADMIN' ? '/dashboard/super-admin'
             : userRole === 'ADMIN' ? '/dashboard/admin'
                 : userRole === 'PARTICIPANT' ? '/dashboard/participant'
-                    : (userRole === 'PI' || userRole === 'COORDINATOR' || userRole === 'ONSITE') ? '/dashboard/pi'
-                        : userRole === 'SPONSOR' ? '/dashboard/sponsor'
-                            : '/dashboard';
+                    : userRole === 'PI' ? '/dashboard/pi'
+                        : userRole === 'COORDINATOR' ? '/dashboard/coordinator'
+                            : userRole === 'ONSITE' ? '/dashboard/pi'
+                                : userRole === 'SPONSOR' ? '/dashboard/sponsor'
+                                    : '/dashboard';
 
     const handleSubscribe = async () => {
         if (!email) return;
@@ -146,7 +148,7 @@ export default function Layout({ children }: LayoutProps) {
                                 >
                                     {item.path === '#' ? (
                                         <div
-                                            className="text-[11px] font-black tracking-[0.12em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 cursor-pointer text-slate-900 whitespace-nowrap"
+                                            className="text-[12px] font-black tracking-[0.12em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 cursor-pointer text-slate-900 whitespace-nowrap"
                                         >
                                             {item.label}
                                             <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${openDropdown === item.label ? 'rotate-180' : ''}`} />
@@ -155,7 +157,7 @@ export default function Layout({ children }: LayoutProps) {
                                     ) : (
                                         <Link
                                             to={item.path}
-                                            className={`text-[11px] font-black tracking-[0.12em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 whitespace-nowrap ${location.pathname === item.path ? 'text-cyan-600' : 'text-slate-900'
+                                            className={`text-[12px] font-black tracking-[0.12em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 whitespace-nowrap ${location.pathname === item.path ? 'text-cyan-600' : 'text-slate-900'
                                                 }`}
                                         >
                                             {item.label}
@@ -174,7 +176,7 @@ export default function Layout({ children }: LayoutProps) {
                                                         key={child.path + child.label}
                                                         to={child.path}
                                                         onClick={() => setOpenDropdown(null)}
-                                                        className="block px-5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-cyan-600 transition-all"
+                                                        className="block px-5 py-3 rounded-xl text-[12px] font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-cyan-600 transition-all"
                                                     >
                                                         {child.label}
                                                     </Link>
@@ -192,7 +194,7 @@ export default function Layout({ children }: LayoutProps) {
                                 <>
                                     <Link
                                         to="/trials#current-studies"
-                                        className="bg-cyan-500 text-slate-900 px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-white hover:-translate-y-0.5 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
+                                        className="bg-cyan-500 text-slate-900 px-4 2xl:px-8 py-3 rounded-xl font-black text-[12px] uppercase tracking-[0.15em] hover:bg-white hover:-translate-y-0.5 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
                                     >
                                         Check Eligibility
                                         <ArrowRight className="w-4 h-4" />
@@ -202,7 +204,7 @@ export default function Layout({ children }: LayoutProps) {
                                 <>
                                     <Link
                                         to="/trials"
-                                        className="bg-cyan-500 text-slate-900 px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-white hover:-translate-y-0.5 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
+                                        className="bg-cyan-500 text-slate-900 px-4 2xl:px-8 py-3 rounded-xl font-black text-[12px] uppercase tracking-[0.15em] hover:bg-white hover:-translate-y-0.5 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
                                     >
                                         Join a Study
                                         <ArrowRight className="w-4 h-4" />
@@ -213,7 +215,7 @@ export default function Layout({ children }: LayoutProps) {
                             {!isLoggedIn() ? (
                                 <button
                                     onClick={redirectToLogin}
-                                    className="bg-slate-900 text-white px-4 2xl:px-8 py-3 rounded-xl font-black text-xs uppercase tracking-[0.15em] hover:bg-cyan-500 hover:text-slate-900 transition-all shadow-xl flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
+                                    className="bg-slate-900 text-white px-4 2xl:px-8 py-3 rounded-xl font-black text-[12px] uppercase tracking-[0.15em] hover:bg-cyan-500 hover:text-slate-900 transition-all shadow-xl flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
                                 >
                                     <LogIn className="w-4 h-4" />
                                     Sign In
@@ -225,7 +227,7 @@ export default function Layout({ children }: LayoutProps) {
                                         className="flex items-center gap-2 group ml-2 md:ml-4"
                                     >
                                         <div className="text-right hidden sm:flex flex-col justify-center">
-                                            <div className="text-[11px] font-black uppercase tracking-[0.05em] text-slate-800 leading-tight">DASHBOARD</div>
+                                            <div className="text-[12px] font-black uppercase tracking-[0.05em] text-slate-800 leading-tight">DASHBOARD</div>
                                             <div className="text-[#00d8ff] text-[18px] font-black leading-tight tracking-tight group-hover:text-[#00c4e8] transition-colors">{userName}</div>
                                         </div>
                                         <div className="w-[42px] h-[42px] rounded-[14px] border-[2px] border-[#00d8ff] overflow-hidden flex items-center justify-center bg-white shadow-sm group-hover:scale-105 transition-transform shrink-0">
@@ -265,7 +267,7 @@ export default function Layout({ children }: LayoutProps) {
                                 <div key={item.label}>
                                     {item.children ? (
                                         <div className="space-y-1">
-                                            <div className="px-4 py-3 text-xs font-black uppercase tracking-[0.2em] text-cyan-600/60 mt-4 first:mt-0">
+                                            <div className="px-4 py-3 text-[12px] font-black uppercase tracking-[0.2em] text-cyan-600/60 mt-4 first:mt-0">
                                                 {item.label}
                                             </div>
                                             {item.children.map((child) => (
@@ -344,7 +346,7 @@ export default function Layout({ children }: LayoutProps) {
                                                 )}
                                             </div>
                                             <div className="flex-1 text-left">
-                                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 leading-none mb-1">DASHBOARD</div>
+                                                <div className="text-[12px] font-black uppercase tracking-[0.2em] text-slate-400 leading-none mb-1">DASHBOARD</div>
                                                 <div className="text-cyan-500 text-base font-black capitalize leading-none">{userName}</div>
                                             </div>
                                             <div className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
@@ -489,17 +491,17 @@ export default function Layout({ children }: LayoutProps) {
 
                                 <div className="space-y-8">
                                     <div className="space-y-4">
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 pl-1">Which Best Describes You?</p>
+                                        <p className="text-[12px] font-black uppercase tracking-[0.2em] text-slate-500 pl-1">Which Best Describes You?</p>
                                         <div className="flex bg-[#020617] p-1.5 rounded-2xl gap-2 border border-white/5">
                                             <button
                                                 onClick={() => setUserType('Business')}
-                                                className={`flex-1 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 border ${userType === 'Business' ? 'bg-[#1e293b]/50 border-cyan-500/30 text-white shadow-lg' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+                                                className={`flex-1 px-4 py-3 rounded-xl text-[12px] font-black uppercase tracking-[0.2em] transition-all duration-300 border ${userType === 'Business' ? 'bg-[#1e293b]/50 border-cyan-500/30 text-white shadow-lg' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
                                             >
                                                 Business
                                             </button>
                                             <button
                                                 onClick={() => setUserType('Individual')}
-                                                className={`flex-1 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 border ${userType === 'Individual' ? 'bg-[#1e293b]/50 border-cyan-500/30 text-white shadow-lg shadow-cyan-500/10' : 'border-transparent text-slate-500 hover:text-slate-300 font-black'}`}
+                                                className={`flex-1 px-4 py-3 rounded-xl text-[12px] font-black uppercase tracking-[0.2em] transition-all duration-300 border ${userType === 'Individual' ? 'bg-[#1e293b]/50 border-cyan-500/30 text-white shadow-lg shadow-cyan-500/10' : 'border-transparent text-slate-500 hover:text-slate-300 font-black'}`}
                                             >
                                                 Individual
                                             </button>
@@ -532,7 +534,7 @@ export default function Layout({ children }: LayoutProps) {
                                         </div>
                                     </div>
                                     {newsletterStatus === 'success' && (
-                                        <p className="text-cyan-400 text-[10px] font-black uppercase tracking-[0.2em] animate-pulse text-center">
+                                        <p className="text-cyan-400 text-[12px] font-black uppercase tracking-[0.2em] animate-pulse text-center">
                                             Subscribed successfully
                                         </p>
                                     )}
@@ -544,9 +546,9 @@ export default function Layout({ children }: LayoutProps) {
                     <div className="pt-12 border-t border-white/5 flex flex-col lg:flex-row justify-between items-center gap-8">
                         <div className="space-y-2 text-center lg:text-left">
                             <p className="text-[12px] font-black uppercase tracking-[0.3em] text-slate-600">© 2026 MusB™ Research. All Rights Reserved.</p>
-                            <p className="text-[11px] text-slate-700 font-medium">Information can change without notice. MusB™ Research – Integrated Research & Clinical Solutions.</p>
+                            <p className="text-[12px] text-slate-700 font-medium">Information can change without notice. MusB™ Research – Integrated Research & Clinical Solutions.</p>
                         </div>
-                        <div className="flex gap-10 text-[11px] font-black uppercase tracking-[0.2em] text-slate-600">
+                        <div className="flex gap-10 text-[12px] font-black uppercase tracking-[0.2em] text-slate-600">
                             <Link to="#" className="hover:text-cyan-400 transition-colors">Privacy Policy</Link>
                             <Link to="#" className="hover:text-cyan-400 transition-colors">Terms of Use</Link>
                         </div>
@@ -556,3 +558,5 @@ export default function Layout({ children }: LayoutProps) {
         </div>
     );
 }
+
+

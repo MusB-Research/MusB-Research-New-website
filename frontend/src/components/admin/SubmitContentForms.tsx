@@ -124,7 +124,7 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
                      <span className="text-sm font-black text-purple-400 uppercase tracking-[0.4em] italic leading-none">Transmission Control</span>
                    </div>
                    <h1 className="text-3xl sm:text-5xl font-black text-white italic uppercase tracking-tighter">Content <span className="text-[#a855f7]">Creation</span> Node</h1>
-                   <p className="text-xs sm:text-base text-[#8b8fa8] uppercase tracking-[0.2em] font-black mt-3">
+                   <p className="text-[12px] sm:text-base text-[#8b8fa8] uppercase tracking-[0.2em] font-black mt-3">
                      {isSuperAdmin 
                         ? 'Master node authorized for direct global publication' 
                         : 'Submit protocol data packets and community updates for verification'}
@@ -133,7 +133,7 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
                 
                 <div className="px-8 py-5 bg-white/5 border border-white/10 rounded-[2rem] flex items-center gap-6 shadow-2xl backdrop-blur-xl group hover:border-[#a855f7]/30 transition-all">
                     <div className="text-right">
-                        <p className="text-[10px] font-black text-[#555a7a] uppercase tracking-[0.3em]">{isSuperAdmin ? 'Direct Access' : 'Buffer Status'}</p>
+                        <p className="text-[12px] font-black text-[#555a7a] uppercase tracking-[0.3em]">{isSuperAdmin ? 'Direct Access' : 'Buffer Status'}</p>
                         <p className="text-2xl font-black text-white italic tracking-tighter mt-1">{isSuperAdmin ? 'SYNCED' : 'WAITING'}</p>
                     </div>
                     <div className="w-12 h-12 rounded-2xl bg-[#a855f7]/20 border border-[#a855f7]/30 flex items-center justify-center text-[#a855f7]">
@@ -199,7 +199,7 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 {activeForm === 'event' && (
                                     <div className="col-span-1 space-y-4">
-                                        <label className="text-xs font-black text-amber-400 uppercase tracking-widest italic">Temporal Coordinates</label>
+                                        <label className="text-[12px] font-black text-amber-400 uppercase tracking-widest italic">Temporal Coordinates</label>
                                         <input
                                             required
                                             type="datetime-local"
@@ -212,11 +212,11 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
 
                                 {(activeForm === 'news' || activeForm === 'partnership') && (
                                     <div className="col-span-1 space-y-4">
-                                        <label className="text-xs font-black text-indigo-400 uppercase tracking-widest italic">{activeForm === 'partnership' ? 'Corporate Logo / Asset' : 'Visual Media Asset (Upload)'}</label>
+                                        <label className="text-[12px] font-black text-indigo-400 uppercase tracking-widest italic">{activeForm === 'partnership' ? 'Corporate Logo / Asset' : 'Visual Media Asset (Upload)'}</label>
                                         <label className="relative flex flex-col items-center justify-center w-full h-40 bg-white/5 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-indigo-500/50 transition-all group">
                                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                                 <ImageIcon className="w-10 h-10 mb-3 text-slate-500 group-hover:text-indigo-400 transition-colors" />
-                                                <p className="text-xs font-black text-slate-500 uppercase tracking-widest group-hover:text-white transition-colors">
+                                                <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest group-hover:text-white transition-colors">
                                                     {formData.image ? formData.image.name : 'Click to upload from local storage'}
                                                 </p>
                                             </div>
@@ -235,7 +235,7 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
 
                                 {activeForm === 'partnership' && (
                                     <div className="col-span-1 space-y-4">
-                                        <label className="text-xs font-black text-cyan-400 uppercase tracking-widest italic">External Link (Optional)</label>
+                                        <label className="text-[12px] font-black text-cyan-400 uppercase tracking-widest italic">External Link (Optional)</label>
                                         <input
                                             type="url"
                                             value={formData.link}
@@ -249,7 +249,7 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
                                 {activeForm === 'publication' && (
                                     <>
                                         <div className="col-span-1 space-y-4">
-                                            <label className="text-xs font-black text-emerald-400 uppercase tracking-widest italic">Primary Authors</label>
+                                            <label className="text-[12px] font-black text-emerald-400 uppercase tracking-widest italic">Primary Authors</label>
                                             <input
                                                 required
                                                 type="text"
@@ -260,7 +260,7 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
                                             />
                                         </div>
                                         <div className="col-span-1 space-y-4">
-                                            <label className="text-xs font-black text-emerald-400 uppercase tracking-widest italic">Scientific Journal/Outlet</label>
+                                            <label className="text-[12px] font-black text-emerald-400 uppercase tracking-widest italic">Scientific Journal/Outlet</label>
                                             <input
                                                 required
                                                 type="text"
@@ -271,7 +271,7 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
                                             />
                                         </div>
                                         <div className="col-span-1 space-y-4">
-                                            <label className="text-xs font-black text-emerald-400 uppercase tracking-widest italic">Publication Date</label>
+                                            <label className="text-[12px] font-black text-emerald-400 uppercase tracking-widest italic">Publication Date</label>
                                             <input
                                                 required
                                                 type="date"
@@ -281,7 +281,7 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
                                             />
                                         </div>
                                         <div className="col-span-1 space-y-4">
-                                            <label className="text-xs font-black text-emerald-400 uppercase tracking-widest italic">DOI / Article Link</label>
+                                            <label className="text-[12px] font-black text-emerald-400 uppercase tracking-widest italic">DOI / Article Link</label>
                                             <input
                                                 type="url"
                                                 value={formData.link}
@@ -296,7 +296,7 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
                                 {activeForm === 'education' && (
                                     <>
                                         <div className="col-span-1 space-y-4">
-                                            <label className="text-xs font-black text-purple-400 uppercase tracking-widest italic">Resource Category</label>
+                                            <label className="text-[12px] font-black text-purple-400 uppercase tracking-widest italic">Resource Category</label>
                                             <input
                                                 required
                                                 type="text"
@@ -307,11 +307,11 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
                                             />
                                         </div>
                                         <div className="col-span-1 space-y-4">
-                                            <label className="text-xs font-black text-purple-400 uppercase tracking-widest italic">Digital Asset (PDF/Doc)</label>
+                                            <label className="text-[12px] font-black text-purple-400 uppercase tracking-widest italic">Digital Asset (PDF/Doc)</label>
                                             <label className="relative flex flex-col items-center justify-center w-full h-40 bg-white/5 border-2 border-dashed border-white/10 rounded-2xl cursor-pointer hover:border-purple-500/50 transition-all group">
                                                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                                     <FileText className="w-10 h-10 mb-3 text-slate-500 group-hover:text-purple-400 transition-colors" />
-                                                    <p className="text-xs font-black text-slate-500 uppercase tracking-widest group-hover:text-white transition-colors">
+                                                    <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest group-hover:text-white transition-colors">
                                                         {formData.file ? formData.file.name : 'Click to upload from local storage'}
                                                     </p>
                                                 </div>
@@ -363,7 +363,7 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
                                         <label htmlFor="success_story_toggle" className="text-sm font-black text-white uppercase italic tracking-[0.2em] cursor-pointer">
                                             Featured Success Narrative
                                         </label>
-                                        <p className="text-[10px] text-[#555a7a] font-black uppercase tracking-widest mt-1">This will prioritize the article in global high-impact streams.</p>
+                                        <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-widest mt-1">This will prioritize the article in global high-impact streams.</p>
                                     </div>
                                 </motion.div>
                             )}
@@ -372,13 +372,13 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
                         {/* Submission Buttons */}
                         <div className="pt-10 border-t border-white/5 flex flex-col sm:flex-row justify-end items-center gap-6">
                            <div className="text-right hidden sm:block">
-                              <p className="text-[10px] font-black text-[#555a7a] uppercase tracking-widest">Integrity Check</p>
-                              <p className="text-xs font-black text-emerald-500 uppercase italic mt-1">Ready for Transmission</p>
+                              <p className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest">Integrity Check</p>
+                              <p className="text-[12px] font-black text-emerald-500 uppercase italic mt-1">Ready for Transmission</p>
                            </div>
                             <button
                                 type="submit"
                                 disabled={submitting}
-                                className="w-full sm:w-auto px-16 py-6 bg-purple-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] italic flex items-center justify-center gap-4 shadow-2xl shadow-purple-900/40 hover:bg-purple-500 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                                className="w-full sm:w-auto px-16 py-6 bg-purple-600 text-white rounded-[2rem] font-black text-[12px] uppercase tracking-[0.3em] italic flex items-center justify-center gap-4 shadow-2xl shadow-purple-900/40 hover:bg-purple-500 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
                             >
                                 {submitting ? (
                                     <>
@@ -406,7 +406,7 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
                     { label: 'Node Status', value: 'OPTIMAL', color: 'text-emerald-500' },
                 ].map((s, i) => (
                     <div key={i} className="bg-white/5 border border-white/5 rounded-3xl p-6 text-center">
-                        <p className="text-[9px] font-black text-[#555a7a] uppercase tracking-widest mb-1">{s.label}</p>
+                        <p className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest mb-1">{s.label}</p>
                         <p className={`text-base font-black italic ${s.color}`}>{s.value}</p>
                     </div>
                 ))}
@@ -414,3 +414,5 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
         </div>
     );
 }
+
+

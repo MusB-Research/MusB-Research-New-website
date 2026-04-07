@@ -171,7 +171,7 @@ export default function SuperAdminSignIn() {
             >
                 <div className="inline-flex items-center gap-3 px-5 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full backdrop-blur-md">
                     <Globe className="w-4 h-4 text-indigo-400" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300">Super Administrator Access</span>
+                    <span className="text-[12px] font-black uppercase tracking-[0.2em] text-indigo-300">Super Administrator Access</span>
                 </div>
             </motion.div>
 
@@ -192,7 +192,7 @@ export default function SuperAdminSignIn() {
                     <div className="space-y-4">
 
                         <h1 className="text-3xl font-black text-white tracking-tight">Super Admin Portal</h1>
-                        <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest leading-relaxed max-w-[280px] mx-auto">
+                        <p className="text-slate-500 text-[12px] font-bold uppercase tracking-widest leading-relaxed max-w-[280px] mx-auto">
                             Highest-privilege system access. All actions are logged.
                         </p>
                     </div>
@@ -200,7 +200,7 @@ export default function SuperAdminSignIn() {
 
                 <form onSubmit={handleAdminLogin} className="space-y-6">
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-4">Email or User ID</label>
+                        <label className="text-[12px] font-black uppercase tracking-[0.2em] text-slate-500 ml-4">Email or User ID</label>
                         <div className="relative group/input">
                             <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within/input:text-indigo-400 transition-colors" />
                             <input
@@ -215,7 +215,7 @@ export default function SuperAdminSignIn() {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 ml-4">Password</label>
+                        <label className="text-[12px] font-black uppercase tracking-[0.2em] text-slate-500 ml-4">Password</label>
                         <div className="relative group/input">
                             <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within/input:text-indigo-400 transition-colors" />
                             <input
@@ -242,7 +242,7 @@ export default function SuperAdminSignIn() {
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-[10px] font-black text-red-400 uppercase tracking-widest text-center"
+                                className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-[12px] font-black text-red-400 uppercase tracking-widest text-center"
                             >
                                 {error}
                             </motion.div>
@@ -252,7 +252,7 @@ export default function SuperAdminSignIn() {
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full py-5 bg-[#7c3aed] text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] hover:bg-white hover:text-[#050614] transition-all shadow-xl shadow-indigo-600/10 flex items-center justify-center gap-3 group/btn disabled:opacity-50"
+                        className="w-full py-5 bg-[#7c3aed] text-white rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] hover:bg-white hover:text-[#050614] transition-all shadow-xl shadow-indigo-600/10 flex items-center justify-center gap-3 group/btn disabled:opacity-50"
                     >
                         {isLoading ? 'Processing...' : 'Access Super Admin Portal'}
                         <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
@@ -260,7 +260,7 @@ export default function SuperAdminSignIn() {
                 </form>
 
                 <div className="mt-12 text-center space-y-6">
-                    <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest leading-relaxed">
+                    <p className="text-[12px] font-bold text-slate-600 uppercase tracking-widest leading-relaxed">
                         All access attempts are encrypted, logged, and monitored 24/7.
                     </p>
                 </div>
@@ -273,7 +273,7 @@ export default function SuperAdminSignIn() {
                 transition={{ delay: 0.5 }}
                 className="mt-8 z-10"
             >
-                <p className="text-slate-600 text-[10px] uppercase font-black tracking-widest flex items-center gap-2">
+                <p className="text-slate-600 text-[12px] uppercase font-black tracking-widest flex items-center gap-2">
                     Looking for the Admin Console? 
                     <Link to="/signin" className="text-indigo-400 hover:text-white transition-colors">Admin Login &rarr;</Link>
                 </p>
@@ -281,4 +281,6 @@ export default function SuperAdminSignIn() {
         </div>
     );
 }
+
+
 

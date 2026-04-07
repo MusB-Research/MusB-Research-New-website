@@ -316,7 +316,7 @@ export default function PIMessagesModule() {
             color: 'white'
         },
         label: {
-            fontSize: '11px',
+            fontSize: '12px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             letterSpacing: '0.25em',
@@ -406,7 +406,7 @@ export default function PIMessagesModule() {
                             >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                                     <span style={{ fontSize: '16px', fontWeight: 900, fontStyle: 'italic', color: 'white' }}>{conv.participantId} <span style={{ color: '#64748b', fontSize: '12px' }}>| {conv.study}</span></span>
-                                    <span style={{ fontSize: '11px', color: '#64748b' }}>{conv.timestamp}</span>
+                                    <span style={{ fontSize: '12px', color: '#64748b' }}>{conv.timestamp}</span>
                                 </div>
                                 <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: 'bold', textTransform: 'uppercase' }}>{conv.sender} • {conv.senderRole}</div>
                                 <div style={{ fontSize: '13px', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.preview}</div>
@@ -416,7 +416,7 @@ export default function PIMessagesModule() {
                                     {conv.status === 'Action Required' && <span style={{ backgroundColor: '#ef4444', height: '8px', width: '8px', borderRadius: '50%' }} />}
                                     {conv.status === 'Resolved' && <CheckCircle2 size={12} color="#10b981" />}
                                     {conv.flagged && <Bookmark size={12} color="#f59e0b" fill="#f59e0b" />}
-                                    <span style={{ fontSize: '10px', fontWeight: 900, color: conv.status === 'Resolved' ? '#10b981' : '#64748b', textTransform: 'uppercase' }}>{conv.status}</span>
+                                    <span style={{ fontSize: '12px', fontWeight: 900, color: conv.status === 'Resolved' ? '#10b981' : '#64748b', textTransform: 'uppercase' }}>{conv.status}</span>
                                 </div>
                             </div>
                         ))}
@@ -432,8 +432,8 @@ export default function PIMessagesModule() {
                                 <div>
                                     <div style={{ fontSize: '20px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' }}>{activeConv.participantId} • <span style={{ color: '#6366f1' }}>{activeConv.study}</span></div>
                                     <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.4rem', alignItems: 'center' }}>
-                                        <span style={{ fontSize: '11px', fontWeight: 900, color: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', padding: '0.2rem 0.6rem', borderRadius: '20px' }}>{activeConv.participantStatus} Participant</span>
-                                        <span style={{ fontSize: '11px', color: '#94a3b8' }}><User size={12} style={{ marginRight: '6px' }} /> {activeConv.assignedCoordinator}</span>
+                                        <span style={{ fontSize: '12px', fontWeight: 900, color: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', padding: '0.2rem 0.6rem', borderRadius: '20px' }}>{activeConv.participantStatus} Participant</span>
+                                        <span style={{ fontSize: '12px', color: '#94a3b8' }}><User size={12} style={{ marginRight: '6px' }} /> {activeConv.assignedCoordinator}</span>
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -479,7 +479,7 @@ export default function PIMessagesModule() {
                             <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 3rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 {activeConv.messages.map(m => (
                                     <div key={m.id} style={{ alignSelf: m.fromPI ? 'flex-end' : 'flex-start', maxWidth: '75%', textAlign: m.fromPI ? 'right' : 'left' }}>
-                                        <div style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', color: '#64748b', marginBottom: '0.4rem', display: 'flex', justifyContent: m.fromPI ? 'flex-end' : 'flex-start', gap: '0.6rem' }}>
+                                        <div style={{ fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', color: '#64748b', marginBottom: '0.4rem', display: 'flex', justifyContent: m.fromPI ? 'flex-end' : 'flex-start', gap: '0.6rem' }}>
                                             {!m.fromPI && <span style={{ color: '#6366f1' }}>{m.sender} [{m.role}]</span>}
                                             <span>{m.time}</span>
                                             {m.fromPI && <span style={{ color: '#6366f1' }}>YOU [PI]</span>}
@@ -504,7 +504,7 @@ export default function PIMessagesModule() {
                                         </div>
                                         <div style={{ marginTop: '0.75rem', display: 'flex', justifyContent: m.fromPI ? 'flex-end' : 'flex-start', gap: '0.5rem' }}>
                                             <span style={{ 
-                                                fontSize: '10px', fontWeight: 900, textTransform: 'uppercase',
+                                                fontSize: '12px', fontWeight: 900, textTransform: 'uppercase',
                                                 padding: '0.25rem 0.6rem', borderRadius: '4px',
                                                 backgroundColor: m.tag === 'Safety' ? '#ef444420' : m.tag === 'Protocol' ? '#6366f120' : 'rgba(255,255,255,0.05)',
                                                 color: m.tag === 'Safety' ? '#ef4444' : m.tag === 'Protocol' ? '#6366f1' : '#64748b',
@@ -519,11 +519,11 @@ export default function PIMessagesModule() {
                             {/* INPUT AREA */}
                             <div style={{ ...G.glass, borderRight: 'none', borderBottom: 'none', padding: '1rem 3rem' }}>
                                 <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                                    <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', fontSize: '10px' }} onClick={() => {
+                                    <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', fontSize: '12px' }} onClick={() => {
                                         const t = TEMPLATES[0];
                                         setMessageInput(t.text.replace('[ID]', activeConv.participantId));
                                     }}>Template: Eligibility</button>
-                                    <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', fontSize: '10px' }} onClick={() => {
+                                    <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', fontSize: '12px' }} onClick={() => {
                                         const t = TEMPLATES[1];
                                         setMessageInput(t.text);
                                     }}>Template: AE Follow-up</button>
@@ -532,7 +532,7 @@ export default function PIMessagesModule() {
                                         {['General', 'Safety', 'Eligibility', 'Protocol'].map(t => (
                                             <button key={t} 
                                                 onClick={() => setSelectedTag(t as any)}
-                                                style={{ border: 'none', background: selectedTag === t ? 'rgba(99,102,241,0.2)' : 'transparent', color: selectedTag === t ? '#6366f1' : '#64748b', padding: '0.4rem 1rem', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', borderRadius: '4px', cursor: 'pointer' }}>
+                                                style={{ border: 'none', background: selectedTag === t ? 'rgba(99,102,241,0.2)' : 'transparent', color: selectedTag === t ? '#6366f1' : '#64748b', padding: '0.4rem 1rem', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', borderRadius: '4px', cursor: 'pointer' }}>
                                                 {t}
                                             </button>
                                         ))}
@@ -543,7 +543,7 @@ export default function PIMessagesModule() {
                                         {attachedFile && (
                                             <div style={{ position: 'absolute', top: '-45px', left: 0, padding: '0.5rem 1rem', backgroundColor: 'rgba(99,102,241,0.1)', borderRadius: '20px', border: '1px solid #6366f1', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                                 <Paperclip size={12} color="#6366f1" />
-                                                <span style={{ fontSize: '11px', fontWeight: 900, color: '#6366f1' }}>{attachedFile.name}</span>
+                                                <span style={{ fontSize: '12px', fontWeight: 900, color: '#6366f1' }}>{attachedFile.name}</span>
                                                 <X size={12} color="#6366f1" style={{ cursor: 'pointer' }} onClick={() => setAttachedFile(null)} />
                                             </div>
                                         )}
@@ -662,3 +662,5 @@ export default function PIMessagesModule() {
         </div>
     );
 }
+
+

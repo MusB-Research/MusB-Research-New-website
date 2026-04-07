@@ -72,14 +72,14 @@ export const AuditDrawer: React.FC<AuditDrawerProps> = ({ isOpen, onClose, recor
                         </div>
                         
                         <div className="p-6 bg-white/[0.02] border-b border-white/10">
-                            <h3 className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2">Target Entity</h3>
+                            <h3 className="text-[12px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2">Target Entity</h3>
                             <div className="text-white font-bold text-lg">{record?.full_name || record?.participantId || 'Unknown Record'}</div>
                             <div className="flex gap-2 mt-3">
-                                <span className="px-3 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-black uppercase tracking-widest rounded">
+                                <span className="px-3 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[12px] font-black uppercase tracking-widest rounded">
                                     {(record?.study_title || record?.protocol_id || 'Global Protocol')}
                                 </span>
                                 {(record?.pi_verified || record?.piVerified) && (
-                                    <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-black uppercase tracking-widest rounded flex items-center gap-1">
+                                    <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[12px] font-black uppercase tracking-widest rounded flex items-center gap-1">
                                         <CheckCircle2 size={10} /> Verified
                                     </span>
                                 )}
@@ -105,10 +105,10 @@ export const AuditDrawer: React.FC<AuditDrawerProps> = ({ isOpen, onClose, recor
                                             <div className="flex-1 bg-white/[0.03] border border-white/5 p-4 rounded-xl">
                                                 <div className="flex flex-col gap-1 mb-2">
                                                     <span className="text-white font-bold text-sm tracking-tight">{log.user}</span>
-                                                    <span className="text-indigo-400 text-[10px] uppercase tracking-widest font-black">{log.role}</span>
+                                                    <span className="text-indigo-400 text-[12px] uppercase tracking-widest font-black">{log.role}</span>
                                                 </div>
                                                 <p className="text-slate-400 text-sm leading-relaxed mb-3">{log.action}</p>
-                                                <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest italic flex items-center gap-2">
+                                                <div className="text-[12px] text-slate-500 font-black uppercase tracking-widest italic flex items-center gap-2">
                                                     <Clock size={10} /> {new Date(log.time).toLocaleString()}
                                                 </div>
                                             </div>
@@ -123,3 +123,5 @@ export const AuditDrawer: React.FC<AuditDrawerProps> = ({ isOpen, onClose, recor
         </AnimatePresence>
     );
 };
+
+

@@ -504,3 +504,5 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
 };
 
 export default StudyKitView;
+
+

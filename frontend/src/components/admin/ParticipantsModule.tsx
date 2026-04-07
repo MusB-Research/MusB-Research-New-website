@@ -66,15 +66,15 @@ export default function ParticipantsModule() {
                     <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">
                         Participant <span className="text-cyan-400">Directory</span>
                     </h2>
-                    <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px] mt-2 italic">
+                    <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[12px] mt-2 italic">
                         Unified Cross-Protocol Subject Records
                     </p>
                 </div>
                 <div className="flex gap-3">
-                    <button className="px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center gap-2 italic">
+                    <button className="px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-[12px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center gap-2 italic">
                         <Download className="w-4 h-4" /> Export CSV
                     </button>
-                    <button className="px-8 py-4 bg-cyan-500 text-slate-950 rounded-[2rem] text-[10px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-xl shadow-cyan-500/20 hover:scale-[1.02] transition-all">
+                    <button className="px-8 py-4 bg-cyan-500 text-slate-950 rounded-[2rem] text-[12px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-xl shadow-cyan-500/20 hover:scale-[1.02] transition-all">
                         <Plus className="w-4 h-4" /> Add Record
                     </button>
                 </div>
@@ -90,17 +90,17 @@ export default function ParticipantsModule() {
                             placeholder="Find by name, email, or internal ID..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-6 py-4 text-xs text-white outline-none focus:border-cyan-500/50 transition-all font-bold uppercase tracking-widest"
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-6 py-4 text-[12px] text-white outline-none focus:border-cyan-500/50 transition-all font-bold uppercase tracking-widest"
                         />
                     </div>
                     
                     <div className="flex items-center gap-3 px-6 py-4 bg-white/5 border border-white/10 rounded-2xl">
                          <Filter className="w-4 h-4 text-cyan-400" />
-                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Status:</span>
+                         <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest">Status:</span>
                          <select 
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="bg-transparent text-white text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer"
+                            className="bg-transparent text-white text-[12px] font-black uppercase tracking-widest outline-none cursor-pointer"
                          >
                             <option value="ALL">All Subjects</option>
                             <option value="ENROLLED">Enrolled</option>
@@ -117,10 +117,10 @@ export default function ParticipantsModule() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-white/5">
-                                <th className="pb-6 pt-2 pl-4 text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Subject</th>
-                                <th className="pb-6 pt-2 text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Protocol</th>
-                                <th className="pb-6 pt-2 text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Phase Status</th>
-                                <th className="pb-6 pt-2 text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Onboarding</th>
+                                <th className="pb-6 pt-2 pl-4 text-[12px] font-black uppercase tracking-widest text-slate-500 italic">Subject</th>
+                                <th className="pb-6 pt-2 text-[12px] font-black uppercase tracking-widest text-slate-500 italic">Protocol</th>
+                                <th className="pb-6 pt-2 text-[12px] font-black uppercase tracking-widest text-slate-500 italic">Phase Status</th>
+                                <th className="pb-6 pt-2 text-[12px] font-black uppercase tracking-widest text-slate-500 italic">Onboarding</th>
                                 <th className="pb-6 pt-2 text-right pr-4"></th>
                             </tr>
                         </thead>
@@ -141,26 +141,26 @@ export default function ParticipantsModule() {
                                                     {p.first_name[0]}{p.last_name[0]}
                                                 </div>
                                                 <div>
-                                                    <p className="text-xs font-black text-white uppercase italic tracking-tight">{p.first_name} {p.last_name}</p>
-                                                    <p className="text-[9px] text-slate-500 font-bold tracking-widest mt-1 lowercase">{p.email}</p>
+                                                    <p className="text-[12px] font-black text-white uppercase italic tracking-tight">{p.first_name} {p.last_name}</p>
+                                                    <p className="text-[12px] text-slate-500 font-bold tracking-widest mt-1 lowercase">{p.email}</p>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="py-6">
                                             <div className="flex items-center gap-2">
                                                 <Beaker className="w-3.5 h-3.5 text-indigo-400" />
-                                                <span className="text-[10px] font-black text-slate-300 uppercase italic tracking-tight">{p.study_title}</span>
+                                                <span className="text-[12px] font-black text-slate-300 uppercase italic tracking-tight">{p.study_title}</span>
                                             </div>
                                         </td>
                                         <td className="py-6">
-                                            <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${getStatusStyle(p.status)}`}>
+                                            <span className={`px-4 py-1.5 rounded-full text-[12px] font-black uppercase tracking-widest border ${getStatusStyle(p.status)}`}>
                                                 {p.status}
                                             </span>
                                         </td>
                                         <td className="py-6">
                                             <div className="flex items-center gap-2">
                                                 <Activity className="w-3.5 h-3.5 text-slate-600" />
-                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{p.date_joined}</span>
+                                                <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">{p.date_joined}</span>
                                             </div>
                                         </td>
                                         <td className="py-6 pr-4 text-right">
@@ -177,7 +177,7 @@ export default function ParticipantsModule() {
                     {filtered.length === 0 && (
                         <div className="py-24 text-center space-y-4">
                             <SearchX className="w-12 h-12 text-slate-800 mx-auto" />
-                            <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em] italic">No active records match the criteria</p>
+                            <p className="text-[12px] font-black text-slate-600 uppercase tracking-[0.4em] italic">No active records match the criteria</p>
                         </div>
                     )}
                 </div>
@@ -185,3 +185,5 @@ export default function ParticipantsModule() {
         </motion.div>
     );
 }
+
+

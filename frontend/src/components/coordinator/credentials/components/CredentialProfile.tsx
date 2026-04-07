@@ -15,9 +15,9 @@ export const CredentialProfile: React.FC = () => {
                 </div>
                 <div className="space-y-1">
                     <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none">Dr. Michael Chen</h3>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">NPI: 1289304122 • MD, PhD</p>
+                    <p className="text-[12px] text-slate-500 font-bold uppercase tracking-widest mt-1">NPI: 1289304122 • MD, PhD</p>
                     <div className="flex items-center gap-2 mt-2">
-                        <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md text-[8px] font-black uppercase tracking-widest">Compliant</span>
+                        <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md text-[12px] font-black uppercase tracking-widest">Compliant</span>
                     </div>
                 </div>
             </div>
@@ -28,7 +28,7 @@ export const CredentialProfile: React.FC = () => {
                     { label: 'Verified Exports', val: '24', icon: CheckCircle2, color: 'emerald' }
                 ].map((s, i) => (
                     <div key={i} className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 space-y-2">
-                        <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest">{s.label}</p>
+                        <p className="text-[12px] text-slate-600 font-black uppercase tracking-widest">{s.label}</p>
                         <p className={`text-2xl font-black ${s.color === 'amber' ? 'text-amber-400' : s.color === 'emerald' ? 'text-emerald-400' : 'text-indigo-400'} italic`}>{s.val}</p>
                     </div>
                 ))}
@@ -36,3 +36,6 @@ export const CredentialProfile: React.FC = () => {
         </div>
     );
 };
+
+
+

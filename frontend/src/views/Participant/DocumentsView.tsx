@@ -243,7 +243,7 @@ const DocumentsView = ({ study }: { study?: any }) => {
             {/* Top Utility Bar */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-1 text-left">
-                    <div className="flex items-center gap-2 text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1 italic">
+                    <div className="flex items-center gap-2 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1 italic">
                         <span>Dashboard</span>
                         <ChevronRight className="w-3 h-3" />
                         <span className="text-cyan-400">Documents</span>
@@ -252,7 +252,7 @@ const DocumentsView = ({ study }: { study?: any }) => {
                         DOCUMENTS
                         <div className="w-8 h-px bg-gradient-to-r from-cyan-400 to-transparent" />
                     </h2>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">
                         Access, download, and upload study-related documents securely
                     </p>
                 </div>
@@ -265,7 +265,7 @@ const DocumentsView = ({ study }: { study?: any }) => {
                             placeholder="SEARCH DOCUMENTS..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-[#0a101f] border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-[10px] font-black text-white italic outline-none focus:border-cyan-500/30 transition-all w-[240px] tracking-widest uppercase"
+                            className="bg-[#0a101f] border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-[12px] font-black text-white italic outline-none focus:border-cyan-500/30 transition-all w-[240px] tracking-widest uppercase"
                         />
                     </div>
                     
@@ -274,7 +274,7 @@ const DocumentsView = ({ study }: { study?: any }) => {
                             <button
                                 key={opt}
                                 onClick={() => setFilterOption(opt)}
-                                className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${filterOption === opt ? 'bg-cyan-500 text-slate-950 shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                                className={`px-4 py-2 rounded-lg text-[12px] font-black uppercase tracking-widest transition-all ${filterOption === opt ? 'bg-cyan-500 text-slate-950 shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
                             >
                                 {opt}
                             </button>
@@ -286,7 +286,7 @@ const DocumentsView = ({ study }: { study?: any }) => {
                                      <button 
                                         key={opt}
                                         onClick={() => setFilterOption(opt)}
-                                        className="w-full text-left px-4 py-3 text-[9px] font-black text-slate-500 hover:text-cyan-400 hover:bg-white/5 uppercase tracking-widest transition-colors"
+                                        className="w-full text-left px-4 py-3 text-[12px] font-black text-slate-500 hover:text-cyan-400 hover:bg-white/5 uppercase tracking-widest transition-colors"
                                      >
                                          {opt}
                                      </button>
@@ -297,7 +297,7 @@ const DocumentsView = ({ study }: { study?: any }) => {
 
                     <button
                         onClick={() => setIsUploadModalOpen(true)}
-                        className="bg-cyan-500 text-slate-950 px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:bg-cyan-400 flex items-center gap-2 group italic"
+                        className="bg-cyan-500 text-slate-950 px-6 py-2.5 rounded-xl font-black text-[12px] uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:bg-cyan-400 flex items-center gap-2 group italic"
                     >
                         <PlusCircle className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform" />
                         UPLOAD DOCUMENT
@@ -323,9 +323,9 @@ const DocumentsView = ({ study }: { study?: any }) => {
                         >
                             <div className="flex items-center gap-3">
                                 <LayoutGrid className="w-4 h-4" />
-                                <span className="text-[11px] font-black uppercase tracking-widest group-hover:translate-x-1 transition-transform">All Documents</span>
+                                <span className="text-[12px] font-black uppercase tracking-widest group-hover:translate-x-1 transition-transform">All Documents</span>
                             </div>
-                            <span className="text-[11px] font-bold opacity-40">[{documents.length}]</span>
+                            <span className="text-[12px] font-bold opacity-40">[{documents.length}]</span>
                         </button>
                         
                         {categories.map((cat) => (
@@ -336,9 +336,9 @@ const DocumentsView = ({ study }: { study?: any }) => {
                                 >
                                     <div className="flex items-center gap-3">
                                         {cat.icon}
-                                        <span className="text-[11px] font-black uppercase tracking-widest group-hover:translate-x-1 transition-transform">{cat.name}</span>
+                                        <span className="text-[12px] font-black uppercase tracking-widest group-hover:translate-x-1 transition-transform">{cat.name}</span>
                                     </div>
-                                    <span className="text-[11px] font-bold opacity-40">[{cat.count}]</span>
+                                    <span className="text-[12px] font-bold opacity-40">[{cat.count}]</span>
                                 </button>
                                 
                                 {cat.subcategories && activeCategory === cat.name && (
@@ -351,7 +351,7 @@ const DocumentsView = ({ study }: { study?: any }) => {
                                             <button 
                                                 key={sub}
                                                 onClick={() => setActiveCategory(sub)}
-                                                className="w-full text-left px-4 py-2 text-[11px] font-bold text-slate-500 hover:text-cyan-400 uppercase tracking-widest transition-colors flex items-center gap-2"
+                                                className="w-full text-left px-4 py-2 text-[12px] font-bold text-slate-500 hover:text-cyan-400 uppercase tracking-widest transition-colors flex items-center gap-2"
                                             >
                                                 <div className="w-1 h-px bg-white/10" />
                                                 {sub}
@@ -368,16 +368,16 @@ const DocumentsView = ({ study }: { study?: any }) => {
                             <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-400">
                                 <History className="w-4 h-4" />
                             </div>
-                            <span className="text-[11px] font-black text-white italic uppercase tracking-widest">Recent Activity</span>
+                            <span className="text-[12px] font-black text-white italic uppercase tracking-widest">Recent Activity</span>
                         </div>
                         <div className="space-y-3">
                             <div className="flex flex-col gap-1 border-l border-white/5 pl-4 ml-1">
-                                <span className="text-[10px] font-black text-cyan-400 uppercase italic">Lab Report Upload</span>
-                                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight">2 hours ago</span>
+                                <span className="text-[12px] font-black text-cyan-400 uppercase italic">Lab Report Upload</span>
+                                <span className="text-[12px] font-bold text-slate-600 uppercase tracking-tight">2 hours ago</span>
                             </div>
                             <div className="flex flex-col gap-1 border-l border-white/5 pl-4 ml-1">
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter italic">Consent Signed</span>
-                                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight">Yesterday</span>
+                                <span className="text-[12px] font-black text-slate-400 uppercase tracking-tighter italic">Consent Signed</span>
+                                <span className="text-[12px] font-bold text-slate-600 uppercase tracking-tight">Yesterday</span>
                             </div>
                         </div>
                     </div>
@@ -390,9 +390,9 @@ const DocumentsView = ({ study }: { study?: any }) => {
                         <div className="flex flex-col px-2">
                              <h4 className="text-lg font-black text-white uppercase italic tracking-tighter">{activeCategory === 'All' ? 'Everything' : activeCategory} Documents</h4>
                              <div className="flex items-center gap-3 mt-1">
-                                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total: {filteredDocs.length} Documents</span>
+                                 <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">Total: {filteredDocs.length} Documents</span>
                                  <div className="w-1 h-1 bg-white/20 rounded-full" />
-                                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest italic">Last updated: 03/24/2026</span>
+                                 <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest italic">Last updated: 03/24/2026</span>
                              </div>
                         </div>
                         
@@ -421,12 +421,12 @@ const DocumentsView = ({ study }: { study?: any }) => {
                                     <table className="w-full text-left border-collapse min-w-[800px]">
                                         <thead>
                                             <tr className="border-b border-white/5 bg-white/[0.02]">
-                                                <th className="px-8 py-5 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Document Name</th>
-                                                <th className="px-6 py-5 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Category</th>
-                                                <th className="px-6 py-5 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Uploaded By</th>
-                                                <th className="px-6 py-5 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Date</th>
-                                                <th className="px-6 py-5 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Status</th>
-                                                <th className="px-8 py-5 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] italic text-right">Actions</th>
+                                                <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Document Name</th>
+                                                <th className="px-6 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Category</th>
+                                                <th className="px-6 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Uploaded By</th>
+                                                <th className="px-6 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Date</th>
+                                                <th className="px-6 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Status</th>
+                                                <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic text-right">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/[0.03]">
@@ -446,23 +446,23 @@ const DocumentsView = ({ study }: { study?: any }) => {
                                                             </div>
                                                             <div className="flex flex-col">
                                                                 <span className="text-[13px] font-black text-white uppercase italic tracking-tight group-hover:text-cyan-400 transition-colors">{doc.name}</span>
-                                                                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{doc.size}</span>
+                                                                <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">{doc.size}</span>
                                                             </div>
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-6">
-                                                        <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{doc.category}</span>
+                                                        <span className="text-[12px] font-black text-slate-400 uppercase tracking-widest">{doc.category}</span>
                                                     </td>
                                                     <td className="px-6 py-6">
                                                         <div className="flex items-center gap-2">
                                                             <User className="w-3 h-3 text-slate-500" />
-                                                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{doc.uploadedBy}</span>
+                                                            <span className="text-[12px] font-black text-slate-400 uppercase tracking-widest">{doc.uploadedBy}</span>
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-6">
                                                         <div className="flex items-center gap-2">
                                                             <Calendar className="w-3 h-3 text-slate-500" />
-                                                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{doc.date}</span>
+                                                            <span className="text-[12px] font-black text-slate-400 uppercase tracking-widest">{doc.date}</span>
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-6">
@@ -514,7 +514,7 @@ const DocumentsView = ({ study }: { study?: any }) => {
                                                             </div>
                                                             <div className="flex flex-col items-end gap-2">
                                                                 {getStatusBadge(doc.status)}
-                                                                <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">{doc.size}</span>
+                                                                <span className="text-[12px] font-black text-slate-600 uppercase tracking-widest">{doc.size}</span>
                                                             </div>
                                                         </div>
 
@@ -522,7 +522,7 @@ const DocumentsView = ({ study }: { study?: any }) => {
                                                             <h4 className="text-[15px] font-black text-white uppercase italic tracking-tighter group-hover:text-cyan-400 transition-colors leading-tight">
                                                                 {doc.name}
                                                             </h4>
-                                                            <div className="flex flex-wrap items-center gap-3 text-[11px] font-black text-slate-500 uppercase tracking-widest italic">
+                                                            <div className="flex flex-wrap items-center gap-3 text-[12px] font-black text-slate-500 uppercase tracking-widest italic">
                                                                 <span className="flex items-center gap-1.5"><Calendar className="w-3 h-3" /> {doc.date}</span>
                                                                 <span className="w-1 h-1 bg-white/20 rounded-full" />
                                                                 <span className="flex items-center gap-1.5"><User className="w-3 h-3" /> {doc.uploadedBy}</span>
@@ -533,7 +533,7 @@ const DocumentsView = ({ study }: { study?: any }) => {
                                                     <div className="relative z-10 flex items-center gap-2 pt-6 mt-6 border-t border-white/[0.05]">
                                                         <button 
                                                             onClick={(e) => { e.stopPropagation(); handleAction(doc, 'VIEW'); }}
-                                                            className="flex-1 bg-white/5 hover:bg-cyan-500 hover:text-slate-950 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 italic"
+                                                            className="flex-1 bg-white/5 hover:bg-cyan-500 hover:text-slate-950 py-3 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 italic"
                                                         >
                                                             <Eye className="w-3.5 h-3.5" /> VIEW
                                                         </button>
@@ -558,10 +558,10 @@ const DocumentsView = ({ study }: { study?: any }) => {
                                  <Search className="w-10 h-10 text-slate-500" />
                              </div>
                              <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-4">No documents available</h3>
-                             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mb-10 italic">There are no documents in this category yet</p>
+                             <p className="text-[12px] font-bold text-slate-500 uppercase tracking-[0.3em] mb-10 italic">There are no documents in this category yet</p>
                              <button
                                 onClick={() => setIsUploadModalOpen(true)}
-                                className="bg-white text-slate-950 px-10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all hover:bg-cyan-500 shadow-xl"
+                                className="bg-white text-slate-950 px-10 py-4 rounded-2xl font-black text-[12px] uppercase tracking-widest transition-all hover:bg-cyan-500 shadow-xl"
                              >
                                  UPLOAD DOCUMENT
                              </button>
@@ -592,7 +592,7 @@ const DocumentsView = ({ study }: { study?: any }) => {
                             <div className="flex justify-between items-start mb-10">
                                 <div>
                                     <h3 className="text-2xl font-black text-white italic tracking-tighter uppercase mb-2">UPLOAD DOCUMENT</h3>
-                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Select category and upload your file securely.</p>
+                                    <p className="text-[12px] font-bold text-slate-500 uppercase tracking-[0.2em]">Select category and upload your file securely.</p>
                                 </div>
                                 <button onClick={() => setIsUploadModalOpen(false)} className="p-3 text-slate-500 hover:text-white transition-colors">
                                     <X className="w-6 h-6" />
@@ -602,9 +602,9 @@ const DocumentsView = ({ study }: { study?: any }) => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10 text-left">
                                 <div className="space-y-6">
                                     <div className="space-y-3">
-                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic ml-1">Document Category *</label>
+                                        <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic ml-1">Document Category *</label>
                                         <div className="relative group">
-                                            <select className="w-full bg-[#141e35] border border-white/5 rounded-2xl p-5 text-white text-[11px] font-black uppercase tracking-widest italic outline-none focus:border-cyan-500/30 transition-all appearance-none cursor-pointer">
+                                            <select className="w-full bg-[#141e35] border border-white/5 rounded-2xl p-5 text-white text-[12px] font-black uppercase tracking-widest italic outline-none focus:border-cyan-500/30 transition-all appearance-none cursor-pointer">
                                                 <option>Select Category</option>
                                                 {categories.map(c => <option key={c.name}>{c.name}</option>)}
                                             </select>
@@ -612,23 +612,23 @@ const DocumentsView = ({ study }: { study?: any }) => {
                                         </div>
                                     </div>
                                     <div className="space-y-3">
-                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic ml-1">Document Name *</label>
+                                        <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic ml-1">Document Name *</label>
                                         <input
                                             type="text"
                                             placeholder="E.G. BLOOD_PANEL_REPORT_MARCH"
-                                            className="w-full bg-[#141e35] border border-white/5 rounded-2xl p-5 text-white text-[11px] font-black uppercase tracking-widest italic outline-none focus:border-cyan-500/30 transition-all"
+                                            className="w-full bg-[#141e35] border border-white/5 rounded-2xl p-5 text-white text-[12px] font-black uppercase tracking-widest italic outline-none focus:border-cyan-500/30 transition-all"
                                         />
                                     </div>
                                 </div>
 
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic ml-1">Upload File *</label>
+                                    <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic ml-1">Upload File *</label>
                                     <div className="h-full min-h-[160px] border-2 border-dashed border-white/5 rounded-[2.5rem] bg-white/[0.01] hover:bg-cyan-500/[0.02] hover:border-cyan-500/30 transition-all flex flex-col items-center justify-center p-8 text-center group cursor-pointer relative overflow-hidden">
                                         <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-slate-500 group-hover:bg-cyan-500 group-hover:text-slate-950 transition-all mb-4">
                                             <Upload className="w-6 h-6" />
                                         </div>
-                                        <span className="text-[9px] font-black text-white uppercase tracking-widest">DRAG & DROP OR CLICK</span>
-                                        <span className="text-[8px] font-bold text-slate-600 uppercase tracking-tighter mt-1">PDF, JPG, PNG, DOCX (MAX 20MB)</span>
+                                        <span className="text-[12px] font-black text-white uppercase tracking-widest">DRAG & DROP OR CLICK</span>
+                                        <span className="text-[12px] font-bold text-slate-600 uppercase tracking-tighter mt-1">PDF, JPG, PNG, DOCX (MAX 20MB)</span>
                                         
                                         <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" />
                                     </div>
@@ -637,14 +637,14 @@ const DocumentsView = ({ study }: { study?: any }) => {
 
                             <div className="flex gap-4">
                                 <button 
-                                    className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.25em] transition-all shadow-[0_10px_30px_rgba(6,182,212,0.3)] active:scale-[0.98] italic"
+                                    className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 py-5 rounded-2xl font-black text-[12px] uppercase tracking-[0.25em] transition-all shadow-[0_10px_30px_rgba(6,182,212,0.3)] active:scale-[0.98] italic"
                                     onClick={() => setIsUploadModalOpen(false)}
                                 >
                                     UPLOAD DOCUMENT
                                 </button>
                                 <button 
                                     onClick={() => setIsUploadModalOpen(false)}
-                                    className="px-10 py-5 bg-white/5 text-slate-500 hover:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest italic transition-colors"
+                                    className="px-10 py-5 bg-white/5 text-slate-500 hover:text-white rounded-2xl text-[12px] font-black uppercase tracking-widest italic transition-colors"
                                 >
                                     CANCEL
                                 </button>
@@ -678,22 +678,22 @@ const DocumentsView = ({ study }: { study?: any }) => {
                                     <div>
                                         <h3 className="text-xl font-black text-white italic tracking-tighter uppercase leading-none mb-1">{selectedDoc.name}</h3>
                                         <div className="flex items-center gap-3">
-                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{selectedDoc.category}</span>
+                                            <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest">{selectedDoc.category}</span>
                                             <div className="w-1 h-1 bg-white/20 rounded-full" />
-                                            <span className="text-[9px] font-bold text-cyan-500 uppercase tracking-widest">{selectedDoc.size}</span>
+                                            <span className="text-[12px] font-bold text-cyan-500 uppercase tracking-widest">{selectedDoc.size}</span>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <button 
                                         onClick={() => handleAction(selectedDoc, 'DOWNLOAD')}
-                                        className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-cyan-500 hover:text-slate-950 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all italic active:scale-95"
+                                        className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-cyan-500 hover:text-slate-950 text-white rounded-xl text-[12px] font-black uppercase tracking-widest transition-all italic active:scale-95"
                                     >
                                         <Download className="w-3.5 h-3.5" /> DOWNLOAD
                                     </button>
                                     <button 
                                         onClick={() => handleAction(selectedDoc, 'VIEW')}
-                                        className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-indigo-500 hover:text-white text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all italic active:scale-95"
+                                        className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-indigo-500 hover:text-white text-white rounded-xl text-[12px] font-black uppercase tracking-widest transition-all italic active:scale-95"
                                     >
                                         <Printer className="w-3.5 h-3.5" /> PRINT
                                     </button>
@@ -720,7 +720,7 @@ const DocumentsView = ({ study }: { study?: any }) => {
                                             </div>
                                             <div className="text-center">
                                                 <h4 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-4 italic">LOADING DOCUMENT...</h4>
-                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] max-w-sm mx-auto leading-relaxed italic">
+                                                <p className="text-[12px] font-bold text-slate-500 uppercase tracking-[0.3em] max-w-sm mx-auto leading-relaxed italic">
                                                     FETCHING AND PREPARING YOUR SECURE DATA...
                                                 </p>
                                             </div>
@@ -752,11 +752,11 @@ const DocumentsView = ({ study }: { study?: any }) => {
 
                             {/* Viewer Footer */}
                             <div className="px-10 py-5 border-t border-white/5 bg-white/[0.01] flex justify-between items-center shrink-0">
-                                <div className="flex items-center gap-3 text-[8px] font-black text-slate-600 uppercase tracking-widest italic">
+                                <div className="flex items-center gap-3 text-[12px] font-black text-slate-600 uppercase tracking-widest italic">
                                     <ShieldCheck className="w-3 h-3" />
                                     ENCRYPTED END-TO-END (AES-256)
                                 </div>
-                                <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest italic">
+                                <span className="text-[12px] font-black text-slate-600 uppercase tracking-widest italic">
                                     VIEWER SESSION ID: {Math.random().toString(36).substring(7).toUpperCase()}
                                 </span>
                             </div>
@@ -769,3 +769,6 @@ const DocumentsView = ({ study }: { study?: any }) => {
 };
 
 export default DocumentsView;
+
+
+

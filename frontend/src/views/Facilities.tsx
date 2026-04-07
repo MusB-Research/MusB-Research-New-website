@@ -170,7 +170,7 @@ export default function Facilities() {
                                 <ShieldCheck className="w-8 h-8" />
                             </div>
                             <div>
-                                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Compliance</div>
+                                <div className="text-[12px] font-bold text-slate-400 uppercase tracking-wider">Compliance</div>
                                 <div className="text-white font-bold">GLP & GCP Ready</div>
                             </div>
                         </div>
@@ -241,7 +241,7 @@ export default function Facilities() {
                                                 {/* Fallback Icon logic could be enhanced if icon_name was in model */}
                                                 <Microscope className="w-5 h-5" />
                                             </div>
-                                            {module.badge_label && <span className="text-xs font-bold uppercase tracking-wider text-slate-400 border border-slate-800 px-2 py-1 rounded">{module.badge_label}</span>}
+                                            {module.badge_label && <span className="text-[12px] font-bold uppercase tracking-wider text-slate-400 border border-slate-800 px-2 py-1 rounded">{module.badge_label}</span>}
                                         </div>
                                         <h3 className="text-3xl font-bold text-white">{module.title}</h3>
                                         <p className="text-xl text-slate-400">{module.one_line_summary}</p>
@@ -316,10 +316,10 @@ export default function Facilities() {
                                                 </div>
                                                 <h3 className="text-3xl font-bold text-white">{module.title}</h3>
                                             </div>
-                                            {module.badge_label && <span className="text-xs font-bold uppercase tracking-wider text-slate-400 border border-slate-800 px-3 py-1.5 rounded-full shrink-0 hidden sm:inline-block">{module.badge_label}</span>}
+                                            {module.badge_label && <span className="text-[12px] font-bold uppercase tracking-wider text-slate-400 border border-slate-800 px-3 py-1.5 rounded-full shrink-0 hidden sm:inline-block">{module.badge_label}</span>}
                                         </div>
                                         <p className="text-xl text-slate-400">{module.one_line_summary}</p>
-                                        {module.badge_label && <span className="text-xs font-bold uppercase tracking-wider text-slate-400 border border-slate-800 px-3 py-1.5 rounded-full inline-block sm:hidden">{module.badge_label}</span>}
+                                        {module.badge_label && <span className="text-[12px] font-bold uppercase tracking-wider text-slate-400 border border-slate-800 px-3 py-1.5 rounded-full inline-block sm:hidden">{module.badge_label}</span>}
                                     </div>
                                     <div className="border border-slate-800 rounded-2xl bg-slate-900/50 p-6 space-y-4">
                                         <p className="text-slate-400 leading-relaxed">{module.description}</p>
@@ -497,7 +497,7 @@ export default function Facilities() {
                             <form onSubmit={handleFormSubmit} className="space-y-6 relative z-10">
                                 <div className="grid md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">I'm Interested In</label>
+                                        <label className="text-[12px] font-bold uppercase tracking-wider text-slate-400">I'm Interested In</label>
                                         <select
                                             value={formState.interest}
                                             onChange={e => setFormState({ ...formState, interest: e.target.value })}
@@ -510,7 +510,7 @@ export default function Facilities() {
                                         </select>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Project Stage</label>
+                                        <label className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Project Stage</label>
                                         <select
                                             value={formState.stage}
                                             onChange={e => setFormState({ ...formState, stage: e.target.value })}
@@ -526,7 +526,7 @@ export default function Facilities() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Name</label>
+                                    <label className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Name</label>
                                     <input
                                         type="text" required
                                         value={formState.name} onChange={e => setFormState({ ...formState, name: e.target.value })}
@@ -537,7 +537,7 @@ export default function Facilities() {
 
                                 <div className="grid md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Email</label>
+                                        <label className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Email</label>
                                         <input
                                             type="email" required
                                             value={formState.email} onChange={e => setFormState({ ...formState, email: e.target.value })}
@@ -546,7 +546,7 @@ export default function Facilities() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Company</label>
+                                        <label className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Company</label>
                                         <input
                                             type="text"
                                             value={formState.company} onChange={e => setFormState({ ...formState, company: e.target.value })}
@@ -557,7 +557,7 @@ export default function Facilities() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Concept Explanation (Optional)</label>
+                                    <label className="text-[12px] font-bold uppercase tracking-wider text-slate-400">Concept Explanation (Optional)</label>
                                     <textarea
                                         value={formState.concept}
                                         onChange={e => setFormState({ ...formState, concept: e.target.value })}
@@ -566,7 +566,7 @@ export default function Facilities() {
                                         rows={4}
                                         maxLength={5000}
                                     />
-                                    <div className="text-right text-xs text-slate-500 font-medium">
+                                    <div className="text-right text-[12px] text-slate-500 font-medium">
                                         {formState.concept.length} / 5000 chars
                                     </div>
                                 </div>
@@ -586,3 +586,5 @@ export default function Facilities() {
         </div >
     );
 }
+
+

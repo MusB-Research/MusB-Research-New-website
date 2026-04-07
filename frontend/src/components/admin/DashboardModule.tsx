@@ -56,14 +56,14 @@ export default function DashboardModule({
                     <h1 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none">
                         System <span className="text-cyan-400">Intelligence</span>
                     </h1>
-                    <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px] mt-2 italic">
+                    <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[12px] mt-2 italic">
                         Real-time Clinical Research Command & Control
                     </p>
                 </div>
                 <div className="flex gap-4">
                     <div className="bg-white/5 border border-white/10 rounded-2xl px-6 py-4 flex items-center gap-3 backdrop-blur-xl">
                         <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
-                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic font-mono">Terminal Synchronized</span>
+                        <span className="text-[12px] font-black text-slate-300 uppercase tracking-widest italic font-mono">Terminal Synchronized</span>
                     </div>
                 </div>
             </div>
@@ -82,10 +82,10 @@ export default function DashboardModule({
                         <div className={`p-4 rounded-xl ${stat.bg} ${stat.color} inline-flex mb-8 group-hover:scale-110 transition-transform`}>
                             <stat.icon className="w-6 h-6" />
                         </div>
-                        <p className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-2 italic">{stat.label}</p>
+                        <p className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2 italic">{stat.label}</p>
                         <div className="flex items-end gap-3">
                             <h4 className="text-3xl font-black text-white italic tracking-tighter">{stat.value}</h4>
-                            <div className="flex items-center gap-1 text-[10px] font-black text-cyan-400 uppercase tracking-widest mb-1.5 italic">
+                            <div className="flex items-center gap-1 text-[12px] font-black text-cyan-400 uppercase tracking-widest mb-1.5 italic">
                                 {stat.trend} <ArrowUpRight className="w-3 h-3" />
                             </div>
                         </div>
@@ -104,7 +104,7 @@ export default function DashboardModule({
                         </div>
                         <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
                              {['Week', 'Month', 'Quarter'].map(t => (
-                                 <button key={t} className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${t === 'Month' ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:text-white'}`}>{t}</button>
+                                 <button key={t} className={`px-4 py-2 rounded-lg text-[12px] font-black uppercase tracking-widest transition-all ${t === 'Month' ? 'bg-indigo-500 text-white' : 'text-slate-500 hover:text-white'}`}>{t}</button>
                              ))}
                         </div>
                     </div>
@@ -120,7 +120,7 @@ export default function DashboardModule({
                             </div>
                         ))}
                     </div>
-                    <div className="flex justify-between items-center text-[9px] font-black text-slate-700 uppercase tracking-widest px-8">
+                    <div className="flex justify-between items-center text-[12px] font-black text-slate-700 uppercase tracking-widest px-8">
                         <span>MAR 01</span>
                         <span>MAR 08</span>
                         <span>MAR 15</span>
@@ -141,8 +141,8 @@ export default function DashboardModule({
                                 <div className="absolute left-0 top-0 bottom-0 w-px bg-white/5 group-hover:bg-pink-500/30 transition-colors" />
                                 <div className="absolute left-[-4px] top-0 w-2 h-2 rounded-full bg-white/10 group-hover:bg-pink-500 transition-all border border-[#060811]" />
                                 <div className="space-y-1.5">
-                                    <p className="text-[11px] font-black text-white uppercase italic tracking-tight group-hover:text-pink-400 transition-colors">{act.action}</p>
-                                    <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest italic">
+                                    <p className="text-[12px] font-black text-white uppercase italic tracking-tight group-hover:text-pink-400 transition-colors">{act.action}</p>
+                                    <div className="flex justify-between items-center text-[12px] font-black uppercase tracking-widest italic">
                                         <span className="text-slate-500">{act.user}</span>
                                         <span className="text-slate-700">{act.time}</span>
                                     </div>
@@ -152,7 +152,7 @@ export default function DashboardModule({
                     </div>
                     <button 
                         onClick={() => onNavigate('AUDIT_LOGS')}
-                        className="w-full py-5 bg-white/5 border border-white/10 rounded-2xl text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] hover:bg-white hover:text-slate-950 transition-all italic"
+                        className="w-full py-5 bg-white/5 border border-white/10 rounded-2xl text-[12px] font-black text-slate-500 uppercase tracking-[0.3em] hover:bg-white hover:text-slate-950 transition-all italic"
                     >
                         View Full Terminal Log
                     </button>
@@ -166,7 +166,7 @@ export default function DashboardModule({
                         <Users className="w-6 h-6" />
                     </div>
                     <div>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Clinical Site Cohorts</p>
+                        <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Clinical Site Cohorts</p>
                         <p className="text-2xl font-black text-white italic tracking-tighter">{participantCount.toLocaleString()} Nodes</p>
                     </div>
                 </div>
@@ -175,7 +175,7 @@ export default function DashboardModule({
                         <CheckCircle2 className="w-6 h-6" />
                     </div>
                     <div>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Protocol Deployment</p>
+                        <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Protocol Deployment</p>
                         <p className="text-2xl font-black text-white italic tracking-tighter">{studyCount.toString().padStart(2, '0')} Modules</p>
                     </div>
                 </div>
@@ -184,7 +184,7 @@ export default function DashboardModule({
                         <AlertCircle className="w-6 h-6" />
                     </div>
                     <div>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Clinical Clearances</p>
+                        <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Clinical Clearances</p>
                         <p className="text-2xl font-black text-white italic tracking-tighter">Certified Live</p>
                     </div>
                 </div>
@@ -192,3 +192,5 @@ export default function DashboardModule({
         </div>
     );
 }
+
+

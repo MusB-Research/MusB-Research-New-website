@@ -25,7 +25,7 @@ export const ClinicalOutcomes: React.FC<ClinicalOutcomesProps> = ({ participant 
                     <circle cx="500" cy="120" r="6" fill={COLORS.accent} />
                     <circle cx="950" cy="80" r="6" fill={COLORS.accent} />
                 </svg>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', color: COLORS.label, fontSize: '10px', fontWeight: 900 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', color: COLORS.label, fontSize: '12px', fontWeight: 900 }}>
                     <span>BASELINE</span>
                     <span>WEEK 2</span>
                     <span>WEEK 4</span>
@@ -70,3 +70,5 @@ export const ClinicalOutcomes: React.FC<ClinicalOutcomesProps> = ({ participant 
         </div>
     );
 };
+
+

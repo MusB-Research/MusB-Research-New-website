@@ -212,13 +212,13 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                     </div>
                     <div>
                         <h1 className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter leading-tight italic">Launch <span className="text-indigo-400">New Study</span></h1>
-                        <p className="text-[10px] text-white/40 font-bold uppercase tracking-[0.3em] mt-2">Protocol Matrix Verification Hub V2.6</p>
+                        <p className="text-[12px] text-white/40 font-bold uppercase tracking-[0.3em] mt-2">Protocol Matrix Verification Hub V2.6</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-6">
                     <div className="text-right">
-                        <p className="text-xs font-black text-indigo-400 uppercase tracking-widest leading-none">Status: Drafting</p>
-                        <p className="text-[11px] text-white/40 font-bold mt-1 uppercase">Last saved: {lastSaved}</p>
+                        <p className="text-[12px] font-black text-indigo-400 uppercase tracking-widest leading-none">Status: Drafting</p>
+                        <p className="text-[12px] text-white/40 font-bold mt-1 uppercase">Last saved: {lastSaved}</p>
                     </div>
                 </div>
             </div>
@@ -236,8 +236,8 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                     <step.icon className="w-4 h-4 lg:w-5 lg:h-5" />
                                 </div>
                                 <div className="text-left hidden xl:block">
-                                    <p className="text-[11px] font-black text-white uppercase tracking-widest leading-none">{step.label}</p>
-                                    <p className={`text-[9px] uppercase tracking-tighter mt-1.5 ${currentStep === step.id ? 'text-indigo-400 font-bold' : 'text-slate-500'}`}>{step.sub}</p>
+                                    <p className="text-[12px] font-black text-white uppercase tracking-widest leading-none">{step.label}</p>
+                                    <p className={`text-[12px] uppercase tracking-tighter mt-1.5 ${currentStep === step.id ? 'text-indigo-400 font-bold' : 'text-slate-500'}`}>{step.sub}</p>
                                 </div>
                             </button>
                             {idx < steps.length - 1 && <div className="h-px flex-1 bg-white/5 mx-4" />}
@@ -261,7 +261,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                         <label className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Internal ID / Registry Number</label>
                                         <div className="bg-white/5 border border-white/10 rounded-3xl px-6 py-5 text-lg text-indigo-400 font-mono flex items-center justify-between">
                                             <span>{formData.protocol_id}</span>
-                                            <span className="text-[10px] px-3 py-1.5 bg-indigo-500/10 rounded-xl border border-indigo-500/20 font-black uppercase text-indigo-300">Auto-Generated</span>
+                                            <span className="text-[12px] px-3 py-1.5 bg-indigo-500/10 rounded-xl border border-indigo-500/20 font-black uppercase text-indigo-300">Auto-Generated</span>
                                         </div>
                                     </div>
                                     <div className="space-y-4 relative">
@@ -273,7 +273,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                         {showSponsorDropdown && (
                                             <div className="absolute top-full left-0 right-0 mt-3 bg-[#111827] border border-white/10 rounded-3xl shadow-3xl z-50 overflow-hidden backdrop-blur-xl">
                                                 <div className="p-4 border-b border-white/5 bg-white/5">
-                                                    <input type="text" placeholder="Search Sponsor Database..." value={sponsorSearch} onChange={(e) => setSponsorSearch(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-indigo-500/50" />
+                                                    <input type="text" placeholder="Search Sponsor Database..." value={sponsorSearch} onChange={(e) => setSponsorSearch(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[12px] text-white outline-none focus:border-indigo-500/50" />
                                                 </div>
                                                 <div className="max-h-60 overflow-y-auto">
                                                     {filteredSponsors.map(s => (
@@ -283,7 +283,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                     ))}
                                                     <div 
                                                         onClick={() => setShowAddSponsorModal(true)}
-                                                        className="p-4 border-t border-white/5 bg-indigo-600/5 hover:bg-indigo-600/10 cursor-pointer text-[10px] font-black uppercase text-indigo-400 text-center tracking-widest transition-all"
+                                                        className="p-4 border-t border-white/5 bg-indigo-600/5 hover:bg-indigo-600/10 cursor-pointer text-[12px] font-black uppercase text-indigo-400 text-center tracking-widest transition-all"
                                                     >
                                                         + Add New Sponsor Organization
                                                     </div>
@@ -367,10 +367,10 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                         { field: 'execution_type', label: 'Execution', options: ['IN_PERSON', 'REMOTE', 'HYBRID'] }
                                     ].map((group) => (
                                         <div key={group.field} className="space-y-4">
-                                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-2">{group.label}</label>
+                                            <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-2">{group.label}</label>
                                             <div className="space-y-2">
                                                 {group.options.map(opt => (
-                                                    <button key={opt} onClick={() => setFormData({...formData, [group.field]: opt})} className={`w-full text-left px-5 py-4 rounded-xl text-xs font-black tracking-widest uppercase transition-all border ${formData[group.field as keyof typeof formData] === opt ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg' : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20'}`}>
+                                                    <button key={opt} onClick={() => setFormData({...formData, [group.field]: opt})} className={`w-full text-left px-5 py-4 rounded-xl text-[12px] font-black tracking-widest uppercase transition-all border ${formData[group.field as keyof typeof formData] === opt ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg' : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20'}`}>
                                                         {opt.replace('_', ' ')}
                                                     </button>
                                                 ))}
@@ -384,7 +384,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                         <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-2 italic">Subject Population Node</label>
                                         <div className="bg-white/5 border border-white/5 rounded-3xl p-8 flex items-center justify-between">
                                             <div>
-                                                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Target Sample Size</p>
+                                                <p className="text-[12px] font-black text-indigo-400 uppercase tracking-widest">Target Sample Size</p>
                                                 <p className="text-2xl font-black text-white italic mt-1">{formData.target_subjects}</p>
                                             </div>
                                             <div className="flex items-center gap-3">
@@ -401,7 +401,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                     <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${Array.isArray(formData.consent_collection) && formData.consent_collection.includes(opt) ? 'bg-indigo-500 border-indigo-500' : 'border-white/20'}`}>
                                                         {Array.isArray(formData.consent_collection) && formData.consent_collection.includes(opt) && <CheckSquare className="w-3 h-3 text-white" />}
                                                     </div>
-                                                    <span className="text-[10px] font-black uppercase tracking-widest leading-none">{opt.replace('_', ' ')}</span>
+                                                    <span className="text-[12px] font-black uppercase tracking-widest leading-none">{opt.replace('_', ' ')}</span>
                                                 </button>
                                             ))}
                                         </div>
@@ -412,7 +412,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                     <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-2">Participant Financial Protocol</label>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="bg-white/5 border border-white/5 rounded-2xl p-6">
-                                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3">Stipend Amount</p>
+                                            <p className="text-[12px] font-black text-indigo-400 uppercase tracking-widest mb-3">Stipend Amount</p>
                                             <div className="flex items-center gap-4">
                                                 {!isNaN(Number(formData.compensation)) && <span className="text-xl font-black text-slate-500">$</span>}
                                                 <input 
@@ -425,7 +425,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                             </div>
                                         </div>
                                         <div className="bg-white/5 border border-white/5 rounded-2xl p-6">
-                                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3">Currency</p>
+                                            <p className="text-[12px] font-black text-indigo-400 uppercase tracking-widest mb-3">Currency</p>
                                             <select 
                                                 name="compensation_currency"
                                                 value={formData.compensation_currency}
@@ -461,7 +461,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                         <div className="w-14 h-14 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white italic group-hover:bg-white/10 transition-all">{String(pi?.full_name || pi?.name || 'U').charAt(0)}</div>
                                                         <div>
                                                             <p className="text-sm font-black text-white uppercase tracking-tighter">{pi?.full_name || pi?.name || 'Unknown User'}</p>
-                                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 italic">Verified Specialist</p>
+                                                            <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mt-1 italic">Verified Specialist</p>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -478,7 +478,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                         <div className="w-14 h-14 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white italic group-hover:bg-white/10 transition-all">{String(crc?.full_name || crc?.name || 'C').charAt(0)}</div>
                                                         <div>
                                                             <p className="text-sm font-black text-white uppercase tracking-tighter">{crc?.full_name || crc?.name || 'Unknown User'}</p>
-                                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 italic">Operations Lead</p>
+                                                            <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mt-1 italic">Operations Lead</p>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -510,14 +510,14 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                         className="relative px-12 py-5 bg-[#0B101B] border border-white/10 hover:border-indigo-500/50 rounded-3xl flex items-center gap-4 transition-all overflow-hidden"
                                     >
                                         <Plus className="w-6 h-6 text-indigo-400 group-hover:rotate-90 transition-transform duration-500" />
-                                        <span className="text-xs font-black uppercase tracking-[0.3em] text-white">Select Protocol Artifacts</span>
+                                        <span className="text-[12px] font-black uppercase tracking-[0.3em] text-white">Select Protocol Artifacts</span>
                                     </button>
                                 </div>
                                 
                                 <div className="mt-16 w-full max-w-4xl space-y-4">
                                     <div className="flex items-center justify-between px-10 mb-2">
-                                        <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Active Document Feed</p>
-                                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{Array.isArray(uploadedDocs) ? uploadedDocs.length : 0} Artifacts Synced</p>
+                                        <p className="text-[12px] font-black text-slate-600 uppercase tracking-widest">Active Document Feed</p>
+                                        <p className="text-[12px] font-black text-indigo-500 uppercase tracking-widest">{Array.isArray(uploadedDocs) ? uploadedDocs.length : 0} Artifacts Synced</p>
                                     </div>
                                     {Array.isArray(uploadedDocs) && uploadedDocs.map(doc => (
                                         <div key={doc.id} className="bg-white/[0.03] border border-white/5 rounded-3xl px-10 py-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6 group hover:bg-white/[0.05] transition-all hover:border-white/10">
@@ -525,14 +525,14 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                 <div className="p-3 bg-white/5 rounded-2xl group-hover:bg-indigo-500/10 transition-colors"><Microscope className="w-6 h-6 text-indigo-400" /></div>
                                                 <div className="text-left">
                                                     <p className="text-sm font-black text-white uppercase tracking-tighter group-hover:text-indigo-300 transition-colors">{doc.name}</p>
-                                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 italic">{doc.category} Node • {doc.version}</p>
+                                                    <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mt-1 italic">{doc.category} Node • {doc.version}</p>
                                                 </div>
                                             </div>
                                             
                                             <div className="flex flex-wrap items-center gap-6">
                                                 {/* Visibility Controls */}
                                                 <div className="flex items-center gap-4 bg-[#0B101B] border border-white/5 px-4 py-2 rounded-2xl">
-                                                    <span className="text-[8px] font-black text-slate-600 uppercase tracking-[0.2em] border-r border-white/10 pr-4 mr-2">Visibility</span>
+                                                    <span className="text-[12px] font-black text-slate-600 uppercase tracking-[0.2em] border-r border-white/10 pr-4 mr-2">Visibility</span>
                                                     {['PI', 'COORDINATOR', 'SPONSOR', 'PARTICIPANT'].map(role => (
                                                         <label key={role} className="flex items-center gap-2 cursor-pointer group/label">
                                                             <input 
@@ -559,7 +559,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                             }`}>
                                                                 {doc.visibility?.includes(role) && <CheckCircle2 className="w-2.5 h-2.5 text-white" />}
                                                             </div>
-                                                            <span className={`text-[8px] font-black uppercase tracking-widest transition-colors ${
+                                                            <span className={`text-[12px] font-black uppercase tracking-widest transition-colors ${
                                                                 doc.visibility?.includes(role) ? 'text-white' : 'text-slate-600'
                                                             }`}>{role === 'COORDINATOR' ? 'Coord' : role}</span>
                                                         </label>
@@ -567,7 +567,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                 </div>
 
                                                 <div className="flex items-center gap-6 border-l border-white/5 pl-6">
-                                                    <span className="px-3 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20 text-[9px] font-black text-emerald-400 uppercase tracking-widest">{doc.status}</span>
+                                                    <span className="px-3 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20 text-[12px] font-black text-emerald-400 uppercase tracking-widest">{doc.status}</span>
                                                     <button 
                                                         onClick={(e) => {
                                                             e.stopPropagation();
@@ -602,38 +602,38 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                                     <div className="space-y-12">
                                         <div className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-10 space-y-8">
-                                            <h4 className="text-xs font-black text-indigo-400 uppercase tracking-widest flex items-center gap-3 italic"><Layers className="w-4 h-4" /> Identity Synopsis</h4>
+                                            <h4 className="text-[12px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-3 italic"><Layers className="w-4 h-4" /> Identity Synopsis</h4>
                                             <div className="grid grid-cols-2 gap-x-6 gap-y-10">
                                                 <div>
-                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Protocol ID</p>
+                                                    <p className="text-[12px] font-black text-slate-600 uppercase tracking-widest">Protocol ID</p>
                                                     <p className="text-lg font-bold text-white mt-1 italic font-mono">{formData.protocol_id}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Target Sample</p>
+                                                    <p className="text-[12px] font-black text-slate-600 uppercase tracking-widest">Target Sample</p>
                                                     <p className="text-2xl font-black text-white mt-1 italic">{formData.target_subjects} Subjects</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Sponsor</p>
+                                                    <p className="text-[12px] font-black text-slate-600 uppercase tracking-widest">Sponsor</p>
                                                     <p className="text-sm font-black text-indigo-300 mt-1 uppercase italic truncate">{formData.sponsor_name || "NOT SELECTED"}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Indication</p>
+                                                    <p className="text-[12px] font-black text-slate-600 uppercase tracking-widest">Indication</p>
                                                     <p className="text-sm font-black text-emerald-400 mt-1 uppercase italic truncate">{formData.indication || "NOT SPECIFIED"}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Compensation</p>
+                                                    <p className="text-[12px] font-black text-slate-600 uppercase tracking-widest">Compensation</p>
                                                     <p className="text-lg font-black text-emerald-400 mt-1 italic">
                                                         {isNaN(Number(formData.compensation)) ? formData.compensation : `${formData.compensation_currency === 'USD' ? '$' : formData.compensation_currency}${formData.compensation}`}
                                                     </p>
                                                 </div>
                                                 <div className="col-span-2">
-                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Short Title Alias</p>
+                                                    <p className="text-[12px] font-black text-slate-600 uppercase tracking-widest">Short Title Alias</p>
                                                     <p className="text-lg font-bold text-white mt-1 italic leading-tight uppercase underline decoration-indigo-500/30 underline-offset-8">{formData.title || "---"}</p>
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="bg-[#111827] border border-white/5 rounded-[2.5rem] p-10 space-y-8">
-                                            <h4 className="text-xs font-black text-pink-500 uppercase tracking-widest italic">Verification Status</h4>
+                                            <h4 className="text-[12px] font-black text-pink-500 uppercase tracking-widest italic">Verification Status</h4>
                                             <div className="space-y-5">
                                                 {[
                                                     { label: 'Primary Identity Mapped', check: validation?.missingFields?.length === 0, sub: validation?.missingFields?.length > 0 ? `Missing: ${validation?.missingFields?.join(', ').replace(/_/g, ' ')}` : null },
@@ -643,13 +643,13 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                 ].map((item, i) => (
                                                     <div key={i} className="flex-col gap-1">
                                                         <div className="flex items-center justify-between group">
-                                                            <span className={`text-xs font-black uppercase tracking-widest transition-all ${item.check ? 'text-slate-500 group-hover:text-slate-300' : 'text-red-400 italic underline'}`}>{item.label}</span>
+                                                            <span className={`text-[12px] font-black uppercase tracking-widest transition-all ${item.check ? 'text-slate-500 group-hover:text-slate-300' : 'text-red-400 italic underline'}`}>{item.label}</span>
                                                             <div className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all ${item.check ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-red-500/20 border-red-500 text-red-500'}`}>
                                                                 {item.check ? <CheckSquare className="w-4 h-4 shadow-emerald-500/50" /> : <AlertCircle className="w-4 h-4" />}
                                                             </div>
                                                         </div>
                                                         {item.sub && (
-                                                            <p className="text-[9px] text-red-400 font-bold uppercase tracking-widest mt-1 ml-1 opacity-70 italic">{item.sub}</p>
+                                                            <p className="text-[12px] text-red-400 font-bold uppercase tracking-widest mt-1 ml-1 opacity-70 italic">{item.sub}</p>
                                                         )}
                                                     </div>
                                                 ))}
@@ -659,19 +659,19 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                     
                                     <div className="space-y-12">
                                         <div className="bg-indigo-600/5 border border-indigo-500/10 rounded-[2.5rem] p-10 space-y-8">
-                                            <h4 className="text-xs font-black text-white uppercase tracking-widest italic flex items-center gap-3"><TrendingUp className="w-4 h-4" /> Timeline Projections</h4>
+                                            <h4 className="text-[12px] font-black text-white uppercase tracking-widest italic flex items-center gap-3"><TrendingUp className="w-4 h-4" /> Timeline Projections</h4>
                                             <div className="flex items-center gap-8">
                                                 <div className="flex-1 p-6 bg-[#03060C] rounded-2xl border border-white/5">
-                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Deployment</p>
+                                                    <p className="text-[12px] font-black text-slate-600 uppercase tracking-widest">Deployment</p>
                                                     <p className="text-lg font-black text-white mt-1 italic font-mono">{formData.startDate || "TBD"}</p>
                                                 </div>
                                                 <ChevronRight className="w-6 h-6 text-slate-800" />
                                                 <div className="flex-1 p-6 bg-[#03060C] rounded-2xl border border-white/5">
-                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Termination</p>
+                                                    <p className="text-[12px] font-black text-slate-600 uppercase tracking-widest">Termination</p>
                                                     <p className="text-lg font-black text-white mt-1 italic font-mono">{formData.endDate || "TBD"}</p>
                                                 </div>
                                             </div>
-                                            <p className="text-[11px] text-white/30 font-bold uppercase tracking-widest leading-relaxed italic">* These projections are intended for internal synchronization only and do not constitute absolute clinical deadlines.</p>
+                                            <p className="text-[12px] text-white/30 font-bold uppercase tracking-widest leading-relaxed italic">* These projections are intended for internal synchronization only and do not constitute absolute clinical deadlines.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -690,18 +690,18 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                         className={`px-10 py-5 rounded-2xl border flex items-center gap-4 transition-all ${currentStep === 1 ? 'opacity-20 cursor-not-allowed border-white/5 text-slate-600' : 'bg-white/5 border-white/10 text-white hover:bg-white/10 shadow-xl'}`}
                     >
                         <ChevronLeft className="w-5 h-5 text-indigo-400" /> 
-                        <span className="text-xs font-black uppercase tracking-[0.2em]">Previous Phase</span>
+                        <span className="text-[12px] font-black uppercase tracking-[0.2em]">Previous Phase</span>
                     </button>
                 </div>
 
                 <div className="flex items-center gap-6">
-                    <button onClick={onClose} className="px-8 py-5 text-slate-500 hover:text-white transition-all text-xs font-black uppercase tracking-widest italic group">
+                    <button onClick={onClose} className="px-8 py-5 text-slate-500 hover:text-white transition-all text-[12px] font-black uppercase tracking-widest italic group">
                         Discard <span className="opacity-0 group-hover:opacity-100 transition-opacity">Protocol</span>
                     </button>
                     
                     {currentStep < 5 ? (
                         <button onClick={handleNext} className="px-12 py-5 bg-indigo-600 text-white rounded-2xl flex items-center gap-4 shadow-2xl shadow-indigo-600/30 hover:scale-[1.02] active:scale-95 transition-all group">
-                            <span className="text-xs font-black uppercase tracking-[0.2em]">Proceed to Step {currentStep + 1}</span>
+                            <span className="text-[12px] font-black uppercase tracking-[0.2em]">Proceed to Step {currentStep + 1}</span>
                             <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </button>
                     ) : (
@@ -723,7 +723,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                             className={`px-14 py-5 rounded-[2.5rem] flex items-center gap-4 shadow-3xl transition-all ${validation?.isValid && !isSubmitting ? 'bg-emerald-600 animate-pulse-slow text-white shadow-emerald-500/40 hover:scale-[1.05] active:scale-95 hover:bg-emerald-500' : 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed border border-white/5'}`}
                         >
                             {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin" /> : <Rocket className="w-6 h-6" />}
-                            <span className="text-xs font-black uppercase tracking-[0.2em]">
+                            <span className="text-[12px] font-black uppercase tracking-[0.2em]">
                                 {isSubmitting ? 'SYNCHRONIZING PROTOCOL...' : (validation?.isValid ? 'Finalize & Launch Protocol' : 'Identity Verification Required')}
                             </span>
                         </button>
@@ -744,7 +744,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                         </div>
                                         <div>
                                             <h3 className="text-xl font-black text-white uppercase tracking-tighter italic">Register <span className="text-indigo-400">New Sponsor</span></h3>
-                                            <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-1">Cross-Network Entity Provisioning</p>
+                                            <p className="text-[12px] text-white/40 font-bold uppercase tracking-widest mt-1">Cross-Network Entity Provisioning</p>
                                         </div>
                                     </div>
                                     <button onClick={() => setShowAddSponsorModal(false)} className="p-3 hover:bg-white/5 rounded-xl transition-colors text-slate-500">
@@ -755,7 +755,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                 <div className="space-y-6">
                                     <div className="grid grid-cols-2 gap-6">
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">First Name</label>
+                                            <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-2">First Name</label>
                                             <input 
                                                 type="text" 
                                                 value={newSponsorData.first_name} 
@@ -765,7 +765,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Last Name</label>
+                                            <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-2">Last Name</label>
                                             <input 
                                                 type="text" 
                                                 value={newSponsorData.last_name} 
@@ -776,7 +776,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">Sponsor Email Address</label>
+                                        <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-2">Sponsor Email Address</label>
                                         <input 
                                             type="email" 
                                             value={newSponsorData.email} 
@@ -789,7 +789,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
 
                                 <div className="p-6 bg-amber-500/5 border border-amber-500/20 rounded-3xl flex items-start gap-4">
                                     <ShieldAlert className="w-5 h-5 text-amber-500 shrink-0 mt-1" />
-                                    <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-widest leading-relaxed italic">
+                                    <p className="text-[12px] text-amber-500/80 font-bold uppercase tracking-widest leading-relaxed italic">
                                         * Provisioning a new sponsor will trigger an automatic credential dispatch to the provided email address for system access.
                                     </p>
                                 </div>
@@ -813,3 +813,6 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
 
 const LaunchStudyForm = React.memo(LaunchStudyFormRoot);
 export default LaunchStudyForm;
+
+
+

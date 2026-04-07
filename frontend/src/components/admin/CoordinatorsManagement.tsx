@@ -85,11 +85,11 @@ export default function CoordinatorsManagement({ allUsers = [], allStudies = [],
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div>
           <h1 className="text-3xl sm:text-5xl font-black text-white italic uppercase tracking-tighter">Study <span className="text-[#14b8a6]">Coordinators</span></h1>
-          <p className="text-xs sm:text-sm text-[#8b8fa8] uppercase tracking-[0.2em] font-black mt-3">Manage frontline researchers and participant activities</p>
+          <p className="text-[12px] sm:text-sm text-[#8b8fa8] uppercase tracking-[0.2em] font-black mt-3">Manage frontline researchers and participant activities</p>
         </div>
         <button 
           onClick={onRegister}
-          className="px-8 py-4 bg-[#14b8a6] text-white rounded-3xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl shadow-teal-500/20 hover:bg-[#0d9488] transition-all"
+          className="px-8 py-4 bg-[#14b8a6] text-white rounded-3xl font-black text-[12px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl shadow-teal-500/20 hover:bg-[#0d9488] transition-all"
         >
           <UserCheck className="w-5 h-5" /> Add New Coordinator
         </button>
@@ -112,7 +112,7 @@ export default function CoordinatorsManagement({ allUsers = [], allStudies = [],
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-white/[0.02] text-xs font-black text-[#555a7a] uppercase tracking-[0.3em] italic border-b border-white/5">
+              <tr className="bg-white/[0.02] text-[12px] font-black text-[#555a7a] uppercase tracking-[0.3em] italic border-b border-white/5">
                 <th className="px-10 py-8">Coordinator Info</th>
                 <th className="px-10 py-8">Assigned Study Stats</th>
                 <th className="px-10 py-8">Engagement</th>
@@ -123,7 +123,7 @@ export default function CoordinatorsManagement({ allUsers = [], allStudies = [],
             <tbody className="divide-y divide-white/5">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-10 py-20 text-center opacity-30 italic uppercase tracking-[0.2em] text-xs">No coordinators found in persistence layers</td>
+                  <td colSpan={5} className="px-10 py-20 text-center opacity-30 italic uppercase tracking-[0.2em] text-[12px]">No coordinators found in persistence layers</td>
                 </tr>
               ) : (
                 filtered.map((coord) => (
@@ -135,7 +135,7 @@ export default function CoordinatorsManagement({ allUsers = [], allStudies = [],
                         </div>
                         <div>
                           <p className="text-base font-black text-white italic group-hover:text-teal-400 transition-colors uppercase tracking-tight">{coord.name}</p>
-                          <p className="text-xs text-[#555a7a] font-black uppercase tracking-widest mt-1.5">{coord.email}</p>
+                          <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-widest mt-1.5">{coord.email}</p>
                         </div>
                       </div>
                     </td>
@@ -144,7 +144,7 @@ export default function CoordinatorsManagement({ allUsers = [], allStudies = [],
                         {coord.assignedStudies.length > 0 ? (
                           coord.assignedStudies.map((s, i) => (
                             <div key={i} className="space-y-2">
-                              <div className="flex justify-between text-[10px] font-black uppercase text-teal-500/60 truncate max-w-[250px] tracking-widest">
+                              <div className="flex justify-between text-[12px] font-black uppercase text-teal-500/60 truncate max-w-[250px] tracking-widest">
                                 <span>{s.name}</span>
                                 <span>{s.activeParticipants}/{s.totalParticipants} ACTIVE</span>
                               </div>
@@ -154,7 +154,7 @@ export default function CoordinatorsManagement({ allUsers = [], allStudies = [],
                             </div>
                           ))
                         ) : (
-                          <span className="text-xs text-slate-700 italic font-black uppercase tracking-widest text-center block">No Studies</span>
+                          <span className="text-[12px] text-slate-700 italic font-black uppercase tracking-widest text-center block">No Studies</span>
                         )}
                       </div>
                     </td>
@@ -164,8 +164,8 @@ export default function CoordinatorsManagement({ allUsers = [], allStudies = [],
                           <TrendingUp className="w-5 h-5 text-indigo-400" />
                         </div>
                         <div>
-                          <p className="text-xs font-black text-white italic tracking-tighter uppercase">High Activity</p>
-                          <p className="text-[10px] text-[#555a7a] font-black uppercase tracking-widest mt-1">Node ID: {coord.id.slice(-4).toUpperCase()}</p>
+                          <p className="text-[12px] font-black text-white italic tracking-tighter uppercase">High Activity</p>
+                          <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-widest mt-1">Node ID: {coord.id.slice(-4).toUpperCase()}</p>
                         </div>
                       </div>
                     </td>
@@ -173,7 +173,7 @@ export default function CoordinatorsManagement({ allUsers = [], allStudies = [],
                       <button 
                         onClick={() => handleToggleStatus(coord)}
                         disabled={updatingId === coord.id}
-                        className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border transition-all flex items-center gap-2 ${
+                        className={`px-4 py-2 rounded-full text-[12px] font-black uppercase tracking-[0.2em] border transition-all flex items-center gap-2 ${
                         coord.status === 'Active' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20'
                         } disabled:opacity-50`}
                       >
@@ -207,3 +207,5 @@ export default function CoordinatorsManagement({ allUsers = [], allStudies = [],
     </div>
   );
 }
+
+

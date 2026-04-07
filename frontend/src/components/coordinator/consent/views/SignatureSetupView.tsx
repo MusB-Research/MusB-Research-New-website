@@ -59,7 +59,7 @@ export const SignatureSetupView: React.FC<SetupProps> = (props) => {
                                 className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all border ${signatureActiveField === tool.l ? 'bg-indigo-500/10 border-indigo-500' : 'bg-white/5 border-transparent'} group`}
                             >
                                 <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: tool.c }} />
-                                <span className={`text-[11px] font-black uppercase tracking-widest ${signatureActiveField === tool.l ? 'text-white' : 'text-slate-500 group-hover:text-white'}`}>{tool.l}</span>
+                                <span className={`text-[12px] font-black uppercase tracking-widest ${signatureActiveField === tool.l ? 'text-white' : 'text-slate-500 group-hover:text-white'}`}>{tool.l}</span>
                             </button>
                         ))}
                     </div>
@@ -88,7 +88,7 @@ export const SignatureSetupView: React.FC<SetupProps> = (props) => {
                     <div className="mt-8 flex flex-col gap-3">
                         {activeConsent?.placedFields.filter((f: any) => f.page === currentViewerPage).map((f: any) => (
                             <div key={f.id} className="p-4 bg-white/5 border border-white/10 rounded-xl flex justify-between items-center group">
-                                <div><div className="text-[11px] font-black text-white uppercase italic">{f.type}</div><div className="text-[9px] text-slate-500 uppercase tracking-widest">P{f.page} · {Math.round(f.x)}%:{Math.round(f.y)}%</div></div>
+                                <div><div className="text-[12px] font-black text-white uppercase italic">{f.type}</div><div className="text-[12px] text-slate-500 uppercase tracking-widest">P{f.page} · {Math.round(f.x)}%:{Math.round(f.y)}%</div></div>
                                 <button className="text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => {
                                     const updated = { ...activeConsent, placedFields: activeConsent.placedFields.filter((field: any) => field.id !== f.id) };
                                     setConsents(consents.map(c => c.id === updated.id ? updated : c));
@@ -101,3 +101,5 @@ export const SignatureSetupView: React.FC<SetupProps> = (props) => {
         </div>
     );
 };
+
+

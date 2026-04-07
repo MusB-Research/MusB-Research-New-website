@@ -23,7 +23,7 @@ export const ParticipantSignView: React.FC<ParticipantSignViewProps> = ({
 
     const S = {
         title: { fontSize: '22px', fontWeight: 900 as const, fontStyle: 'italic' as const, textTransform: 'uppercase' as const, letterSpacing: '-0.02em', color: 'white' },
-        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.4rem 1rem', borderRadius: '4px', fontSize: '11px', fontWeight: 900 as const, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
+        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.4rem 1rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900 as const, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
         btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900 as const, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(99, 102, 241, 0.2)' },
         btnGhost: { backgroundColor: 'transparent', color: 'white', border: COLORS.border, padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900 as const, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }
     };
@@ -77,7 +77,7 @@ export const ParticipantSignView: React.FC<ParticipantSignViewProps> = ({
                             <div className="space-y-12">
                                 <div className="text-center pb-8 border-b border-slate-100">
                                     <h1 className="text-3xl font-black uppercase tracking-tighter mb-2">{activeConsent.title}</h1>
-                                    <p className="text-slate-500 font-bold uppercase tracking-widest text-xs italic">{activeConsent.study} • {activeConsent.irbNumber}</p>
+                                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[12px] italic">{activeConsent.study} • {activeConsent.irbNumber}</p>
                                 </div>
                                 <section>
                                     <h3 className="text-xl font-black uppercase italic mb-4">1.0 Study Purpose</h3>
@@ -100,8 +100,8 @@ export const ParticipantSignView: React.FC<ParticipantSignViewProps> = ({
                                 <div className="h-[200px] bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-10 text-center gap-4">
                                     <ShieldCheck size={40} className="text-indigo-200" />
                                     <div>
-                                        <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-1">Authenticated Regulatory Node</p>
-                                        <p className="text-slate-300 text-[11px] italic">Verified IRB Approval Stamp: {activeConsent.irbApprovalDate}</p>
+                                        <p className="text-slate-400 font-bold uppercase tracking-widest text-[12px] mb-1">Authenticated Regulatory Node</p>
+                                        <p className="text-slate-300 text-[12px] italic">Verified IRB Approval Stamp: {activeConsent.irbApprovalDate}</p>
                                     </div>
                                 </div>
 
@@ -256,3 +256,5 @@ export const ParticipantSignView: React.FC<ParticipantSignViewProps> = ({
         </div>
     );
 };
+
+

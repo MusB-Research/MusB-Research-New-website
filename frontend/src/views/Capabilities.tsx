@@ -47,7 +47,7 @@ const Capabilities: React.FC = () => {
         <section className="relative text-center max-w-4xl mx-auto space-y-8 px-6 overflow-hidden">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.12)_0%,transparent_70%)] pointer-events-none"></div>
           <div className="relative z-10">
-            <span className="text-cyan-400 font-black text-xs uppercase tracking-[0.4em]">Expert Expertise</span>
+            <span className="text-cyan-400 font-black text-[12px] uppercase tracking-[0.4em]">Expert Expertise</span>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[0.9] uppercase italic">
               Our <span className="text-cyan-400">Capabilities</span>
             </h1>
@@ -113,3 +113,5 @@ const Capabilities: React.FC = () => {
 };
 
 export default Capabilities;
+
+

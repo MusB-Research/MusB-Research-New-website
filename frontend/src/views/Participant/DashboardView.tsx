@@ -209,7 +209,7 @@ const DashboardView = ({
                                 </h4>
                                 <div className="flex items-center gap-4">
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Scheduled For</span>
+                                        <span className="text-[12px] font-black text-slate-600 uppercase tracking-widest">Scheduled For</span>
                                          <p className="text-[16px] font-black text-cyan-400 uppercase tracking-tight italic">
                                             {new Date(nextMilestone.scheduled_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} @ {new Date(nextMilestone.scheduled_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </p>
@@ -317,7 +317,7 @@ const DashboardView = ({
                         <button onClick={() => onAction('Messages')} className="flex items-center gap-2 px-5 py-2.5 bg-cyan-500/5 hover:bg-cyan-500/10 border border-cyan-500/10 hover:border-cyan-500/40 rounded-full text-[12px] font-black text-cyan-400 uppercase tracking-widest transition-all italic group/btn">
                             Contact Team <MessageSquare className="w-3.5 h-3.5" />
                         </button>
-                        {latestConv && <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest italic">{new Date(latestConv.last_updated).toLocaleTimeString()}</span>}
+                        {latestConv && <span className="text-[12px] font-black text-slate-600 uppercase tracking-widest italic">{new Date(latestConv.last_updated).toLocaleTimeString()}</span>}
                     </div>
                 </Card>
             </div>
@@ -336,3 +336,5 @@ const DashboardView = ({
 };
 
 export default DashboardView;
+
+

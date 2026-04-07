@@ -36,3 +36,5 @@ export const SubjectAuditTrail: React.FC<SubjectAuditTrailProps> = ({ auditLog }
         </div>
     );
 };
+
+

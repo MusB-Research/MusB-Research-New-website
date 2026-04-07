@@ -18,7 +18,7 @@ const SVGBarChart = ({ data }: any) => {
         const h = (d.count / max) * 105;
         return (
           <g key={i}>
-            <text x={x} y="145" fill="#64748b" fontSize="10" textAnchor="middle">{d.label}</text>
+            <text x={x} y="145" fill="#64748b" fontSize="12" textAnchor="middle">{d.label}</text>
             <text x={x} y={125 - h - 5} fill="#f1f5f9" fontSize="12" fontWeight="700" textAnchor="middle">{d.count}</text>
             <rect x={x - 16} y={125 - h} width="32" height={h} fill={d.color} rx="4" />
           </g>
@@ -202,7 +202,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
         animation: 'fadeIn 0.8s'
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <h1 style={{ margin: 0, fontSize: '42px', fontWeight: 900, color: 'white', fontStyle: 'italic', letterSpacing: '-0.02em' }}>
+          <h1 className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter leading-none">
             WELCOME BACK, <span style={{ color: '#60a5fa' }}>{getDisplayName(getUser()).toUpperCase()}</span>
           </h1>
           
@@ -211,12 +211,12 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
               <span style={{ color: '#60a5fa', fontSize: '22px', fontWeight: 900, fontFamily: 'monospace' }}>
                 {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
               </span>
-              <span style={{ color: '#94a3b8', fontSize: '14px', fontWeight: 900, letterSpacing: '0.05em', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px' }}>
+              <span style={{ color: '#94a3b8', fontSize: '12px', fontWeight: 900, letterSpacing: '0.05em', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px' }}>
                 {Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop()?.replace('_', ' ')}
               </span>
             </div>
             <div style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.1)' }} />
-            <div style={{ fontSize: '15px', color: '#94a3b8', fontWeight: 800, letterSpacing: '0.1em' }}>
+            <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 800, letterSpacing: '0.1em' }}>
               {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}
             </div>
           </div>
@@ -249,7 +249,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
       </div>
 
       {/* CONTROL PANEL SECTION */}
-      <div style={{ fontSize: 16, color: '#64748b', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 20 }}>CONTROL PANEL</div>
+      <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 20 }}>CONTROL PANEL</div>
       <div style={{ display: 'grid', gridTemplateColumns: windowWidth > 1200 ? 'repeat(4,1fr)' : windowWidth > 900 ? 'repeat(2,1fr)' : '1fr', gap: windowWidth > 768 ? 20 : 12, marginBottom: 32, alignItems: 'stretch' }}>
 
         {/* Box 1 */}
@@ -301,15 +301,10 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
         marginBottom: 40,
         gap: 20
       }}>
-        <div style={{
-          fontSize: windowWidth > 768 ? 64 : 42,
-          color: '#f1f5f9',
-          fontWeight: 900,
-          letterSpacing: '-0.03em'
-        }}>
+        <div className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter leading-none">
           Your Study Portfolio
         </div>
-        <button onClick={() => setPortfolioModalOpen(true)} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: windowWidth > 768 ? 28 : 22, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>View Full Portfolio <span>→</span></button>
+        <button onClick={() => setPortfolioModalOpen(true)} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>View Full Portfolio <span>→</span></button>
       </div>
 
       {windowWidth > 768 ? (
@@ -374,7 +369,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
                 <div style={{ background: '#334155', height: 12, borderRadius: 999 }}>
                   <div style={{ background: '#2563eb', height: 12, borderRadius: 999, width: `${Math.min(100, (p.enrollment.current / p.enrollment.target * 100))}%`, boxShadow: '0 0 10px rgba(37, 99, 235, 0.5)' }} />
                 </div>
-                <div style={{ fontSize: 14, color: '#64748b', marginTop: 16 }}>Last updated: {p.lastUpdated}</div>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 16 }}>Last updated: {p.lastUpdated}</div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 24, paddingTop: 28, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
@@ -429,7 +424,7 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
                 onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'; }}
               >
                 <div style={{ fontSize: 60, fontWeight: 900, color: cols[s], lineHeight: 1 }}>{count}</div>
-                <div style={{ fontSize: 15, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, marginTop: 8, letterSpacing: '0.06em' }}>{s} Studies</div>
+                <div style={{ fontSize: 12, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, marginTop: 8, letterSpacing: '0.06em' }}>{s} Studies</div>
                 {count > 0 && (
                   <div style={{ fontSize: 12, color: cols[s], fontWeight: 700, marginTop: 10, opacity: 0.8 }}>
                     {count === 1 ? 'View Study →' : `View All ${count} →`}
@@ -1432,3 +1427,4 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
     </>
   );
 }
+

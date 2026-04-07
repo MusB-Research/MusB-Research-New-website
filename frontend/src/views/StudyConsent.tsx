@@ -140,9 +140,9 @@ export default function StudyConsent() {
                     <div className="flex items-center justify-between pb-6 border-b border-white/10 mb-8">
                         <div className="flex items-center gap-3">
                             <ShieldCheck className="w-6 h-6 text-emerald-400" />
-                            <span className="text-xs font-black tracking-widest text-slate-300 uppercase">HIPAA/GDPR Compliant Document v1.2</span>
+                            <span className="text-[12px] font-black tracking-widest text-slate-300 uppercase">HIPAA/GDPR Compliant Document v1.2</span>
                         </div>
-                        <button className="text-cyan-400 hover:text-white transition-colors flex items-center gap-2 text-xs font-bold uppercase tracking-widest bg-cyan-500/10 px-4 py-2 rounded-xl">
+                        <button className="text-cyan-400 hover:text-white transition-colors flex items-center gap-2 text-[12px] font-bold uppercase tracking-widest bg-cyan-500/10 px-4 py-2 rounded-xl">
                             <Download className="w-4 h-4" /> Save PDF
                         </button>
                     </div>
@@ -156,13 +156,13 @@ export default function StudyConsent() {
                         <h2 className="text-xl font-bold text-white uppercase mb-4 text-center">Protocol # {study.id.toUpperCase()}</h2>
                         
                         <div className="space-y-4">
-                            <h3 className="font-bold text-white uppercase tracking-widest text-xs border-b border-white/10 pb-2">1. Purpose of the Study</h3>
+                            <h3 className="font-bold text-white uppercase tracking-widest text-[12px] border-b border-white/10 pb-2">1. Purpose of the Study</h3>
                             <p>You are invited to participate in a clinical research study titled <strong>{study.title}</strong>. The purpose of this study is to investigate specific digital or physical biomarkers over a defined duration. Your participation will contribute to scientific knowledge and potential future therapies.</p>
                             
-                            <h3 className="font-bold text-white uppercase tracking-widest text-xs border-b border-white/10 pb-2 pt-4">2. Procedures & Time Commitment</h3>
+                            <h3 className="font-bold text-white uppercase tracking-widest text-[12px] border-b border-white/10 pb-2 pt-4">2. Procedures & Time Commitment</h3>
                             <p>If you agree to participate, you will be expected to complete regular digital tasks, surveys, and potentially utilize shipped physical kits. The estimated duration of the trial is {study.duration}. All activities are outlined within your Participant Portal.</p>
                             
-                            <h3 className="font-bold text-white uppercase tracking-widest text-xs border-b border-white/10 pb-2 pt-4">3. Data Privacy & GDPR/HIPAA Compliance</h3>
+                            <h3 className="font-bold text-white uppercase tracking-widest text-[12px] border-b border-white/10 pb-2 pt-4">3. Data Privacy & GDPR/HIPAA Compliance</h3>
                             <p>Your privacy is our utmost priority. All personal health information is strictly protected by global compliance frameworks (including HIPAA in the US and GDPR for EU/UK participants).</p>
                             <ul className="list-disc pl-6 space-y-2 text-slate-400">
                                 <li>Data is encrypted at rest and in transit.</li>
@@ -171,17 +171,17 @@ export default function StudyConsent() {
                                 <li>You maintain the <strong>Right to Data Deletion</strong>. A request will permanently scrub non-aggregated clinical responses associated with your profile from active servers within 30 days.</li>
                             </ul>
                             
-                            <h3 className="font-bold text-white uppercase tracking-widest text-xs border-b border-white/10 pb-2 pt-4">4. Risks & Discomforts</h3>
+                            <h3 className="font-bold text-white uppercase tracking-widest text-[12px] border-b border-white/10 pb-2 pt-4">4. Risks & Discomforts</h3>
                             <p>While this is primarily an observational or decentralized study, there may be minor risks associated with data entry or standard kit usage. Full risk disclosure is maintained by the designated Principal Investigator (PI).</p>
 
-                            <h3 className="font-bold text-white uppercase tracking-widest text-xs border-b border-white/10 pb-2 pt-4">5. Compensation</h3>
+                            <h3 className="font-bold text-white uppercase tracking-widest text-[12px] border-b border-white/10 pb-2 pt-4">5. Compensation</h3>
                             <p>If financial compensation is rendered applicable to this protocol arm, details will be strictly issued via our compliant payment gateway upon successful completion of required trial milestones.</p>
                         </div>
                         
                         <div className="h-20" /> {/* Spacer purely so user definitely scrolls far enough */}
                         
                         {!scrolledToBottom && (
-                            <div className="sticky bottom-0 left-0 w-full bg-gradient-to-t from-slate-950 to-transparent pt-12 text-center pb-4 text-cyan-500 text-xs font-bold uppercase tracking-widest animate-pulse pointer-events-none">
+                            <div className="sticky bottom-0 left-0 w-full bg-gradient-to-t from-slate-950 to-transparent pt-12 text-center pb-4 text-cyan-500 text-[12px] font-bold uppercase tracking-widest animate-pulse pointer-events-none">
                                 Scroll down to review full terms
                             </div>
                         )}
@@ -200,14 +200,14 @@ export default function StudyConsent() {
                                 />
                                 <div className="space-y-1">
                                     <span className="text-sm font-black uppercase tracking-widest text-white">Declaration of Consent</span>
-                                    <p className="text-xs text-slate-400 leading-relaxed">
+                                    <p className="text-[12px] text-slate-400 leading-relaxed">
                                         By checking this box, I confirm that I have read the Informed Consent Form, understand the risks and benefits, and voluntarily agree to participate in this study.
                                     </p>
                                 </div>
                             </label>
 
                             <div className="pt-6 border-t border-white/5 space-y-4">
-                                <label className="text-xs font-black uppercase tracking-widest text-slate-500">Electronic Signature</label>
+                                <label className="text-[12px] font-black uppercase tracking-widest text-slate-500">Electronic Signature</label>
                                 <input 
                                     type="text" 
                                     placeholder="Type your full legal name"
@@ -220,7 +220,7 @@ export default function StudyConsent() {
                             <AnimatePresence>
                                 {error && (
                                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-                                        <div className="bg-red-500/10 text-red-500 text-xs font-bold uppercase tracking-widest p-4 rounded-xl flex items-center gap-3">
+                                        <div className="bg-red-500/10 text-red-500 text-[12px] font-bold uppercase tracking-widest p-4 rounded-xl flex items-center gap-3">
                                             <AlertCircle className="w-4 h-4" /> {error}
                                         </div>
                                     </motion.div>
@@ -238,7 +238,7 @@ export default function StudyConsent() {
                         </div>
 
                         {/* Security Tracking Feedback */}
-                        <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                        <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[12px] font-black uppercase tracking-widest text-slate-600">
                             <div className="flex items-center gap-2">
                                 <Eye className="w-3.5 h-3.5" /> Detected Timezone: {timezone || 'Fetching...'}
                             </div>
@@ -253,3 +253,5 @@ export default function StudyConsent() {
         </div>
     );
 }
+
+

@@ -278,12 +278,12 @@ export default function Innovations() {
                                 </div>
                             </div>
                             <div className="flex flex-col sm:flex-row gap-4 md:gap-6">
-                                <Link to="/contact?type=research" className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-xs md:text-base uppercase tracking-widest shadow-[0_0_30px_rgba(6,182,212,0.4)] border border-cyan-400/30 hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] transition-all duration-300 hover:scale-105 flex items-center justify-center text-center">
+                                <Link to="/contact?type=research" className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-[12px] md:text-base uppercase tracking-widest shadow-[0_0_30px_rgba(6,182,212,0.4)] border border-cyan-400/30 hover:shadow-[0_0_50px_rgba(6,182,212,0.6)] transition-all duration-300 hover:scale-105 flex items-center justify-center text-center">
                                     Start an Innovation Discussion
                                 </Link>
                                 <button
                                     onClick={scrollToShowcase}
-                                    className="w-full sm:w-auto border-2 border-cyan-400/40 bg-cyan-400/10 text-white px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-xs md:text-base uppercase tracking-widest hover:bg-cyan-400/20 hover:border-cyan-400/60 transition-all duration-300"
+                                    className="w-full sm:w-auto border-2 border-cyan-400/40 bg-cyan-400/10 text-white px-8 md:px-10 py-4 md:py-5 rounded-2xl font-black text-[12px] md:text-base uppercase tracking-widest hover:bg-cyan-400/20 hover:border-cyan-400/60 transition-all duration-300"
                                 >
                                     Explore Our Technologies
                                 </button>
@@ -315,7 +315,7 @@ export default function Innovations() {
 
                         <div className="relative z-10 space-y-16">
                             <div className="text-center space-y-4 md:space-y-6 max-w-4xl mx-auto">
-                                <span className="text-cyan-400 font-black text-[10px] md:text-sm uppercase tracking-[0.4em]">INNOVATE WITH US – INDUSTRY-SPONSORED RESEARCH</span>
+                                <span className="text-cyan-400 font-black text-[12px] md:text-sm uppercase tracking-[0.4em]">INNOVATE WITH US – INDUSTRY-SPONSORED RESEARCH</span>
                                 <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight uppercase">
                                     Bring Your Product. <br />
                                     <span className="text-cyan-400">We Bring the Science.</span>
@@ -382,7 +382,7 @@ export default function Innovations() {
 
                         <div className="relative z-10 space-y-16">
                             <div className="text-center space-y-4 md:space-y-6 max-w-4xl mx-auto">
-                                <span className="text-cyan-400 font-black text-[10px] md:text-sm uppercase tracking-[0.4em]">FROM CONCEPT TO PRODUCT – SCIENCE-DRIVEN DEVELOPMENT</span>
+                                <span className="text-cyan-400 font-black text-[12px] md:text-sm uppercase tracking-[0.4em]">FROM CONCEPT TO PRODUCT – SCIENCE-DRIVEN DEVELOPMENT</span>
                                 <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight uppercase">
                                     You Bring the Idea. <br />
                                     <span className="text-cyan-400">We Build the Evidence.</span>
@@ -507,13 +507,13 @@ export default function Innovations() {
                                             <h3 className="text-2xl md:text-4xl font-black text-white uppercase group-hover:text-cyan-400 transition-colors leading-tight">{tech.name}</h3>
                                             <p className="text-sm text-cyan-400 font-bold uppercase tracking-wider">{tech.tagline}</p>
                                             <p className="text-base text-slate-300 leading-relaxed font-medium">
-                                                <span className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1">Positioning Line</span>
+                                                <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest block mb-1">Positioning Line</span>
                                                 {tech.positioning}
                                             </p>
                                         </div>
 
                                         <div className="space-y-4">
-                                            <h4 className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
+                                            <h4 className="text-[12px] font-black text-white uppercase tracking-widest flex items-center gap-2">
                                                 <Target className="w-4 h-4 text-cyan-400" />
                                                 Focus Areas
                                             </h4>
@@ -528,10 +528,10 @@ export default function Innovations() {
                                         </div>
 
                                         <div className="pt-6 border-t border-white/10 space-y-4">
-                                            <h4 className="text-xs font-black text-white uppercase tracking-widest">Technology Page Includes</h4>
+                                            <h4 className="text-[12px] font-black text-white uppercase tracking-widest">Technology Page Includes</h4>
                                             <div className="grid grid-cols-1 gap-2">
                                                 {tech.includes.map((item: any, iIdx: number) => (
-                                                    <div key={iIdx} className="flex items-center gap-3 text-xs text-slate-400 font-medium group/item hover:text-white transition-colors">
+                                                    <div key={iIdx} className="flex items-center gap-3 text-[12px] text-slate-400 font-medium group/item hover:text-white transition-colors">
                                                         <item.icon className="w-4 h-4 text-cyan-400 flex-shrink-0" />
                                                         <span>{item.text}</span>
                                                     </div>
@@ -703,8 +703,8 @@ export default function Innovations() {
                                             <h3 className="text-lg font-black text-white uppercase tracking-tight">
                                                 Download Technical Booklet
                                             </h3>
-                                            <p className="text-cyan-400 font-bold text-xs uppercase tracking-wider">{bookletTechName}</p>
-                                            <p className="text-slate-300 text-xs mt-1">
+                                            <p className="text-cyan-400 font-bold text-[12px] uppercase tracking-wider">{bookletTechName}</p>
+                                            <p className="text-slate-300 text-[12px] mt-1">
                                                 Please fill following information before downloading this booklet.
                                             </p>
                                         </div>
@@ -713,7 +713,7 @@ export default function Innovations() {
                                         <form onSubmit={handleBookletSubmit} className="space-y-2.5">
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 animate-field-reveal field-delay-2">
                                                 <div className="space-y-0.5">
-                                                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">First Name *</label>
+                                                    <label className="text-[12px] font-bold text-slate-300 uppercase tracking-wider">First Name *</label>
                                                     <input
                                                         type="text"
                                                         required
@@ -724,7 +724,7 @@ export default function Innovations() {
                                                     />
                                                 </div>
                                                 <div className="space-y-0.5">
-                                                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">Last Name *</label>
+                                                    <label className="text-[12px] font-bold text-slate-300 uppercase tracking-wider">Last Name *</label>
                                                     <input
                                                         type="text"
                                                         required
@@ -737,7 +737,7 @@ export default function Innovations() {
                                             </div>
 
                                             <div className="space-y-0.5 animate-field-reveal field-delay-3">
-                                                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">Company *</label>
+                                                <label className="text-[12px] font-bold text-slate-300 uppercase tracking-wider">Company *</label>
                                                 <input
                                                     type="text"
                                                     required
@@ -749,7 +749,7 @@ export default function Innovations() {
                                             </div>
 
                                             <div className="space-y-0.5 animate-field-reveal field-delay-4">
-                                                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">Designation *</label>
+                                                <label className="text-[12px] font-bold text-slate-300 uppercase tracking-wider">Designation *</label>
                                                 <input
                                                     type="text"
                                                     required
@@ -761,7 +761,7 @@ export default function Innovations() {
                                             </div>
 
                                             <div className="space-y-0.5 animate-field-reveal field-delay-5">
-                                                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">Email *</label>
+                                                <label className="text-[12px] font-bold text-slate-300 uppercase tracking-wider">Email *</label>
                                                 <input
                                                     type="email"
                                                     required
@@ -773,7 +773,7 @@ export default function Innovations() {
                                             </div>
 
                                             <div className="space-y-0.5 animate-field-reveal field-delay-6">
-                                                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">Phone *</label>
+                                                <label className="text-[12px] font-bold text-slate-300 uppercase tracking-wider">Phone *</label>
                                                 <input
                                                     type="tel"
                                                     required
@@ -793,14 +793,14 @@ export default function Innovations() {
                                                     onChange={e => setBookletForm({ ...bookletForm, nda_agreed: e.target.checked })}
                                                     className="mt-0.5 w-4 h-4 accent-cyan-500 cursor-pointer"
                                                 />
-                                                <label htmlFor="nda-agree" className="text-xs text-slate-300 leading-snug cursor-pointer">
+                                                <label htmlFor="nda-agree" className="text-[12px] text-slate-300 leading-snug cursor-pointer">
                                                     By clicking here, you agree not to share this information with anyone without NDA.
                                                 </label>
                                             </div>
 
                                             {/* Error Message */}
                                             {bookletError && (
-                                                <p className="text-red-400 text-xs font-medium text-center">{bookletError}</p>
+                                                <p className="text-red-400 text-[12px] font-medium text-center">{bookletError}</p>
                                             )}
 
                                             {/* Submit Button */}
@@ -858,7 +858,7 @@ export default function Innovations() {
 
                         <div className="relative z-10 space-y-12 w-full mx-auto">
                             <div className="space-y-6 flex flex-col items-center">
-                                <span className="text-cyan-400 font-black text-[10px] md:text-sm uppercase tracking-[0.4em]">Final Call to Action</span>
+                                <span className="text-cyan-400 font-black text-[12px] md:text-sm uppercase tracking-[0.4em]">Final Call to Action</span>
                                 <h2 className="text-[17px] sm:text-[22px] md:text-[28px] lg:text-[36px] xl:text-[42px] 2xl:text-[52px] font-black text-white tracking-tighter leading-none uppercase w-full whitespace-nowrap">
                                     Innovation <span className="text-cyan-400">Without Evidence</span> is Speculation.
                                 </h2>
@@ -897,3 +897,5 @@ export default function Innovations() {
         </div >
     );
 }
+
+

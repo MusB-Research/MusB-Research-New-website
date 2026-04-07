@@ -320,7 +320,7 @@ export default function News() {
                                     </div>
                                     <div className="p-8 md:p-12 flex flex-col justify-center space-y-6">
                                         <div className="flex items-center gap-3">
-                                            <span className="px-4 py-1.5 rounded-full bg-cyan-500/10 text-cyan-400 text-xs font-black uppercase tracking-widest border border-cyan-500/20">
+                                            <span className="px-4 py-1.5 rounded-full bg-cyan-500/10 text-cyan-400 text-[12px] font-black uppercase tracking-widest border border-cyan-500/20">
                                                 Featured: {featuredItem.type}
                                             </span>
                                             <span className="text-slate-500 text-sm font-bold">{featuredItem.date}</span>
@@ -382,14 +382,14 @@ export default function News() {
                                                                 <div className="w-full h-full bg-gradient-to-br from-cyan-500/10 to-indigo-500/10 group-hover:scale-110 transition-transform duration-700"></div>
                                                             )}
                                                             <div className="absolute top-4 left-4">
-                                                                <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-950/80 backdrop-blur-md text-[10px] font-black uppercase tracking-widest border border-white/10 ${accent.badge}`}>
+                                                                <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-950/80 backdrop-blur-md text-[12px] font-black uppercase tracking-widest border border-white/10 ${accent.badge}`}>
                                                                     <Icon className="w-3 h-3" />
                                                                     {item.type}
                                                                 </span>
                                                             </div>
                                                         </div>
                                                         <div className="p-8 flex flex-col flex-grow space-y-4">
-                                                            <div className="text-slate-500 text-xs font-bold uppercase tracking-widest">{item.date}</div>
+                                                            <div className="text-slate-500 text-[12px] font-bold uppercase tracking-widest">{item.date}</div>
                                                             <h3 className="text-xl font-bold text-white group-hover:text-cyan-400 transition-colors line-clamp-2">
                                                                 {item.title}
                                                             </h3>
@@ -398,7 +398,7 @@ export default function News() {
                                                             </p>
                                                             <Link
                                                                 to={`/news/${item.id}`}
-                                                                className="inline-flex items-center gap-2 text-white font-black text-[11px] uppercase tracking-[0.2em] pt-4 group-hover:text-cyan-400 transition-colors mt-auto"
+                                                                className="inline-flex items-center gap-2 text-white font-black text-[12px] uppercase tracking-[0.2em] pt-4 group-hover:text-cyan-400 transition-colors mt-auto"
                                                             >
                                                                 Read More <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                                             </Link>
@@ -423,7 +423,7 @@ export default function News() {
                                 </div>
                                 <button
                                     onClick={() => { setActiveCategory('All'); setSearchQuery(''); }}
-                                    className="text-cyan-400 font-black uppercase tracking-widest text-xs border-b-2 border-cyan-400 pb-1 hover:text-white hover:border-white transition-colors"
+                                    className="text-cyan-400 font-black uppercase tracking-widest text-[12px] border-b-2 border-cyan-400 pb-1 hover:text-white hover:border-white transition-colors"
                                 >
                                     Clear All Filters
                                 </button>
@@ -442,9 +442,9 @@ export default function News() {
                                     </div>
                                     <div className="flex-grow space-y-3">
                                         <div className="flex items-center gap-3">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400 px-2 py-0.5 rounded-md bg-cyan-400/10 border border-cyan-400/20">{event.type}</span>
+                                            <span className="text-[12px] font-black uppercase tracking-widest text-cyan-400 px-2 py-0.5 rounded-md bg-cyan-400/10 border border-cyan-400/20">{event.type}</span>
                                             {event.locationType && (
-                                                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                                <span className="flex items-center gap-1.5 text-[12px] font-black uppercase tracking-widest text-slate-500">
                                                     <MapPin className="w-3 h-3" /> {event.locationType}
                                                 </span>
                                             )}
@@ -467,7 +467,7 @@ export default function News() {
                                     </div>
                                     <Link
                                         to={event.registrationLink || '#'}
-                                        className="w-full md:w-auto px-8 py-4 rounded-2xl bg-white text-slate-950 font-black uppercase tracking-widest text-xs hover:bg-cyan-500 transition-all text-center"
+                                        className="w-full md:w-auto px-8 py-4 rounded-2xl bg-white text-slate-950 font-black uppercase tracking-widest text-[12px] hover:bg-cyan-500 transition-all text-center"
                                     >
                                         Register
                                     </Link>
@@ -484,7 +484,7 @@ export default function News() {
                                 </div>
                                 <button
                                     onClick={() => setViewMode('grid')}
-                                    className="text-cyan-400 font-black uppercase tracking-widest text-xs border-b-2 border-cyan-400 pb-1 hover:text-white hover:border-white transition-colors"
+                                    className="text-cyan-400 font-black uppercase tracking-widest text-[12px] border-b-2 border-cyan-400 pb-1 hover:text-white hover:border-white transition-colors"
                                 >
                                     Return to Feed
                                 </button>
@@ -558,15 +558,15 @@ export default function News() {
                             <div className="flex bg-slate-950/50 rounded-2xl p-1 border border-white/10">
                                 <label className="flex-1 px-4 py-3 cursor-pointer has-[:checked]:bg-cyan-500 has-[:checked]:text-slate-950 has-[:checked]:shadow-sm rounded-xl transition-all">
                                     <input type="radio" name="describe" value="business" className="sr-only" defaultChecked />
-                                    <span className="text-xs font-black uppercase tracking-widest block text-center">Business</span>
+                                    <span className="text-[12px] font-black uppercase tracking-widest block text-center">Business</span>
                                 </label>
                                 <label className="flex-1 px-4 py-3 cursor-pointer has-[:checked]:bg-cyan-500 has-[:checked]:text-slate-950 has-[:checked]:shadow-sm rounded-xl transition-all">
                                     <input type="radio" name="describe" value="researcher" className="sr-only" />
-                                    <span className="text-xs font-black uppercase tracking-widest block text-center">Researcher</span>
+                                    <span className="text-[12px] font-black uppercase tracking-widest block text-center">Researcher</span>
                                 </label>
                                 <label className="flex-1 px-4 py-3 cursor-pointer has-[:checked]:bg-cyan-500 has-[:checked]:text-slate-950 has-[:checked]:shadow-sm rounded-xl transition-all">
                                     <input type="radio" name="describe" value="participant" className="sr-only" />
-                                    <span className="text-xs font-black uppercase tracking-widest block text-center">Individual</span>
+                                    <span className="text-[12px] font-black uppercase tracking-widest block text-center">Individual</span>
                                 </label>
                             </div>
                         </div>
@@ -582,9 +582,11 @@ export default function News() {
                     {subscribeStatus === 'error' && (
                         <p className="text-red-400 font-bold">Failed to subscribe. Please try again.</p>
                     )}
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Join 2,500+ leaders in musculoskeletal research.</p>
+                    <p className="text-[12px] font-black uppercase tracking-widest text-slate-400">Join 2,500+ leaders in musculoskeletal research.</p>
                 </div>
             </section>
         </div>
     );
 }
+
+

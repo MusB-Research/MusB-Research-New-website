@@ -8,6 +8,7 @@ import { TicketChat } from '../support/components/TicketChat';
 import { TicketDetails } from '../support/components/TicketDetails';
 import { KnowledgeBase } from '../support/views/KnowledgeBase';
 import { NewRequestModal } from '../support/components/NewRequestModal';
+import { authFetch, API } from '../../../utils/auth';
 
 const MOCK_TICKETS: TicketType[] = [
     {
@@ -74,14 +75,58 @@ const MOCK_TICKETS: TicketType[] = [
 
 export default function SupportModule({ selectedStudyId }: { selectedStudyId?: string }) {
     const [view, setView] = useState<'Requests' | 'KB'>('Requests');
-    const [tickets, setTickets] = useState<TicketType[]>(MOCK_TICKETS);
-    const [selectedId, setSelectedId] = useState<string>(MOCK_TICKETS[0].id);
+    const [tickets, setTickets] = useState<TicketType[]>([]);
+    const [selectedId, setSelectedId] = useState<string>('');
     const [isNewRequestOpen, setIsNewRequestOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [messageInput, setMessageInput] = useState('');
     const [isFlagged, setIsFlagged] = useState(false);
     const [hasAttachment, setHasAttachment] = useState(false);
+    const [loading, setLoading] = useState(true);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const fetchTickets = async () => {
+        setLoading(true);
+        try {
+            const res = await authFetch(`${API}/api/support/tickets/`);
+            if (res.ok) {
+                const data = await res.json();
+                const mapped: TicketType[] = data.map((t: any) => ({
+                    id: t.ticket_id || `TCK-${t.id}`,
+                    title: t.title,
+                    study: t.study_protocol || 'Global Node',
+                    participantId: t.participant_id || 'N/A',
+                    category: t.category as any,
+                    priority: t.priority.charAt(0) + t.priority.slice(1).toLowerCase() as any,
+                    status: t.status as any,
+                    lastUpdated: new Date(t.updated_at).toLocaleString(),
+                    createdAt: new Date(t.created_at).toLocaleString(),
+                    createdBy: t.creator_name,
+                    assignedTo: t.assigned_to_name || 'Unassigned',
+                    messages: t.messages.map((m: any) => ({
+                        id: m.id.toString(),
+                        sender: m.sender_name,
+                        role: m.user_role_label,
+                        content: m.content,
+                        timestamp: new Date(m.created_at).toLocaleString()
+                    })),
+                    auditTrail: []
+                }));
+                setTickets(mapped);
+                if (mapped.length > 0 && !selectedId) {
+                    setSelectedId(mapped[0].id);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to sync support incidents:', e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchTickets();
+    }, []);
 
     const filteredTickets = useMemo(() => {
         return tickets.filter(t => {
@@ -95,28 +140,43 @@ export default function SupportModule({ selectedStudyId }: { selectedStudyId?: s
 
     const selectedTicket = useMemo(() => tickets.find(t => t.id === selectedId) || tickets[0], [tickets, selectedId]);
 
-    const handleSendMessage = () => {
+    const handleSendMessage = async () => {
         if (!messageInput.trim()) return;
-        const newMessage: TicketMessage = {
-            id: Date.now().toString(),
-            sender: 'Coordinator (You)',
-            role: 'Coordinator',
-            content: isFlagged ? `[HIGH IMPACT ALERT] ${messageInput}` : messageInput,
-            timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-            attachments: hasAttachment ? ['clinical_report_0923.pdf'] : []
-        };
-        setTickets(prev => prev.map(t => t.id === selectedId ? { ...t, messages: [...t.messages, newMessage], lastUpdated: newMessage.timestamp } : t));
-        setMessageInput('');
-        setIsFlagged(false);
-        setHasAttachment(false);
+        try {
+            const ticketObj = tickets.find(t => t.id === selectedId);
+            if (!ticketObj) return;
+
+            const res = await authFetch(`${API}/api/support/tickets/${selectedId}/add_message/`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    content: isFlagged ? `[HIGH IMPACT ALERT] ${messageInput}` : messageInput,
+                    tag: isFlagged ? 'Urgent' : 'General'
+                })
+            });
+
+            if (res.ok) {
+                fetchTickets();
+                setMessageInput('');
+                setIsFlagged(false);
+                setHasAttachment(false);
+            }
+        } catch (e) {
+            console.error('Transmission failure:', e);
+        }
     };
 
-    const updateTicketStatus = (newStatus: TicketType['status']) => {
-        setTickets(prev => prev.map(t => t.id === selectedId ? { 
-            ...t, 
-            status: newStatus, 
-            auditTrail: [...t.auditTrail, { action: `Status changed to ${newStatus}`, user: 'Coordinator', time: 'Just now' }] 
-        } : t));
+    const updateTicketStatus = async (newStatus: TicketType['status']) => {
+        try {
+            const res = await authFetch(`${API}/api/support/tickets/${selectedId}/update_status/`, {
+                method: 'POST',
+                body: JSON.stringify({ status: newStatus })
+            });
+            if (res.ok) {
+                fetchTickets();
+            }
+        } catch (e) {
+            console.error('Status sync failure:', e);
+        }
     };
 
     return (
@@ -130,7 +190,7 @@ export default function SupportModule({ selectedStudyId }: { selectedStudyId?: s
                             <button 
                                 key={v}
                                 onClick={() => setView(v)}
-                                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                                className={`px-4 py-2 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${
                                     view === v ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'
                                 }`}
                             >
@@ -142,17 +202,17 @@ export default function SupportModule({ selectedStudyId }: { selectedStudyId?: s
                 <div className="flex items-center gap-6">
                     <div className="relative w-64">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                        <input 
+                         <input 
                             type="text" 
                             placeholder="Find tickets..." 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-2.5 text-[9px] text-white placeholder-slate-700 outline-none focus:border-indigo-500/50 uppercase tracking-widest"
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-2.5 text-[12px] text-white placeholder-slate-700 outline-none focus:border-indigo-500/50 uppercase tracking-widest font-bold"
                         />
                     </div>
-                    <button 
+                     <button 
                         onClick={() => setIsNewRequestOpen(true)}
-                        className="px-6 py-4 bg-indigo-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-indigo-900/40"
+                        className="px-6 py-4 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-indigo-900/40"
                     >
                         + New Request
                     </button>
@@ -173,4 +233,6 @@ export default function SupportModule({ selectedStudyId }: { selectedStudyId?: s
         </div>
     );
 }
+
+
 

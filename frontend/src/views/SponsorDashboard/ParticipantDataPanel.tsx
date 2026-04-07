@@ -303,7 +303,7 @@ export default function ParticipantDataPanel({ protocols, addToast, windowWidth,
                         <th key={col} onClick={() => handleSort(col)} style={{ padding: '24px', fontSize: 13, color: '#64748b', fontWeight: 900, textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', letterSpacing: '0.1em', transition: 'color 0.2s' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             {h}
-                            <span style={{ fontSize: 10, opacity: sortColumn === col ? 1 : 0.2 }}>{sortColumn === col ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}</span>
+                            <span style={{ fontSize: 12, opacity: sortColumn === col ? 1 : 0.2 }}>{sortColumn === col ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}</span>
                           </div>
                         </th>
                       )
@@ -516,3 +516,5 @@ export default function ParticipantDataPanel({ protocols, addToast, windowWidth,
     </div>
   );
 }
+
+

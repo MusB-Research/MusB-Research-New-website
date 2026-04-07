@@ -79,3 +79,5 @@ export default function ReportsPanel({ protocols, addToast }: any) {
     </div>
   );
 }
+
+

@@ -29,7 +29,7 @@ const inputStyle = {
 };
 
 const labelStyle = {
-  display: 'block', fontSize: '11px', fontWeight: 700, 
+  display: 'block', fontSize: '12px', fontWeight: 700, 
   color: THEME.label, textTransform: 'uppercase' as const, 
   marginBottom: '8px', letterSpacing: '0.05em'
 };
@@ -292,3 +292,5 @@ export default function InquireStudyModal({ isOpen, onClose }: Props) {
     </div>
   );
 }
+
+

@@ -49,3 +49,5 @@ export const SafetySignals: React.FC<SafetySignalsProps> = ({ participant }) => 
         </div>
     );
 };
+
+

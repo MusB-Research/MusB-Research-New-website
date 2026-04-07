@@ -45,3 +45,5 @@ export interface Ticket {
     messages: TicketMessage[];
     auditTrail: { action: string; user: string; time: string }[];
 }
+
+

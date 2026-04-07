@@ -75,3 +75,5 @@ export const fetchStudies = async (): Promise<Study[]> => {
         return [];
     }
 };
+
+

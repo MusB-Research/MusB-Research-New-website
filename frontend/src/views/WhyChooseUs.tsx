@@ -121,7 +121,7 @@ export default function WhyChooseUs() {
                 <section className="max-w-[1700px] mx-auto px-4 md:px-12 mb-12">
                     <div className="grid lg:grid-cols-2 gap-16 items-center">
                         <div className="space-y-8 animate-fade-in-up">
-                            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 font-bold text-xs tracking-widest uppercase">
+                            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 font-bold text-[12px] tracking-widest uppercase">
                                 <Microscope className="w-4 h-4" /> {heroTagline}
                             </div>
                             <h1
@@ -180,11 +180,11 @@ export default function WhyChooseUs() {
                                             <h3 className={`text-3xl font-black text-white mb-8 group-hover:${colors.accent} transition-colors uppercase`}>{card.title}</h3>
                                             <div className="space-y-8 flex-grow">
                                                 <div>
-                                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-500/60 transition-colors mb-3">{card.tagline}</h4>
+                                                    <h4 className="text-[12px] font-black uppercase tracking-[0.2em] text-cyan-500/60 transition-colors mb-3">{card.tagline}</h4>
                                                     <p className="text-slate-300 font-bold leading-relaxed">{card.description}</p>
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">Includes:</h4>
+                                                    <h4 className="text-[12px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">Includes:</h4>
                                                     <ul className="space-y-4">
                                                         {card.deliverables?.map((item: string, i: number) => (
                                                             <li key={i} className="flex items-start gap-3">
@@ -195,7 +195,7 @@ export default function WhyChooseUs() {
                                                     </ul>
                                                 </div>
                                             </div>
-                                            <Link to={card.cta_link || '/contact'} className={`mt-12 w-full ${card.color === 'indigo' ? 'bg-indigo-500' : card.color === 'blue' ? 'bg-blue-500' : 'bg-cyan-500'} text-slate-900 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2 group/btn`}>
+                                            <Link to={card.cta_link || '/contact'} className={`mt-12 w-full ${card.color === 'indigo' ? 'bg-indigo-500' : card.color === 'blue' ? 'bg-blue-500' : 'bg-cyan-500'} text-slate-900 py-5 rounded-2xl font-black text-[12px] uppercase tracking-widest hover:bg-white transition-all shadow-lg flex items-center justify-center gap-2 group/btn`}>
                                                 {card.cta_text || 'Learn More'}
                                                 <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                                             </Link>
@@ -215,7 +215,7 @@ export default function WhyChooseUs() {
                         <div className="max-w-[1700px] mx-auto px-4 md:px-12">
                             <div className="grid lg:grid-cols-2 gap-20 items-center">
                                 <div className="space-y-8 animate-fade-in-up">
-                                    <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-indigo-400/10 border border-indigo-400/20 text-indigo-400 font-bold text-xs tracking-widest uppercase">
+                                    <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-indigo-400/10 border border-indigo-400/20 text-indigo-400 font-bold text-[12px] tracking-widest uppercase">
                                         <BookOpen className="w-4 h-4" /> About MusB™
                                     </div>
                                     <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight leading-tight uppercase">
@@ -240,7 +240,7 @@ export default function WhyChooseUs() {
                                                     </div>
                                                     <div>
                                                         <p className="text-white font-black text-sm uppercase tracking-wider">20,000+ sq. ft.</p>
-                                                        <p className="text-slate-400 text-xs">Research Complex</p>
+                                                        <p className="text-slate-400 text-[12px]">Research Complex</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -405,3 +405,5 @@ export default function WhyChooseUs() {
         </div>
     );
 }
+
+

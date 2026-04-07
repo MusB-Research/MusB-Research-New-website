@@ -74,19 +74,62 @@ class SupportTicketViewSet(viewsets.ModelViewSet):
         return Response(TicketMessageSerializer(message).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'])
-    def resolve(self, request, pk=None):
+    def update_status(self, request, pk=None):
         ticket = self.get_object()
-        ticket.status = 'RESOLVED'
+        new_status = request.data.get('status')
+        if not new_status:
+            return Response({"error": "Status required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Mapping frontend status strings if they differ from backend keys
+        status_map = {
+            'Open': 'OPEN',
+            'In Progress': 'IN_PROGRESS',
+            'Waiting': 'WAITING',
+            'Resolved': 'RESOLVED',
+            'Closed': 'CLOSED',
+            'Escalated': 'ESCALATED'
+        }
+        
+        db_status = status_map.get(new_status, new_status.upper())
+        
+        # Validate status choice
+        if db_status not in [c[0] for c in SupportTicket.STATUS_CHOICES]:
+            return Response({"error": "Invalid status choice"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        ticket.status = db_status
         ticket.save()
         
         user_display = getattr(request.user, 'decrypted_name', request.user.email)
         TicketAuditLog.objects.create(
             ticket=ticket,
             user=user_display,
-            action="Ticket resolved"
+            action=f"Status changed to {new_status}"
         )
         
-        return Response({"status": "Ticket resolved"}, status=status.HTTP_200_OK)
+        return Response({"status": f"Ticket marked as {new_status}"}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def update_assignment(self, request, pk=None):
+        ticket = self.get_object()
+        new_assignment = request.data.get('assigned_to')
+        if not new_assignment:
+            return Response({"error": "Assignment required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        ticket.assigned_to = new_assignment
+        ticket.save()
+        
+        user_display = getattr(request.user, 'decrypted_name', request.user.email)
+        TicketAuditLog.objects.create(
+            ticket=ticket,
+            user=user_display,
+            action=f"Ticket routed to {new_assignment}"
+        )
+        
+        return Response({"status": f"Ticket routed to {new_assignment}"}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def resolve(self, request, pk=None):
+        return self.update_status(request, pk)
 
     @action(detail=True, methods=['post'])
     def escalate(self, request, pk=None):

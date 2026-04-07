@@ -65,7 +65,7 @@ export default function NewsDetail() {
             </div>
 
             <main className="max-w-4xl mx-auto space-y-12 relative z-10">
-                <Link to="/news" className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-slate-500 hover:text-cyan-400 transition-colors group">
+                <Link to="/news" className="inline-flex items-center gap-2 text-[12px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-cyan-400 transition-colors group">
                     <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                     Back to News & Events
                 </Link>
@@ -90,3 +90,5 @@ export default function NewsDetail() {
         </div>
     );
 }
+
+

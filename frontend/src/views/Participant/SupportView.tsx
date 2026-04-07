@@ -33,14 +33,14 @@ const SupportView = ({ requests = [], onAction }: any) => {
                     <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter mb-2">
                         Help & <span className="text-cyan-400">Request History</span>
                     </h1>
-                    <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[11px] italic">
+                    <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[12px] italic">
                         Track your clinical interactions and site requests in real-time.
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button 
                         onClick={() => onAction('General Help Request')}
-                        className="px-6 py-3 bg-cyan-500 text-slate-950 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] flex items-center gap-2"
+                        className="px-6 py-3 bg-cyan-500 text-slate-950 rounded-xl font-black text-[12px] uppercase tracking-widest hover:bg-white transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] flex items-center gap-2"
                     >
                         <LifeBuoy className="w-4 h-4" /> New Help Request
                     </button>
@@ -59,7 +59,7 @@ const SupportView = ({ requests = [], onAction }: any) => {
                             <stat.icon className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">{stat.label}</p>
+                            <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic">{stat.label}</p>
                             <p className="text-2xl font-black text-white italic tracking-tighter">{stat.value}</p>
                         </div>
                     </Card>
@@ -75,7 +75,7 @@ const SupportView = ({ requests = [], onAction }: any) => {
                         </div>
                         <div>
                             <h3 className="text-sm font-black text-white italic uppercase tracking-widest">Activity History</h3>
-                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Formal history of all coordination requests.</p>
+                            <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Formal history of all coordination requests.</p>
                         </div>
                     </div>
                 </div>
@@ -84,11 +84,11 @@ const SupportView = ({ requests = [], onAction }: any) => {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-white/[0.05] bg-white/[0.01]">
-                                <th className="p-6 px-10 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Request Type</th>
-                                <th className="p-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Study Context</th>
-                                <th className="p-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Timestamp</th>
-                                <th className="p-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Status</th>
-                                <th className="p-6 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] italic"></th>
+                                <th className="p-6 px-10 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Request Type</th>
+                                <th className="p-6 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Study Context</th>
+                                <th className="p-6 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Timestamp</th>
+                                <th className="p-6 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Status</th>
+                                <th className="p-6 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic"></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -105,7 +105,7 @@ const SupportView = ({ requests = [], onAction }: any) => {
                                     <td className="p-6 text-sm font-bold text-slate-300 uppercase tracking-widest italic opacity-70">
                                         {row.study_title || 'Clinical Research Center'}
                                     </td>
-                                    <td className="p-6 text-[11px] font-black text-slate-500 italic uppercase">
+                                    <td className="p-6 text-[12px] font-black text-slate-500 italic uppercase">
                                         {row.created_at_formatted || new Date(row.created_at).toLocaleString()}
                                     </td>
                                     <td className="p-6">
@@ -133,7 +133,7 @@ const SupportView = ({ requests = [], onAction }: any) => {
                                         <div className="flex flex-col items-center gap-4 opacity-30">
                                             <LifeBuoy className="w-16 h-16 text-slate-500 mb-2 animate-pulse" />
                                             <p className="text-sm font-black text-slate-500 uppercase tracking-[0.3em] italic">No Activity History Found</p>
-                                            <p className="text-[11px] font-bold text-slate-600 uppercase tracking-widest max-w-[320px] leading-relaxed">
+                                            <p className="text-[12px] font-bold text-slate-600 uppercase tracking-widest max-w-[320px] leading-relaxed">
                                                 Your request history is empty. Site requests will appear here once you initiate a clinical workflow.
                                             </p>
                                         </div>
@@ -153,12 +153,12 @@ const SupportView = ({ requests = [], onAction }: any) => {
                     </div>
                     <div>
                         <h4 className="text-base font-black text-white italic uppercase tracking-widest">Urgent Clinical Escalation?</h4>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Direct communication is available for critical protocol issues.</p>
+                        <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Direct communication is available for critical protocol issues.</p>
                     </div>
                 </div>
                 <button 
                     onClick={() => onAction('Emergency Clinical Support')}
-                    className="px-8 py-4 bg-indigo-500 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-white hover:text-slate-950 transition-all shadow-xl active:scale-95"
+                    className="px-8 py-4 bg-indigo-500 text-white rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] hover:bg-white hover:text-slate-950 transition-all shadow-xl active:scale-95"
                 >
                     Contact Coordinator
                 </button>
@@ -171,3 +171,5 @@ const SupportView = ({ requests = [], onAction }: any) => {
 const ShieldCheck = ({ className }: any) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>;
 
 export default SupportView;
+
+

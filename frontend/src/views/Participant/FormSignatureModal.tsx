@@ -122,7 +122,7 @@ const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: 
                         </div>
                         <div>
                             <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none">{formTitle}</h3>
-                            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-1 italic">Electronic Signature Workflow</p>
+                            <p className="text-slate-500 font-bold uppercase tracking-widest text-[12px] mt-1 italic">Electronic Signature Workflow</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-slate-400 hover:text-white transition-all"><X className="w-6 h-6" /></button>
@@ -131,12 +131,12 @@ const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: 
                 {/* STEPS */}
                 <div className="px-8 py-4 bg-white/[0.02] border-b border-white/5 flex items-center gap-8 shrink-0">
                     <div className={`flex items-center gap-2 ${step === 1 ? 'text-cyan-400' : 'text-slate-500'}`}>
-                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-black italic border ${step === 1 ? 'bg-cyan-500/20 border-cyan-400' : 'border-white/10'}`}>01</div>
+                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[12px] font-black italic border ${step === 1 ? 'bg-cyan-500/20 border-cyan-400' : 'border-white/10'}`}>01</div>
                         <span className="text-[12px] font-black uppercase tracking-widest italic">Form Entry</span>
                     </div>
                     <div className="h-px w-8 bg-white/5" />
                     <div className={`flex items-center gap-2 ${step === 2 ? 'text-cyan-400' : 'text-slate-500'}`}>
-                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-black italic border ${step === 2 ? 'bg-cyan-500/20 border-cyan-400' : 'border-white/10'}`}>02</div>
+                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[12px] font-black italic border ${step === 2 ? 'bg-cyan-500/20 border-cyan-400' : 'border-white/10'}`}>02</div>
                         <span className="text-[12px] font-black uppercase tracking-widest italic">Review & Sign</span>
                     </div>
                 </div>
@@ -154,7 +154,7 @@ const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: 
                             >
                                 <div className="space-y-4">
                                     <h4 className="text-xl font-black text-white italic uppercase tracking-tighter">Clinical Questionnaire</h4>
-                                    <p className="text-slate-500 font-bold uppercase tracking-widest text-xs italic">{formDescription}</p>
+                                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[12px] italic">{formDescription}</p>
                                 </div>
 
                                 <div className="space-y-6">
@@ -213,13 +213,13 @@ const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: 
                                 <div className="flex justify-center gap-3 mb-10">
                                     <button
                                         onClick={() => { setSignatureType('DRAW'); setTypedSignature(''); setHasSigned(false); }}
-                                        className={`px-8 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${signatureType === 'DRAW' ? 'bg-cyan-500 text-slate-950 shadow-[0_0_30px_rgba(6,182,212,0.3)]' : 'bg-white/5 text-slate-500 hover:text-white'}`}
+                                        className={`px-8 py-3 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all ${signatureType === 'DRAW' ? 'bg-cyan-500 text-slate-950 shadow-[0_0_30px_rgba(6,182,212,0.3)]' : 'bg-white/5 text-slate-500 hover:text-white'}`}
                                     >
                                         <PenTool className="w-4 h-4 inline-block mr-2" /> Hand Drawn
                                     </button>
                                     <button
                                         onClick={() => { setSignatureType('TYPE'); setHasSigned(typedSignature.length > 2); }}
-                                        className={`px-8 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${signatureType === 'TYPE' ? 'bg-cyan-500 text-slate-950 shadow-[0_0_30px_rgba(6,182,212,0.3)]' : 'bg-white/5 text-slate-500 hover:text-white'}`}
+                                        className={`px-8 py-3 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all ${signatureType === 'TYPE' ? 'bg-cyan-500 text-slate-950 shadow-[0_0_30px_rgba(6,182,212,0.3)]' : 'bg-white/5 text-slate-500 hover:text-white'}`}
                                     >
                                         <X className="w-4 h-4 inline-block mr-2 rotate-45" /> Typed ID
                                     </button>
@@ -244,12 +244,12 @@ const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: 
                                                 />
                                                 {!hasSigned && (
                                                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                                        <span className="text-slate-300 font-black uppercase tracking-[0.5em] text-xs italic">Sign Here</span>
+                                                        <span className="text-slate-300 font-black uppercase tracking-[0.5em] text-[12px] italic">Sign Here</span>
                                                     </div>
                                                 )}
                                             </div>
                                             <div className="flex justify-center">
-                                                <button onClick={clearCanvas} className="text-[11px] font-black text-slate-500 hover:text-red-400 uppercase tracking-widest transition-colors">Clear signature</button>
+                                                <button onClick={clearCanvas} className="text-[12px] font-black text-slate-500 hover:text-red-400 uppercase tracking-widest transition-colors">Clear signature</button>
                                             </div>
                                         </div>
                                     ) : (
@@ -277,18 +277,18 @@ const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: 
                                             <ShieldCheck className="w-5 h-5" />
                                         </div>
                                         <div>
-                                            <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Signee</p>
+                                            <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest">Signee</p>
                                             <p className="text-[14px] font-black text-white uppercase italic">{userProfile.userName}</p>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Date</p>
+                                        <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest">Date</p>
                                         <p className="text-[14px] font-black text-cyan-400 italic">{new Date().toLocaleDateString()}</p>
                                     </div>
                                 </div>
 
                                 <div className="w-full flex justify-between items-center mt-auto">
-                                    <button onClick={() => setStep(1)} className="text-[11px] font-black text-slate-600 hover:text-white uppercase tracking-widest transition-colors italic">Back to Form</button>
+                                    <button onClick={() => setStep(1)} className="text-[12px] font-black text-slate-600 hover:text-white uppercase tracking-widest transition-colors italic">Back to Form</button>
                                     <button
                                         onClick={handleSubmit}
                                         disabled={!hasSigned || isSubmitting}
@@ -307,3 +307,5 @@ const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: 
 };
 
 export default FormSignatureModal;
+
+

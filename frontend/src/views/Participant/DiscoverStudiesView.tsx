@@ -99,7 +99,7 @@ export default function DiscoverStudiesView() {
             {publicStudies.length === 0 ? (
                 <div className="p-12 border border-white/5 bg-[#0a0f1d] rounded-2xl text-center shadow-lg">
                     <Search className="w-10 h-10 text-slate-600 mx-auto mb-4" />
-                    <p className="text-slate-500 text-xs italic tracking-widest uppercase font-bold">
+                    <p className="text-slate-500 text-[12px] italic tracking-widest uppercase font-bold">
                         No active studies currently recruiting.
                     </p>
                 </div>
@@ -121,17 +121,17 @@ export default function DiscoverStudiesView() {
                                 <div className="space-y-3 mb-5">
                                     {/* Status badges */}
                                     <div className="flex items-center gap-2 flex-wrap">
-                                        <span className={`text-[10px] px-2 py-1 rounded-sm uppercase tracking-widest font-black inline-block border ${getStatusColor(study.status)}`}>
+                                        <span className={`text-[12px] px-2 py-1 rounded-sm uppercase tracking-widest font-black inline-block border ${getStatusColor(study.status)}`}>
                                             {study.status}
                                         </span>
                                         {isMine && (
-                                            <span className={`text-[10px] px-2 py-1 rounded-sm uppercase tracking-widest font-black inline-flex items-center gap-1.5 border text-cyan-400 bg-cyan-500/10 border-cyan-500/20`}>
+                                            <span className={`text-[12px] px-2 py-1 rounded-sm uppercase tracking-widest font-black inline-flex items-center gap-1.5 border text-cyan-400 bg-cyan-500/10 border-cyan-500/20`}>
                                                 <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
                                                 {getEnrollmentLabel(activeEnrollment?.status)}
                                             </span>
                                         )}
                                         {study.remote_participation && (
-                                            <span className="flex items-center gap-1 text-[9px] font-black text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded-sm uppercase tracking-widest">
+                                            <span className="flex items-center gap-1 text-[12px] font-black text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded-sm uppercase tracking-widest">
                                                 <Globe className="w-2.5 h-2.5" /> Remote
                                             </span>
                                         )}
@@ -140,7 +140,7 @@ export default function DiscoverStudiesView() {
                                     {/* Title */}
                                     <div>
                                         <h3 className="text-[16px] font-black text-white italic uppercase leading-tight">{study.title}</h3>
-                                        <p className="text-[11px] font-bold text-slate-600 uppercase tracking-widest mt-0.5">Protocol: {study.protocol_id}</p>
+                                        <p className="text-[12px] font-bold text-slate-600 uppercase tracking-widest mt-0.5">Protocol: {study.protocol_id}</p>
                                     </div>
 
                                     {/* Short description */}
@@ -149,7 +149,7 @@ export default function DiscoverStudiesView() {
                                     </p>
 
                                     {/* Quick meta row */}
-                                    <div className="flex flex-wrap gap-3 text-[11px] font-bold text-slate-600 uppercase tracking-wider pt-1">
+                                    <div className="flex flex-wrap gap-3 text-[12px] font-bold text-slate-600 uppercase tracking-wider pt-1">
                                         {study.duration && <span>⏱ {study.duration}</span>}
                                         {study.location && <span>📍 {study.location}</span>}
                                         {study.compensation && <span className="text-green-500">💰 Compensated</span>}
@@ -158,21 +158,21 @@ export default function DiscoverStudiesView() {
 
                                 {/* Action */}
                                 {isMine ? (
-                                    <div className="w-full mt-auto bg-white/5 border border-cyan-500/20 text-cyan-400 px-4 py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 cursor-default">
+                                    <div className="w-full mt-auto bg-white/5 border border-cyan-500/20 text-cyan-400 px-4 py-3.5 rounded-xl font-black uppercase tracking-widest text-[12px] flex items-center justify-center gap-2 cursor-default">
                                         <CheckCircle2 className="w-4 h-4" />
                                         Your Current Study
                                     </div>
                                 ) : (
                                     <div className="space-y-1.5">
                                         {hasActiveEnrollment && (
-                                            <p className="text-[11px] text-amber-500/80 uppercase tracking-widest font-bold flex items-center gap-1.5">
+                                            <p className="text-[12px] text-amber-500/80 uppercase tracking-widest font-bold flex items-center gap-1.5">
                                                 <AlertCircle className="w-3.5 h-3.5" />
                                                 PI/CC approval required to join
                                             </p>
                                         )}
                                         <button
                                             onClick={() => navigate(`/studies/${studySlug}`)}
-                                            className="w-full bg-gradient-to-r from-cyan-500/10 to-blue-500/10 hover:from-cyan-500/20 hover:to-blue-500/20 border border-cyan-500/30 hover:border-cyan-400/60 text-cyan-300 hover:text-cyan-200 px-4 py-3.5 rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all active:scale-95"
+                                            className="w-full bg-gradient-to-r from-cyan-500/10 to-blue-500/10 hover:from-cyan-500/20 hover:to-blue-500/20 border border-cyan-500/30 hover:border-cyan-400/60 text-cyan-300 hover:text-cyan-200 px-4 py-3.5 rounded-xl font-black uppercase tracking-widest text-[12px] flex items-center justify-center gap-2 transition-all active:scale-95"
                                         >
                                             <ClipboardCheck className="w-4 h-4" />
                                             Check Eligibility
@@ -188,3 +188,5 @@ export default function DiscoverStudiesView() {
         </div>
     );
 }
+
+

@@ -60,7 +60,7 @@ const LogoutConfirmationModal: React.FC<LogoutConfirmationModalProps> = ({ isOpe
                         {/* Warning Box */}
                         <div className="mt-8 p-4 bg-red-500/5 border border-red-500/10 rounded-3xl flex items-start gap-3 relative z-10">
                             <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
-                            <p className="text-[10px] font-bold text-red-400/80 uppercase tracking-widest leading-relaxed">
+                            <p className="text-[12px] font-bold text-red-400/80 uppercase tracking-widest leading-relaxed">
                                 Any unsaved changes in active forms will be lost upon signing out of the secure network.
                             </p>
                         </div>
@@ -69,13 +69,13 @@ const LogoutConfirmationModal: React.FC<LogoutConfirmationModalProps> = ({ isOpe
                         <div className="grid grid-cols-2 gap-4 mt-10 relative z-10">
                             <button 
                                 onClick={onClose}
-                                className="py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-3xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all"
+                                className="py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-3xl text-[12px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all"
                             >
                                 CANCEL
                             </button>
                             <button 
                                 onClick={onConfirm}
-                                className="py-4 bg-red-600 hover:bg-red-500 text-white rounded-3xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-500/20 transition-all hover:scale-[1.02] active:scale-95"
+                                className="py-4 bg-red-600 hover:bg-red-500 text-white rounded-3xl text-[12px] font-black uppercase tracking-widest shadow-xl shadow-red-500/20 transition-all hover:scale-[1.02] active:scale-95"
                             >
                                 SIGN OUT
                             </button>
@@ -88,3 +88,5 @@ const LogoutConfirmationModal: React.FC<LogoutConfirmationModalProps> = ({ isOpe
 };
 
 export default LogoutConfirmationModal;
+
+

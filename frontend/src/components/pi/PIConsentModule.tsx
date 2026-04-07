@@ -244,10 +244,10 @@ export default function PIConsentModule() {
     const S = {
         glass: { backgroundColor: COLORS.glass, backdropFilter: 'blur(12px)', border: COLORS.border },
         title: { fontSize: '15px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' as const, letterSpacing: '-0.02em', color: 'white' },
-        label: { fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.15em', color: COLORS.text, opacity: 0.6 },
-        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.3rem 0.8rem', borderRadius: '4px', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
-        btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '0.8rem 1.5rem', borderRadius: '8px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(79, 70, 229, 0.2)' },
-        btnGhost: { backgroundColor: 'transparent', color: 'white', border: COLORS.border, padding: '0.8rem 1.5rem', borderRadius: '8px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' },
+        label: { fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.15em', color: COLORS.text, opacity: 0.6 },
+        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.3rem 0.8rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
+        btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '0.8rem 1.5rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(79, 70, 229, 0.2)' },
+        btnGhost: { backgroundColor: 'transparent', color: 'white', border: COLORS.border, padding: '0.8rem 1.5rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' },
         input: { backgroundColor: 'rgba(255,255,255,0.03)', border: COLORS.border, borderRadius: '8px', padding: '0.8rem 1.25rem', color: 'white', fontSize: '14px', outline: 'none' },
         h2: { fontSize: '32px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' as const, color: 'white' },
         p: { fontSize: '14px', color: COLORS.text, opacity: 0.8 }
@@ -282,7 +282,7 @@ export default function PIConsentModule() {
                             position: 'absolute', top: `${f.y}%`, left: `${f.x}%`, transform: 'translate(-50%, -50%)',
                             border: `2px ${isSigned ? 'solid' : 'dashed'} ${colorMap[f.type] || COLORS.label}`,
                             backgroundColor: isSigned ? `${colorMap[f.type]}15` : 'transparent',
-                            padding: '0.6rem 1.2rem', borderRadius: '4px', color: colorMap[f.type] || COLORS.label, fontSize: '10px', fontWeight: 900, textTransform: 'uppercase'
+                            padding: '0.6rem 1.2rem', borderRadius: '4px', color: colorMap[f.type] || COLORS.label, fontSize: '12px', fontWeight: 900, textTransform: 'uppercase'
                         }}
                     >
                         {isSigned ? (
@@ -320,7 +320,7 @@ export default function PIConsentModule() {
                                 <span style={{ ...S.title, fontSize: '13px' }}>{c.title}</span>
                                 <span style={S.badge(COLORS.accent)}>{c.version}</span>
                             </div>
-                            <div style={{ fontSize: '11px', color: COLORS.label, marginBottom: '1rem' }}>{c.study}</div>
+                            <div style={{ fontSize: '12px', color: COLORS.label, marginBottom: '1rem' }}>{c.study}</div>
                             <div style={S.badge(c.status === 'Active' ? COLORS.success : c.status === 'Draft' ? COLORS.label : COLORS.warning)}>{c.status}</div>
                         </div>
                     ))}
@@ -356,7 +356,7 @@ export default function PIConsentModule() {
                             <User size={18} /> <span className="hidden md:inline">Preview Signing</span><span className="md:hidden">Preview</span>
                         </button>
                         {activeConsent?.status === 'Active' && (
-                            <div className="md:col-span-1 border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 px-6 py-4 rounded-xl flex items-center justify-center gap-3 text-[11px] font-black uppercase tracking-widest italic animate-pulse">
+                            <div className="md:col-span-1 border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 px-6 py-4 rounded-xl flex items-center justify-center gap-3 text-[12px] font-black uppercase tracking-widest italic animate-pulse">
                                 <ShieldCheck size={18} /> READ ONLY
                             </div>
                         )}
@@ -495,7 +495,7 @@ export default function PIConsentModule() {
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         <button 
-                            className="w-full py-4 px-6 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-500/20"
+                            className="w-full py-4 px-6 rounded-xl font-black text-[12px] uppercase tracking-widest transition-all flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-500/20"
                             onClick={() => {
                                 addToast('Configuration synchronized to blockchain node', 'info');
                             }}
@@ -504,7 +504,7 @@ export default function PIConsentModule() {
                         </button>
 
                         <button 
-                            className="w-full py-4 px-6 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all flex items-center justify-center gap-3 border-2 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500 hover:text-white"
+                            className="w-full py-4 px-6 rounded-xl font-black text-[12px] uppercase tracking-widest transition-all flex items-center justify-center gap-3 border-2 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500 hover:text-white"
                             onClick={() => {
                                 if (!activeConsent) return;
                                 setConfirmModal({ 
@@ -645,7 +645,7 @@ export default function PIConsentModule() {
                                     <div className="flex gap-4">
                                         <button className="p-4 bg-white/5 border border-white/10 text-slate-400 rounded-xl hover:text-white transition-all"><Eye size={18} /></button>
                                         {!r.pi_verified && (
-                                            <button className="px-6 py-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl font-black uppercase tracking-widest text-[11px] italic hover:bg-indigo-500 hover:text-white transition-all flex items-center gap-3" onClick={() => { setActiveRecordId(r.id); setActiveView('pi-verify'); }}><ShieldCheck size={18} /> Verify</button>
+                                            <button className="px-6 py-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl font-black uppercase tracking-widest text-[12px] italic hover:bg-indigo-500 hover:text-white transition-all flex items-center gap-3" onClick={() => { setActiveRecordId(r.id); setActiveView('pi-verify'); }}><ShieldCheck size={18} /> Verify</button>
                                         )}
                                         <button className="p-4 bg-white/5 border border-white/10 text-slate-400 rounded-xl hover:text-white transition-all" onClick={() => { setAuditDrawerRecordId(r.id); setAuditDrawerOpen(true); }}><History size={18} /></button>
                                     </div>
@@ -736,8 +736,8 @@ export default function PIConsentModule() {
                         {activeConsent?.placedFields?.map((f: any) => (
                             <div key={f.id} style={{ padding: '0.75rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '8px', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: COLORS.border }}>
                                 <div>
-                                    <div style={{ fontSize: '11px', fontWeight: 900, color: 'white' }}>{f.type}</div>
-                                    <div style={{ fontSize: '9px', color: COLORS.label }}>Page {f.page} · {Math.round(f.x)}% x {Math.round(f.y)}%</div>
+                                    <div style={{ fontSize: '12px', fontWeight: 900, color: 'white' }}>{f.type}</div>
+                                    <div style={{ fontSize: '12px', color: COLORS.label }}>Page {f.page} · {Math.round(f.x)}% x {Math.round(f.y)}%</div>
                                 </div>
                                 <button 
                                     style={{ background: 'none', border: 'none', color: COLORS.danger, cursor: 'pointer' }}
@@ -766,8 +766,8 @@ export default function PIConsentModule() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
                         <button style={S.btnGhost} onClick={() => setActiveView('records')}><ArrowLeft size={14} /> Back to Registry</button>
                         <div style={{ display: 'flex', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: '8px', padding: '0.25rem' }}>
-                            <button onClick={() => setPiDocTab('signed')} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: 900, backgroundColor: piDocTab === 'signed' ? COLORS.accent : 'transparent', color: 'white', cursor: 'pointer' }}>Signed Record</button>
-                            <button onClick={() => setPiDocTab('original')} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: 900, backgroundColor: piDocTab === 'original' ? COLORS.accent : 'transparent', color: 'white', cursor: 'pointer' }}>IRB Original</button>
+                            <button onClick={() => setPiDocTab('signed')} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 900, backgroundColor: piDocTab === 'signed' ? COLORS.accent : 'transparent', color: 'white', cursor: 'pointer' }}>Signed Record</button>
+                            <button onClick={() => setPiDocTab('original')} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 900, backgroundColor: piDocTab === 'original' ? COLORS.accent : 'transparent', color: 'white', cursor: 'pointer' }}>IRB Original</button>
                         </div>
                     </div>
                     <div style={S.badge(COLORS.accent)}><Clock size={12} /> Received: {activeRecord?.participantSignedDate}</div>
@@ -782,7 +782,7 @@ export default function PIConsentModule() {
                     <h2 style={{ ...S.title, fontSize: '20px' }}>Protocol Verification</h2>
                     <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
                         <span style={S.label}>Participant:</span>
-                        <span style={{ fontSize: '11px', fontWeight: 900, color: 'white' }}>{activeRecord?.participantId}</span>
+                        <span style={{ fontSize: '12px', fontWeight: 900, color: 'white' }}>{activeRecord?.participantId}</span>
                     </div>
                 </div>
 
@@ -808,7 +808,7 @@ export default function PIConsentModule() {
                     {piSignature ? (
                         <div>
                             <div style={{ fontFamily: 'cursive', fontSize: '28px', color: COLORS.accent }}>Dr. Yadav — PI</div>
-                            <div style={{ fontSize: '10px', color: COLORS.label, marginTop: '0.5rem' }}>TIMESTAMP: {new Date().toLocaleString()}</div>
+                            <div style={{ fontSize: '12px', color: COLORS.label, marginTop: '0.5rem' }}>TIMESTAMP: {new Date().toLocaleString()}</div>
                         </div>
                     ) : (
                         <div style={{ opacity: 0.3 }}>
@@ -899,7 +899,7 @@ export default function PIConsentModule() {
                                 <div className="space-y-12">
                                     <div className="text-center pb-8 border-b border-slate-100">
                                         <h1 className="text-3xl font-black uppercase tracking-tighter mb-2">MusB Clinical Protocol v1.4.2</h1>
-                                        <p className="text-slate-500 font-bold uppercase tracking-widest text-xs italic">Beat the Bloat Study • IRB #25-028</p>
+                                        <p className="text-slate-500 font-bold uppercase tracking-widest text-[12px] italic">Beat the Bloat Study • IRB #25-028</p>
                                     </div>
                                     
                                     <section>
@@ -931,9 +931,9 @@ export default function PIConsentModule() {
                                     <div className="h-[200px] bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-10 text-center gap-4">
                                         <ShieldCheck size={40} className="text-indigo-200 shadow-xl shadow-indigo-500/10" />
                                         <div>
-                                            <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-1">Authenticated Regulatory Node</p>
+                                            <p className="text-slate-400 font-bold uppercase tracking-widest text-[12px] mb-1">Authenticated Regulatory Node</p>
                                             <p className="text-indigo-600 font-black italic text-lg mb-1">{activeConsent?.study || 'STUDY-PROTOCOL-001'}</p>
-                                            <p className="text-slate-400 text-[10px] italic">Verified IRB Approval Stamp: MAR-2026-X88</p>
+                                            <p className="text-slate-400 text-[12px] italic">Verified IRB Approval Stamp: MAR-2026-X88</p>
                                         </div>
                                     </div>
 
@@ -1118,7 +1118,7 @@ export default function PIConsentModule() {
                    </div>
                 </div>
                 <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: '12px', padding: '2rem', textAlign: 'center', cursor: 'pointer' }} onClick={() => setCcSignature(!ccSignature)}>
-                    {ccSignature ? <div style={{ fontFamily: 'cursive', fontSize: '24px', color: COLORS.success }}>John Doe — Coordinator</div> : <div style={{ color: COLORS.label, fontSize: '11px', fontWeight: 900 }}>CLICK TO APPLY STAFF SIGNATURE</div>}
+                    {ccSignature ? <div style={{ fontFamily: 'cursive', fontSize: '24px', color: COLORS.success }}>John Doe — Coordinator</div> : <div style={{ color: COLORS.label, fontSize: '12px', fontWeight: 900 }}>CLICK TO APPLY STAFF SIGNATURE</div>}
                 </div>
                 <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <button style={{ ...S.btnIndigo, width: '100%', padding: '1.25rem' }} onClick={() => addToast('Review submitted for PI')}><Fingerprint size={16} /> FORWARD TO PI</button>
@@ -1142,7 +1142,7 @@ export default function PIConsentModule() {
                         <ShieldCheck size={36} color={COLORS.success} />
                         <div>
                             <h1 style={{ ...S.title, fontSize: '18px' }}>Consent Management</h1>
-                            <div className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-400 mt-2 italic">
+                            <div className="text-[12px] font-black uppercase tracking-[0.3em] text-indigo-400 mt-2 italic">
                                 GOVERNANCE OVERLAY {' > '} <span className="text-white">{activeView.toUpperCase()} MODE</span>
                             </div>
                         </div>
@@ -1308,7 +1308,7 @@ export default function PIConsentModule() {
                     <div key={t.id} style={{ 
                         padding: '1rem 2.5rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '1.25rem',
                         backgroundColor: t.type === 'success' ? COLORS.success : t.type === 'error' ? COLORS.danger : COLORS.warning,
-                        color: 'white', fontWeight: 900, textTransform: 'uppercase', fontSize: '11px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                        color: 'white', fontWeight: 900, textTransform: 'uppercase', fontSize: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
                         animation: 'slideIn 0.3s forwards', position: 'relative', overflow: 'hidden'
                     }}>
                         <Info size={16} /> <span>{t.message}</span>
@@ -1345,8 +1345,8 @@ export default function PIConsentModule() {
                             {(consentRecords.find((r: any) => r.id === auditDrawerRecordId)?.auditLog || []).map((log: any, i: number) => (
                                 <div key={i} style={{ padding: '1.25rem', borderLeft: `2px solid ${log.role === 'PI' ? COLORS.accent : log.role === 'CC' ? COLORS.success : COLORS.warning}`, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '0 8px 8px 0', marginBottom: '1rem' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                        <span style={{ fontSize: '11px', fontWeight: 900, color: 'white' }}>{log.user.toUpperCase()} · {log.role}</span>
-                                        <span style={{ fontSize: '10px', color: COLORS.label }}>{log.time}</span>
+                                        <span style={{ fontSize: '12px', fontWeight: 900, color: 'white' }}>{log.user.toUpperCase()} · {log.role}</span>
+                                        <span style={{ fontSize: '12px', color: COLORS.label }}>{log.time}</span>
                                     </div>
                                     <div style={{ fontSize: '13px', color: COLORS.text, lineHeight: 1.4 }}>{log.action}</div>
                                 </div>
@@ -1394,3 +1394,5 @@ export default function PIConsentModule() {
         </motion.div>
     );
 }
+
+

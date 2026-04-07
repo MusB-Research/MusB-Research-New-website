@@ -91,7 +91,8 @@ class UserSerializer(SanitizedModelSerializer):
             'id', 'email', 'full_name', 'role', 'phone_number', 'mobile_number',
             'profile_picture', 'password', 'last_login_formatted', 'date_joined_formatted',
             'full_address', 'city', 'state', 'zip_code', 'country', 'place_of_origin',
-            'must_change_password', 'profile_completed', 'is_active', 'timezone'
+            'must_change_password', 'profile_completed', 'is_active', 'timezone',
+            'status', 'affiliation', 'assigned_studies', 'created_by'
         ]
 
     def to_representation(self, instance):

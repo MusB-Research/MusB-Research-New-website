@@ -26,15 +26,15 @@ export default function ReportsModule() {
                     <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">
                         Analytical <span className="text-cyan-400">Reports</span>
                     </h2>
-                    <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px] mt-2 italic">
+                    <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[12px] mt-2 italic">
                         Scientific Insights & Protocol Compliance Metadata
                     </p>
                 </div>
                 <div className="flex gap-4">
-                    <button className="px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center gap-2 italic">
+                    <button className="px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-[12px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center gap-2 italic">
                          <Calendar className="w-4 h-4" /> Schedule Auto-Report
                     </button>
-                    <button className="px-8 py-4 bg-cyan-500 text-slate-950 rounded-[2rem] text-[10px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-xl shadow-cyan-500/20 hover:scale-[1.02] transition-all">
+                    <button className="px-8 py-4 bg-cyan-500 text-slate-950 rounded-[2rem] text-[12px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-xl shadow-cyan-500/20 hover:scale-[1.02] transition-all">
                         <FileBarChart className="w-4 h-4" /> Run New Analysis
                     </button>
                 </div>
@@ -49,7 +49,7 @@ export default function ReportsModule() {
                                 <TrendingUp className="w-5 h-5 text-cyan-400" />
                                 Recruitment <span className="text-cyan-400">Velocity</span>
                             </h3>
-                            <select className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[10px] font-black text-white uppercase tracking-widest outline-none">
+                            <select className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[12px] font-black text-white uppercase tracking-widest outline-none">
                                 <option>Last 30 Days</option>
                                 <option>Last 6 Months</option>
                                 <option>Year to Date</option>
@@ -65,7 +65,7 @@ export default function ReportsModule() {
                                     animate={{ height: `${h}%` }}
                                     className="flex-1 bg-gradient-to-t from-cyan-500/20 to-cyan-500/60 rounded-t-lg relative group/bar"
                                 >
-                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-white text-slate-950 px-2 py-1 rounded text-[8px] font-black opacity-0 group-hover/bar:opacity-100 transition-opacity whitespace-nowrap">
+                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-white text-slate-950 px-2 py-1 rounded text-[12px] font-black opacity-0 group-hover/bar:opacity-100 transition-opacity whitespace-nowrap">
                                         {h} Hits
                                     </div>
                                 </motion.div>
@@ -74,14 +74,14 @@ export default function ReportsModule() {
                         </div>
                         <div className="flex justify-between mt-6 px-4">
                             {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
-                                <span key={m} className="text-[9px] font-black text-slate-700 uppercase">{m}</span>
+                                <span key={m} className="text-[12px] font-black text-slate-700 uppercase">{m}</span>
                             ))}
                         </div>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-8 space-y-6">
-                            <h4 className="text-xs font-black text-white uppercase italic tracking-widest flex items-center gap-2">
+                            <h4 className="text-[12px] font-black text-white uppercase italic tracking-widest flex items-center gap-2">
                                 <PieChart className="w-4 h-4 text-indigo-400" /> Compliance Mix
                             </h4>
                             <div className="flex items-center gap-8">
@@ -89,14 +89,14 @@ export default function ReportsModule() {
                                      <span className="text-xl font-black text-white italic">84%</span>
                                 </div>
                                 <div className="space-y-3">
-                                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-indigo-500" /> <span className="text-[9px] font-black text-slate-400 uppercase">On Time</span></div>
-                                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-indigo-500/40" /> <span className="text-[9px] font-black text-slate-400 uppercase">Delayed</span></div>
-                                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-white/5" /> <span className="text-[9px] font-black text-slate-400 uppercase">Missing</span></div>
+                                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-indigo-500" /> <span className="text-[12px] font-black text-slate-400 uppercase">On Time</span></div>
+                                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-indigo-500/40" /> <span className="text-[12px] font-black text-slate-400 uppercase">Delayed</span></div>
+                                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-white/5" /> <span className="text-[12px] font-black text-slate-400 uppercase">Missing</span></div>
                                 </div>
                             </div>
                         </div>
                         <div className="bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-8 space-y-6">
-                             <h4 className="text-xs font-black text-white uppercase italic tracking-widest flex items-center gap-2">
+                             <h4 className="text-[12px] font-black text-white uppercase italic tracking-widest flex items-center gap-2">
                                 <Users className="w-4 h-4 text-emerald-400" /> Diversity Ratio
                             </h4>
                              <div className="space-y-4">
@@ -106,7 +106,7 @@ export default function ReportsModule() {
                                     { label: 'Rural Connectivity', val: 18 },
                                 ].map(row => (
                                     <div key={row.label} className="space-y-2">
-                                        <div className="flex justify-between text-[8px] font-black uppercase tracking-widest">
+                                        <div className="flex justify-between text-[12px] font-black uppercase tracking-widest">
                                             <span className="text-slate-500">{row.label}</span>
                                             <span className="text-white">{row.val}%</span>
                                         </div>
@@ -140,15 +140,15 @@ export default function ReportsModule() {
                                             <Download className="w-4 h-4" />
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-black text-white italic uppercase">{report.name}</p>
-                                            <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest mt-1">{report.date} • {report.type}</p>
+                                            <p className="text-[12px] font-black text-white italic uppercase">{report.name}</p>
+                                            <p className="text-[12px] text-slate-500 font-bold uppercase tracking-widest mt-1">{report.date} • {report.type}</p>
                                         </div>
                                     </div>
                                     <ChevronRight className="w-4 h-4 text-slate-800" />
                                 </div>
                             ))}
                         </div>
-                        <button className="w-full py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-white hover:text-slate-950 transition-all italic flex items-center justify-center gap-3">
+                        <button className="w-full py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-[12px] uppercase tracking-widest hover:bg-white hover:text-slate-950 transition-all italic flex items-center justify-center gap-3">
                             <Clock className="w-4 h-4" /> View Full Archive
                         </button>
                     </div>
@@ -157,3 +157,6 @@ export default function ReportsModule() {
         </motion.div>
     );
 }
+
+
+

@@ -34,12 +34,12 @@ export default function MyDocumentsModule({ selectedStudyId }: { selectedStudyId
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div>
                     <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">My <span className="text-indigo-400">Credentials</span></h2>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">Professional Certification & Compliance Vault</p>
+                    <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">Professional Certification & Compliance Vault</p>
                 </div>
                 <div className="flex items-center gap-4">
                     <button 
                         onClick={handleBulkExport}
-                        className="px-6 py-3.5 bg-white/5 border border-white/10 text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-xl"
+                        className="px-6 py-3.5 bg-white/5 border border-white/10 text-slate-400 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-xl"
                     >
                         Bulk Credential Package
                     </button>
@@ -47,7 +47,7 @@ export default function MyDocumentsModule({ selectedStudyId }: { selectedStudyId
                         <input type="file" id="credential-upload" className="hidden" onChange={handleFileUpload} />
                         <button 
                             onClick={() => document.getElementById('credential-upload')?.click()}
-                            className="px-8 py-3.5 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.03] hover:shadow-indigo-500/40 transition-all shadow-xl shadow-indigo-600/30 flex items-center gap-3 active:scale-95"
+                            className="px-8 py-3.5 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.03] hover:shadow-indigo-500/40 transition-all shadow-xl shadow-indigo-600/30 flex items-center gap-3 active:scale-95"
                         >
                             Add New Credential <Plus className="w-5 h-5" />
                         </button>
@@ -68,11 +68,11 @@ export default function MyDocumentsModule({ selectedStudyId }: { selectedStudyId
             <div className="p-10 bg-indigo-600/10 border border-indigo-500/20 rounded-[3rem] flex flex-col md:flex-row md:items-center justify-between gap-8 text-center md:text-left">
                 <div className="space-y-2">
                     <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Your Regulatory <span className="text-indigo-500">Binder Ready</span></h3>
-                    <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest max-w-xl">All credentials are verified for <span className="text-white">Cohort B Entry</span>. Automated credentialing for Sponsor review is active.</p>
+                    <p className="text-[12px] text-slate-400 font-bold uppercase tracking-widest max-w-xl">All credentials are verified for <span className="text-white">Cohort B Entry</span>. Automated credentialing for Sponsor review is active.</p>
                 </div>
                 <button 
                     onClick={() => window.open('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', '_blank')}
-                    className="px-8 py-4 bg-white text-slate-950 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all outline-none"
+                    className="px-8 py-4 bg-white text-slate-950 rounded-2xl text-[12px] font-black uppercase tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all outline-none"
                 >
                     Download Audit Package
                 </button>
@@ -82,3 +82,5 @@ export default function MyDocumentsModule({ selectedStudyId }: { selectedStudyId
         </motion.div>
     );
 }
+
+

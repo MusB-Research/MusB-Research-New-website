@@ -25,7 +25,7 @@ export const DocumentRegistry: React.FC<DocumentRegistryProps> = ({ participant 
                                 </div>
                                 <div style={{ flex: 1 }}>
                                     <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'white' }}>{doc.n}</div>
-                                    <div style={{ fontSize: '11px', color: COLORS.label }}>v{doc.v} • {doc.d}</div>
+                                    <div style={{ fontSize: '12px', color: COLORS.label }}>v{doc.v} • {doc.d}</div>
                                 </div>
                                 <button style={{ ...S.btnGhost, padding: '0.5rem', opacity: 0.5 }} className="group-hover:opacity-100 transition-opacity">
                                     <ArrowUpRight size={14} />
@@ -38,3 +38,5 @@ export const DocumentRegistry: React.FC<DocumentRegistryProps> = ({ participant 
         </div>
     );
 };
+
+
