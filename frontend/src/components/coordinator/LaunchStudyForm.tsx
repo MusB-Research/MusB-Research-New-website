@@ -141,7 +141,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                     </div>
                     <div>
                         <h1 className="text-3xl lg:text-5xl font-black text-white italic uppercase tracking-tighter leading-tight italic">Launch <span className="text-indigo-400">New Study</span></h1>
-                        <p className="text-[12px] text-white/40 font-bold uppercase tracking-[0.3em] mt-2">Protocol Matrix Verification Hub V2.6</p>
+                        <p className="text-[12px] text-white/40 font-bold uppercase tracking-[0.3em] mt-2">Study Setup Hub</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-6">
@@ -187,7 +187,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                 </div>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                                     <div className="space-y-4">
-                                        <label className="text-[15px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Internal ID / Registry Number</label>
+                                        <label className="text-[15px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Internal ID / Study Number</label>
                                         <div className="bg-white/5 border border-white/10 rounded-3xl px-6 py-5 text-xl text-indigo-400 font-mono flex items-center justify-between">
                                             <span>{formData.protocol_id}</span>
                                             <span className="text-[12px] px-3 py-1.5 bg-indigo-500/10 rounded-xl border border-indigo-500/20 font-black uppercase text-indigo-300">Auto-Generated</span>
@@ -252,7 +252,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                             
                             <div className="bg-[#0B101B]/80 backdrop-blur-xl border border-white/5 rounded-[3.5rem] p-12 space-y-12 shadow-xl">
                                 <div className="flex items-center gap-4 border-l-4 border-emerald-500 pl-8">
-                                    <h3 className="text-3xl font-black text-white uppercase tracking-tighter italic">Protocol Headers</h3>
+                                    <h3 className="text-3xl font-black text-white uppercase tracking-tighter italic">Study Information</h3>
                                 </div>
                                 <div className="space-y-10">
                                     <div className="space-y-4">
@@ -283,7 +283,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                             <div className="bg-[#0B101B]/80 backdrop-blur-xl border border-white/5 rounded-[3.5rem] p-12 space-y-12 shadow-xl relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-12 opacity-5"><Activity className="w-48 h-48 text-white" /></div>
                                 <div className="flex items-center gap-4 border-l-4 border-indigo-500 pl-8">
-                                    <h3 className="text-3xl font-black text-white uppercase tracking-tighter italic">Methodology Configuration</h3>
+                                    <h3 className="text-3xl font-black text-white uppercase tracking-tighter italic">Study Design</h3>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                                     {[
@@ -307,7 +307,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                 
                                 <div className="pt-8 border-t border-white/5 grid grid-cols-1 lg:grid-cols-2 gap-12">
                                     <div className="space-y-6">
-                                        <label className="text-[15px] font-black text-slate-500 uppercase tracking-widest ml-2 italic">Subject Population Node</label>
+                                        <label className="text-[15px] font-black text-slate-500 uppercase tracking-widest ml-2 italic">Participant Goal</label>
                                         <div className="bg-white/5 border border-white/5 rounded-3xl p-8 flex items-center justify-between">
                                             <div>
                                                 <p className="text-[12px] font-black text-indigo-400 uppercase tracking-widest">Target Sample Size</p>
@@ -335,7 +335,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                 </div>
 
                                 <div className="pt-8 border-t border-white/5 space-y-8">
-                                    <label className="text-[15px] font-black text-slate-500 uppercase tracking-widest ml-2">Participant Financial Protocol</label>
+                                    <label className="text-[15px] font-black text-slate-500 uppercase tracking-widest ml-2">Participant Payment</label>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="bg-white/5 border border-white/5 rounded-2xl p-6">
                                             <p className="text-[12px] font-black text-indigo-400 uppercase tracking-widest mb-3">Stipend Amount</p>
@@ -425,7 +425,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                     <Upload className="w-10 h-10 text-indigo-400" />
                                 </div>
                                 
-                                <h3 className="text-3xl font-black text-white uppercase tracking-tighter italic mb-4 leading-none">Sync Digital Protocol Matrix</h3>
+                                <h3 className="text-3xl font-black text-white uppercase tracking-tighter italic mb-4 leading-none">Upload Study Documents</h3>
                                 <p className="text-slate-400 text-lg font-medium max-w-xl mb-12 italic text-center leading-relaxed">Select files for IRB Protocol, Informed Consent Templates, and Patient Recruitment Flyers to begin clinical synchronization.</p>
                                 
                                 <div className="relative group">
@@ -436,7 +436,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                         className="relative px-12 py-5 bg-[#0B101B] border border-white/10 hover:border-indigo-500/50 rounded-3xl flex items-center gap-4 transition-all overflow-hidden"
                                     >
                                         <Plus className="w-6 h-6 text-indigo-400 group-hover:rotate-90 transition-transform duration-500" />
-                                        <span className="text-[12px] font-black uppercase tracking-[0.3em] text-white">Select Protocol Artifacts</span>
+                                        <span className="text-[12px] font-black uppercase tracking-[0.3em] text-white">Select Study Documents</span>
                                     </button>
                                 </div>
                                 
@@ -451,7 +451,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                 <div className="p-3 bg-white/5 rounded-2xl group-hover:bg-indigo-500/10 transition-colors"><Microscope className="w-6 h-6 text-indigo-400" /></div>
                                                 <div className="text-left">
                                                     <p className="text-sm font-black text-white uppercase tracking-tighter group-hover:text-indigo-300 transition-colors">{doc.name}</p>
-                                                    <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mt-1 italic">{doc.category} Node • {doc.version}</p>
+                                                    <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mt-1 italic">{doc.category} Type • {doc.version}</p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-6">
@@ -478,7 +478,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                             <div className="bg-[#0B101B]/80 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-12 space-y-12 shadow-xl relative overflow-hidden">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4 border-l-4 border-indigo-500 pl-8">
-                                        <h3 className="text-4xl font-black text-white uppercase tracking-tighter italic">Protocol Pre-Flight Review</h3>
+                                        <h3 className="text-4xl font-black text-white uppercase tracking-tighter italic">Final Review</h3>
                                     </div>
                                     <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl border transition-all ${validation?.isValid ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'bg-red-500/10 border-red-500/50 text-red-500'}`}>
                                         {validation?.isValid ? <ShieldCheck className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
@@ -583,12 +583,12 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
 
                 <div className="flex items-center gap-6">
                     <button onClick={onClose} className="px-8 py-5 text-slate-500 hover:text-white transition-all text-[12px] font-black uppercase tracking-widest italic group">
-                        Discard <span className="opacity-0 group-hover:opacity-100 transition-opacity">Protocol</span>
+                        Discard <span className="opacity-0 group-hover:opacity-100 transition-opacity">Study</span>
                     </button>
                     
                     {currentStep < 5 ? (
                         <button onClick={handleNext} className="px-12 py-5 bg-indigo-600 text-white rounded-2xl flex items-center gap-4 shadow-2xl shadow-indigo-600/30 hover:scale-[1.02] active:scale-95 transition-all group">
-                            <span className="text-[12px] font-black uppercase tracking-[0.2em]">Proceed to Step {currentStep + 1}</span>
+                            <span className="text-[12px] font-black uppercase tracking-[0.2em]">Next Step</span>
                             <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </button>
                     ) : (
@@ -603,7 +603,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                             className={`px-14 py-5 rounded-[2.5rem] flex items-center gap-4 shadow-3xl transition-all ${validation?.isValid ? 'bg-emerald-600 animate-pulse-slow text-white shadow-emerald-500/40 hover:scale-[1.05] active:scale-95 hover:bg-emerald-500' : 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed border border-white/5'}`}
                         >
                             <Rocket className="w-6 h-6" />
-                            <span className="text-[12px] font-black uppercase tracking-[0.2em]">{validation?.isValid ? 'Finalize & Launch Protocol' : 'Identity Verification Required'}</span>
+                            <span className="text-[12px] font-black uppercase tracking-[0.2em]">{validation?.isValid ? 'Launch Study' : 'Identity Verification Required'}</span>
                         </button>
                     )}
                 </div>
