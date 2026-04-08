@@ -95,6 +95,12 @@ export default function CCC_SubjectReviewModule({ participantId = 'BTB-023', sel
     const [screeningNotes, setScreeningNotes] = useState('');
 
     const fetchData = useCallback(async () => {
+        if (!participantId || participantId === 'BTB-023') {
+            setParticipant(MOCK_PARTICIPANT);
+            setLoading(false);
+            return;
+        }
+
         try {
             setLoading(true);
             const res = await authFetch(`${API}/api/participants/${participantId}/`);

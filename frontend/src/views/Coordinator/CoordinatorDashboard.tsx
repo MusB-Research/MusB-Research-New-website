@@ -384,8 +384,8 @@ export default function CoordinatorDashboard() {
                     </button>
                 </div>
 
-                <div className="hidden lg:flex flex-col h-full justify-center">
-                    <h1 className="text-2xl lg:text-3xl font-black text-white uppercase italic tracking-tighter leading-none">COORDINATOR TERMINAL</h1>
+                <div className="flex items-center gap-8">
+                    <h1 className="text-2xl lg:text-3xl font-black text-white uppercase italic tracking-tight leading-none">COORDINATOR TERMINAL</h1>
                 </div>
 
                 <div className="flex items-center gap-6">
@@ -462,7 +462,7 @@ export default function CoordinatorDashboard() {
 
                     <div className="flex items-center gap-4 relative h-full" ref={profileRef}>
                         <div className="text-right hidden lg:flex flex-col h-full justify-center">
-                            <p className="text-[16px] font-black text-white uppercase italic leading-none tracking-tight">{userName}</p>
+                            <p className="text-[16px] font-black text-white uppercase italic leading-none tracking-normal">{userName}</p>
                             <p className="text-[12px] text-[#14b8a6] font-bold uppercase tracking-[0.2em] mt-2">Clinical Coordinator</p>
                         </div>
                         <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white/5 border border-white/10 p-0.5 hover:border-[#14b8a6] transition-all active:scale-95 group overflow-hidden shadow-2xl">
@@ -515,7 +515,7 @@ export default function CoordinatorDashboard() {
                 </nav>
             </aside>
 
-            <main className="flex-1 lg:pl-80 pt-32 pb-24 px-8 overflow-x-hidden bg-[#0F172A] min-h-screen">
+            <main className="flex-1 lg:pl-80 pt-32 pb-24 px-12 lg:px-16 overflow-x-hidden bg-[#0F172A] min-h-screen">
                 <AnimatePresence mode="wait">
                     {activeModule === 'OVERSIGHT' && (
                         <OversightModule studyCount={studies.length} stats={oversightStats} currentTime={currentTime} onLaunch={() => setActiveModule('LAUNCH_STUDY')} onNavigate={(id) => setActiveModule(id as CCModule)} />
@@ -559,45 +559,45 @@ function OversightModule({ studyCount, stats, currentTime, onLaunch, onNavigate 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-3">
-                    <h2 className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter leading-none">Operations <span className="text-[#14b8a6]">Oversight</span></h2>
-                    <div className="flex items-center gap-6 py-2">
-                        <span className="text-xl font-black text-[#14b8a6] italic tracking-tighter tabular-nums">{currentTime.toLocaleTimeString('en-US', { hour12: false })}</span>
-                        <div className="w-px h-3 bg-white/10" />
-                        <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic">{currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}</span>
-                    </div>
-                    <p className="text-[12px] text-white/50 font-bold uppercase tracking-[0.4em] italic">Clinical Research Execution & Velocity</p>
+                    <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tight leading-none">Operations <span className="text-[#14b8a6]">Oversight</span></h2>
+                    {/* Redundant clock removed as per user request */}
+                    <p className="text-[11px] text-white/50 font-bold uppercase tracking-[0.4em] mt-3 md:mt-4 italic">Clinical Research Execution & Velocity</p>
                 </div>
                 <button onClick={onLaunch} className="px-10 py-5 bg-[#14b8a6] text-white rounded-[2rem] text-[12px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-2xl shadow-teal-900/40 hover:scale-105 transition-all"><Rocket className="w-5 h-5" /> INITIALIZE STUDY</button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Row 1 - KPI Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-20 border-t border-white/5 pt-10">
                 {[
                     { label: 'Live Protocols', val: studyCount.toString().padStart(2, '0'), icon: Beaker, color: 'teal', id: 'STUDIES' },
                     { label: 'Active Subjects', val: '1,240', icon: UsersRound, color: 'indigo', id: 'PARTICIPANTS' },
                     { label: 'System Alerts', val: '02', icon: Activity, color: 'red', id: 'ALERTS' },
                 ].map((stat, i) => (
-                    <div key={i} onClick={() => onNavigate(stat.id)} className="bg-[#0F172A] border border-white/10 rounded-[3rem] p-10 flex flex-col justify-between min-h-[300px] group hover:bg-[#0B101B] hover:border-[#14b8a6]/40 transition-all cursor-pointer relative overflow-hidden">
-                        <div className={`w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform`}><stat.icon className={`w-8 h-8 text-white`} /></div>
-                        <div className="mt-8">
-                            <h4 className="text-[15px] font-black text-white/50 uppercase tracking-[0.2em] italic mb-4 group-hover:text-white transition-colors">{stat.label}</h4>
-                            <p className="text-3xl font-black text-white italic tracking-tighter leading-none group-hover:text-[#14b8a6] transition-colors">{stat.val}</p>
+                    <div key={i} onClick={() => onNavigate(stat.id)} className="flex flex-col gap-6 group cursor-pointer">
+                        <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                                <stat.icon className={`w-5 h-5 text-white`} />
+                            </div>
+                            <h4 className="text-[11px] font-black text-white/40 uppercase tracking-[0.3em] italic group-hover:text-white transition-colors uppercase">{stat.label}</h4>
                         </div>
+                        <p className="text-3xl md:text-4xl font-black text-white italic tracking-tighter leading-none group-hover:text-[#14b8a6] transition-colors uppercase">{stat.val}</p>
                     </div>
                 ))}
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Row 2 - Operational Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 border-t border-white/5 pt-10">
                 {[
                     { label: 'Upcoming visits', val: stats.upcomingVisits, sub: '60-day window', color: 'indigo', id: 'VISITS' },
                     { label: 'Overdue follow-ups', val: stats.overdueFollowUps, sub: 'Action Required', color: 'red', id: 'ALERTS' },
                     { label: 'Awaiting callback', val: stats.awaitingCallback, sub: 'Leads Node', color: 'emerald', id: 'SPONSORS' },
                     { label: 'Pending forms', val: stats.pendingForms, sub: 'Submissions', color: 'amber', id: 'FORMS' }
                 ].map((widget, i) => (
-                    <div key={i} onClick={() => onNavigate(widget.id)} className="bg-[#0F172A] border border-white/[0.08] rounded-[2.5rem] p-8 hover:bg-[#0B101B] hover:border-white/20 transition-all cursor-pointer relative group">
-                        <h4 className="text-sm font-black text-white/50 uppercase tracking-widest italic group-hover:text-white">{widget.label}</h4>
-                        <div className="flex items-end gap-4 mt-6">
-                            <p className="text-2xl font-black text-white italic tracking-tighter uppercase">{widget.val}</p>
-                            <p className="text-[12px] text-white/40 font-black uppercase tracking-widest mb-2 italic">{widget.sub}</p>
+                    <div key={i} onClick={() => onNavigate(widget.id)} className="group cursor-pointer relative">
+                        <h4 className="text-[11px] font-black text-white/30 uppercase tracking-[0.3em] italic group-hover:text-white transition-colors mb-4">{widget.label}</h4>
+                        <div className="flex items-end gap-3">
+                            <p className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none group-hover:scale-105 transition-transform origin-left">{widget.val}</p>
+                            <p className="text-[10px] text-white/40 font-black uppercase tracking-widest mb-1 italic whitespace-nowrap">{widget.sub}</p>
                         </div>
                     </div>
                 ))}
@@ -611,33 +611,51 @@ function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter">Study <span className="text-[#14b8a6]">Directory</span></h2>
-                    <p className="text-[12px] text-slate-500 uppercase tracking-widest font-black mt-2">Managing {studies.length} active research protocols</p>
+                    <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tight leading-none">Study <span className="text-[#14b8a6]">Directory</span></h2>
+                    <p className="text-[11px] text-slate-500 uppercase tracking-[0.4em] font-black mt-3 md:mt-4 italic">Managing {studies.length} active research protocols</p>
                 </div>
                 <button onClick={onAdd} className="px-8 py-4 bg-white text-black rounded-2xl font-black text-[12px] uppercase tracking-widest flex items-center gap-3 hover:scale-105 transition-all shadow-xl"><Plus className="w-4 h-4" /> Setup Protocol</button>
             </div>
-            <div className="bg-[#0B101B] border border-white/5 rounded-[3rem] overflow-hidden">
-                <table className="w-full text-left">
+            <div className="overflow-x-auto custom-scrollbar-horizontal">
+                <table className="w-full text-left table-fixed min-w-[1000px] border-t border-white/5">
+                    <colgroup>
+                        <col className="w-[15%]" />
+                        <col className="w-[40%]" />
+                        <col className="w-[15%]" />
+                        <col className="w-[15%]" />
+                        <col className="w-[15%]" />
+                    </colgroup>
                     <thead>
-                        <tr className="bg-white/[0.03] border-b border-white/5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic">
-                            <th className="px-8 py-6">Protocol ID</th>
-                            <th className="px-8 py-6">Title & Type</th>
-                            <th className="px-8 py-6">Sponsor</th>
-                            <th className="px-8 py-6">Status</th>
-                            <th className="px-8 py-6 text-right">Action</th>
+                        <tr className="bg-white/[0.02] border-b border-white/5 text-[12px] font-black text-white/80 uppercase tracking-widest italic">
+                            <th className="px-10 py-8 border-r border-white/5">Protocol ID</th>
+                            <th className="px-10 py-8 border-r border-white/5">Research Objective</th>
+                            <th className="px-10 py-8 border-r border-white/5">Clinical Sponsor</th>
+                            <th className="px-10 py-8 border-r border-white/5">Lifecycle</th>
+                            <th className="px-10 py-8 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
                         {studies.map((s) => (
-                            <tr key={s.id} className="hover:bg-white/[0.02] cursor-pointer group" onClick={() => onEdit(s)}>
-                                <td className="px-8 py-6 text-sm font-black text-[#14b8a6] italic">{s.protocol_id}</td>
-                                <td className="px-8 py-6">
-                                    <p className="text-sm font-black text-white uppercase tracking-widest group-hover:text-[#14b8a6]">{s.title}</p>
-                                    <p className="text-[12px] text-slate-500 font-bold uppercase">{s.study_type}</p>
+                            <tr key={s.id} className="hover:bg-white/[0.02] cursor-pointer group transition-colors" onClick={() => onEdit(s)}>
+                                <td className="px-10 py-10 text-base font-black text-[#14b8a6] italic border-r border-white/5">{s.protocol_id}</td>
+                                <td className="px-10 py-10 border-r border-white/5">
+                                    <p className="text-base font-black text-white italic uppercase tracking-tight leading-none truncate">{s.title}</p>
+                                    <p className="text-[12px] text-white/30 font-bold uppercase tracking-widest mt-1.5">{s.study_type}</p>
                                 </td>
-                                <td className="px-8 py-6 text-sm font-black text-slate-400 uppercase">{s.sponsor_name || 'Internal'}</td>
-                                <td className="px-8 py-6"><span className={`px-4 py-1.5 rounded-full text-[12px] font-black uppercase tracking-widest border ${s.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-white/5 text-slate-500 border-white/10'}`}>{s.status}</span></td>
-                                <td className="px-8 py-6 text-right text-slate-500 group-hover:text-white transition-colors"><ChevronDown className="w-5 h-5 ml-auto -rotate-90" /></td>
+                                <td className="px-10 py-10 text-[12px] font-black text-slate-500 uppercase tracking-widest border-r border-white/5">{s.sponsor_name || 'Internal Hub'}</td>
+                                <td className="px-10 py-10 border-r border-white/5">
+                                    <span className={`px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border shadow-lg ${
+                                        s.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
+                                        'bg-white/5 text-slate-500 border-white/10'
+                                    }`}>
+                                        {s.status}
+                                    </span>
+                                </td>
+                                <td className="px-10 py-10 text-right">
+                                    <button className="p-3 bg-white/5 border border-white/10 rounded-2xl text-slate-500 group-hover:text-white group-hover:bg-[#14b8a6]/20 transition-all shadow-lg">
+                                        <ChevronRight className="w-5 h-5" />
+                                    </button>
+                                </td>
                             </tr>
                         ))}
                     </tbody>

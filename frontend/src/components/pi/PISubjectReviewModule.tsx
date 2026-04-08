@@ -71,7 +71,7 @@ const S = {
         overflowX: 'auto' as const, scrollbarWidth: 'none' as const
     },
     tab: (active: boolean) => ({
-        padding: '0.6rem 1.25rem', borderRadius: '100px', fontSize: '12px', fontWeight: 900,
+        padding: '0.6rem 1.25rem', borderRadius: '100px', fontSize: '13px', fontWeight: 900,
         textTransform: 'uppercase' as const, letterSpacing: '0.15em', cursor: 'pointer',
         transition: 'all 0.2s', backgroundColor: active ? COLORS.accent : 'transparent',
         color: active ? 'white' : COLORS.text, border: `1px solid ${active ? COLORS.accent : 'transparent'}`
@@ -81,19 +81,19 @@ const S = {
         border: `1px solid ${COLORS.border}`, borderRadius: '1rem', padding: '1.5rem'
     },
     label: {
-        fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const,
+        fontSize: '13px', fontWeight: 900, textTransform: 'uppercase' as const,
         letterSpacing: '0.15em', color: COLORS.label, marginBottom: '0.5rem', display: 'block'
     },
     name: { fontSize: '18px', fontStyle: 'italic', fontWeight: 900, textTransform: 'uppercase' as const, color: 'white' },
     body: { fontSize: '13px', color: COLORS.text, lineHeight: '1.6' },
     btnPrimary: {
         backgroundColor: COLORS.accent, color: 'white', border: 'none',
-        padding: '0.8rem 1.5rem', borderRadius: '6px', fontSize: '12px', fontWeight: 900,
+        padding: '0.8rem 1.5rem', borderRadius: '6px', fontSize: '14px', fontWeight: 900,
         textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem'
     },
     btnGhost: {
         backgroundColor: 'transparent', color: COLORS.text, border: `1px solid ${COLORS.border}`,
-        padding: '0.8rem 1.5rem', borderRadius: '6px', fontSize: '12px', fontWeight: 900,
+        padding: '0.8rem 1.5rem', borderRadius: '6px', fontSize: '14px', fontWeight: 900,
         textTransform: 'uppercase' as const, cursor: 'pointer'
     },
     stickyBottom: {
@@ -110,7 +110,7 @@ const S = {
     },
     title: { fontSize: '14px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: '1rem' },
     badge: (color: string) => ({
-        padding: '0.4rem 0.8rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900 as const,
+        padding: '0.4rem 0.8rem', borderRadius: '4px', fontSize: '13px', fontWeight: 900 as const,
         backgroundColor: `${color}20`, color: color, border: `1px solid ${color}40`, textTransform: 'uppercase' as const
     })
 } as Record<string, any>;
@@ -196,7 +196,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
         setError(null);
         try {
             const res = await authFetch(`${API}/api/participants/${participantId}/`);
-            if (!res.ok) throw new Error('Subject profile not found in MusB directory.');
+            if (!res.ok) throw new Error('Subject profile not found.');
             
             const data = await res.json();
             
@@ -263,7 +263,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                 screeningNotes: data.status_notes || ''
             });
             setScreeningNotes(data.status_notes || '');
-            logAction('Profile Synchronized', `PI accessed live record for ${data.participant_sid}. All clinical parameters hydrated.`);
+            logAction('Profile Updated', `PI accessed live record for ${data.participant_sid}. All clinical data loaded.`);
 
             // Fetch Remote Audit Logs for this subject
             try {
@@ -337,7 +337,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                     {alerts.map(a => (
                         <div key={a.id} style={{ padding: '0.6rem 1rem', borderRadius: '4px', backgroundColor: `${a.color}15`, border: `1px solid ${a.color}30`, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <AlertCircle size={14} color={a.color} />
-                            <span style={{ fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', color: a.color }}>{a.text}</span>
+                            <span style={{ fontSize: '13px', fontWeight: 900, textTransform: 'uppercase', color: a.color }}>{a.text}</span>
                             <X size={12} color={a.color} style={{ cursor: 'pointer' }} />
                         </div>
                     ))}
@@ -349,7 +349,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                     { l: 'Biological Sex', v: participant.sex },
                     { l: 'Assigned Study Arm', v: participant.arm },
                     { l: 'Enrollment Date', v: participant.enrollmentDate },
-                    { l: 'Study Node', v: participant.site },
+                    { l: 'Study Site', v: participant.site },
                     { l: 'Assigned Coordinator', v: participant.coordinator }
                 ].map((item, i) => (
                     <div key={i} style={S.card}>
@@ -358,7 +358,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                     </div>
                 ))}
             </div>
-            {/* COMMAND WORKFLOW SECTION */}
+            {/* ACTIONS SECTION */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 2fr', gap: '1.5rem', marginTop: '1rem' }}>
                 <button 
                     style={{ ...S.card, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', cursor: 'pointer', border: `1px solid ${participant.flagged ? COLORS.warning : COLORS.border}`, backgroundColor: participant.flagged ? `${COLORS.warning}10` : 'transparent' }}
@@ -368,14 +368,14 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                             const res = await authFetch(`${API}/api/participants/${participant.pk}/toggle_flag/`, { method: 'POST' });
                             if (res.ok) {
                                 setParticipant((p: any) => ({ ...p, flagged: !p.flagged }));
-                                addToast(participant.flagged ? 'Protocol flag removed' : 'Subject flagged for review', 'warning');
+                                addToast(participant.flagged ? 'Study flag removed' : 'Subject flagged for review', 'warning');
                                 logAction('Manual Flag', `PI toggled review flag. Current Status: ${!participant.flagged ? 'FLAGGED' : 'CLEAR'}`);
                             }
                         } catch (e) { addToast('Flag sync failed', 'error'); }
                     }}
                 >
                     <Bookmark size={24} color={participant.flagged ? COLORS.warning : COLORS.label} fill={participant.flagged ? COLORS.warning : 'none'} />
-                    <span style={{ fontSize: '12px', fontWeight: 900, color: participant.flagged ? COLORS.warning : COLORS.label }}>{participant.flagged ? 'UNFLAG' : 'FLAG'}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 900, color: participant.flagged ? COLORS.warning : COLORS.label }}>{participant.flagged ? 'UNFLAG' : 'FLAG'}</span>
                 </button>
 
                 <button 
@@ -416,7 +416,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                                 logAction('Subject Withdrawal', 'PI triggered emergency withdrawal protocol. Case terminated.');
                             }
                         } catch (e) { addToast('Withdrawal sync failed', 'error'); }
-                    }, { message: 'EMERGENCY: Are you sure you want to WITHDRAW this subject? This will terminate all active study protocols for this record.', type: 'danger' })}
+                    }, { message: 'EMERGENCY: Are you sure you want to WITHDRAW this subject? This will terminate all active study plans for this record.', type: 'danger' })}
                 >
                     <X size={24} color="white" />
                     <span style={{ fontSize: '14px', fontWeight: 900, color: 'white', textTransform: 'uppercase' }}>Withdraw Subject</span>
@@ -428,7 +428,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
     const renderEligibility = () => (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
             <div style={S.card}>
-                <label style={S.label}>Inclusion Criteria Registry</label>
+                <label style={S.label}>Inclusion Criteria List</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1.5rem' }}>
                     {participant.inclusions.map((inc: any, i: number) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
@@ -439,7 +439,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                 </div>
             </div>
             <div style={S.card}>
-                <label style={S.label}>Exclusion Criteria Registry</label>
+                <label style={S.label}>Exclusion Criteria List</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1.5rem' }}>
                     {participant.exclusions.map((exc: any, i: number) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', backgroundColor: exc.present ? `${COLORS.danger}10` : 'rgba(255,255,255,0.02)', borderRadius: '8px', border: exc.present ? `1px solid ${COLORS.danger}30` : 'none' }}>
@@ -450,10 +450,10 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                 </div>
             </div>
             <div style={{ gridColumn: '1 / -1', ...S.card }}>
-                <label style={S.label}>Screening Methodology Notes</label>
+                <label style={S.label}>Screening Notes</label>
                 <textarea 
                     style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.2)', border: `1px solid ${COLORS.border}`, borderRadius: '8px', color: 'white', padding: '1.5rem', fontSize: '14px', outline: 'none', minHeight: '120px' }}
-                    placeholder="Enter proprietary clinical observations..."
+                    placeholder="Enter clinical observations..."
                     value={screeningNotes}
                     onBlur={() => logAction('Note Saved', 'PI updated screening methodology notes.')}
                     onChange={e => setScreeningNotes(e.target.value)}
@@ -466,7 +466,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             {/* Trend Graph - Raw SVG */}
             <div style={{ ...S.card, height: '300px', display: 'flex', flexDirection: 'column' }}>
-                <label style={S.label}>Aggregate Symptom Velocity</label>
+                <label style={S.label}>Symptom Trends</label>
                 <svg width="100%" height="100%" viewBox="0 0 1000 200" preserveAspectRatio="none">
                     {/* Gridlines */}
                     {[0, 50, 100, 150].map(y => <line key={y} x1="0" y1={y} x2="1000" y2={y} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />)}
@@ -481,7 +481,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                     <circle cx="500" cy="120" r="6" fill={COLORS.accent} />
                     <circle cx="950" cy="80" r="6" fill={COLORS.accent} />
                 </svg>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', color: COLORS.label, fontSize: '12px', fontWeight: 900 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', color: COLORS.label, fontSize: '13px', fontWeight: 900 }}>
                     <span>BASELINE</span>
                     <span>WEEK 2</span>
                     <span>WEEK 4</span>
@@ -489,7 +489,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
             </div>
 
             <div style={S.card}>
-                <label style={S.label}>Individual Symptom Matrics</label>
+                <label style={S.label}>Individual Symptom Scores</label>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                         <tr style={{ borderBottom: `1px solid ${COLORS.border}`, textAlign: 'left' }}>
@@ -529,26 +529,26 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
     const renderAuditTrail = () => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
             <div style={S.card}>
-                <label style={S.label}>System Audit Repository (Permanent)</label>
+                <label style={S.label}>Audit Log (Permanent)</label>
                 <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem' }}>
                     <thead>
                         <tr style={{ borderBottom: `1px solid ${COLORS.border}`, textAlign: 'left' }}>
-                            {['Timestamp', 'Principal', 'Operation', 'Trace ID'].map(h => (
+                            {['Timestamp', 'User', 'Action', 'Log ID'].map(h => (
                                 <th key={h} style={{ padding: '1rem', ...S.label }}>{h}</th>
                             ))}
                         </tr>
                     </thead>
                     <tbody>
                         {remoteAuditLog.length > 0 ? remoteAuditLog.map((log, i) => (
-                            <tr key={i} style={{ borderBottom: `1px solid ${COLORS.border}`, fontSize: '12px' }}>
+                            <tr key={i} style={{ borderBottom: `1px solid ${COLORS.border}`, fontSize: '13px' }}>
                                 <td style={{ padding: '1rem', color: COLORS.label }}>{new Date(log.created_at || log.timestamp).toLocaleString()}</td>
                                 <td style={{ padding: '1rem', fontWeight: 900 }}>{log.user_email || 'SYSTEM'}</td>
                                 <td style={{ padding: '1rem', color: COLORS.accent }}>{log.action}</td>
-                                <td style={{ padding: '1rem', fontSize: '12px', color: COLORS.label }}>{log.id?.substr(-12) || 'AUTO-GEN'}</td>
+                                <td style={{ padding: '1rem', fontSize: '13px', color: COLORS.label }}>{log.id?.substr(-12) || 'AUTO-GEN'}</td>
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan={4} style={{ padding: '3rem', textAlign: 'center', color: COLORS.label, fontSize: '12px', fontStyle: 'italic' }}>No permanent audit transactions hydrated for this subject identity.</td>
+                                <td colSpan={4} style={{ padding: '3rem', textAlign: 'center', color: COLORS.label, fontSize: '13px', fontStyle: 'italic' }}>No audit activity found for this subject.</td>
                             </tr>
                         )}
                     </tbody>
@@ -556,10 +556,10 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
             </div>
 
             <div style={S.card}>
-                <label style={S.label}>Active Session Context (Volatile)</label>
+                <label style={S.label}>Recent Activity</label>
                 <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {auditLog.map((e, i) => (
-                        <div key={i} style={{ padding: '1rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '4px', fontSize: '12px', display: 'flex', gap: '1.5rem' }}>
+                        <div key={i} style={{ padding: '1rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '4px', fontSize: '13px', display: 'flex', gap: '1.5rem' }}>
                             <span style={{ color: COLORS.label, minWidth: '150px' }}>{e.timestamp}</span>
                             <span style={{ fontWeight: 900, color: COLORS.accent }}>{e.action}</span>
                             <span style={{ color: COLORS.text }}>{e.details}</span>
@@ -588,7 +588,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                                     <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{v.date || 'To be scheduled'}</p>
                                 </div>
                                 <div>
-                                    <label style={S.label}>Clinical Node</label>
+                                    <label style={S.label}>Clinic Site</label>
                                     <p style={{ fontSize: '13px', fontWeight: 'bold' }}>Miller Clinic Alpha</p>
                                 </div>
                                 <div>
@@ -617,9 +617,9 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                         <div key={i} style={{ padding: '1.25rem', borderRadius: '12px', border: `1px solid ${COLORS.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
                                 <div style={{ fontSize: '15px', fontWeight: 'bold' }}>{m.drug}</div>
-                                <div style={{ fontSize: '12px', color: COLORS.label, marginTop: '0.25rem' }}>{m.dose} • {m.frequency}</div>
+                                <div style={{ fontSize: '13px', color: COLORS.label, marginTop: '0.25rem' }}>{m.dose} • {m.frequency}</div>
                             </div>
-                            <div style={{ fontSize: '12px', color: COLORS.label }}>Since {m.startDate}</div>
+                            <div style={{ fontSize: '13px', color: COLORS.label }}>Since {m.startDate}</div>
                         </div>
                     ))}
                 </div>
@@ -629,11 +629,11 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                 <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div style={{ padding: '1.25rem', borderRadius: '12px', border: `1px solid ${COLORS.danger}30`, backgroundColor: `${COLORS.danger}05` }}>
                         <div style={{ fontSize: '13px', fontWeight: 'bold', color: COLORS.danger }}>ALLERGY: PENICILLIN</div>
-                        <p style={{ fontSize: '12px', color: COLORS.label, marginTop: '0.5rem' }}>Subject reported severe anaphylactic reaction at age 12.</p>
+                        <p style={{ fontSize: '13px', color: COLORS.label, marginTop: '0.5rem' }}>Subject reported severe anaphylactic reaction at age 12.</p>
                     </div>
                     <div style={{ padding: '1.25rem', borderRadius: '12px', border: `1px solid ${COLORS.warning}30`, backgroundColor: `${COLORS.warning}05` }}>
                         <div style={{ fontSize: '13px', fontWeight: 'bold', color: COLORS.warning }}>IBS-D PHENOTYPE</div>
-                        <p style={{ fontSize: '12px', color: COLORS.label, marginTop: '0.5rem' }}>Predominant symptom presentation consistent with study arm assignment.</p>
+                        <p style={{ fontSize: '13px', color: COLORS.label, marginTop: '0.5rem' }}>Predominant symptom presentation consistent with study arm assignment.</p>
                     </div>
                 </div>
             </div>
@@ -642,13 +642,13 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
 
     const renderConsent = () => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
-            <h3 style={S.title}>Informed Consent Registry (eConsent)</h3>
+            <h3 style={S.title}>Informed Consent Documents</h3>
             {participant.documents.filter((d: any) => d.type === 'Consent').map((c: any, i: number) => (
                 <div key={i} style={S.card}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
                         <div>
                             <div style={{ fontSize: '18px', fontWeight: 900 }}>Main Study Informed Consent Agreement</div>
-                            <div style={{ fontSize: '12px', color: COLORS.label, marginTop: '0.5rem' }}>Version 2.1 • Protocol ID: MusB-2025-01</div>
+                            <div style={{ fontSize: '13px', color: COLORS.label, marginTop: '0.5rem' }}>Version 2.1 • Study ID: MusB-2025-01</div>
                         </div>
                         <span style={S.badge(COLORS.success)}>Executed & Valid</span>
                     </div>
@@ -658,14 +658,14 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                             <div style={{ height: '60px', borderBottom: `1px solid ${COLORS.border}`, display: 'flex', alignItems: 'flex-end', paddingBottom: '0.5rem', fontStyle: 'italic', fontSize: '20px', fontFamily: '"Dancing Script", cursive' }}>
                                 {participant.id}
                             </div>
-                            <div style={{ fontSize: '12px', color: COLORS.label, marginTop: '0.75rem' }}>Digitally Authenticated: {c.date}</div>
+                            <div style={{ fontSize: '13px', color: COLORS.label, marginTop: '0.75rem' }}>Digitally Authenticated: {c.date}</div>
                         </div>
                         <div>
                             <label style={S.label}>Investigator Attestation</label>
                             <div style={{ height: '60px', borderBottom: `1px solid ${COLORS.border}`, display: 'flex', alignItems: 'flex-end', paddingBottom: '0.5rem', fontStyle: 'italic', fontSize: '20px', fontFamily: '"Dancing Script", cursive', color: COLORS.accent }}>
                                 Dr. Michael Antigravity
                             </div>
-                            <div style={{ fontSize: '12px', color: COLORS.label, marginTop: '0.75rem' }}>Verification Multi-Factor: ACTIVE</div>
+                            <div style={{ fontSize: '13px', color: COLORS.label, marginTop: '0.75rem' }}>Verification Multi-Factor: ACTIVE</div>
                         </div>
                         <div>
                             <button style={{ ...S.btnPrimary, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }} onClick={() => addToast('PDF Secure Stream Started', 'success')}>
@@ -681,7 +681,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
     const renderSafety = () => (
         <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '3rem' }}>
             <div>
-                <h3 style={S.title}>Adverse Event (AE) / SAE Registry</h3>
+                <h3 style={S.title}>Adverse Event (AE) List</h3>
                 <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     {participant.adverseEvents.length > 0 ? participant.adverseEvents.map((ae: any, i: number) => (
                         <div key={i} style={S.card}>
@@ -706,7 +706,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                                 </div>
                                 <div>
                                     <label style={S.label}>Onset Date</label>
-                                    <p style={{ fontSize: '12px', fontWeight: 'bold', color: COLORS.label }}>{ae.onset}</p>
+                                    <p style={{ fontSize: '13px', fontWeight: 'bold', color: COLORS.label }}>{ae.onset}</p>
                                 </div>
                             </div>
                         </div>
@@ -727,8 +727,8 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem' }}>
                     <div style={{ width: '80px', height: '80px', borderRadius: '50%', border: `2px solid ${COLORS.accent}20`, borderTopColor: COLORS.accent, animation: 'spin 1s linear infinite' }} />
                     <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 900, color: COLORS.accent, textTransform: 'uppercase', letterSpacing: '0.2em' }}>MusB Internal Network</div>
-                        <div style={{ fontSize: '18px', fontWeight: 900, fontStyle: 'italic', marginTop: '0.5rem' }}>HYDRATING CLINICAL TRANSACTIONS...</div>
+                        <div style={{ fontSize: '13px', fontWeight: 900, color: COLORS.accent, textTransform: 'uppercase', letterSpacing: '0.2em' }}>MusB Internal Network</div>
+                        <div style={{ fontSize: '18px', fontWeight: 900, fontStyle: 'italic', marginTop: '0.5rem' }}>LOADING STUDY DATA...</div>
                     </div>
                 </div>
                 <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
@@ -744,7 +744,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                     <h2 style={{ fontSize: '24px', fontWeight: 900, fontStyle: 'italic', marginBottom: '1rem' }}>SUBJECT REJECTION</h2>
                     <p style={{ color: COLORS.text, fontSize: '14px', lineHeight: 1.6, marginBottom: '2.5rem' }}>{error}</p>
                     <button style={{ ...S.btnGhost, width: '100%' }} onClick={() => window.dispatchEvent(new CustomEvent('nav-to-participants'))}>
-                        RETURN TO OVERSIGHT TERMINAL
+                        RETURN TO DASHBOARD
                     </button>
                 </div>
             </div>
@@ -766,11 +766,11 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                     <div>
                         <div style={{ ...S.name, fontSize: '24px' }}>{participantId} <span style={{ color: COLORS.text, fontWeight: 'normal', fontSize: '16px' }}>| {participant.study}</span></div>
                         <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.6rem', alignItems: 'center' }}>
-                             <span style={{ fontSize: '12px', fontWeight: 900, color: COLORS.success, backgroundColor: `${COLORS.success}15`, padding: '0.25rem 0.6rem', borderRadius: '4px', border: `1px solid ${COLORS.success}30` }}>
+                             <span style={{ fontSize: '13px', fontWeight: 900, color: COLORS.success, backgroundColor: `${COLORS.success}15`, padding: '0.25rem 0.6rem', borderRadius: '4px', border: `1px solid ${COLORS.success}30` }}>
                                  {participant.status.toUpperCase()} SUBJECT
                              </span>
-                             <span style={{ fontSize: '12px', color: COLORS.info, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                 <Target size={12} /> {participant.arm} Arm
+                             <span style={{ fontSize: '13px', color: COLORS.info, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                 <Target size={13} /> {participant.arm} Arm
                              </span>
                         </div>
                     </div>
@@ -782,8 +782,8 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                             const res = await authFetch(`${API}/api/participants/${participant.pk}/toggle_flag/`, { method: 'POST' });
                             if (res.ok) {
                                 setParticipant((p: any) => ({ ...p, flagged: !p.flagged }));
-                                addToast(participant.flagged ? 'Protocol Flag Cleared' : 'Subject Flagged for Review', 'warning');
-                                logAction('Flag Toggled', participant.flagged ? 'PI cleared the protocol flag.' : 'PI flagged subject for secondary review.');
+                                addToast(participant.flagged ? 'Study Flag Cleared' : 'Subject Flagged for Review', 'warning');
+                                logAction('Flag Toggled', participant.flagged ? 'PI cleared the study flag.' : 'PI flagged subject for secondary review.');
                             }
                         } catch (e) { console.error(e); }
                     }}>
@@ -859,15 +859,15 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                                         <tbody className="divide-y divide-white/5">
                                             {participant.labs.length > 0 ? participant.labs.map((r: any, i: number) => (
                                                 <tr key={i} style={{ borderBottom: `1px solid ${COLORS.border}` }}>
-                                                    <td style={{ padding: '1.25rem 2rem', fontSize: '12px', fontWeight: 'bold' }}>{r.biomarker}</td>
-                                                    <td style={{ padding: '1.25rem 2rem', fontSize: '12px', color: COLORS.label }}>{r.date || 'N/A'}</td>
-                                                    <td style={{ padding: '1.25rem 2rem', fontSize: '12px', color: r.status === 'High' ? COLORS.danger : 'white' }}>{r.result}</td>
-                                                    <td style={{ padding: '1.25rem 2rem', fontSize: '12px', color: r.status === 'High' ? COLORS.danger : COLORS.success }}>{r.status}</td>
-                                                    <td style={{ padding: '1.25rem 2rem', fontSize: '12px', color: COLORS.label }}>{r.range || '70 - 110'}</td>
+                                                    <td style={{ padding: '1.25rem 2rem', fontSize: '13px', fontWeight: 'bold' }}>{r.biomarker}</td>
+                                                    <td style={{ padding: '1.25rem 2rem', fontSize: '13px', color: COLORS.label }}>{r.date || 'N/A'}</td>
+                                                    <td style={{ padding: '1.25rem 2rem', fontSize: '13px', color: r.status === 'High' ? COLORS.danger : 'white' }}>{r.result}</td>
+                                                    <td style={{ padding: '1.25rem 2rem', fontSize: '13px', color: r.status === 'High' ? COLORS.danger : COLORS.success }}>{r.status}</td>
+                                                    <td style={{ padding: '1.25rem 2rem', fontSize: '13px', color: COLORS.label }}>{r.range || '70 - 110'}</td>
                                                 </tr>
                                             )) : (
                                                 <tr>
-                                                    <td colSpan={5} style={{ padding: '3rem', textAlign: 'center', color: COLORS.label, fontSize: '14px' }}>No laboratory records hydrated for this subject.</td>
+                                                    <td colSpan={5} style={{ padding: '3rem', textAlign: 'center', color: COLORS.label, fontSize: '14px' }}>No laboratory records loaded for this subject.</td>
                                                 </tr>
                                             )}
                                         </tbody>
@@ -890,7 +890,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                                                 </div>
                                                 <div style={{ flex: 1 }}>
                                                     <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'white' }}>{doc.name}</div>
-                                                    <div style={{ fontSize: '12px', color: COLORS.label }}>v{doc.version} • {doc.date}</div>
+                                                    <div style={{ fontSize: '13px', color: COLORS.label }}>v{doc.version} • {doc.date}</div>
                                                 </div>
                                                 <button style={{ ...S.btnGhost, padding: '0.5rem' }} onClick={() => addToast('Document Terminal Not Configured', 'warning')}>
                                                     <ArrowUpRight size={14} />
@@ -926,7 +926,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', color: COLORS.label }}>
                             <ClipboardList size={64} style={{ opacity: 0.1, marginBottom: '2rem' }} />
                             <div style={{ fontSize: '20px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' }}>{activeTab} Feed Active</div>
-                            <div style={{ fontSize: '12px', marginTop: '1rem' }}>Streaming clinical parameters for {participant.id}...</div>
+                            <div style={{ fontSize: '13px', marginTop: '1rem' }}>Streaming clinical parameters for {participant.id}...</div>
                         </div>
                     )}
                 </main>
@@ -956,7 +956,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                         <div style={{ height: '8px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '4px', marginTop: '1rem', overflow: 'hidden' }}>
                             <div style={{ width: `${participant.compliance}%`, height: '100%', backgroundColor: COLORS.accent, boxShadow: `0 0 10px ${COLORS.accent}40` }} />
                         </div>
-                        <p style={{ fontSize: '12px', color: COLORS.label, marginTop: '0.8rem', fontStyle: 'italic' }}>Visit completion velocity stable.</p>
+                        <p style={{ fontSize: '13px', color: COLORS.label, marginTop: '0.8rem', fontStyle: 'italic' }}>Visit completion velocity stable.</p>
                     </div>
 
                     <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: '2rem' }}>
@@ -970,9 +970,9 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                     </div>
 
                     <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '12px' }} onClick={() => setActiveTab('Overview')}>&gt; Overview</button>
-                        <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '12px' }} onClick={() => setActiveTab('Eligibility')}>&gt; Eligibility</button>
-                        <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '12px' }} onClick={() => setActiveTab('Safety')}>&gt; Safety</button>
+                        <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '14px' }} onClick={() => setActiveTab('Overview')}>&gt; Overview</button>
+                        <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '14px' }} onClick={() => setActiveTab('Eligibility')}>&gt; Eligibility</button>
+                        <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '14px' }} onClick={() => setActiveTab('Safety')}>&gt; Safety</button>
                     </div>
                 </aside>
             </div>
@@ -997,8 +997,8 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                     logAction('Deviation Observed', 'PI marked a protocol deviation in the clinical log.'); 
                 }}>Mark Protocol Deviation</button>
                 <div style={{ flex: 1 }} />
-                <div style={{ fontSize: '12px', color: COLORS.label, fontWeight: 900, textTransform: 'uppercase', display: 'flex', alignItems: 'center' }}>
-                    Clinical Node: Miller Clinic Alpha • Status: Synchronized
+                <div style={{ fontSize: '13px', color: COLORS.label, fontWeight: 900, textTransform: 'uppercase', display: 'flex', alignItems: 'center' }}>
+                    Study Site: Miller Clinic Alpha • Status: Synchronized
                 </div>
             </footer>
 
@@ -1008,7 +1008,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                     <div key={t.id} style={{ 
                         padding: '1rem 2rem', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '1rem',
                         backgroundColor: t.type === 'success' ? COLORS.success : t.type === 'error' ? COLORS.danger : COLORS.warning,
-                        color: 'white', fontWeight: 900, textTransform: 'uppercase', fontSize: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                        color: 'white', fontWeight: 900, textTransform: 'uppercase', fontSize: '13px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
                         animation: 'slideIn 0.3s forwards'
                     }}>
                         <Info size={16} /> {t.message}

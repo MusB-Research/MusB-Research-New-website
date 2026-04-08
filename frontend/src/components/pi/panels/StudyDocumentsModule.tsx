@@ -51,8 +51,8 @@ export default function StudyDocumentsModule() {
             {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div>
-                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Study <span className="text-indigo-400">Documents</span></h2>
-                    <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">Central Regulatory & Protocol Repository</p>
+                    <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tight">Study <span className="text-indigo-400">Documents</span></h2>
+                    <p className="text-[11px] text-white/50 font-bold uppercase tracking-[0.4em] mt-3 md:mt-4 italic">Central Regulatory & Protocol Repository</p>
                 </div>
                 <div className="flex items-center gap-4">
                     <button 
@@ -76,7 +76,7 @@ export default function StudyDocumentsModule() {
             </div>
 
             {/* Quick Access Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-16">
                 {[
                     { label: 'Core Protocol', count: 'v3.2 Final', icon: BookOpen, color: 'indigo', cat: 'Protocol' },
                     { label: 'IB Edits', count: 'v12 Active', icon: FileCheck, color: 'emerald', cat: 'IB' },
@@ -86,33 +86,30 @@ export default function StudyDocumentsModule() {
                     <div 
                         key={i} 
                         onClick={() => setActiveCategory(q.cat as any)}
-                        className={`bg-[#0B101B]/40 border rounded-[2.5rem] p-8 space-y-4 hover:border-indigo-500/20 transition-all group cursor-pointer relative overflow-hidden ${
-                            activeCategory === q.cat ? 'border-indigo-500/40 bg-indigo-500/5' : 'border-white/5'
+                        className={`flex items-center gap-6 lg:gap-8 group cursor-pointer transition-all ${
+                            activeCategory === q.cat ? 'opacity-100 scale-105' : 'opacity-60 hover:opacity-100'
                         }`}
                     >
-                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-125 transition-transform">
-                            <q.icon className="w-16 h-16 text-white" />
+                        <div className={`flex-shrink-0 w-16 h-16 bg-${q.color}-500/5 border border-${q.color}-500/10 rounded-2xl flex items-center justify-center text-${q.color}-400 group-hover:scale-110 transition-transform`}>
+                            <q.icon className="w-8 h-8" />
                         </div>
-                        <div className="flex items-center gap-3">
-                            <div className={`p-2 bg-white/5 border border-white/10 rounded-xl ${activeCategory === q.cat ? 'text-indigo-400' : 'text-slate-500'}`}>
-                                <q.icon className="w-4 h-4" />
-                            </div>
-                            <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest">{q.label}</p>
+                        <div>
+                            <span className="text-[11px] text-white/40 font-black uppercase tracking-widest italic block mb-1">{q.label}</span>
+                            <p className="text-xl font-black text-white italic tracking-tight leading-none truncate">{q.count}</p>
                         </div>
-                        <p className="text-xl font-black text-white italic">{q.count}</p>
                     </div>
                 ))}
             </div>
 
             {/* Controls */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-[#0B101B]/40 border border-white/5 p-4 rounded-3xl">
-                <div className="flex gap-2 p-1 bg-white/5 rounded-2xl">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-t border-b border-white/5 py-8">
+                <div className="flex flex-wrap gap-2">
                     {['All', 'Protocol', 'IB', 'Pharmacy', 'Regulatory'].map((cat: any) => (
                         <button
                             key={cat}
                             onClick={() => setActiveCategory(cat)}
                             className={`px-6 py-2.5 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${
-                                activeCategory === cat ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-white'
+                                activeCategory === cat ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'
                             }`}
                         >
                             {cat}
@@ -126,40 +123,39 @@ export default function StudyDocumentsModule() {
                         placeholder="Search Library..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3 text-sm text-white font-bold outline-none focus:border-indigo-500/50 transition-all w-72 uppercase tracking-widest font-mono"
+                        className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3.5 text-[12px] text-white font-bold outline-none focus:border-indigo-500/50 transition-all w-72 uppercase tracking-widest font-mono shadow-2xl shadow-black/20"
                     />
                 </div>
             </div>
 
             {/* Repository List */}
-            <div className="bg-[#0B101B]/40 border border-white/5 rounded-[3rem] p-4">
+            <div className="divide-y divide-white/5">
                 {filteredDocs.map((doc) => (
-                    <motion.div key={doc.id} className="group flex items-center justify-between p-8 rounded-3xl hover:bg-white/[0.02] transition-colors border-b border-white/5 last:border-none">
-                        <div className="flex items-center gap-8">
-                            <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 group-hover:text-indigo-400 group-hover:border-indigo-500/40 transition-all">
+                    <motion.div key={doc.id} className="group flex items-center justify-between py-10 px-4 transition-colors">
+                        <div className="flex items-center gap-10">
+                            <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 group-hover:text-indigo-400 group-hover:border-indigo-500/40 transition-all shadow-lg shadow-black/20">
                                 <FileText className="w-6 h-6" />
                             </div>
                             <div>
-                                <div className="flex items-center gap-3">
-                                    <h4 className="text-lg font-black text-white italic uppercase tracking-tight">{doc.name}</h4>
-                                    <span className={`px-2 py-0.5 rounded-md text-[12px] font-black uppercase tracking-widest border ${
+                                <div className="flex items-center gap-4">
+                                    <h4 className="text-xl font-black text-white italic uppercase tracking-tight leading-none">{doc.name}</h4>
+                                    <span className={`px-4 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest border shadow-lg ${
                                         doc.status === 'Active' ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5' : 
                                         'text-slate-500 border-white/5 bg-white/5'
                                     }`}>
                                         {doc.status}
                                     </span>
                                 </div>
-                                <p className="text-[12px] text-slate-500 font-bold uppercase tracking-widest mt-1">Version {doc.version} • Effective {doc.effectiveDate} • {doc.category}</p>
+                                <p className="text-[12px] text-slate-500 font-black tracking-widest uppercase mt-3 italic opacity-60">Version {doc.version} • Effective {doc.effectiveDate} • {doc.category}</p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4 transition-all">
-                            <button className="px-5 py-3 bg-white/5 border border-white/5 rounded-xl text-slate-500 hover:text-white hover:bg-white/10 transition-all flex items-center gap-3 active:scale-95 group/history shadow-lg">
-                                <span className="text-[12px] font-black uppercase tracking-[0.2em] italic">Audit Trail</span>
-                                <History className="w-4 h-4 shadow-2xl" />
+                        <div className="flex items-center gap-3 transition-all">
+                            <button className="p-4 bg-white/5 border border-white/10 rounded-2xl text-slate-400 hover:text-white hover:bg-white/10 transition-all shadow-lg active:scale-95 group/btn">
+                                <History className="w-4 h-4 group-hover/btn:rotate-180 transition-transform" />
                             </button>
                             <button 
                                 onClick={() => window.open('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', '_blank')}
-                                className="px-6 py-3.5 bg-white text-[#0B101B] rounded-xl text-[12px] font-black uppercase tracking-[0.15em] flex items-center gap-3 hover:scale-[1.05] active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,255,255,0.1)] border border-white/20"
+                                className="px-8 py-4 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-white hover:text-indigo-900 shadow-xl shadow-indigo-600/30 active:scale-95 transition-all flex items-center gap-3"
                             >
                                 DOWNLOAD <Download className="w-4 h-4" />
                             </button>

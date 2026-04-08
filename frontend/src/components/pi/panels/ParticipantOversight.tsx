@@ -297,10 +297,10 @@ export default function ParticipantOversight({
             {/* ── Header ── */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <div className="space-y-1 md:space-y-2">
-                    <h2 className="text-xl md:text-3xl font-black text-white italic uppercase tracking-tighter leading-tight">
+                    <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tight leading-tight">
                         Participant <span className="text-indigo-400">Oversight</span>
                     </h2>
-                    <p className="text-[12px] text-white/50 font-bold uppercase tracking-[0.2em] italic">
+                    <p className="text-[11px] text-white/50 font-bold uppercase tracking-[0.4em] italic leading-none mt-2">
                         Real-time Subject Portfolio &amp; Enrollment Review
                     </p>
                 </div>
@@ -407,7 +407,7 @@ export default function ParticipantOversight({
             </div>
 
             {/* ── Table ── */}
-            <div className="bg-[#0F172A]/80 backdrop-blur-2xl border border-white/10 rounded-2xl md:rounded-[2.5rem] overflow-hidden shadow-2xl shadow-black/60 relative min-h-[400px]">
+            <div className="overflow-x-auto custom-scrollbar-horizontal px-1">
                 {isLoading ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-6">
                         <div className="w-12 h-12 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
@@ -425,16 +425,16 @@ export default function ParticipantOversight({
                     <>
                         <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.03] to-transparent pointer-events-none" />
                         <div className="overflow-x-auto pb-4 custom-scrollbar-horizontal px-0.5">
-                            <table className="w-full text-left border-collapse min-w-[900px]">
-                                <thead>
-                                    <tr className="bg-white/[0.03] border-b border-indigo-500/10 whitespace-nowrap">
-                                        <th className="px-5 py-5 text-[12px] font-black text-indigo-300/90 uppercase tracking-[0.2em] italic">Subject</th>
-                                        <th className="px-5 py-5 text-[12px] font-black text-indigo-300/90 uppercase tracking-[0.2em] italic">Status</th>
-                                        <th className="px-5 py-5 text-[12px] font-black text-indigo-300/90 uppercase tracking-[0.2em] italic">Progress</th>
-                                        <th className="px-5 py-5 text-[12px] font-black text-indigo-300/90 uppercase tracking-[0.2em] italic">Submitted</th>
-                                        <th className="px-5 py-5 text-[12px] font-black text-indigo-300/90 uppercase tracking-[0.2em] italic text-right">Actions</th>
-                                    </tr>
-                                </thead>
+                        <table className="w-full text-left border-collapse min-w-[1000px] border-t border-white/5">
+                            <thead>
+                                <tr className="bg-white/[0.02] border-b border-white/5 whitespace-nowrap">
+                                    <th className="px-10 py-8 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">Subject Information</th>
+                                    <th className="px-10 py-8 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">Clinical Status</th>
+                                    <th className="px-10 py-8 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">Trial Progress</th>
+                                    <th className="px-10 py-8 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">Submitted</th>
+                                    <th className="px-10 py-8 text-[12px] font-black text-white/80 uppercase tracking-widest italic text-right">Actions</th>
+                                </tr>
+                            </thead>
                                 <tbody className="divide-y divide-white/5">
                                     <AnimatePresence mode="popLayout">
                                         {filteredParticipants.map((p) => (
@@ -447,38 +447,38 @@ export default function ParticipantOversight({
                                                 className={`hover:bg-white/[0.02] transition-colors group ${p.rawStatus === 'PENDING_REVIEW' ? 'bg-amber-500/[0.03]' : ''}`}
                                             >
                                                 {/* Subject */}
-                                                <td className="px-5 py-6 whitespace-nowrap align-middle">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-10 h-10 flex items-center justify-center rounded-2xl border ${
+                                                <td className="px-10 py-10 whitespace-nowrap align-middle border-r border-white/5">
+                                                    <div className="flex items-center gap-6">
+                                                        <div className={`w-12 h-12 flex items-center justify-center rounded-2xl border shadow-lg shadow-black/20 ${
                                                             p.rawStatus === 'PENDING_REVIEW'
                                                                 ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                                                                : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
+                                                                : 'bg-white/5 border-white/10 text-slate-500'
                                                         }`}>
-                                                            <User className="w-5 h-5" />
+                                                            <User className="w-5 h-5 md:w-6 h-6" />
                                                         </div>
                                                         <div>
-                                                            <p className="text-sm font-black text-white italic uppercase tracking-tight group-hover:text-indigo-400 transition-colors">{p.name}</p>
-                                                            <p className="text-[12px] text-white/30 font-black tracking-widest mt-0.5 uppercase font-mono">{p.study}</p>
+                                                            <p className="text-base font-black text-white italic uppercase tracking-tight group-hover:text-indigo-400 transition-colors leading-none">{p.name}</p>
+                                                            <p className="text-[12px] text-white/30 font-black tracking-widest mt-1.5 uppercase font-mono leading-none">{p.study}</p>
                                                         </div>
                                                     </div>
                                                 </td>
 
                                                 {/* Status */}
-                                                <td className="px-5 py-5 align-middle">
-                                                    <div className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full border text-[12px] font-black uppercase tracking-widest shadow-lg ${getStatusStyle(p.rawStatus)}`}>
+                                                <td className="px-10 py-10 align-middle border-r border-white/5">
+                                                    <div className={`inline-flex items-center gap-3 px-5 py-2 rounded-xl border text-[12px] font-black uppercase tracking-widest shadow-lg ${getStatusStyle(p.rawStatus)}`}>
                                                         <div className={`w-1.5 h-1.5 rounded-full bg-current ${p.rawStatus === 'PENDING_REVIEW' ? 'animate-ping' : 'animate-pulse'} shadow-[0_0_8px_currentColor]`} />
                                                         {p.displayStatus}
                                                     </div>
                                                 </td>
 
                                                 {/* Progress */}
-                                                <td className="px-5 py-5 align-middle">
-                                                    <div className="w-40 space-y-2">
-                                                        <div className="flex justify-between items-center">
-                                                            <span className="text-[12px] font-black text-white/40 uppercase tracking-widest italic">Progress</span>
-                                                            <span className="text-[12px] font-black text-white italic">{p.progress}%</span>
+                                                <td className="px-10 py-10 align-middle border-r border-white/5">
+                                                    <div className="w-44 space-y-3">
+                                                        <div className="flex justify-between items-center px-1">
+                                                            <span className="text-[11px] font-black text-white/40 uppercase tracking-widest italic leading-none">Compliance</span>
+                                                            <span className="text-[11px] font-black text-white italic leading-none">{p.progress}%</span>
                                                         </div>
-                                                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 p-0.5">
+                                                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                                                             <motion.div
                                                                 initial={{ width: 0 }}
                                                                 animate={{ width: `${p.progress}%` }}
@@ -493,10 +493,10 @@ export default function ParticipantOversight({
                                                 </td>
 
                                                 {/* Submitted */}
-                                                <td className="px-5 py-5 whitespace-nowrap align-middle">
-                                                    <div className="flex items-center gap-2 text-slate-500 italic">
-                                                        <Clock className="w-3.5 h-3.5" />
-                                                        <span className="text-[12px] font-bold uppercase tracking-widest">
+                                                <td className="px-10 py-10 whitespace-nowrap align-middle border-r border-white/5">
+                                                    <div className="flex items-center gap-3 text-slate-500 font-black italic">
+                                                        <Clock className="w-4 h-4" />
+                                                        <span className="text-[11px] uppercase tracking-widest leading-none">
                                                             {p.submittedAt
                                                                 ? new Date(p.submittedAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
                                                                 : 'Not Submitted'}
@@ -505,20 +505,20 @@ export default function ParticipantOversight({
                                                 </td>
 
                                                 {/* Actions */}
-                                                <td className="px-5 py-5 align-middle">
-                                                    <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                                                <td className="px-10 py-10 align-middle">
+                                                    <div className="flex items-center justify-end gap-3 whitespace-nowrap">
                                                         {/* Accept / Reject – only shown for PENDING_REVIEW */}
                                                         {p.rawStatus === 'PENDING_REVIEW' && (
                                                             <>
                                                                 <button
                                                                     onClick={() => setReviewModal({ id: p.id, name: p.name, decision: 'ACCEPT' })}
-                                                                    className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[12px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-600/20 active:scale-95"
+                                                                    className="px-6 py-3 bg-emerald-600 hover:bg-white hover:text-emerald-900 text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center gap-2"
                                                                 >
                                                                     <CheckCheck className="w-3.5 h-3.5" /> Enroll
                                                                 </button>
                                                                 <button
                                                                     onClick={() => setReviewModal({ id: p.id, name: p.name, decision: 'REJECT' })}
-                                                                    className="flex items-center gap-1.5 px-4 py-2 bg-red-600/80 hover:bg-red-600 text-white rounded-xl text-[12px] font-black uppercase tracking-widest transition-all shadow-lg shadow-red-600/20 active:scale-95"
+                                                                    className="px-6 py-3 bg-red-600/80 hover:bg-white hover:text-red-900 text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-xl shadow-red-600/20 active:scale-95 flex items-center gap-2"
                                                                 >
                                                                     <X className="w-3.5 h-3.5" /> Reject
                                                                 </button>
@@ -526,15 +526,15 @@ export default function ParticipantOversight({
                                                         )}
                                                         <button
                                                             onClick={() => onMessage?.(p.id)}
-                                                            className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+                                                            className="p-3 bg-white/5 border border-white/10 rounded-2xl text-slate-400 hover:text-white hover:bg-white/10 transition-all shadow-lg active:scale-95 group/btn"
                                                         >
-                                                            <MessageSquare className="w-4 h-4" />
+                                                            <MessageSquare className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                                         </button>
                                                         <button
                                                             onClick={() => onOpenProfile?.(p.id)}
-                                                            className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-[12px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-white hover:text-indigo-900 shadow-xl shadow-indigo-600/20 active:scale-95 transition-all"
+                                                            className="px-8 py-4 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest flex items-center gap-3 hover:bg-white hover:text-indigo-900 shadow-xl shadow-indigo-600/30 active:scale-95 transition-all"
                                                         >
-                                                            <Eye className="w-3.5 h-3.5" /> Profile
+                                                            Open <span className="hidden sm:inline">Profile</span> <ChevronRight className="w-4 h-4" />
                                                         </button>
                                                     </div>
                                                 </td>

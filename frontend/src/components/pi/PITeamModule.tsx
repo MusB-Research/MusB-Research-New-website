@@ -178,7 +178,7 @@ export default function PITeamModule({
     // --- LOGIC: CRUD ---
     const handleSaveMember = async () => {
         if (!editedMember.name || !editedMember.email || !editedMember.role) {
-            addToast('Please fill all required identity fields', 'error');
+            addToast('Please fill all required fields', 'error');
             return;
         }
 
@@ -199,7 +199,7 @@ export default function PITeamModule({
                     body: JSON.stringify(payload)
                 });
                 if (res.ok) {
-                    addToast('New personnel registered and invitation sent');
+                    addToast('Team member added');
                     onRefresh?.();
                     setPanelOpen(false);
                 } else {
@@ -212,11 +212,11 @@ export default function PITeamModule({
                     body: JSON.stringify(payload)
                 });
                 if (res.ok) {
-                    addToast('Personnel record updated successfully');
+                    addToast('Team member details updated');
                     onRefresh?.();
                     setPanelOpen(false);
                 } else {
-                    addToast('Could not update member record', 'error');
+                    addToast('Could not update member details', 'error');
                 }
             }
         } catch (error) {
@@ -274,7 +274,7 @@ export default function PITeamModule({
     const handleInactivateToggle = async (member: TeamMember) => {
         const newStatus = member.status === 'Active' ? 'inactive' : 'active';
         const msg = newStatus === 'inactive'
-            ? "Access suspension will revoke all protocol-level edit permissions. Continue?"
+            ? "Access suspension will revoke all study-level edit permissions. Continue?"
             : `Restore access for ${member.name}?`;
 
         setConfirmModal({
@@ -410,7 +410,7 @@ export default function PITeamModule({
             border: '1px solid rgba(255,255,255,0.1)',
             padding: '1rem 2rem',
             borderRadius: '6px',
-            fontSize: '12px',
+            fontSize: '13px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             letterSpacing: '0.12em',
@@ -447,7 +447,7 @@ export default function PITeamModule({
             textShadow: '0 0 30px rgba(99, 102, 241, 0.3)'
         },
         kpiLabel: {
-            fontSize: '12px',
+            fontSize: '13px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             letterSpacing: '0.25em',
@@ -490,7 +490,7 @@ export default function PITeamModule({
             border: 'none',
             color: 'white',
             padding: '0.6rem 0.75rem',
-            fontSize: '12px',
+            fontSize: '13px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             outline: 'none',
@@ -512,7 +512,7 @@ export default function PITeamModule({
             position: 'sticky' as const,
             top: isMobile ? '64px' : 0,
             padding: isMobile ? '0.75rem' : isTablet ? '1rem' : '1.25rem 1.5rem',
-            fontSize: '12px',
+            fontSize: '13px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             letterSpacing: '0.05em',
@@ -529,7 +529,7 @@ export default function PITeamModule({
             borderBottom: '1px solid rgba(255,255,255,0.04)'
         },
         name: {
-            fontSize: '14px',
+            fontSize: '15px',
             fontWeight: 900,
             fontStyle: 'italic',
             textTransform: 'uppercase' as const,
@@ -560,12 +560,12 @@ export default function PITeamModule({
             borderRadius: '4px',
             color: 'white',
             padding: '1rem',
-            fontSize: '12px',
+            fontSize: '13px',
             outline: 'none',
             marginTop: '0.5rem'
         },
         label: {
-            fontSize: '12px',
+            fontSize: '13px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             letterSpacing: '0.15em',
@@ -619,7 +619,7 @@ export default function PITeamModule({
             </div>
             <div>
                 <div style={{ ...S.kpiValue, color: label === 'Action Required' && value > 0 ? '#f59e0b' : 'inherit' }}>{value.toString().padStart(2, '0')}</div>
-                <div style={{ ...S.kpiLabel, fontSize: '12px' }}>{label}</div>
+                <div style={{ ...S.kpiLabel, fontSize: '13px' }}>{label}</div>
             </div>
         </div>
     );
@@ -655,11 +655,11 @@ export default function PITeamModule({
 
             {/* KPI STRIP */}
             <div style={S.kpiStrip} className="custom-scrollbar-horizontal">
-                {renderKPI('Total Personnel', officeTeam.length + musbTeam.length, Users, '#6366f1')}
-                {renderKPI('Active Status', [...officeTeam, ...musbTeam].filter(t => t.status === 'Active').length, CheckCircle2, '#10b981')}
-                {renderKPI('MusB Network', musbTeam.length, Building2, '#6366f1')}
-                {renderKPI('PI Office Team', officeTeam.length, Users, '#475569')}
-                {renderKPI('Action Required', officeTeam.filter(m => m.documents.some(d => d.status !== 'Valid')).length, AlertTriangle, '#f59e0b')}
+                {renderKPI('Total Team', officeTeam.length + musbTeam.length, Users, '#6366f1')}
+                {renderKPI('Active Members', [...officeTeam, ...musbTeam].filter(t => t.status === 'Active').length, CheckCircle2, '#10b981')}
+                {renderKPI('MusB Team', musbTeam.length, Building2, '#6366f1')}
+                {renderKPI('My Office Team', officeTeam.length, Users, '#475569')}
+                {renderKPI('Missing Documents', officeTeam.filter(m => m.documents.some(d => d.status !== 'Valid')).length, AlertTriangle, '#f59e0b')}
             </div>
 
             {/* NAVIGATION / SEARCH */}
@@ -673,9 +673,9 @@ export default function PITeamModule({
                     paddingBottom: isMobile ? '0.75rem' : '0',
                     flexShrink: 0
                 }}>
-                    <button style={S.tabBtn(activeTab === 'MusB')} onClick={() => setActiveTab('MusB')}>MusB Coordinators</button>
+                    <button style={S.tabBtn(activeTab === 'MusB')} onClick={() => setActiveTab('MusB')}>MusB Team</button>
                     <button style={S.tabBtn(activeTab === 'Office')} onClick={() => setActiveTab('Office')}>My Office Team</button>
-                    <button style={S.tabBtn(activeTab === 'All')} onClick={() => setActiveTab('All')}>All Team Members</button>
+                    <button style={S.tabBtn(activeTab === 'All')} onClick={() => setActiveTab('All')}>All Members</button>
                 </div>
                 <div style={{ 
                     display: 'flex', 
@@ -716,9 +716,9 @@ export default function PITeamModule({
                 <table style={{ ...S.table, minWidth: isTablet ? '1200px' : '100%' }}>
                     <thead>
                         <tr>
-                            <th style={S.th}>Personnel</th>
+                            <th style={S.th}>Team Member</th>
                             <th style={{ ...S.th, width: '20%' }}>Role</th>
-                            <th style={S.th}>Assigned Protocols</th>
+                            <th style={S.th}>Assigned Studies</th>
                             <th style={{ ...S.th, textAlign: 'center' }}>Status</th>
                             <th style={{ ...S.th, textAlign: 'right' }}>Actions</th>
                         </tr>
@@ -732,13 +732,13 @@ export default function PITeamModule({
                                         </div>
                                         <div>
                                             <div style={S.name}>{m.name}</div>
-                                            <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 'bold', letterSpacing: '0.05em' }}>{m.email}</div>
+                                            <div style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 'bold', letterSpacing: '0.05em' }}>{m.email}</div>
                                         </div>
                                     </div>
                                 </td>
                                 <td style={S.td}>
-                                    <div style={{ fontSize: '12px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{m.role}</div>
-                                    {m.expertise && <div style={{ fontSize: '12px', color: '#6366f1', marginTop: '6px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.expertise}</div>}
+                                    <div style={{ fontSize: '13px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{m.role}</div>
+                                    {m.expertise && <div style={{ fontSize: '13px', color: '#6366f1', marginTop: '6px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.expertise}</div>}
                                 </td>
                                 <td style={S.td}>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>

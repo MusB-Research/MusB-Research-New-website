@@ -386,10 +386,10 @@ export default function PIHelpSupportModule() {
     // --- STYLES ---
     const G = {
         glass: { backgroundColor: COLORS.glass, backdropFilter: 'blur(12px)', border: `1px solid ${COLORS.border}` },
-        label: { fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.15em', color: COLORS.label },
-        title: { fontSize: '20px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' as const, color: 'white' },
-        btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '0.6rem 1.25rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' },
-        btnGhost: { backgroundColor: 'transparent', color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: '0.6rem 1.25rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' }
+        label: { fontSize: '14px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.15em', color: COLORS.label },
+        title: { fontSize: '22px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' as const, color: 'white' },
+        btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '0.7rem 1.5rem', borderRadius: '4px', fontSize: '14px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' },
+        btnGhost: { backgroundColor: 'transparent', color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: '0.7rem 1.5rem', borderRadius: '4px', fontSize: '14px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' }
     };
 
     return (
@@ -405,8 +405,8 @@ export default function PIHelpSupportModule() {
                 <div style={{ flex: 1, maxWidth: '500px', margin: '0 2rem', position: 'relative' }}>
                     <Search size={16} color={COLORS.label} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
                     <input 
-                        style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, borderRadius: '100px', padding: '0.6rem 1rem 0.6rem 2.8rem', color: 'white', outline: 'none', fontSize: '12px' }}
-                        placeholder="SEARCH TICKET IDS, TITLES, STUDY NODES..."
+                        style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, borderRadius: '100px', padding: '0.6rem 1rem 0.6rem 2.8rem', color: 'white', outline: 'none', fontSize: '13px' }}
+                        placeholder="SEARCH TICKETS, STUDIES, SITES..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                     />
@@ -439,7 +439,7 @@ export default function PIHelpSupportModule() {
                             <button 
                                 key={s} 
                                 onClick={() => setFilterStatus(s)}
-                                style={{ fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', padding: '0.4rem 0.8rem', borderRadius: '6px', border: `1px solid ${filterStatus === s ? COLORS.accent : COLORS.border}`, backgroundColor: filterStatus === s ? `${COLORS.accent}20` : 'transparent', color: filterStatus === s ? 'white' : COLORS.label, cursor: 'pointer' }}
+                                style={{ fontSize: '13px', fontWeight: 900, textTransform: 'uppercase', padding: '0.4rem 0.8rem', borderRadius: '6px', border: `1px solid ${filterStatus === s ? COLORS.accent : COLORS.border}`, backgroundColor: filterStatus === s ? `${COLORS.accent}20` : 'transparent', color: filterStatus === s ? 'white' : COLORS.label, cursor: 'pointer' }}
                             >
                                 {s}
                             </button>
@@ -458,15 +458,15 @@ export default function PIHelpSupportModule() {
                                 }}
                             >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                                    <span style={{ fontSize: '12px', fontWeight: 900, color: COLORS.accent, fontFamily: 'monospace' }}>{t.id}</span>
-                                    <span style={{ fontSize: '12px', color: COLORS.label }}>{t.lastUpdated}</span>
+                                    <span style={{ fontSize: '13px', fontWeight: 900, color: COLORS.accent, fontFamily: 'monospace' }}>{t.id}</span>
+                                    <span style={{ fontSize: '13px', color: COLORS.label }}>{t.lastUpdated}</span>
                                 </div>
                                 <div style={{ fontSize: '14px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase', marginBottom: '0.4rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
-                                <div style={{ fontSize: '12px', color: COLORS.label, marginBottom: '0.75rem' }}>{t.study} • {t.participantId || 'Global'}</div>
+                                <div style={{ fontSize: '13px', color: COLORS.label, marginBottom: '0.75rem' }}>{t.study} • {t.participantId || 'Global'}</div>
                                 <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                                    <span style={{ fontSize: '8px', fontWeight: 900, textTransform: 'uppercase', padding: '0.2rem 0.4rem', borderRadius: '2px', backgroundColor: 'rgba(255,255,255,0.05)', color: COLORS.text }}>{t.category}</span>
+                                    <span style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', padding: '0.2rem 0.4rem', borderRadius: '2px', backgroundColor: 'rgba(255,255,255,0.05)', color: COLORS.text }}>{t.category}</span>
                                     <span style={{ 
-                                        fontSize: '8px', fontWeight: 900, textTransform: 'uppercase', padding: '0.2rem 0.4rem', borderRadius: '2px',
+                                        fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', padding: '0.2rem 0.4rem', borderRadius: '2px',
                                         backgroundColor: t.priority === 'Urgent' ? `${COLORS.danger}20` : t.priority === 'High' ? `${COLORS.warning}20` : 'rgba(255,255,255,0.05)',
                                         color: t.priority === 'Urgent' ? COLORS.danger : t.priority === 'High' ? COLORS.warning : COLORS.text
                                     }}>{t.priority}</span>
@@ -510,7 +510,7 @@ export default function PIHelpSupportModule() {
                             <div style={{ padding: '1.5rem 3rem', borderBottom: `1px solid ${COLORS.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.01)' }}>
                                 <div>
                                     <div style={{ fontSize: '18px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' }}>{activeTicket.id} • {activeTicket.title}</div>
-                                    <div style={{ fontSize: '12px', color: COLORS.label, marginTop: '0.4rem' }}>{activeTicket.study} {activeTicket.participantId ? `| PID: ${activeTicket.participantId}` : ''}</div>
+                                    <div style={{ fontSize: '13px', color: COLORS.label, marginTop: '0.4rem' }}>{activeTicket.study} {activeTicket.participantId ? `| PID: ${activeTicket.participantId}` : ''}</div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                     <button style={{ ...G.btnGhost, borderColor: COLORS.danger, color: COLORS.danger }} onClick={() => requestStatusChange('Escalated')}>Escalate</button>
@@ -524,7 +524,7 @@ export default function PIHelpSupportModule() {
                                 {activeTicket.messages.map(m => (
                                     <div key={m.id} style={{ alignSelf: m.isSystem ? 'center' : (m.fromPI ? 'flex-end' : 'flex-start'), maxWidth: m.isSystem ? '100%' : '75%' }}>
                                         {m.isSystem ? (
-                                            <div style={{ fontSize: '12px', color: COLORS.label, fontStyle: 'italic', padding: '1rem', textAlign: 'center' }}>
+                                            <div style={{ fontSize: '13px', color: COLORS.label, fontStyle: 'italic', padding: '1rem', textAlign: 'center' }}>
                                                 — {m.text} at {m.time} —
                                             </div>
                                         ) : (
@@ -533,7 +533,7 @@ export default function PIHelpSupportModule() {
                                                     {m.sender} <span style={{ color: COLORS.accent }}>[{m.role}]</span> • {m.time}
                                                 </div>
                                                 <div style={{ 
-                                                    padding: '1rem 1.5rem', borderRadius: '8px', fontSize: '14px', lineHeight: 1.6,
+                                                    padding: '1rem 1.5rem', borderRadius: '8px', fontSize: '15px', lineHeight: 1.6,
                                                     backgroundColor: m.fromPI ? `${COLORS.accent}15` : 'rgba(255,255,255,0.03)',
                                                     border: `1px solid ${m.fromPI ? `${COLORS.accent}40` : COLORS.border}`,
                                                     color: '#f8fafc'
@@ -542,13 +542,13 @@ export default function PIHelpSupportModule() {
                                                     {m.attachment && (
                                                         <div style={{ marginTop: '0.75rem', padding: '0.5rem', borderRadius: '4px', backgroundColor: 'rgba(0,0,0,0.2)', border: `1px solid ${COLORS.border}`, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                             <Paperclip size={12} color={COLORS.accent} />
-                                                            <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{m.attachment}</span>
+                                                            <span style={{ fontSize: '13px', fontWeight: 'bold' }}>{m.attachment}</span>
                                                         </div>
                                                     )}
                                                 </div>
                                                 {m.tag && (
                                                     <div style={{ marginTop: '0.5rem', textAlign: m.fromPI ? 'right' : 'left' }}>
-                                                        <span style={{ fontSize: '8px', fontWeight: 900, textTransform: 'uppercase', padding: '0.2rem 0.5rem', borderRadius: '4px', backgroundColor: m.tag === 'Urgent' ? `${COLORS.danger}20` : 'rgba(255,255,255,0.1)', color: m.tag === 'Urgent' ? COLORS.danger : COLORS.text }}>{m.tag}</span>
+                                                        <span style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', padding: '0.2rem 0.5rem', borderRadius: '4px', backgroundColor: m.tag === 'Urgent' ? `${COLORS.danger}20` : 'rgba(255,255,255,0.1)', color: m.tag === 'Urgent' ? COLORS.danger : COLORS.text }}>{m.tag}</span>
                                                     </div>
                                                 )}
                                             </>
@@ -563,16 +563,16 @@ export default function PIHelpSupportModule() {
                                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', alignItems: 'center' }}>
                                     <div style={{ display: 'flex', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '4px', padding: '2px' }}>
                                         {['General', 'Technical', 'Clinical', 'Urgent'].map(t => (
-                                            <button key={t} onClick={() => setSelectedTag(t)} style={{ border: 'none', background: selectedTag === t ? `${COLORS.accent}20` : 'transparent', color: selectedTag === t ? 'white' : COLORS.label, padding: '0.5rem 1rem', fontSize: '12px', fontWeight: 900, borderRadius: '4px', cursor: 'pointer' }}>{t}</button>
+                                            <button key={t} onClick={() => setSelectedTag(t)} style={{ border: 'none', background: selectedTag === t ? `${COLORS.accent}20` : 'transparent', color: selectedTag === t ? 'white' : COLORS.label, padding: '0.5rem 1rem', fontSize: '13px', fontWeight: 900, borderRadius: '4px', cursor: 'pointer' }}>{t}</button>
                                         ))}
                                     </div>
                                     <div style={{ flex: 1 }} />
                                     <select 
-                                        style={{ ...G.btnGhost, textAlign: 'left', outline: 'none', fontSize: '12px', padding: '0.6rem 1rem', backgroundColor: '#0B101B', borderRadius: '8px' }}
+                                        style={{ ...G.btnGhost, textAlign: 'left', outline: 'none', fontSize: '13px', padding: '0.6rem 1rem', backgroundColor: '#0B101B', borderRadius: '8px' }}
                                         onChange={(e) => setMessageInput(e.target.value)}
                                     >
-                                        <option value="" style={{ fontSize: '12px', fontWeight: 900 }}>Select Template...</option>
-                                        {TEMPLATES.map(t => <option key={t} value={t} style={{ fontSize: '12px', padding: '10px' }}>{t}</option>)}
+                                        <option value="" style={{ fontSize: '13px', fontWeight: 900 }}>Select Template...</option>
+                                        {TEMPLATES.map(t => <option key={t} value={t} style={{ fontSize: '13px', padding: '10px' }}>{t}</option>)}
                                     </select>
                                 </div>
                                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
@@ -580,13 +580,13 @@ export default function PIHelpSupportModule() {
                                         {attachedFile && (
                                             <div style={{ position: 'absolute', top: '-40px', left: 0, padding: '0.4rem 0.8rem', backgroundColor: `${COLORS.accent}15`, borderRadius: '4px', border: `1px solid ${COLORS.accent}40`, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                                 <Paperclip size={12} color={COLORS.accent} />
-                                                <span style={{ fontSize: '12px', fontWeight: 900 }}>{attachedFile.name}</span>
+                                                <span style={{ fontSize: '13px', fontWeight: 900 }}>{attachedFile.name}</span>
                                                 <X size={12} color={COLORS.accent} style={{ cursor: 'pointer' }} onClick={() => setAttachedFile(null)} />
                                             </div>
                                         )}
                                         <textarea 
                                             style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, borderRadius: '8px', color: 'white', padding: '1rem', fontSize: '15px', outline: 'none', minHeight: '80px', resize: 'none' }}
-                                            placeholder="Compose clinical or technical correspondence..."
+                                            placeholder="Write your message here..."
                                             value={messageInput}
                                             onChange={e => setMessageInput(e.target.value)}
                                         />
@@ -601,7 +601,7 @@ export default function PIHelpSupportModule() {
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: COLORS.label }}>
                             <Bell size={64} style={{ opacity: 0.1, marginBottom: '2rem' }} />
                             <div style={{ ...G.title, fontSize: '20px' }}>Support Channel Ready</div>
-                            <div style={{ fontSize: '12px', marginTop: '1rem' }}>Select a ticket to begin correspondence.</div>
+                            <div style={{ fontSize: '13px', marginTop: '1rem' }}>Select a ticket to begin correspondence.</div>
                         </div>
                     )}
                 </div>
@@ -611,25 +611,25 @@ export default function PIHelpSupportModule() {
                     {activeTicket ? (
                         <div style={{ padding: '2rem 1.5rem' }}>
                             <div style={{ marginBottom: '2.5rem' }}>
-                                <label style={G.label}>Origin Parameters</label>
+                                <label style={{ ...G.label, fontSize: '13px' }}>Details</label>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
                                     <div>
-                                        <div style={{ fontSize: '12px', color: COLORS.label }}>Ticket Identity</div>
+                                        <div style={{ fontSize: '13px', color: COLORS.label }}>Ticket ID</div>
                                         <div style={{ fontSize: '15px', fontWeight: 900, fontFamily: 'monospace', color: COLORS.accent }}>{activeTicket.id}</div>
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: '12px', color: COLORS.label }}>Created By</div>
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{activeTicket.createdBy} <span style={{ color: COLORS.label, fontSize: '12px' }}>[{activeTicket.createdRole}]</span></div>
+                                        <div style={{ fontSize: '13px', color: COLORS.label }}>Created By</div>
+                                        <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{activeTicket.createdBy} <span style={{ color: COLORS.label, fontSize: '13px' }}>[{activeTicket.createdRole}]</span></div>
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: '12px', color: COLORS.label }}>Study Node</div>
+                                        <div style={{ fontSize: '13px', color: COLORS.label }}>Study Site</div>
                                         <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{activeTicket.study}</div>
                                     </div>
                                 </div>
                             </div>
 
                             <div style={{ marginBottom: '2.5rem' }}>
-                                <label style={G.label}>Assignment Routing</label>
+                                <label style={{ ...G.label, fontSize: '13px' }}>Assigned To</label>
                                 <select 
                                     style={{ ...G.btnGhost, width: '100%', marginTop: '1rem', outline: 'none', textAlign: 'left', backgroundColor: '#0B101B' }}
                                     value={activeTicket.assignedTo}
@@ -657,7 +657,7 @@ export default function PIHelpSupportModule() {
                             </div>
 
                             <div style={{ marginBottom: '2.5rem' }}>
-                                <label style={G.label}>Status Workflow</label>
+                                <label style={{ ...G.label, fontSize: '13px' }}>Ticket Status</label>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '1rem' }}>
                                     {['Open', 'In Progress', 'Waiting', 'Resolved', 'Closed'].map(s => (
                                         <button 
@@ -672,10 +672,10 @@ export default function PIHelpSupportModule() {
                             </div>
 
                             <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: '1.5rem' }}>
-                                <label style={G.label}>Audit Trace</label>
+                                <label style={{ ...G.label, fontSize: '13px' }}>History</label>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
                                     {activeTicket.auditLog.map((log, i) => (
-                                        <div key={i} style={{ fontSize: '12px', color: COLORS.label, lineHeight: 1.5 }}>
+                                        <div key={i} style={{ fontSize: '13px', color: COLORS.label, lineHeight: 1.5 }}>
                                             <span style={{ fontWeight: 900, color: COLORS.accent }}>{log.time}</span> • {log.user}: {log.action}
                                         </div>
                                     ))}
@@ -683,7 +683,7 @@ export default function PIHelpSupportModule() {
                             </div>
                         </div>
                     ) : (
-                        <div style={{ padding: '2rem', textAlign: 'center', color: COLORS.label, fontSize: '12px' }}>Operational details waiting for ticket selection.</div>
+                        <div style={{ padding: '2rem', textAlign: 'center', color: COLORS.label, fontSize: '13px' }}>Ticket details will appear here after selection.</div>
                     )}
                 </div>
             </div>
@@ -693,24 +693,24 @@ export default function PIHelpSupportModule() {
                 <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}>
                     <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)' }} onClick={() => setNewRequestOpen(false)} />
                     <div style={{ width: '680px', height: '100%', backgroundColor: COLORS.bg, borderLeft: `1px solid ${COLORS.accent}40`, padding: '4rem', display: 'flex', flexDirection: 'column', position: 'relative', overflowY: 'auto' }} className="custom-scrollbar">
-                        <h2 style={{ ...G.title, fontSize: '32px', marginBottom: '3rem' }}>Initialize Request</h2>
+                        <h2 style={{ ...G.title, fontSize: '32px', marginBottom: '3rem' }}>New Request</h2>
                         
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
                             <section>
-                                <label style={G.label}>Request Intent / Title</label>
+                                <label style={{ ...G.label, fontSize: '13px' }}>Title</label>
                                 <input 
                                     style={{ ...G.btnGhost, width: '100%', marginTop: '0.75rem', outline: 'none', cursor: 'text', padding: '1.25rem' }} 
-                                    placeholder="Brief summary of clinical or technical impediment..." 
+                                    placeholder="Brief summary of the issue..." 
                                     value={newRequestForm.title}
                                     onChange={e => setNewRequestForm({ ...newRequestForm, title: e.target.value })}
                                 />
                             </section>
 
                             <section>
-                                <label style={G.label}>Assessment Details</label>
+                                <label style={{ ...G.label, fontSize: '13px' }}>Description</label>
                                 <textarea 
                                     style={{ ...G.glass, width: '100%', marginTop: '0.75rem', minHeight: '200px', border: `1px solid ${COLORS.border}`, borderRadius: '8px', color: 'white', padding: '1.5rem', outline: 'none', fontSize: '15px' }} 
-                                    placeholder="Provide full context for assessment..." 
+                                    placeholder="Describe the issue here..." 
                                     value={newRequestForm.description}
                                     onChange={e => setNewRequestForm({ ...newRequestForm, description: e.target.value })}
                                 />
@@ -718,7 +718,7 @@ export default function PIHelpSupportModule() {
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                                 <section>
-                                    <label style={G.label}>Category Node</label>
+                                    <label style={{ ...G.label, fontSize: '13px' }}>Category</label>
                                     <select 
                                         style={{ ...G.btnGhost, width: '100%', marginTop: '0.75rem', outline: 'none', padding: '1rem', backgroundColor: '#0B101B' }}
                                         value={newRequestForm.category}
@@ -732,13 +732,13 @@ export default function PIHelpSupportModule() {
                                     </select>
                                 </section>
                                 <section>
-                                    <label style={G.label}>Priority Score</label>
+                                    <label style={{ ...G.label, fontSize: '13px' }}>Priority</label>
                                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
                                         {['Low', 'Medium', 'High', 'Urgent'].map(p => (
                                             <button 
                                                 key={p} 
                                                 onClick={() => setNewRequestForm({ ...newRequestForm, priority: p })}
-                                                style={{ border: `1px solid ${newRequestForm.priority === p ? COLORS.accent : COLORS.border}`, background: newRequestForm.priority === p ? `${COLORS.accent}20` : 'transparent', color: newRequestForm.priority === p ? 'white' : COLORS.label, flex: 1, padding: '0.75rem', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', borderRadius: '4px', cursor: 'pointer' }}
+                                                style={{ border: `1px solid ${newRequestForm.priority === p ? COLORS.accent : COLORS.border}`, background: newRequestForm.priority === p ? `${COLORS.accent}20` : 'transparent', color: newRequestForm.priority === p ? 'white' : COLORS.label, flex: 1, padding: '0.75rem', fontSize: '13px', fontWeight: 900, textTransform: 'uppercase', borderRadius: '4px', cursor: 'pointer' }}
                                             >
                                                 {p}
                                             </button>
@@ -780,7 +780,7 @@ export default function PIHelpSupportModule() {
                     <div key={t.id} style={{ 
                         padding: '1rem 2rem', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '1rem',
                         backgroundColor: t.type === 'success' ? COLORS.success : t.type === 'error' ? COLORS.danger : (t.type === 'warning' ? COLORS.warning : COLORS.info),
-                        color: 'white', fontWeight: 900, textTransform: 'uppercase', fontSize: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                        color: 'white', fontWeight: 900, textTransform: 'uppercase', fontSize: '13px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
                         animation: 'slideIn 0.3s forwards'
                     }}>
                         <Bell size={16} /> {t.message}

@@ -618,10 +618,10 @@ function OversightModule({ studyCount, stats, onLaunch, onNavigate }: { studyCou
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-2 md:space-y-3">
-                    <h2 className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter line-clamp-2 leading-none">
+                    <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tight line-clamp-2 leading-none">
                         Scientific <span className="text-indigo-400">Oversight</span>
                     </h2>
-                    <p className="text-[12px] md:text-sm text-white/50 font-bold uppercase tracking-[0.2em] md:tracking-[0.4em] mt-3 md:mt-4 italic">
+                    <p className="text-[11px] text-white/50 font-bold uppercase tracking-[0.4em] mt-3 md:mt-4 italic">
                         Portfolio Performance & clinical research velocity
                     </p>
                 </div>
@@ -633,8 +633,8 @@ function OversightModule({ studyCount, stats, onLaunch, onNavigate }: { studyCou
                 </button>
             </div>
 
-            {/* Row 1 - KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8">
+            {/* Row 1 - KPI Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-20 border-t border-white/5 pt-10">
                 {[
                     { label: 'Active Protocols', val: studyCount.toString().padStart(2, '0'), icon: Beaker, color: 'indigo' },
                     { label: 'Total Subjects', val: '1,240', icon: UsersRound, color: 'emerald' },
@@ -647,87 +647,89 @@ function OversightModule({ studyCount, stats, onLaunch, onNavigate }: { studyCou
                             if (stat.label.includes('Alerts')) onNavigate('ALERTS');
                             if (stat.label.includes('Subjects')) onNavigate('PARTICIPANTS');
                         }}
-                        className="bg-[#0F172A] border border-white/10 rounded-2xl md:rounded-[3rem] p-5 md:p-10 flex flex-col justify-between min-h-[180px] md:min-h-[300px] group hover:bg-[#0B101B] hover:border-indigo-500/40 transition-all duration-500 shadow-2xl shadow-black/60 relative overflow-hidden cursor-pointer"
+                        className="flex flex-col gap-6 group cursor-pointer"
                     >
-                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.03] to-transparent pointer-events-none" />
-                        <div className={`w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-${stat.color}-500/10 border border-${stat.color}-500/20 flex items-center justify-center group-hover:scale-110 transition-transform relative z-10`}>
-                            <stat.icon className={`w-5 h-5 md:w-8 md:h-8 text-${stat.color}-400`} />
+                        <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-xl bg-${stat.color}-500/10 border border-${stat.color}-500/20 flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                                <stat.icon className={`w-5 h-5 text-${stat.color}-400`} />
+                            </div>
+                            <h4 className="text-[11px] font-black text-white/40 uppercase tracking-[0.3em] italic group-hover:text-white transition-colors">{stat.label}</h4>
                         </div>
-                        <div className="mt-3 md:mt-8 relative z-10">
-                            <h4 className="text-[12px] font-black text-white/50 uppercase tracking-[0.1em] md:tracking-[0.2em] italic mb-1 md:mb-4 group-hover:text-white transition-colors uppercase">{stat.label}</h4>
-                            <p className="text-sm md:text-base lg:text-lg font-black text-white italic tracking-tighter leading-none group-hover:text-indigo-400 transition-colors uppercase">{stat.val}</p>
-                        </div>
+                        <p className="text-3xl md:text-4xl font-black text-white italic tracking-tighter leading-none group-hover:text-indigo-400 transition-colors uppercase">{stat.val}</p>
                     </div>
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Row 2 - Operational Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 border-t border-white/5 pt-10">
                 {[
                     { label: 'Upcoming visits', val: stats.upcomingVisits.toString().padStart(2, '0'), sub: 'this 60 days', color: 'indigo', action: () => onNavigate('VISITS') },
                     { label: 'Overdue follow-ups', val: stats.overdueFollowUps.toString().padStart(2, '0'), sub: 'Urgent Action', color: 'red', alert: stats.hasCriticalAlert },
                     { label: 'Awaiting callback', val: stats.awaitingCallback.toString().padStart(2, '0'), sub: 'Participant leads', color: 'emerald' },
                     { label: 'Pending forms', val: stats.pendingForms.toString().padStart(2, '0'), sub: 'Completion required', color: 'amber' }
                 ].map((widget, i) => (
-                    <div key={i} onClick={widget.action} className="bg-[#0F172A] border border-white/[0.08] rounded-2xl md:rounded-[2.5rem] p-5 md:p-8 hover:bg-[#0B101B] hover:border-white/20 transition-all duration-500 cursor-pointer relative overflow-hidden group shadow-2xl shadow-black/40">
-                        {widget.alert && <div className="absolute top-4 right-4 md:top-6 md:right-6 w-2.5 h-2.5 md:w-3 h-3 bg-red-500 rounded-full animate-ping shadow-[0_0_15px_rgba(239,68,68,0.5)]" />}
-                        <h4 className="text-[12px] md:text-sm font-black text-white/50 uppercase tracking-widest italic group-hover:text-white transition-colors">{widget.label}</h4>
-                        <div className="flex items-end gap-3 md:gap-4 mt-3 md:mt-6">
-                            <p className={`text-base md:text-xl font-black text-${widget.color}-400 italic tracking-tighter leading-none group-hover:scale-105 transition-transform origin-left uppercase`}>{widget.val}</p>
-                            <p className="text-[12px] text-white/40 font-black uppercase tracking-widest mb-1 md:mb-2 italic">{widget.sub}</p>
+                    <div key={i} onClick={widget.action} className="group cursor-pointer relative">
+                        {widget.alert && <div className="absolute -top-2 -right-2 w-2 h-2 bg-red-500 rounded-full animate-ping" />}
+                        <h4 className="text-[11px] font-black text-white/30 uppercase tracking-[0.3em] italic group-hover:text-white transition-colors mb-4">{widget.label}</h4>
+                        <div className="flex items-end gap-3">
+                            <p className={`text-2xl font-black text-${widget.color}-400 italic tracking-tighter leading-none group-hover:scale-105 transition-transform origin-left uppercase`}>{widget.val}</p>
+                            <p className="text-[10px] text-white/40 font-black uppercase tracking-widest mb-1 italic whitespace-nowrap">{widget.sub}</p>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* Row 3 — Calendar Widget Placeholder */}
-            <div className="bg-[#0B101B] border border-white/10 rounded-2xl md:rounded-[3rem] p-5 md:p-10 space-y-5 md:space-y-8 shadow-2xl shadow-black/50">
+            {/* Row 3 — Calendar Grid */}
+            <div className="border-t border-white/5 pt-10 space-y-8">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                    <h3 className="text-[12px] md:text-lg font-black text-white italic uppercase tracking-widest">Active Schedule <span className="text-indigo-400">Calendar</span></h3>
-                    <div className="flex flex-wrap gap-1.5 md:gap-2">
+                    <h3 className="text-[12px] font-black text-white italic uppercase tracking-[0.3em]">Active Schedule <span className="text-indigo-400">Calendar</span></h3>
+                    <div className="flex flex-wrap gap-4">
                         {['Confirmed', 'Pending', 'Overdue'].map((label, idx) => (
-                            <div key={idx} className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 bg-white/5 rounded-full border border-white/5">
-                                <div className={`w-1 md:w-1.5 h-1 md:h-1.5 rounded-full ${idx === 0 ? 'bg-emerald-500' : idx === 1 ? 'bg-amber-500' : 'bg-red-500'}`} />
-                                <span className="text-[12px] font-black text-white/40 uppercase tracking-widest">{label}</span>
+                            <div key={idx} className="flex items-center gap-2">
+                                <div className={`w-1.5 h-1.5 rounded-full ${idx === 0 ? 'bg-emerald-500' : idx === 1 ? 'bg-amber-500' : 'bg-red-500'}`} />
+                                <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{label}</span>
                             </div>
                         ))}
                     </div>
                 </div>
                 <div className="overflow-x-auto pb-6 custom-scrollbar-horizontal -mx-2 px-2 snap-x">
-                    <div className="grid grid-cols-7 gap-2 md:gap-4 min-w-[700px] lg:min-w-0 md:min-h-[300px]">
+                    <div className="grid grid-cols-7 gap-px bg-white/5 border border-white/5 rounded-2xl overflow-hidden min-w-[700px] lg:min-w-0">
                         {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day, i) => (
-                            <div key={i} className="space-y-4">
-                                <div className="text-center py-2 bg-white/5 border border-white/5 rounded-xl text-[12px] font-black text-white/50 uppercase tracking-widest">{day}</div>
-                                {i === 1 && (
-                                    <div className="p-2.5 md:p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl md:rounded-2xl space-y-1 md:space-y-2 snap-center">
-                                        <p className="text-[12px] md:text-[13px] font-black text-emerald-400 uppercase leading-tight">BTB-021</p>
-                                        <p className="text-[12px] text-white/40 font-bold uppercase tracking-widest">Visit 3 @ 10:00</p>
-                                    </div>
-                                )}
-                                {i === 3 && (
-                                    <div className="p-2.5 md:p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl md:rounded-2xl space-y-1 md:space-y-2 snap-center">
-                                        <p className="text-[12px] md:text-[13px] font-black text-amber-400 uppercase leading-tight">MHC-104</p>
-                                        <p className="text-[12px] text-white/40 font-bold uppercase tracking-widest">Screening @ 14:00</p>
-                                    </div>
-                                )}
+                            <div key={i} className="flex flex-col min-h-[160px] bg-[#0B101B]">
+                                <div className="text-center py-4 border-b border-white/5 text-[11px] font-black text-white/30 uppercase tracking-widest">{day}</div>
+                                <div className="flex-1 p-3">
+                                    {i === 1 && (
+                                        <div className="p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl space-y-1">
+                                            <p className="text-[11px] font-black text-emerald-400 uppercase leading-tight">BTB-021</p>
+                                            <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">V3 @ 10:00</p>
+                                        </div>
+                                    )}
+                                    {i === 3 && (
+                                        <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl space-y-1">
+                                            <p className="text-[11px] font-black text-amber-400 uppercase leading-tight">MHC-104</p>
+                                            <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">SCR @ 14:00</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         ))}
                     </div>
                 </div>
             </div>
 
-            {/* Row 4 — Quick Access Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Row 4 — Quick Access Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 border-t border-white/5 pt-10">
                 {[
                     { label: 'Alert Center', sub: '02 New Notifications', icon: Bell, id: 'ALERTS' },
                     { label: 'Messaging Node', sub: '05 Unread Messages', icon: MessageSquare, id: 'MESSAGES' },
                     { label: 'Study Archive', sub: '12 Recent Uploads', icon: FileText, id: 'STUDY_DOCS' },
                     { label: 'Verified Docs', sub: '01 Expiry Warning', icon: ShieldCheck, id: 'MY_DOCS' }
                 ].map((card, i) => (
-                    <button key={i} onClick={() => onNavigate(card.id)} className="bg-[#111827] border border-white/5 rounded-2xl md:rounded-[2.5rem] p-5 md:p-8 hover:bg-[#0B101B] hover:border-indigo-500/30 transition-all duration-300 text-left flex flex-col justify-between h-[150px] md:h-[200px] group shadow-xl shadow-black/30 relative overflow-hidden">
-                        <card.icon className="w-6 h-6 md:w-8 md:h-8 text-indigo-400 group-hover:scale-110 transition-transform" />
+                    <button key={i} onClick={() => onNavigate(card.id)} className="group text-left flex flex-col gap-6 relative">
+                        <card.icon className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform" />
                         <div>
-                            <h4 className="text-base md:text-lg font-black text-white italic uppercase tracking-tighter leading-none">{card.label}</h4>
-                            <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest mt-2 md:mt-3">{card.sub}</p>
+                            <h4 className="text-sm font-black text-white italic uppercase tracking-tighter leading-none group-hover:text-indigo-400 transition-colors">{card.label}</h4>
+                            <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest mt-2">{card.sub}</p>
                         </div>
                     </button>
                 ))}
@@ -753,42 +755,46 @@ function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10">
             <div className="flex justify-between items-center">
-                <h2 className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter leading-none">Research <span className="text-indigo-400">Portfolio</span></h2>
-                <button onClick={onAdd} className="px-6 py-3.5 bg-indigo-700 text-white rounded-[2rem] text-[12px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-xl shadow-indigo-900/40 hover:scale-[1.02] transition-all">
+                <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tight leading-none">Research <span className="text-indigo-400">Portfolio</span></h2>
+                <button onClick={onAdd} className="px-8 py-4 bg-indigo-700 text-white rounded-[2rem] text-[12px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-xl shadow-indigo-900/40 hover:scale-[1.02] transition-all">
                     <Rocket className="w-4 h-4" /> LAUNCH A STUDY
                 </button>
             </div>
 
-            {/* Filter Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+            {/* Filter Hub */}
+            <div className="flex flex-wrap gap-x-12 gap-y-10 border-t border-white/5 pt-10">
                 {categories.map((cat) => (
                     <button
                         key={cat.id}
                         onClick={() => setFilter(cat.id)}
-                        className={`p-8 rounded-[2.5rem] border transition-all duration-300 text-left flex flex-col justify-between h-[180px] group ${filter === cat.id
-                            ? 'bg-indigo-600/20 border-indigo-500 shadow-[0_0_40px_rgba(99,102,241,0.15)] ring-1 ring-indigo-500/50'
-                            : 'bg-[#0B101B]/60 backdrop-blur-md border-white/5 hover:bg-[#0B101B] hover:border-white/10 shadow-lg shadow-black/30'}`}
+                        className={`flex flex-col gap-4 text-left group transition-all ${filter === cat.id ? 'opacity-100' : 'opacity-40 hover:opacity-100'}`}
                     >
-                        <cat.icon className={`w-8 h-8 ${filter === cat.id ? 'text-white' : 'text-indigo-400 group-hover:scale-110 transition-transform'}`} />
-                        <div>
-                            <p className={`text-2xl font-black italic tracking-tighter leading-none ${filter === cat.id ? 'text-white' : 'text-white'}`}>{cat.count.toString().padStart(2, '0')}</p>
-                            <p className="text-[12px] font-black uppercase tracking-widest mt-2 {filter === cat.id ? 'text-indigo-200' : 'text-slate-500 font-bold'}">{cat.label}</p>
-                            <p className="text-[12px] font-bold uppercase tracking-widest mt-1 italic {filter === cat.id ? 'text-indigo-300/80' : 'text-slate-600'}">{cat.subtext}</p>
+                        <div className="flex items-center gap-4">
+                            <cat.icon className={`w-4 h-4 ${filter === cat.id ? 'text-indigo-400' : 'text-slate-500 group-hover:text-indigo-400'}`} />
+                            <span className={`text-[11px] font-black uppercase tracking-[0.3em] italic ${filter === cat.id ? 'text-white' : 'text-slate-500 group-hover:text-white'}`}>{cat.label}</span>
                         </div>
+                        <p className={`text-4xl font-black italic tracking-tighter leading-none ${filter === cat.id ? 'text-white' : 'text-white'}`}>{cat.count.toString().padStart(2, '0')}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest italic text-slate-600 mt-1">{cat.subtext}</p>
                     </button>
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-white/5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-white/5">
                 {filteredStudies.length === 0 ? (
                     <div className="col-span-2 py-20 bg-white/5 border border-dashed border-white/10 rounded-[3rem] text-center">
-                        <p className="text-slate-500 font-bold uppercase tracking-widest italic">No matching protocols in this matrix</p>
+                        <p className="text-slate-500 font-bold uppercase tracking-widest italic text-[12px]">No matching protocols in this matrix</p>
                     </div>
                 ) : filteredStudies.map((study, i) => (
-                    <div key={i} className="bg-[#0B101B]/60 backdrop-blur-md border border-white/5 rounded-[3rem] p-10 space-y-8 relative group hover:bg-[#0B101B] hover:border-indigo-500/30 transition-all duration-300 shadow-2xl shadow-black/50">
+                    <div key={i} className="group border-b border-white/5 last:border-none pb-8 space-y-8 relative hover:bg-white/[0.01] transition-all duration-300">
                         <div className="flex justify-between items-start">
-                            <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-                                <Beaker className="w-7 h-7" />
+                            <div className="flex items-center gap-8">
+                                <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 group-hover:text-indigo-400 group-hover:border-indigo-500/40 transition-all shadow-lg shadow-black/20">
+                                    <Beaker className="w-8 h-8" />
+                                </div>
+                                <div>
+                                    <p className="text-base font-black text-[#818cf8] italic leading-none">{study.protocol_id}</p>
+                                    <p className="text-xl font-black text-white italic uppercase tracking-tight mt-1.5">{study.title}</p>
+                                </div>
                             </div>
                             <div className="flex flex-col items-end gap-2">
                                 <span className={`px-5 py-2 rounded-full text-[12px] font-black uppercase tracking-widest border ${study.status === 'Active' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :

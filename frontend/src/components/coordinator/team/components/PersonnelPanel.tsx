@@ -37,7 +37,7 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
             <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', opacity: isOpen ? 1 : 0, transition: 'opacity 0.4s' }} onClick={onClose} />
             <div style={{ position: 'absolute', right: 0, top: 0, width: '720px', height: '100%', backgroundColor: COLORS.bgDark, borderLeft: `1px solid ${COLORS.accent}30`, transform: isOpen ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ padding: '2rem 3rem', borderBottom: COLORS.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)' }}>
-                    <h3 style={S.title}>{mode === 'add' ? 'INITIALIZE PERSONNEL NODE' : 'MODIFY TEAM MEMBER'}</h3>
+                    <h3 style={S.title}>{mode === 'add' ? 'ADD TEAM MEMBER' : 'MODIFY TEAM MEMBER'}</h3>
                     <button onClick={onClose} style={{ background: 'none', border: 'none', color: COLORS.text, cursor: 'pointer' }}><X size={24} /></button>
                 </div>
 
@@ -45,7 +45,7 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
                     <section style={{ marginBottom: '3.5rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
                             <div style={{ width: '4px', height: '18px', backgroundColor: COLORS.accent, borderRadius: '2px' }} />
-                            <h4 style={{ ...S.title, fontSize: '15px' }}>Identity & Domain</h4>
+                            <h4 style={{ ...S.title, fontSize: '15px' }}>Staff Details</h4>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                             <div>
@@ -82,9 +82,9 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
                     <section style={{ marginBottom: '3.5rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
                             <div style={{ width: '4px', height: '18px', backgroundColor: COLORS.accent, borderRadius: '2px' }} />
-                            <h4 style={{ ...S.title, fontSize: '15px' }}>Authorization & Scope</h4>
+                            <h4 style={{ ...S.title, fontSize: '15px' }}>Study Access</h4>
                         </div>
-                        <label style={{ ...S.label, marginBottom: '1rem' }}>Protocol Assignment Nodes</label>
+                        <label style={{ ...S.label, marginBottom: '1rem' }}>Assigned Studies</label>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '2.5rem' }}>
                             {PROTOCOLS.map(p => {
                                 const selected = editedMember.assignedStudies?.includes(p);
@@ -108,7 +108,7 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                             <div>
-                                <label style={S.label}>Encryption Clearance</label>
+                                <label style={S.label}>Permission Level</label>
                                 <select style={S.input} value={editedMember.permissionLevel} onChange={e => setEditedMember({ ...editedMember, permissionLevel: e.target.value as any })}>
                                     <option value="Full">LEVEL 3: FULL ACCESS</option>
                                     <option value="Limited">LEVEL 2: WRITE ACCESS</option>
@@ -124,8 +124,7 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
 
                     <section>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                            <div style={{ width: '4px', height: '18px', backgroundColor: COLORS.accent, borderRadius: '2px' }} />
-                            <h4 style={{ ...S.title, fontSize: '15px' }}>Credentials Vault ({editedMember.documents?.filter(d => d.status === 'Valid').length}/{editedMember.documents?.length})</h4>
+                            <h4 style={{ ...S.title, fontSize: '15px' }}>Required Documents ({editedMember.documents?.filter(d => d.status === 'Valid').length}/{editedMember.documents?.length})</h4>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             {editedMember.documents?.map(doc => (
@@ -149,9 +148,9 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
                 <div style={{ padding: '2rem 3.5rem', borderTop: COLORS.border, background: 'rgba(0,0,0,0.2)', display: 'flex', gap: '1rem' }}>
                     <button style={{ ...S.btnGhost, flex: 1 }} onClick={onClose}>ABORT</button>
                     {editedMember.status === 'Draft' && (mode === 'edit' || true) && (
-                        <button style={{ ...S.btnGhost, flex: 1, borderColor: COLORS.success, color: COLORS.success }} onClick={handleActivate}>ACTIVATE NODE</button>
+                        <button style={{ ...S.btnGhost, flex: 1, borderColor: COLORS.success, color: COLORS.success }} onClick={handleActivate}>ACTIVATE ACCOUNT</button>
                     )}
-                    <button style={{ ...S.btnIndigo, flex: 2 }} onClick={handleSave}><ShieldCheck size={18} /> COMMIT TO REGISTRY</button>
+                    <button style={{ ...S.btnIndigo, flex: 2 }} onClick={handleSave}><ShieldCheck size={18} /> SAVE DETAILS</button>
                 </div>
             </div>
         </div>

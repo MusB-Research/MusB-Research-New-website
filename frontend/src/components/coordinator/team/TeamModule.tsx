@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { COLORS, TeamMember, TeamDocument, ROLE_DOCS, PROTOCOLS } from './TeamConstants';
 import { TeamCard } from './components/TeamCard';
 import { PersonnelPanel } from './components/PersonnelPanel';
-import { authFetch } from '../../../utils/authFetch';
+import { authFetch } from '../../../utils/auth';
 
 export default function TeamModule({ selectedStudyId }: { selectedStudyId?: string }) {
     // State
@@ -118,7 +118,7 @@ export default function TeamModule({ selectedStudyId }: { selectedStudyId?: stri
                 body: JSON.stringify({ is_active: true })
             });
             if (response.ok) {
-                addToast('Level-3 Clearance granted to personnel', 'success');
+                addToast('Access granted to team member', 'success');
                 fetchTeam();
                 setPanelOpen(false);
             }
@@ -129,13 +129,13 @@ export default function TeamModule({ selectedStudyId }: { selectedStudyId?: stri
 
     const handleDeleteMember = (member: TeamMember) => {
         setConfirmModal({
-            message: `Permanently remove [${member.name}] from clinical registry?`,
+            message: `Permanently remove [${member.name}] from staff list?`,
             type: 'danger',
             onConfirm: async () => {
                 try {
                     const response = await authFetch(`/api/users/${member.id}/`, { method: 'DELETE' });
                     if (response.ok) {
-                        addToast('Personnel record purged from terminal');
+                        addToast('Team member removed successfully');
                         fetchTeam();
                     }
                 } catch (error) {

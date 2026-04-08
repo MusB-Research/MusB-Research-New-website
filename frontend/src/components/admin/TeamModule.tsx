@@ -64,7 +64,7 @@ export default function TeamModule() {
         return (
             <div className="h-[60vh] flex flex-col items-center justify-center space-y-6">
                 <Loader2 className="w-16 h-16 text-indigo-500 animate-spin" />
-                <p className="text-[12px] font-black text-slate-500 uppercase tracking-[0.4em] animate-pulse">Synchronizing Neural Personnel Registry...</p>
+                <p className="text-[14px] font-black text-slate-500 uppercase tracking-[0.4em] animate-pulse">Loading Staff Directory...</p>
             </div>
         );
     }
@@ -93,7 +93,7 @@ export default function TeamModule() {
                 <div className="flex items-center gap-4 bg-white/5 border border-white/10 px-6 py-4 rounded-2xl relative overflow-hidden group">
                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                      <span className="text-[12px] font-black text-slate-300 uppercase tracking-widest italic font-mono relative z-10">
-                        {allUsers.length + allParticipants.length} Verified Nodes Online
+                        {allUsers.length + allParticipants.length} Verified Users Online
                      </span>
                      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/5 to-emerald-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                 </div>

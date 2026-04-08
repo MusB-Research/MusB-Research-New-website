@@ -32,7 +32,8 @@ import {
     PieChart,
     Share2,
     Calendar,
-    PenTool
+    PenTool,
+    Activity
 } from 'lucide-react';
 
 interface Question {
@@ -105,6 +106,29 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
         { id: 'f4', label: 'Safety Threshold', val: 'MAX(AE) > 12.5', status: 'ACTIVE', color: 'red' }
     ]);
     const [selectedFormulaId, setSelectedFormulaId] = useState('f1');
+    const [savedForms, setSavedForms] = useState<any[]>([]);
+    const [isFetching, setIsFetching] = useState(false);
+
+    const fetchForms = async () => {
+        setIsFetching(true);
+        try {
+            const res = await authFetch(`${API}/api/forms/`);
+            if (res.ok) {
+                const data = await res.json();
+                setSavedForms(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch forms", err);
+        } finally {
+            setIsFetching(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'My Questionnaires') {
+            fetchForms();
+        }
+    }, [activeTab]);
 
     const addFormula = () => {
         const newF = {
@@ -209,403 +233,411 @@ export default function QuestionnaireBuilder({ initialTab = 'Create New' }: { in
     };
 
     return (
-        <div className="flex flex-col h-auto 2xl:h-[calc(100vh-14rem)] bg-[#0B101B] border border-white/5 rounded-[1.5rem] lg:rounded-[2.5rem] overflow-hidden 2xl:overflow-hidden shadow-2xl relative mb-10 2xl:mb-0">
-            {/* Top Tactical Header */}
-            <div className="flex-shrink-0 bg-[#0B101B]/80 backdrop-blur-3xl border-b border-white/5 z-40">
-                <div className="px-6 lg:px-12 py-8 lg:py-12 flex flex-col xl:flex-row items-center justify-between gap-10 xl:gap-8">
-                    <div className="flex items-start gap-6 lg:gap-10 shrink-0">
-                        <div className="w-16 h-16 lg:w-20 lg:h-20 bg-indigo-500/10 border border-indigo-500/20 rounded-[1.75rem] flex items-center justify-center text-indigo-400 shadow-2xl shadow-indigo-500/10 shrink-0 mt-1">
-                            <DraftingCompass className="w-10 h-10 lg:w-12 lg:h-12" />
-                        </div>
-                        <div>
-                            <h2 className="text-3xl lg:text-5xl font-black text-white italic uppercase tracking-tighter leading-none mb-3">ELIGIBILITY QUESTIONNAIRES</h2>
-                            <p className="text-[12px] lg:text-[12px] text-indigo-400 font-bold uppercase tracking-[0.3em] lg:tracking-[0.4em] italic opacity-80 max-w-2xl">Design logical recruitment funnels with dynamic branching and integrated validation triggers.</p>
-                        </div>
-                    </div>
-
-                    <div className="w-full xl:w-auto flex flex-wrap lg:flex-row items-center gap-3 lg:gap-4 justify-center xl:justify-end">
-                        <button 
-                            onClick={() => handleSave(false)}
-                            disabled={isLoading}
-                            className="px-6 py-4 lg:py-5 bg-white/5 border border-white/10 text-slate-400 rounded-2xl hover:bg-white/10 hover:text-white transition-all flex items-center gap-4 group shadow-xl"
-                        >
-                            <Save className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                            <div className="text-left">
-                                <p className="text-[12px] font-black uppercase tracking-widest leading-none">SAVE</p>
-                                <p className="text-[12px] font-black uppercase tracking-widest leading-none mt-1 opacity-50">DRAFT</p>
-                            </div>
-                        </button>
-
-                        <button 
-                            onClick={() => setIsPreviewOpen(true)}
-                            className="px-6 py-4 lg:py-5 bg-white/5 border border-white/10 text-slate-400 rounded-2xl hover:bg-white/10 hover:text-white transition-all flex items-center gap-4 group shadow-xl"
-                        >
-                            <Eye className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                            <div className="text-left font-black uppercase tracking-widest text-[12px]">PREVIEW</div>
-                        </button>
-
-                        <button 
-                            onClick={() => setIsFormulaOpen(true)}
-                            className="px-6 py-4 lg:py-5 bg-indigo-500/5 border border-indigo-500/10 text-indigo-400/80 rounded-2xl hover:bg-indigo-500/10 hover:text-indigo-400 transition-all flex items-center gap-4 group shadow-xl"
-                        >
-                            <Calculator className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                            <div className="text-left">
-                                <p className="text-[12px] font-black uppercase tracking-widest leading-none">SCORING</p>
-                                <p className="text-[12px] font-black uppercase tracking-widest leading-none mt-1 opacity-50">ENGINE</p>
-                            </div>
-                        </button>
-
-                        <button 
-                            onClick={() => handleSave(true)}
-                            disabled={isLoading}
-                            className="px-8 py-4 lg:py-5 bg-indigo-600 text-white rounded-2xl shadow-2xl shadow-indigo-900/40 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4 border border-indigo-400/20 group outline-none"
-                        >
-                            <Rocket className="w-5 h-5 group-hover:animate-bounce" />
-                            <div className="text-left">
-                                <p className="text-[12px] font-black uppercase tracking-widest leading-none">{isLoading ? "SYNCING..." : "PUBLISH"}</p>
-                                <p className="text-[12px] font-black uppercase tracking-widest leading-none mt-1 opacity-80">& ASSIGN</p>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-
-
-                <div className="px-6 lg:px-12 flex gap-8 lg:gap-12 overflow-x-auto custom-scrollbar-horizontal whitespace-nowrap bg-white/[0.02]">
-                    {['My Questionnaires', 'Create New', 'Templates', 'Scoring & Formulas', 'Registry'].map(tab => (
-                        <button 
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`pb-5 pt-2 text-[12px] lg:text-[12px] font-bold uppercase tracking-[0.25em] transition-all relative ${
-                                activeTab === tab ? 'text-white italic' : 'text-slate-600 hover:text-slate-300'
-                            }`}
-                        >
-                            {tab}
-                            {activeTab === tab && <motion.div layoutId="nav-ind" className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-500 rounded-t-full shadow-[0_-2px_10px_rgba(99,102,241,0.5)]" />}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            <div className="flex-1 flex flex-col 2xl:flex-row overflow-visible 2xl:overflow-hidden">
-                {/* Left Panel: Structure Orchestration */}
-                <div className="w-full 2xl:w-[340px] border-b 2xl:border-b-0 2xl:border-r border-white/5 flex flex-col overflow-hidden bg-[#0B101B]">
-                    <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                        <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Protocol map</span>
-                        <div className="flex gap-2">
-                            <button 
-                                onClick={() => {
-                                    const newS: Section = { id: `s-${Date.now()}`, title: 'New Research Section', questions: [] };
-                                    setSections([...sections, newS]);
-                                }}
-                                className="p-2 bg-white/5 rounded-lg text-slate-600 hover:text-white transition-colors"
-                            >
-                                <Plus className="w-4 h-4" />
-                            </button>
-                            <button className="p-2 bg-white/5 rounded-lg text-slate-600 hover:text-white transition-colors"><Layers className="w-4 h-4" /></button>
-                        </div>
-                    </div>
-                    <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
-                        {sections.map(section => (
-                            <div key={section.id} className="space-y-4">
-                                <div className="flex items-center justify-between group">
-                                    <div className="flex items-center gap-3">
-                                        <ChevronDown className="w-4 h-4 text-slate-700" />
-                                        <h4 className="text-[12px] font-black text-white uppercase italic tracking-widest leading-tight w-40 truncate">{section.title}</h4>
-                                    </div>
-                                    <button onClick={() => addQuestion(section.id)} className="p-1 px-2 bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 rounded-md text-[12px] font-black uppercase opacity-0 group-hover:opacity-100 transition-opacity">Add</button>
-                                </div>
-                                <div className="pl-4 space-y-2 relative">
-                                    <div className="absolute left-1.5 top-0 bottom-0 w-[1px] bg-white/5" />
-                                    {section.questions.map(q => (
-                                        <button 
-                                            key={q.id}
-                                            onClick={() => setSelectedQId(q.id)}
-                                            className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all relative ${
-                                                selectedQId === q.id 
-                                                ? 'bg-indigo-600/10 border-indigo-500/30 text-white shadow-lg' 
-                                                : 'bg-transparent border-transparent text-slate-600 hover:text-slate-400'
-                                            }`}
-                                        >
-                                            <GripVertical className="w-3.5 h-3.5 text-slate-800" />
-                                            <span className="text-[12px] font-black uppercase tracking-tight truncate flex-1 text-left italic">{q.label}</span>
-                                            <XCircle className="w-4 h-4 text-red-900 opacity-0 group-hover:opacity-60 hover:opacity-100 transition-opacity" onClick={(e: React.MouseEvent) => { e.stopPropagation(); deleteQuestion(q.id); }} />
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-                {/* Center Panel: Architectural Canvas */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 xl:p-16 bg-[#0B101B] min-h-[500px] 2xl:min-h-0 border-b 2xl:border-b-0 border-white/5">
-                    <div className="max-w-5xl mx-auto space-y-12 lg:space-y-16">
-                        <section className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] lg:rounded-[3rem] p-6 lg:p-10 xl:p-12 shadow-2xl relative overflow-visible group/header backdrop-blur-md">
-                            <div className="flex flex-col xl:flex-row gap-10 xl:gap-20 items-start">
-                                <div className="flex-1 min-w-0 space-y-6 w-full">
-                                     <div className="flex items-center gap-4">
-                                         <div className="w-1.5 h-6 bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
-                                         <label className="text-[12px] text-slate-600 font-black uppercase tracking-widest italic whitespace-nowrap">Inventory Strategic Title</label>
-                                     </div>
-                                     <input 
-                                         type="text" 
-                                         placeholder="Enter Protocol Title..." 
-                                         value={formTitle} 
-                                         onChange={(e) => setFormTitle(e.target.value)}
-                                         className="w-full bg-transparent border-b border-white/5 py-4 text-sm md:text-base lg:text-xl font-black text-white italic uppercase placeholder-slate-930 outline-none focus:border-indigo-500/50 transition-all tracking-tight leading-none" 
-                                     />
-                                 </div>
-
-                                 <div className="w-full xl:w-auto flex flex-row xl:flex-col items-center xl:items-start gap-8 shrink-0">
-                                     <div className="space-y-4 min-w-[240px] relative group/select">
-                                         <label className="text-[12px] text-slate-700 font-black uppercase tracking-widest italic">Target Study</label>
-                                         
-                                         {/* Custom Dropdown Button */}
-                                         <div className="relative">
-                                             <div 
-                                                onClick={() => setIsStudyDropdownOpen(!isStudyDropdownOpen)}
-                                                className="w-full py-4 px-6 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between cursor-pointer hover:border-indigo-500/50 transition-all shadow-lg select-none"
-                                             >
-                                                 <span className="text-[12px] font-black text-indigo-400 uppercase italic">
-                                                     {studies.find(s => s.id === selectedStudyId)?.protocol_id || (isLoading ? 'Loading...' : 'Select Study')}
-                                                 </span>
-                                                 <ChevronDown className={`w-4 h-4 text-indigo-400 transition-transform ${isStudyDropdownOpen ? 'rotate-180' : ''}`} />
-                                             </div>
-                                             
-                                             <AnimatePresence>
-                                                {isStudyDropdownOpen && (
-                                                    <motion.div 
-                                                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                                                        className="absolute top-full left-0 right-0 mt-2 bg-[#0F172A] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 backdrop-blur-xl"
-                                                    >
-                                                        {studies.map(s => (
-                                                            <div 
-                                                                key={s.id}
-                                                                onClick={() => {
-                                                                    setSelectedStudyId(s.id);
-                                                                    setIsStudyDropdownOpen(false);
-                                                                }}
-                                                                className="px-6 py-4 text-[12px] font-bold text-slate-300 uppercase italic hover:bg-indigo-600 hover:text-white cursor-pointer transition-colors border-b border-white/5 last:border-0"
-                                                            >
-                                                                {s.protocol_id}
-                                                            </div>
-                                                        ))}
-                                                        {studies.length === 0 && <div className="px-6 py-4 text-[12px] italic text-slate-500">No studies available</div>}
-                                                    </motion.div>
-                                                )}
-                                             </AnimatePresence>
-                                         </div>
-                                     </div>
-                                     <div className="space-y-4 min-w-[120px]">
-                                         <label className="text-[12px] text-slate-700 font-black uppercase tracking-widest italic">Version</label>
-                                         <div className="py-4 px-6 bg-white/5 border border-white/10 rounded-2xl text-[12px] font-black text-slate-500 uppercase italic shadow-lg">v1.0.0 [DRAFT]</div>
-                                     </div>
-                                 </div>
-                            </div>
-                        </section>
-
-
-
-
-
-
-                        <div className="space-y-24 pb-32">
-                            {sections.map(section => (
-                                <section key={section.id} className="relative">
-                                    <div className="flex items-center gap-6 mb-12">
-                                        <div className="w-10 h-10 rounded-2xl bg-indigo-600/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20 font-black italic">S</div>
-                                        <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">{section.title}</h3>
-                                        <div className="flex-1 h-[1px] bg-white/5" />
-                                    </div>
-                                    
-                                    <div className="space-y-12">
-                                        {section.questions.map(q => (
-                                            <motion.div 
-                                                key={q.id}
-                                                layout
-                                                onClick={() => setSelectedQId(q.id)}
-                                                className={`p-10 rounded-[3rem] border transition-all cursor-pointer relative group ${
-                                                    selectedQId === q.id 
-                                                    ? 'bg-indigo-600 border-indigo-400 shadow-[0_30px_60px_-15px_rgba(99,102,241,0.2)]' 
-                                                    : 'bg-white/[0.02] border-white/5 shadow-xl hover:bg-white/[0.04]'
-                                                }`}
-                                            >
-                                                <div className="flex items-center justify-between mb-8">
-                                                    <span className={`text-[12px] font-black uppercase tracking-widest italic ${selectedQId === q.id ? 'text-indigo-200' : 'text-slate-600'}`}>
-                                                        {q.type} Field • ID-{q.id.split('-').pop()}
-                                                    </span>
-                                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button 
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                const newQ = { ...q, id: `q-${Date.now()}` };
-                                                                setSections(prev => prev.map(s => s.questions.find(quest => quest.id === q.id) ? { ...s, questions: [...s.questions, newQ] } : s));
-                                                            }}
-                                                            className="p-2 bg-white/10 rounded-xl hover:bg-white/20"
-                                                        >
-                                                            <Copy className="w-4 h-4 text-white" />
-                                                        </button>
-                                                        <button 
-                                                            onClick={(e) => { e.stopPropagation(); deleteQuestion(q.id); }}
-                                                            className="p-2 bg-red-500/20 rounded-xl hover:bg-red-500/40 text-red-500"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <h5 className={`text-base font-black uppercase tracking-tight italic mb-8 ${selectedQId === q.id ? 'text-white' : 'text-slate-300'}`}>
-                                                    {q.label} {q.required && <span className="text-red-500 ml-1">*</span>}
-                                                </h5>
-                                                
-                                                <div className="h-16 w-full bg-black/20 rounded-2xl border border-white/10 border-dashed flex items-center px-6 italic text-slate-800 uppercase tracking-widest text-[12px] font-black">
-                                                    Interactive Participant Node Preview
-                                                </div>
-                                                
-                                                {selectedQId === q.id && (
-                                                    <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1.5 h-12 bg-white rounded-full shadow-[0_0_15px_white]" />
-                                                )}
-                                            </motion.div>
-                                        ))}
-                                        
-                                        <button 
-                                            onClick={() => addQuestion(section.id)}
-                                            className="w-full py-8 border-2 border-dashed border-white/5 rounded-[3rem] text-[12px] font-black text-slate-600 uppercase tracking-widest hover:border-indigo-500/40 hover:text-indigo-400 transition-all flex items-center justify-center gap-3"
-                                        >
-                                            <Plus className="w-5 h-5" /> Append Protocol Question
-                                        </button>
-                                    </div>
-                                </section>
-                            ))}
-                        </div>
-                    </div>
-                </div>                {/* Right Panel: Granular Intelligence & Behavioral Config */}
-                <div className="w-full 2xl:w-[420px] border-t 2xl:border-t-0 2xl:border-l border-white/5 flex flex-col overflow-hidden bg-white/[0.02]">
-                    <div className="p-10 border-b border-white/5 bg-white/[0.03] flex items-center justify-between">
+        <div className="space-y-8 lg:space-y-10 pb-20">
+            {/* 1. Control Hub Card: Basic Details & Actions */}
+            <div className="bg-[#0B101B]/60 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] lg:rounded-[3rem] overflow-hidden shadow-2xl">
+                <div className="px-8 lg:px-12 py-10 lg:py-14 border-b border-white/5 space-y-12">
+                    {/* Row 1: Title & Actions */}
+                    <div className="flex flex-col xl:flex-row items-center justify-between gap-8">
                         <div className="flex items-center gap-6">
-                            <Settings className="w-5 h-5 text-indigo-400" />
-                            <h4 className="text-[12px] font-black text-white uppercase italic tracking-[0.2em] leading-none">Question Intelligence</h4>
+                            <div className="w-12 h-12 lg:w-16 lg:h-16 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center text-indigo-400 shadow-2xl shadow-indigo-500/10 shrink-0">
+                                <DraftingCompass className="w-6 h-6 lg:w-9 lg:h-9" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl lg:text-2xl font-black text-white italic uppercase tracking-tighter leading-none mb-3">FORM <span className="text-indigo-400">BUILDER</span></h2>
+                                <p className="text-sm text-slate-500 font-bold uppercase tracking-[0.2em] italic leading-tight">Create and manage your forms</p>
+                            </div>
                         </div>
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]" />
-                    </div>                    <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-8 space-y-8 group/right-panel scroll-smooth pb-40">
-                        {selectedQuestion ? (
-                            <div className="space-y-8">
-                                {/* Section 1: Strategic Specs */}
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-4 px-2">
-                                        <div className="w-1 h-3 bg-indigo-500 rounded-full" />
-                                        <h5 className="text-[12px] text-indigo-400 font-black uppercase tracking-[0.3em] italic">Strategic Specs</h5>
-                                    </div>
-                                    
-                                    {/* Card: Protocol Format */}
-                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-white/[0.03] border border-white/10 rounded-[2rem] shadow-xl group/card hover:bg-white/[0.05] transition-all">
-                                        <label className="text-[12px] text-slate-700 font-black uppercase tracking-widest italic mb-4 block">Question Format</label>
-                                        <div className="relative group/type">
-                                            <div className="w-full py-4 px-6 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between cursor-pointer hover:border-indigo-500/50 transition-all select-none">
-                                                <span className="text-[12px] font-black text-white uppercase italic tracking-widest">{selectedQuestion.type}</span>
-                                                <ChevronDown className="w-4 h-4 text-indigo-400 group-hover/type:rotate-180 transition-transform" />
-                                            </div>
-                                            <div className="absolute top-full left-0 right-0 mt-2 bg-slate-950 border border-white/10 rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden opacity-0 invisible group-hover/type:opacity-100 group-hover/type:visible transition-all z-[70] backdrop-blur-3xl translate-y-2 group-hover/type:translate-y-0 text-left">
-                                                {['Short Text', 'Likert Scale (1-7)', 'Dropdown', 'Number', 'Date'].map(type => (
-                                                    <div key={type} onClick={() => updateQuestion(selectedQuestion.id, { type })} className={`px-6 py-4 text-[12px] font-black uppercase italic transition-all cursor-pointer border-b border-white/5 last:border-0 hover:bg-indigo-600 hover:text-white ${selectedQuestion.type === type ? 'text-indigo-400' : 'text-slate-500'}`}>
-                                                        {type}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </motion.div>
 
-                                    {/* Card: Options Registry */}
-                                    {(selectedQuestion.type === 'Dropdown' || selectedQuestion.type.includes('Likert')) && (
-                                        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="p-6 bg-white/[0.03] border border-white/10 rounded-[2rem] shadow-xl">
-                                            <label className="text-[12px] text-slate-700 font-black uppercase tracking-widest italic mb-4 block">Options Registry</label>
-                                            <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
-                                                {(selectedQuestion.options || ['Option 1']).map((opt, i) => (
-                                                    <div key={i} className="flex items-center gap-3 p-3 bg-white/5 border border-white/5 rounded-xl group/opt hover:border-indigo-500/30 transition-all">
-                                                        <span className="text-[12px] font-black text-slate-800 w-3">{i + 1}</span>
-                                                        <input 
-                                                            value={opt}
-                                                            onChange={(e) => {
-                                                                const newOpts = [...(selectedQuestion.options || [])];
-                                                                newOpts[i] = e.target.value;
-                                                                updateQuestion(selectedQuestion.id, { options: newOpts });
-                                                            }}
-                                                            className="flex-1 bg-transparent border-none text-[12px] font-black text-white italic uppercase focus:outline-none placeholder-slate-900" 
-                                                        />
-                                                        <XCircle className="w-4 h-4 text-slate-900 group-hover/opt:text-red-500/50 hover:text-red-500 cursor-pointer transition-all" onClick={() => {
-                                                            const newOpts = (selectedQuestion.options || []).filter((_, idx) => idx !== i);
-                                                            updateQuestion(selectedQuestion.id, { options: newOpts });
-                                                        }} />
-                                                    </div>
-                                                ))}
-                                                <button onClick={() => updateQuestion(selectedQuestion.id, { options: [...(selectedQuestion.options || []), `New Node`] })} className="w-full py-3 border border-dashed border-indigo-500/10 rounded-xl text-[12px] font-black text-indigo-400/40 uppercase italic hover:bg-indigo-500/5 hover:text-indigo-400 transition-all">
-                                                    + Append Node
-                                                </button>
-                                            </div>
+                        <div className="flex flex-wrap items-center gap-4">
+                            <button onClick={() => handleSave(false)} className="px-6 py-4 bg-white/5 border border-white/10 text-slate-400 rounded-2xl hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-4 group shadow-lg">
+                                <Save className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                <span className="text-sm font-black uppercase tracking-widest leading-none">Save Draft</span>
+                            </button>
+                            <button onClick={() => setIsPreviewOpen(true)} className="px-6 py-4 bg-white/5 border border-white/10 text-slate-400 rounded-2xl hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-4 group shadow-lg">
+                                <Eye className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                <span className="text-sm font-black uppercase tracking-widest leading-none">Preview</span>
+                            </button>
+                            <button onClick={() => setIsFormulaOpen(true)} className="px-6 py-4 bg-indigo-500/5 border border-indigo-500/10 text-indigo-400/80 rounded-2xl hover:bg-indigo-500/10 hover:text-indigo-400 transition-all flex items-center justify-center gap-4 group shadow-lg">
+                                <Calculator className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                <span className="text-sm font-black uppercase tracking-widest leading-none">Scoring</span>
+                            </button>
+                            <button onClick={() => handleSave(true)} className="px-8 py-4 bg-indigo-600 text-white rounded-2xl shadow-2xl shadow-indigo-900/40 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4 border border-indigo-400/20 group outline-none">
+                                <Rocket className="w-4 h-4 group-hover:animate-bounce" />
+                                <span className="text-sm font-black uppercase tracking-widest leading-none">Publish</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Row 2: Secondary Information */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-8 pt-6 border-t border-white/5">
+                        <div className="md:col-span-6 space-y-3">
+                            <label className="text-sm text-slate-500 font-black uppercase tracking-[0.2em] italic px-1">Form Name</label>
+                            <input 
+                                type="text" 
+                                placeholder="Enter Form Title..." 
+                                value={formTitle} 
+                                onChange={(e) => setFormTitle(e.target.value)}
+                                className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-5 px-8 text-sm font-black text-white italic uppercase placeholder-slate-800 outline-none focus:border-indigo-500/50 transition-all shadow-inner" 
+                            />
+                        </div>
+                        <div className="md:col-span-4 space-y-3">
+                            <label className="text-sm text-slate-500 font-black uppercase tracking-[0.2em] italic px-1">Select Study</label>
+                            <div 
+                                onClick={() => setIsStudyDropdownOpen(!isStudyDropdownOpen)}
+                                className="w-full py-5 px-6 bg-white/[0.03] border border-white/10 rounded-2xl flex items-center justify-between cursor-pointer hover:border-indigo-500/50 transition-all shadow-inner relative"
+                            >
+                                <span className="text-sm font-black text-indigo-400 uppercase italic truncate">
+                                    {studies.find(s => s.id === selectedStudyId)?.protocol_id || 'Select Study'}
+                                </span>
+                                <ChevronDown className={`w-4 h-4 text-indigo-400 transition-transform shrink-0 ${isStudyDropdownOpen ? 'rotate-180' : ''}`} />
+                                <AnimatePresence>
+                                    {isStudyDropdownOpen && (
+                                        <motion.div 
+                                            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                                            className="absolute top-full left-0 right-0 mt-3 bg-[#0F172A] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 backdrop-blur-3xl"
+                                        >
+                                            {studies.map(s => (
+                                                <div key={s.id} onClick={() => setSelectedStudyId(s.id)} className="px-6 py-4 text-sm font-bold text-slate-400 uppercase italic hover:bg-indigo-600 hover:text-white cursor-pointer transition-colors border-b border-white/5 last:border-0">{s.protocol_id}</div>
+                                            ))}
                                         </motion.div>
                                     )}
-                                </div>
-
-                                {/* Section 2: Narrative Config */}
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-4 px-2">
-                                        <div className="w-1 h-3 bg-slate-700 rounded-full" />
-                                        <h5 className="text-[12px] text-slate-700 font-black uppercase tracking-[0.3em] italic">Narrative Config</h5>
-                                    </div>
-                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-white/[0.03] border border-white/10 rounded-[2rem] shadow-xl">
-                                        <textarea 
-                                            value={selectedQuestion.label}
-                                            onChange={(e) => updateQuestion(selectedQuestion.id, { label: e.target.value })}
-                                            className="w-full bg-transparent border-none text-[12px] font-black text-white italic uppercase outline-none resize-none h-24 placeholder-slate-900" 
-                                            placeholder="Translate architectural requirements into question narrative..."
-                                        />
-                                    </motion.div>
-                                </div>
-
-                                {/* Section 3: Field Architecture */}
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-4 px-2">
-                                        <div className="w-1 h-3 bg-indigo-500 rounded-full" />
-                                        <h5 className="text-[12px] text-indigo-400 font-black uppercase tracking-[0.3em] italic">Architecture Logic</h5>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <button 
-                                            onClick={() => updateQuestion(selectedQuestion.id, { required: !selectedQuestion.required })}
-                                            className={`p-6 rounded-[2rem] border transition-all text-[12px] font-black uppercase tracking-widest italic flex flex-col items-center gap-3 ${
-                                                selectedQuestion.required ? 'bg-indigo-600 border-indigo-400 text-white shadow-indigo-500/20 shadow-xl' : 'bg-white/5 border-white/10 text-slate-700 hover:bg-white/10'
-                                            }`}
-                                        >
-                                            <CheckCircle2 className={`w-5 h-5 ${selectedQuestion.required ? 'text-white' : 'text-slate-800'}`} />
-                                            {selectedQuestion.required ? 'MANDATORY' : 'OPTIONAL'}
-                                        </button>
-                                        <button 
-                                            onClick={() => alert(`Logic Pathing Active for [${selectedQuestion.id}]`)}
-                                            className="p-6 bg-white/5 border border-white/10 rounded-[2rem] text-[12px] font-black text-indigo-400 uppercase italic flex flex-col items-center gap-3 hover:bg-white/10 transition-all shadow-xl"
-                                        >
-                                            <Share2 className="w-5 h-5 text-indigo-500/50" />
-                                            BRANCHING
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* AI Diagnostic Card */}
-                                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="p-8 bg-indigo-500/[0.02] border border-indigo-500/10 rounded-[2.5rem] relative overflow-hidden group shadow-inner">
-                                    <div className="flex items-center gap-4 mb-4">
-                                        <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]" />
-                                        <h5 className="text-[12px] font-black text-indigo-400 uppercase italic tracking-widest leading-none">AI Structural Diagnostic</h5>
-                                    </div>
-                                    <p className="text-[12px] text-slate-600 font-black uppercase tracking-tight italic leading-relaxed opacity-60">
-                                        High validation strength detected. Logic branch for node [{selectedQuestion.id.split('-').pop()}] is optimized for GSRS-Score aggregation.
-                                    </p>
-                                </motion.div>
+                                </AnimatePresence>
                             </div>
-                        ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-center p-12 space-y-6 opacity-30">
-                                <Search className="w-16 h-16 text-slate-800" />
-                                <p className="text-[12px] font-black text-slate-600 uppercase tracking-widest italic">Select an architectural node to modify its properties</p>
-                            </div>
-                        )}
+                        </div>
+                        <div className="md:col-span-2 space-y-3">
+                            <label className="text-sm text-slate-500 font-black uppercase tracking-[0.2em] italic px-1">Revision</label>
+                            <div className="py-5 px-6 bg-white/[0.03] border border-white/10 rounded-2xl text-sm font-black text-slate-500 uppercase italic text-center shadow-inner">v1.2.0</div>
+                        </div>
                     </div>
                 </div>
+
+                {/* Navigation Tabs */}
+                <div className="px-12 flex gap-12 overflow-x-auto custom-scrollbar-horizontal whitespace-nowrap bg-black/20">
+                    {['My Forms', 'Builder', 'Templates', 'Scoring', 'Database'].map(tab => {
+                        const actualTab = tab === 'My Forms' ? 'My Questionnaires' : tab === 'Builder' ? 'Create New' : tab === 'Database' ? 'Registry' : tab;
+                        return (
+                            <button key={tab} onClick={() => setActiveTab(actualTab)} className={`pb-5 pt-5 text-sm font-bold uppercase tracking-[0.2em] transition-all relative ${activeTab === actualTab ? 'text-white italic' : 'text-slate-600 hover:text-slate-300'}`}>
+                                {tab}
+                                {activeTab === actualTab && <motion.div layoutId="nav-ind" className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-500 rounded-t-full shadow-[0_-2px_10px_rgba(99,102,241,0.5)]" />}
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
+
+
+            {/* 2. Dynamic Viewport based on Active Tab */}
+            <AnimatePresence mode="wait">
+                {activeTab === 'Create New' && (
+                    <motion.div 
+                        key="create"
+                        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+                        className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-stretch"
+                    >
+                        {/* Column A: Form Steps (Left Sidebar) */}
+                        <div className="xl:col-span-3 bg-[#0B101B]/60 border border-white/5 rounded-[2.5rem] flex flex-col overflow-hidden shadow-xl min-h-[600px] xl:h-[800px]">
+                            <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                                <span className="text-sm font-black text-slate-500 uppercase tracking-[0.2em] italic">Steps List</span>
+                                <button onClick={() => setSections([...sections, { id: `s-${Date.now()}`, title: 'New Section', questions: [] }])} className="p-2 bg-white/5 rounded-xl text-slate-600 hover:text-white transition-all"><Plus className="w-4 h-4" /></button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
+                                {sections.map(section => (
+                                    <div key={section.id} className="space-y-4">
+                                        <div className="flex items-center justify-between group">
+                                            <h4 className="text-sm font-black text-white uppercase italic tracking-widest truncate flex-1">{section.title}</h4>
+                                            <button onClick={() => addQuestion(section.id)} className="p-1 px-2 border border-indigo-500/20 text-indigo-400 rounded-md text-xs font-black uppercase opacity-0 group-hover:opacity-100 transition-opacity">Add Question</button>
+                                        </div>
+                                        <div className="pl-3 space-y-1.5 border-l border-white/5">
+                                            {section.questions.map(q => (
+                                                <button key={q.id} onClick={() => setSelectedQId(q.id)} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${selectedQId === q.id ? 'bg-indigo-600/10 text-white italic border border-indigo-500/20' : 'text-slate-600 hover:text-slate-400 border border-transparent'}`}>
+                                                    <span className="text-sm font-black uppercase tracking-tight truncate flex-1 text-left">{q.label}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Column B: Design Area (Center) */}
+                        <div className="xl:col-span-9 bg-[#0B101B]/40 border border-white/5 rounded-[3rem] overflow-hidden flex flex-col shadow-2xl min-h-[600px] xl:h-[800px]">
+                            <div className="p-8 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+                                <span className="text-sm font-black text-white/50 uppercase tracking-[0.2em] italic">Workspace</span>
+                                <div className="flex gap-4 items-center">
+                                    <div className="flex gap-2 p-1 bg-white/5 rounded-lg border border-white/5">
+                                        <Monitor className="w-4 h-4 text-indigo-400" />
+                                        <Smartphone className="w-4 h-4 text-slate-700" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-10 lg:p-14 space-y-20">
+                                {sections.map(section => (
+                                    <section key={section.id} className="space-y-10 group">
+                                        <div className="flex items-center gap-6">
+                                            <div className="w-10 h-10 rounded-2xl bg-indigo-600/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20 text-sm font-black">#</div>
+                                            <h3 className="text-xl font-black text-white italic uppercase tracking-tight leading-none">{section.title}</h3>
+                                            <div className="flex-1 h-0.5 bg-white/5" />
+                                        </div>
+                                        
+                                        <div className="grid gap-1 border-t border-b border-white/5 divide-y divide-white/5">
+                                            {section.questions.map(q => (
+                                                <motion.div key={q.id} onClick={() => setSelectedQId(q.id)} className={`py-12 px-8 transition-all cursor-pointer relative ${selectedQId === q.id ? 'bg-indigo-600/[0.03]' : 'hover:bg-white/[0.01]'}`}>
+                                                    <div className="flex items-center justify-between mb-8">
+                                                        <span className={`text-xs font-black uppercase tracking-[0.2em] italic ${selectedQId === q.id ? 'text-indigo-400' : 'text-slate-700'}`}>
+                                                            {q.type} FIELD
+                                                        </span>
+                                                        <div className="flex gap-4 opacity-0 group-hover:opacity-100">
+                                                            <Trash2 className="w-4 h-4 text-red-900 hover:text-red-500 transition-colors" onClick={(e) => { e.stopPropagation(); deleteQuestion(q.id); }} />
+                                                        </div>
+                                                    </div>
+                                                    <h5 className={`text-lg font-black uppercase tracking-tight italic mb-8 ${selectedQId === q.id ? 'text-white' : 'text-slate-300 opacity-60'}`}>{q.label}</h5>
+                                                    <div className="h-16 w-full bg-black/40 rounded-2xl border-2 border-white/5 border-dashed flex items-center px-8 text-xs font-black text-slate-800 uppercase tracking-[0.4em] italic">Live preview area</div>
+                                                    {selectedQId === q.id && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-16 bg-indigo-500 rounded-r-full shadow-2xl" />}
+                                                </motion.div>
+                                            ))}
+                                            <button onClick={() => addQuestion(section.id)} className="w-full py-10 border-2 border-dashed border-white/5 rounded-[2.5rem] text-sm font-black text-slate-700 uppercase tracking-[0.2em] hover:border-indigo-500/30 hover:text-indigo-400 transition-all flex items-center justify-center gap-4 italic mt-10">
+                                                <Plus className="w-5 h-5" /> Add New Question
+                                            </button>
+                                        </div>
+                                    </section>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Row 2: Settings (Bottom Workspace - Full Width) */}
+                        <div className="xl:col-span-12 bg-[#0B101B]/60 border border-white/5 rounded-[3rem] overflow-hidden flex flex-col shadow-2xl">
+                            <div className="p-8 border-b border-white/5 bg-white/[0.05] flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <Settings className="w-5 h-5 text-indigo-400" />
+                                    <h4 className="text-sm font-black text-white uppercase italic tracking-widest">Question Settings</h4>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/10 mr-4">
+                                        <div className="px-3 py-1 bg-indigo-600/10 text-indigo-400 text-xs font-black uppercase rounded-lg border border-indigo-500/20">Selected Now</div>
+                                    </div>
+                                    <CheckCircle2 className="w-5 h-5 text-emerald-500 shadow-2xl" />
+                                </div>
+                            </div>
+                            
+                            <div className="p-12">
+                                {selectedQuestion ? (
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                                        {/* Basic Settings */}
+                                        <div className="space-y-10">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-1 h-3 bg-indigo-500 rounded-full" />
+                                                <h5 className="text-sm text-indigo-400 font-black uppercase tracking-[0.2em] italic">Basic Settings</h5>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                <div className="space-y-4">
+                                                    <label className="text-xs text-slate-500 font-black uppercase tracking-widest italic px-1">Answer Type</label>
+                                                    <div className="relative group/type">
+                                                        <div className="w-full py-5 px-8 bg-white/[0.03] border border-white/10 rounded-2xl flex items-center justify-between cursor-pointer hover:border-indigo-500/50 transition-all shadow-inner">
+                                                            <span className="text-sm font-black text-white uppercase italic">{selectedQuestion.type}</span>
+                                                            <ChevronDown className="w-4 h-4 text-indigo-400 transition-transform group-hover/type:rotate-180" />
+                                                        </div>
+                                                        <div className="absolute top-full left-0 right-0 mt-3 bg-[#0F172A] border border-white/10 rounded-2xl shadow-3xl overflow-hidden opacity-0 invisible group-hover/type:opacity-100 group-hover/type:visible transition-all z-50 backdrop-blur-3xl">
+                                                            {['Short Text', 'Scale (1-7)', 'Dropdown', 'Number', 'Date'].map(t => (
+                                                                <div key={t} onClick={() => updateQuestion(selectedQuestion.id, { type: t })} className="px-6 py-4 text-sm font-black uppercase italic text-slate-400 hover:bg-indigo-600 hover:text-white transition-all cursor-pointer border-b border-white/5 last:border-0">{t}</div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <label className="text-xs text-slate-500 font-black uppercase tracking-widest italic px-1">Database Key</label>
+                                                    <div className="w-full py-5 px-8 bg-white/[0.03] border border-white/10 rounded-2xl text-sm font-black text-slate-700 uppercase italic shadow-inner">Auto-generated ID</div>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <label className="text-xs text-slate-500 font-black uppercase tracking-widest italic px-1">Question Text</label>
+                                                <textarea 
+                                                    value={selectedQuestion.label}
+                                                    onChange={(e) => updateQuestion(selectedQuestion.id, { label: e.target.value })}
+                                                    className="w-full h-32 bg-white/[0.03] border border-white/10 rounded-2xl p-6 text-sm font-black text-white italic uppercase placeholder-slate-900 outline-none focus:border-indigo-500/50 transition-all resize-none shadow-inner"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Rules & Check */}
+                                        <div className="space-y-12">
+                                            <div className="space-y-8">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-1 h-3 bg-emerald-500 rounded-full" />
+                                                    <h5 className="text-sm text-emerald-400 font-black uppercase tracking-[0.2em] italic">Rules</h5>
+                                                </div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                                    <button onClick={() => updateQuestion(selectedQuestion.id, { required: !selectedQuestion.required })} className={`p-8 rounded-[2rem] border transition-all flex flex-col items-center justify-center gap-4 ${selectedQuestion.required ? 'bg-indigo-600 border-indigo-400 text-white shadow-xl' : 'bg-white/5 border-white/10 text-slate-700 hover:bg-white/10 shadow-inner'}`}>
+                                                        <CheckCircle2 className="w-6 h-6" />
+                                                        <span className="text-xs font-black uppercase tracking-widest italic">{selectedQuestion.required ? 'Required' : 'Optional'}</span>
+                                                    </button>
+                                                    <button className="p-8 bg-white/5 border border-white/10 rounded-[2rem] flex flex-col items-center justify-center gap-4 text-slate-700 hover:bg-white/10 transition-all shadow-inner">
+                                                        <Share2 className="w-6 h-6" />
+                                                        <span className="text-xs font-black uppercase tracking-widest italic">Logic Rules</span>
+                                                    </button>
+                                                    <button className="p-8 bg-white/5 border border-white/10 rounded-[2rem] flex flex-col items-center justify-center gap-4 text-slate-700 hover:bg-white/10 transition-all shadow-inner">
+                                                        <Lock className="w-6 h-6" />
+                                                        <span className="text-xs font-black uppercase tracking-widest italic">Lock Edit</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="p-10 bg-indigo-500/[0.02] border border-indigo-500/10 rounded-[3rem] space-y-6 shadow-inner relative overflow-hidden group">
+                                                <div className="absolute top-0 right-0 p-6">
+                                                    <Activity className="w-12 h-12 text-indigo-500/10 group-hover:text-indigo-500/20 transition-colors" />
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_15px_#10b981]" />
+                                                    <span className="text-sm font-black text-indigo-400 uppercase italic tracking-widest">System Check: OK</span>
+                                                </div>
+                                                <p className="text-sm text-slate-500 font-bold uppercase italic leading-relaxed opacity-60 max-w-lg">The system has checked this question. It fits all research rules and is ready for use in your study.</p>
+                                                <div className="flex gap-4 pt-4">
+                                                    <div className="px-4 py-2 bg-emerald-500/10 rounded-full text-xs font-black text-emerald-500 uppercase italic border border-emerald-500/20">Validated Data</div>
+                                                    <div className="px-4 py-2 bg-indigo-500/10 rounded-full text-xs font-black text-indigo-400 uppercase italic border border-indigo-500/20">Linked to Study</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="h-64 flex flex-col items-center justify-center text-center opacity-20 space-y-6">
+                                        <DraftingCompass className="w-16 h-16 text-slate-700" />
+                                        <p className="text-sm font-black text-slate-700 uppercase tracking-[0.4em] italic">Click a question from the list above to change its settings here</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+
+                {activeTab === 'My Questionnaires' && (
+                    <motion.div 
+                        key="registry"
+                        initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }}
+                        className="bg-[#0B101B]/60 border border-white/5 rounded-[3rem] p-12 lg:p-20 shadow-2xl min-h-[600px]"
+                    >
+                        <div className="flex items-center justify-between mb-16">
+                            <div>
+                                <h3 className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter mb-4">Forms List</h3>
+                                <p className="text-sm text-slate-500 font-black uppercase tracking-[0.2em] italic">Manage your saved research forms</p>
+                            </div>
+                            <button onClick={fetchForms} className="p-4 bg-white/5 rounded-2xl hover:bg-white/10 transition-all">
+                                <Clock className={`w-5 h-5 text-indigo-400 ${isFetching ? 'animate-spin' : ''}`} />
+                            </button>
+                        </div>
+
+                        {savedForms.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                {savedForms.map(form => (
+                                    <div key={form.id} className="p-8 bg-white/[0.03] border border-white/5 rounded-[2.5rem] hover:border-indigo-500/30 transition-all group cursor-pointer">
+                                        <div className="flex items-start justify-between mb-8">
+                                            <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner">
+                                                <FileText className="w-6 h-6" />
+                                            </div>
+                                            {form.is_published ? (
+                                                <span className="px-3 py-1 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-full text-xs font-black uppercase tracking-widest italic">Live</span>
+                                            ) : (
+                                                <span className="px-3 py-1 bg-slate-500/10 text-slate-500 border border-white/5 rounded-full text-xs font-black uppercase tracking-widest italic">Draft</span>
+                                            )}
+                                        </div>
+                                        <h4 className="text-lg font-black text-white italic uppercase tracking-tight mb-4 group-hover:text-indigo-400 transition-all line-clamp-2">{form.title}</h4>
+                                        <p className="text-sm text-slate-600 font-bold uppercase tracking-widest mb-8 line-clamp-1">{form.description || "No description provided"}</p>
+                                        <div className="flex items-center justify-between pt-6 border-t border-white/5">
+                                            <span className="text-xs font-black text-slate-700 uppercase italic">Version {form.version}.0</span>
+                                            <ArrowRight className="w-4 h-4 text-slate-800 group-hover:text-white transition-all transform group-hover:translate-x-1" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="h-96 flex flex-col items-center justify-center text-center space-y-8 opacity-20">
+                                <Layers className="w-24 h-24 text-slate-700" />
+                                <p className="text-sm font-black text-slate-600 uppercase tracking-[0.4em] italic">No forms found</p>
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+
+                {activeTab === 'Templates' && (
+                    <motion.div 
+                        key="templates"
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                        className="bg-[#0B101B]/60 border border-white/5 rounded-[3rem] p-20 shadow-2xl flex flex-col items-center justify-center text-center space-y-12 min-h-[600px]"
+                    >
+                        <DraftingCompass className="w-24 h-24 text-indigo-500/20" />
+                        <div>
+                            <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-4">Sample Forms</h3>
+                            <p className="text-sm text-slate-700 font-black uppercase tracking-[0.2em] italic">Library of common research questions</p>
+                        </div>
+                        <p className="text-sm text-slate-800 font-black uppercase tracking-widest opacity-40">Loading templates...</p>
+                    </motion.div>
+                )}
+
+                {activeTab === 'Scoring & Formulas' && (
+                    <motion.div 
+                        key="formulas-view"
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                        className="bg-[#0B101B]/60 border border-white/5 rounded-[3rem] shadow-2xl min-h-[800px] overflow-hidden flex flex-col"
+                    >
+                         <div className="flex-shrink-0 p-10 bg-white/[0.03] border-b border-white/5 flex items-center justify-between">
+                            <div className="flex items-center gap-6">
+                                <div className="w-14 h-14 rounded-2xl bg-indigo-600/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20 shadow-inner">
+                                    <Calculator className="w-7 h-7" />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter leading-none">Scoring Settings</h3>
+                                    <p className="text-sm text-indigo-400 font-black uppercase tracking-[0.2em] mt-3 italic opacity-70">Define how questions are calculated</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="flex-1 grid grid-cols-12 gap-0 overflow-hidden">
+                            <div className="col-span-4 border-r border-white/5 p-8 overflow-y-auto custom-scrollbar space-y-8">
+                                 <section>
+                                     <h4 className="text-sm font-black text-slate-500 uppercase tracking-[0.2em] mb-6 border-b border-white/5 pb-3 italic">Calculated Scores</h4>
+                                     <div className="space-y-4">
+                                         {formulas.map(s => (
+                                             <div key={s.id} onClick={() => setSelectedFormulaId(s.id)} className={`p-6 bg-white/5 border rounded-[1.75rem] flex items-center justify-between group cursor-pointer transition-all ${selectedFormulaId === s.id ? 'border-indigo-500 bg-indigo-500/5' : 'border-white/5 opacity-60 hover:opacity-100'}`}>
+                                                 <div className="space-y-1">
+                                                     <p className="text-base font-black text-white italic uppercase tracking-tighter leading-none">{s.label}</p>
+                                                     <p className="text-xs text-slate-600 font-mono tracking-tight">{s.val}</p>
+                                                 </div>
+                                                 <ArrowRight className="w-4 h-4 text-slate-700 group-hover:text-white transition-all transform group-hover:translate-x-0.5" />
+                                             </div>
+                                         ))}
+                                     </div>
+                                 </section>
+                                 <button onClick={addFormula} className="w-full py-5 bg-indigo-600 text-white rounded-2xl text-sm font-black uppercase italic tracking-widest flex items-center justify-center gap-3"><Plus className="w-4 h-4" /> Add New Formula</button>
+                            </div>
+                            <div className="col-span-8 p-12 flex flex-col items-center justify-center text-center space-y-8 bg-indigo-500/[0.01]">
+                                 <PieChart className="w-24 h-24 text-slate-800" />
+                                 <div className="max-w-md space-y-6">
+                                     <h4 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-tight">{selectedFormula?.label || "Select Analysis"}</h4>
+                                     <p className="text-sm text-slate-500 font-bold uppercase tracking-[0.1em] italic opacity-80">{selectedFormula ? `Current Rules: ${selectedFormula.val}` : "Pick a formula to change how scores are calculated."}</p>
+                                 </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+
+                {activeTab === 'Registry' && (
+                    <motion.div 
+                        key="registry-view"
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                        className="bg-[#0B101B]/60 border border-white/5 rounded-[3rem] p-20 shadow-2xl flex flex-col items-center justify-center text-center space-y-12 min-h-[600px]"
+                    >
+                        <ShieldCheck className="w-24 h-24 text-emerald-500/20" />
+                        <div>
+                            <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-4">Database List</h3>
+                            <p className="text-sm text-slate-700 font-black uppercase tracking-[0.2em] italic">List of all saved research terms</p>
+                        </div>
+                        <p className="text-sm text-slate-800 font-black uppercase tracking-widest opacity-40">Connecting to database...</p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+
+
 
             {/* Scoring Engine Overlay */}
             <AnimatePresence>

@@ -246,11 +246,11 @@ export default function PIVisitsAssessmentsModule() {
     // --- STYLES ---
     const G = {
         glass: { backgroundColor: COLORS.glass, backdropFilter: 'blur(12px)', border: `1px solid ${COLORS.border}` },
-        label: { fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.15em', color: COLORS.label },
-        title: { fontSize: '20px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' as const, color: 'white' },
-        btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '0.6rem 1.25rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' },
-        btnGhost: { backgroundColor: 'transparent', color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: '0.6rem 1.25rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' },
-        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900 as const, textTransform: 'uppercase' as const })
+        label: { fontSize: '14px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.15em', color: COLORS.label },
+        title: { fontSize: '22px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' as const, color: 'white' },
+        btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '0.7rem 1.5rem', borderRadius: '4px', fontSize: '14px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' },
+        btnGhost: { backgroundColor: 'transparent', color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: '0.7rem 1.5rem', borderRadius: '4px', fontSize: '14px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' },
+        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.3rem 0.7rem', borderRadius: '4px', fontSize: '13px', fontWeight: 900 as const, textTransform: 'uppercase' as const })
     } as Record<string, any>;
 
     return (
@@ -275,7 +275,7 @@ export default function PIVisitsAssessmentsModule() {
                     <div style={{ position: 'relative' }}>
                         <Search size={14} color={COLORS.label} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
                         <input 
-                            style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, borderRadius: '100px', padding: '0.5rem 1rem 0.5rem 2.25rem', fontSize: '12px', color: 'white', outline: 'none' }}
+                            style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, borderRadius: '100px', padding: '0.5rem 1rem 0.5rem 2.25rem', fontSize: '13px', color: 'white', outline: 'none' }}
                             placeholder="Find PID..."
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
@@ -297,7 +297,7 @@ export default function PIVisitsAssessmentsModule() {
                 {/* LEFT PANEL: Participant List */}
                 <div style={{ width: '260px', borderRight: `1px solid ${COLORS.border}`, display: 'flex', flexDirection: 'column', backgroundColor: 'rgba(255,255,255,0.01)' }}>
                     <div style={{ padding: '1.25rem', borderBottom: `1px solid ${COLORS.border}` }}>
-                        <label style={G.label}>Enrollment Track</label>
+                        <label style={{ ...G.label, fontSize: '13px' }}>Participants</label>
                     </div>
                     <div style={{ flex: 1, overflowY: 'auto' }} className="custom-scrollbar">
                         {filteredParticipants.map(p => (
@@ -312,7 +312,7 @@ export default function PIVisitsAssessmentsModule() {
                                 }}
                             >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                                    <span style={{ fontSize: '13px', fontWeight: 900, color: 'white' }}>{p.name}</span>
+                                    <span style={{ fontSize: '14px', fontWeight: 900, color: 'white' }}>{p.name}</span>
                                     <span style={G.badge(
                                         p.status === 'ACTIVE' || p.status === 'RANDOMIZED' ? COLORS.success : 
                                         ['SCREENING', 'CONSENTED', 'ELIGIBLE'].includes(p.status) ? COLORS.info :
@@ -320,20 +320,20 @@ export default function PIVisitsAssessmentsModule() {
                                         COLORS.danger
                                     )}>{p.status}</span>
                                 </div>
-                                <div style={{ fontSize: '12px', color: COLORS.label, fontFamily: 'monospace', marginBottom: '0.75rem' }}>ID: {p.id.slice(-8).toUpperCase()} • {p.study}</div>
+                                <div style={{ fontSize: '13px', color: COLORS.label, fontFamily: 'monospace', marginBottom: '0.75rem' }}>ID: {p.id.slice(-8).toUpperCase()} • {p.study}</div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: p.compliance > 80 ? COLORS.success : COLORS.warning }} />
-                                    <span style={{ fontSize: '12px', fontWeight: 'bold', color: COLORS.text }}>{p.compliance}% Compliance</span>
+                                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: COLORS.text }}>{p.compliance}% Compliance</span>
                                 </div>
                             </div>
                         ))}
                         {filteredParticipants.length === 0 && !isLoading && (
-                            <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: COLORS.label, fontSize: '12px' }}>
+                            <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: COLORS.label, fontSize: '13px' }}>
                                 No participants found matching criteria.
                             </div>
                         )}
                         {isLoading && (
-                            <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: COLORS.accent, fontSize: '12px', fontWeight: 900 }}>
+                            <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: COLORS.accent, fontSize: '13px', fontWeight: 900 }}>
                                 <RefreshCw size={16} className="animate-spin" style={{ margin: '0 auto 1rem' }} />
                                 SYNCING CLINICAL DATABASE...
                             </div>
@@ -346,7 +346,7 @@ export default function PIVisitsAssessmentsModule() {
                     {calendarView ? (
                         <div style={{ flex: 1, padding: '3rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                                <h2 style={G.title}>Operational Calendar</h2>
+                                <h2 style={G.title}>Visit Calendar</h2>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                     <button style={G.btnGhost}>Previous</button>
                                     <button style={{ ...G.btnIndigo, padding: '0.4rem 1rem' }}>Today</button>
@@ -359,9 +359,9 @@ export default function PIVisitsAssessmentsModule() {
                                 ))}
                                 {Array.from({ length: 35 }).map((_, i) => (
                                     <div key={i} style={{ height: '120px', backgroundColor: COLORS.bg, padding: '0.75rem', position: 'relative' }}>
-                                        <span style={{ fontSize: '12px', color: COLORS.label }}>{i + 1}</span>
+                                        <span style={{ fontSize: '13px', color: COLORS.label }}>{i + 1}</span>
                                         {i === 12 && (
-                                            <div style={{ marginTop: '0.5rem', padding: '0.3rem 0.6rem', backgroundColor: `${COLORS.accent}20`, borderRadius: '4px', border: `1px solid ${COLORS.accent}40`, fontSize: '12px', fontWeight: 900 }}>
+                                            <div style={{ marginTop: '0.5rem', padding: '0.3rem 0.6rem', backgroundColor: `${COLORS.accent}20`, borderRadius: '4px', border: `1px solid ${COLORS.accent}40`, fontSize: '13px', fontWeight: 900 }}>
                                                 BTB-023 · Week 4
                                             </div>
                                         )}
@@ -372,7 +372,7 @@ export default function PIVisitsAssessmentsModule() {
                     ) : (
                         <div style={{ flex: 1, padding: '3rem', overflowY: 'auto' }} className="custom-scrollbar">
                             <div style={{ ...G.glass, padding: '2rem', borderRadius: '24px', marginBottom: '3rem' }}>
-                                <label style={G.label}>Participant Trajectory</label>
+                                <label style={{ ...G.label, fontSize: '13px' }}>Visit Timeline</label>
                                 <div style={{ padding: '4rem 0', position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '2px', backgroundColor: COLORS.border, zIndex: 1 }} />
                                     {activeParticipant?.visits.map(v => (
@@ -391,8 +391,8 @@ export default function PIVisitsAssessmentsModule() {
                                                 {v.status === 'Completed' ? <CheckCircle2 size={20} /> : <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: COLORS.label }} />}
                                             </div>
                                             <div style={{ position: 'absolute', top: '50px', whiteSpace: 'nowrap', textAlign: 'center' }}>
-                                                <div style={{ fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' }}>{v.name}</div>
-                                                <div style={{ fontSize: '12px', color: COLORS.label, marginTop: '2px' }}>{v.scheduledDate}</div>
+                                                <div style={{ fontSize: '13px', fontWeight: 900, textTransform: 'uppercase' }}>{v.name}</div>
+                                                <div style={{ fontSize: '13px', color: COLORS.label, marginTop: '2px' }}>{v.scheduledDate}</div>
                                             </div>
                                         </div>
                                     ))}
@@ -410,7 +410,7 @@ export default function PIVisitsAssessmentsModule() {
                                             <span style={{ fontSize: '14px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' }}>{v.name} Assessment</span>
                                             <span style={G.badge(v.status === 'Completed' ? COLORS.success : COLORS.warning)}>{v.status}</span>
                                         </div>
-                                        <div style={{ display: 'flex', gap: '1rem', color: COLORS.label, fontSize: '12px' }}>
+                                        <div style={{ display: 'flex', gap: '1rem', color: COLORS.label, fontSize: '13px' }}>
                                             <Clock size={12} /> {v.scheduledDate}
                                             <MapPin size={12} /> {v.location}
                                         </div>
@@ -426,11 +426,11 @@ export default function PIVisitsAssessmentsModule() {
                     {activeVisit ? (
                         <>
                              <div style={{ padding: '2rem 1.5rem', borderBottom: `1px solid ${COLORS.border}` }}>
-                                <div style={{ fontSize: '12px', fontWeight: 900, color: COLORS.accent, marginBottom: '0.4rem' }}>STUDY: {activeParticipant?.study}</div>
+                                <div style={{ fontSize: '13px', fontWeight: 900, color: COLORS.accent, marginBottom: '0.4rem' }}>STUDY: {activeParticipant?.study}</div>
                                 <h2 style={{ ...G.title, fontSize: '18px', color: 'white', fontStyle: 'normal' }}>{activeParticipant?.name}</h2>
-                                <div style={{ marginTop: '0.6rem', fontSize: '12px', color: COLORS.label }}>{activeParticipant?.email}</div>
+                                <div style={{ marginTop: '0.6rem', fontSize: '13px', color: COLORS.label }}>{activeParticipant?.email}</div>
                                 <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                    <div style={{ fontSize: '12px', color: COLORS.label }}>Internal PID: {activeParticipant?.id}</div>
+                                    <div style={{ fontSize: '13px', color: COLORS.label }}>Internal PID: {activeParticipant?.id}</div>
                                     <div style={G.badge(activeVisit.status === 'Completed' ? COLORS.success : COLORS.warning)}>{activeVisit.status}</div>
                                 </div>
                             </div>
@@ -448,7 +448,7 @@ export default function PIVisitsAssessmentsModule() {
                                 {/* CHECKLIST */}
                                 <div style={{ borderBottom: `1px solid ${COLORS.border}` }}>
                                     <div onClick={() => toggleAccordion('checklist')} style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
-                                        <label style={G.label}>Protocol Checklist</label>
+                                        <label style={{ ...G.label, fontSize: '13px' }}>Study Checklist</label>
                                         {openAccordions.has('checklist') ? <ChevronDown size={14} color={COLORS.label} /> : <ChevronRight size={14} color={COLORS.label} />}
                                     </div>
                                     {openAccordions.has('checklist') && (
@@ -469,13 +469,13 @@ export default function PIVisitsAssessmentsModule() {
                                 {/* VITALS */}
                                 <div style={{ borderBottom: `1px solid ${COLORS.border}` }}>
                                     <div onClick={() => toggleAccordion('vitals')} style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
-                                        <label style={G.label}>Vitals & Anthropometry</label>
+                                        <label style={{ ...G.label, fontSize: '13px' }}>Physical Measurements</label>
                                         {openAccordions.has('vitals') ? <ChevronDown size={14} color={COLORS.label} /> : <ChevronRight size={14} color={COLORS.label} />}
                                     </div>
                                     {openAccordions.has('vitals') && (
                                         <div style={{ padding: '0 1.5rem 1.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                             <div>
-                                                <span style={{ fontSize: '12px', color: COLORS.label }}>Weight (kg)</span>
+                                                <span style={{ fontSize: '13px', color: COLORS.label }}>Weight (kg)</span>
                                                 <input 
                                                     style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, padding: '0.5rem', borderRadius: '4px', color: 'white', marginTop: '0.3rem' }}
                                                     value={activeVisit.vitals.weight}
@@ -483,7 +483,7 @@ export default function PIVisitsAssessmentsModule() {
                                                 />
                                             </div>
                                             <div>
-                                                <span style={{ fontSize: '12px', color: COLORS.label }}>Height (cm)</span>
+                                                <span style={{ fontSize: '13px', color: COLORS.label }}>Height (cm)</span>
                                                 <input 
                                                     style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, padding: '0.5rem', borderRadius: '4px', color: 'white', marginTop: '0.3rem' }}
                                                     value={activeVisit.vitals.height}
@@ -493,7 +493,7 @@ export default function PIVisitsAssessmentsModule() {
                                             {calculateBMI(activeVisit.vitals.weight, activeVisit.vitals.height) && (
                                                 <div style={{ gridColumn: '1 / -1', padding: '1rem', backgroundColor: `${calculateBMI(activeVisit.vitals.weight, activeVisit.vitals.height)?.color}10`, borderRadius: '8px', border: `1px solid ${calculateBMI(activeVisit.vitals.weight, activeVisit.vitals.height)?.color}30`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <div>
-                                                        <span style={{ fontSize: '12px', color: COLORS.label }}>Calculated BMI</span>
+                                                        <span style={{ fontSize: '13px', color: COLORS.label }}>BMI Status</span>
                                                         <div style={{ fontSize: '18px', fontWeight: 900 }}>{calculateBMI(activeVisit.vitals.weight, activeVisit.vitals.height)?.bmi}</div>
                                                     </div>
                                                     <span style={G.badge(calculateBMI(activeVisit.vitals.weight, activeVisit.vitals.height)?.color || COLORS.success)}>{calculateBMI(activeVisit.vitals.weight, activeVisit.vitals.height)?.cat}</span>
@@ -507,7 +507,7 @@ export default function PIVisitsAssessmentsModule() {
                             <div style={{ marginTop: 'auto', padding: '2rem 1.5rem', borderTop: `1px solid ${COLORS.border}`, backgroundColor: 'rgba(7, 10, 19, 0.4)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                                     <span style={G.label}>Completeness</span>
-                                    <span style={{ fontSize: '12px', fontWeight: 900 }}>{Math.round((activeVisit.checklist.filter(c => c.checked).length / activeVisit.checklist.length) * 100)}%</span>
+                                    <span style={{ fontSize: '13px', fontWeight: 900 }}>{Math.round((activeVisit.checklist.filter(c => c.checked).length / activeVisit.checklist.length) * 100)}%</span>
                                 </div>
                                 <div style={{ width: '100%', height: '6px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '100px', overflow: 'hidden', marginBottom: '1.5rem' }}>
                                     <div style={{ width: `${(activeVisit.checklist.filter(c => c.checked).length / activeVisit.checklist.length) * 100}%`, height: '100%', backgroundColor: COLORS.success, transition: 'all 0.4s' }} />
@@ -524,8 +524,8 @@ export default function PIVisitsAssessmentsModule() {
                     ) : (
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: COLORS.label }}>
                             <Stethoscope size={48} style={{ opacity: 0.1, marginBottom: '2rem' }} />
-                            <div style={{ ...G.title, fontSize: '16px' }}>Terminal Standby</div>
-                            <div style={{ fontSize: '12px', marginTop: '0.5rem' }}>Select participant protocol node...</div>
+                            <div style={{ ...G.title, fontSize: '16px' }}>No Visit Selected</div>
+                            <div style={{ fontSize: '13px', marginTop: '0.5rem' }}>Select a visit to view details...</div>
                         </div>
                     )}
                 </div>
@@ -551,7 +551,7 @@ export default function PIVisitsAssessmentsModule() {
                     <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setSchedulePanel(false)} />
                     <div style={{ width: '680px', height: '100%', backgroundColor: COLORS.bg, borderLeft: `1px solid ${COLORS.border}`, position: 'relative', display: 'flex', flexDirection: 'column', animation: 'slideRight 0.4s ease-out' }}>
                         <div style={{ padding: '3rem', borderBottom: `1px solid ${COLORS.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h2 style={G.title}>Schedule New Protocol Node</h2>
+                            <h2 style={G.title}>Schedule New Visit</h2>
                             <button onClick={() => setSchedulePanel(false)} style={{ background: 'none', border: 'none', color: COLORS.label, cursor: 'pointer' }}><X size={24} /></button>
                         </div>
                         <div style={{ flex: 1, padding: '3rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -568,7 +568,7 @@ export default function PIVisitsAssessmentsModule() {
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                                 <div>
-                                    <label style={G.label}>Visit Taxonomy</label>
+                                    <label style={{ ...G.label, fontSize: '13px' }}>Visit Type</label>
                                     <select 
                                         style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, padding: '1rem', borderRadius: '8px', color: 'white', marginTop: '0.5rem', outline: 'none' }}
                                         value={schedulePanelForm.visitType}
@@ -581,7 +581,7 @@ export default function PIVisitsAssessmentsModule() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label style={G.label}>Node Location</label>
+                                    <label style={{ ...G.label, fontSize: '13px' }}>Location</label>
                                     <select 
                                         style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, padding: '1rem', borderRadius: '8px', color: 'white', marginTop: '0.5rem', outline: 'none' }}
                                         value={schedulePanelForm.location}
@@ -595,7 +595,7 @@ export default function PIVisitsAssessmentsModule() {
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                                 <div>
-                                    <label style={G.label}>Target Date</label>
+                                    <label style={{ ...G.label, fontSize: '13px' }}>Scheduled Date</label>
                                     <input type="date" 
                                         style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, padding: '1rem', borderRadius: '8px', color: 'white', marginTop: '0.5rem', outline: 'none' }}
                                         value={schedulePanelForm.date}
@@ -603,7 +603,7 @@ export default function PIVisitsAssessmentsModule() {
                                     />
                                 </div>
                                 <div>
-                                    <label style={G.label}>Node Time</label>
+                                    <label style={{ ...G.label, fontSize: '13px' }}>Time</label>
                                     <input type="time" 
                                         style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, padding: '1rem', borderRadius: '8px', color: 'white', marginTop: '0.5rem', outline: 'none' }}
                                         value={schedulePanelForm.time}
@@ -612,7 +612,7 @@ export default function PIVisitsAssessmentsModule() {
                                 </div>
                             </div>
                             <div>
-                                <label style={G.label}>Coordinator Directives</label>
+                                <label style={{ ...G.label, fontSize: '13px' }}>Notes for Coordinator</label>
                                 <textarea 
                                     style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, padding: '1.5rem', borderRadius: '8px', color: 'white', marginTop: '0.5rem', outline: 'none', minHeight: '120px' }}
                                     placeholder="Enter scheduling notes..."
@@ -623,7 +623,7 @@ export default function PIVisitsAssessmentsModule() {
                         </div>
                         <div style={{ padding: '3rem', borderTop: `1px solid ${COLORS.border}`, display: 'flex', gap: '1rem' }}>
                             <button style={{ ...G.btnGhost, flex: 1, padding: '1.5rem' }} onClick={() => setSchedulePanel(false)}>Cancel</button>
-                            <button style={{ ...G.btnIndigo, flex: 2, padding: '1.5rem' }} onClick={handleScheduleVisit}>Commit Schedule</button>
+                            <button style={{ ...G.btnIndigo, flex: 2, padding: '1.5rem' }} onClick={handleScheduleVisit}>Schedule Visit</button>
                         </div>
                     </div>
                 </div>
@@ -635,8 +635,8 @@ export default function PIVisitsAssessmentsModule() {
                     <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)' }} onClick={() => setConfirmModal(null)} />
                     <div style={{ ...G.glass, width: '100%', maxWidth: '400px', padding: '3rem', borderRadius: '24px', position: 'relative', textAlign: 'center' }}>
                         <ShieldAlert size={48} color={COLORS.accent} style={{ marginBottom: '1.5rem' }} />
-                        <h3 style={{ ...G.title, fontSize: '20px', marginBottom: '1rem' }}>Final Validation</h3>
-                        <p style={{ fontSize: '14px', lineHeight: 1.6, color: COLORS.text, marginBottom: '2rem' }}>{confirmModal.message}</p>
+                        <h3 style={{ ...G.title, fontSize: '20px', marginBottom: '1rem' }}>Confirm Action</h3>
+                        <p style={{ fontSize: '15px', lineHeight: 1.6, color: COLORS.text, marginBottom: '2rem' }}>{confirmModal.message}</p>
                         <div style={{ display: 'flex', gap: '1rem' }}>
                             <button style={{ ...G.btnGhost, flex: 1 }} onClick={() => setConfirmModal(null)}>Abort</button>
                             <button style={{ ...G.btnIndigo, flex: 1 }} onClick={confirmModal.onConfirm}>Confirm</button>

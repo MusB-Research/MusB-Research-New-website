@@ -120,8 +120,8 @@ export default function ParticipantOversight({ onOpenProfile, onMessage, selecte
             {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <div className="space-y-1 md:space-y-2">
-                    <h2 className="text-xl md:text-3xl font-black text-white italic uppercase tracking-tighter leading-tight">Participant <span className="text-indigo-400">Oversight</span></h2>
-                    <p className="text-[12px] text-white/50 font-bold uppercase tracking-[0.2em] italic">Real-time Subject Portfolio Monitoring</p>
+                    <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tight leading-tight">Participant <span className="text-indigo-400">Oversight</span></h2>
+                    <p className="text-[11px] text-white/50 font-bold uppercase tracking-[0.4em] italic leading-none mt-2">Real-time Subject Portfolio Monitoring</p>
                 </div>
                 <div className="flex items-center gap-2 md:gap-3 w-full lg:w-auto">
                     <div className="relative flex-1 lg:flex-none">
@@ -199,17 +199,15 @@ export default function ParticipantOversight({ onOpenProfile, onMessage, selecte
             </div>
 
             {/* Grid */}
-            <div className="bg-[#0F172A]/80 backdrop-blur-2xl border border-white/10 rounded-2xl md:rounded-[2.5rem] overflow-hidden shadow-2xl shadow-black/60 relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.03] to-transparent pointer-events-none" />
-                <div className="overflow-x-auto pb-4 custom-scrollbar-horizontal px-0.5">
-                    <table className="w-full text-left border-collapse min-w-[1000px] lg:min-w-[1250px]">
+            <div className="overflow-x-auto custom-scrollbar-horizontal px-1">
+                <table className="w-full text-left border-collapse min-w-[1000px] lg:min-w-[1250px] border-t border-white/5">
                     <thead>
-                        <tr className="bg-white/[0.03] border-b border-indigo-500/10 whitespace-nowrap">
-                            <th className="px-3 md:px-5 py-4 md:py-5 text-[12px] font-black text-indigo-300/90 uppercase tracking-[0.2em] italic">Subject Information</th>
-                            <th className="px-3 md:px-5 py-4 md:py-5 text-[12px] font-black text-indigo-300/90 uppercase tracking-[0.2em] italic">Clinical Status</th>
-                            <th className="px-3 md:px-5 py-4 md:py-5 text-[12px] font-black text-indigo-300/90 uppercase tracking-[0.2em] italic">Trial Progress</th>
-                            <th className="px-3 md:px-5 py-4 md:py-5 text-[12px] font-black text-indigo-300/90 uppercase tracking-[0.2em] italic">Last Visit</th>
-                            <th className="px-3 md:px-5 py-4 md:py-5 text-[12px] font-black text-indigo-300/90 uppercase tracking-[0.2em] italic text-right">Actions</th>
+                        <tr className="bg-white/[0.02] border-b border-white/5 whitespace-nowrap">
+                            <th className="px-10 py-8 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">Subject Information</th>
+                            <th className="px-10 py-8 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">Clinical Status</th>
+                            <th className="px-10 py-8 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">Trial Progress</th>
+                            <th className="px-10 py-8 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">Last Visit</th>
+                            <th className="px-10 py-8 text-[12px] font-black text-white/80 uppercase tracking-widest italic text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -232,30 +230,30 @@ export default function ParticipantOversight({ onOpenProfile, onMessage, selecte
                                     exit={{ opacity: 0 }}
                                     className="hover:bg-white/[0.02] transition-colors group"
                                 >
-                                    <td className="px-3 md:px-5 py-4 md:py-6 whitespace-nowrap align-middle">
-                                        <div className="flex items-center gap-2 md:gap-3">
-                                            <div className="hidden sm:flex w-10 md:w-12 h-10 md:h-12 items-center justify-center bg-indigo-500/10 border border-indigo-500/20 rounded-xl md:rounded-2xl text-indigo-400 shadow-inner group-hover:scale-110 transition-transform">
+                                    <td className="px-10 py-10 whitespace-nowrap align-middle border-r border-white/5">
+                                        <div className="flex items-center gap-6">
+                                            <div className="hidden sm:flex w-12 h-12 items-center justify-center bg-white/5 border border-white/10 rounded-2xl text-slate-500 group-hover:text-indigo-400 group-hover:border-indigo-500/40 transition-all shadow-lg shadow-black/20">
                                                 <User className="w-5 h-5 md:w-6 md:h-6" />
                                             </div>
                                             <div className="min-w-0">
-                                                <p className="text-[11.5px] md:text-[13px] font-black text-white italic truncate group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{p.name}</p>
-                                                <p className="text-[12px] text-white/30 font-black tracking-widest mt-0.5 md:mt-1 uppercase font-mono">SID: {p.participant_sid} <span className="mx-1 md:mx-2 text-indigo-500/30">/</span> {p.study}</p>
+                                                <p className="text-base font-black text-white italic truncate group-hover:text-indigo-400 transition-colors uppercase tracking-tight leading-none">{p.name}</p>
+                                                <p className="text-[12px] text-slate-500 font-black tracking-widest mt-1.5 uppercase font-mono leading-none">SID: {p.participant_sid} <span className="mx-2 text-indigo-500/30">/</span> {p.study}</p>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-3 md:px-5 py-4 md:py-5 align-middle">
-                                        <div className={`inline-flex items-center gap-2 md:gap-3 px-3.5 md:px-4 py-2 md:py-2.5 rounded-full border text-[12px] font-black uppercase tracking-widest shadow-lg ${getStatusColor(p.status)}`}>
+                                    <td className="px-10 py-10 align-middle border-r border-white/5">
+                                        <div className={`inline-flex items-center gap-3 px-5 py-2 rounded-xl border text-[12px] font-black uppercase tracking-widest shadow-lg ${getStatusColor(p.status)}`}>
                                             <div className="w-1.5 h-1.5 rounded-full bg-current shadow-[0_0_10px_currentColor] animate-pulse" />
                                             {p.status}
                                         </div>
                                     </td>
-                                    <td className="px-3 md:px-5 py-4 md:py-5 align-middle">
-                                        <div className="w-32 md:w-44 space-y-2 md:space-y-2.5">
+                                    <td className="px-10 py-10 align-middle border-r border-white/5">
+                                        <div className="w-44 space-y-3">
                                             <div className="flex justify-between items-center px-1">
-                                                <span className="text-[12px] font-black text-white/40 uppercase tracking-[0.1em] italic">Protocol Compliance</span>
-                                                <span className="text-[12px] font-black text-white italic">{p.progress}%</span>
+                                                <span className="text-[11px] font-black text-white/40 uppercase tracking-widest italic leading-none">Compliance</span>
+                                                <span className="text-[11px] font-black text-white italic leading-none">{p.progress}%</span>
                                             </div>
-                                            <div className="h-2 md:h-2.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 p-0.5">
+                                            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                                                 <motion.div 
                                                     initial={{ width: 0 }}
                                                     animate={{ width: `${p.progress}%` }}
@@ -264,25 +262,25 @@ export default function ParticipantOversight({ onOpenProfile, onMessage, selecte
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-3 md:px-5 py-4 md:py-5 whitespace-nowrap align-middle">
-                                        <div className="flex items-center gap-2 md:gap-3 text-indigo-300/50 italic">
-                                            <Clock className="w-3 md:w-4 h-3 md:h-4" />
-                                            <span className="text-[12px] font-bold uppercase tracking-widest">{p.lastVisit}</span>
+                                    <td className="px-10 py-10 whitespace-nowrap align-middle border-r border-white/5">
+                                        <div className="flex items-center gap-3 text-slate-500 font-black italic">
+                                            <Clock className="w-4 h-4" />
+                                            <span className="text-[11px] uppercase tracking-widest leading-none">{p.lastVisit}</span>
                                         </div>
                                     </td>
-                                    <td className="px-3 md:px-5 py-4 md:py-5 align-middle">
-                                        <div className="flex items-center justify-end gap-2 md:gap-3 transition-all whitespace-nowrap">
+                                    <td className="px-10 py-10 align-middle">
+                                        <div className="flex items-center justify-end gap-3 transition-all whitespace-nowrap">
                                             <button 
                                                 onClick={() => onMessage?.(p.id)}
-                                                className="p-2 md:p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all shadow-lg active:scale-95 group"
+                                                className="p-3 bg-white/5 border border-white/10 rounded-2xl text-slate-400 hover:text-white hover:bg-white/10 transition-all shadow-lg active:scale-95 group"
                                             >
-                                                <MessageSquare className="w-3.5 h-3.5 md:w-4 h-4 group-hover:scale-110 transition-transform" />
+                                                <MessageSquare className="w-4 h-4 group-hover:scale-110 transition-transform" />
                                             </button>
                                             <button 
                                                 onClick={() => onOpenProfile?.(p.id)}
-                                                className="px-4 md:px-5 py-1.5 md:py-2.5 bg-indigo-600 text-white rounded-xl text-[12px] font-black uppercase tracking-widest flex items-center gap-2 md:gap-2.5 hover:bg-white hover:text-indigo-900 shadow-xl shadow-indigo-600/20 active:scale-95 transition-all"
+                                                className="px-8 py-4 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest flex items-center gap-3 hover:bg-white hover:text-indigo-900 shadow-xl shadow-indigo-600/30 active:scale-95 transition-all"
                                             >
-                                                Open <span className="hidden sm:inline">Profile</span> <ChevronRight className="w-3 h-3 md:w-3.5 h-3.5" />
+                                                Open <span className="hidden sm:inline">Profile</span> <ChevronRight className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </td>
@@ -291,13 +289,6 @@ export default function ParticipantOversight({ onOpenProfile, onMessage, selecte
                         </AnimatePresence>
                     </tbody>
                 </table>
-                </div>
-                {filteredParticipants.length === 0 && (
-                    <div className="py-20 text-center space-y-4">
-                        <Users className="w-12 h-12 text-slate-800 mx-auto" />
-                        <p className="text-[12px] text-slate-600 font-black uppercase tracking-[0.2em] italic">No participants match your criteria</p>
-                    </div>
-                )}
             </div>
         </motion.div>
     );
