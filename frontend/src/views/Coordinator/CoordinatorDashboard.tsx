@@ -501,6 +501,18 @@ export default function CoordinatorDashboard() {
             <AnimatedBackground />
             {renderHeader()}
 
+            <AnimatePresence>
+                {isSidebarOpen && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="fixed inset-0 bg-[#060B16]/80 backdrop-blur-md z-[65] lg:hidden"
+                    />
+                )}
+            </AnimatePresence>
+
             <aside className={`fixed left-0 top-0 bottom-0 w-80 bg-[#0B101B] border-r border-white/5 z-[70] transition-transform duration-300 lg:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
                 <div className="h-24 px-8 flex justify-between items-center border-b border-white/[0.05] shrink-0">
                     <Link to="/" target="_blank" rel="noopener noreferrer" className="group transition-all">
@@ -508,6 +520,12 @@ export default function CoordinatorDashboard() {
                             <img src="/logo.jpg" alt="Logo" className="h-12 w-auto object-contain rounded-xl" />
                         </div>
                     </Link>
+                    <button 
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="lg:hidden p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:text-white transition-all h-10 w-10 flex items-center justify-center"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
                 </div>
                 <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-6 custom-scrollbar">
                     {sidebarGroups.map((group, i) => (
