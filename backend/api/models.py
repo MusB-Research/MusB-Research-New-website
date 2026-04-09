@@ -41,6 +41,19 @@ class Study(BaseMongoModel):
         ('IHUT', 'In-Home Use Test'),
         ('REGISTRY', 'Patient Registry'),
         ('OBSERVATIONAL', 'Observational Study'),
+        ('BIOEQUIVALENCE', 'Bioequivalence Study'),
+    ]
+
+    PHASE_CHOICES = [
+        ('PHASE_0', 'Phase 0'),
+        ('PHASE_1', 'Phase 1'),
+        ('PHASE_1_2', 'Phase 1/2'),
+        ('PHASE_2', 'Phase 2'),
+        ('PHASE_2_3', 'Phase 2/3'),
+        ('PHASE_3', 'Phase 3'),
+        ('PHASE_4', 'Phase 4'),
+        ('PILOT', 'Pilot Study'),
+        ('BIOEQUIVALENCE', 'Bioequivalence'),
     ]
 
     STATUS_CHOICES = [
@@ -100,6 +113,7 @@ class Study(BaseMongoModel):
     design_type = models.CharField(max_length=255, blank=True) # Legacy
     
     trial_model = models.CharField(max_length=30, choices=TRIAL_MODEL_CHOICES, default='RCT')
+    phase = models.CharField(max_length=30, choices=PHASE_CHOICES, default='PHASE_1')
     is_double_blind = models.BooleanField(default=False)
     has_placebo_control = models.BooleanField(default=False)
     has_screening_log = models.BooleanField(default=True)

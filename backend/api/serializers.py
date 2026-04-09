@@ -179,7 +179,7 @@ class StudySerializer(SanitizedModelSerializer):
             'id', 'title', 'full_title', 'description', 'protocol_id', 'sponsor_name', 'study_type', 'status', 'stage',
             'pi_id', 'coordinator_id', 'sponsor_id', 'sponsor_org_id', 'pi_ids', 'coordinator_ids',
             'assigned_pis', 'assigned_coordinators', 'approval_status', 'created_by', 'created_by_role',
-            'primary_indication', 'trial_model', 'is_double_blind', 'has_placebo_control',
+            'primary_indication', 'trial_model', 'phase', 'is_double_blind', 'has_placebo_control',
             'has_screening_log', 'shipment_mode', 'consent_mode', 'condition',
             'trial_format', 'benefit', 'duration', 'tags', 'compensation', 'location', 'uses_kit',
             'time_commitment', 'overview', 'timeline', 'kits_info', 'safety_info',

@@ -471,10 +471,15 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                             { val: 'DEVICE_TRIAL', label: 'Device Trial' }
                                         ]},
                                         { field: 'phase', label: 'Clinical Phase', options: [
+                                            { val: 'PHASE_0', label: 'Phase 0' },
                                             { val: 'PHASE_1', label: 'Phase 1' }, 
+                                            { val: 'PHASE_1_2', label: 'Phase 1/2' }, 
                                             { val: 'PHASE_2', label: 'Phase 2' }, 
+                                            { val: 'PHASE_2_3', label: 'Phase 2/3' }, 
                                             { val: 'PHASE_3', label: 'Phase 3' }, 
-                                            { val: 'PHASE_4', label: 'Phase 4' }
+                                            { val: 'PHASE_4', label: 'Phase 4' },
+                                            { val: 'PILOT', label: 'Pilot' },
+                                            { val: 'BIOEQUIVALENCE', label: 'Bioequivalence' }
                                         ]},
                                         { field: 'masking', label: 'Masking Strategy', options: [
                                             { val: 'NONE', label: 'None' }, 
