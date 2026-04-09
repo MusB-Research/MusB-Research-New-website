@@ -410,7 +410,7 @@ export default function SponsorDashboard() {
             <div className="hidden lg:flex flex-col">
               <h1 className="text-2xl lg:text-3xl font-black text-white tracking-tighter uppercase italic">SPONSOR COMMAND</h1>
               <div className="flex items-center gap-2">
-                <span className="text-[12px] font-black uppercase tracking-[0.4em] text-cyan-400 font-mono italic">{activeModule.replace('_', ' ')} NODE</span>
+                <span className="text-[12px] font-black uppercase tracking-[0.4em] text-cyan-400 font-mono italic">{activeModule.replace('_', ' ')} SECTOR</span>
               </div>
             </div>
 
@@ -527,7 +527,7 @@ export default function SponsorDashboard() {
             <div style={{ padding: '20px', background: 'rgba(0,0,0,0.2)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '24px' }}>
               <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 800, marginBottom: '8px' }}>TELEMETRY STATUS:</div>
               <div style={{ fontSize: '13px', color: '#cbd5e1', lineHeight: '1.6' }}>
-                Event captured at the {Intl.DateTimeFormat().resolvedOptions().timeZone} Sponsor Node.
+                Event captured at the {Intl.DateTimeFormat().resolvedOptions().timeZone} Sponsor Site.
                 Full encryption protocols were active during the data synchronization event.
                 No further action required at this moment.
               </div>

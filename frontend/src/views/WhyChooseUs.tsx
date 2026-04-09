@@ -89,10 +89,10 @@ export default function WhyChooseUs() {
     const threeWaysTitle = 'Three Integrated Ways We Support Your Innovation';
     const threeWaysSubtext = 'MusB Research offers flexible, end-to-end support—whether you need discovery research, laboratory testing, or secure sample management.';
     const storyTitle = 'Our Story';
-    const storyContent = "MusB Research was founded by highly experienced scientists with a shared mission: to elevate the scientific integrity of products reaching the market.\n\nLed by world-renowned experts including Dr. Hariom Yadav and Dr. Shalini Jain, MusB Research was created to support innovators who value evidence, transparency, and responsible growth.\n\nWe believe every product in the market should be scientifically understood—not just for its benefits, but also for its limitations. This clarity empowers better business decisions, better healthcare choices, and greater public trust.\n\nWe do not differentiate between large and small partners. We treat every collaboration with the same scientific rigor, commitment, and respect.";
+    const storyContent = "MusB Research was founded by highly experienced scientists with a shared goal: to elevate the scientific integrity of products reaching the market.\n\nLed by world-renowned experts including Dr. Hariom Yadav and Dr. Shalini Jain, MusB Research was created to support innovators who value evidence, transparency, and responsible growth.\n\nWe believe every product in the market should be scientifically understood—not just for its benefits, but also for its limitations. This clarity empowers better business decisions, better healthcare choices, and greater public trust.\n\nWe do not differentiate between large and small partners. We treat every collaboration with the same scientific rigor, commitment, and respect.";
     const partnerTitle = 'An Extension of Your R&D Team';
     const partnerContent = 'MusB Research functions as an extension of your internal R&D—providing facilities, expertise, and resources that scale with your needs.\n\nWhether you are an early-stage innovator or an established global brand, we integrate seamlessly with your team to deliver credible, actionable science.';
-    const missionTitle = 'Our Mission';
+    const missionTitle = 'Our Commitment';
     const missionContent = 'MusB Research is committed to being your growth partner by providing robust, reliable scientific evidence for your products. We are passionate about supporting your success through meticulous research, innovative approaches, and uncompromising scientific integrity.';
     const visionTitle = 'Our Vision';
     const visionContent = 'We envision becoming a global leader in healthcare research—driving groundbreaking innovations that enhance public health and well-being for all.';
@@ -145,7 +145,7 @@ export default function WhyChooseUs() {
                             <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-[4rem] p-4 overflow-hidden shadow-2xl group">
                                 <div className="w-full h-[500px] rounded-[3.5rem] bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 group-hover:scale-105 transition-all duration-700"></div>
                                 <div className="absolute inset-x-8 bottom-8 p-10 rounded-3xl bg-slate-950/80 backdrop-blur-md border border-white/10 space-y-3">
-                                    <h4 className="text-white font-black text-xl uppercase tracking-wider">Mission-Driven Innovation</h4>
+                                    <h4 className="text-white font-black text-xl uppercase tracking-wider">Goal-Oriented Innovation</h4>
                                     <p className="text-slate-400 text-lg font-medium">Empowering brands with credible scientific substantiation.</p>
                                 </div>
                             </div>

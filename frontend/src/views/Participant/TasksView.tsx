@@ -25,7 +25,7 @@ interface Task {
 }
 
 const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; onAction: (t: string, task?: any) => void; study?: any; userName?: string }) => {
-    const [filter, setFilter] = useState('Overdue');
+    const [filter, setFilter] = useState('All');
     const [viewMode, setViewMode] = useState<'timeline' | 'list'>('timeline');
 
     // Stats Calculation
@@ -143,14 +143,24 @@ const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; on
     return (
         <div className="space-y-12 pb-20">
             {/* HEADER */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-50">
                 <div>
                     <h2 className="text-3xl font-black italic tracking-tighter text-white uppercase mb-1.5">Study Tasks</h2>
                     <p className="text-slate-500 font-black uppercase tracking-widest text-[14px]">Manage and complete your daily study activities.</p>
                 </div>
-                <div className="flex bg-white/5 rounded-2xl p-1 border border-white/5">
-                    <button onClick={() => setViewMode('timeline')} className={`p-3 rounded-xl transition-all ${viewMode === 'timeline' ? 'bg-cyan-500 text-slate-950' : 'text-slate-500'}`}><LayoutGrid className="w-5 h-5" /></button>
-                    <button onClick={() => setViewMode('list')} className={`p-3 rounded-xl transition-all ${viewMode === 'list' ? 'bg-cyan-500 text-slate-950' : 'text-slate-500'}`}><ListIcon className="w-5 h-5" /></button>
+                <div className="flex bg-[#0a0f1d] p-1 rounded-2xl border border-white/5 shadow-2xl relative z-50">
+                    <button 
+                        onClick={() => setViewMode('timeline')} 
+                        className={`p-2.5 rounded-xl transition-all duration-300 ${viewMode === 'timeline' ? 'bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20' : 'text-slate-600 hover:text-slate-400'} cursor-pointer`}
+                    >
+                        <LayoutGrid className="w-5 h-5" />
+                    </button>
+                    <button 
+                        onClick={() => setViewMode('list')} 
+                        className={`p-2.5 rounded-xl transition-all duration-300 ${viewMode === 'list' ? 'bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20' : 'text-slate-600 hover:text-slate-400'} cursor-pointer`}
+                    >
+                        <ListIcon className="w-5 h-5" />
+                    </button>
                 </div>
             </div>
 
@@ -271,7 +281,7 @@ const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; on
                                                         {sLabel === 'Locked' ? (
                                                             <button className="flex-1 bg-white/5 text-slate-500 py-4 rounded-xl border border-white/5 cursor-not-allowed flex items-center justify-center gap-2 text-[15px] font-black uppercase tracking-widest"><Lock className="w-5 h-5" />Task Locked</button>
                                                         ) : task.status === 'COMPLETED' ? (
-                                                            <button onClick={() => onAction('VIEW_SUBMISSION', task)} className="flex-1 bg-white/5 border border-white/10 text-white py-4 rounded-xl flex items-center justify-center gap-2 text-[15px] font-black uppercase tracking-widest group-hover:bg-white/10 transition-all"><FileText className="w-5 h-5 text-green-400" />Review Data</button>
+                                                            <button onClick={() => onAction('VIEW_SUBMISSION', task)} className="flex-1 bg-white/5 border border-white/10 text-white py-4 rounded-xl flex items-center justify-center gap-2 text-[15px] font-black uppercase tracking-widest group-hover:bg-cyan-500/10 group-hover:border-cyan-500/30 group-hover:text-cyan-400 transition-all"><Eye className="w-5 h-5" />View Signed PDF</button>
                                                         ) : (
                                                             <button 
                                                                 onClick={() => onAction(

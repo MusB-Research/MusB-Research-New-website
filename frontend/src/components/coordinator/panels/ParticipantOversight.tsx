@@ -13,9 +13,12 @@ import {
     AlertCircle,
     XCircle,
     TrendingUp,
-    Download
+    Download,
+    Plus,
+    Loader2
 } from 'lucide-react';
 import { API, authFetch } from '../../../utils/auth';
+import { useLazyLoad } from '../../../hooks/useLazyLoad';
 
 interface Participant {
     id: string;
@@ -76,15 +79,25 @@ export default function ParticipantOversight({ onOpenProfile, onMessage, selecte
         fetchParticipants();
     }, [apiUrl]);
 
-    const filteredParticipants = participants.filter(p => {
-        const matchesTab = activeTab === 'All' || 
-                         (activeTab === 'Fails' ? p.status === 'Withdrawn' || p.status === 'Fail' : p.status === activeTab);
-        const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                             p.id.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesRisk = riskFilter === 'All' || p.risk === riskFilter;
-        const matchesStudy = !selectedStudyId || selectedStudyId === 'all' || p.study === selectedStudyId;
-        return matchesTab && matchesSearch && matchesRisk && matchesStudy;
-    });
+    const filteredParticipants = React.useMemo(() => {
+        return participants.filter(p => {
+            const matchesTab = activeTab === 'All' || 
+                             (activeTab === 'Fails' ? p.status === 'Withdrawn' || p.status === 'Fail' : p.status === activeTab);
+            const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                 p.id.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesRisk = riskFilter === 'All' || p.risk === riskFilter;
+            const matchesStudy = !selectedStudyId || selectedStudyId === 'all' || p.study === selectedStudyId;
+            return matchesTab && matchesSearch && matchesRisk && matchesStudy;
+        });
+    }, [participants, activeTab, searchQuery, riskFilter, selectedStudyId]);
+
+    // Senior Developer: Using chunked navigation for high-volume clinical subjects
+    const { 
+        visibleData: visibleParticipants, 
+        hasMore, 
+        isLoadingMore, 
+        loadMore 
+    } = useLazyLoad(filteredParticipants, 10);
 
 
     const handleDownload = () => {
@@ -211,25 +224,21 @@ export default function ParticipantOversight({ onOpenProfile, onMessage, selecte
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                        <AnimatePresence mode="popLayout">
-                            {isLoading ? (
-                                <tr>
-                                    <td colSpan={5} className="py-20 text-center">
-                                        <div className="flex flex-col items-center gap-4">
-                                            <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                                            <p className="text-[12px] font-black uppercase tracking-[0.3em] text-indigo-400 animate-pulse italic">Synchronizing Participant Registry...</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : filteredParticipants.map((p) => (
-                                <motion.tr 
-                                    key={p.id}
-                                    layout
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="hover:bg-white/[0.02] transition-colors group"
-                                >
+                        {isLoading ? (
+                            <tr>
+                                <td colSpan={6} className="p-12 text-center text-slate-500">
+                                    <div className="flex items-center justify-center gap-3 italic uppercase tracking-[0.2em] font-black">
+                                        <Loader2 className="w-4 h-4 animate-spin text-cyan-500" /> Authenticating Registry...
+                                    </div>
+                                </td>
+                            </tr>
+                        ) : visibleParticipants.map((p) => (
+                            <motion.tr 
+                                key={p.id}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="group border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors"
+                            >
                                     <td className="px-10 py-10 whitespace-nowrap align-middle border-r border-white/5">
                                         <div className="flex items-center gap-6">
                                             <div className="hidden sm:flex w-12 h-12 items-center justify-center bg-white/5 border border-white/10 rounded-2xl text-slate-500 group-hover:text-indigo-400 group-hover:border-indigo-500/40 transition-all shadow-lg shadow-black/20">
@@ -285,13 +294,36 @@ export default function ParticipantOversight({ onOpenProfile, onMessage, selecte
                                         </div>
                                     </td>
                                 </motion.tr>
-                            ))}
-                        </AnimatePresence>
+                        ))}
                     </tbody>
                 </table>
             </div>
+
+            {/* Load More Button - Integrated Row */}
+            {hasMore && (
+                <div className="p-8 flex flex-col items-center gap-4 bg-white/[0.01] border-t border-white/5">
+                    <button
+                        onClick={loadMore}
+                        disabled={isLoadingMore}
+                        className="px-8 py-3 bg-white/5 border border-white/10 hover:border-cyan-500/40 text-slate-400 hover:text-white rounded-xl font-black uppercase tracking-[0.3em] text-[10px] flex items-center gap-4 transition-all active:scale-95 disabled:opacity-50"
+                    >
+                        {isLoadingMore ? (
+                            <>
+                                <Loader2 className="w-3 h-3 animate-spin text-cyan-500" />
+                                Synchronizing Meta-Data
+                            </>
+                        ) : (
+                            <>
+                                <Plus className="w-3 h-3" />
+                                Load Next Partition
+                            </>
+                        )}
+                    </button>
+                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest italic">
+                        Viewing {visibleParticipants.length} of {filteredParticipants.length} Active Records
+                    </p>
+                </div>
+            )}
         </motion.div>
     );
 }
-
-

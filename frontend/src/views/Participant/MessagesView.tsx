@@ -39,10 +39,11 @@ interface Thread {
 const MessagesView = ({ study, conversations = [], onAction }: { study?: any, conversations?: any[], onAction?: () => void }) => {
     const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [isUrgentMode, setIsUrgentMode] = useState(false);
     const [messageInput, setMessageInput] = useState('');
 
     const [showDetails, setShowDetails] = useState(true);
+    const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+    const [fullConversations, setFullConversations] = useState<Record<string, any>>({});
     const chatEndRef = useRef<HTMLDivElement>(null);
 
     // Map Backend Conversations to UI Threads
@@ -62,8 +63,8 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
 
     // Map Backend Messages to UI
     const activeConversation = useMemo(() => {
-        return conversations.find((c: any) => c.id === selectedThreadId);
-    }, [conversations, selectedThreadId]);
+        return fullConversations[selectedThreadId || ''] || conversations.find((c: any) => c.id === selectedThreadId);
+    }, [conversations, selectedThreadId, fullConversations]);
 
     const messages: Message[] = useMemo(() => {
         if (!activeConversation || !activeConversation.messages) return [];
@@ -78,6 +79,28 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
             tag: msg.tag !== 'GENERAL' ? msg.tag : undefined
         }));
     }, [activeConversation]);
+
+    // Fetch Full Conversation Details (including messages)
+    useEffect(() => {
+        const fetchDetails = async () => {
+            if (!selectedThreadId || fullConversations[selectedThreadId]) return;
+            
+            setIsLoadingDetails(true);
+            try {
+                const apiUrl = API || 'http://localhost:8000';
+                const res = await authFetch(`${apiUrl}/api/clinical-conversations/${selectedThreadId}/`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setFullConversations(prev => ({ ...prev, [selectedThreadId]: data }));
+                }
+            } catch (err) {
+                console.error("Failed to fetch conversation details:", err);
+            } finally {
+                setIsLoadingDetails(false);
+            }
+        };
+        fetchDetails();
+    }, [selectedThreadId]);
 
     // Auto-select first thread if none selected
     useEffect(() => {
@@ -101,14 +124,25 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
                 method: 'POST',
                 body: JSON.stringify({
                     text: messageInput,
-                    tag: isUrgentMode ? 'SAFETY' : 'GENERAL'
+                    tag: 'GENERAL'
                 })
             });
             
             if (res.ok) {
+                const newMessage = await res.json();
                 setMessageInput('');
-                setIsUrgentMode(false);
-                // The parent ParticipantDashboard will re-fetch data or we can optimize here
+                // Optimistically update the UI
+                setFullConversations(prev => {
+                    const current = prev[selectedThreadId];
+                    if (!current) return prev;
+                    return {
+                        ...prev,
+                        [selectedThreadId]: {
+                            ...current,
+                            messages: [...(current.messages || []), newMessage]
+                        }
+                    };
+                });
                 if (onAction) onAction(); 
             }
         } catch (err) {
@@ -236,66 +270,73 @@ const MessagesView = ({ study, conversations = [], onAction }: { study?: any, co
 
                 {/* Message Feed */}
                 <div className="flex-1 overflow-y-auto p-10 space-y-10 no-scrollbar">
-                    {messages.map((msg, i) => (
-                        <div key={msg.id} className={`flex flex-col ${msg.is_from_me ? 'items-end' : 'items-start'}`}>
-                            <div className="flex items-center gap-3 mb-2 px-2">
-                                {!msg.is_from_me && <span className="text-[12px] font-black text-cyan-400 uppercase tracking-widest italic">{msg.sender_name}</span>}
-                                <span className="text-[12px] font-black text-slate-600 uppercase tracking-widest">{msg.timestamp}</span>
+                    {isLoadingDetails ? (
+                        <div className="space-y-8 animate-pulse">
+                            {[1, 2, 3].map(n => (
+                                <div key={n} className={`flex flex-col ${n % 2 === 0 ? 'items-end' : 'items-start'}`}>
+                                    <div className="w-32 h-3 bg-white/5 rounded-full mb-3" />
+                                    <div className="w-64 h-24 bg-white/5 rounded-[2rem]" />
+                                </div>
+                            ))}
+                        </div>
+                    ) : messages.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center">
+                            <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center border border-white/10 text-slate-700 mb-6">
+                                <MessageSquare className="w-10 h-10" />
                             </div>
-                            <div className="group relative max-w-[85%]">
-                                <div className={`p-6 rounded-[2rem] text-[13px] font-bold leading-relaxed transition-all shadow-xl ${
-                                    msg.is_from_me 
-                                        ? 'bg-cyan-500 text-slate-950 rounded-tr-none shadow-cyan-500/10' 
-                                        : 'bg-white/5 border border-white/5 text-slate-300 rounded-tl-none shadow-black/20'
-                                } ${msg.tag === 'URGENT' ? 'border-red-500/50 border-2' : ''}`}>
-                                    {msg.text}
-                                    {msg.tag && (
-                                        <div className={`mt-4 pt-3 border-t text-[12px] font-black uppercase tracking-widest flex items-center gap-2 ${msg.is_from_me ? 'border-black/10' : 'border-white/5'}`}>
-                                            <AlertTriangle className={`w-3 h-3 ${msg.tag === 'URGENT' ? 'text-red-500' : 'text-amber-500'}`} />
-                                            {msg.tag}
+                            <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">No Messages Yet</h3>
+                            <p className="text-slate-500 font-bold uppercase tracking-widest text-[12px] mt-2 max-w-[200px]">Start the conversation with your study team.</p>
+                        </div>
+                    ) : (
+                        messages.map((msg, i) => (
+                            <div key={msg.id} className={`flex flex-col ${msg.is_from_me ? 'items-end' : 'items-start'}`}>
+                                <div className="flex items-center gap-3 mb-2 px-2">
+                                    {!msg.is_from_me && <span className="text-[12px] font-black text-cyan-400 uppercase tracking-widest italic">{msg.sender_name}</span>}
+                                    <span className="text-[12px] font-black text-slate-600 uppercase tracking-widest">{msg.timestamp}</span>
+                                </div>
+                                <div className="group relative max-w-[85%]">
+                                    <div className={`p-6 rounded-[2rem] text-[13px] font-bold leading-relaxed transition-all shadow-xl ${
+                                        msg.is_from_me 
+                                            ? 'bg-cyan-500 text-slate-950 rounded-tr-none shadow-cyan-500/10' 
+                                            : 'bg-white/5 border border-white/5 text-slate-300 rounded-tl-none shadow-black/20'
+                                    } ${msg.tag === 'URGENT' ? 'border-red-500/50 border-2' : ''}`}>
+                                        {msg.text}
+                                        {msg.tag && (
+                                            <div className={`mt-4 pt-3 border-t text-[12px] font-black uppercase tracking-widest flex items-center gap-2 ${msg.is_from_me ? 'border-black/10' : 'border-white/5'}`}>
+                                                <AlertTriangle className={`w-3 h-3 ${msg.tag === 'URGENT' ? 'text-red-500' : 'text-amber-500'}`} />
+                                                {msg.tag}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {msg.is_from_me && (
+                                        <div className="flex items-center gap-1 mt-2 px-4">
+                                            <CheckCheck className="w-3 h-3 text-cyan-400" />
+                                            <span className="text-[12px] font-black text-slate-600 uppercase tracking-widest">MESSAGE READ</span>
                                         </div>
                                     )}
                                 </div>
-                                {msg.is_from_me && (
-                                    <div className="flex items-center gap-1 mt-2 px-4">
-                                        <CheckCheck className="w-3 h-3 text-cyan-400" />
-                                        <span className="text-[12px] font-black text-slate-600 uppercase tracking-widest">MESSAGE READ</span>
-                                    </div>
-                                )}
                             </div>
-                        </div>
-                    ))}
+                        ))
+                    )}
                     <div ref={chatEndRef} />
                 </div>
 
                 {/* Message Composer */}
                 <div className="p-6 bg-white/[0.01] border-t border-white/[0.05]">
-                    <div className={`flex flex-col p-4 bg-[#141e35] rounded-[2.5rem] border transition-all focus-within:border-cyan-500/30 ${isUrgentMode ? 'border-red-500/30 bg-red-500/[0.02]' : 'border-white/5'}`}>
+                    <div className="flex flex-col p-4 bg-[#141e35] rounded-[2.5rem] border border-white/5 transition-all focus-within:border-cyan-500/30">
                         <textarea 
                             value={messageInput}
                             onChange={(e) => setMessageInput(e.target.value)}
-                            placeholder={isUrgentMode ? "Type your urgent message..." : "Type your message..."}
+                            placeholder="Type your message..."
                             className="w-full bg-transparent p-4 outline-none text-white text-base font-bold italic resize-none no-scrollbar h-20 placeholder:text-slate-700"
                         />
                         <div className="flex items-center justify-between border-t border-white/[0.03] pt-4 mt-2">
                             <div className="flex items-center gap-4">
-
-                                <button 
-                                    onClick={() => setIsUrgentMode(!isUrgentMode)}
-                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all border ${
-                                        isUrgentMode ? 'bg-red-500 text-white border-red-400 shadow-[0_0_20px_rgba(239,68,68,0.35)]' : 'bg-white/5 text-slate-500 border-white/5 hover:border-white/10'
-                                    }`}
-                                >
-                                    <AlertTriangle className={`w-3.5 h-3.5 ${isUrgentMode ? 'animate-pulse' : ''}`} />
-                                    Urgent Message
-                                </button>
                             </div>
                             <button 
                                 onClick={handleSendMessage}
                                 disabled={!messageInput.trim()}
-                                className={`px-8 py-3 rounded-2xl font-black text-[12px] uppercase tracking-[0.25em] transition-all flex items-center gap-3 active:scale-95 disabled:opacity-30 ${
-                                    isUrgentMode ? 'bg-red-500 text-white shadow-[0_0_30px_rgba(239,68,68,0.2)]' : 'bg-cyan-500 text-slate-950 shadow-[0_0_30px_rgba(6,182,212,0.2)] hover:bg-cyan-400'
-                                }`}
+                                className="px-8 py-3 rounded-2xl font-black text-[12px] uppercase tracking-[0.25em] transition-all flex items-center gap-3 active:scale-95 disabled:opacity-30 bg-cyan-500 text-slate-950 shadow-[0_0_30px_rgba(6,182,212,0.2)] hover:bg-cyan-400"
                             >
                                 <Send className="w-4 h-4" />
                                 Send Message

@@ -122,7 +122,7 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
                      <div className="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse shadow-[0_0_15px_#a855f7]"></div>
                      <span className="text-sm font-black text-purple-400 uppercase tracking-[0.4em] italic leading-none">Transmission Control</span>
                    </div>
-                   <h1 className="text-3xl sm:text-5xl font-black text-white italic uppercase tracking-tighter">Content <span className="text-[#a855f7]">Creation</span> Node</h1>
+                   <h1 className="text-3xl sm:text-5xl font-black text-white italic uppercase tracking-tighter">Content <span className="text-[#a855f7]">Creation</span> Center</h1>
                    <p className="text-[12px] sm:text-base text-[#8b8fa8] uppercase tracking-[0.2em] font-black mt-3">
                      {isSuperAdmin 
                         ? 'Master node authorized for direct global publication' 
@@ -402,7 +402,7 @@ export default function SubmitContentForms({ userRole }: { userRole: string }) {
                     { label: 'Cluster Connectivity', value: '100%', color: 'text-emerald-500' },
                     { label: 'Uptime', value: '99.9F', color: 'text-purple-400' },
                     { label: 'Encryption', value: 'AES-GCM', color: 'text-indigo-400' },
-                    { label: 'Node Status', value: 'OPTIMAL', color: 'text-emerald-500' },
+                    { label: 'System Status', value: 'OPTIMAL', color: 'text-emerald-500' },
                 ].map((s, i) => (
                     <div key={i} className="bg-white/5 border border-white/5 rounded-3xl p-6 text-center">
                         <p className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest mb-1">{s.label}</p>

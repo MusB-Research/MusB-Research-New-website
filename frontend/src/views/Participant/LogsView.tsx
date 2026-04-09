@@ -5,7 +5,7 @@ import {
     Activity, AlertCircle, FileUp, ClipboardList, CheckCircle2,
     AlertTriangle, ChevronRight, Info, Plus, Calendar,
     FileText, Save, Clock, ArrowRight, X, Trash2, Microscope,
-    Heart, Thermometer, User, Upload
+    Heart, Thermometer, User, Upload, Eye
 } from 'lucide-react';
 import { Card } from './SharedComponents';
 
@@ -23,25 +23,41 @@ const SectionHeader = ({ title, icon: Icon, subtitle }: any) => (
     </div>
 );
 
-const BooleanChoice = ({ value, onChange, label }: any) => (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-1">
-        {label && <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest block flex-1">{label}</label>}
-        <div className="flex gap-2 p-1.5 bg-white/[0.02] border border-white/5 rounded-[1.5rem] w-fit shadow-inner-white">
-            <button
-                onClick={() => onChange(true)}
-                className={`px-10 py-3 rounded-2xl text-[14px] font-black uppercase tracking-widest transition-all ${value === true ? 'bg-[#00e676] text-slate-900 shadow-xl shadow-[#00e676]/20 scale-105' : 'text-slate-500 hover:text-white'}`}
-            >
-                Yes
-            </button>
-            <button
-                onClick={() => onChange(false)}
-                className={`px-10 py-3 rounded-2xl text-[14px] font-black uppercase tracking-widest transition-all ${value === false ? 'bg-red-500 text-white shadow-xl shadow-red-500/20 scale-105' : 'text-slate-500 hover:text-white'}`}
-            >
-                No
-            </button>
+const BooleanChoice = ({ value, onChange, label, inverse = false }: any) => {
+    const getYesStyle = () => {
+        if (value !== true) return 'text-slate-500 hover:text-white';
+        return inverse
+            ? 'bg-red-500 text-white shadow-xl shadow-red-500/20 scale-105'
+            : 'bg-[#00e676] text-slate-900 shadow-xl shadow-[#00e676]/20 scale-105';
+    };
+
+    const getNoStyle = () => {
+        if (value !== false) return 'text-slate-500 hover:text-white';
+        return inverse
+            ? 'bg-[#00e676] text-slate-900 shadow-xl shadow-[#00e676]/20 scale-105'
+            : 'bg-red-500 text-white shadow-xl shadow-red-500/20 scale-105';
+    };
+
+    return (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-1">
+            {label && <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest block flex-1">{label}</label>}
+            <div className="flex gap-2 p-1.5 bg-white/[0.02] border border-white/5 rounded-[1.5rem] w-fit shadow-inner-white">
+                <button
+                    onClick={() => onChange(true)}
+                    className={`px-10 py-3 rounded-2xl text-[14px] font-black uppercase tracking-widest transition-all ${getYesStyle()}`}
+                >
+                    Yes
+                </button>
+                <button
+                    onClick={() => onChange(false)}
+                    className={`px-10 py-3 rounded-2xl text-[14px] font-black uppercase tracking-widest transition-all ${getNoStyle()}`}
+                >
+                    No
+                </button>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 const LogDetailModal = ({ log, onClose }: { log: any; onClose: () => void }) => {
     const DetailRow = ({ label, value, icon: Icon, color = "text-slate-400" }: any) => (
@@ -57,12 +73,12 @@ const LogDetailModal = ({ log, onClose }: { log: any; onClose: () => void }) => 
     );
 
     return (
-        <motion.div 
+        <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md"
             onClick={onClose}
         >
-            <motion.div 
+            <motion.div
                 initial={{ scale: 0.95, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -168,7 +184,7 @@ const LogDetailModal = ({ log, onClose }: { log: any; onClose: () => void }) => 
 
                 {/* Modal Footer */}
                 <div className="p-8 border-t border-white/5 bg-slate-900/40 flex justify-end">
-                    <button 
+                    <button
                         onClick={onClose}
                         className="px-10 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all"
                     >
@@ -190,7 +206,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
 
     // --- DAILY LOG STATE ---
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
+
     // A. Medicine Intake
     const [tookMedicine, setTookMedicine] = useState<boolean | null>(null);
     const [timeTaken, setTimeTaken] = useState('');
@@ -217,6 +233,136 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
     const [history, setHistory] = useState<any[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(true);
     const [selectedLog, setSelectedLog] = useState<any | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+    const [isProcessingFile, setIsProcessingFile] = useState(false);
+    const [uploadError, setUploadError] = useState<string | null>(null);
+
+    // Image processing: Compression & Metadata stripping
+    const processImage = async (file: File): Promise<File> => {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const MAX_SIZE = 1600;
+
+                    if (width > height) {
+                        if (width > MAX_SIZE) {
+                            height *= MAX_SIZE / width;
+                            width = MAX_SIZE;
+                        }
+                    } else {
+                        if (height > MAX_SIZE) {
+                            width *= MAX_SIZE / height;
+                            height = MAX_SIZE;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
+                        } else {
+                            resolve(file);
+                        }
+                    }, 'image/jpeg', 0.7);
+                };
+                img.src = e.target?.result as string;
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploadError(null);
+
+        // Validation
+        const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+        if (!allowedTypes.includes(file.type)) {
+            setUploadError("Only PDF, PNG, and JPEG files are allowed.");
+            return;
+        }
+
+        if (file.type.startsWith('image/')) {
+            setIsProcessingFile(true);
+            try {
+                const processed = await processImage(file);
+                setSupportingFile(processed);
+            } catch (err) {
+                console.error("Image processing failed", err);
+                setSupportingFile(file);
+            } finally {
+                setIsProcessingFile(false);
+            }
+        } else {
+            setSupportingFile(file);
+        }
+    };
+
+    // Image preview effect
+    React.useEffect(() => {
+        if (!supportingFile) {
+            setPreviewUrl(null);
+            return;
+        }
+
+        const url = URL.createObjectURL(supportingFile);
+        setPreviewUrl(url);
+        return () => URL.revokeObjectURL(url);
+    }, [supportingFile]);
+
+    // --- LOCAL STORAGE DATA SYNC ---
+    React.useEffect(() => {
+        const savedData = localStorage.getItem('musb_daily_log_draft');
+        if (savedData) {
+            try {
+                const parsed = JSON.parse(savedData);
+                if (parsed.tookMedicine !== undefined) setTookMedicine(parsed.tookMedicine);
+                if (parsed.timeTaken) setTimeTaken(parsed.timeTaken);
+                if (parsed.fullDose !== undefined) setFullDose(parsed.fullDose);
+                if (parsed.doseAmount) setDoseAmount(parsed.doseAmount);
+                if (parsed.reasonMissed) setReasonMissed(parsed.reasonMissed);
+                if (parsed.noticedAE !== undefined) setNoticedAE(parsed.noticedAE);
+                if (parsed.aeDescription) setAeDescription(parsed.aeDescription);
+                if (parsed.aeStartTime) setAeStartTime(parsed.aeStartTime);
+                if (parsed.aeOngoing !== undefined) setAeOngoing(parsed.aeOngoing);
+                if (parsed.aeSeverity) setAeSeverity(parsed.aeSeverity);
+                if (parsed.aeInterfered !== undefined) setAeInterfered(parsed.aeInterfered);
+                if (parsed.aeMedicalCare !== undefined) setAeMedicalCare(parsed.aeMedicalCare);
+                if (parsed.aeComments) setAeComments(parsed.aeComments);
+                if (parsed.overallFeeling) setOverallFeeling(parsed.overallFeeling);
+                if (parsed.healthUpdates) setHealthUpdates(parsed.healthUpdates);
+            } catch (e) {
+                console.error("Local storage sync failed", e);
+            }
+        }
+    }, []);
+
+    React.useEffect(() => {
+        const dataToSave = {
+            tookMedicine, timeTaken, fullDose, doseAmount, reasonMissed,
+            noticedAE, aeDescription, aeStartTime, aeOngoing, aeSeverity,
+            aeInterfered, aeMedicalCare, aeComments,
+            overallFeeling, healthUpdates
+        };
+        localStorage.setItem('musb_daily_log_draft', JSON.stringify(dataToSave));
+    }, [
+        tookMedicine, timeTaken, fullDose, doseAmount, reasonMissed,
+        noticedAE, aeDescription, aeStartTime, aeOngoing, aeSeverity,
+        aeInterfered, aeMedicalCare, aeComments,
+        overallFeeling, healthUpdates
+    ]);
 
     React.useEffect(() => {
         fetchHistory();
@@ -241,6 +387,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
         setNoticedAE(null); setAeDescription(''); setAeStartTime(''); setAeOngoing(null); setAeSeverity(null);
         setAeInterfered(null); setAeMedicalCare(null); setAeComments('');
         setOverallFeeling(null); setHealthUpdates(''); setSupportingFile(null);
+        localStorage.removeItem('musb_daily_log_draft');
     };
 
     const handleSubmitLog = async (isDraft: boolean = false) => {
@@ -257,7 +404,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
             formData.append('full_dose', fullDose === true ? 'true' : 'false');
             formData.append('dose_amount', doseAmount);
             formData.append('reason_missed', reasonMissed);
-            
+
             formData.append('noticed_side_effects', noticedAE === true ? 'true' : 'false');
             formData.append('side_effect_description', aeDescription);
             formData.append('side_effect_start_time', aeStartTime);
@@ -266,11 +413,18 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
             formData.append('interfered_daily_activities', aeInterfered === true ? 'true' : 'false');
             formData.append('sought_medical_care', aeMedicalCare === true ? 'true' : 'false');
             formData.append('ae_additional_comments', aeComments);
-            
+
             if (overallFeeling) formData.append('overall_feeling', overallFeeling);
             formData.append('health_updates', healthUpdates);
             if (supportingFile) formData.append('supporting_file', supportingFile);
             formData.append('is_draft', isDraft ? 'true' : 'false');
+
+            // Automatically add current date and time
+            const now = new Date();
+            formData.append('date', now.toISOString().split('T')[0]);
+            if (!timeTaken) {
+                formData.append('time_taken', now.toTimeString().split(' ')[0].substring(0, 5));
+            }
 
             const resp = await authFetch(`${apiUrl}/api/daily-medication-logs/`, {
                 method: 'POST',
@@ -299,13 +453,13 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
             {/* Navigation Strip */}
             <div className="flex justify-between items-center bg-white/[0.02] border border-white/5 p-2 rounded-[2rem]">
                 <div className="flex gap-1">
-                    <button 
+                    <button
                         onClick={() => setViewMode('FORM')}
                         className={`px-10 py-3.5 rounded-2xl text-[13px] font-black uppercase tracking-widest transition-all ${viewMode === 'FORM' ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-white'}`}
                     >
                         Daily Log Form
                     </button>
-                    <button 
+                    <button
                         onClick={() => setViewMode('HISTORY')}
                         className={`px-10 py-3.5 rounded-2xl text-[13px] font-black uppercase tracking-widest transition-all ${viewMode === 'HISTORY' ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-white'}`}
                     >
@@ -343,40 +497,41 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                             <p className="text-[15px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed">
                                 Thank you for completing your daily entry. Please answer all questions as accurately as possible.
                             </p>
-                            <div className="p-8 bg-red-500/5 border border-red-500/10 rounded-2xl shadow-inner-white">
-                                <p className="text-[16px] font-black text-red-400 uppercase tracking-widest flex items-center gap-3 italic leading-relaxed">
-                                    <AlertCircle className="w-5 h-5 shrink-0" />
-                                    If you experience severe symptoms or a medical emergency, call 911 immediately and contact the study team at (813) 419-0781.
-                                </p>
-                            </div>
+
                         </div>
                     </Card>
 
                     {/* Section A: Medicine Intake */}
                     <Card className="p-8 sm:p-10 border border-white/5 bg-white/[0.01]">
                         <section className="space-y-10">
-                            <SectionHeader 
-                                icon={Thermometer} 
-                                title="A. Medicine Intake" 
-                                subtitle="Tracking your daily compliance" 
+                            <SectionHeader
+                                icon={Thermometer}
+                                title="A. Medicine Intake"
+                                subtitle="Tracking your daily compliance"
                             />
-                            
+
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                                <BooleanChoice 
-                                    label="Did you take your medicine today?" 
-                                    value={tookMedicine} 
-                                    onChange={setTookMedicine} 
+                                <BooleanChoice
+                                    label="Did you take your medicine today?"
+                                    value={tookMedicine}
+                                    onChange={(val: boolean) => {
+                                        setTookMedicine(val);
+                                        if (val && !timeTaken) {
+                                            const now = new Date();
+                                            setTimeTaken(now.toTimeString().split(' ')[0].substring(0, 5));
+                                        }
+                                    }}
                                 />
-                                
+
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-1">
                                     <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest block flex-1">What time did you take it?</label>
                                     <div className="flex items-center gap-3 bg-white/[0.02] border border-white/5 rounded-2xl p-3 px-6 focus-within:border-cyan-500/30 transition-all min-w-[250px]">
                                         <Clock className="w-5 h-5 text-slate-500" />
-                                        <input 
-                                            type="time" 
+                                        <input
+                                            type="time"
                                             value={timeTaken}
                                             onChange={(e) => setTimeTaken(e.target.value)}
-                                            className="bg-transparent border-none text-white outline-none w-full font-bold text-2xl uppercase tracking-tighter" 
+                                            className="bg-transparent border-none text-white outline-none w-full font-bold text-2xl uppercase tracking-tighter"
                                         />
                                     </div>
                                 </div>
@@ -384,23 +539,23 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
 
                             <AnimatePresence>
                                 {tookMedicine && (
-                                    <motion.div 
+                                    <motion.div
                                         initial={{ opacity: 0, scale: 0.98 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         className="grid grid-cols-1 lg:grid-cols-2 gap-10 bg-cyan-500/5 p-8 rounded-[2rem] border border-cyan-500/10"
                                     >
-                                        <BooleanChoice 
-                                            label="Did you take the full dose?" 
-                                            value={fullDose} 
-                                            onChange={setFullDose} 
+                                        <BooleanChoice
+                                            label="Did you take the full dose?"
+                                            value={fullDose}
+                                            onChange={setFullDose}
                                         />
-                                        
+
                                         {fullDose === false && (
                                             <div className="space-y-6 lg:col-span-2 animate-in fade-in slide-in-from-left-2">
-                                            <div className="space-y-4">
+                                                <div className="space-y-4">
                                                     <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest block px-1">If no, how much did you take?</label>
-                                                    <input 
-                                                        type="text" 
+                                                    <input
+                                                        type="text"
                                                         placeholder="Specify amount (e.g., 5ml, 1 pill)"
                                                         value={doseAmount}
                                                         onChange={(e) => setDoseAmount(e.target.value)}
@@ -409,7 +564,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                                                 </div>
                                                 <div className="space-y-3">
                                                     <label className="text-[14px] font-black text-slate-400 uppercase tracking-widest block px-1">Reason for missed or partial dose, if applicable</label>
-                                                    <textarea 
+                                                    <textarea
                                                         placeholder="Explain why a partial dose was taken..."
                                                         value={reasonMissed}
                                                         onChange={(e) => setReasonMissed(e.target.value)}
@@ -425,7 +580,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                             {tookMedicine === false && (
                                 <div className="space-y-3 bg-red-500/5 p-8 rounded-[2rem] border border-red-500/10 animate-in zoom-in-95">
                                     <label className="text-[14px] font-black text-red-400 uppercase tracking-widest block px-1">Reason for missed or partial dose, if applicable</label>
-                                    <textarea 
+                                    <textarea
                                         value={reasonMissed}
                                         onChange={(e) => setReasonMissed(e.target.value)}
                                         placeholder="Please explain why the dose was missed today..."
@@ -439,21 +594,22 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                     {/* Section B: Adverse Events */}
                     <Card className="p-8 sm:p-10 border border-white/5 bg-white/[0.01]">
                         <section className="space-y-10">
-                            <SectionHeader 
-                                icon={AlertTriangle} 
-                                title="B. Adverse Events / Side Effects" 
-                                subtitle="Monitoring your physiological response" 
+                            <SectionHeader
+                                icon={AlertTriangle}
+                                title="B. Adverse Events / Side Effects"
+                                subtitle="Monitoring your physiological response"
                             />
 
-                            <BooleanChoice 
-                                label="Did you notice any side effects or unusual symptoms today?" 
-                                value={noticedAE} 
-                                onChange={setNoticedAE} 
+                            <BooleanChoice
+                                label="Did you notice any side effects or unusual symptoms today?"
+                                value={noticedAE}
+                                onChange={setNoticedAE}
+                                inverse={true}
                             />
 
                             <AnimatePresence>
                                 {noticedAE && (
-                                    <motion.div 
+                                    <motion.div
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: 'auto' }}
                                         exit={{ opacity: 0, height: 0 }}
@@ -461,7 +617,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                                     >
                                         <div className="space-y-3">
                                             <label className="text-[14px] font-black text-slate-500 uppercase tracking-[0.2em] px-2 block">Symptom Description [WHAT HAPPENED?]</label>
-                                            <textarea 
+                                            <textarea
                                                 value={aeDescription}
                                                 onChange={(e) => setAeDescription(e.target.value)}
                                                 placeholder="Describe the symptoms in detail..."
@@ -470,54 +626,61 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                                         </div>
 
                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-1">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-1">
                                                 <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest block flex-1">When did it start?</label>
-                                                <input 
-                                                    type="text" 
+                                                <input
+                                                    type="text"
                                                     placeholder="e.g., 2 hours after dose"
                                                     value={aeStartTime}
                                                     onChange={(e) => setAeStartTime(e.target.value)}
                                                     className="w-full sm:w-[300px] bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none text-lg"
                                                 />
                                             </div>
-                                            <BooleanChoice 
-                                                label="Is it still ongoing?" 
-                                                value={aeOngoing} 
-                                                onChange={setAeOngoing} 
+                                            <BooleanChoice
+                                                label="Is it still ongoing?"
+                                                value={aeOngoing}
+                                                onChange={setAeOngoing}
+                                                inverse={true}
                                             />
                                         </div>
 
                                         <div className="space-y-6">
                                             <label className="text-[14px] font-black text-slate-400 uppercase tracking-widest block px-1">Severity</label>
                                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                                {['MILD', 'MODERATE', 'SEVERE'].map(lvl => (
-                                                    <button 
-                                                        key={lvl}
-                                                        onClick={() => setAeSeverity(lvl)}
-                                                        className={`py-5 rounded-2xl text-[14px] font-black uppercase tracking-widest transition-all border ${aeSeverity === lvl ? 'bg-red-600 border-red-500 text-white shadow-xl shadow-red-600/20 scale-[1.02]' : 'bg-white/5 border-white/5 text-slate-500 hover:text-white'}`}
+                                                {[
+                                                    { id: 'MILD', color: 'bg-amber-500 border-amber-400 shadow-amber-500/20' },
+                                                    { id: 'MODERATE', color: 'bg-orange-500 border-orange-400 shadow-orange-500/20' },
+                                                    { id: 'SEVERE', color: 'bg-red-600 border-red-500 shadow-red-600/20' }
+                                                ].map(lvl => (
+                                                    <button
+                                                        key={lvl.id}
+                                                        onClick={() => setAeSeverity(lvl.id)}
+                                                        className={`py-5 rounded-2xl text-[14px] font-black uppercase tracking-widest transition-all border ${aeSeverity === lvl.id ? `${lvl.color} text-white scale-[1.02] shadow-xl` : 'bg-white/5 border-white/5 text-slate-500 hover:text-white'}`}
                                                     >
-                                                        {lvl}
+                                                        {lvl.id}
                                                     </button>
                                                 ))}
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 bg-red-500/[0.03] p-8 rounded-[2rem] border border-red-500/5">
-                                            <BooleanChoice 
-                                                label="Interfered with daily activities?" 
-                                                value={aeInterfered} 
-                                                onChange={setAeInterfered} 
+                                            <BooleanChoice
+                                                label="Interfered with daily activities?"
+                                                value={aeInterfered}
+                                                onChange={setAeInterfered}
+                                                inverse={true}
                                             />
-                                            <BooleanChoice 
-                                                label="Did you seek medical care?" 
-                                                value={aeMedicalCare} 
-                                                onChange={setAeMedicalCare} 
+                                            <BooleanChoice
+                                                label="Did you seek medical care?"
+                                                value={aeMedicalCare}
+                                                onChange={setAeMedicalCare}
+                                                inverse={true}
                                             />
                                         </div>
 
                                         <div className="space-y-3">
                                             <label className="text-[13px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Additional Comments</label>
-                                            <textarea 
+                                            <textarea
                                                 value={aeComments}
                                                 onChange={(e) => setAeComments(e.target.value)}
                                                 className="w-full bg-white/5 border border-white/5 rounded-2xl p-6 h-24 text-white font-bold outline-none"
@@ -532,80 +695,180 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                     {/* Section C: General Health */}
                     <Card className="p-8 sm:p-10 border border-white/5 bg-white/[0.01]">
                         <section className="space-y-10">
-                            <SectionHeader 
-                                icon={Activity} 
-                                title="C. General Health Check" 
-                                subtitle="Holistic daily wellness review" 
+                            <SectionHeader
+                                icon={Activity}
+                                title="C. General Health Check"
+                                subtitle="Holistic daily wellness review"
                             />
 
                             <div className="space-y-8">
                                 <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest block px-1">How do you feel today overall?</label>
                                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                                    {['VERY_GOOD', 'GOOD', 'FAIR', 'POOR'].map(opt => (
-                                        <button 
-                                            key={opt}
-                                            onClick={() => setOverallFeeling(opt)}
-                                            className={`py-5 rounded-xl text-[12px] font-black uppercase tracking-widest border transition-all ${overallFeeling === opt ? 'bg-cyan-600 border-cyan-500 text-white' : 'bg-white/[0.02] border-white/5 text-slate-500'}`}
+                                    {[
+                                        { id: 'VERY_GOOD', color: 'bg-emerald-500 border-emerald-400 shadow-emerald-500/20' },
+                                        { id: 'GOOD', color: 'bg-lime-500 border-lime-400 shadow-lime-500/20' },
+                                        { id: 'FAIR', color: 'bg-amber-500 border-amber-400 shadow-amber-500/20' },
+                                        { id: 'POOR', color: 'bg-red-600 border-red-500 shadow-red-600/20' }
+                                    ].map(opt => (
+                                        <button
+                                            key={opt.id}
+                                            onClick={() => setOverallFeeling(opt.id)}
+                                            className={`py-5 rounded-xl text-[12px] font-black uppercase tracking-widest border transition-all ${overallFeeling === opt.id ? `${opt.color} text-white shadow-lg scale-105` : 'bg-white/[0.02] border-white/5 text-slate-500 hover:text-white'}`}
                                         >
-                                            {opt.replace('_', ' ')}
+                                            {opt.id.replace('_', ' ')}
                                         </button>
                                     ))}
                                 </div>
                             </div>
 
-                             <div className="space-y-5">
-                                 <label className="text-[14px] font-black text-slate-500 uppercase tracking-widest px-1">Any other health updates you want to report?</label>
-                                 <textarea 
-                                     value={healthUpdates}
-                                     onChange={(e) => setHealthUpdates(e.target.value)}
-                                     placeholder="Write here..."
-                                     className="w-full bg-white/5 border border-white/5 rounded-2xl p-6 h-40 text-white font-bold text-lg outline-none"
-                                 />
+                            <div className="space-y-5">
+                                <label className="text-[14px] font-black text-slate-500 uppercase tracking-widest px-1">Any other health updates you want to report?</label>
+                                <textarea
+                                    value={healthUpdates}
+                                    onChange={(e) => setHealthUpdates(e.target.value)}
+                                    placeholder="Write here..."
+                                    className="w-full bg-white/5 border border-white/5 rounded-2xl p-6 h-40 text-white font-bold text-lg outline-none"
+                                />
                             </div>
 
                             {/* File Upload Placeholder */}
                             <div className="space-y-4">
                                 <label className="text-[13px] font-black text-slate-500 uppercase tracking-widest px-1 block">Supporting file / Photo (If needed)</label>
                                 <div className="relative group">
-                                    <input 
-                                        type="file" 
-                                        onChange={(e) => setSupportingFile(e.target.files ? e.target.files[0] : null)}
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                                    <input
+                                        type="file"
+                                        accept=".pdf, .png, .jpg, .jpeg"
+                                        onChange={handleFileChange}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                     />
-                                    <div className={`p-10 rounded-[2rem] border-2 border-dashed flex items-center justify-center gap-4 transition-all ${supportingFile ? 'bg-cyan-500/10 border-cyan-500/40' : 'bg-white/[0.02] border-white/10 group-hover:bg-white/[0.04]'}`}>
-                                        {supportingFile ? (
-                                            <>
-                                                <CheckCircle2 className="w-6 h-6 text-cyan-400" />
-                                                <span className="text-[14px] font-black text-white italic">{supportingFile.name}</span>
-                                                <button onClick={(e) => { e.stopPropagation(); setSupportingFile(null); }} className="text-red-500 hover:text-red-400 p-2"><Trash2 className="w-5 h-5" /></button>
-                                            </>
+                                    <div className={`p-8 rounded-[2rem] border-2 border-dashed flex flex-col items-center justify-center gap-4 transition-all ${supportingFile ? 'bg-cyan-500/5 border-cyan-500/40' : 'bg-white/[0.02] border-white/10 group-hover:bg-white/[0.04]'} ${uploadError ? 'border-red-500/50 bg-red-500/5' : ''}`}>
+                                        {isProcessingFile ? (
+                                            <div className="flex flex-col items-center gap-3">
+                                                <div className="w-8 h-8 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
+                                                <span className="text-[12px] font-black text-cyan-400 uppercase tracking-widest">Optimizing & Protecting Privacy...</span>
+                                            </div>
+                                        ) : supportingFile ? (
+                                            <div className="flex flex-col items-center gap-4 w-full">
+                                                {supportingFile.type.startsWith('image/') && previewUrl ? (
+                                                    <div className="relative group/preview">
+                                                        <img src={previewUrl} alt="Preview" className="h-40 w-auto rounded-2xl object-cover border border-white/10 shadow-2xl" />
+                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity rounded-2xl flex items-center justify-center">
+                                                            <p className="text-white text-[10px] font-black uppercase tracking-widest">Client-Side Optimized</p>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center border border-white/10">
+                                                        <FileText className="w-10 h-10 text-cyan-500" />
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center gap-2 bg-white/5 p-2 px-4 rounded-2xl border border-white/10">
+                                                    <span className="text-[12px] font-black text-white italic truncate max-w-[150px]">{supportingFile.name}</span>
+                                                    <div className="flex items-center border-l border-white/10 ml-2 pl-2 gap-1 relative z-20">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                setIsPreviewModalOpen(true);
+                                                            }}
+                                                            className="p-2 text-cyan-400 hover:bg-cyan-400/10 rounded-xl transition-all cursor-pointer"
+                                                            title="Preview File"
+                                                        >
+                                                            <Eye className="w-5 h-5" />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                setSupportingFile(null);
+                                                            }}
+                                                            className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-all cursor-pointer"
+                                                            title="Delete File"
+                                                        >
+                                                            <Trash2 className="w-5 h-5" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         ) : (
                                             <>
                                                 <Upload className="w-6 h-6 text-slate-500" />
-                                                <span className="text-[14px] font-black text-slate-500 uppercase tracking-widest">Select Image or Document</span>
+                                                <span className="text-[14px] font-black text-slate-500 uppercase tracking-widest">Select Image or PDF</span>
+                                                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter text-center">Privacy protection enabled <br /> Metadata will be removed automatically</p>
                                             </>
                                         )}
                                     </div>
+                                    {uploadError && <p className="text-red-500 text-[12px] font-black uppercase mt-3 tracking-widest text-center">{uploadError}</p>}
                                 </div>
                             </div>
                         </section>
                     </Card>
 
-                    {/* Emergency Safety Message */}
-                    <div className="bg-red-600 shadow-2xl shadow-red-600/20 p-8 sm:p-10 rounded-[3rem] flex items-start gap-6 border-2 border-red-500/50">
-                        <AlertCircle className="w-10 h-10 text-white shrink-0 mt-1" />
-                        <div className="space-y-6">
-                            <h5 className="text-[24px] font-black text-white italic uppercase tracking-tighter">Emergency Safety Protocol</h5>
-                            <p className="text-[18px] font-bold text-white leading-relaxed uppercase tracking-wide">
-                                If you experience a serious side effect, stop the study product and contact the study team immediately at <span className="underline select-all text-white">(813) 419-0781</span>. 
-                                If this is a medical emergency, call 911 right away.
-                            </p>
-                        </div>
+                    {/* Preview Modal */}
+                    <AnimatePresence>
+                        {isPreviewModalOpen && supportingFile && (
+                            <motion.div
+                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                                className="fixed inset-0 z-[150] bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 md:p-12"
+                                onClick={() => setIsPreviewModalOpen(false)}
+                            >
+                                <button className="absolute top-8 right-8 p-4 bg-white/5 hover:bg-white/10 rounded-full text-white transition-all z-[160]"><X className="w-8 h-8" /></button>
+
+                                <motion.div
+                                    initial={{ scale: 0.9, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    exit={{ scale: 0.9, opacity: 0 }}
+                                    className="w-full max-w-5xl h-full flex flex-col bg-[#0a0f18] rounded-[3rem] border border-white/10 overflow-hidden shadow-2xl"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                                        <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">File Preview: {supportingFile.name}</h3>
+                                        <div className="px-4 py-1.5 bg-cyan-500/10 border border-cyan-500/20 rounded-full text-[10px] font-black text-cyan-400 uppercase tracking-widest">Supporting Document</div>
+                                    </div>
+
+                                    <div className="flex-1 flex items-center justify-center p-4 bg-black/20">
+                                        {supportingFile.type.startsWith('image/') ? (
+                                            <img
+                                                src={previewUrl!}
+                                                alt="Review"
+                                                className="max-h-full max-w-full object-contain rounded-xl"
+                                            />
+                                        ) : supportingFile.type === 'application/pdf' ? (
+                                            <iframe
+                                                src={previewUrl!}
+                                                className="w-full h-full border-none rounded-xl bg-white"
+                                                title="PDF Preview"
+                                            />
+                                        ) : (
+                                            <div className="text-slate-500 text-center uppercase font-black italic tracking-widest">Preview not available for this file type</div>
+                                        )}
+                                    </div>
+
+                                    <div className="p-6 border-t border-white/5 bg-white/[0.02] flex justify-center">
+                                        <button
+                                            onClick={() => setIsPreviewModalOpen(false)}
+                                            className="px-12 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] text-white transition-all"
+                                        >
+                                            Close Preview
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    <div className="p-8 bg-red-500/5 border border-red-500/10 rounded-2xl shadow-inner-white">
+                        <p className="text-[16px] font-black text-red-400 uppercase tracking-widest flex items-center gap-3 italic leading-relaxed">
+                            <AlertCircle className="w-5 h-5 shrink-0" />
+                            If you experience severe symptoms or a medical emergency, call 911 immediately and contact the study team at (813) 419-0781.
+                        </p>
                     </div>
+
 
                     {/* Form Buttons */}
                     <div className="flex flex-col sm:flex-row gap-6 pt-10 pb-20">
-                        <button 
+                        <button
                             onClick={() => handleSubmitLog(true)}
                             disabled={isSubmitting}
                             className="flex-1 py-6 bg-white/5 hover:bg-white/10 text-white border border-white/5 rounded-[2rem] text-[15px] font-black uppercase tracking-[0.25em] transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
@@ -613,7 +876,7 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                             <Save className="w-6 h-6" />
                             Save Draft
                         </button>
-                        <button 
+                        <button
                             onClick={() => handleSubmitLog(false)}
                             disabled={isSubmitting}
                             className="flex-[2] py-6 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-[2rem] text-[15px] font-black uppercase tracking-[0.25em] shadow-2xl shadow-indigo-500/40 transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
@@ -639,8 +902,8 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                         </Card>
                     ) : (
                         history.map((log: any) => (
-                            <Card 
-                                key={log.id} 
+                            <Card
+                                key={log.id}
                                 onClick={() => setSelectedLog(log)}
                                 className="p-8 border-white/5 hover:border-cyan-500/20 transition-all cursor-pointer group"
                             >

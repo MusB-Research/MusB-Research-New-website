@@ -122,6 +122,13 @@ DATABASES = {
     }
 }
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'musb_cache',
+    }
+}
+
 # Silence AutoField checks for built-in Django apps (admin, auth, contenttypes)
 # that hardcode AutoField. The MongoDB backend handles these at runtime.
 SILENCED_SYSTEM_CHECKS = ['mongodb.E001']

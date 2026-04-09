@@ -227,7 +227,7 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
             });
 
             if (!res.ok) {
-                addToast("Persistence Failure: Node rejected update", "error");
+                addToast("Persistence Failure: Network error", "error");
                 loadInitialData(); // Rollback
             }
         } catch (err) {
@@ -284,7 +284,7 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
 
             if (res.ok) {
                 const newVisit = await res.json();
-                addToast('Node Provisioned: Visit Scheduled');
+                addToast('Success: Visit Scheduled');
                 setSchedulePanel(false);
                 await loadInitialData();
             } else {
@@ -579,7 +579,7 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: COLORS.label }}>
                             <Stethoscope size={48} style={{ opacity: 0.1, marginBottom: '2rem' }} />
                             <div style={{ ...G.title, fontSize: '16px' }}>Terminal Standby</div>
-                            <div style={{ fontSize: '12px', marginTop: '0.5rem' }}>Select participant protocol node...</div>
+                            <div style={{ fontSize: '12px', marginTop: '0.5rem' }}>Select protocol visit...</div>
                         </div>
                     )}
                 </div>
@@ -605,7 +605,7 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
                     <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setSchedulePanel(false)} />
                     <div style={{ width: '680px', height: '100%', backgroundColor: COLORS.bg, borderLeft: `1px solid ${COLORS.border}`, position: 'relative', display: 'flex', flexDirection: 'column', animation: 'slideRight 0.4s ease-out' }}>
                         <div style={{ padding: '3rem', borderBottom: `1px solid ${COLORS.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h2 style={G.title}>Schedule New Protocol Node</h2>
+                            <h2 style={G.title}>Schedule New Protocol Visit</h2>
                             <button onClick={() => setSchedulePanel(false)} style={{ background: 'none', border: 'none', color: COLORS.label, cursor: 'pointer' }}><X size={24} /></button>
                         </div>
                         <div style={{ flex: 1, padding: '3rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -635,7 +635,7 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
                                     </select>
                                 </div>
                                 <div>
-                                    <label style={G.label}>Node Location</label>
+                                    <label style={G.label}>Visit Location</label>
                                     <select 
                                         style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, padding: '1rem', borderRadius: '8px', color: 'white', marginTop: '0.5rem', outline: 'none' }}
                                         value={schedulePanelForm.location}
@@ -657,7 +657,7 @@ export default function CCC_VisitsAssessmentsModule({ selectedStudyId }: { selec
                                     />
                                 </div>
                                 <div>
-                                    <label style={G.label}>Node Time</label>
+                                    <label style={G.label}>Visit Time</label>
                                     <input type="time" 
                                         style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, padding: '1rem', borderRadius: '8px', color: 'white', marginTop: '0.5rem', outline: 'none' }}
                                         value={schedulePanelForm.time}

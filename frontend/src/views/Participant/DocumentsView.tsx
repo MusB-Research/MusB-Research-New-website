@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    FileText, Download, Search, Filter, Clock, ShieldCheck, 
+import {
+    FileText, Download, Search, Filter, Clock, ShieldCheck,
     Eye, MoreVertical, AlertCircle, Trash2, Lock, PlusCircle,
     ChevronRight, FolderOpen, User, Calendar, CheckCircle2,
     FileCode, FileImage, FileStack, LayoutGrid, List, Upload,
@@ -39,7 +39,7 @@ const DocumentsView = ({ study }: { study?: any }) => {
         if (selectedDoc) {
             setIsDecrypting(true);
             setDecryptedContent(null);
-            
+
             const timer = setTimeout(async () => {
                 // Generate content using the existing handleAction logic
                 const content = await getDocumentContent(selectedDoc);
@@ -95,9 +95,9 @@ const DocumentsView = ({ study }: { study?: any }) => {
     const filteredDocs = useMemo(() => {
         return documents.filter(doc => {
             const matchesCategory = activeCategory === 'All' || doc.category === activeCategory || doc.subcategory === activeCategory;
-            const matchesSearch = doc.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                doc.uploadedBy.toLowerCase().includes(searchQuery.toLowerCase());
-            
+            const matchesSearch = doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                doc.uploadedBy.toLowerCase().includes(searchQuery.toLowerCase());
+
             let matchesFilter = true;
             if (filterOption === 'Recent') {
                 const docDate = new Date(doc.date);
@@ -140,7 +140,7 @@ const DocumentsView = ({ study }: { study?: any }) => {
     const handleAction = async (doc: Document, action: 'VIEW' | 'DOWNLOAD') => {
         const pdf = new jsPDF();
         const pageWidth = pdf.internal.pageSize.getWidth();
-        
+
         // --- MusB Branding Header ---
         try {
             const logoUrl = '/logo.jpg';
@@ -148,7 +148,7 @@ const DocumentsView = ({ study }: { study?: any }) => {
             img.src = logoUrl;
             await new Promise((resolve) => {
                 img.onload = resolve;
-                img.onerror = resolve; 
+                img.onerror = resolve;
             });
             if (img.complete && img.naturalWidth > 0) {
                 const canvas = document.createElement('canvas');
@@ -165,12 +165,12 @@ const DocumentsView = ({ study }: { study?: any }) => {
         pdf.setFontSize(22);
         pdf.setTextColor(6, 182, 212); // Cyan
         pdf.text('MusB RESEARCH PORTAL', 45, 25);
-        
+
         pdf.setFont('helvetica', 'normal');
         pdf.setFontSize(11);
         pdf.setTextColor(100, 116, 139); // Slate
         pdf.text('DOCUMENT ARCHIVE | SECURE PORTAL ACCESS', 45, 33);
-        
+
         pdf.setDrawColor(226, 232, 240);
         pdf.line(15, 45, pageWidth - 15, 45);
 
@@ -268,7 +268,7 @@ const DocumentsView = ({ study }: { study?: any }) => {
                             className="bg-[#0a101f] border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-[12px] font-black text-white italic outline-none focus:border-cyan-500/30 transition-all w-[240px] tracking-widest uppercase"
                         />
                     </div>
-                    
+
                     <div className="flex bg-[#0a101f] border border-white/5 p-1 rounded-xl">
                         {['All', 'Recent', 'Uploaded by Me', 'Study Provided', 'Requires Action'].slice(0, 3).map(opt => (
                             <button
@@ -280,18 +280,18 @@ const DocumentsView = ({ study }: { study?: any }) => {
                             </button>
                         ))}
                         <div className="relative px-2 flex items-center border-l border-white/5 ml-2 cursor-pointer group">
-                             <Filter className="w-3.5 h-3.5 text-slate-500" />
-                             <div className="absolute right-0 top-full mt-2 w-48 bg-[#0d1424] border border-white/10 rounded-xl overflow-hidden opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all z-50">
-                                 {['Recent', 'Uploaded by Me', 'Study Provided', 'Requires Action'].map(opt => (
-                                     <button 
+                            <Filter className="w-3.5 h-3.5 text-slate-500" />
+                            <div className="absolute right-0 top-full mt-2 w-48 bg-[#0d1424] border border-white/10 rounded-xl overflow-hidden opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all z-50">
+                                {['Recent', 'Uploaded by Me', 'Study Provided', 'Requires Action'].map(opt => (
+                                    <button
                                         key={opt}
                                         onClick={() => setFilterOption(opt)}
                                         className="w-full text-left px-4 py-3 text-[12px] font-black text-slate-500 hover:text-cyan-400 hover:bg-white/5 uppercase tracking-widest transition-colors"
-                                     >
-                                         {opt}
-                                     </button>
-                                 ))}
-                             </div>
+                                    >
+                                        {opt}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
 
@@ -307,15 +307,15 @@ const DocumentsView = ({ study }: { study?: any }) => {
 
             {/* Main Content Layout */}
             <div className="flex flex-col lg:flex-row gap-8 items-start">
-                
+
                 {/* Left Panel: Categories */}
                 <Card className="w-full lg:w-[280px] p-6 shrink-0 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
                         <FolderOpen className="w-24 h-24 text-white" />
                     </div>
-                    
+
                     <h3 className="text-sm font-black text-slate-500 uppercase tracking-[0.25em] mb-6 italic border-b border-white/5 pb-4">Categories</h3>
-                    
+
                     <nav className="space-y-1 relative z-10">
                         <button
                             onClick={() => setActiveCategory('All')}
@@ -327,7 +327,7 @@ const DocumentsView = ({ study }: { study?: any }) => {
                             </div>
                             <span className="text-[12px] font-bold opacity-40">[{documents.length}]</span>
                         </button>
-                        
+
                         {categories.map((cat) => (
                             <div key={cat.name} className="space-y-1">
                                 <button
@@ -340,15 +340,15 @@ const DocumentsView = ({ study }: { study?: any }) => {
                                     </div>
                                     <span className="text-[12px] font-bold opacity-40">[{cat.count}]</span>
                                 </button>
-                                
+
                                 {cat.subcategories && activeCategory === cat.name && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, x: -10 }} 
-                                        animate={{ opacity: 1, x: 0 }} 
+                                    <motion.div
+                                        initial={{ opacity: 0, x: -10 }}
+                                        animate={{ opacity: 1, x: 0 }}
                                         className="pl-8 space-y-1"
                                     >
                                         {cat.subcategories.map(sub => (
-                                            <button 
+                                            <button
                                                 key={sub}
                                                 onClick={() => setActiveCategory(sub)}
                                                 className="w-full text-left px-4 py-2 text-[12px] font-bold text-slate-500 hover:text-cyan-400 uppercase tracking-widest transition-colors flex items-center gap-2"
@@ -388,22 +388,22 @@ const DocumentsView = ({ study }: { study?: any }) => {
                     {/* List Header */}
                     <div className="flex items-center justify-between bg-[#0a101f]/40 backdrop-blur-sm border border-white/5 p-4 rounded-2xl">
                         <div className="flex flex-col px-2">
-                             <h4 className="text-lg font-black text-white uppercase italic tracking-tighter">{activeCategory === 'All' ? 'Everything' : activeCategory} Documents</h4>
-                             <div className="flex items-center gap-3 mt-1">
-                                 <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">Total: {filteredDocs.length} Documents</span>
-                                 <div className="w-1 h-1 bg-white/20 rounded-full" />
-                                 <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest italic">Last updated: 03/24/2026</span>
-                             </div>
+                            <h4 className="text-lg font-black text-white uppercase italic tracking-tighter">{activeCategory === 'All' ? 'Everything' : activeCategory} Documents</h4>
+                            <div className="flex items-center gap-3 mt-1">
+                                <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">Total: {filteredDocs.length} Documents</span>
+                                <div className="w-1 h-1 bg-white/20 rounded-full" />
+                                <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest italic">Last updated: 03/24/2026</span>
+                            </div>
                         </div>
-                        
+
                         <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl">
-                            <button 
+                            <button
                                 onClick={() => setViewMode('table')}
                                 className={`p-2 rounded-lg transition-all ${viewMode === 'table' ? 'bg-cyan-500 text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white'}`}
                             >
                                 <List className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setViewMode('card')}
                                 className={`p-2 rounded-lg transition-all ${viewMode === 'card' ? 'bg-cyan-500 text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white'}`}
                             >
@@ -431,7 +431,7 @@ const DocumentsView = ({ study }: { study?: any }) => {
                                         </thead>
                                         <tbody className="divide-y divide-white/[0.03]">
                                             {filteredDocs.map((doc, idx) => (
-                                                <motion.tr 
+                                                <motion.tr
                                                     key={doc.id}
                                                     initial={{ opacity: 0, y: 10 }}
                                                     animate={{ opacity: 1, y: 0 }}
@@ -470,13 +470,13 @@ const DocumentsView = ({ study }: { study?: any }) => {
                                                     </td>
                                                     <td className="px-8 py-6">
                                                         <div className="flex items-center justify-end gap-2">
-                                                            <button 
+                                                            <button
                                                                 onClick={(e) => { e.stopPropagation(); handleAction(doc, 'VIEW'); }}
                                                                 className="p-2.5 rounded-lg bg-white/5 text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all"
                                                             >
                                                                 <Eye className="w-3.5 h-3.5" />
                                                             </button>
-                                                            <button 
+                                                            <button
                                                                 onClick={(e) => { e.stopPropagation(); handleAction(doc, 'DOWNLOAD'); }}
                                                                 className="p-2.5 rounded-lg bg-white/5 text-slate-500 hover:text-white hover:bg-white/10 transition-all"
                                                             >
@@ -531,13 +531,13 @@ const DocumentsView = ({ study }: { study?: any }) => {
                                                     </div>
 
                                                     <div className="relative z-10 flex items-center gap-2 pt-6 mt-6 border-t border-white/[0.05]">
-                                                        <button 
+                                                        <button
                                                             onClick={(e) => { e.stopPropagation(); handleAction(doc, 'VIEW'); }}
                                                             className="flex-1 bg-white/5 hover:bg-cyan-500 hover:text-slate-950 py-3 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 italic"
                                                         >
                                                             <Eye className="w-3.5 h-3.5" /> VIEW
                                                         </button>
-                                                        <button 
+                                                        <button
                                                             onClick={(e) => { e.stopPropagation(); handleAction(doc, 'DOWNLOAD'); }}
                                                             className="p-3 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-xl transition-all border border-white/10"
                                                         >
@@ -554,41 +554,41 @@ const DocumentsView = ({ study }: { study?: any }) => {
                     ) : (
                         /* Empty State */
                         <div className="flex flex-col items-center justify-center py-32 rounded-[3rem] border border-white/5 bg-[#0a101f]/40">
-                             <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mb-8 grayscale">
-                                 <Search className="w-10 h-10 text-slate-500" />
-                             </div>
-                             <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-4">No documents available</h3>
-                             <p className="text-[12px] font-bold text-slate-500 uppercase tracking-[0.3em] mb-10 italic">There are no documents in this category yet</p>
-                             <button
+                            <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mb-8 grayscale">
+                                <Search className="w-10 h-10 text-slate-500" />
+                            </div>
+                            <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-4">No documents available</h3>
+                            <p className="text-[12px] font-bold text-slate-500 uppercase tracking-[0.3em] mb-10 italic">There are no documents in this category yet</p>
+                            <button
                                 onClick={() => setIsUploadModalOpen(true)}
                                 className="bg-white text-slate-950 px-10 py-4 rounded-2xl font-black text-[12px] uppercase tracking-widest transition-all hover:bg-cyan-500 shadow-xl"
-                             >
-                                 UPLOAD DOCUMENT
-                             </button>
+                            >
+                                UPLOAD DOCUMENT
+                            </button>
                         </div>
                     )}
                 </div>
             </div>
 
             {/* --- Modals --- */}
-            
+
             {/* Upload Modal */}
             <AnimatePresence>
                 {isUploadModalOpen && (
                     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-[#0a0e1a]/95 backdrop-blur-xl" 
-                            onClick={() => setIsUploadModalOpen(false)} 
+                            className="absolute inset-0 bg-[#0a0e1a]/95 backdrop-blur-xl"
+                            onClick={() => setIsUploadModalOpen(false)}
                         />
-                        <motion.div 
-                            initial={{ scale: 0.9, opacity: 0, rotateX: 20 }} 
-                            animate={{ scale: 1, opacity: 1, rotateX: 0 }} 
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, rotateX: 20 }}
+                            animate={{ scale: 1, opacity: 1, rotateX: 0 }}
                             exit={{ scale: 0.9, opacity: 0 }}
                             className="relative w-full max-w-2xl bg-[#0d1424] border border-white/10 rounded-[3rem] p-12 shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-hidden"
                         >
                             <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-cyan-400 via-indigo-500 to-cyan-400" />
-                            
+
                             <div className="flex justify-between items-start mb-10">
                                 <div>
                                     <h3 className="text-2xl font-black text-white italic tracking-tighter uppercase mb-2">UPLOAD DOCUMENT</h3>
@@ -629,20 +629,20 @@ const DocumentsView = ({ study }: { study?: any }) => {
                                         </div>
                                         <span className="text-[12px] font-black text-white uppercase tracking-widest">DRAG & DROP OR CLICK</span>
                                         <span className="text-[12px] font-bold text-slate-600 uppercase tracking-tighter mt-1">PDF, JPG, PNG, DOCX (MAX 20MB)</span>
-                                        
+
                                         <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" />
                                     </div>
                                 </div>
                             </div>
 
                             <div className="flex gap-4">
-                                <button 
+                                <button
                                     className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 py-5 rounded-2xl font-black text-[12px] uppercase tracking-[0.25em] transition-all shadow-[0_10px_30px_rgba(6,182,212,0.3)] active:scale-[0.98] italic"
                                     onClick={() => setIsUploadModalOpen(false)}
                                 >
                                     UPLOAD DOCUMENT
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => setIsUploadModalOpen(false)}
                                     className="px-10 py-5 bg-white/5 text-slate-500 hover:text-white rounded-2xl text-[12px] font-black uppercase tracking-widest italic transition-colors"
                                 >
@@ -658,14 +658,14 @@ const DocumentsView = ({ study }: { study?: any }) => {
             <AnimatePresence>
                 {selectedDoc && (
                     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-[#060a12]/98 backdrop-blur-2xl" 
-                            onClick={() => setSelectedDoc(null)} 
+                            className="absolute inset-0 bg-[#060a12]/98 backdrop-blur-2xl"
+                            onClick={() => setSelectedDoc(null)}
                         />
-                        <motion.div 
-                            initial={{ scale: 0.95, opacity: 0, y: 20 }} 
-                            animate={{ scale: 1, opacity: 1, y: 0 }} 
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0 }}
                             className="relative w-full max-w-6xl h-[85vh] bg-[#0d1424] border border-white/10 rounded-[3rem] shadow-[0_0_100px_rgba(0,0,0,1)] flex flex-col overflow-hidden"
                         >
@@ -685,19 +685,19 @@ const DocumentsView = ({ study }: { study?: any }) => {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <button 
+                                    <button
                                         onClick={() => handleAction(selectedDoc, 'DOWNLOAD')}
                                         className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-cyan-500 hover:text-slate-950 text-white rounded-xl text-[12px] font-black uppercase tracking-widest transition-all italic active:scale-95"
                                     >
                                         <Download className="w-3.5 h-3.5" /> DOWNLOAD
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={() => handleAction(selectedDoc, 'VIEW')}
                                         className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-indigo-500 hover:text-white text-white rounded-xl text-[12px] font-black uppercase tracking-widest transition-all italic active:scale-95"
                                     >
                                         <Printer className="w-3.5 h-3.5" /> PRINT
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={() => setSelectedDoc(null)}
                                         className="p-3 bg-red-500/10 text-red-400 hover:bg-red-500 rounded-xl hover:text-white transition-all ml-4 active:scale-95"
                                     >
@@ -708,7 +708,7 @@ const DocumentsView = ({ study }: { study?: any }) => {
                             <div className="flex-1 bg-[#060a12] p-8 overflow-hidden flex items-center justify-center relative">
                                 <AnimatePresence mode="wait">
                                     {isDecrypting ? (
-                                        <motion.div 
+                                        <motion.div
                                             key="loader"
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
@@ -725,7 +725,7 @@ const DocumentsView = ({ study }: { study?: any }) => {
                                                 </p>
                                             </div>
                                             <div className="w-64 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                                <motion.div 
+                                                <motion.div
                                                     initial={{ width: 0 }}
                                                     animate={{ width: "100%" }}
                                                     transition={{ duration: 2.5, ease: "easeInOut" }}
@@ -734,14 +734,14 @@ const DocumentsView = ({ study }: { study?: any }) => {
                                             </div>
                                         </motion.div>
                                     ) : (
-                                        <motion.div 
+                                        <motion.div
                                             key="content"
                                             initial={{ opacity: 0, scale: 0.98 }}
                                             animate={{ opacity: 1, scale: 1 }}
                                             className="w-full h-full relative z-10"
                                         >
-                                            <iframe 
-                                                src={decryptedContent || ''} 
+                                            <iframe
+                                                src={decryptedContent || ''}
                                                 className="w-full h-full rounded-[2rem] border-none shadow-2xl bg-white"
                                                 title="Secure Document Archive"
                                             />

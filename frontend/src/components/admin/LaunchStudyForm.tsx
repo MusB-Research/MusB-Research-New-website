@@ -1,13 +1,35 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Rocket, Beaker, Activity, Users, FileText, CheckCircle2, 
     X, ChevronDown, Upload, ChevronRight, ChevronLeft, 
     AlertCircle, History, CheckSquare, TrendingUp,
     ShieldCheck, Microscope, UserPlus, FileCheck, Layers,
-    Briefcase, Plus, Calendar, ShieldAlert, Loader2, Building2
+    Briefcase, Plus, Calendar, ShieldAlert, Loader2, Building2,
+    Search, Info, Zap
 } from 'lucide-react';
 import { authFetch, API, getUser, getRole } from '../../utils/auth';
+
+const STUDY_STAGES = [
+    { id: 'DRAFT', label: 'Draft', color: 'indigo' },
+    { id: 'PROPOSAL_SUBMITTED', label: 'Proposal Submitted', color: 'indigo' },
+    { id: 'PROPOSAL_UNDER_NEGOTIATION', label: 'Proposal Under Negotiation', color: 'indigo' },
+    { id: 'AGREEMENT_SIGNED', label: 'Agreement Signed', color: 'emerald' },
+    { id: 'IRB_PROTOCOL_INITIATED', label: 'IRB Protocol Initiated', color: 'emerald' },
+    { id: 'UNDER_IRB_SUBMISSION', label: 'Under IRB Submission / Dev', color: 'emerald' },
+    { id: 'IRB_APPROVED', label: 'IRB Approved', color: 'emerald' },
+    { id: 'PREPARING_TO_LAUNCH', label: 'Preparing to Launch', color: 'pink' },
+    { id: 'ACTIVE', label: 'Active', color: 'pink' },
+    { id: 'RECRUITING', label: 'Recruiting', color: 'pink' },
+    { id: 'RECRUITMENT_COMPLETED', label: 'Recruitment Completed', color: 'indigo' },
+    { id: 'ANALYSIS_UNDERWAY', label: 'Analysis Underway', color: 'indigo' },
+    { id: 'PROGRESS_REPORT_DRAFT', label: 'Progress Report Draft', color: 'indigo' },
+    { id: 'FINAL_REPORT_SENT', label: 'Final Report Sent', color: 'indigo' },
+    { id: 'COMPLETED', label: 'Completed', color: 'indigo' },
+    { id: 'PAUSED', label: 'Paused', color: 'amber' },
+    { id: 'CLOSED_ARCHIVED', label: 'Closed / Archived', color: 'slate' }
+];
 
 interface LaunchStudyFormProps {
     onClose?: () => void;
@@ -44,6 +66,9 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
     const displayCoordinators = useMemo(() => availableCoordinators || [], [availableCoordinators]);
     const displaySponsors = useMemo(() => availableSponsors || [], [availableSponsors]);
     
+    const [sponsorOrganizations, setSponsorOrganizations] = useState<any[]>([]);
+    const [loadingOrgs, setLoadingOrgs] = useState(false);
+    
     const [formData, setFormData] = useState<StudyFormData>(() => {
         const currentUser = getUser();
         const initialPIs = (initialData?.assigned_pis || []).map((u: any) => typeof u === 'string' ? u : u.id);
@@ -56,6 +81,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
         return {
             protocol_id: initialData?.protocol_id || `MUSB-${new Date().getFullYear()}-${Math.floor(Math.random() * 900) + 100}`,
             sponsor_id: initialData?.sponsor_id || '',
+            sponsor_org_id: initialData?.sponsor_org_id || initialData?.sponsor_org || '',
             sponsor_name: initialData?.sponsor_name || '',
             startDate: initialData?.startDate || '',
             endDate: initialData?.endDate || '',
@@ -75,10 +101,32 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
             assigned_pis: initialPIs,
             assigned_coordinators: (initialData?.assigned_coordinators || []).map((u: any) => typeof u === 'string' ? u : u.id),
             status: initialData?.status || 'DRAFT',
+            stage: initialData?.stage || 'DRAFT',
             compensation: initialData?.compensation || '500',
-            compensation_currency: initialData?.compensation_currency || 'USD'
+            compensation_currency: initialData?.compensation_currency || 'USD',
+            uses_kit: initialData?.uses_kit || false,
+            kits_info: initialData?.kits_info || ''
         };
     });
+
+    const fetchSponsorOrgs = useCallback(async () => {
+        setLoadingOrgs(true);
+        try {
+            const apiUrl = API || 'http://localhost:8000';
+            const res = await authFetch(`${apiUrl}/api/sponsor-organizations/`);
+            if (res.ok) {
+                setSponsorOrganizations(await res.json());
+            }
+        } catch (err) {
+            console.error("Failed to fetch sponsor organizations:", err);
+        } finally {
+            setLoadingOrgs(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchSponsorOrgs();
+    }, [fetchSponsorOrgs]);
 
     const [uploadedDocs, setUploadedDocs] = useState<DocumentFile[]>(() => [
         { id: '1', name: 'IRB_Protocol_V3.pdf', category: 'Protocol', version: 'V3.1', status: 'Current', visibility: ['PI', 'COORDINATOR'] },
@@ -89,9 +137,10 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
     const [showAddSponsorModal, setShowAddSponsorModal] = useState(false);
     const [isCreatingSponsor, setIsCreatingSponsor] = useState(false);
     const [newSponsorData, setNewSponsorData] = useState({
-        first_name: '',
-        last_name: '',
-        email: ''
+        name: '',
+        org_type: 'Corporate', // Corporate, University, CRO, NGO
+        contact_email: '',
+        phone: ''
     });
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -138,7 +187,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
     }, []);
 
     const validation = useMemo(() => {
-        const required = ['sponsor_id', 'startDate', 'full_title', 'title', 'indication', 'brief_description'];
+        const required = ['sponsor_org_id', 'startDate', 'full_title', 'title', 'indication', 'brief_description'];
         const missingFields = required.filter(f => !formData[f as keyof typeof formData]);
         const hasPI = Array.isArray(formData.assigned_pis) && formData.assigned_pis.length > 0;
         const hasCC = Array.isArray(formData.assigned_coordinators) && formData.assigned_coordinators.length > 0;
@@ -154,49 +203,48 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
     }, [formData, uploadedDocs]);
 
     const filteredSponsors = useMemo(() => {
-        if (!sponsorSearch) return displaySponsors;
-        return displaySponsors.filter(s => s?.name?.toLowerCase().includes(sponsorSearch.toLowerCase()));
-    }, [displaySponsors, sponsorSearch]);
+        if (!sponsorSearch) return sponsorOrganizations;
+        return sponsorOrganizations.filter(s => s?.name?.toLowerCase().includes(sponsorSearch.toLowerCase()));
+    }, [sponsorOrganizations, sponsorSearch]);
 
     const handleCreateQuickSponsor = async () => {
-        if (!newSponsorData.email || !newSponsorData.first_name) {
-            alert("❌ IDENTITY REQUIRED: Please provide at least a first name and email.");
+        if (!newSponsorData.name || !newSponsorData.contact_email || !newSponsorData.org_type) {
+            alert("❌ REQUIRED FIELDS: Please provide Organization Name, Type and Contact Email.");
             return;
         }
 
         setIsCreatingSponsor(true);
         try {
             const apiUrl = API || 'http://localhost:8000';
-            const res = await authFetch(`${apiUrl}/api/auth/admin/create-user/`, {
+            const res = await authFetch(`${apiUrl}/api/sponsor-organizations/`, {
                 method: 'POST',
-                body: JSON.stringify({
-                    email: newSponsorData.email,
-                    first_name: newSponsorData.first_name,
-                    last_name: newSponsorData.last_name,
-                    role: 'SPONSOR'
-                })
+                body: JSON.stringify(newSponsorData)
             });
 
             if (res.ok) {
                 const data = await res.json();
-                alert(`✅ SPONSOR PROVISIONED\n\nSponsor has been successfully added to the system.`);
-                setShowAddSponsorModal(false);
+                alert(`✅ SPONSOR ORGANIZATION REGISTERED\n\n${newSponsorData.name} has been added to the master clinical matrix.`);
+                
+                // Update local list instantly
+                setSponsorOrganizations(prev => [...prev, data]);
+                
+                // Select it
                 setFormData(prev => ({ 
                     ...prev, 
-                    sponsor_id: data.id, 
-                    sponsor_name: `${newSponsorData.first_name} ${newSponsorData.last_name}`.trim() 
+                    sponsor_org_id: data.id, 
+                    sponsor_name: data.name 
                 }));
-                setNewSponsorData({ first_name: '', last_name: '', email: '' });
+                
+                setShowAddSponsorModal(false);
+                setNewSponsorData({ name: '', org_type: 'Corporate', contact_email: '', phone: '' });
                 setShowSponsorDropdown(false);
-            } else if (res.status === 409) {
-                alert(`⚠️ CONFLICT DETECTED\n\nAn account with the email "${newSponsorData.email}" already exists in the MusB Registry. Please search for and select them from the "Select Sponsor" dropdown instead of creating a new entry.`);
             } else {
                 const errorData = await res.json();
-                alert(`Failed to create sponsor: ${errorData.error || errorData.detail || 'Access Denied'}`);
+                alert(`Failed to create sponsor organization: ${JSON.stringify(errorData)}`);
             }
         } catch (err) {
             console.error(err);
-            alert('CRITICAL: Network error during sponsor dispatch');
+            alert('CRITICAL: Network error during sponsor organization dispatch');
         } finally {
             setIsCreatingSponsor(false);
         }
@@ -251,6 +299,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                 <AnimatePresence mode="wait">
                     {currentStep === 1 && (
                         <motion.div key="step1" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-12 will-change-transform">
+                            {/* Card 1: Study Identity */}
                             <div className="bg-[#0B101B]/80 backdrop-blur-xl border border-white/5 rounded-[3.5rem] p-12 space-y-12 shadow-xl relative">
                                 <div className="absolute top-0 right-0 p-12 opacity-5"><Beaker className="w-48 h-48 text-white" /></div>
                                 <div className="flex items-center gap-4 border-l-4 border-indigo-500 pl-8">
@@ -277,53 +326,129 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                 </div>
                                                 <div className="max-h-60 overflow-y-auto">
                                                     {filteredSponsors.map(s => (
-                                                        <div key={s?.id} onClick={() => { setFormData({...formData, sponsor_id: s?.id, sponsor_name: s?.full_name || s?.name}); setShowSponsorDropdown(false); }} className="px-6 py-5 hover:bg-indigo-600 cursor-pointer text-sm font-bold text-slate-300 hover:text-white flex items-center gap-3 transition-all">
-                                                            <Briefcase className="w-4 h-4 text-slate-500 group-hover:text-white" /> {s?.full_name || s?.name}
+                                                        <div key={s?.id} onClick={() => { setFormData({...formData, sponsor_org_id: s?.id, sponsor_name: s?.name}); setShowSponsorDropdown(false); }} className="px-6 py-5 hover:bg-indigo-600 cursor-pointer text-sm font-bold text-slate-300 hover:text-white flex items-center justify-between transition-all group">
+                                                            <div className="flex items-center gap-3">
+                                                                <Briefcase className="w-4 h-4 text-slate-500 group-hover:text-white" /> {s?.name}
+                                                            </div>
+                                                            <span className="text-[10px] font-black uppercase text-slate-500 group-hover:text-white/60 bg-white/5 px-2 py-0.5 rounded-lg border border-white/5 opacity-0 group-hover:opacity-100 transition-opacity italic">{s?.org_type || 'Entity'}</span>
                                                         </div>
                                                     ))}
-                                                    <div 
-                                                        onClick={() => setShowAddSponsorModal(true)}
-                                                        className="p-4 border-t border-white/5 bg-indigo-600/5 hover:bg-indigo-600/10 cursor-pointer text-[12px] font-black uppercase text-indigo-400 text-center tracking-widest transition-all"
+                                                    <button 
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            setShowAddSponsorModal(true);
+                                                        }}
+                                                        className="w-full p-6 border-t border-white/5 bg-indigo-500/10 hover:bg-indigo-500/20 cursor-pointer text-[12px] font-black uppercase text-indigo-400 text-center tracking-[0.3em] transition-all hover:text-white border-none outline-none font-sans relative z-50"
                                                     >
                                                         + Add New Sponsor Organization
-                                                    </div>
+                                                    </button>
                                                 </div>
                                             </div>
                                         )}
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* Card 2: Clinical Lifecycle Stage */}
+                            <div className="bg-[#0B101B]/80 backdrop-blur-xl border border-white/5 rounded-[3.5rem] p-12 space-y-12 shadow-xl relative">
+                                <div className="absolute top-0 right-0 p-12 opacity-5"><Zap className="w-48 h-48 text-white" /></div>
+                                <div className="flex items-center gap-4 border-l-4 border-pink-500 pl-8">
+                                    <h3 className="text-xl lg:text-2xl font-black text-white uppercase tracking-tighter italic">Clinical Lifecycle Stage</h3>
+                                </div>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                                    <div className="space-y-4">
-                                        <label className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Start Date</label>
-                                        <div className="relative group">
-                                            <input 
-                                                type="date" 
-                                                name="startDate" 
-                                                value={formData.startDate} 
-                                                onChange={handleChange} 
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-base text-white font-mono outline-none focus:border-indigo-500/50 transition-all custom-calendar-input" 
-                                                style={{ colorScheme: 'dark', zoom: 1.3 }}
-                                            />
-                                            <Calendar className="absolute right-6 top-1/2 -translate-y-1/2 w-8 h-8 text-indigo-400 pointer-events-none opacity-50 group-focus-within:opacity-100 transition-opacity" />
-                                        </div>
+                                    {/* Left Side: Vertical Stage Tracker */}
+                                    <div className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-8 space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar">
+                                        {STUDY_STAGES.map((s: { id: string; label: string; color: string }, idx: number) => {
+                                            const isActive = formData.stage === s.id;
+                                            return (
+                                                <button
+                                                    key={s.id}
+                                                    onClick={() => setFormData({ ...formData, stage: s.id as any })}
+                                                    className={`w-full flex items-center gap-6 p-5 rounded-2xl border transition-all relative group ${
+                                                        isActive 
+                                                        ? 'bg-pink-500/10 border-pink-500/50 shadow-[0_0_30px_rgba(236,72,153,0.1)]' 
+                                                        : 'bg-[#0B101B] border-white/5 hover:border-white/20'
+                                                    }`}
+                                                >
+                                                    {/* Step Number/Icon */}
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-[12px] font-black italic transition-all ${
+                                                        isActive ? 'bg-pink-500 text-white' : 'bg-white/5 text-slate-500 group-hover:bg-white/10'
+                                                    }`}>
+                                                        {(idx + 1).toString().padStart(2, '0')}
+                                                    </div>
+                                                    
+                                                    {/* Stage Label */}
+                                                    <div className="flex-1 text-left">
+                                                        <p className={`text-[12px] font-black uppercase tracking-[0.2em] ${isActive ? 'text-pink-400' : 'text-slate-500'}`}>
+                                                            {s.label}
+                                                        </p>
+                                                    </div>
+
+                                                    {isActive && (
+                                                        <div className="absolute right-6 w-2 h-2 rounded-full bg-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.8)]" />
+                                                    )}
+                                                    
+                                                    {/* Connector Line */}
+                                                    {idx !== STUDY_STAGES.length - 1 && (
+                                                        <div className="absolute left-[3.25rem] -bottom-4 w-px h-4 bg-white/5" />
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
-                                    <div className="space-y-4">
-                                        <label className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">End Date (Estimated)</label>
-                                        <div className="relative group">
-                                            <input 
-                                                type="date" 
-                                                name="endDate" 
-                                                value={formData.endDate} 
-                                                onChange={handleChange} 
-                                                className="w-full bg-white/5 border border-white/10 rounded-3xl px-6 py-5 text-base text-white font-mono outline-none focus:border-indigo-500/50 transition-all custom-calendar-input" 
-                                                style={{ colorScheme: 'dark', zoom: 1.3 }}
-                                            />
-                                            <Calendar className="absolute right-6 top-1/2 -translate-y-1/2 w-8 h-8 text-indigo-400 pointer-events-none opacity-50 group-focus-within:opacity-100 transition-opacity" />
+
+                                    {/* Right Side: Timeline & Strategy */}
+                                    <div className="space-y-10">
+                                        <div className="space-y-6">
+                                            <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-2 italic">Active Timeline Window</label>
+                                            <div className="grid grid-cols-1 gap-6">
+                                                <div className="space-y-4">
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Estimated Start Date</p>
+                                                    <div className="relative group">
+                                                        <input 
+                                                            type="date" 
+                                                            name="startDate" 
+                                                            value={formData.startDate} 
+                                                            onChange={handleChange} 
+                                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-base text-white font-mono outline-none focus:border-pink-500/50 transition-all shadow-inner" 
+                                                            style={{ colorScheme: 'dark' }}
+                                                        />
+                                                        <Calendar className="absolute right-6 top-1/2 -translate-y-1/2 w-6 h-6 text-pink-500 pointer-events-none opacity-40 group-focus-within:opacity-100 transition-opacity" />
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Target Completion Date</p>
+                                                    <div className="relative group">
+                                                        <input 
+                                                            type="date" 
+                                                            name="endDate" 
+                                                            value={formData.endDate} 
+                                                            onChange={handleChange} 
+                                                            className="w-full bg-white/5 border border-white/10 rounded-3xl px-6 py-5 text-base text-white font-mono outline-none focus:border-pink-500/50 transition-all shadow-inner" 
+                                                            style={{ colorScheme: 'dark' }}
+                                                        />
+                                                        <Calendar className="absolute right-6 top-1/2 -translate-y-1/2 w-6 h-6 text-pink-500 pointer-events-none opacity-40 group-focus-within:opacity-100 transition-opacity" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-8 bg-indigo-500/5 border border-indigo-500/10 rounded-3xl space-y-4">
+                                            <div className="flex items-center gap-3">
+                                                <Info className="w-5 h-5 text-indigo-400" />
+                                                <p className="text-[12px] font-black text-white uppercase tracking-widest leading-none">Intelligence Engine Note</p>
+                                            </div>
+                                            <p className="text-sm text-slate-400 font-medium leading-relaxed italic">
+                                                "Transitioning to <span className="text-pink-400 font-bold">{formData.stage.replace('_', ' ')}</span> will update all assigned dashboards and trigger relevant automated alerts."
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             
+                            {/* Card 3: Protocol Headers */}
                             <div className="bg-[#0B101B]/80 backdrop-blur-xl border border-white/5 rounded-[3.5rem] p-12 space-y-12 shadow-xl">
                                 <div className="flex items-center gap-4 border-l-4 border-emerald-500 pl-8">
                                     <h3 className="text-xl lg:text-2xl font-black text-white uppercase tracking-tighter italic">Protocol Headers</h3>
@@ -438,6 +563,38 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                             </select>
                                         </div>
                                     </div>
+                                </div>
+
+                                <div className="pt-8 border-t border-white/5 space-y-8">
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-1">
+                                            <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-2">Study Kit Logistics</label>
+                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-2 italic">Does this study require physical kit distribution?</p>
+                                        </div>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setFormData({...formData, uses_kit: !formData.uses_kit})}
+                                            className={`flex items-center gap-3 px-6 py-4 rounded-2xl border transition-all ${formData.uses_kit ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.2)]' : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/20'}`}
+                                        >
+                                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${formData.uses_kit ? 'bg-indigo-500 border-indigo-500' : 'border-white/20'}`}>
+                                                {formData.uses_kit && <CheckSquare className="w-3 h-3 text-white" />}
+                                            </div>
+                                            <span className="text-[12px] font-black uppercase tracking-widest leading-none">Enable Study Kit</span>
+                                        </button>
+                                    </div>
+
+                                    {formData.uses_kit && (
+                                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4">
+                                            <label className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] ml-2">Kit Details & Distribution Strategy</label>
+                                            <textarea 
+                                                name="kits_info" 
+                                                value={formData.kits_info} 
+                                                onChange={handleChange} 
+                                                placeholder="Enter details about what the kit contains, how it will be delivered, and any instructions for the participant..." 
+                                                className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-sm text-white/80 font-medium outline-none focus:border-indigo-500/50 resize-none leading-relaxed italic"
+                                            />
+                                        </motion.div>
+                                    )}
                                 </div>
                             </div>
                         </motion.div>
@@ -731,82 +888,109 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                 </div>
             </div>
 
-            {/* Quick Add Sponsor Modal */}
-            <AnimatePresence>
-                {showAddSponsorModal && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-6">
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-[#0F172A] border border-white/10 rounded-[3rem] w-full max-w-xl overflow-hidden shadow-3xl">
-                            <div className="p-10 space-y-8">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center border border-indigo-500/20">
-                                            <Building2 className="w-6 h-6 text-indigo-400" />
+            {/* Quick Add Sponsor Modal - Portaled to Body for Global Overlay Z-Index Integrity */}
+            {typeof document !== 'undefined' && createPortal(
+                <AnimatePresence>
+                    {showAddSponsorModal && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[9999] flex items-center justify-center p-6">
+                            <motion.div 
+                                initial={{ scale: 0.95, opacity: 0, y: 20 }} 
+                                animate={{ scale: 1, opacity: 1, y: 0 }} 
+                                exit={{ scale: 0.95, opacity: 0, y: 20 }} 
+                                className="bg-[#0F172A] border border-white/10 rounded-[3rem] w-full max-w-xl overflow-hidden shadow-[0_0_100px_rgba(79,70,229,0.2)]"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="p-10 space-y-8">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center border border-indigo-500/20">
+                                                <Building2 className="w-6 h-6 text-indigo-400" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-black text-white uppercase tracking-tighter italic">Register <span className="text-indigo-400">New Sponsor</span></h3>
+                                                <p className="text-[12px] text-white/40 font-bold uppercase tracking-widest mt-1">Cross-Network Entity Provisioning</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="text-xl font-black text-white uppercase tracking-tighter italic">Register <span className="text-indigo-400">New Sponsor</span></h3>
-                                            <p className="text-[12px] text-white/40 font-bold uppercase tracking-widest mt-1">Cross-Network Entity Provisioning</p>
-                                        </div>
+                                        <button type="button" onClick={() => setShowAddSponsorModal(false)} className="p-3 hover:bg-white/5 rounded-xl transition-colors text-slate-500">
+                                            <X className="w-6 h-6" />
+                                        </button>
                                     </div>
-                                    <button onClick={() => setShowAddSponsorModal(false)} className="p-3 hover:bg-white/5 rounded-xl transition-colors text-slate-500">
-                                        <X className="w-6 h-6" />
-                                    </button>
-                                </div>
 
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-6">
                                         <div className="space-y-2">
-                                            <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-2">First Name</label>
+                                            <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-2">Sponsor Organization Name</label>
                                             <input 
                                                 type="text" 
-                                                value={newSponsorData.first_name} 
-                                                onChange={(e) => setNewSponsorData({...newSponsorData, first_name: e.target.value})}
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-base text-white font-bold outline-none focus:border-indigo-500/50" 
-                                                placeholder="e.g. John"
+                                                value={newSponsorData.name} 
+                                                onChange={(e) => setNewSponsorData({...newSponsorData, name: e.target.value})}
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-base text-white font-bold outline-none focus:border-indigo-500/50 transition-all font-mono" 
+                                                placeholder="e.g. Novartis Pharmaceuticals"
                                             />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div className="space-y-2">
+                                                <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-2">Organization Type</label>
+                                                <select 
+                                                    value={newSponsorData.org_type} 
+                                                    onChange={(e) => setNewSponsorData({...newSponsorData, org_type: e.target.value})}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-base text-white font-bold outline-none focus:border-indigo-500/50 appearance-none italic font-mono"
+                                                >
+                                                    <option value="Corporate" className="bg-[#0b1120]">Corporate / Pharma</option>
+                                                    <option value="Biotech" className="bg-[#0b1120]">Biotechnology</option>
+                                                    <option value="CRO" className="bg-[#0b1120]">Contract Research (CRO)</option>
+                                                    <option value="University" className="bg-[#0b1120]">University / Academic</option>
+                                                    <option value="NGO" className="bg-[#0b1120]">Non-Profit / NGO</option>
+                                                    <option value="Government" className="bg-[#0b1120]">Government Agency</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-2">Contact Phone (Optional)</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={newSponsorData.phone} 
+                                                    onChange={(e) => setNewSponsorData({...newSponsorData, phone: e.target.value})}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-base text-white font-bold outline-none focus:border-indigo-500/50 transition-all font-mono" 
+                                                    placeholder="+1 (xxx) xxx-xxxx"
+                                                />
+                                            </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-2">Last Name</label>
+                                            <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-2">Primary Contact Email</label>
                                             <input 
-                                                type="text" 
-                                                value={newSponsorData.last_name} 
-                                                onChange={(e) => setNewSponsorData({...newSponsorData, last_name: e.target.value})}
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-base text-white font-bold outline-none focus:border-indigo-500/50" 
-                                                placeholder="e.g. Smith"
+                                                type="email" 
+                                                value={newSponsorData.contact_email} 
+                                                onChange={(e) => setNewSponsorData({...newSponsorData, contact_email: e.target.value})}
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-base text-white font-bold outline-none focus:border-indigo-500/50 italic font-mono" 
+                                                placeholder="regulatory@organization.com"
                                             />
                                         </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-2">Sponsor Email Address</label>
-                                        <input 
-                                            type="email" 
-                                            value={newSponsorData.email} 
-                                            onChange={(e) => setNewSponsorData({...newSponsorData, email: e.target.value})}
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-base text-white font-bold outline-none focus:border-indigo-500/50 italic" 
-                                            placeholder="sponsor@organization.com"
-                                        />
+
+                                        <div className="p-6 bg-indigo-500/5 border border-indigo-500/20 rounded-3xl flex items-start gap-4">
+                                            <ShieldCheck className="w-5 h-5 text-indigo-500 shrink-0 mt-1" />
+                                            <p className="text-[12px] text-indigo-500/80 font-bold uppercase tracking-widest leading-relaxed italic">
+                                                * Registering a new sponsor organization will make it globally available for study assignment across the clinical matrix.
+                                            </p>
+                                        </div>
+
+                                        <div className="pt-6">
+                                            <button 
+                                                type="button"
+                                                disabled={isCreatingSponsor}
+                                                onClick={handleCreateQuickSponsor}
+                                                className="w-full py-5 bg-indigo-600 text-white rounded-[2rem] font-black text-[12px] uppercase tracking-[0.3em] flex items-center justify-center gap-4 shadow-2xl shadow-indigo-500/30 hover:bg-indigo-500 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+                                            >
+                                                {isCreatingSponsor ? <Loader2 className="w-5 h-5 animate-spin" /> : <Building2 className="w-5 h-5" />}
+                                                {isCreatingSponsor ? 'PROVISIONING ENTITY...' : 'Register Organization'}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-
-                                <div className="p-6 bg-amber-500/5 border border-amber-500/20 rounded-3xl flex items-start gap-4">
-                                    <ShieldAlert className="w-5 h-5 text-amber-500 shrink-0 mt-1" />
-                                    <p className="text-[12px] text-amber-500/80 font-bold uppercase tracking-widest leading-relaxed italic">
-                                        * Provisioning a new sponsor will trigger an automatic credential dispatch to the provided email address for system access.
-                                    </p>
-                                </div>
-
-                                <button 
-                                    onClick={handleCreateQuickSponsor}
-                                    disabled={isCreatingSponsor}
-                                    className="w-full py-5 bg-indigo-600 text-white rounded-[2rem] font-black uppercase tracking-widest italic flex items-center justify-center gap-3 shadow-2xl shadow-indigo-900/40 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
-                                >
-                                    {isCreatingSponsor ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
-                                    {isCreatingSponsor ? 'DISPATCHING...' : 'REGISTER & ASSIGN SPONSOR'}
-                                </button>
-                            </div>
+                            </motion.div>
                         </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </div>
     );
 };

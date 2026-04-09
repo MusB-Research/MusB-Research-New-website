@@ -109,7 +109,7 @@ const ConsentModal = ({ isOpen, onClose, onComplete, study, userProfile }: Conse
             doc.setFontSize(14);
             doc.text(`Study: ${study?.title || 'MusB Clinical Trial'}`, 20, 55);
             doc.text(`Organization: MusB Research Pvt. Ltd.`, 20, 65);
-            doc.text(`Protocol ID: ${study?.protocol_id || 'MUSB-NODE-SYNC'}`, 20, 75);
+            doc.text(`Protocol ID: ${study?.protocol_id || 'MUSB-PROTOCOL-SYNC'}`, 20, 75);
 
             // Consent Content
             doc.setFontSize(10);

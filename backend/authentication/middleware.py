@@ -41,6 +41,17 @@ class OnboardingEnforcementMiddleware:
         re.compile(r'^/api/participants/?'),
         re.compile(r'^/api/studies/?'),
         re.compile(r'^/api/study-inquiries/?'),
+        re.compile(r'^/api/visits/?'),
+        re.compile(r'^/api/compensations/?'),
+        re.compile(r'^/api/kits/?'),
+        re.compile(r'^/api/lab-results/?'),
+        re.compile(r'^/api/help-request/?'),
+        re.compile(r'^/api/notifications/?'),
+        re.compile(r'^/api/clinical-conversations/?'),
+        re.compile(r'^/api/tasks/?'),
+        re.compile(r'^/api/participant-tasks/?'),
+        re.compile(r'^/api/ae-reports/?'),
+        re.compile(r'^/api/daily-medication-logs/?'),
     ]
 
     def __init__(self, get_response):
@@ -84,7 +95,7 @@ class OnboardingEnforcementMiddleware:
                         status=status.HTTP_403_FORBIDDEN
                     )
                     
-            # Check for profile_completed (Skip for Super Admins)
+            # Check for profile_completed (Skip for Super Admins and Participants)
             role = payload.get('role', '').upper()
             profile_completed = payload.get('profile_completed', True)
             
@@ -92,7 +103,7 @@ class OnboardingEnforcementMiddleware:
             if request.method == 'GET' and any(pattern.match(path) for pattern in self.DASHBOARD_WHITELIST):
                 return self.get_response(request)
 
-            if not profile_completed and role != 'SUPER_ADMIN':
+            if not profile_completed and role not in ['SUPER_ADMIN', 'PARTICIPANT']:
                 if not any(pattern.match(path) for pattern in self.PROFILE_WHITELIST):
                     # For older tokens or newly-linked ones, double-check essential fields
                     return JsonResponse(

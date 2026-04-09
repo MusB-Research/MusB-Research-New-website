@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     LayoutDashboard, ClipboardList, Box, Activity, MessageSquare,
     FileText, Trophy, User, ShieldCheck, LogOut, Menu, X,
-    Bell, Zap, TrendingUp, Globe, Search, LifeBuoy
+    Bell, Zap, TrendingUp, Globe, Search, LifeBuoy, Calendar
 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authFetch, clearToken, getRole, performLogout, getUser, saveUser, getDisplayName, API } from '../../utils/auth';
@@ -21,6 +21,7 @@ import ReportsView from './ReportsView';
 import CompensationView from './CompensationView';
 
 import ProfileView from './ProfileView';
+import VisitsView from './VisitsView';
 import PrivacyDataView from './PrivacyDataView';
 import ConsentModal from './ConsentModal';
 import FormSignatureModal from './FormSignatureModal';
@@ -45,6 +46,7 @@ export default function ParticipantDashboard() {
         if (route === 'messages') return 'Messages';
         if (route === 'documents') return 'Documents';
         if (route === 'reports') return 'Reports';
+        if (route === 'visits') return 'Visits';
         if (route === 'compensation') return 'Compensation';
         if (route === 'profile') return 'Profile';
         if (route === 'privacy') return 'Privacy & Data';
@@ -60,6 +62,7 @@ export default function ParticipantDashboard() {
         else if (route === 'messages') setActiveNav('Messages');
         else if (route === 'documents') setActiveNav('Documents');
         else if (route === 'reports') setActiveNav('Reports');
+        else if (route === 'visits') setActiveNav('Visits');
         else if (route === 'compensation') setActiveNav('Compensation');
         else if (route === 'profile') setActiveNav('Profile');
         else if (route === 'privacy') setActiveNav('Privacy & Data');
@@ -74,7 +77,7 @@ export default function ParticipantDashboard() {
         const slugs: Record<string, string> = {
             'Dashboard': '', 'Tasks': 'tasks', 'Study Kit': 'study-kit', 'Logs': 'logs',
             'Messages': 'messages', 'Documents': 'documents', 'Reports': 'reports',
-            'Compensation': 'compensation', 'Profile': 'profile', 'Privacy & Data': 'privacy',
+            'Visits': 'visits', 'Compensation': 'compensation', 'Profile': 'profile', 'Privacy & Data': 'privacy',
             'Discover Studies': 'discover'
         };
 
@@ -106,6 +109,8 @@ export default function ParticipantDashboard() {
     const [labResults, setLabResults] = useState<any[]>([]);
     const [conversations, setConversations] = useState<any[]>([]);
     const [helpRequests, setHelpRequests] = useState<any[]>([]);
+    const [signatures, setSignatures] = useState<any[]>([]);
+    const [assignedForms, setAssignedForms] = useState<any[]>([]);
 
     const [modalConfig, setModalConfig] = useState<{ isOpen: boolean; title: string; desc: string; primaryAction: string; task?: any } | null>(null);
     const [editModal, setEditModal] = useState({ isOpen: false, title: '', value: '', field: '' });
@@ -216,14 +221,17 @@ export default function ParticipantDashboard() {
                         return !['DROPPED', 'INELIGIBLE', 'COMPLETED'].includes(s);
                     });
 
-                    // Sort: Put ENROLLED/ACTIVE studies at the top
+                    // Senior Developer: Strict Priority Sorting (Full Enrollment > Partial > Screening)
+                    const priority = ['ENROLLED', 'RANDOMIZED', 'ACTIVE', 'CONSENTED'];
                     pData.sort((a: any, b: any) => {
                         const sA = (a.status || '').toUpperCase();
                         const sB = (b.status || '').toUpperCase();
-                        const isAActive = ['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE'].includes(sA);
-                        const isBActive = ['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE'].includes(sB);
-                        if (isAActive && !isBActive) return -1;
-                        if (!isAActive && isBActive) return 1;
+                        const idxA = priority.indexOf(sA);
+                        const idxB = priority.indexOf(sB);
+                        
+                        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                        if (idxA !== -1) return -1;
+                        if (idxB !== -1) return 1;
                         return 0;
                     });
 
@@ -269,6 +277,7 @@ export default function ParticipantDashboard() {
                     if (cRes.ok) {
                         const dbProtocols = await cRes.json();
                         const mySignatures = sigRes.ok ? await sigRes.json() : [];
+                        setSignatures(mySignatures);
 
                         dbProtocols.filter((p: any) => {
                             const isActive = p.status?.toUpperCase() === 'ACTIVE';
@@ -341,19 +350,21 @@ export default function ParticipantDashboard() {
 
                 // 4. Advanced Clinical Data
                 try {
-                    const [compRes, visitRes, kitRes, labRes, meshRes, helpRes] = await Promise.all([
+                    const [compRes, visitRes, kitRes, labRes, meshRes, helpRes, afRes] = await Promise.all([
                         authFetch(`${apiUrl}/api/compensations/`),
                         authFetch(`${apiUrl}/api/visits/`),
                         authFetch(`${apiUrl}/api/kits/`),
                         authFetch(`${apiUrl}/api/lab-results/`),
                         authFetch(`${apiUrl}/api/clinical-conversations/`),
-                        authFetch(`${apiUrl}/api/help-request/`)
+                        authFetch(`${apiUrl}/api/help-request/`),
+                        authFetch(`${apiUrl}/api/assigned-forms/`)
                     ]);
                     if (compRes.ok) setCompensations(await compRes.json());
                     if (visitRes.ok) setVisits(await visitRes.json());
                     if (kitRes.ok) setKits(await kitRes.json());
                     if (labRes.ok) setLabResults(await labRes.json());
                     if (meshRes.ok) setConversations(await meshRes.json());
+                    if (afRes.ok) setAssignedForms(await afRes.json());
                     if (helpRes.ok) {
                         const d = await helpRes.json();
                         setHelpRequests(Array.isArray(d) ? d : d.results || []);
@@ -461,6 +472,39 @@ export default function ParticipantDashboard() {
         // TasksView calls onAction('START_MISSION' | 'RESUME_MISSION', task)
         // We intercept here if the task is a CONSENT type
         const taskType = (task?.task_type || task?.task_details?.task_type || '').toUpperCase();
+        
+        // Handle Viewing Completed Tasks (Eye Button Integration)
+        if (title === 'VIEW_SUBMISSION' || task?.status === 'COMPLETED') {
+            if (taskType === 'CONSENT') {
+                const templateId = getId(task.p_data?.id);
+                const currentStudyId = getId(task.study || activeStudy);
+                // Try to find signature by template first (most precise), then by study
+                let sig = signatures.find(s => templateId && getId(s.template) === templateId);
+                if (!sig) {
+                    sig = signatures.find(s => getId(s.study) === currentStudyId);
+                }
+                
+                const pdfUrl = sig?.signed_pdf_url || sig?.signed_pdf;
+                if (pdfUrl) {
+                    window.open(pdfUrl, '_blank');
+                    return;
+                }
+                alert("Signed Consent PDF is still being generated. Please retry in a few minutes.");
+                return;
+            }
+            if (taskType === 'FORM_SIGNATURE' || task.assigned_form) {
+                const afId = getId(task.assigned_form);
+                const af = assignedForms.find(f => getId(f.id) === afId);
+                const pdfUrl = af?.signed_pdf_url || af?.signed_pdf;
+                if (pdfUrl) {
+                    window.open(pdfUrl, '_blank');
+                    return;
+                }
+                alert("Signed Form PDF is still being generated. Please retry in a few minutes.");
+                return;
+            }
+        }
+
         if (taskType === 'CONSENT') {
             setActiveConsentTask(task);
             setIsConsentModalOpen(true);
@@ -544,7 +588,7 @@ export default function ParticipantDashboard() {
             'profile': 'Profile',
             'documents': 'Documents',
             'reports': 'Reports',
-            'visit': 'Tasks',
+            'visit': 'Visits',
             'privacy': 'Privacy & Data'
         };
 
@@ -663,7 +707,7 @@ export default function ParticipantDashboard() {
             }
 
             if (title.toLowerCase().includes('withdraw')) {
-                if (window.confirm("FINAL WARNING: withdrawing from the study will scrub all active clinical nodes and terminate your enrollment. This action requires PI review and is irreversible. CONFIRM WITHDRAWAL?")) {
+                if (window.confirm("FINAL WARNING: withdrawing from the study will scrub all active clinical records and terminate your enrollment. This action requires PI review and is irreversible. CONFIRM WITHDRAWAL?")) {
                     alert("⚠️ WITHDRAWAL PROTOCOL ACTIVATED: The study team has been notified. Your clinical access will be phased out within 24 hours.");
                     setActiveNav('Dashboard');
                 }
@@ -671,7 +715,7 @@ export default function ParticipantDashboard() {
             }
 
             if (title.toLowerCase().includes('credentials') || title.toLowerCase().includes('rotate')) {
-                alert("🔒 SUCCESS: Clinical credentials successfully rotated. Your new session tokens have been synchronized across all verified nodes.");
+                alert("🔒 SUCCESS: Clinical credentials successfully rotated. Your new session tokens have been synchronized across all verified systems.");
                 return;
             }
 
@@ -785,16 +829,17 @@ export default function ParticipantDashboard() {
         { label: 'Discover Studies', icon: Search },
         { label: 'Dashboard', icon: LayoutDashboard },
         { label: 'Tasks', icon: ClipboardList },
-        { label: 'Study Kit', icon: Box },
+        { label: 'Study Kit', icon: Box, hidden: activeStudy?.uses_kit === false },
         { label: 'Logs', icon: Activity },
         { label: 'Messages', icon: MessageSquare },
         { label: 'Documents', icon: FileText },
         { label: 'Reports', icon: TrendingUp },
+        { label: 'Visits', icon: Calendar },
         { label: 'Compensation', icon: Trophy },
 
         { label: 'Profile', icon: User },
         { label: 'Privacy & Data', icon: ShieldCheck },
-    ];
+    ].filter(item => !item.hidden);
 
     return (
         <div className="h-screen flex overflow-hidden font-sans relative" style={{ background: 'transparent' }}>
@@ -961,7 +1006,7 @@ export default function ParticipantDashboard() {
                                         className="absolute right-0 top-full mt-6 w-60 bg-[#0d1424] border border-white/10 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl z-[150] overflow-hidden"
                                     >
                                         <div className="p-5 border-b border-white/5 bg-white/[0.02]">
-                                            <p className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic mb-1.5">Session Node</p>
+                                            <p className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic mb-1.5">Current Session</p>
                                             <p className="text-sm font-black text-white uppercase italic truncate tracking-tight">{userProfile.userName}</p>
                                         </div>
                                         <div className="p-2">
@@ -1017,7 +1062,7 @@ export default function ParticipantDashboard() {
                             {activeNav === 'Study Kit' && <StudyKitView onAction={openActionModal} study={activeStudy} kits={filteredKits} />}
                             {activeNav === 'Logs' && <LogsView study={activeStudy} onAction={openActionModal} />}
                             {activeNav === 'Messages' && <MessagesView study={activeStudy} conversations={filteredConversations} onAction={refreshData} />}
-                            {activeNav === 'Documents' && <DocumentsView study={activeStudy} />}
+                            {activeNav === 'Documents' && <DocumentsView study={activeStudy} signatures={signatures} assignedForms={assignedForms} />}
                             {activeNav === 'Reports' && (
                                 <ReportsView
                                     userName={userProfile.userName}
@@ -1028,6 +1073,7 @@ export default function ParticipantDashboard() {
                                     kits={filteredKits}
                                 />
                             )}
+                             { activeNav === 'Visits' && <VisitsView visits={filteredVisits} study={activeStudy} /> }
                             {activeNav === 'Compensation' && (
                                 <CompensationView
                                     study={activeStudy}

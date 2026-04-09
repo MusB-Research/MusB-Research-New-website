@@ -28,9 +28,35 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
     const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
     const [collectionStep, setCollectionStep] = useState(0);
     const [checkedItems, setCheckedItems] = useState<string[]>([]);
+
+    const stepItems: Record<number, string[]> = {
+        0: ["Sanitize hands and workspace", "Verify Kit Number matches app", "Read full collection instructions", "Confirm fasting (if applicable)"],
+        2: ["Place sample in biohazard bag", "Ensure seal is airtight", "Place bag inside the insulated box", "Apply tamper-evident security seal"],
+        3: ["Attach return shipping label to box", "Ensure all old labels are covered", "Locate nearest drop-off point", "Confirm package handed to carrier"]
+    };
+
+    const isStepValid = useMemo(() => {
+        if (collectionStep === 1) return true; // Video step is always valid for now
+        const required = stepItems[collectionStep] || [];
+        return required.every(item => checkedItems.includes(item));
+    }, [collectionStep, checkedItems]);
+
+    const downloadDummyPdf = (title: string) => {
+        const dummyPdfContent = `%PDF-1.4\n1 0 obj\n<< /Title (${title}) /Creator (MusB Research) >>\nendobj\n2 0 obj\n<< /Type /Catalog /Pages 3 0 R >>\nendobj\n3 0 obj\n<< /Type /Pages /Kids [4 0 R] /Count 1 >>\nendobj\n4 0 obj\n<< /Type /Page /Parent 3 0 R /MediaBox [0 0 612 792] /Contents 5 0 R >>\nendobj\n5 0 obj\n<< /Length 44 >>\nstream\nBT /F1 24 Tf 100 700 Td (${title}) Tj ET\nendstream\nendobj\nxref\n0 6\n0000000000 65535 f\n0000000009 00000 n\n0000000078 00000 n\n0000000127 00000 n\n0000000188 00000 n\n0000000302 00000 n\ntrailer\n<< /Size 6 /Root 2 0 R >>\nstartxref\n397\n%%EOF`;
+        const blob = new Blob([dummyPdfContent], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${title.replace(/\s+/g, '_')}_MusB_Research.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
  
     const [kits, setKits] = useState<any[]>(initialKits);
     const [loading, setLoading] = useState(true);
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
     const dummyKits = useMemo(() => [
         {
@@ -38,11 +64,11 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
             kit_type: 'Gut Microbiome Kit',
             status: 'RECEIVED BY PARTICIPANT',
             carrier: 'FedEx',
-            tracking_number: '772948201934',
-            tracking_url: 'https://www.fedex.com/fedextrack/index.html',
+            tracking_number: null,
+            tracking_url: 'https://www.fedex.com/en-us/tracking.html',
             collection_guide_url: '#',
             return_label_url: '#',
-            expected_delivery: '2026-04-05',
+            expected_delivery: null,
             kit_number: 'SK-4920'
         },
         {
@@ -50,9 +76,9 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
             kit_type: 'Cellular Vitality Panel',
             status: 'SHIPPED FROM CENTER',
             carrier: 'UPS',
-            tracking_number: '1Z999AA10123456784',
-            tracking_url: 'https://www.ups.com',
-            expected_delivery: '2026-04-10',
+            tracking_number: null,
+            tracking_url: 'https://www.ups.com/track',
+            expected_delivery: null,
             kit_number: 'SK-5102'
         }
     ], []);
@@ -107,6 +133,9 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
             if (actionName === 'initialize_collection') {
                 setIsCollectionModalOpen(true);
             }
+            if (actionName === 'report_issue') {
+                alert("⚠️ SAFETY NOTICE: Problem reported to your clinical team. A coordinator will contact you shortly to resolve this issue.");
+            }
             return;
         }
 
@@ -121,7 +150,11 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
                 if (actionName === 'initialize_collection') {
                     setIsCollectionModalOpen(true);
                 }
-                alert("Request received. Our team will contact you shortly.");
+                if (actionName === 'report_issue') {
+                    alert("⚠️ SAFETY NOTICE: Problem reported to your clinical team. A coordinator will contact you shortly to resolve this issue.");
+                } else {
+                    alert("Protocol synchronization successful. Device state updated.");
+                }
             }
         } catch (e) {
             console.error("Action synchronization failed:", e);
@@ -239,20 +272,32 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
                                     <div className="space-y-1 md:col-span-2">
                                         <span className="text-[13px] font-black text-slate-600 uppercase tracking-[0.2em]">TRACKING NUMBER</span>
                                         <div className="flex items-center gap-4">
-                                            <p className="text-base font-black text-cyan-400 font-mono tracking-tighter">{kit.tracking_number || "PENDING"}</p>
-                                            {(kit.tracking_url || kit.tracking_number) && (
-                                                <button
-                                                    onClick={() => {
-                                                        const baseUrl = 'https://www.fedex.com/fedextrack/index.html';
-                                                        const trkNo = (kit.tracking_number && kit.tracking_number !== "PENDING") ? kit.tracking_number : "";
-                                                        const finalUrl = trkNo ? `${baseUrl}?trknbr=${trkNo}` : baseUrl;
-                                                        window.open(finalUrl, '_blank');
-                                                    }}
-                                                    className="text-[13px] font-black text-white bg-white/10 px-4 py-1.5 rounded-full border border-white/10 hover:bg-cyan-500 hover:text-slate-950 transition-all font-bold italic"
-                                                >
-                                                    TRACK SHIPMENT →
-                                                </button>
-                                            )}
+                                            <p 
+                                                onClick={() => {
+                                                    const carrier = (kit.carrier || '').toUpperCase();
+                                                    let url = 'https://www.fedex.com/en-us/tracking.html';
+                                                    if (carrier.includes('UPS')) url = 'https://www.ups.com/track';
+                                                    if (carrier.includes('DHL')) url = 'https://www.dhl.com/en/express/tracking.html';
+                                                    if (carrier.includes('USPS')) url = 'https://tools.usps.com/go/TrackConfirmAction_input';
+                                                    window.open(url, '_blank');
+                                                }}
+                                                className="text-base font-black text-cyan-400 font-mono tracking-tighter cursor-pointer hover:underline underline-offset-4"
+                                            >
+                                                {kit.tracking_number || "NO ID"}
+                                            </p>
+                                            <button
+                                                onClick={() => {
+                                                    const carrier = (kit.carrier || '').toUpperCase();
+                                                    let url = 'https://www.fedex.com/en-us/tracking.html';
+                                                    if (carrier.includes('UPS')) url = 'https://www.ups.com/track';
+                                                    if (carrier.includes('DHL')) url = 'https://www.dhl.com/en/express/tracking.html';
+                                                    if (carrier.includes('USPS')) url = 'https://tools.usps.com/go/TrackConfirmAction_input';
+                                                    window.open(url, '_blank');
+                                                }}
+                                                className="text-[13px] font-black text-white bg-white/10 px-4 py-1.5 rounded-full border border-white/10 hover:bg-cyan-500 hover:text-slate-950 transition-all font-bold italic"
+                                            >
+                                                TRACK SHIPMENT →
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -271,7 +316,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
                                     <div className="flex items-center gap-2 text-slate-400">
                                         <Clock className="w-5 h-5" />
                                         <span className="text-[13px] font-black uppercase tracking-widest italic">
-                                            {kit.expected_delivery ? `Exp. Arrival: ${new Date(kit.expected_delivery).toLocaleDateString()}` : "ETA: AWAITING DISPATCH"}
+                                            {kit.expected_delivery ? `Exp. Arrival: ${new Date(kit.expected_delivery).toLocaleDateString()}` : "ETA: PENDING DISPATCH"}
                                         </span>
                                     </div>
                                 </div>
@@ -281,7 +326,10 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
                                     <h5 className="text-[14px] font-black text-slate-500 uppercase tracking-widest">Protocol Materials</h5>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <button
-                                            onClick={() => setSubView('GUIDE')}
+                                            onClick={() => {
+                                                downloadDummyPdf('Clinical Collection Guide');
+                                                setSubView('GUIDE');
+                                            }}
                                             className={`flex items-center gap-3 p-5 bg-white/5 border border-white/5 rounded-2xl hover:border-cyan-500/20 transition-all text-left shadow-lg hover:shadow-cyan-500/5 group/btn`}
                                         >
                                             <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover/btn:bg-cyan-500 group-hover/btn:text-slate-950 transition-all">
@@ -289,11 +337,14 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
                                             </div>
                                             <div className="flex flex-col">
                                                 <span className="text-[14px] font-black text-white italic uppercase tracking-tighter">Collection Guide</span>
-                                                <span className="text-[12px] font-black text-slate-600 uppercase">DIGITAL FORM</span>
+                                                <span className="text-[12px] font-black text-slate-600 uppercase">DOWNLOAD PDF</span>
                                             </div>
                                         </button>
                                         <button
-                                            onClick={() => setSubView('LABEL')}
+                                            onClick={() => {
+                                                downloadDummyPdf('Digital Return Label');
+                                                setSubView('LABEL');
+                                            }}
                                             className="flex items-center gap-3 p-5 bg-white/5 border border-white/5 rounded-2xl hover:border-indigo-500/20 transition-all text-left shadow-lg hover:shadow-indigo-500/5 group/btn"
                                         >
                                             <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover/btn:bg-indigo-500 group-hover/btn:text-white transition-all">
@@ -301,7 +352,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
                                             </div>
                                             <div className="flex flex-col">
                                                 <span className="text-[14px] font-black text-white italic uppercase tracking-tighter">Return Label</span>
-                                                <span className="text-[12px] font-black text-slate-600 uppercase">DIGITAL FORM</span>
+                                                <span className="text-[12px] font-black text-slate-600 uppercase">DOWNLOAD PDF</span>
                                             </div>
                                         </button>
                                     </div>
@@ -309,7 +360,28 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
 
                                 {/* Actions */}
                                 <div className="flex flex-col md:flex-row gap-3">
-                                    {(kit.status === 'RECEIVED BY PARTICIPANT') ? (
+                                    {kit.status === 'PREPARING' || kit.status === 'ASSIGNED' ? (
+                                        <button className="flex-1 bg-white/5 text-slate-500 py-5 rounded-2xl border border-white/10 font-black text-[13px] uppercase tracking-[0.2em] cursor-not-allowed">
+                                            AWAITING DISPATCH
+                                        </button>
+                                    ) : kit.status === 'SHIPPED' || kit.status === 'SHIPPED FROM CENTER' ? (
+                                        <div className="flex-1 flex flex-col gap-2">
+                                            <button 
+                                                onClick={() => window.open(kit.tracking_url || 'https://www.fedex.com', '_blank')}
+                                                className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-5 rounded-2xl font-black text-[14px] uppercase tracking-[0.2em] transition-all shadow-[0_0_30px_rgba(6,182,212,0.3)] flex items-center justify-center gap-2"
+                                            >
+                                                <Truck className="w-4 h-4" />
+                                                Track Shipment
+                                            </button>
+                                            <button
+                                                onClick={() => handleKitAction(kit.id, 'confirm_receipt')}
+                                                className="w-full bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 py-5 rounded-2xl border border-emerald-500/20 font-black text-[14px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <CheckCircle2 className="w-4 h-4" />
+                                                Confirm Receipt
+                                            </button>
+                                        </div>
+                                    ) : kit.status === 'DELIVERED' || kit.status === 'RECEIVED BY PARTICIPANT' ? (
                                         <button
                                             onClick={() => {
                                                 setSelectedKit(kit);
@@ -320,15 +392,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
                                             <Play className="w-4 h-4 fill-current" />
                                             Start Collection
                                         </button>
-                                    ) : (kit.status === 'SHIPPED FROM CENTER') ? (
-                                        <button
-                                            onClick={() => handleKitAction(kit.id, 'confirm_receipt')}
-                                            className="flex-1 bg-green-500 hover:bg-green-400 text-white py-5 rounded-2xl font-black text-[14px] uppercase tracking-[0.2em] transition-all shadow-[0_0_30px_rgba(34,197,94,0.3)] flex items-center justify-center gap-2"
-                                        >
-                                            <CheckCircle2 className="w-4 h-4" />
-                                            Confirm Receipt
-                                        </button>
-                                    ) : kit.status === 'IN COLLECTION' ? (
+                                    ) : kit.status === 'COLLECTING' || kit.status === 'AWAITING' || kit.status === 'IN COLLECTION' ? (
                                         <button
                                             onClick={() => {
                                                 setSelectedKit(kit);
@@ -339,17 +403,17 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
                                             <Zap className="w-4 h-4" />
                                             Resume Collection
                                         </button>
-                                    ) : kit.status === 'SHIPPED FROM PARTICIPANT' ? (
+                                    ) : kit.status === 'RETURN_SHIPPED' || kit.status === 'SHIPPED FROM PARTICIPANT' ? (
                                         <button className="flex-1 bg-white/5 text-slate-500 py-5 rounded-2xl border border-white/10 font-black text-[13px] uppercase tracking-[0.2em] cursor-not-allowed">
                                             RETURN IN TRANSIT
                                         </button>
                                     ) : (
                                         <button className="flex-1 bg-white/5 text-slate-500 py-5 rounded-2xl border border-white/10 font-black text-[13px] uppercase tracking-[0.2em] cursor-not-allowed">
-                                            {kit.status.replace(/_/g, ' ')} ACTIVE
+                                            {kit.status.replace(/_/g, ' ')}
                                         </button>
                                     )}
                                     <button
-                                        onClick={() => handleKitAction(kit.id, 'report_issue', { reason: 'Reported via Dashboard' })}
+                                        onClick={() => setIsReportModalOpen(true)}
                                         className="px-8 py-5 bg-white/5 text-slate-400 hover:text-white rounded-2xl border border-white/5 hover:border-white/10 font-black text-[14px] uppercase tracking-widest transition-colors"
                                     >
                                         Report Issue
@@ -360,6 +424,54 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
                     </motion.div>
                 ))}
             </div>
+
+            {/* ──────────────── REPORT ISSUE MODAL ──────────────── */}
+            <AnimatePresence>
+                {isReportModalOpen && (
+                    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-950/90 backdrop-blur-xl" onClick={() => setIsReportModalOpen(false)} />
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0, y: 30 }} 
+                            animate={{ scale: 1, opacity: 1, y: 0 }} 
+                            exit={{ scale: 0.9, opacity: 0, y: 30 }} 
+                            className="relative w-full max-w-lg bg-[#0d1424] border border-white/10 rounded-[3rem] p-12 shadow-2xl"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="space-y-3 mb-10">
+                                <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center text-red-500">
+                                    <AlertCircle className="w-6 h-6" />
+                                </div>
+                                <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Report <span className="text-red-500">Logistics Issue</span></h3>
+                                <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest">Immediate coordination required</p>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="space-y-3">
+                                    <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest px-1">Describe the problem</label>
+                                    <textarea 
+                                        className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl p-6 text-white font-bold outline-none focus:border-red-500/50 resize-none italic"
+                                        placeholder="e.g., Box damaged upon arrival, missing swabs, label unreadable..."
+                                    />
+                                </div>
+
+                                <div className="flex gap-4">
+                                    <button 
+                                        onClick={() => setIsReportModalOpen(false)}
+                                        className="flex-1 py-5 bg-white/5 text-slate-500 hover:text-white rounded-2xl font-black uppercase tracking-widest transition-all italic"
+                                    >Cancel</button>
+                                    <button 
+                                        onClick={() => {
+                                            handleKitAction(kits[0]?.id || '', 'report_issue', { reason: 'Reported via Modal' });
+                                            setIsReportModalOpen(false);
+                                        }}
+                                        className="flex-1 py-5 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-red-900/40 italic"
+                                    >Submit Report</button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* ──────────────── COLLECTION MODAL ──────────────── */}
             <AnimatePresence>
@@ -382,7 +494,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
 
                                 <div className="space-y-1.5 mb-12">
                                     <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Sample Collection</h3>
-                                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[13px]">Protocol: MusB-BIO-2030 | Secure Assessment</p>
+                                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[13px]">STUDY ID: MusB-BIO-2030 | Secure Assessment</p>
                                 </div>
 
                                 <StepIndicator steps={collectionSteps} currentStep={collectionStep} />
@@ -399,12 +511,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
                                                     <p className="text-sm font-bold text-slate-300 leading-relaxed italic">"Ensure all materials are sanitized and at baseline temperature. System clock sync required for accurate timestamp logging."</p>
                                                 </div>
                                                 <Checklist
-                                                    items={[
-                                                        "Sanitize hands and workspace",
-                                                        "Verify Kit Number matches app",
-                                                        "Read full collection instructions",
-                                                        "Confirm fasting (if applicable)"
-                                                    ]}
+                                                    items={stepItems[0]}
                                                     checkedItems={checkedItems}
                                                     onToggle={toggleCheckItem}
                                                 />
@@ -437,12 +544,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
                                                 <p className="text-sm font-bold text-slate-300 leading-relaxed italic">"Ensure all samples are securely sealed in the provided biohazard bags before placing them in the kit box."</p>
                                             </div>
                                             <Checklist
-                                                items={[
-                                                    "Place sample in biohazard bag",
-                                                    "Ensure seal is airtight",
-                                                    "Place bag inside the insulated box",
-                                                    "Apply tamper-evident security seal"
-                                                ]}
+                                                items={stepItems[2]}
                                                 checkedItems={checkedItems}
                                                 onToggle={toggleCheckItem}
                                             />
@@ -459,12 +561,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
                                                 <p className="text-sm font-bold text-slate-300 leading-relaxed italic">"Affix the digital return label to the exterior of the box and drop it off at any authorized carrier location."</p>
                                             </div>
                                             <Checklist
-                                                items={[
-                                                    "Attach return shipping label to box",
-                                                    "Ensure all old labels are covered",
-                                                    "Locate nearest drop-off point",
-                                                    "Confirm package handed to carrier"
-                                                ]}
+                                                items={stepItems[3]}
                                                 checkedItems={checkedItems}
                                                 onToggle={toggleCheckItem}
                                             />
@@ -481,6 +578,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
                                         GO BACK
                                     </button>
                                     <button
+                                        disabled={!isStepValid}
                                         onClick={() => {
                                             if (collectionStep === collectionSteps.length - 1) {
                                                 setIsCollectionModalOpen(false);
@@ -489,7 +587,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
                                                 setCollectionStep(s => s + 1);
                                             }
                                         }}
-                                        className="flex-1 py-6 bg-cyan-500 text-slate-950 rounded-2xl font-black uppercase tracking-widest text-[14px] shadow-[0_0_30px_rgba(6,182,212,0.2)]"
+                                        className={`flex-1 py-6 rounded-2xl font-black uppercase tracking-widest text-[14px] transition-all shadow-[0_0_30px_rgba(6,182,212,0.2)] ${!isStepValid ? 'bg-slate-800 text-slate-600 cursor-not-allowed opacity-50' : 'bg-cyan-500 text-slate-950 hover:bg-cyan-400'}`}
                                     >
                                         {collectionStep === collectionSteps.length - 1 ? 'SUBMIT COLLECTION' : 'NEXT'}
                                     </button>

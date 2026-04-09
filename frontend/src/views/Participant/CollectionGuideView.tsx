@@ -17,7 +17,7 @@ const CollectionGuideView = ({ onBack }: { onBack: () => void }) => {
     const steps = [
 
         { title: 'Sanitization', desc: 'Secure your environment and sanitize all contact surfaces.' },
-        { title: 'Activation', desc: 'Sync your clinical node (Device-001) with the dashboard.' },
+        { title: 'Activation', desc: 'Sync your clinical device (Device-001) with the dashboard.' },
         { title: 'Collection', desc: 'Follow the specific biometric collection protocol.' },
         { title: 'Seal & Sync', desc: 'Ensure airtight seal and log the completion timestamp.' }
     ];
@@ -155,7 +155,7 @@ const CollectionGuideView = ({ onBack }: { onBack: () => void }) => {
                 {/* FOOTER */}
                 <div className="mt-12 pt-8 border-t border-white/5 text-center">
                     <p className="text-[12px] font-black text-slate-700 uppercase tracking-[0.4em] italic mb-4">
-                        PROPRIETARY DOCUMENT • MUS-B CLINICAL NODE SITE-B
+                        PROPRIETARY DOCUMENT • MUS-B CLINICAL RESEARCH DEVICE
                     </p>
                     <div className="flex items-center justify-center gap-6 opacity-20">
                          <Microscope className="w-5 h-5 text-indigo-400" />

@@ -17,6 +17,17 @@ class BaseMongoModel(models.Model):
         except Exception:
             return id(self)
 
+class SponsorOrganization(BaseMongoModel):
+    name = models.CharField(max_length=255, unique=True)
+    org_type = models.CharField(max_length=100, blank=True) # Corporate, University, CRO, NGO
+    contact_email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=50, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
 class Study(BaseMongoModel):
     STUDY_TYPES = [
         ('IN_PERSON', 'In-Person Clinical Trial'),
@@ -45,8 +56,8 @@ class Study(BaseMongoModel):
         ('RECRUITING', 'Recruiting'),
         ('RECRUITMENT_COMPLETED', 'Recruitment Completed'),
         ('ANALYSIS_UNDERWAY', 'Analysis Underway'),
-        ('PROGRESS_REPORT_DRAFT', 'Progress Report Draft Created'),
-        ('FINAL_REPORT_SENT', 'Project Report Sent to Sponsor'),
+        ('PROGRESS_REPORT_DRAFT', 'Progress Report Draft'),
+        ('FINAL_REPORT_SENT', 'Final Report Sent'),
         ('COMPLETED', 'Completed'),
         ('PAUSED', 'Paused'),
         ('CLOSED_ARCHIVED', 'Closed / Archived'),
@@ -58,12 +69,16 @@ class Study(BaseMongoModel):
     protocol_id = models.CharField(max_length=100, unique=True, null=True, blank=True, verbose_name="Protocol ID / Internal ID")
     sponsor_name = models.CharField(max_length=255)
     study_type = models.CharField(max_length=20, choices=STUDY_TYPES, default='IN_PERSON')
-    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='RECRUITING')
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='DRAFT')
+    stage = models.CharField(max_length=30, choices=STATUS_CHOICES, default='DRAFT')
+    is_archived = models.BooleanField(default=False)
+    created_by_role = models.CharField(max_length=50, blank=True)
     
     # Core Medical Team (direct fields for easier dashboard access)
     pi = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='pi_studies')
     coordinator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='coordinator_studies')
     sponsor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='sponsor_studies')
+    sponsor_org = models.ForeignKey(SponsorOrganization, on_delete=models.SET_NULL, null=True, blank=True, related_name='studies')
     
     APPROVAL_STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -113,6 +128,7 @@ class Study(BaseMongoModel):
     overview = models.TextField(blank=True)
     timeline = models.JSONField(default=list, blank=True)
     kits_info = models.TextField(blank=True)
+    uses_kit = models.BooleanField(default=False)
     safety_info = models.TextField(blank=True)
     privacy_standards = models.JSONField(default=list, blank=True)
     remote_participation = models.BooleanField(default=False)
@@ -121,6 +137,21 @@ class Study(BaseMongoModel):
     end_date = models.DateField(null=True, blank=True)
     launch_date = models.DateField(null=True, blank=True)
     irb_status = models.CharField(max_length=100, blank=True)
+
+    # Reward & Compensation Configuration
+    REWARD_TYPE_CHOICES = [
+        ('CASH', 'Cash'),
+        ('COUPONS', 'Coupons'),
+        ('MIXED', 'Mixed (Both)')
+    ]
+    REWARD_LOGIC_CHOICES = [
+        ('PER_TASK', 'Per Task Completion'),
+        ('PER_VISIT', 'Per Visit Completion'),
+        ('FULL_STUDY', 'Full Study Completion')
+    ]
+    reward_type = models.CharField(max_length=20, choices=REWARD_TYPE_CHOICES, default='CASH')
+    reward_logic = models.CharField(max_length=20, choices=REWARD_LOGIC_CHOICES, default='PER_TASK')
+    reward_config = models.JSONField(default=dict, blank=True, help_text="Config for rewards: {'tasks': {'task_id': 10}, 'visits': {'visit_id': 50}, 'full_study': 100}")
 
     # Enrollment Targets
     target_subjects = models.IntegerField(default=0, verbose_name="Target Randomized Subjects")
@@ -146,6 +177,8 @@ class Study(BaseMongoModel):
     scheduling_enabled = models.BooleanField(default=False)
     compensation_enabled = models.BooleanField(default=False)
     kit_tracking_enabled = models.BooleanField(default=False)
+    kit_dispatch_required = models.BooleanField(default=False)
+    kit_description = models.TextField(blank=True, null=True)
     show_lab_upload = models.BooleanField(default=False)
     notifications_enabled = models.BooleanField(default=True)
     show_dosing_log = models.BooleanField(default=True)
@@ -391,7 +424,11 @@ class Kit(BaseMongoModel):
     tracking_url = models.URLField(max_length=500, blank=True, null=True)
     expected_delivery = models.DateField(null=True, blank=True)
     
+    # Participant Preferences
+    address_override = models.TextField(blank=True, null=True)
+    
     # Protocol Materials (Files)
+    shipping_label = models.FileField(upload_to='shipping_labels/', null=True, blank=True)
     collection_guide = models.FileField(upload_to='kit_guides/', null=True, blank=True)
     return_label = models.FileField(upload_to='return_labels/', null=True, blank=True)
     
@@ -678,16 +715,43 @@ class CommunicationLog(BaseMongoModel):
     notes = models.TextField(blank=True)
 
 class Compensation(BaseMongoModel):
-    """Visit-based participant payments"""
-    PAY_METHODS = [('BANK_TRANSFER', 'Bank Transfer'), ('STIPEND_CARD', 'Stipend Card'), ('CASH', 'Cash'), ('CHECK', 'Check')]
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='compensation')
-    visit = models.ForeignKey(Visit, on_delete=models.SET_NULL, null=True, blank=True)
+    """Participant rewards and payments registry"""
+    PAY_METHODS = [
+        ('BANK_TRANSFER', 'Bank Transfer'),
+        ('STIPEND_CARD', 'Stipend Card'), 
+        ('CASH', 'Cash'), 
+        ('CHECK', 'Check'),
+        ('COUPON', 'Coupon / Voucher')
+    ]
+    TRANS_TYPES = [
+        ('TASK_COMPLETION', 'Task Completion'),
+        ('VISIT_COMPLETION', 'Visit Completion'),
+        ('STUDY_COMPLETION', 'Study Completion'),
+        ('BONUS', 'Milestone Bonus'),
+        ('OTHER', 'Other Incentive')
+    ]
     
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='compensation')
+    study = models.ForeignKey(Study, on_delete=models.CASCADE, null=True, blank=True, related_name='all_compensations')
+    visit = models.ForeignKey(Visit, on_delete=models.SET_NULL, null=True, blank=True)
+    task = models.ForeignKey(Task, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    transaction_type = models.CharField(max_length=30, choices=TRANS_TYPES, default='TASK_COMPLETION')
+    description = models.CharField(max_length=255, blank=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    status = models.CharField(max_length=20, default='PENDING', choices=[('PENDING', 'Pending'), ('PAID', 'Paid'), ('CANCELLED', 'Cancelled')])
-    payment_method = models.CharField(max_length=30, choices=PAY_METHODS, blank=True)
+    status = models.CharField(max_length=20, default='PENDING', choices=[
+        ('PENDING', 'Pending'),
+        ('APPROVED', 'Approved'),
+        ('PAID', 'Paid'),
+        ('CANCELLED', 'Cancelled')
+    ])
+    payment_method = models.CharField(max_length=30, choices=PAY_METHODS, default='CASH')
     paid_at = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.participant.participant_sid} - {self.transaction_type} - ${self.amount}"
 
 class LabResult(BaseMongoModel):
     """Clinical test data uploads"""

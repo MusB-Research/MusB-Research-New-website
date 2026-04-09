@@ -96,8 +96,18 @@ def admin_create_user(request):
     if not check_permission(admin_user, role):
         return Response({'error': 'You do not have permission to create this type of account.'}, status=status.HTTP_403_FORBIDDEN)
 
-    if User.objects.filter(email=email).exists():
-        return Response({'error': 'An account with this email already exists.'}, status=status.HTTP_409_CONFLICT)
+    existing_user = User.objects.filter(email=email).first()
+    if existing_user:
+        # Instead of 409 Conflict, we gracefully return the existing user
+        # so the frontend can immediately assign them to the study.
+        return Response({
+            'message': 'User already exists.',
+            'id': str(existing_user.id),
+            'email': existing_user.email,
+            'first_name': existing_user.first_name,
+            'last_name': existing_user.last_name,
+            'role': existing_user.role,
+        }, status=status.HTTP_200_OK)
 
     # 3. Generation
     username = generate_unique_username(first_name, last_name)
@@ -213,7 +223,12 @@ def admin_create_user(request):
             'message': 'User created successfully.',
             'username': username,
             'email_sent': email_sent,
-            'user_id': str(new_user.id)
+            'user_id': str(new_user.id),
+            'id': str(new_user.id),
+            'email': new_user.email,
+            'first_name': new_user.first_name,
+            'last_name': new_user.last_name,
+            'role': new_user.role,
         }, status=status.HTTP_201_CREATED)
 
     except Exception as e:

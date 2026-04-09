@@ -42,7 +42,7 @@ interface Assessment {
     status: 'Completed' | 'Pending' | 'Locked';
 }
 
-interface VisitNode {
+interface Visit {
     id: string;
     name: string;
     scheduledDate: string;
@@ -61,7 +61,7 @@ interface Participant {
     coordinator: string;
     nextVisitDue: string;
     study: string;
-    visits: VisitNode[];
+    visits: Visit[];
 }
 
 const MOCK_PARTICIPANTS: Participant[] = [
@@ -182,7 +182,7 @@ export default function VisitsModule() {
     const [viewMode, setViewMode] = useState<'Timeline' | 'Calendar'>('Timeline');
     const [participants, setParticipants] = useState<Participant[]>(MOCK_PARTICIPANTS);
     const [selectedParticipantId, setSelectedParticipantId] = useState<string>(MOCK_PARTICIPANTS[0].id);
-    const [selectedNodeId, setSelectedNodeId] = useState<string>(MOCK_PARTICIPANTS[0].visits[0].id);
+    const [selectedVisitId, setSelectedVisitId] = useState<string>(MOCK_PARTICIPANTS[0].visits[0].id);
     const [isScheduleOpen, setIsScheduleOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [openAccordion, setOpenAccordion] = useState<string | null>('Checklist');
@@ -193,8 +193,8 @@ export default function VisitsModule() {
     [participants, selectedParticipantId]);
 
     const selectedVisit = useMemo(() => 
-        selectedParticipant.visits.find(v => v.id === selectedNodeId) || selectedParticipant.visits[0],
-    [selectedParticipant, selectedNodeId]);
+        selectedParticipant.visits.find(v => v.id === selectedVisitId) || selectedParticipant.visits[0],
+    [selectedParticipant, selectedVisitId]);
 
     const bmi = useMemo(() => {
         if (!tempVitals.weight || !tempVitals.height) return 0;
@@ -211,7 +211,7 @@ export default function VisitsModule() {
             return {
                 ...p,
                 visits: p.visits.map(v => {
-                    if (v.id !== selectedNodeId) return v;
+                    if (v.id !== selectedVisitId) return v;
                     const newChecklist = [...v.checklist];
                     newChecklist[itemIndex] = { 
                         ...newChecklist[itemIndex], 
@@ -233,7 +233,7 @@ export default function VisitsModule() {
                 return {
                     ...p,
                     visits: p.visits.map(v => {
-                        if (v.id !== selectedNodeId) return v;
+                        if (v.id !== selectedVisitId) return v;
                         return { ...v, status: action === 'Approve' ? 'Completed' : v.status };
                     })
                 };
@@ -241,7 +241,7 @@ export default function VisitsModule() {
         }
     };
 
-    const getStatusColor = (status: VisitNode['status']) => {
+    const getStatusColor = (status: Visit['status']) => {
         switch (status) {
             case 'Completed': return 'emerald';
             case 'Scheduled': return 'indigo';
@@ -369,30 +369,30 @@ export default function VisitsModule() {
                                     {/* Timeline Connector */}
                                     <div className="absolute left-10 right-10 top-[calc(50%-12px)] h-[1px] bg-gradient-to-r from-emerald-500/50 via-indigo-500/50 to-slate-800" />
                                     
-                                    {selectedParticipant.visits.map((node, i) => (
+                                    {selectedParticipant.visits.map((visit, i) => (
                                         <button 
-                                            key={node.id}
-                                            onClick={() => setSelectedNodeId(node.id)}
+                                            key={visit.id}
+                                            onClick={() => setSelectedVisitId(visit.id)}
                                             className="relative group flex flex-col items-center gap-4 lg:gap-6 z-10 basis-0 grow"
                                         >
-                                            <p className={`text-[12px] lg:text-[12px] font-black uppercase tracking-widest italic transition-all ${selectedNodeId === node.id ? 'text-white' : 'text-slate-600'}`}>
-                                                {node.name}
+                                            <p className={`text-[12px] lg:text-[12px] font-black uppercase tracking-widest italic transition-all ${selectedVisitId === visit.id ? 'text-white' : 'text-slate-600'}`}>
+                                                {visit.name}
                                             </p>
                                             <div className={`w-12 h-12 lg:w-14 lg:h-14 rounded-xl lg:rounded-2xl flex items-center justify-center border-2 lg:border-4 transition-all ${
-                                                node.status === 'Completed' ? 'bg-emerald-500/10 border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)]' : 
-                                                node.status === 'Overdue' ? 'bg-red-500/10 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)]' : 
-                                                selectedNodeId === node.id ? 'bg-indigo-600 border-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.4)]' : 
+                                                visit.status === 'Completed' ? 'bg-emerald-500/10 border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)]' : 
+                                                visit.status === 'Overdue' ? 'bg-red-500/10 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)]' : 
+                                                selectedVisitId === visit.id ? 'bg-indigo-600 border-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.4)]' : 
                                                 'bg-white/5 border-white/5'
                                             }`}>
-                                                {node.status === 'Completed' ? <CheckCircle2 className="w-5 h-5 lg:w-6 lg:h-6 text-emerald-400" /> : 
-                                                 node.status === 'Overdue' ? <AlertCircle className="w-5 h-5 lg:w-6 lg:h-6 text-red-500 animate-pulse" /> : 
-                                                 <div className={`w-2 h-2 lg:w-3 lg:h-3 rounded-full ${selectedNodeId === node.id ? 'bg-white' : 'bg-slate-700'}`} />}
+                                                {visit.status === 'Completed' ? <CheckCircle2 className="w-5 h-5 lg:w-6 lg:h-6 text-emerald-400" /> : 
+                                                 visit.status === 'Overdue' ? <AlertCircle className="w-5 h-5 lg:w-6 lg:h-6 text-red-500 animate-pulse" /> : 
+                                                 <div className={`w-2 h-2 lg:w-3 lg:h-3 rounded-full ${selectedVisitId === visit.id ? 'bg-white' : 'bg-slate-700'}`} />}
                                             </div>
                                             <div className="text-center">
-                                                <p className="text-[12px] lg:text-[12px] text-white font-mono font-black italic">{node.scheduledDate}</p>
+                                                <p className="text-[12px] lg:text-[12px] text-white font-mono font-black italic">{visit.scheduledDate}</p>
                                                 <p className={`text-[12px] font-black uppercase tracking-tighter mt-1 ${
-                                                    node.status === 'Completed' ? 'text-emerald-500' : 'text-slate-700'
-                                                }`}>{node.status}</p>
+                                                    visit.status === 'Completed' ? 'text-emerald-500' : 'text-slate-700'
+                                                }`}>{visit.status}</p>
                                             </div>
                                         </button>
                                     ))}

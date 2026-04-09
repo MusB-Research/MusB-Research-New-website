@@ -132,7 +132,7 @@ const DashboardView = ({
                                     {studyName}
                                 </h3>
                                 <p className="text-[15px] font-bold text-slate-500 uppercase tracking-widest italic">
-                                    Study Identifier: <span className="text-cyan-500/80">{studyId}</span>
+                                    Study ID: <span className="text-cyan-500/80">{studyId}</span>
                                 </p>
                             </div>
                         </div>
@@ -202,32 +202,54 @@ const DashboardView = ({
                             </div>
                              <span className="text-[14px] font-black text-slate-400 uppercase tracking-[0.25em] italic">Next Visit</span>
                         </div>
-                        {nextMilestone ? (
-                            <>
-                                <h4 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-tight mb-2">
-                                    {nextMilestone.visit_type?.replace(/_/g, ' ') || 'Clinical Assessment'}
-                                </h4>
-                                <div className="flex items-center gap-4">
-                                    <div className="flex flex-col">
-                                        <span className="text-[12px] font-black text-slate-600 uppercase tracking-widest">Scheduled For</span>
-                                         <p className="text-[16px] font-black text-cyan-400 uppercase tracking-tight italic">
-                                            {new Date(nextMilestone.scheduled_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} @ {new Date(nextMilestone.scheduled_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </p>
-                                    </div>
+                        <h4 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-tight mb-2">
+                            {nextMilestone?.visit_type?.replace(/_/g, ' ') || 'Next Clinical Visit'}
+                        </h4>
+                        
+                        <div className="grid grid-cols-2 gap-4 mt-6">
+                            <div className="space-y-4">
+                                <div>
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Date</span>
+                                    <p className="text-[15px] font-black text-white italic uppercase tracking-tight">
+                                        {nextMilestone ? new Date(nextMilestone.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Pending Schedule'}
+                                    </p>
                                 </div>
-                            </>
-                        ) : (
-                            <>
-                                <h4 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-tight mb-2">
-                                    No Visit Scheduled
-                                </h4>
-                                 <p className="text-[14px] font-bold text-slate-500 uppercase tracking-widest italic leading-relaxed">
-                                    Your clinical coordinator will contact you when your next visit is ready.
-                                </p>
-                            </>
+                                <div>
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Day</span>
+                                    <p className="text-[15px] font-black text-white italic uppercase tracking-tight">
+                                        {nextMilestone ? new Date(nextMilestone.scheduled_date).toLocaleDateString('en-US', { weekday: 'long' }) : 'Awaiting Confirmation'}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <div>
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Time</span>
+                                    <p className="text-[15px] font-black text-white italic uppercase tracking-tight">
+                                        {nextMilestone ? new Date(nextMilestone.scheduled_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBD'}
+                                    </p>
+                                </div>
+                                <div>
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Address</span>
+                                    <p className="text-[13px] font-black text-cyan-400 italic leading-tight uppercase">
+                                        {nextMilestone?.location_address || study?.location || 'Assigned Study Site Address'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {!nextMilestone && (
+                            <p className="mt-4 text-[11px] font-bold text-slate-600 uppercase tracking-[0.2em] italic">
+                                Your coordinator will update these details shortly.
+                            </p>
                         )}
                     </div>
-                    <div className="mt-6 flex items-center justify-between relative z-10">
+                    <div className="mt-auto pt-6 flex items-center justify-between relative z-10 border-t border-white/5">
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Assigned Coordinator</span>
+                            <span className="text-[13px] font-bold text-slate-400 italic">
+                                {study?.assigned_coordinators?.[0]?.full_name || 'Clinical Team'}
+                            </span>
+                        </div>
                         <button onClick={() => onAction('Visits')} className="px-5 py-2.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-cyan-400 rounded-xl font-black text-[12px] uppercase tracking-widest transition-all italic flex items-center gap-2">
                             Visit Details <ArrowRight className="w-3 h-3" />
                         </button>
@@ -239,7 +261,7 @@ const DashboardView = ({
             {/* ROW 3 – LOGISTICS AND REPORTS */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Card: Study Kit - Conditional Visibility */}
-                {(study?.uses_kit !== false) && (
+                {study?.uses_kit === true && (
                     <Card
                         className="p-8 bg-[#0d1424] border-white/5 group hover:border-cyan-500/30 transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between"
                         onClick={() => onAction('Study Kit')}
@@ -259,7 +281,7 @@ const DashboardView = ({
                                     </p>
                                 </>
                             ) : (
-                                 <p className="text-slate-500 font-black italic uppercase text-base">This study is not using any kit.</p>
+                                 <p className="text-slate-500 font-black italic uppercase text-xs tracking-widest leading-relaxed">System is awaiting logistics synchronization for this protocol phase.</p>
                             )}
                         </div>
                         <div className="mt-8">

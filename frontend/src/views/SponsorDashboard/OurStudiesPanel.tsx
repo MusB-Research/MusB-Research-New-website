@@ -214,7 +214,7 @@ export default function OurStudiesPanel({ protocols, setProtocols, addToast, win
                       <div><div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 10, fontWeight: 600 }}>Principal Investigator</div><div style={{ fontSize: 20, color: '#f1f5f9', fontWeight: 700, letterSpacing: '-0.01em' }}>{study.pi}</div></div>
                       <div><div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 10, fontWeight: 600 }}>Assigned Site</div><div style={{ fontSize: 20, color: '#f1f5f9', fontWeight: 700, letterSpacing: '-0.01em' }}>{study.site}</div></div>
                       <div><div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 10, fontWeight: 600 }}>Study Timeline</div><div style={{ fontSize: 20, color: '#f1f5f9', fontWeight: 700, letterSpacing: '-0.01em' }}>{study.startDate} — {study.endDate}</div></div>
-                      <div><div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 10, fontWeight: 600 }}>IRB Status</div><div><StatusBadge status={study.irbStatus} /></div></div>
+                      <div><div style={{ fontSize: 14, color: '#ec4899', marginBottom: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Clinical Lifecycle Stage</div><div style={{ fontSize: 18, color: '#f1f5f9', fontWeight: 900, background: 'rgba(236,72,153,0.1)', padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(236,72,153,0.2)' }}>{study.stage?.replace(/_/g, ' ') || 'PROPOSAL_SUBMITTED'}</div></div>
                     </div>
                   </div>
 

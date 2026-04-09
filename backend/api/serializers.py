@@ -7,7 +7,7 @@ from .models import (
     BookletDownloadRequest, Partnership, Publication, EducationMaterial,
     StudyInquiry, ClinicalConversation, ClinicalMessage, Kit,
     DosingLog, AEReport, Document, Notification, ProgressReport,
-    StudyActionRequest, DailyMedicationLog, AssignedForm
+    StudyActionRequest, DailyMedicationLog, AssignedForm, SponsorOrganization
 )
 from authentication.models import User
 from authentication.security import decrypt_data
@@ -147,6 +147,11 @@ class DocumentSerializer(SanitizedModelSerializer):
             return obj.file.url
         return None
 
+class SponsorOrganizationSerializer(SanitizedModelSerializer):
+    class Meta:
+        model = SponsorOrganization
+        fields = '__all__'
+
 class StudySerializer(SanitizedModelSerializer):
     pi_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), source='pi', required=False, allow_null=True
@@ -156,6 +161,9 @@ class StudySerializer(SanitizedModelSerializer):
     )
     sponsor_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), source='sponsor', required=False, allow_null=True
+    )
+    sponsor_org_id = serializers.PrimaryKeyRelatedField(
+        queryset=SponsorOrganization.objects.all(), source='sponsor_org', required=False, allow_null=True
     )
     pi_ids = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all(), write_only=True, required=False)
     coordinator_ids = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all(), write_only=True, required=False)
@@ -168,20 +176,30 @@ class StudySerializer(SanitizedModelSerializer):
     class Meta:
         model = Study
         fields = [
-            'id', 'title', 'full_title', 'description', 'protocol_id', 'sponsor_name', 'study_type', 'status',
-            'pi_id', 'coordinator_id', 'sponsor_id', 'pi_ids', 'coordinator_ids',
-            'assigned_pis', 'assigned_coordinators', 'approval_status', 'created_by',
+            'id', 'title', 'full_title', 'description', 'protocol_id', 'sponsor_name', 'study_type', 'status', 'stage',
+            'pi_id', 'coordinator_id', 'sponsor_id', 'sponsor_org_id', 'pi_ids', 'coordinator_ids',
+            'assigned_pis', 'assigned_coordinators', 'approval_status', 'created_by', 'created_by_role',
             'primary_indication', 'trial_model', 'is_double_blind', 'has_placebo_control',
             'has_screening_log', 'shipment_mode', 'consent_mode', 'condition',
-            'trial_format', 'benefit', 'duration', 'tags', 'compensation', 'location',
+            'trial_format', 'benefit', 'duration', 'tags', 'compensation', 'location', 'uses_kit',
             'time_commitment', 'overview', 'timeline', 'kits_info', 'safety_info',
             'privacy_standards', 'remote_participation', 'start_date', 'end_date',
             'launch_date', 'irb_status', 'target_subjects', 'target_screened', 'actual_screened',
             'proposal_source', 'proposal_submitted_date', 'agreement_signed_date',
             'contract_status', 'sponsor_contact_name', 'sponsor_contact_email',
-            'show_dosing_log', 'show_ae_report', 'show_lab_upload', 
-            'consent_template_file', 'consent_templates',
-            'documents'
+            'show_dosing_log', 'show_ae_report', 'show_lab_upload', 'is_archived',
+            'reward_type', 'reward_logic', 'reward_config',
+            'consent_template_file', 'consent_templates', 'documents'
+        ]
+
+class PublicStudySerializer(SanitizedModelSerializer):
+    """Lighter version for discovery page to boost performance"""
+    class Meta:
+        model = Study
+        fields = [
+            'id', 'title', 'protocol_id', 'description', 'condition', 
+            'duration', 'location', 'compensation', 'status', 'stage', 
+            'tags', 'uses_kit'
         ]
 
 class InterventionArmSerializer(SanitizedModelSerializer):
@@ -227,10 +245,6 @@ class CommunicationLogSerializer(SanitizedModelSerializer):
         model = CommunicationLog
         fields = '__all__'
 
-class CompensationSerializer(SanitizedModelSerializer):
-    class Meta:
-        model = Compensation
-        fields = '__all__'
 
 
 class DataAuditLogSerializer(SanitizedModelSerializer):
@@ -243,6 +257,7 @@ class DataAuditLogSerializer(SanitizedModelSerializer):
 class KitSerializer(SanitizedModelSerializer):
     id = serializers.CharField(read_only=True)
     collection_guide_url = serializers.SerializerMethodField()
+    shipping_label_url = serializers.SerializerMethodField()
     return_label_url = serializers.SerializerMethodField()
     
     class Meta:
@@ -251,8 +266,9 @@ class KitSerializer(SanitizedModelSerializer):
             'id', 'study', 'participant', 'kit_number', 'kit_type', 'status', 
             'assignment_date', 'collection_date', 'shipping_date', 'received_date', 
             'carrier', 'tracking_number', 'tracking_url', 'expected_delivery', 
-            'collection_guide', 'return_label', 'collection_guide_url', 'return_label_url',
-            'symptom_note'
+            'collection_guide', 'shipping_label', 'return_label', 
+            'collection_guide_url', 'shipping_label_url', 'return_label_url',
+            'symptom_note', 'address_override'
         ]
 
     def get_collection_guide_url(self, obj):
@@ -260,6 +276,12 @@ class KitSerializer(SanitizedModelSerializer):
         request = self.context.get('request')
         if request: return request.build_absolute_uri(obj.collection_guide.url)
         return obj.collection_guide.url
+
+    def get_shipping_label_url(self, obj):
+        if not obj.shipping_label: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.shipping_label.url)
+        return obj.shipping_label.url
 
     def get_return_label_url(self, obj):
         if not obj.return_label: return None
@@ -281,10 +303,18 @@ class FormResponseSerializer(SanitizedModelSerializer):
 
 class AssignedFormSerializer(SanitizedModelSerializer):
     form_details = FormSerializer(source='form', read_only=True)
+    signed_pdf_url = serializers.SerializerMethodField()
+
     class Meta:
         model = AssignedForm
-        fields = '__all__'
+        fields = ['id', 'study', 'form', 'form_details', 'participant', 'status', 'participant_signature', 'participant_signed_at', 'coordinator_signature', 'coordinator_signed_at', 'coordinator_user', 'pi_signature', 'pi_signed_at', 'pi_user', 'data', 'signed_pdf', 'signed_pdf_url', 'due_date', 'created_at', 'updated_at']
         read_only_fields = ['participant_signed_at', 'coordinator_signed_at', 'pi_signed_at']
+
+    def get_signed_pdf_url(self, obj):
+        if not obj.signed_pdf: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.signed_pdf.url)
+        return obj.signed_pdf.url
 
 class TaskSerializer(SanitizedModelSerializer):
     form_details = FormSerializer(source='form', read_only=True)
@@ -398,6 +428,7 @@ class ConsentSerializer(SanitizedModelSerializer):
     template_version = serializers.CharField(source='template.version', read_only=True)
     study_title = serializers.CharField(source='study.title', read_only=True)
     protocol_id = serializers.CharField(source='study.protocol_id', read_only=True)
+    signed_pdf_url = serializers.SerializerMethodField()
     
     class Meta:
         model = Consent
@@ -406,9 +437,15 @@ class ConsentSerializer(SanitizedModelSerializer):
             'participant', 'full_name', 'email',
             'cc_verified', 'cc_verified_at', 'cc_user', 'cc_name',
             'pi_verified', 'pi_verified_at', 'pi_user', 'pi_name',
-            'agreed_at', 'signed_pdf', 'is_valid', 'audit_trail'
+            'agreed_at', 'signed_pdf', 'signed_pdf_url', 'is_valid', 'audit_trail'
         ]
         read_only_fields = ['agreed_at', 'ip_address', 'signed_pdf']
+
+    def get_signed_pdf_url(self, obj):
+        if not obj.signed_pdf: return None
+        request = self.context.get('request')
+        if request: return request.build_absolute_uri(obj.signed_pdf.url)
+        return obj.signed_pdf.url
 
 class LabResultSerializer(SanitizedModelSerializer):
     class Meta:
@@ -521,6 +558,22 @@ class ClinicalMessageSerializer(SanitizedModelSerializer):
     class Meta:
         model = ClinicalMessage
         fields = ['id', 'sender', 'sender_name', 'user_role_label', 'text', 'tag', 'attachment', 'is_from_pi', 'created_at']
+
+class ClinicalConversationBriefSerializer(SanitizedModelSerializer):
+    id = ObjectIdField(read_only=True)
+    participant_sid = serializers.CharField(source='participant.participant_sid', read_only=True)
+    study_protocol = serializers.CharField(source='study.protocol_id', read_only=True)
+    assigned_coordinator = serializers.CharField(source='study.coordinator.decrypted_name', read_only=True, allow_null=True)
+    participant_status = serializers.CharField(source='participant.status', read_only=True)
+
+    class Meta:
+        model = ClinicalConversation
+        fields = [
+            'id', 'participant', 'participant_sid', 'participant_status', 'study', 
+            'study_protocol', 'status', 'is_flagged', 'last_message_preview', 
+            'last_updated', 'created_at', 'assigned_coordinator'
+        ]
+        read_only_fields = ['participant', 'study']
 
 class ClinicalConversationSerializer(SanitizedModelSerializer):
     id = ObjectIdField(read_only=True)
@@ -641,4 +694,20 @@ class StudyActionRequestSerializer(SanitizedModelSerializer):
         fields = [
             'id', 'participant_id', 'study_id', 'study_title', 'request_type', 
             'status', 'created_at', 'created_at_formatted', 'updated_at', 'notes'
+        ]
+
+class CompensationSerializer(SanitizedModelSerializer):
+    participant_details = ParticipantSerializer(source='participant', read_only=True)
+    study_details = StudySerializer(source='study', read_only=True)
+    task_details = TaskSerializer(source='task', read_only=True)
+    visit_details = VisitSerializer(source='visit', read_only=True)
+    study_protocol = serializers.CharField(source='study.protocol_id', read_only=True)
+
+    class Meta:
+        model = Compensation
+        fields = [
+            'id', 'participant', 'study', 'study_protocol', 'visit', 'task', 
+            'participant_details', 'study_details', 'task_details', 'visit_details',
+            'transaction_type', 'description', 'amount', 'status', 'payment_method', 
+            'paid_at', 'notes', 'created_at'
         ]

@@ -79,7 +79,7 @@ const ReturnLabelView = ({ onBack }: { onBack: () => void }) => {
                          </div>
                          <div className="text-right">
                              <h3 className="text-4xl font-black italic tracking-tighter uppercase leading-none">P1 - S1</h3>
-                             <span className="text-[12px] font-black uppercase tracking-[0.4em]">Secure Node 002</span>
+                             <span className="text-[12px] font-black uppercase tracking-[0.4em]">Study Center 002</span>
                          </div>
                     </div>
 
@@ -91,7 +91,7 @@ const ReturnLabelView = ({ onBack }: { onBack: () => void }) => {
                                  <span className="text-[12px] font-black uppercase tracking-widest leading-none">Specimen Source</span>
                              </div>
                              <div className="space-y-1">
-                                 <p className="text-lg font-black uppercase leading-tight italic">MUSB NODE RESEARCHER</p>
+                                 <p className="text-lg font-black uppercase leading-tight italic">MUSB RESEARCHER</p>
                                  <p className="text-[14px] font-bold uppercase leading-tight text-slate-800">123 Research Lane, Clinical Plaza</p>
                                  <p className="text-[14px] font-bold uppercase leading-tight text-slate-800">Boston, MA 02108</p>
                                  <p className="text-[14px] font-black uppercase leading-tight text-slate-950 mt-2">ID: MUSB-4920-KIP</p>
@@ -122,7 +122,7 @@ const ReturnLabelView = ({ onBack }: { onBack: () => void }) => {
                          </div>
                          <div className="flex flex-col items-center gap-1">
                             <p className="text-2xl font-black tracking-[0.5em] text-slate-900 uppercase">MUSB 7729 4820 1934 0001</p>
-                            <p className="text-[12px] font-black tracking-widest uppercase text-slate-500 italic">Tracking ID • Node Site-B Sequence</p>
+                            <p className="text-[12px] font-black tracking-widest uppercase text-slate-500 italic">Tracking ID • B-Site Sequence</p>
                          </div>
                     </div>
 
@@ -141,7 +141,7 @@ const ReturnLabelView = ({ onBack }: { onBack: () => void }) => {
                               <Badge color="gray" className="bg-slate-100 text-slate-900 border-none font-bold text-[12px] py-1 px-3">PACKAGE CONTAINS BIOMARKERS</Badge>
                               <div className="flex items-center gap-2 text-slate-400">
                                   <Info className="w-4 h-4" />
-                                  <span className="text-[12px] font-black uppercase tracking-widest leading-none">Clinical Sample Node</span>
+                                  <span className="text-[12px] font-black uppercase tracking-widest leading-none">Clinical Sample Unit</span>
                               </div>
                          </div>
                     </div>
@@ -174,7 +174,7 @@ const ReturnLabelView = ({ onBack }: { onBack: () => void }) => {
             <div className="flex flex-col items-center gap-6 py-12 opacity-30 mt-12 grayscale mb-20 px-1 border-t border-white/5">
                 <div className="flex flex-wrap justify-center gap-8 text-[12px] font-black text-slate-500 uppercase tracking-[0.4em] italic">
                     <span>SECURE LOGISTICS V2</span>
-                    <span>CENTRAL NODE ROUTING</span>
+                    <span>CENTRAL ROUTING</span>
                     <span>AES-256 SYNCED LABEL</span>
                 </div>
             </div>

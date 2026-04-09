@@ -29,6 +29,7 @@ import AnimatedBackground from '../../components/AnimatedBackground';
 import StaffTasksModule from '../../components/shared/StaffTasksModule';
 import StudyKitsModule from '../../components/shared/StudyKitsModule';
 import ParticipantTaskManagement from '../../components/shared/ParticipantTaskManagement';
+import CompensationManagement from '../../components/coordinator/panels/CompensationManagement';
 
 
 import {
@@ -41,7 +42,7 @@ import {
     HelpCircle, Stethoscope, UsersRound, ArrowUpRight, LogOut,
     Globe, Rocket, Menu, FlaskConical, FileSearch, Layers,
     ListFilter, CheckSquare, ScrollText, Settings2, Database,
-    AlertTriangle, FileCheck, Briefcase
+    AlertTriangle, FileCheck, Briefcase, DollarSign
 } from 'lucide-react';
 
 type CCModule =
@@ -67,6 +68,7 @@ type CCModule =
     | 'TASKS'
     | 'ANALYTICS'
     | 'KITS'
+    | 'COMPENSATION'
     | 'PARTICIPANT_TASKS';
 
 export default function CoordinatorDashboard() {
@@ -130,6 +132,7 @@ export default function CoordinatorDashboard() {
         else if (route === 'participant-tasks') setActiveModule('PARTICIPANT_TASKS');
         else if (route === 'sponsors') setActiveModule('SPONSORS');
         else if (route === 'kits') setActiveModule('KITS');
+        else if (route === 'compensation' || route === 'rewards') setActiveModule('COMPENSATION');
         else if (location.pathname.includes('/dashboard/coordinator')) {
             // Stay consistent with dashboard root
             if (location.pathname.endsWith('/coordinator')) setActiveModule('OVERSIGHT');
@@ -159,6 +162,7 @@ export default function CoordinatorDashboard() {
             'ANALYTICS': 'analytics',
             'SPONSORS': 'sponsors',
             'KITS': 'kits',
+            'COMPENSATION': 'compensation',
             'PARTICIPANT_TASKS': 'participant-tasks'
         };
         const slug = slugs[mod];
@@ -247,6 +251,7 @@ export default function CoordinatorDashboard() {
 
     const [studies, setStudies] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
+    const [sponsorOrganizations, setSponsorOrganizations] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedStudy, setSelectedStudy] = useState<any>(null);
     const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
@@ -266,9 +271,10 @@ export default function CoordinatorDashboard() {
         setLoading(true);
         try {
             const apiUrl = API || '';
-            const [studiesRes, usersRes] = await Promise.all([
+            const [studiesRes, usersRes, sponsorsRes] = await Promise.all([
                 authFetch(`${apiUrl}/api/studies/`),
-                authFetch(`${apiUrl}/api/users/`)
+                authFetch(`${apiUrl}/api/users/`),
+                authFetch(`${apiUrl}/api/sponsor-organizations/`)
             ]);
 
             if (studiesRes.ok) {
@@ -278,6 +284,7 @@ export default function CoordinatorDashboard() {
                 ));
             }
             if (usersRes.ok) setUsers(await usersRes.json());
+            if (sponsorsRes.ok) setSponsorOrganizations(await sponsorsRes.json());
         } catch (e) {
             console.error("Coordinator Data Fetch Failed", e);
         } finally {
@@ -293,7 +300,7 @@ export default function CoordinatorDashboard() {
         try {
             const apiUrl = API || '';
             const method = selectedStudy ? 'PATCH' : 'POST';
-            const payload = {
+            const payload: any = {
                 ...formData,
                 start_date: formData.startDate,
                 end_date: formData.endDate,
@@ -305,6 +312,9 @@ export default function CoordinatorDashboard() {
                 pi_ids: formData.assigned_pis,
                 coordinator_ids: formData.assigned_coordinators,
             };
+
+            if (!payload.sponsor_id) delete payload.sponsor_id;
+            if (!payload.sponsor_org_id) delete payload.sponsor_org_id;
 
             const url = selectedStudy
                 ? `${apiUrl}/api/studies/${selectedStudy.protocol_id || selectedStudy.id}/`
@@ -341,6 +351,7 @@ export default function CoordinatorDashboard() {
                 { id: 'VISITS', label: 'Visits & Assessments', icon: Calendar },
                 { id: 'LABS', label: 'Health Check Reports', icon: Beaker },
                 { id: 'KITS', label: 'Study Kits', icon: Box },
+                { id: 'COMPENSATION', label: 'Clinical Rewards Hub', icon: DollarSign },
                 { id: 'PARTICIPANT_TASKS', label: 'Participant Tasks', icon: ListFilter },
             ]
         },
@@ -390,7 +401,7 @@ export default function CoordinatorDashboard() {
 
                 <div className="flex items-center gap-6">
                     <div className="hidden xl:flex items-center gap-3 bg-white/5 p-1.5 rounded-2xl border border-white/10">
-                        <div className="px-4 text-[12px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/10">PROTOCOL NODE</div>
+                        <div className="px-4 text-[12px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/10">PROTOCOL</div>
                         <select
                             value={globalSelectedStudyId}
                             onChange={(e) => setGlobalSelectedStudyId(e.target.value)}
@@ -524,7 +535,7 @@ export default function CoordinatorDashboard() {
                         <StudyOverviewModule studies={studies} onAdd={() => setActiveModule('LAUNCH_STUDY')} onEdit={(s) => { setSelectedStudy(s); setActiveModule('LAUNCH_STUDY'); }} />
                     )}
                     {activeModule === 'LAUNCH_STUDY' && (
-                        <LaunchStudyForm onClose={() => { setActiveModule('STUDIES'); setSelectedStudy(null); }} initialData={selectedStudy} onSave={handleCreateStudy} availablePIs={users.filter(u => u.role === 'PI')} availableCoordinators={users.filter(u => u.role === 'COORDINATOR')} availableSponsors={users.filter(u => u.role === 'SPONSOR')} />
+                        <LaunchStudyForm onClose={() => { setActiveModule('STUDIES'); setSelectedStudy(null); }} initialData={selectedStudy} onSave={handleCreateStudy} availablePIs={users.filter(u => u.role === 'PI')} availableCoordinators={users.filter(u => u.role === 'COORDINATOR')} availableSponsors={sponsorOrganizations} availableSponsorUsers={users.filter(u => u.role === 'SPONSOR')} />
                     )}
                     {activeModule === 'MESSAGES' && <CCC_MessagesModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'SUBJECT_REVIEW' && <CCC_SubjectReviewModule selectedStudyId={globalSelectedStudyId} participantId={selectedParticipantId || 'BTB-023'} />}
@@ -544,6 +555,7 @@ export default function CoordinatorDashboard() {
                     {activeModule === 'AUDIT_LOG' && <AuditLogModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'TASKS' && <StaffTasksModule primaryColor="teal" />}
                     {activeModule === 'PARTICIPANT_TASKS' && <ParticipantTaskManagement primaryColor="teal" />}
+                    {activeModule === 'COMPENSATION' && <CompensationManagement selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'ANALYTICS' && <AnalyticsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'SPONSORS' && <SponsorsManagement selectedStudyId={globalSelectedStudyId} allUsers={users} allStudies={studies} onRefresh={fetchCoordinatorContent} />}
                 </AnimatePresence>
@@ -566,41 +578,44 @@ function OversightModule({ studyCount, stats, currentTime, onLaunch, onNavigate 
                 <button onClick={onLaunch} className="px-10 py-5 bg-[#14b8a6] text-white rounded-[2rem] text-[12px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-2xl shadow-teal-900/40 hover:scale-105 transition-all"><Rocket className="w-5 h-5" /> INITIALIZE STUDY</button>
             </div>
 
-            {/* Row 1 - KPI Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-20 border-t border-white/5 pt-10">
-                {[
-                    { label: 'Live Protocols', val: studyCount.toString().padStart(2, '0'), icon: Beaker, color: 'teal', id: 'STUDIES' },
-                    { label: 'Active Subjects', val: '1,240', icon: UsersRound, color: 'indigo', id: 'PARTICIPANTS' },
-                    { label: 'System Alerts', val: '02', icon: Activity, color: 'red', id: 'ALERTS' },
-                ].map((stat, i) => (
-                    <div key={i} onClick={() => onNavigate(stat.id)} className="flex flex-col gap-6 group cursor-pointer">
-                        <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                                <stat.icon className={`w-5 h-5 text-white`} />
+            {/* Unified KPI & Operations Grid */}
+            <div className="space-y-16 border-t border-white/5 pt-12">
+                {/* Row 1 - High Level Primary KPIs (3 Columns) */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16">
+                    {[
+                        { label: 'Live Protocols', val: studyCount.toString().padStart(2, '0'), icon: Beaker, color: 'teal', id: 'STUDIES' },
+                        { label: 'Active Subjects', val: '1,240', icon: UsersRound, color: 'indigo', id: 'PARTICIPANTS' },
+                        { label: 'System Alerts', val: '02', icon: Activity, color: 'red', id: 'ALERTS' },
+                    ].map((stat, i) => (
+                        <div key={i} onClick={() => onNavigate(stat.id)} className="flex flex-col gap-6 group cursor-pointer">
+                            <div className="flex items-center gap-4">
+                                <div className={`w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xl`}>
+                                    <stat.icon className="w-5 h-5 text-white" />
+                                </div>
+                                <h4 className="text-[11px] font-black text-white/40 uppercase tracking-[0.3em] italic group-hover:text-white transition-colors">{stat.label}</h4>
                             </div>
-                            <h4 className="text-[11px] font-black text-white/40 uppercase tracking-[0.3em] italic group-hover:text-white transition-colors uppercase">{stat.label}</h4>
+                            <p className="text-4xl md:text-5xl font-black text-white italic tracking-tighter leading-none group-hover:text-[#14b8a6] transition-colors uppercase">{stat.val}</p>
                         </div>
-                        <p className="text-3xl md:text-4xl font-black text-white italic tracking-tighter leading-none group-hover:text-[#14b8a6] transition-colors uppercase">{stat.val}</p>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
 
-            {/* Row 2 - Operational Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 border-t border-white/5 pt-10">
-                {[
-                    { label: 'Upcoming visits', val: stats.upcomingVisits, sub: '60-day window', color: 'indigo', id: 'VISITS' },
-                    { label: 'Overdue follow-ups', val: stats.overdueFollowUps, sub: 'Action Required', color: 'red', id: 'ALERTS' },
-                    { label: 'Awaiting callback', val: stats.awaitingCallback, sub: 'Leads Node', color: 'emerald', id: 'SPONSORS' },
-                    { label: 'Pending forms', val: stats.pendingForms, sub: 'Submissions', color: 'amber', id: 'FORMS' }
-                ].map((widget, i) => (
-                    <div key={i} onClick={() => onNavigate(widget.id)} className="group cursor-pointer relative">
-                        <h4 className="text-[11px] font-black text-white/30 uppercase tracking-[0.3em] italic group-hover:text-white transition-colors mb-4">{widget.label}</h4>
-                        <div className="flex items-end gap-3">
-                            <p className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none group-hover:scale-105 transition-transform origin-left">{widget.val}</p>
-                            <p className="text-[10px] text-white/40 font-black uppercase tracking-widest mb-1 italic whitespace-nowrap">{widget.sub}</p>
+                {/* Row 2 - Focused Operational Metrics (4 Columns) */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-16 border-t border-white/5 pt-12">
+                    {[
+                        { label: 'Upcoming visits', val: stats.upcomingVisits, sub: '60-day window', color: 'teal', id: 'VISITS' },
+                        { label: 'Overdue follow-ups', val: stats.overdueFollowUps, sub: 'Action Required', color: 'red', id: 'ALERTS' },
+                        { label: 'Awaiting callback', val: stats.awaitingCallback, sub: 'Subject Leads', color: 'indigo', id: 'SPONSORS' },
+                        { label: 'Pending forms', val: stats.pendingForms, sub: 'Submissions', color: 'amber', id: 'FORMS' }
+                    ].map((widget, i) => (
+                        <div key={i} onClick={() => onNavigate(widget.id)} className="group cursor-pointer relative flex flex-col gap-5">
+                            <h4 className="text-[11px] font-black text-white/20 uppercase tracking-[0.3em] italic group-hover:text-white transition-colors">{widget.label}</h4>
+                            <div className="flex items-baseline gap-4">
+                                <p className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none group-hover:text-[#14b8a6] transition-colors">{widget.val}</p>
+                                <p className="text-[10px] text-white/20 font-black uppercase tracking-widest italic whitespace-nowrap">{widget.sub}</p>
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
         </motion.div>
     );

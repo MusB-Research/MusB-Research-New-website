@@ -55,7 +55,7 @@ const cultureValues = [
 ];
 
 const benefitPoints = [
-    'Mission-driven, science-first culture',
+    'Goal-oriented, science-first culture',
     'Work with renowned scientists and clinicians',
     'Exposure to cutting-edge research and clinical trials',
     'Collaborative, inclusive environment',
@@ -185,12 +185,12 @@ export default function Careers() {
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.12)_0%,transparent_70%)]"></div>
                 <div className="max-w-[1700px] mx-auto px-6 md:px-12 grid lg:grid-cols-2 gap-16 items-center relative z-10">
                     <div className="space-y-8">
-                        <span className="text-cyan-400 font-black text-[12px] uppercase tracking-[0.4em]">Join Our Mission</span>
+                        <span className="text-cyan-400 font-black text-[12px] uppercase tracking-[0.4em]">Join Our Team</span>
                         <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[0.9] uppercase italic">
                             Build the <span className="text-cyan-400 italic">Future</span> of Health Science
                         </h1>
                         <p className="text-base md:text-lg text-slate-400 leading-relaxed font-medium max-w-xl">
-                            Join a mission-driven research organization advancing microbiome, aging, metabolic, and clinical science.
+                            Join a dedicated research organization advancing microbiome, aging, metabolic, and clinical science.
                             Work alongside world-class scientists in an environment built on integrity, innovation, and collaboration.
                         </p>
                         <div className="flex flex-col gap-4 pt-4 w-full sm:w-max">
@@ -371,8 +371,8 @@ export default function Careers() {
                             <div className="py-24 bg-white/5 border border-white/5 rounded-[3rem] flex flex-col items-center text-center space-y-8 animate-in fade-in zoom-in duration-700">
                                 <SearchX className="w-24 h-24 text-slate-800" />
                                 <div className="space-y-4">
-                                    <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">Current Node Empty</h3>
-                                    <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[12px] max-w-md mx-auto leading-relaxed">We don’t have any active openings in this sector at the moment. Please synchronize later or submit a general application.</p>
+                                    <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">No Current Openings</h3>
+                                    <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[12px] max-w-md mx-auto leading-relaxed">We don’t have any active openings in this sector at the moment. Please check back later or submit a general application.</p>
                                 </div>
                                 <a
                                     href="https://docs.google.com/forms/d/e/1FAIpQLSenHSuSVQaIxKA40tsub0PwR91haXYBorPcmH2RZp0hsf6LyA/viewform?usp=publish-editor"

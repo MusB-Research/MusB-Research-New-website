@@ -5,8 +5,10 @@ import {
     X, ChevronDown, Upload, ChevronRight, ChevronLeft, 
     AlertCircle, History, CheckSquare, TrendingUp,
     ShieldCheck, Microscope, UserPlus, FileCheck, Layers,
-    Briefcase, Plus, Calendar
+    Briefcase, Plus, Calendar, Award, DollarSign,
+    Building2, Search, Building, Check
 } from 'lucide-react';
+import { authFetch, API } from '../../utils/auth';
 
 interface LaunchStudyFormProps {
     onClose?: () => void;
@@ -15,9 +17,10 @@ interface LaunchStudyFormProps {
     availablePIs?: any[];
     availableCoordinators?: any[];
     availableSponsors?: any[];
+    availableSponsorUsers?: any[];
 }
 
-type StepID = 1 | 2 | 3 | 4 | 5;
+type StepID = 1 | 2 | 3 | 4 | 5 | 6;
 
 interface DocumentFile {
     id: string;
@@ -27,7 +30,7 @@ interface DocumentFile {
     status: 'Current' | 'Draft';
 }
 
-const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], availableCoordinators = [], availableSponsors = [] }: LaunchStudyFormProps) => {
+const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], availableCoordinators = [], availableSponsors = [], availableSponsorUsers = [] }: LaunchStudyFormProps) => {
     const [currentStep, setCurrentStep] = useState<StepID>(1);
     const [lastSaved, setLastSaved] = useState<string>('Just now');
 
@@ -35,10 +38,24 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
     const displayPIs = useMemo(() => availablePIs || [], [availablePIs]);
     const displayCoordinators = useMemo(() => availableCoordinators || [], [availableCoordinators]);
     const displaySponsors = useMemo(() => availableSponsors || [], [availableSponsors]);
+    const [invitedSponsors, setInvitedSponsors] = useState<any[]>([]);
+    const [showInviteSponsorModal, setShowInviteSponsorModal] = useState(false);
+    const [showInviteMemberModal, setShowInviteMemberModal] = useState(false);
+    const [inviteMemberRole, setInviteMemberRole] = useState<'PI' | 'COORDINATOR' | 'STUDY_STAFF'>('PI');
+    const [inviteData, setInviteData] = useState({ name: '', email: '', organization: '' });
+    const [inviteLoading, setInviteLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isInviting, setIsInviting] = useState(false);
+    
+    // Derived display for sponsor users (existing + recently invited)
+    const displaySponsorUsers = useMemo(() => {
+        return [...(availableSponsorUsers || []), ...invitedSponsors];
+    }, [availableSponsorUsers, invitedSponsors]);
     
     const [formData, setFormData] = useState({
         protocol_id: initialData?.protocol_id || `MUSB-${new Date().getFullYear()}-${Math.floor(Math.random() * 900) + 100}`,
         sponsor_id: initialData?.sponsor_id || '',
+        sponsor_org_id: initialData?.sponsor_org_id || '',
         sponsor_name: initialData?.sponsor_name || '',
         startDate: initialData?.startDate || initialData?.start_date || '',
         endDate: initialData?.endDate || initialData?.end_date || '',
@@ -55,11 +72,20 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
         target_subjects: initialData?.target_subjects || initialData?.target_screened || 120,
         medication_supply: initialData?.medication_supply || 'SPONSOR_PROVIDED',
         consent_collection: initialData?.consent_collection || ['ECONSENT'],
-        assigned_pis: (initialData?.assigned_pis || []).map((p: any) => typeof p === 'object' ? p.id : p) as string[],
-        assigned_coordinators: (initialData?.assigned_coordinators || []).map((c: any) => typeof c === 'object' ? c.id : c) as string[],
+        pi_id: (initialData?.pi_id || []),
+        coordinator_id: (initialData?.coordinator_id || []),
+        assigned_sponsors: (initialData?.assigned_sponsors || []).map((s: any) => typeof s === 'object' ? s.id : s) as string[],
         status: initialData?.status || 'DRAFT',
         compensation: initialData?.compensation || '500',
-        compensation_currency: initialData?.compensation_currency || 'USD'
+        compensation_currency: initialData?.compensation_currency || 'USD',
+        reward_type: initialData?.reward_type || 'CASH',
+        reward_logic: initialData?.reward_logic || 'PER_TASK',
+        reward_config: initialData?.reward_config || { tasks: {}, visits: {}, full_study: 0 },
+        reward_amount: initialData?.reward_amount || 0,
+        uses_kit: initialData?.uses_kit || false,
+        kit_dispatch_required: initialData?.kit_dispatch_required || false,
+        kit_tracking_enabled: initialData?.kit_tracking_enabled || false,
+        kit_description: initialData?.kit_description || ''
     });
 
     const [uploadedDocs, setUploadedDocs] = useState<DocumentFile[]>(() => [
@@ -70,9 +96,100 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
     const [showSponsorDropdown, setShowSponsorDropdown] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const handleInvitePersonnel = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!inviteData.email || !inviteData.name) return;
+
+        setInviteLoading(true);
+        try {
+            const res = await authFetch('/api/auth/admin/create-user/', {
+                method: 'POST',
+                body: JSON.stringify({
+                    email: inviteData.email,
+                    full_name: inviteData.name,
+                    role: inviteMemberRole,
+                    is_invited: true
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                // Add to temporary state so they appear in dropdowns immediately
+                if (inviteMemberRole === 'PI') {
+                    setFormData(prev => ({ ...prev, pi_id: [data.id] }));
+                } else {
+                    setFormData(prev => ({ 
+                        ...prev, 
+                        coordinator_id: [...(prev.coordinator_id || []), data.id] 
+                    }));
+                }
+                setShowInviteMemberModal(false);
+                setInviteData({ name: '', email: '', organization: '' });
+                alert(`${inviteMemberRole} Invited Successfully!`);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setInviteLoading(false);
+        }
+    };
+
+    const handleInviteSponsor = async (e: React.FormEvent) => {
+        if (!inviteData.email || !inviteData.email.includes('@')) return alert("Valid email required.");
+        setIsInviting(true);
+        try {
+            const apiUrl = API || '';
+            const res = await authFetch(`${apiUrl}/api/auth/admin/create-user/`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    email: inviteData.email,
+                    first_name: inviteData.name || inviteData.email.split('@')[0],
+                    last_name: 'Sponsor',
+                    role: 'SPONSOR'
+                })
+            });
+            if (res.ok) {
+                const newUser = await res.json();
+                setInvitedSponsors(prev => [...prev, newUser]);
+                
+                // Automatically assign this new person
+                const currentAssigned = Array.isArray(formData.assigned_sponsors) ? formData.assigned_sponsors : [];
+                setFormData({
+                    ...formData,
+                    assigned_sponsors: [...currentAssigned, newUser.id]
+                });
+                
+                setInviteData({ name: '', email: '', organization: '' });
+                setShowInviteSponsorModal(false);
+                alert(`Invitation sent to ${inviteData.email}. Account provisioned.`);
+            } else {
+                const err = await res.json();
+                alert(`Error: ${err.error || 'Could not invite sponsor.'}`);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Failed to invite sponsor.");
+        } finally {
+            setIsInviting(false);
+        }
+    };
+
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            // Validation: Max 10MB
+            if (file.size > 10 * 1024 * 1024) {
+                alert("FILE REJECTED: Security threshold exceeded. Protocol documents must not exceed 10MB.");
+                return;
+            }
+            
+            // Validation: Allowed types (PDF, Word)
+            const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+            if (!allowedTypes.includes(file.type) && !file.name.match(/\.(pdf|doc|docx)$/i)) {
+                alert("FILE REJECTED: Format incompatibility. Only PDF and Microsoft Word (.doc, .docx) protocol artifacts are permitted.");
+                return;
+            }
+
             const newDoc: DocumentFile = {
                 id: Math.random().toString(36).substr(2, 9),
                 name: file.name,
@@ -87,12 +204,13 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
     const steps = useMemo(() => [
         { id: 1, label: 'Core Protocol', sub: 'Identity & Purpose', icon: Beaker },
         { id: 2, label: 'Methodology', sub: 'Clinical Design', icon: Activity },
-        { id: 3, label: 'Research Team', sub: 'Roles & Operations', icon: Users },
-        { id: 4, label: 'Documents', sub: 'Compliance Uploads', icon: FileText },
-        { id: 5, label: 'Review', sub: 'Final Validation', icon: CheckCircle2 },
+        { id: 3, label: 'Incentives', sub: 'Reward Configuration', icon: Award },
+        { id: 4, label: 'Research Team', sub: 'Roles & Operations', icon: Users },
+        { id: 5, label: 'Documents', sub: 'Compliance Uploads', icon: FileText },
+        { id: 6, label: 'Review', sub: 'Final Validation', icon: CheckCircle2 },
     ], []);
 
-    const handleNext = useCallback(() => setCurrentStep((s) => (s < 5 ? (s + 1) as StepID : s)), []);
+    const handleNext = useCallback(() => setCurrentStep((s) => (s < 6 ? (s + 1) as StepID : s)), []);
     const handlePrev = useCallback(() => setCurrentStep((s) => (s > 1 ? (s - 1) as StepID : s)), []);
 
     const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -100,7 +218,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
         setFormData(prev => ({ ...prev, [name]: value }));
     }, []);
 
-    const toggleMultiSelect = useCallback((field: 'assigned_pis' | 'assigned_coordinators' | 'consent_collection', val: string) => {
+    const toggleMultiSelect = useCallback((field: 'pi_id' | 'coordinator_id' | 'consent_collection', val: string) => {
         setFormData(prev => {
             const list = Array.isArray(prev[field]) ? [...(prev[field] as string[])] : [];
             const index = list.indexOf(val);
@@ -113,12 +231,16 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
     const validation = useMemo(() => {
         const required = ['sponsor_id', 'startDate', 'full_title', 'title', 'indication', 'brief_description'];
         const missingFields = required.filter(f => !formData[f as keyof typeof formData]);
-        const hasPI = Array.isArray(formData.assigned_pis) && formData.assigned_pis.length > 0;
-        const hasCC = Array.isArray(formData.assigned_coordinators) && formData.assigned_coordinators.length > 0;
+        
+        // Step 3 Validation
+        if (formData.reward_amount <= 0) missingFields.push('reward_amount');
+
+        const hasPI = Array.isArray(formData.pi_id) && formData.pi_id.length > 0;
+        const hasCC = Array.isArray(formData.coordinator_id) && formData.coordinator_id.length > 0;
         const hasProtocol = Array.isArray(uploadedDocs) && uploadedDocs.some(d => d.category === 'Protocol');
         
         return {
-            isValid: missingFields.length === 0 && hasPI && hasCC && hasProtocol,
+            isValid: missingFields.length === 0 && hasPI && hasCC,
             missingFields,
             hasPI,
             hasCC,
@@ -126,10 +248,16 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
         };
     }, [formData, uploadedDocs]);
 
+    const mixedSponsors = useMemo(() => {
+        const orgs = displaySponsors.map(o => ({ ...o, type: 'ORGANIZATION', displayName: o.name || o.full_name || 'Unnamed Org' }));
+        const individuals = displaySponsorUsers.map(u => ({ ...u, type: 'PERSONNEL', displayName: u.full_name || u.name || u.email || 'Unnamed Person' }));
+        return [...orgs, ...individuals];
+    }, [displaySponsors, displaySponsorUsers]);
+
     const filteredSponsors = useMemo(() => {
-        if (!sponsorSearch) return displaySponsors;
-        return displaySponsors.filter(s => s?.name?.toLowerCase().includes(sponsorSearch.toLowerCase()));
-    }, [displaySponsors, sponsorSearch]);
+        if (!sponsorSearch) return mixedSponsors;
+        return mixedSponsors.filter(s => s.displayName.toLowerCase().includes(sponsorSearch.toLowerCase()));
+    }, [mixedSponsors, sponsorSearch]);
 
     return (
         <div className="flex flex-col min-h-full pb-32">
@@ -206,12 +334,62 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                 </div>
                                                 <div className="max-h-60 overflow-y-auto">
                                                     {filteredSponsors.map(s => (
-                                                        <div key={s?.id} onClick={() => { setFormData({...formData, sponsor_id: s?.id, sponsor_name: s?.full_name || s?.name}); setShowSponsorDropdown(false); }} className="px-6 py-5 hover:bg-indigo-600 cursor-pointer text-sm font-bold text-slate-300 hover:text-white flex items-center gap-3 transition-all">
-                                                            <Briefcase className="w-4 h-4 text-slate-500 group-hover:text-white" /> {s?.full_name || s?.name}
+                                                        <div key={s?.id} onClick={() => { 
+                                                            setFormData({
+                                                                ...formData, 
+                                                                sponsor_id: s?.type === 'PERSONNEL' ? s?.id : '', 
+                                                                sponsor_org_id: s?.type === 'ORGANIZATION' ? s?.id : '',
+                                                                sponsor_name: s?.displayName
+                                                            }); 
+                                                            setShowSponsorDropdown(false); 
+                                                        }} className="px-6 py-5 hover:bg-indigo-600 cursor-pointer text-sm font-bold text-slate-300 hover:text-white flex items-center gap-3 transition-all">
+                                                            {s?.type === 'ORGANIZATION' ? <Building2 className="w-4 h-4 text-indigo-400 group-hover:text-white" /> : <Briefcase className="w-4 h-4 text-emerald-400 group-hover:text-white" />} 
+                                                            {s?.displayName}
+                                                            {s?.type === 'PERSONNEL' && <span className="ml-auto text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded uppercase tracking-widest">Personnel</span>}
                                                         </div>
                                                     ))}
-                                                    <div className="p-4 border-t border-white/5 bg-indigo-600/5 hover:bg-indigo-600/10 cursor-pointer text-[12px] font-black uppercase text-indigo-400 text-center tracking-widest transition-all">
-                                                        + Add New Sponsor Organization
+                                                    <div className="flex border-t border-white/5 divide-x divide-white/5">
+                                                        <div 
+                                                            onClick={async () => {
+                                                                if (!sponsorSearch) {
+                                                                    alert("Please type the sponsor organization name in the search box first.");
+                                                                    return;
+                                                                }
+                                                                if (window.confirm(`Add "${sponsorSearch}" as a new Sponsor Organization?`)) {
+                                                                    try {
+                                                                        const apiUrl = API || '';
+                                                                        const res = await authFetch(`${apiUrl}/api/sponsor-organizations/`, {
+                                                                            method: 'POST',
+                                                                            body: JSON.stringify({ name: sponsorSearch }) // Only name is supported by the model
+                                                                        });
+                                                                        if (res.ok) {
+                                                                            const newOrg = await res.json();
+                                                                            setFormData({...formData, sponsor_id: '', sponsor_org_id: newOrg.id, sponsor_name: newOrg.name});
+                                                                            setShowSponsorDropdown(false);
+                                                                            setSponsorSearch('');
+                                                                        } else {
+                                                                            const err = await res.json();
+                                                                            alert(`Organization Creation Failed: ${err.name ? 'This organization name already exists.' : 'Invalid data format'}`);
+                                                                        }
+                                                                    } catch (err) {
+                                                                        console.error(err);
+                                                                        alert("A network error occurred while creating the organization.");
+                                                                    }
+                                                                }
+                                                            }}
+                                                            className="flex-1 p-4 bg-indigo-600/5 hover:bg-indigo-600/10 cursor-pointer text-[11px] font-black uppercase text-indigo-400 text-center tracking-widest transition-all"
+                                                        >
+                                                            + Add "{sponsorSearch || 'Org'}"
+                                                        </div>
+                                                        <div 
+                                                            onClick={() => {
+                                                                setShowSponsorDropdown(false);
+                                                                setShowInviteSponsorModal(true);
+                                                            }}
+                                                            className="flex-1 p-4 bg-emerald-600/5 hover:bg-emerald-600/10 cursor-pointer text-[11px] font-black uppercase text-emerald-400 text-center tracking-widest transition-all"
+                                                        >
+                                                            + Invite via Email
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -287,19 +465,42 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                                     {[
-                                        { field: 'trial_model', label: 'Primary Model', options: ['RCT', 'Observational', 'Device Trial'] },
-                                        { field: 'phase', label: 'Clinical Phase', options: ['PHASE_1', 'PHASE_2', 'PHASE_3', 'PHASE_4'] },
-                                        { field: 'masking', label: 'Masking Strategy', options: ['NONE', 'SINGLE_BLIND', 'DOUBLE_BLIND', 'TRIPLE_BLIND'] },
-                                        { field: 'execution_type', label: 'Execution', options: ['IN_PERSON', 'REMOTE', 'HYBRID'] }
+                                        { field: 'trial_model', label: 'Primary Model', options: [
+                                            { val: 'RCT', label: 'RCT' }, 
+                                            { val: 'OBSERVATIONAL', label: 'Observational' }, 
+                                            { val: 'DEVICE_TRIAL', label: 'Device Trial' }
+                                        ]},
+                                        { field: 'phase', label: 'Clinical Phase', options: [
+                                            { val: 'PHASE_1', label: 'Phase 1' }, 
+                                            { val: 'PHASE_2', label: 'Phase 2' }, 
+                                            { val: 'PHASE_3', label: 'Phase 3' }, 
+                                            { val: 'PHASE_4', label: 'Phase 4' }
+                                        ]},
+                                        { field: 'masking', label: 'Masking Strategy', options: [
+                                            { val: 'NONE', label: 'None' }, 
+                                            { val: 'SINGLE_BLIND', label: 'Single Blind' }, 
+                                            { val: 'DOUBLE_BLIND', label: 'Double Blind' }, 
+                                            { val: 'TRIPLE_BLIND', label: 'Triple Blind' }
+                                        ]},
+                                        { field: 'execution_type', label: 'Execution', options: [
+                                            { val: 'IN_PERSON', label: 'In-person' }, 
+                                            { val: 'REMOTE', label: 'Remote' }, 
+                                            { val: 'HYBRID', label: 'Hybrid' }
+                                        ]}
                                     ].map((group) => (
-                                        <div key={group.field} className="space-y-4">
+                                        <div key={group.field} className="space-y-4 relative group">
                                             <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-2">{group.label}</label>
-                                            <div className="space-y-2">
+                                            <select 
+                                                value={formData[group.field as keyof typeof formData] as string}
+                                                onChange={(e) => setFormData({...formData, [group.field]: e.target.value})}
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-[12px] font-black uppercase tracking-widest text-indigo-400 outline-none hover:border-indigo-500/30 transition-all appearance-none cursor-pointer italic"
+                                            >
                                                 {group.options.map(opt => (
-                                                    <button key={opt} onClick={() => setFormData({...formData, [group.field]: opt})} className={`w-full text-left px-5 py-4 rounded-xl text-[12px] font-black tracking-widest uppercase transition-all border ${formData[group.field as keyof typeof formData] === opt ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg' : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20'}`}>
-                                                        {opt.replace('_', ' ')}
-                                                    </button>
+                                                    <option key={opt.val} value={opt.val} className="bg-[#0B1120] text-slate-300 font-bold">{opt.label}</option>
                                                 ))}
+                                            </select>
+                                            <div className="absolute right-6 bottom-4 pointer-events-none opacity-40">
+                                                <ChevronDown className="w-4 h-4" />
                                             </div>
                                         </div>
                                     ))}
@@ -335,8 +536,76 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                 </div>
 
                                 <div className="pt-8 border-t border-white/5 space-y-8">
-                                    <label className="text-[15px] font-black text-slate-500 uppercase tracking-widest ml-2">Participant Payment</label>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="flex items-center justify-between ml-2">
+                                        <label className="text-[15px] font-black text-slate-500 uppercase tracking-widest italic">Clinical Logistics (Study Kits)</label>
+                                        <div className="flex items-center gap-3 bg-white/5 p-1 rounded-xl border border-white/10">
+                                            <button 
+                                                onClick={() => setFormData({...formData, uses_kit: !formData.uses_kit})}
+                                                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${formData.uses_kit ? 'bg-cyan-600 text-white shadow-lg' : 'text-slate-500'}`}
+                                            >
+                                                Kit Required
+                                            </button>
+                                            <button 
+                                                onClick={() => setFormData({...formData, uses_kit: !formData.uses_kit})}
+                                                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${!formData.uses_kit ? 'bg-slate-700 text-white' : 'text-slate-500'}`}
+                                            >
+                                                No Kit
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {formData.uses_kit && (
+                                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-8">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                <div className="bg-white/5 border border-white/5 rounded-2xl p-6">
+                                                    <p className="text-[12px] font-black text-cyan-400 uppercase tracking-widest mb-3">Dispatch Workflow</p>
+                                                    <div className="flex items-center gap-4">
+                                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                                            <input 
+                                                                type="checkbox" 
+                                                                checked={formData.kit_dispatch_required}
+                                                                onChange={(e) => setFormData({...formData, kit_dispatch_required: e.target.checked})}
+                                                                className="hidden"
+                                                            />
+                                                            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.kit_dispatch_required ? 'bg-cyan-600 border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.3)]' : 'border-white/20'}`}>
+                                                                {formData.kit_dispatch_required && <CheckSquare className="w-4 h-4 text-white" />}
+                                                            </div>
+                                                            <span className="text-[12px] font-black text-white uppercase tracking-widest group-hover:text-cyan-300 transition-colors">Enable Local Dispatch System</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-white/5 border border-white/5 rounded-2xl p-6">
+                                                    <p className="text-[12px] font-black text-cyan-400 uppercase tracking-widest mb-3">Sync Strategy</p>
+                                                    <div className="flex items-center gap-4">
+                                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                                            <input 
+                                                                type="checkbox" 
+                                                                checked={formData.kit_tracking_enabled}
+                                                                onChange={(e) => setFormData({...formData, kit_tracking_enabled: e.target.checked})}
+                                                                className="hidden"
+                                                            />
+                                                            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.kit_tracking_enabled ? 'bg-indigo-600 border-indigo-500' : 'border-white/20'}`}>
+                                                                {formData.kit_tracking_enabled && <CheckSquare className="w-4 h-4 text-white" />}
+                                                            </div>
+                                                            <span className="text-[12px] font-black text-white uppercase tracking-widest group-hover:text-indigo-300 transition-colors">Real-time Courier Tracking</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-4">
+                                                <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-2">Kit Contents & Protocol Description</label>
+                                                <textarea 
+                                                    name="kit_description"
+                                                    value={formData.kit_description}
+                                                    onChange={handleChange}
+                                                    placeholder="Specify swabs, tubes, sensors, or other medical supplies included..."
+                                                    className="w-full h-24 bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-[12px] text-white font-medium outline-none focus:border-cyan-500/50 resize-none placeholder:opacity-20 italic"
+                                                />
+                                            </div>
+                                        </motion.div>
+                                    )}
+
+                                    <div className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="bg-white/5 border border-white/5 rounded-2xl p-6">
                                             <p className="text-[12px] font-black text-indigo-400 uppercase tracking-widest mb-3">Stipend Amount</p>
                                             <div className="flex items-center gap-4">
@@ -370,6 +639,138 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                     )}
 
                     {currentStep === 3 && (
+                        <motion.div key="step3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-12 will-change-transform">
+                            <div className="bg-[#0B101B]/80 backdrop-blur-xl border border-white/5 rounded-[3.5rem] p-12 space-y-12 shadow-xl relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-12 opacity-5"><Award className="w-48 h-48 text-white" /></div>
+                                <div className="flex items-center gap-4 border-l-4 border-[#14b8a6] pl-8">
+                                    <h3 className="text-3xl font-black text-white uppercase tracking-tighter italic">Clinical Incentives</h3>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                    <div className="space-y-6">
+                                        <label className="text-[15px] font-black text-slate-500 uppercase tracking-widest ml-2 italic">Reward Type</label>
+                                        <div className="grid grid-cols-1 gap-4">
+                                            {[
+                                                { label: 'CASH PAYMENT', val: 'CASH', sub: 'Direct bank transfer or check' },
+                                                { label: 'DIGITAL COUPONS', val: 'COUPONS', sub: 'Retailer gift cards or vouchers' },
+                                                { label: 'MIXED REWARDS', val: 'MIXED', sub: 'Combined cash and digital incentives' }
+                                            ].map(opt => (
+                                                <button key={opt.val} onClick={() => setFormData({...formData, reward_type: opt.val})} className={`text-left px-8 py-6 rounded-[2rem] border transition-all ${formData.reward_type === opt.val ? 'bg-[#14b8a6]/10 border-[#14b8a6] text-white shadow-lg shadow-[#14b8a6]/10' : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20'}`}>
+                                                    <p className="text-[14px] font-black uppercase tracking-widest leading-none">{opt.label}</p>
+                                                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-2 italic">{opt.sub}</p>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        <label className="text-[15px] font-black text-slate-500 uppercase tracking-widest ml-2 italic">Incentive Logic</label>
+                                        <div className="grid grid-cols-1 gap-4">
+                                            {[
+                                                { label: 'PER ACTIVITY', val: 'PER_TASK', sub: 'Pay for each completed task/form' },
+                                                { label: 'PER CLINICAL VISIT', val: 'PER_VISIT', sub: 'Pay per verified in-person/remote visit' },
+                                                { label: 'MILESTONE COMPLETION', val: 'FULL_STUDY', sub: 'Lump sum at final study endpoint' }
+                                            ].map(opt => (
+                                                <button key={opt.val} onClick={() => setFormData({...formData, reward_logic: opt.val})} className={`text-left px-8 py-6 rounded-[2rem] border transition-all ${formData.reward_logic === opt.val ? 'bg-[#14b8a6]/10 border-[#14b8a6] text-white shadow-lg shadow-[#14b8a6]/10' : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20'}`}>
+                                                    <p className="text-[14px] font-black uppercase tracking-widest leading-none">{opt.label}</p>
+                                                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-2 italic">{opt.sub}</p>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="pt-8 border-t border-white/5 space-y-8">
+                                    <div className="bg-white/5 border border-white/5 rounded-[2.5rem] p-10">
+                                        <div className="flex items-center gap-4 mb-8">
+                                            <div className="w-10 h-10 rounded-xl bg-[#14b8a6]/10 flex items-center justify-center border border-[#14b8a6]/20">
+                                                <DollarSign className="w-5 h-5 text-[#14b8a6]" />
+                                            </div>
+                                            <h4 className="text-[15px] font-black text-white uppercase tracking-widest italic">Compensation Values</h4>
+                                        </div>
+
+                                        {formData.reward_logic === 'PER_TASK' && (
+                                            <div className="space-y-6">
+                                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] italic">Assign rewards for specific participant tasks or questionnaires:</p>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="bg-black/20 rounded-2xl p-6 border border-white/5 flex items-center justify-between">
+                                                        <span className="text-[12px] font-black text-white uppercase tracking-widest">Base Task Reward</span>
+                                                        <input 
+                                                            type="number" 
+                                                            value={formData.reward_config?.tasks?.default || 25}
+                                                            onChange={(e) => setFormData({
+                                                                ...formData, 
+                                                                reward_config: {
+                                                                    ...formData.reward_config, 
+                                                                    tasks: { ...formData.reward_config.tasks, default: parseInt(e.target.value) || 0 }
+                                                                }
+                                                            })}
+                                                            className="w-24 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-right text-[#14b8a6] font-mono font-bold outline-none" 
+                                                        />
+                                                    </div>
+                                                    <div className="bg-black/20 rounded-2xl p-6 border border-white/5 flex items-center justify-between opacity-50">
+                                                        <span className="text-[12px] font-black text-white uppercase tracking-widest">Custom Task Mapping</span>
+                                                        <span className="text-[10px] font-black uppercase tracking-widest bg-white/10 px-3 py-1 rounded-lg">Managed via logic.json</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {formData.reward_logic === 'PER_VISIT' && (
+                                            <div className="space-y-6">
+                                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] italic">Assign rewards for validated clinical visits:</p>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="bg-black/20 rounded-2xl p-6 border border-white/5 flex items-center justify-between">
+                                                        <span className="text-[12px] font-black text-white uppercase tracking-widest">Standard Visit Stipend</span>
+                                                        <input 
+                                                            type="number" 
+                                                            value={formData.reward_config?.visits?.default || 100}
+                                                            onChange={(e) => setFormData({
+                                                                ...formData, 
+                                                                reward_config: {
+                                                                    ...formData.reward_config, 
+                                                                    visits: { ...formData.reward_config.visits, default: parseInt(e.target.value) || 0 }
+                                                                }
+                                                            })}
+                                                            className="w-24 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-right text-[#14b8a6] font-mono font-bold outline-none" 
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {formData.reward_logic === 'FULL_STUDY' && (
+                                            <div className="space-y-6">
+                                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] italic">Assign a lump sum for completing the entire study lifecycle:</p>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="bg-black/20 rounded-2xl p-6 border border-white/5 flex items-center justify-between">
+                                                        <span className="text-[12px] font-black text-white uppercase tracking-widest">Graduation Reward</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[12px] font-mono text-slate-500">$</span>
+                                                            <input 
+                                                                type="number" 
+                                                                value={formData.reward_config?.full_study || 1000}
+                                                                onChange={(e) => setFormData({
+                                                                    ...formData, 
+                                                                    reward_config: {
+                                                                        ...formData.reward_config, 
+                                                                        full_study: parseInt(e.target.value) || 0 
+                                                                    }
+                                                                })}
+                                                                className="w-24 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-right text-[#14b8a6] font-mono font-bold outline-none" 
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {currentStep === 4 && (
                         <motion.div key="step3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-12 will-change-transform">
                             <div className="bg-[#0B101B]/80 backdrop-blur-xl border border-white/5 rounded-[3.5rem] p-12 space-y-12 shadow-xl relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-12 opacity-5"><Users className="w-48 h-48 text-white" /></div>
@@ -411,12 +812,106 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                             ))}
                                         </div>
                                     </div>
+                                    
+                            {currentStep === 4 && (
+                                <div className="space-y-12 max-w-5xl mx-auto">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/5 pb-8">
+                                        <div className="space-y-2">
+                                            <h3 className="text-2xl font-black text-white italic uppercase tracking-tight">Clinical Team Access</h3>
+                                            <p className="text-[12px] text-slate-500 font-bold uppercase tracking-widest italic">Assign authorized personnel to this protocol</p>
+                                        </div>
+                                        <button 
+                                            onClick={() => { setInviteMemberRole('PI'); setShowInviteMemberModal(true); }}
+                                            className="px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-[11px] font-black uppercase tracking-widest text-indigo-400 hover:bg-indigo-500/10 transition-all flex items-center gap-3"
+                                        >
+                                            <UserPlus className="w-4 h-4" /> Invite Member
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                        {/* PI Selection */}
+                                        <div className="space-y-6">
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-2 flex items-center gap-2">
+                                                    <ShieldCheck className="w-4 h-4 text-indigo-500" /> Principal Investigator
+                                                </label>
+                                                <span className="text-[10px] font-black text-indigo-500/50 uppercase tracking-tighter">Required</span>
+                                            </div>
+                                            <div className="relative group">
+                                                <select 
+                                                    value={formData.pi_id?.[0] || ''}
+                                                    onChange={(e) => setFormData({...formData, pi_id: e.target.value ? [e.target.value] : []})}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 text-[12px] font-black uppercase tracking-widest text-indigo-400 outline-none hover:border-indigo-500/30 transition-all appearance-none cursor-pointer italic"
+                                                >
+                                                    <option value="" className="bg-[#0B1120]">Select PI...</option>
+                                                    {availablePIs.map(pi => (
+                                                        <option key={pi.id} value={pi.id} className="bg-[#0B1120] text-slate-300 font-bold">{pi.full_name || pi.name || pi.email}</option>
+                                                    ))}
+                                                </select>
+                                                <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                                                    <ChevronDown className="w-4 h-4" />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Coordinator Selection */}
+                                        <div className="space-y-6">
+                                            <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-2 flex items-center gap-2">
+                                                <Users className="w-4 h-4 text-emerald-500" /> Research Staff
+                                            </label>
+                                            <div className="relative group">
+                                                <div className="min-h-[60px] w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 flex flex-wrap gap-2 items-center">
+                                                    {formData.coordinator_id?.map(cid => {
+                                                        const c = availableCoordinators.find(x => x.id === cid);
+                                                        return (
+                                                            <div key={cid} className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-1.5 flex items-center gap-2">
+                                                                <span className="text-[11px] font-black text-emerald-400 uppercase italic">{c?.full_name || c?.name || 'Staff'}</span>
+                                                                <button onClick={() => setFormData({...formData, coordinator_id: formData.coordinator_id?.filter(x => x !== cid)})} className="text-emerald-500 hover:text-white transition-colors">
+                                                                    <X className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    <select 
+                                                        onChange={(e) => {
+                                                            if (e.target.value && !formData.coordinator_id?.includes(e.target.value)) {
+                                                                setFormData({...formData, coordinator_id: [...(formData.coordinator_id || []), e.target.value]});
+                                                            }
+                                                            e.target.value = '';
+                                                        }}
+                                                        className="bg-transparent border-none text-[11px] font-black uppercase tracking-widest text-slate-500 outline-none cursor-pointer italic flex-1 min-w-[120px]"
+                                                    >
+                                                        <option value="" className="bg-[#0B1120]">Add Staff...</option>
+                                                        {availableCoordinators.filter(c => !formData.coordinator_id?.includes(c.id)).map(c => (
+                                                            <option key={c.id} value={c.id} className="bg-[#0B1120] text-slate-400 font-bold">{c.full_name || c.name || c.email}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-3xl p-8 flex items-start gap-6">
+                                        <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center shrink-0 border border-indigo-500/20">
+                                            <AlertCircle className="w-6 h-6 text-indigo-400" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <h4 className="text-[12px] font-black text-white uppercase tracking-widest">Protocol Access Governance</h4>
+                                            <p className="text-[12px] text-slate-400 leading-relaxed font-bold italic">
+                                                By assigning personnel, you grant them access to PII, study endpoints, and clinical records. 
+                                                Ensure all team members have valid GXP certification on file.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                                    
                                 </div>
                             </div>
                         </motion.div>
                     )}
 
-                    {currentStep === 4 && (
+                    {currentStep === 5 && (
                         <motion.div key="step4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-12 will-change-transform">
                             <div className="bg-[#0B101B]/80 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-12 shadow-xl relative overflow-hidden flex flex-col items-center justify-center py-20 min-h-[500px]">
                                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent" />
@@ -473,7 +968,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                         </motion.div>
                     )}
 
-                    {currentStep === 5 && (
+                    {currentStep === 6 && (
                         <motion.div key="step5" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-12 will-change-transform">
                             <div className="bg-[#0B101B]/80 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-12 space-y-12 shadow-xl relative overflow-hidden">
                                 <div className="flex items-center justify-between">
@@ -508,7 +1003,11 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                     <p className="text-sm font-black text-emerald-400 mt-1 uppercase italic truncate">{formData.indication || "NOT SPECIFIED"}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[12px] font-black text-slate-600 uppercase tracking-widest">Compensation</p>
+                                                    <p className="text-[12px] font-black text-slate-600 uppercase tracking-widest">Incentive Loop</p>
+                                                    <p className="text-sm font-black text-white mt-1 uppercase italic truncate">{formData.reward_type} / {formData.reward_logic.replace('_', ' ')}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[12px] font-black text-slate-600 uppercase tracking-widest">Base Stipend</p>
                                                     <p className="text-lg font-black text-emerald-400 mt-1 italic">
                                                         {isNaN(Number(formData.compensation)) ? formData.compensation : `${formData.compensation_currency === 'USD' ? '$' : formData.compensation_currency}${formData.compensation}`}
                                                     </p>
@@ -586,7 +1085,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                         Discard <span className="opacity-0 group-hover:opacity-100 transition-opacity">Study</span>
                     </button>
                     
-                    {currentStep < 5 ? (
+                    {currentStep < 6 ? (
                         <button onClick={handleNext} className="px-12 py-5 bg-indigo-600 text-white rounded-2xl flex items-center gap-4 shadow-2xl shadow-indigo-600/30 hover:scale-[1.02] active:scale-95 transition-all group">
                             <span className="text-[12px] font-black uppercase tracking-[0.2em]">Next Step</span>
                             <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -608,6 +1107,69 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                     )}
                 </div>
             </div>
+
+            {/* Invite Modals */}
+            <AnimatePresence>
+                {(showInviteMemberModal || showInviteSponsorModal) && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-[#0B101B]/95 backdrop-blur-xl">
+                        <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="w-full max-w-lg bg-[#0F172A] border border-white/10 rounded-[2.5rem] p-10 space-y-8 shadow-2xl">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-2xl font-black text-white italic uppercase tracking-tight">
+                                    {showInviteSponsorModal ? 'Invite Sponsor Representative' : `Invite ${inviteMemberRole}`}
+                                </h3>
+                                <button onClick={() => { setShowInviteMemberModal(false); setShowInviteSponsorModal(false); }} className="p-2 hover:bg-white/5 rounded-xl transition-colors"><X className="w-6 h-6 text-slate-500" /></button>
+                            </div>
+
+                            <form onSubmit={(e) => { e.preventDefault(); showInviteSponsorModal ? handleInviteSponsor(e) : handleInvitePersonnel(e); }} className="space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Full Name</label>
+                                    <input 
+                                        type="text" 
+                                        required
+                                        value={inviteData.name} 
+                                        onChange={e => setInviteData({...inviteData, name: e.target.value})} 
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold outline-none focus:border-indigo-500/50" 
+                                        placeholder="John Doe"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Professional Email</label>
+                                    <input 
+                                        type="email" 
+                                        required
+                                        value={inviteData.email} 
+                                        onChange={e => setInviteData({...inviteData, email: e.target.value})} 
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold outline-none focus:border-indigo-500/50" 
+                                        placeholder="john@organization.com"
+                                    />
+                                </div>
+                                {!showInviteSponsorModal && (
+                                    <div className="space-y-2">
+                                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Clinical Role</label>
+                                        <select 
+                                            value={inviteMemberRole}
+                                            onChange={(e) => setInviteMemberRole(e.target.value as any)}
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold outline-none"
+                                        >
+                                            <option value="PI" className="bg-[#0F172A]">Principal Investigator</option>
+                                            <option value="COORDINATOR" className="bg-[#0F172A]">Clinical Coordinator</option>
+                                            <option value="STUDY_STAFF" className="bg-[#0F172A]">Research Assistant</option>
+                                        </select>
+                                    </div>
+                                )}
+                                <button 
+                                    type="submit" 
+                                    disabled={inviteLoading}
+                                    className="w-full py-5 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-indigo-500 transition-all flex items-center justify-center gap-3 shadow-lg shadow-indigo-600/20"
+                                >
+                                    {inviteLoading ? <Activity className="w-5 h-5 animate-spin" /> : <Rocket className="w-5 h-5" />}
+                                    {inviteLoading ? 'Sending Credentials...' : 'Send Secure Invitation'}
+                                </button>
+                            </form>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

@@ -492,7 +492,7 @@ function ComplianceModule() {
                             <ShieldCheck className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                            <p className="text-[12px] font-black text-white uppercase italic tracking-widest">Node Synchronization</p>
+                            <p className="text-[12px] font-black text-white uppercase italic tracking-widest">System Synchronization</p>
                             <p className="text-[12px] text-cyan-300/60 font-black uppercase tracking-widest mt-1">Research Terminal Status: Encrypted & Verified</p>
                         </div>
                     </div>

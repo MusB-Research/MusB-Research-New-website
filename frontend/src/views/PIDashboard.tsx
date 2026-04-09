@@ -381,7 +381,7 @@ export default function PIDashboard() {
 
                 <div className="flex items-center gap-6">
                     <div className="hidden xl:flex items-center gap-3 bg-white/5 p-1.5 rounded-2xl border border-white/10">
-                        <div className="px-4 text-[12px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/10">PROTOCOL NODE</div>
+                        <div className="px-4 text-[12px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/10">PROTOCOL</div>
                         <select
                             value={globalSelectedStudyId}
                             onChange={(e) => setGlobalSelectedStudyId(e.target.value)}
@@ -721,7 +721,7 @@ function OversightModule({ studyCount, stats, onLaunch, onNavigate }: { studyCou
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 border-t border-white/5 pt-10">
                 {[
                     { label: 'Alert Center', sub: '02 New Notifications', icon: Bell, id: 'ALERTS' },
-                    { label: 'Messaging Node', sub: '05 Unread Messages', icon: MessageSquare, id: 'MESSAGES' },
+                    { label: 'Message Center', sub: '05 Unread Messages', icon: MessageSquare, id: 'MESSAGES' },
                     { label: 'Study Archive', sub: '12 Recent Uploads', icon: FileText, id: 'STUDY_DOCS' },
                     { label: 'Verified Docs', sub: '01 Expiry Warning', icon: ShieldCheck, id: 'MY_DOCS' }
                 ].map((card, i) => (
@@ -818,8 +818,8 @@ function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd
                             </div>
                         </div>
                         <div className="p-6 rounded-2xl bg-indigo-500/5 border border-indigo-500/10">
-                            <p className="text-[12px] font-black text-indigo-400 uppercase tracking-widest">Next Milestone</p>
-                            <p className="text-sm font-black text-white italic mt-2 uppercase tracking-tight">{study.next_milestone || "Recruitment Closing"}</p>
+                            <p className="text-[12px] font-black text-indigo-400 uppercase tracking-widest">Clinical Lifecycle Stage</p>
+                            <p className="text-sm font-black text-white italic mt-2 uppercase tracking-tight">{study.stage?.replace(/_/g, ' ') || study.status || "Unknown"}</p>
                         </div>
                         <button
                             onClick={() => onEdit(study)}

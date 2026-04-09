@@ -242,7 +242,7 @@ export default function SuperAdminDashboard() {
 
   const formatName = useCallback((name: string) => {
     if (!name) return 'Unknown User';
-    if (name.startsWith('gAAAA')) return 'Node Identity Locked';
+    if (name.startsWith('gAAAA')) return 'Identity Locked';
     return name;
   }, []);
 
@@ -405,7 +405,8 @@ export default function SuperAdminDashboard() {
         target_screened: formData.target_subjects,
         pi_ids: formData.assigned_pis,
         coordinator_ids: formData.assigned_coordinators,
-        sponsor_id: formData.sponsor_id
+        sponsor_org_id: formData.sponsor_org_id,
+        stage: formData.stage
       };
 
       const url = selectedStudy
@@ -450,7 +451,7 @@ export default function SuperAdminDashboard() {
         setSelectedStudy(null);
       } else {
         const err = await res.json();
-        alert(`${selectedStudy ? 'Metadata Sync' : 'Deployment'} failed at node: ${JSON.stringify(err)}`);
+        alert(`${selectedStudy ? 'Metadata Sync' : 'Deployment'} failed: ${JSON.stringify(err)}`);
       }
     } catch (e) {
       alert("❌ CRITICAL INTERFACE FAILURE: Terminal connection refused or high-latency interference detected.");
@@ -790,9 +791,9 @@ export default function SuperAdminDashboard() {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-white/[0.02] text-[12px] font-black text-[#555a7a] uppercase tracking-[0.3em] italic border-b border-white/5">
-                  <th className="px-10 py-6">Name & Node Access</th>
+                  <th className="px-10 py-6">Name & Access</th>
                   <th className="px-10 py-6">Privilege Level</th>
-                  <th className="px-10 py-6">Node Status</th>
+                  <th className="px-10 py-6">Status</th>
                   <th className="px-10 py-6">Last Interface Login</th>
                   <th className="px-10 py-6 text-right">System Actions</th>
                 </tr>
@@ -972,7 +973,7 @@ export default function SuperAdminDashboard() {
                   <th className="px-10 py-8">Study Details</th>
                   <th className="px-8 py-8">Sponsor</th>
                   <th className="px-8 py-8">Medical Team</th>
-                  <th className="px-8 py-8">Phase / Type</th>
+                  <th className="px-8 py-8">Clinical Matrix Stage</th>
                   <th className="px-8 py-8">Participants</th>
                   <th className="px-8 py-8">Status</th>
                   <th className="px-10 py-8 text-right">Master Control</th>
@@ -988,7 +989,7 @@ export default function SuperAdminDashboard() {
                         </div>
                         <div>
                           <p className="text-base md:text-lg font-black text-white italic group-hover:text-blue-400 transition-colors uppercase tracking-tight">{study.title}</p>
-                          <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-widest mt-1">Protocol: {study.protocol_id}</p>
+                          <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-widest mt-1">STUDY ID: {study.protocol_id}</p>
                         </div>
                       </div>
                     </td>
@@ -1503,7 +1504,7 @@ export default function SuperAdminDashboard() {
           body: JSON.stringify({ title, content, type })
         });
         if (res.ok) {
-          alert("📡 TRANSMISSION CASCADE INITIATED\nBroadcast has been propagated to all nodes.");
+          alert("📡 TRANSMISSION CASCADE INITIATED\nBroadcast has been propagated to all systems.");
           setModals({ ...modals, createAnnouncement: false });
           fetchData();
         } else {
@@ -1570,7 +1571,7 @@ export default function SuperAdminDashboard() {
         <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">MUSB <span className="text-[#818cf8]">Internal Team</span></h1>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {internalTeam.length === 0 ? (
-            <div className="col-span-4 py-20 text-center opacity-30 italic uppercase tracking-[0.2em] text-[12px]">No internal team members detected in node</div>
+            <div className="col-span-4 py-20 text-center opacity-30 italic uppercase tracking-[0.2em] text-[12px]">No internal team members detected</div>
           ) : (
             internalTeam.map((u, i) => (
               <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-8 text-center hover:border-indigo-500/30 transition-all group">
@@ -1579,7 +1580,7 @@ export default function SuperAdminDashboard() {
                 </div>
                 <h4 className="text-xl font-black text-white uppercase italic tracking-tighter truncate px-2">{u.name}</h4>
                 <p className="text-[12px] text-[#555a7a] mt-3 font-black uppercase tracking-widest leading-relaxed">
-                  {u.role === 'SUPER_ADMIN' ? 'Master Admin / Root' : 'Node Controller'}
+                  {u.role === 'SUPER_ADMIN' ? 'Master Admin / Root' : 'Team Controller'}
                 </p>
                 <button
                   onClick={() => viewDetails(u)}
@@ -1726,7 +1727,7 @@ export default function SuperAdminDashboard() {
             {studyInquiries.length === 0 ? (
               <div className="col-span-full py-20 bg-[#0f1133] rounded-[3rem] border border-white/5 text-center">
                 <Server className="w-12 h-12 text-[#555a7a] mx-auto mb-6 animate-pulse" />
-                <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-[0.3em]">No incoming study queries at this node</p>
+                <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-[0.3em]">No incoming study queries</p>
               </div>
             ) : (
               studyInquiries.map((iq, i) => (
@@ -2094,7 +2095,7 @@ export default function SuperAdminDashboard() {
                 disabled={isCreating}
                 className="flex-[2] py-5 bg-[#7c3aed] text-white rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] italic shadow-xl shadow-purple-900/40 hover:scale-[1.02] transition-all disabled:opacity-50"
               >
-                {isCreating ? 'Synchronizing Node...' : 'Authorize & Dispatch Credentials'}
+                {isCreating ? 'Synchronizing...' : 'Authorize & Dispatch Credentials'}
               </button>
             </div>
           </form>
@@ -2198,7 +2199,7 @@ export default function SuperAdminDashboard() {
           <div className="hidden lg:flex flex-col">
             <h1 className="text-2xl lg:text-3xl font-black text-white tracking-tighter uppercase italic">MASTER TERMINAL</h1>
             <div className="flex items-center gap-2">
-              <span className="text-[12px] font-black uppercase tracking-[0.4em] text-purple-400 font-mono italic">SUPERADMIN NODE</span>
+              <span className="text-[12px] font-black uppercase tracking-[0.4em] text-purple-400 font-mono italic">SUPERADMIN PORTAL</span>
             </div>
           </div>
           <div className="flex items-center gap-4 lg:hidden">
@@ -2277,7 +2278,7 @@ export default function SuperAdminDashboard() {
                   >
                     <div className="p-5 border-b border-white/5 mb-2">
                       <p className="text-sm font-black text-white uppercase italic truncate tracking-tight">{currentUserName}</p>
-                      <p className="text-[12px] text-purple-400 font-black uppercase tracking-widest mt-2">Master Access Node</p>
+                      <p className="text-[12px] text-purple-400 font-black uppercase tracking-widest mt-2">Master Access Portal</p>
                     </div>
                     <button
                       onClick={handleSignOut}
@@ -2381,7 +2382,7 @@ export default function SuperAdminDashboard() {
                 <LayoutDashboard className="w-12 h-12 text-[#555a7a] animate-pulse" />
               </div>
               <div>
-                <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">{currentPage.replace('_', ' ')} <span className="text-[#7c3aed]">Node</span></h2>
+                <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">{currentPage.replace('_', ' ')} <span className="text-[#7c3aed]">Portal</span></h2>
                 <p className="text-[#555a7a] font-black uppercase tracking-[0.4em] text-[12px] mt-4">Module synchronization in progress for secure terminal access</p>
               </div>
             </div>
