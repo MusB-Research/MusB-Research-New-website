@@ -859,12 +859,12 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                 </label>
                                                 <div className="relative group">
                                                     <div className="min-h-[60px] w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 flex flex-wrap gap-2 items-center">
-                                                        {formData.coordinator_id?.map(cid => {
-                                                            const c = availableCoordinators.find(x => x.id === cid);
+                                                        {formData.coordinator_id?.map((cid: string) => {
+                                                            const c = availableCoordinators.find((x: any) => x.id === cid);
                                                             return (
                                                                 <div key={cid} className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-1.5 flex items-center gap-2">
                                                                     <span className="text-[11px] font-black text-emerald-400 uppercase italic">{c?.full_name || c?.name || 'Staff'}</span>
-                                                                    <button onClick={() => setFormData({ ...formData, coordinator_id: formData.coordinator_id?.filter(x => x !== cid) })} className="text-emerald-500 hover:text-white transition-colors">
+                                                                    <button onClick={() => setFormData({ ...formData, coordinator_id: formData.coordinator_id?.filter((x: string) => x !== cid) })} className="text-emerald-500 hover:text-white transition-colors">
                                                                         <X className="w-3.5 h-3.5" />
                                                                     </button>
                                                                 </div>

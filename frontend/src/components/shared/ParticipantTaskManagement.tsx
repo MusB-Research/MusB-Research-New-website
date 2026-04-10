@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, List, Calendar, Clock, Lock, CheckCircle2, AlertCircle, Search, Filter, Shield, User, HelpCircle, ArrowRight } from 'lucide-react';
+import { Plus, List, Calendar, Clock, Lock, CheckCircle2, AlertCircle, Search, Filter, Shield, User, HelpCircle, ArrowRight, FileText, Activity } from 'lucide-react';
 import { authFetch, API } from '../../utils/auth';
 
 interface ParticipantTask {

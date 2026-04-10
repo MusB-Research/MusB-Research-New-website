@@ -14,7 +14,7 @@ import { authFetch, API } from '../../utils/auth';
 
 import PIsManagement from './PIsManagement';
 import CoordinatorsManagement from './CoordinatorsManagement';
-import SponsorsManagement from './SponsorsManagement';
+// import SponsorsManagement from './SponsorsManagement'; // Removed broken reference
 import ParticipantsManagement from './ParticipantsManagement';
 
 type TeamTab = 'PI' | 'COORDINATOR' | 'SPONSOR' | 'PARTICIPANT';
@@ -136,11 +136,10 @@ export default function TeamModule() {
                     />
                 )}
                 {activeTab === 'SPONSOR' && (
-                    <SponsorsManagement 
-                        allUsers={allUsers} 
-                        allStudies={allStudies} 
-                        onRefresh={fetchData} 
-                    />
+                    <div className="p-20 text-center bg-white/5 rounded-[3rem] border border-white/10 italic text-slate-500 font-black uppercase tracking-widest leading-loose">
+                        Sponsor Management Terminal<br/>
+                        <span className="text-[10px] text-indigo-400 not-italic opacity-60">Authentication Layer Under Maintenance</span>
+                    </div>
                 )}
                 {activeTab === 'PARTICIPANT' && (
                     <ParticipantsManagement 

@@ -709,7 +709,7 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                                     {(selectedParticipant?.aeReports || []).length === 0 ? (
                                                         <p className="text-[10px] text-slate-600 italic text-center py-4 uppercase font-black tracking-widest">No active medical findings</p>
                                                     ) : (
-                                                        selectedParticipant.aeReports.map((ae, idx) => (
+                                                        selectedParticipant?.aeReports.map((ae, idx) => (
                                                             <div key={idx} className="p-4 border border-white/5 rounded-2xl bg-white/5 space-y-2">
                                                                 <div className="flex items-center justify-between">
                                                                     <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${

@@ -23,7 +23,13 @@ interface Document {
     type: 'pdf' | 'image' | 'doc' | 'csv';
 }
 
-const DocumentsView = ({ study }: { study?: any }) => {
+interface DocumentsViewProps {
+    study?: any;
+    signatures?: any[];
+    assignedForms?: any[];
+}
+
+const DocumentsView = ({ study, signatures = [], assignedForms = [] }: DocumentsViewProps) => {
     // --- State ---
     const [searchQuery, setSearchQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
