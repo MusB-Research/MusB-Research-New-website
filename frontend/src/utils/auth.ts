@@ -143,8 +143,8 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
         headers: authHeaders,
     });
 
-    // On 401, attempt ONE refresh (using the global mutex)
-    if (response.status === 401) {
+    // On 401/403, attempt ONE refresh (using the global mutex)
+    if (response.status === 401 || response.status === 403) {
         const refreshed = await getRefreshLock();
 
         if (refreshed) {
@@ -159,8 +159,8 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
                 headers: retryHeaders,
             });
 
-            // If retry still fails with 401, the session is genuinely dead — redirect
-            if (retryResponse.status === 401) {
+            // If retry still fails with 401/403, the session is genuinely dead — redirect
+            if (retryResponse.status === 401 || retryResponse.status === 403) {
                 await clearToken();
                 redirectToLogin();
             }

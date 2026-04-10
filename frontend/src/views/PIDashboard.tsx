@@ -4,15 +4,15 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authFetch, clearToken, getRole, performLogout, getUser, getDisplayName, API } from '../utils/auth';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
-import SubmitContentForms from '../components/admin/SubmitContentForms';
-import LaunchStudyForm from '../components/admin/LaunchStudyForm';
-import SponsorsManagement from '../components/admin/SponsorsManagement';
+import SubmitContentForms from '../components/coordinator/SubmitContentForms';
+import LaunchStudyForm from '../components/coordinator/LaunchStudyForm';
+import SponsorsManagement from '../components/coordinator/SponsorsManagement';
 import PIMessagesModule from '../components/pi/PIMessagesModule';
 import PISubjectReviewModule from '../components/pi/PISubjectReviewModule';
 import PITeamModule from '../components/pi/PITeamModule';
-import PIVisitsAssessmentsModule from '../components/pi/PIVisitsAssessmentsModule';
+import PIVisitsAssessmentsModule from '../components/pi/VisitsModule';
 import PIHelpSupportModule from '../components/pi/PIHelpSupportModule';
-import QuestionnaireBuilder from '../components/pi/QuestionnaireBuilder';
+
 
 // New PI Panel Modules
 import ParticipantOversight from '../components/pi/panels/ParticipantOversight';
@@ -115,9 +115,9 @@ export default function PIDashboard() {
         const path = location.pathname.toLowerCase().replace(/\/$/, "");
         const parts = path.split('/');
         const route = parts[parts.length - 1];
-        
+
         console.log("[PIDashboard] Route sync:", { path, route });
-        
+
         if (route === 'pi' || !route || route === 'oversight') setActiveModule('OVERSIGHT');
         else if (route === 'studies') setActiveModule('STUDIES');
         else if (route === 'participants') setActiveModule('PARTICIPANTS');
@@ -195,15 +195,29 @@ export default function PIDashboard() {
         }
     }, [navigate]);
 
+    const notificationRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
                 setIsProfileOpen(false);
             }
+            if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+                // If we had an isNotificationOpen state, we'd close it here
+            }
         };
+
+        const handleScroll = () => {
+            if (isProfileOpen) setIsProfileOpen(false);
+        };
+
         document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+        window.addEventListener('scroll', handleScroll, true);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            window.removeEventListener('scroll', handleScroll, true);
+        };
+    }, [isProfileOpen]);
 
     const handleSignOut = () => {
         setIsLogoutModalOpen(true);
@@ -407,10 +421,12 @@ export default function PIDashboard() {
                         </span>
                     </div>
 
-                    <NotificationBell 
-                        unreadCount={oversightStats.hasCriticalAlert ? 1 : 0}
-                        onClick={() => handleModuleChange('ALERTS')}
-                    />
+                    <div className="relative" ref={notificationRef}>
+                        <NotificationBell
+                            unreadCount={oversightStats.hasCriticalAlert ? 1 : 0}
+                            onClick={() => handleModuleChange('ALERTS')}
+                        />
+                    </div>
 
                     <div className="h-6 md:h-8 w-px bg-white/10 hidden md:block" />
 
@@ -563,7 +579,7 @@ export default function PIDashboard() {
                     {activeModule === 'MESSAGES' && <PIMessagesModule />}
                     {activeModule === 'SUBJECT_REVIEW' && <PISubjectReviewModule participantId={selectedParticipantId || 'BTB-023'} />}
                     {activeModule === 'TEAM' && (
-                        <PITeamModule 
+                        <PITeamModule
                             allUsers={users}
                             allStudies={studies}
                             onRefresh={fetchPIContent}

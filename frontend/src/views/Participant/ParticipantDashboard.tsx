@@ -111,7 +111,12 @@ export default function ParticipantDashboard() {
     const [helpRequests, setHelpRequests] = useState<any[]>([]);
     const [signatures, setSignatures] = useState<any[]>([]);
     const [assignedForms, setAssignedForms] = useState<any[]>([]);
+    const [logs, setLogs] = useState<any[]>([]);
+    const [selectedLog, setSelectedLog] = useState<any | null>(null);
+    const [logsDefaultViewMode, setLogsDefaultViewMode] = useState<'FORM' | 'HISTORY'>('FORM');
 
+    const [logsPreselectedDate, setLogsPreselectedDate] = useState<string | null>(null);
+    const [tasksDefaultFilter, setTasksDefaultFilter] = useState('Overdue');
     const [modalConfig, setModalConfig] = useState<{ isOpen: boolean; title: string; desc: string; primaryAction: string; task?: any } | null>(null);
     const [editModal, setEditModal] = useState({ isOpen: false, title: '', value: '', field: '' });
     const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
@@ -143,7 +148,16 @@ export default function ParticipantDashboard() {
     const [refreshKey, setRefreshKey] = useState(0);
     const refreshData = () => setRefreshKey(k => k + 1);
 
-    // Live Clock for Terminal UI
+    // Senior Developer: Centralized Timezone-Aware Converter
+    const formatToParticipantTime = (date: Date | string, options: Intl.DateTimeFormatOptions = {}) => {
+        const d = typeof date === 'string' ? new Date(date) : date;
+        return d.toLocaleString('en-US', {
+            timeZone: userProfile?.userTimezone || 'UTC',
+            ...options
+        });
+    };
+
+    // Live Clock adjusted to Participant's timezone
     const [currentTime, setCurrentTime] = useState(new Date());
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -228,7 +242,7 @@ export default function ParticipantDashboard() {
                         const sB = (b.status || '').toUpperCase();
                         const idxA = priority.indexOf(sA);
                         const idxB = priority.indexOf(sB);
-                        
+
                         if (idxA !== -1 && idxB !== -1) return idxA - idxB;
                         if (idxA !== -1) return -1;
                         if (idxB !== -1) return 1;
@@ -262,10 +276,104 @@ export default function ParticipantDashboard() {
             const currentStudyId = getId(activeStudy);
 
             try {
-                // 1. Fetch Tasks
+                // Senior Developer: Parallelize all independent clinical fetches to minimize TTI (Time to Interactive)
+                const [tasksRes, logsRes, compRes, visitRes, kitRes, labRes, meshRes, helpRes, afRes] = await Promise.all([
+                    authFetch(`${apiUrl}/api/participant-tasks/`),
+                    authFetch(`${apiUrl}/api/daily-medication-logs/`),
+                    authFetch(`${apiUrl}/api/compensations/`),
+                    authFetch(`${apiUrl}/api/visits/`),
+                    authFetch(`${apiUrl}/api/kits/`),
+                    authFetch(`${apiUrl}/api/lab-results/`),
+                    authFetch(`${apiUrl}/api/clinical-conversations/`),
+                    authFetch(`${apiUrl}/api/help-request/`),
+                    authFetch(`${apiUrl}/api/assigned-forms/`)
+                ]);
+
                 let fetchedTasks: any[] = [];
-                const tRes = await authFetch(`${apiUrl}/api/participant-tasks/`);
-                if (tRes.ok) fetchedTasks = await tRes.json();
+                if (tasksRes.ok) fetchedTasks = await tasksRes.json();
+
+                // 1b. Fetch Daily Logs and Inject Task (Senior Developer: Dynamic Timeline Generation)
+                try {
+                    if (logsRes.ok) {
+                        const logsData = await logsRes.json();
+                        // Handle both direct arrays and paginated responses
+                        const logs = Array.isArray(logsData) ? logsData : (logsData.results || []);
+                        setLogs(logs);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+
+                        // Senior Developer: Implement a 'Sliding Window' to prevent performance degradation for long-term participants.
+                        // We cap the lookback to a maximum of 30 days unless specifically requested.
+                        let startDate = new Date();
+                        const part = activeParticipant || allParticipants[0];
+                        if (part?.reviewed_at || part?.created_at) {
+                            startDate = new Date(part.reviewed_at || part.created_at);
+                        } else {
+                            startDate.setDate(startDate.getDate() - 14); 
+                        }
+                        
+                        const thirtyDaysAgo = new Date();
+                        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                        if (startDate < thirtyDaysAgo) startDate = thirtyDaysAgo;
+
+                        startDate.setHours(0, 0, 0, 0);
+
+                        // Generate Dates from Start to 5 days in future
+                        const endDate = new Date();
+                        endDate.setDate(endDate.getDate() + 5);
+                        endDate.setHours(0, 0, 0, 0);
+
+                        // Index logs by date for O(1) lookup speed
+                        const logMap = new Map(logs.map((l: any) => [l.date, l]));
+
+                        const dateCursor = new Date(startDate);
+                        while (dateCursor <= endDate) {
+                            // Senior Developer: Use timezone-safe local date string to avoid 'day-shifting' bugs
+                            const YYYY = dateCursor.getFullYear();
+                            const MM = String(dateCursor.getMonth() + 1).padStart(2, '0');
+                            const DD = String(dateCursor.getDate()).padStart(2, '0');
+                            const dateStr = `${YYYY}-${MM}-${DD}`;
+
+                            const logEntry = logMap.get(dateStr);
+                            
+                            const isToday = dateStr === `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                            const isPast = dateCursor < today;
+                            const isFuture = dateCursor > today;
+
+                            const commonTaskData = {
+                                study: currentStudyId,
+                                visit_name: 'Daily Activities',
+                                timeline_group: 'Mandatory',
+                                task_type: 'DAILY_LOG',
+                                task_details: { 
+                                    task_type: 'DAILY_LOG', 
+                                    description: isFuture ? 'Upcoming medicine and symptom log placeholder.' : 'Complete your daily medicine and symptom log.' 
+                                }
+                            };
+
+                            if (logEntry) {
+                                fetchedTasks.push({
+                                    ...commonTaskData,
+                                    id: `daily-log-${dateStr}`,
+                                    title: `Daily Medicine Log (${dateStr})`,
+                                    status: 'COMPLETED',
+                                    due_date: dateStr,
+                                });
+                            } else {
+                                // Only show PENDING for past (Overdue), today, or specified upcoming window
+                                fetchedTasks.push({
+                                    ...commonTaskData,
+                                    id: `daily-log-${dateStr}`,
+                                    title: isToday ? `Daily Medicine Log` : `Daily Medicine Log (${dateStr})`,
+                                    status: 'PENDING',
+                                    due_date: dateStr,
+                                    estimated_time: '5 min',
+                                });
+                            }
+                            dateCursor.setDate(dateCursor.getDate() + 1);
+                        }
+                    }
+                } catch (logsErr) { console.error("Logs Sync error:", logsErr); }
 
                 // 2. Inject LIVE Protocols
                 try {
@@ -348,17 +456,6 @@ export default function ParticipantDashboard() {
                 });
                 setNotifications(allNotifs.slice(0, 10));
 
-                // 4. Advanced Clinical Data
-                try {
-                    const [compRes, visitRes, kitRes, labRes, meshRes, helpRes, afRes] = await Promise.all([
-                        authFetch(`${apiUrl}/api/compensations/`),
-                        authFetch(`${apiUrl}/api/visits/`),
-                        authFetch(`${apiUrl}/api/kits/`),
-                        authFetch(`${apiUrl}/api/lab-results/`),
-                        authFetch(`${apiUrl}/api/clinical-conversations/`),
-                        authFetch(`${apiUrl}/api/help-request/`),
-                        authFetch(`${apiUrl}/api/assigned-forms/`)
-                    ]);
                     if (compRes.ok) setCompensations(await compRes.json());
                     if (visitRes.ok) setVisits(await visitRes.json());
                     if (kitRes.ok) setKits(await kitRes.json());
@@ -369,7 +466,6 @@ export default function ParticipantDashboard() {
                         const d = await helpRes.json();
                         setHelpRequests(Array.isArray(d) ? d : d.results || []);
                     }
-                } catch (advErr) { console.error("Clinical Sync error:", advErr); }
 
                 setTasks(fetchedTasks);
             } catch (err) {
@@ -378,7 +474,7 @@ export default function ParticipantDashboard() {
         };
 
         fetchClinicalData();
-    }, [selectedStudyIndex, allParticipants.length, refreshKey]);
+    }, [selectedStudyIndex, allParticipants.length, refreshKey, activeStudy]);
 
     const activeStudyId = String(activeStudy?.id || activeStudy?._id?.$oid || activeStudy?._id || activeStudy?.$oid || '').trim();
 
@@ -386,10 +482,31 @@ export default function ParticipantDashboard() {
 
     const filteredTasks = useMemo(() => {
         if (activeStudyId === '') return [];
-        return tasks.filter(t => {
+        const matched = tasks.filter(t => {
             const tStudyId = getId(t.study || t.p_data?.study || t.p_data?.study_id);
             return tStudyId === activeStudyId;
         });
+
+        // Sort: Overdue first, then Today, Upcoming, Pending, Completed, Locked
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const getPriority = (task: any) => {
+            const s = (task.status || '').toUpperCase();
+            if (s === 'COMPLETED') return 4;
+            const dueDate = new Date(task.due_date);
+            dueDate.setHours(0, 0, 0, 0);
+            const diffDays = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+            const isDailyLog = task.task_type === 'DAILY_LOG' || task.task_details?.task_type === 'DAILY_LOG';
+            if (diffDays > 5 && !isDailyLog) return 5;        // Locked
+            if (diffDays >= 1) return 0;       // Overdue (highest priority)
+            if (diffDays === 0) return 1;      // Today
+            if (dueDate > today) return 2;     // Upcoming
+            return 1;                          // Default to Today
+        };
+
+        matched.sort((a: any, b: any) => getPriority(a) - getPriority(b));
+        return matched;
     }, [tasks, activeStudyId]);
 
     const filteredKits = useMemo(() => {
@@ -444,7 +561,7 @@ export default function ParticipantDashboard() {
                 const errData = await resp.json();
                 throw new Error(errData.detail || "Profile Update Failed");
             }
-            
+
             const updatedUserData = await resp.json();
 
             // Update local state
@@ -472,7 +589,7 @@ export default function ParticipantDashboard() {
         // TasksView calls onAction('START_MISSION' | 'RESUME_MISSION', task)
         // We intercept here if the task is a CONSENT type
         const taskType = (task?.task_type || task?.task_details?.task_type || '').toUpperCase();
-        
+
         // Handle Viewing Completed Tasks (Eye Button Integration)
         if (title === 'VIEW_SUBMISSION' || task?.status === 'COMPLETED') {
             if (taskType === 'CONSENT') {
@@ -483,13 +600,26 @@ export default function ParticipantDashboard() {
                 if (!sig) {
                     sig = signatures.find(s => getId(s.study) === currentStudyId);
                 }
-                
+
                 const pdfUrl = sig?.signed_pdf_url || sig?.signed_pdf;
                 if (pdfUrl) {
                     window.open(pdfUrl, '_blank');
                     return;
                 }
                 alert("Signed Consent PDF is still being generated. Please retry in a few minutes.");
+                return;
+            }
+            if (taskType === 'DAILY_LOG') {
+                const dateStr = task.due_date;
+                const logEntry = logs.find((l: any) => l.date === dateStr);
+                if (logEntry) {
+                    setSelectedLog(logEntry);
+                    setLogsDefaultViewMode('HISTORY');
+                    setActiveNav('Logs');
+                    navigate('/dashboard/participant/logs');
+                } else {
+                    alert("Historical data for this log is being synchronized. Please refresh.");
+                }
                 return;
             }
             if (taskType === 'FORM_SIGNATURE' || task.assigned_form) {
@@ -517,6 +647,13 @@ export default function ParticipantDashboard() {
             return;
         }
 
+        if (taskType === 'DAILY_LOG') {
+            setLogsPreselectedDate(task.due_date);
+            setLogsDefaultViewMode('FORM');
+            handleNavClick('Logs');
+            return;
+        }
+
         if (task) {
             setModalConfig({
                 isOpen: true,
@@ -528,6 +665,14 @@ export default function ParticipantDashboard() {
             return;
         }
         const lowerTitle = title.toLowerCase();
+
+        // Handle Task redirects from other views (like LogsView success)
+        if (lowerTitle === 'navigate_to_tasks' || lowerTitle === 'navigate_to_completed_tasks') {
+            setTasksDefaultFilter(lowerTitle === 'navigate_to_completed_tasks' ? 'Completed' : 'Overdue');
+            handleNavClick('Tasks');
+            refreshData();
+            return;
+        }
 
         // 1. Specialized Modals (Phone, Email, Profile, etc.)
         if (lowerTitle.includes('phone') || lowerTitle.includes('number')) {
@@ -609,6 +754,10 @@ export default function ParticipantDashboard() {
                 const slug = slugs[view];
                 setActiveNav(view);
                 navigate(`/dashboard/participant${slug ? '/' + slug : ''}`);
+
+                if (lowerTitle === 'navigate_to_tasks') {
+                    refreshData();
+                }
                 return;
             }
         }
@@ -847,7 +996,7 @@ export default function ParticipantDashboard() {
             {isMobileMenuOpen && <div className="fixed inset-0 bg-black/60 z-30 lg:hidden backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />}
 
             <aside className={`h-full flex-shrink-0 flex-col border-r border-white/[0.05] z-40 transition-transform duration-300 ${isMobileMenuOpen ? 'fixed flex w-[260px] left-0 translate-x-0 bg-[#0d1525]/90 shadow-[0_0_50px_rgba(0,0,0,0.5)]' : 'hidden lg:flex lg:relative lg:w-[260px] lg:translate-x-0 transition-none'}`} style={{ background: 'rgba(13, 21, 37, 0.8)', backdropFilter: 'blur(12px)' }}>
-                <div className="h-24 px-8 flex justify-between items-center border-b border-white/[0.05]">
+                <div className="h-20 px-8 flex justify-between items-center border-b border-white/[0.05]">
                     <Link to="/" className="group transition-all">
                         <div className="bg-white p-2 rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
                             <img src="/logo.jpg" alt="MusB" className="h-12 w-auto object-contain rounded-xl" />
@@ -897,11 +1046,6 @@ export default function ParticipantDashboard() {
                             <Menu className="w-6 h-6" />
                         </button>
 
-                        {/* Mobile/Tablet Clickable Logo (only for participant dashboard on mobile) */}
-                        <Link to="/" className="lg:hidden flex-shrink-0">
-                            <img src="/logo.jpg" alt="MusB" className="h-9 w-auto object-contain rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.1)] border border-white/10 active:scale-95 transition-transform" />
-                        </Link>
-
                         <div className="w-10 h-10 rounded-xl bg-cyan-500/10 hidden md:flex items-center justify-center border border-cyan-500/20 group hover:border-cyan-400 transition-all shadow-inner">
                             <Zap className="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]" />
                         </div>
@@ -915,10 +1059,11 @@ export default function ParticipantDashboard() {
                     <div className="flex items-center gap-4 relative" ref={dropdownRef}>
                         <div className="hidden xl:flex flex-col items-end text-right border-r border-white/5 pr-6">
                             <span className="text-xl font-black text-cyan-400 font-mono tracking-tighter tabular-nums leading-none">
-                                {currentTime.toLocaleTimeString('en-US', { hour12: false })}
+                                {formatToParticipantTime(currentTime, { weekday: 'long', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
                             </span>
-                            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">
-                                {currentTime.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase()}
+                            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mt-1.5 flex items-center gap-2">
+                                <Globe className="w-3 h-3 text-cyan-500" />
+                                {userProfile.userTimezone || 'UTC'}
                             </span>
                         </div>
                         <div className="relative">
@@ -1058,9 +1203,9 @@ export default function ParticipantDashboard() {
                                     conversations={filteredConversations}
                                 />
                             )}
-                            {activeNav === 'Tasks' && <TasksView tasks={filteredTasks} onAction={openActionModal} study={activeStudy} userName={userProfile.userName} />}
+                            {activeNav === 'Tasks' && <TasksView tasks={filteredTasks} onAction={openActionModal} study={activeStudy} userName={userProfile.userName} defaultFilter={tasksDefaultFilter} />}
                             {activeNav === 'Study Kit' && <StudyKitView onAction={openActionModal} study={activeStudy} kits={filteredKits} />}
-                            {activeNav === 'Logs' && <LogsView study={activeStudy} onAction={openActionModal} />}
+                             {activeNav === 'Logs' && <LogsView study={activeStudy} onAction={openActionModal} preselectedDate={logsPreselectedDate} preselectedLog={selectedLog} defaultViewMode={logsDefaultViewMode} />}
                             {activeNav === 'Messages' && <MessagesView study={activeStudy} conversations={filteredConversations} onAction={refreshData} />}
                             {activeNav === 'Documents' && <DocumentsView study={activeStudy} signatures={signatures} assignedForms={assignedForms} />}
                             {activeNav === 'Reports' && (
@@ -1071,13 +1216,16 @@ export default function ParticipantDashboard() {
                                     tasks={filteredTasks}
                                     visits={filteredVisits}
                                     kits={filteredKits}
+                                    participant={activeParticipant}
                                 />
                             )}
-                             { activeNav === 'Visits' && <VisitsView visits={filteredVisits} study={activeStudy} /> }
+                            {activeNav === 'Visits' && <VisitsView visits={filteredVisits} study={activeStudy} tasks={filteredTasks} />}
                             {activeNav === 'Compensation' && (
                                 <CompensationView
                                     study={activeStudy}
                                     compensations={filteredCompensations}
+                                    tasks={filteredTasks}
+                                    visits={filteredVisits}
                                     onAction={openActionModal}
                                 />
                             )}
@@ -1106,7 +1254,7 @@ export default function ParticipantDashboard() {
                 userProfile={userProfile}
             />
 
-            <FormSignatureModal 
+            <FormSignatureModal
                 isOpen={isSignatureModalOpen}
                 onClose={() => setIsSignatureModalOpen(false)}
                 onComplete={handleFormSignatureComplete}
@@ -1114,9 +1262,9 @@ export default function ParticipantDashboard() {
                 userProfile={userProfile}
             />
 
-            <ActionModal 
-                isOpen={modalConfig?.isOpen || false} 
-                onClose={() => setModalConfig(null)} 
+            <ActionModal
+                isOpen={modalConfig?.isOpen || false}
+                onClose={() => setModalConfig(null)}
                 onConfirm={handleActionConfirm}
                 title={modalConfig?.title || ''}
                 desc={modalConfig?.desc || ''}

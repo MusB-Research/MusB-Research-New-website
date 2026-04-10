@@ -9,8 +9,8 @@ import {
 } from 'lucide-react';
 import { Card, Badge, ProgressBar, CircularProgress } from './SharedComponents';
 
-const DashboardView = ({ 
-    firstName, userTimezone, onAction, tasks, study, participant, 
+const DashboardView = ({
+    firstName, userTimezone, onAction, tasks, study, participant,
     allStudies = [], selectedStudyIndex = 0, onStudySwitch,
     compensations = [], visits = [], kits = [], labResults = [], conversations = [],
     unreadMessagesCount = 0
@@ -20,17 +20,29 @@ const DashboardView = ({
     const completedTasksCount = (tasks || []).filter((t: any) => t.status === 'COMPLETED').length || 0;
     const progressPercent = totalTasksCount > 0 ? Math.round((completedTasksCount / totalTasksCount) * 100) : 0;
 
-    const pendingTasksCount = (tasks || []).filter((t: any) => t.status === 'PENDING' || t.status === 'OVERDUE').length || 0;
+    const pendingTasksCount = (tasks || []).filter((t: any) => {
+        const s = (t.status || '').toUpperCase();
+        return s !== 'COMPLETED' && s !== 'LOCKED';
+    }).length || 0;
+
     const todayTasksCount = (tasks || []).filter((t: any) => {
-        if (t.status === 'COMPLETED' || t.status === 'LOCKED') return false;
+        const s = (t.status || '').toUpperCase();
+        if (s === 'COMPLETED' || s === 'LOCKED') return false;
         if (!t.due_date) return false;
+        
+        // Fix: Use Local Time for "Today" comparison
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+        
         const taskDate = t.due_date.split('T')[0];
-        const todayStr = new Date().toISOString().split('T')[0];
         return taskDate === todayStr || t.due_date.includes('Today');
     }).length || 0;
 
     const daysInStudy = React.useMemo(() => {
-        const startTimestamp = participant?.reviewed_at;
+        const startTimestamp = participant?.reviewed_at || participant?.created_at;
         if (!startTimestamp) return 0;
         const start = new Date(startTimestamp);
         const now = new Date();
@@ -40,15 +52,23 @@ const DashboardView = ({
     }, [participant]);
 
     const studyDayText = React.useMemo(() => {
-        if (daysInStudy <= 0) return 'Awaiting Enrollment';
+        const isEnrolled = ['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE'].includes(participant?.status);
+        if (!participant?.id) return "Loading Clinical Data..."; // Better loading state
+        if (daysInStudy <= 0) {
+            return isEnrolled ? "Study Initializing – Day 1" : 'Awaiting Enrollment';
+        }
         const weeks = Math.ceil(daysInStudy / 7);
         const months = Math.ceil(daysInStudy / 30);
         return `Today is Day ${daysInStudy} – Week ${weeks}, Month ${months}`;
-    }, [daysInStudy]);
+    }, [daysInStudy, participant]);
 
     const enrollmentDateStr = React.useMemo(() => {
-        if (!participant?.reviewed_at) return 'Pending Review';
-        return new Date(participant.reviewed_at).toLocaleDateString('en-US', {
+        const startTimestamp = participant?.reviewed_at || participant?.created_at;
+        if (!startTimestamp) {
+            const isEnrolled = ['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE'].includes(participant?.status);
+            return isEnrolled ? 'Confirmed' : 'Pending Review';
+        }
+        return new Date(startTimestamp).toLocaleDateString('en-US', {
             month: 'short',
             day: '2-digit',
             year: 'numeric'
@@ -145,15 +165,15 @@ const DashboardView = ({
                         className="p-6 bg-[#0d1424] border border-white/5 rounded-3xl group hover:border-indigo-500/30 transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between flex-1"
                         onClick={() => onAction('Tasks')}
                     >
-                         <span className="text-[15px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Current Timeline</span>
+                        <span className="text-[15px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Current Timeline</span>
                         <div className="mt-4">
                             <p className="text-xl font-black text-white italic tracking-tighter uppercase leading-tight">{studyDayText}</p>
                             <div className="mt-4">
                                 <ProgressBar percent={daysPercent} height={3} />
                             </div>
-                             <p className="text-[13px] font-black text-slate-500 uppercase tracking-widest mt-3 italic">
-                                 Enrolled: <span className="text-white">{enrollmentDateStr}</span>
-                             </p>
+                            <p className="text-[13px] font-black text-slate-500 uppercase tracking-widest mt-3 italic">
+                                Enrolled: <span className="text-white">{enrollmentDateStr}</span>
+                            </p>
                         </div>
                         <History className="absolute bottom-4 right-4 w-10 h-10 text-white opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all duration-700" />
                     </div>
@@ -172,13 +192,13 @@ const DashboardView = ({
                             <div className="w-10 h-10 bg-[#00e676]/10 rounded-xl flex items-center justify-center text-[#00e676]">
                                 <AlertCircle className="w-5 h-5" />
                             </div>
-                             <span className="text-[14px] font-black text-slate-400 uppercase tracking-[0.25em] italic">Action Required</span>
+                            <span className="text-[14px] font-black text-slate-400 uppercase tracking-[0.25em] italic">Action Required</span>
                         </div>
                         <h4 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-tight mb-2">
-                             <span className="text-[#00e676]">{pendingTasksCount}</span> Pending Tasks
+                            <span className="text-[#00e676]">{pendingTasksCount}</span> Pending Tasks
                         </h4>
-                         <p className="text-[14px] font-bold text-slate-500 uppercase tracking-widest italic leading-relaxed">
-                            {pendingTasksCount > 0 
+                        <p className="text-[14px] font-bold text-slate-500 uppercase tracking-widest italic leading-relaxed">
+                            {pendingTasksCount > 0
                                 ? "Items requiring your attention in the task list."
                                 : "Congratulations! You have completed all tasks. Your next task will be displayed when it is ready."}
                         </p>
@@ -200,12 +220,12 @@ const DashboardView = ({
                             <div className="w-10 h-10 bg-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-400">
                                 <Calendar className="w-5 h-5" />
                             </div>
-                             <span className="text-[14px] font-black text-slate-400 uppercase tracking-[0.25em] italic">Next Visit</span>
+                            <span className="text-[14px] font-black text-slate-400 uppercase tracking-[0.25em] italic">Next Visit</span>
                         </div>
                         <h4 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-tight mb-2">
                             {nextMilestone?.visit_type?.replace(/_/g, ' ') || 'Next Clinical Visit'}
                         </h4>
-                        
+
                         <div className="grid grid-cols-2 gap-4 mt-6">
                             <div className="space-y-4">
                                 <div>
@@ -268,7 +288,7 @@ const DashboardView = ({
                     >
                         <div className="flex items-center gap-3 mb-6">
                             <Box className="w-5 h-5 text-cyan-400" />
-                             <span className="text-[16px] font-black text-slate-500 uppercase tracking-[0.25em] italic">Study Kit</span>
+                            <span className="text-[16px] font-black text-slate-500 uppercase tracking-[0.25em] italic">Study Kit</span>
                         </div>
                         <div>
                             {activeKit ? (
@@ -281,7 +301,7 @@ const DashboardView = ({
                                     </p>
                                 </>
                             ) : (
-                                 <p className="text-slate-500 font-black italic uppercase text-xs tracking-widest leading-relaxed">System is awaiting logistics synchronization for this protocol phase.</p>
+                                <p className="text-slate-500 font-black italic uppercase text-xs tracking-widest leading-relaxed">System is awaiting logistics synchronization for this protocol phase.</p>
                             )}
                         </div>
                         <div className="mt-8">
@@ -331,7 +351,7 @@ const DashboardView = ({
                         {unreadMessagesCount > 0 && <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_#ef4444]" />}
                     </div>
                     <div>
-                         <h4 className="text-xl font-bold text-slate-300 italic tracking-tight leading-tight mb-2">
+                        <h4 className="text-xl font-bold text-slate-300 italic tracking-tight leading-tight mb-2">
                             {latestConv?.last_message_preview ? `"${latestConv.last_message_preview}..."` : "Stay in touch with your study team."}
                         </h4>
                     </div>

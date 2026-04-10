@@ -30,16 +30,20 @@ def check_permission(creator, target_role):
         return True
     
     if c_role == "admin":
-        return t_role in ["admin", "sponsor", "coordinator", "pi"]
+        # Admin can create all operational roles including participants
+        return t_role in ["admin", "sponsor", "coordinator", "pi", "participant"]
     
     if c_role == "coordinator" and c_aff == "musb":
-        return t_role in ["sponsor", "pi"]
+        # Coordinators can manage the medical team and recruitment pool
+        return t_role in ["sponsor", "pi", "participant"]
     
     if c_role == "pi" and c_aff == "musb":
-        return t_role in ["sponsor", "coordinator"]
+        # MUSB PIs can manage their team and participants
+        return t_role in ["sponsor", "coordinator", "participant"]
     
     if c_role == "pi" and c_aff == "onsite":
-        return t_role == "team_member"
+        # Onsite PIs restricted to their own team or participants
+        return t_role in ["team_member", "participant"]
 
     return False
 

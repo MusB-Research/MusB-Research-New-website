@@ -16,7 +16,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from .serializers import (
     VisitSerializer, StudySerializer, StudyAssignmentSerializer, ParticipantSerializer, 
-    DeIdentifiedParticipantSerializer, UserSerializer, FormSerializer, 
+    ParticipantBriefSerializer, DeIdentifiedParticipantSerializer, UserSerializer, FormSerializer, 
     FormResponseSerializer, TaskSerializer, ParticipantTaskSerializer, StaffTaskSerializer, 
     ConsentSerializer, ConsentTemplateSerializer, LeadSerializer, CommunicationLogSerializer,
     CompensationSerializer, LabResultSerializer, DataAuditLogSerializer,
@@ -590,8 +590,12 @@ class ParticipantViewSet(viewsets.ModelViewSet):
         return Response({'status': 'updated'})
 
     def get_serializer_class(self):
-        if self.request.user.role.upper() == 'SPONSOR':
+        user = self.request.user
+        if user.role.upper() == 'SPONSOR':
             return DeIdentifiedParticipantSerializer
+        # Senior Developer: Use Brief serializer for lists to dramatically boost dashboard speed
+        if self.action == 'list':
+            return ParticipantBriefSerializer
         return ParticipantSerializer
     def get_queryset(self):
         user = self.request.user
@@ -1001,6 +1005,11 @@ class AEReportViewSet(viewsets.ModelViewSet):
         return AEReport.objects.filter(participant__study__assignments__user=user)
 
     def perform_create(self, serializer):
+        user = self.request.user
+        pid = self.request.data.get('participant')
+        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN', 'PI', 'COORDINATOR'] and pid:
+            serializer.save(participant_id=pid)
+            return
         participant = Participant.objects.filter(user=self.request.user).first()
         if not participant:
             raise serializers.ValidationError({"participant": "User does not have an active participant record."})
@@ -1186,12 +1195,24 @@ class ParticipantTaskViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return ParticipantTask.objects.none()
+            
+        queryset = ParticipantTask.objects.all()
+        
+        # Staff can filter by study or participant
         if user.role.upper() in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']:
-            return ParticipantTask.objects.all()
+            study_id = self.request.query_params.get('study')
+            participant_id = self.request.query_params.get('participant')
+            
+            if study_id:
+                queryset = queryset.filter(participant__study_id=study_id)
+            if participant_id:
+                queryset = queryset.filter(participant_id=participant_id)
+            return queryset
+
         # CRITICAL: Only return tasks for participants who are formally ENROLLED.
         # Participants still in SCREENING, RECRUITING, etc. should not see clinical tasks.
         enrolled_statuses = ['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE']
-        return ParticipantTask.objects.filter(
+        return queryset.filter(
             participant__user=user,
             participant__status__in=enrolled_statuses
         )
@@ -1223,24 +1244,12 @@ class UserViewSet(viewsets.ModelViewSet):
         # Super Admins and Admins see everyone
         if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
             return User.objects.all().order_by('-date_joined')
-            
-        # PIs and Coordinators see:
-        # 1. Themselves
-        # 2. Users assigned to studies they are assigned to
-        # 3. Users they created
+        
         if user.role.upper() in ['PI', 'COORDINATOR']:
-            from django.db.models import Q
-            from api.models import StudyAssignment
-            
-            # Get IDs of all studies the current user is assigned to
-            assigned_study_ids = StudyAssignment.objects.filter(user=user).values_list('study_id', flat=True)
-            
-            # Get IDs of all users assigned to those same studies
-            team_member_ids = StudyAssignment.objects.filter(study_id__in=assigned_study_ids).values_list('user_id', flat=True)
-            
+            # PIs and Coordinators need full visibility into Sponsors and Medical Personnel 
+            # to launch studies and manage recruitment pool, similar to Admin visibility.
             return User.objects.filter(
-                Q(id=user.id) | 
-                Q(id__in=team_member_ids) | 
+                Q(role__in=['sponsor', 'SPONSOR', 'pi', 'PI', 'coordinator', 'COORDINATOR', 'admin', 'ADMIN', 'PARTICIPANT']) |
                 Q(created_by=user)
             ).distinct().order_by('-date_joined')
 

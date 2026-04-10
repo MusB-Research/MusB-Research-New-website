@@ -163,7 +163,7 @@ export default function DiscoverStudiesView() {
                                                 <div className="flex flex-wrap gap-4 text-[12px] font-bold text-slate-500 uppercase tracking-wider">
                                                     {study.duration && <span>⏱ {study.duration}</span>}
                                                     {study.location && <span>📍 {study.location}</span>}
-                                                    {study.compensation && <span className="text-green-500 italic">💰 COMPENSATED</span>}
+                                                    {study.compensation && <span className="text-green-500 italic">💰 YOU WILL BE COMPENSATED</span>}
                                                 </div>
                                             )}
                                         </div>

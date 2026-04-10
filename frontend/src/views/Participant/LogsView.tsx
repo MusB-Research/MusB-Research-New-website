@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { authFetch, API } from '../../utils/auth';
+import { authFetch, API, getUser } from '../../utils/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Activity, AlertCircle, FileUp, ClipboardList, CheckCircle2,
@@ -198,18 +198,25 @@ const LogDetailModal = ({ log, onClose }: { log: any; onClose: () => void }) => 
 
 // --- MAIN COMPONENT ---
 
-const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string, task?: any) => void }) => {
+const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultViewMode = 'FORM' }: { study?: any; onAction?: (title: string, task?: any) => void; preselectedDate?: string | null; preselectedLog?: any; defaultViewMode?: 'FORM' | 'HISTORY' }) => {
     const apiUrl = API || 'http://localhost:8000';
 
     // UI Toggle
-    const [viewMode, setViewMode] = useState<'FORM' | 'HISTORY'>('FORM');
+    const [viewMode, setViewMode] = useState<'FORM' | 'HISTORY'>(defaultViewMode);
 
     // --- DAILY LOG STATE ---
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // A. Medicine Intake
     const [tookMedicine, setTookMedicine] = useState<boolean | null>(null);
-    const [timeTaken, setTimeTaken] = useState('');
+    // Senior Developer: Use the participant's profile timezone for the initial clock state
+    const [timeTaken, setTimeTaken] = useState(() => {
+        const u = getUser();
+        const tz = u?.timezone || 'UTC';
+        return new Date().toLocaleTimeString('en-US', { 
+            hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz 
+        });
+    });
     const [fullDose, setFullDose] = useState<boolean | null>(null);
     const [doseAmount, setDoseAmount] = useState('');
     const [reasonMissed, setReasonMissed] = useState('');
@@ -229,12 +236,40 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
     const [healthUpdates, setHealthUpdates] = useState('');
     const [supportingFile, setSupportingFile] = useState<File | null>(null);
 
+    // --- MANUAL DATE/TIME ---
+    // Senior Developer: Use local date parts instead of toISOString() to prevent timezone shifting
+    const getLocalISODate = (date: Date) => {
+        const YYYY = date.getFullYear();
+        const MM = String(date.getMonth() + 1).padStart(2, '0');
+        const DD = String(date.getDate()).padStart(2, '0');
+        return `${YYYY}-${MM}-${DD}`;
+    };
+
+    const [logDate, setLogDate] = useState(preselectedDate || getLocalISODate(new Date()));
+
+    // Update logDate if preselectedDate changes
+    React.useEffect(() => {
+        if (preselectedDate) {
+            setLogDate(preselectedDate);
+            setViewMode('FORM');
+        }
+    }, [preselectedDate]);
+
     // --- OTHER STATES ---
     const [history, setHistory] = useState<any[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-    const [selectedLog, setSelectedLog] = useState<any | null>(null);
+    const [selectedLog, setSelectedLog] = useState<any | null>(preselectedLog || null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+    const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(!!preselectedLog);
+
+    // Handle deep-link to history details
+    React.useEffect(() => {
+        if (preselectedLog) {
+            setSelectedLog(preselectedLog);
+            setIsPreviewModalOpen(true);
+            setViewMode('HISTORY');
+        }
+    }, [preselectedLog]);
     const [isProcessingFile, setIsProcessingFile] = useState(false);
     const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -387,13 +422,25 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
         setNoticedAE(null); setAeDescription(''); setAeStartTime(''); setAeOngoing(null); setAeSeverity(null);
         setAeInterfered(null); setAeMedicalCare(null); setAeComments('');
         setOverallFeeling(null); setHealthUpdates(''); setSupportingFile(null);
+        setLogDate(new Date().toISOString().split('T')[0]);
+        setTimeTaken(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }));
         localStorage.removeItem('musb_daily_log_draft');
     };
 
     const handleSubmitLog = async (isDraft: boolean = false) => {
-        if (!isDraft && tookMedicine === null) {
-            alert("Please answer if you took your medicine today.");
-            return;
+        if (!isDraft) {
+            if (tookMedicine === null) {
+                alert("Please answer if you took your medicine today.");
+                return;
+            }
+            if (!logDate) {
+                alert("Please select the entry date.");
+                return;
+            }
+            if (!timeTaken) {
+                alert("Please manually enter the time of medication or recording.");
+                return;
+            }
         }
 
         setIsSubmitting(true);
@@ -419,12 +466,9 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
             if (supportingFile) formData.append('supporting_file', supportingFile);
             formData.append('is_draft', isDraft ? 'true' : 'false');
 
-            // Automatically add current date and time
-            const now = new Date();
-            formData.append('date', now.toISOString().split('T')[0]);
-            if (!timeTaken) {
-                formData.append('time_taken', now.toTimeString().split(' ')[0].substring(0, 5));
-            }
+            // Manual Date and Time Entry
+            formData.append('date', logDate);
+            formData.append('time_taken', timeTaken || '00:00');
 
             const resp = await authFetch(`${apiUrl}/api/daily-medication-logs/`, {
                 method: 'POST',
@@ -436,7 +480,11 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                 if (!isDraft) {
                     resetForm();
                     fetchHistory();
-                    setViewMode('HISTORY');
+                    if (onAction) {
+                        onAction('NAVIGATE_TO_COMPLETED_TASKS');
+                    } else {
+                        setViewMode('HISTORY');
+                    }
                 }
             } else {
                 throw new Error("Failed to submit");
@@ -484,20 +532,16 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                         </div>
                     </Card>
 
-                    {/* Intro Statement */}
+                    {/* Intro Statement  */}
                     <Card className="p-8 sm:p-10 border border-white/5 bg-white/[0.01]">
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-3 text-cyan-400">
+                        <div className="space-y-6 text-center md:text-left">
+                            <div className="flex items-center justify-center md:justify-start gap-3 text-cyan-400">
                                 <Info className="w-5 h-5" />
                                 <span className="text-[14px] font-black uppercase tracking-widest italic">Important Notice</span>
                             </div>
                             <p className="text-[18px] font-bold text-slate-300 leading-relaxed">
                                 Please complete this daily log after taking your study medicine. This helps the study team track daily use and monitor any side effects or health concerns.
                             </p>
-                            <p className="text-[15px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed">
-                                Thank you for completing your daily entry. Please answer all questions as accurately as possible.
-                            </p>
-
                         </div>
                     </Card>
 
@@ -510,29 +554,39 @@ const LogsView = ({ study, onAction }: { study?: any; onAction?: (title: string,
                                 subtitle="Tracking your daily compliance"
                             />
 
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                            <div className="space-y-10">
                                 <BooleanChoice
                                     label="Did you take your medicine today?"
                                     value={tookMedicine}
-                                    onChange={(val: boolean) => {
-                                        setTookMedicine(val);
-                                        if (val && !timeTaken) {
-                                            const now = new Date();
-                                            setTimeTaken(now.toTimeString().split(' ')[0].substring(0, 5));
-                                        }
-                                    }}
+                                    onChange={setTookMedicine}
                                 />
 
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-1">
-                                    <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest block flex-1">What time did you take it?</label>
-                                    <div className="flex items-center gap-3 bg-white/[0.02] border border-white/5 rounded-2xl p-3 px-6 focus-within:border-cyan-500/30 transition-all min-w-[250px]">
-                                        <Clock className="w-5 h-5 text-slate-500" />
-                                        <input
+                                <div className="flex flex-col md:flex-row gap-8 pb-8 border-t border-white/5 pt-10">
+                                    <div className="flex-1 space-y-4">
+                                        <label className="text-[14px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1">
+                                            <Calendar className="w-4 h-4 text-cyan-400" />
+                                            Log Date
+                                        </label>
+                                        <input 
+                                            type="date"
+                                            value={logDate}
+                                            onChange={(e) => setLogDate(e.target.value)}
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold text-xl outline-none focus:border-cyan-500/30 transition-all cursor-pointer"
+                                        />
+                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Select the date this entry refers to</p>
+                                    </div>
+                                    <div className="flex-1 space-y-4">
+                                        <label className="text-[14px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1">
+                                            <Clock className="w-4 h-4 text-indigo-400" />
+                                            Current Time
+                                        </label>
+                                        <input 
                                             type="time"
                                             value={timeTaken}
                                             onChange={(e) => setTimeTaken(e.target.value)}
-                                            className="bg-transparent border-none text-white outline-none w-full font-bold text-2xl uppercase tracking-tighter"
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold text-xl outline-none focus:border-indigo-500/30 transition-all cursor-pointer"
                                         />
+                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Select the time of this recording</p>
                                     </div>
                                 </div>
                             </div>

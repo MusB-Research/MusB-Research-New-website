@@ -46,7 +46,7 @@ function AppContent() {
         const pingProduction = async () => {
             try {
                 // Ping the specific production health endpoint the user provided
-                const apiUrl = import.meta.env.VITE_API_URL || (process.env.NODE_ENV === 'production' ? 'https://musb-research-new-website.onrender.com' : 'http://localhost:8000');
+                                const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://musb-research-new-website.onrender.com' : 'http://localhost:8000');
                 const res = await fetch(`${apiUrl}/api/health/`);
                 if (res.ok) console.log('✅ GLOBAL_NODE_SYNC: PRODUCTION_WAKE_SUCCESS');
             } catch (e) {

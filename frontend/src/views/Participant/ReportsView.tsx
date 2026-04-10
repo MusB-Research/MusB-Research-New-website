@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { Card, Badge, CircularProgress, ProgressBar, LineChart, BarChart } from './SharedComponents';
 import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 
 const ReportsView = ({ 
     userName, 
@@ -16,7 +16,8 @@ const ReportsView = ({
     compensations = [],
     tasks = [],
     visits = [],
-    kits = []
+    kits = [],
+    participant
 }: { 
     userName?: string; 
     study?: any;
@@ -24,29 +25,68 @@ const ReportsView = ({
     tasks?: any[];
     visits?: any[];
     kits?: any[];
+    participant?: any;
 }) => {
     const [timeRange, setTimeRange] = useState('Entire Study');
 
+    const safeTasks = Array.isArray(tasks) ? tasks : [];
+    const safeKits = Array.isArray(kits) ? kits : [];
+    const safeCompensations = Array.isArray(compensations) ? compensations : [];
+    const safeVisits = Array.isArray(visits) ? visits : [];
+
     const totalEarned = React.useMemo(() => {
-        return compensations
-            .filter((c: any) => c.status === 'PAID')
-            .reduce((sum: number, c: any) => sum + parseFloat(c.amount || 0), 0);
-    }, [compensations]);
+        return safeCompensations
+            .filter((c: any) => c?.status === 'PAID')
+            .reduce((sum: number, c: any) => sum + parseFloat(c?.amount || 0), 0);
+    }, [safeCompensations]);
 
     const pendingPayment = React.useMemo(() => {
-        return compensations
-            .filter((c: any) => c.status === 'PENDING')
-            .reduce((sum: number, c: any) => sum + parseFloat(c.amount || 0), 0);
-    }, [compensations]);
+        return safeCompensations
+            .filter((c: any) => c?.status === 'PENDING')
+            .reduce((sum: number, c: any) => sum + parseFloat(c?.amount || 0), 0);
+    }, [safeCompensations]);
 
     const totalValue = totalEarned + pendingPayment;
 
-    const completedTasks = tasks.filter((t: any) => t.is_completed || t.status === 'COMPLETED').length;
-    const totalTasks = tasks.length || 1;
-    const taskCompletionPercent = Math.round((completedTasks / totalTasks) * 100);
+    const completedTasks = safeTasks.filter((t: any) => t?.is_completed || (t?.status || '').toUpperCase() === 'COMPLETED').length;
+    const totalTasks = safeTasks.length || 0;
+    const taskCompletionPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-    const recruitmentDate = study?.recruitment_start_date || study?.created_at;
-    const daysInStudy = recruitmentDate ? Math.max(0, Math.ceil((new Date().getTime() - new Date(recruitmentDate).getTime()) / (1000 * 3600 * 24))) : 0;
+    const recruitmentDate = participant?.reviewed_at || participant?.created_at || study?.created_at;
+    const daysInStudy = recruitmentDate ? Math.max(1, Math.ceil((new Date().getTime() - new Date(recruitmentDate).getTime()) / (1000 * 3600 * 24))) : 0;
+
+    // ──────────────── ENGAGEMENT LOGIC ────────────────
+    const adherencePercent = totalTasks > 0 
+        ? Math.round((safeTasks.filter((t: any) => (t?.status || '').toUpperCase() === 'COMPLETED').length / totalTasks) * 100) 
+        : 0;
+
+    const currentStreak = React.useMemo(() => {
+        if (safeTasks.length === 0) return 0;
+        const sorted = [...safeTasks]
+            .filter((t: any) => (t?.status || '').toUpperCase() === 'COMPLETED')
+            .sort((a: any, b: any) => new Date(b.completed_at || 0).getTime() - new Date(a.completed_at || 0).getTime());
+        
+        if (sorted.length === 0) return 0;
+        
+        let streak = 0;
+        let lastDate = new Date();
+        lastDate.setHours(0,0,0,0);
+
+        for (const t of sorted) {
+            if (!t.completed_at) continue;
+            const tDate = new Date(t.completed_at);
+            tDate.setHours(0,0,0,0);
+            const diff = Math.floor((lastDate.getTime() - tDate.getTime()) / (1000 * 3600 * 24));
+            
+            if (diff === 0 || diff === 1) {
+                streak++;
+                lastDate = tDate;
+            } else {
+                break;
+            }
+        }
+        return streak;
+    }, [safeTasks]);
 
     const handleDownloadPDF = async () => {
         const element = document.getElementById('reports-content');
@@ -191,20 +231,22 @@ const ReportsView = ({
                             <ProgressBar percent={taskCompletionPercent} />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-6">
-                            <div className="p-6 bg-white/[0.02] border border-white/[0.05] rounded-3xl space-y-4">
-                                <span className="text-[13px] font-black text-slate-500 uppercase tracking-widest">Kits Completion</span>
-                                <div className="space-y-3">
-                                    {(kits.length > 0 ? kits.slice(0, 3) : [ {id: 1, status: 'PENDING', batch_number: 'N/A'}]).map((k: any, i: number) => (
-                                        <div key={k.id || i} className="flex items-center gap-2">
-                                            <div className={`w-2 h-2 rounded-full ${k.status === 'DELIVERED' || k.status === 'RECEIVED' ? 'bg-[#00e676]' : 'bg-amber-500'}`} />
-                                            <span className={`text-[13px] font-black uppercase tracking-widest ${k.status === 'DELIVERED' || k.status === 'RECEIVED' ? 'text-white' : 'text-slate-500 italic'}`}>
-                                                Kit {i + 1}: {k.status === 'DELIVERED' || k.status === 'RECEIVED' ? 'Done' : 'Pending'}
-                                            </span>
-                                        </div>
-                                    ))}
+                        <div className={`grid gap-6 ${study?.uses_kit !== false ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                            {study?.uses_kit !== false && (
+                                <div className="p-6 bg-white/[0.02] border border-white/[0.05] rounded-3xl space-y-4">
+                                    <span className="text-[13px] font-black text-slate-500 uppercase tracking-widest">Kits Completion</span>
+                                    <div className="space-y-3">
+                                        {(safeKits.length > 0 ? safeKits.slice(0, 3) : [{ id: 1, status: 'PENDING', batch_number: 'N/A' }]).map((k: any, i: number) => (
+                                            <div key={k.id || i} className="flex items-center gap-2">
+                                                <div className={`w-2 h-2 rounded-full ${(k.status || '').toUpperCase() === 'DELIVERED' || (k.status || '').toUpperCase() === 'RECEIVED' ? 'bg-[#00e676]' : 'bg-amber-500'}`} />
+                                                <span className={`text-[13px] font-black uppercase tracking-widest ${(k.status || '').toUpperCase() === 'DELIVERED' || (k.status || '').toUpperCase() === 'RECEIVED' ? 'text-white' : 'text-slate-500 italic'}`}>
+                                                    Kit {i + 1}: {(k.status || '').toUpperCase() === 'DELIVERED' || (k.status || '').toUpperCase() === 'RECEIVED' ? 'Done' : 'Pending'}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                             <div className="p-6 bg-white/[0.02] border border-white/[0.05] rounded-3xl space-y-4">
                                 <span className="text-[13px] font-black text-slate-500 uppercase tracking-widest">Study Milestones</span>
                                 <div className="space-y-3">
@@ -238,17 +280,17 @@ const ReportsView = ({
                             <div className="flex justify-between items-end">
                                 <div>
                                     <span className="text-[13px] font-black text-slate-500 uppercase tracking-widest block mb-1">Daily Adherence</span>
-                                    <span className="text-3xl font-black text-white italic leading-none">0%</span>
+                                    <span className="text-3xl font-black text-white italic leading-none">{adherencePercent}%</span>
                                 </div>
-                                <Badge color="gray">0%</Badge>
+                                <Badge color="green">{adherencePercent}%</Badge>
                             </div>
-                            <LineChart data={[0, 0, 0, 0, 0, 0, 0]} color="#00e676" />
+                            <LineChart data={[0, 0, 0, 0, 0, 0, adherencePercent]} color="#00e676" />
                         </div>
                         <div className="space-y-4">
                             <div className="flex justify-between items-end">
                                 <div>
                                     <span className="text-[13px] font-black text-slate-500 uppercase tracking-widest block mb-1">Current Streak</span>
-                                    <span className="text-3xl font-black text-amber-500 italic leading-none">0 Days</span>
+                                    <span className="text-3xl font-black text-amber-500 italic leading-none">{currentStreak} Days</span>
                                 </div>
                                 <div className="w-8 h-8 bg-amber-500/10 text-amber-500 rounded-lg flex items-center justify-center">
                                     <TrendingUp className="w-4 h-4" />

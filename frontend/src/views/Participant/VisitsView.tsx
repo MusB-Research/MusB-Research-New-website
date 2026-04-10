@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Calendar,
     Clock,
@@ -11,7 +11,12 @@ import {
     Stethoscope,
     Activity,
     Info,
-    Check
+    Check,
+    ChevronDown,
+    LayoutGrid,
+    Search,
+    Plus,
+    X
 } from 'lucide-react';
 import { Card, Badge } from './SharedComponents';
 
@@ -28,11 +33,14 @@ interface Visit {
     measurements?: Record<string, any>;
 }
 
-const VisitsView = ({ visits = [], study }: { visits: Visit[]; study: any }) => {
-    // Sort visits by scheduled date
-    const sortedVisits = [...visits].sort((a, b) => 
-        new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()
-    );
+const VisitsView = ({ visits = [], study, tasks = [] }: { visits: Visit[]; study: any; tasks: any[] }) => {
+    const [viewMode, setViewMode] = useState<'timeline' | 'calendar'>('timeline');
+    const [viewDate, setViewDate] = useState(new Date());
+
+    // Sort visits by scheduled date for timeline
+    const sortedVisits = useMemo(() => 
+        [...visits].sort((a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()),
+    [visits]);
 
     const getStatusStyle = (status: string) => {
         switch (status) {
@@ -61,146 +69,226 @@ const VisitsView = ({ visits = [], study }: { visits: Visit[]; study: any }) => 
         });
     };
 
+    const calendarData = useMemo(() => {
+        const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
+        const firstDay = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay();
+        
+        const sessionsByDate: Record<string, any[]> = {};
+        
+        // Map Visits
+        visits.forEach(v => {
+            const d = new Date(v.scheduled_date).toISOString().split('T')[0];
+            if (!sessionsByDate[d]) sessionsByDate[d] = [];
+            sessionsByDate[d].push({ type: 'VISIT', label: v.visit_type, status: v.status });
+        });
+
+        // Map Tasks
+        tasks.forEach(t => {
+            if (t.due_date) {
+                const d = new Date(t.due_date).toISOString().split('T')[0];
+                if (!sessionsByDate[d]) sessionsByDate[d] = [];
+                sessionsByDate[d].push({ type: 'TASK', label: t.title, status: t.status });
+            }
+        });
+
+        return { daysInMonth, firstDay, sessionsByDate };
+    }, [viewDate, visits, tasks]);
+
+    const renderCalendar = () => {
+        const { daysInMonth, firstDay, sessionsByDate } = calendarData;
+        const monthYear = viewDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+        
+        return (
+            <div className="flex-1 flex flex-col space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                        <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Protocol <span className="text-cyan-400">Calendar</span></h2>
+                        <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-1 italic">{monthYear} • All Activities Synchronized</p>
+                    </div>
+                    <div className="flex items-center gap-4 bg-white/5 p-2 rounded-2xl border border-white/5">
+                        <button onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() - 1)))} className="p-3 hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-white">
+                            <ChevronDown className="w-5 h-5 rotate-90" />
+                        </button>
+                        <span className="text-sm font-black text-white px-6 uppercase italic tracking-widest">{monthYear}</span>
+                        <button onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() + 1)))} className="p-3 hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-white">
+                            <ChevronDown className="w-5 h-5 -rotate-90" />
+                        </button>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-7 gap-px bg-white/5 border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                        <div key={d} className="bg-[#0B101B] p-6 text-[12px] font-black text-slate-500 uppercase tracking-widest text-center border-b border-white/5 italic">
+                            {d}
+                        </div>
+                    ))}
+                    {Array.from({ length: 42 }).map((_, i) => {
+                        const dayNum = i - firstDay + 1;
+                        const isCurrentMonth = dayNum > 0 && dayNum <= daysInMonth;
+                        const dateString = isCurrentMonth ? new Date(viewDate.getFullYear(), viewDate.getMonth(), dayNum).toISOString().split('T')[0] : '';
+                        const daySessions = sessionsByDate[dateString] || [];
+
+                        return (
+                            <div 
+                                key={i} 
+                                className={`min-h-[140px] bg-[#090E1A] p-4 border-r border-b border-white/[0.03] transition-all hover:bg-white/[0.02] ${!isCurrentMonth ? 'opacity-20' : ''}`}
+                            >
+                                <div className="flex justify-between items-start mb-3">
+                                    <span className={`text-lg font-black italic ${dayNum === new Date().getDate() && viewDate.getMonth() === new Date().getMonth() ? 'text-cyan-400' : 'text-slate-700'}`}>
+                                        {isCurrentMonth ? dayNum : ''}
+                                    </span>
+                                </div>
+                                <div className="space-y-2">
+                                    {daySessions.slice(0, 3).map((s, idx) => (
+                                        <div 
+                                            key={idx} 
+                                            className={`p-2 rounded-lg border text-[10px] font-black uppercase tracking-tighter truncate ${
+                                                s.type === 'VISIT' 
+                                                    ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400' 
+                                                    : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                            }`}
+                                        >
+                                            <span className="opacity-50 mr-1">{s.type === 'VISIT' ? 'V:' : 'T:'}</span>
+                                            {s.label}
+                                        </div>
+                                    ))}
+                                    {daySessions.length > 3 && (
+                                        <p className="text-[10px] text-slate-600 font-bold italic text-center pt-1">+{daySessions.length - 3} More</p>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="flex flex-col gap-10 max-w-[1500px] animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div className="space-y-2">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl flex items-center justify-center text-cyan-400">
-                            <CalendarClock className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Clinical <span className="text-cyan-400">Calendar</span></h2>
-                            <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-1 italic">Protocol Timeline & Visit Oversight</p>
-                        </div>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl flex items-center justify-center text-cyan-400">
+                        <CalendarClock className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Clinical <span className="text-cyan-400">Oversight</span></h2>
+                        <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-1 italic">Protocol Timeline & Site Alignment</p>
                     </div>
                 </div>
-            </div>
 
-            {/* Visits Timeline */}
-            <div className="relative">
-                {/* Vertical Line */}
-                <div className="absolute left-8 top-0 bottom-0 w-[2px] bg-gradient-to-b from-cyan-500/50 via-indigo-500/20 to-transparent hidden md:block" />
-
-                <div className="space-y-8 relative">
-                    {sortedVisits.length > 0 ? (
-                        sortedVisits.map((visit, index) => (
-                            <motion.div
-                                key={visit.id}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: index * 0.1 }}
-                                className="relative md:pl-20"
-                            >
-                                {/* Marker Dot */}
-                                <div className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-4 border-[#0a0e1a] bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.8)] z-10 hidden md:block" />
-
-                                <Card className={`p-8 bg-[#0d1424] border-white/5 hover:border-cyan-500/30 transition-all group overflow-hidden`}>
-                                    {/* Sub-bg glow */}
-                                    <div className={`absolute top-0 right-0 w-64 h-64 opacity-5 pointer-events-none rounded-full blur-[100px] ${visit.status === 'COMPLETED' ? 'bg-emerald-500' : 'bg-cyan-500'}`} />
-
-                                    <div className="flex flex-col lg:flex-row gap-8 relative z-10">
-                                        {/* Left: Date & Status */}
-                                        <div className="lg:w-1/3 flex flex-col justify-between">
-                                            <div className="space-y-4">
-                                                <Badge className={`px-4 py-1.5 rounded-full font-black text-[10px] uppercase tracking-widest border ${getStatusStyle(visit.status)}`}>
-                                                    {visit.status.replace(/_/g, ' ')}
-                                                </Badge>
-                                                
-                                                <div className="space-y-1">
-                                                    <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter group-hover:text-cyan-400 transition-colors">
-                                                        {visit.visit_type.replace(/_/g, ' ')}
-                                                    </h3>
-                                                    <p className="text-slate-500 font-bold text-sm uppercase tracking-widest flex items-center gap-2">
-                                                        <Clock className="w-3.5 h-3.5" />
-                                                        {formatTime(visit.scheduled_date)}
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-8 pt-6 border-t border-white/5">
-                                                <div className="flex items-center gap-3 text-slate-400">
-                                                    <MapPin className="w-4 h-4 text-cyan-400" />
-                                                    <span className="text-[12px] font-black uppercase tracking-widest italic">{visit.location || 'Clinical Site Alpha'}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Right: Details & Summary */}
-                                        <div className="flex-1 space-y-8">
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                                <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 space-y-4">
-                                                    <div className="flex items-center gap-3 text-white/40">
-                                                        <Calendar className="w-4 h-4" />
-                                                        <span className="text-[10px] font-black uppercase tracking-widest">Scheduled Date</span>
-                                                    </div>
-                                                    <p className="text-lg font-black text-white italic uppercase tracking-tight">
-                                                        {formatDate(visit.scheduled_date)}
-                                                    </p>
-                                                </div>
-
-                                                <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 space-y-4">
-                                                    <div className="flex items-center gap-3 text-white/40">
-                                                        <ClipboardList className="w-4 h-4" />
-                                                        <span className="text-[10px] font-black uppercase tracking-widest">Protocol Phase</span>
-                                                    </div>
-                                                    <p className="text-lg font-black text-indigo-400 italic uppercase tracking-tight">
-                                                        Phase {index + 1} Assessment
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            {/* Notes / Assessments Preview */}
-                                            {visit.status === 'COMPLETED' ? (
-                                                <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-3xl p-6">
-                                                    <div className="flex items-center gap-3 mb-4 text-emerald-400">
-                                                        <CheckCircle2 className="w-5 h-5" />
-                                                        <h4 className="text-[11px] font-black uppercase tracking-[0.2em]">Visit Data Synchronized</h4>
-                                                    </div>
-                                                    <p className="text-[13px] text-slate-400 font-bold leading-relaxed italic">
-                                                        Assessments and clinical data from this visit have been processed. Results are being reviewed by the Principal Investigator.
-                                                    </p>
-                                                </div>
-                                            ) : (
-                                                <div className="bg-white/[0.01] border border-white/[0.03] rounded-3xl p-6">
-                                                    <div className="flex items-center gap-3 mb-4 text-cyan-400">
-                                                        <Info className="w-5 h-5" />
-                                                        <h4 className="text-[11px] font-black uppercase tracking-[0.2em]">Patient Preparation</h4>
-                                                    </div>
-                                                    <ul className="space-y-3">
-                                                        {[
-                                                            "Fast for 8 hours prior to appointment",
-                                                            "Bring current study medications/kits",
-                                                            "Arrive 15 minutes early for onboarding"
-                                                        ].map((item, i) => (
-                                                            <li key={i} className="flex items-center gap-3 text-[12px] font-bold text-slate-500 italic">
-                                                                <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/40" />
-                                                                {item}
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </Card>
-                            </motion.div>
-                        ))
-                    ) : (
-                        /* Empty State */
-                        <Card className="p-20 bg-[#0d1424] border-white/5 text-center flex flex-col items-center justify-center">
-                            <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center text-slate-700 mb-8 border border-white/5">
-                                <Activity className="w-10 h-10 opacity-20" />
-                            </div>
-                            <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-4">No Scheduled Visits</h3>
-                            <p className="text-slate-500 font-bold uppercase tracking-widest text-sm max-w-md mx-auto italic leading-relaxed">
-                                Your clinical visit schedule will appear here once finalized by the coordination team.
-                            </p>
-                        </Card>
-                    )}
+                <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5">
+                    <button 
+                        onClick={() => setViewMode('timeline')}
+                        className={`px-6 py-2 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all italic flex items-center gap-2 ${viewMode === 'timeline' ? 'bg-cyan-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                    >
+                        <LayoutGrid className="w-3.5 h-3.5" /> Timeline
+                    </button>
+                    <button 
+                        onClick={() => setViewMode('calendar')}
+                        className={`px-6 py-2 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all italic flex items-center gap-2 ${viewMode === 'calendar' ? 'bg-cyan-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                    >
+                        <Calendar className="w-3.5 h-3.5" /> Grid Calendar
+                    </button>
                 </div>
             </div>
+
+            {viewMode === 'timeline' ? (
+                <div className="relative">
+                    {/* Vertical Line */}
+                    <div className="absolute left-8 top-0 bottom-0 w-[2px] bg-gradient-to-b from-cyan-500/50 via-indigo-500/20 to-transparent hidden md:block" />
+
+                    <div className="space-y-8 relative">
+                        {sortedVisits.length > 0 ? (
+                            sortedVisits.map((visit, index) => (
+                                <motion.div
+                                    key={visit.id}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: index * 0.1 }}
+                                    className="relative md:pl-20"
+                                >
+                                    {/* Marker Dot */}
+                                    <div className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-4 border-[#0a0e1a] bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.8)] z-10 hidden md:block" />
+
+                                    <Card className={`p-8 bg-[#0d1424] border-white/5 hover:border-cyan-500/30 transition-all group overflow-hidden`}>
+                                        <div className={`absolute top-0 right-0 w-64 h-64 opacity-5 pointer-events-none rounded-full blur-[100px] ${visit.status === 'COMPLETED' ? 'bg-emerald-500' : 'bg-cyan-500'}`} />
+
+                                        <div className="flex flex-col lg:flex-row gap-8 relative z-10">
+                                            <div className="lg:w-1/3 flex flex-col justify-between">
+                                                <div className="space-y-4">
+                                                    <Badge className={`px-4 py-1.5 rounded-full font-black text-[10px] uppercase tracking-widest border ${getStatusStyle(visit.status)}`}>
+                                                        {visit.status.replace(/_/g, ' ')}
+                                                    </Badge>
+                                                    <div className="space-y-1">
+                                                        <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter group-hover:text-cyan-400 transition-colors">
+                                                            {visit.visit_type.replace(/_/g, ' ')}
+                                                        </h3>
+                                                        <p className="text-slate-500 font-bold text-sm uppercase tracking-widest flex items-center gap-2">
+                                                            <Clock className="w-3.5 h-3.5" />
+                                                            {formatTime(visit.scheduled_date)}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="mt-8 pt-6 border-t border-white/5">
+                                                    <div className="flex items-center gap-3 text-slate-400">
+                                                        <MapPin className="w-4 h-4 text-cyan-400" />
+                                                        <span className="text-[12px] font-black uppercase tracking-widest italic">{visit.location || 'Clinical Site Alpha'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex-1 space-y-8">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                                    <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 space-y-4">
+                                                        <div className="flex items-center gap-3 text-white/40">
+                                                            <Calendar className="w-4 h-4" />
+                                                            <span className="text-[10px] font-black uppercase tracking-widest">Scheduled Date</span>
+                                                        </div>
+                                                        <p className="text-lg font-black text-white italic uppercase tracking-tight">{formatDate(visit.scheduled_date)}</p>
+                                                    </div>
+                                                    <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 space-y-4">
+                                                        <div className="flex items-center gap-3 text-white/40">
+                                                            <ClipboardList className="w-4 h-4" />
+                                                            <span className="text-[10px] font-black uppercase tracking-widest">Protocol Phase</span>
+                                                        </div>
+                                                        <p className="text-lg font-black text-indigo-400 italic uppercase tracking-tight">Phase {index + 1} Assessment</p>
+                                                    </div>
+                                                </div>
+
+                                                {visit.checklist && visit.checklist.length > 0 && (
+                                                    <div className="space-y-4">
+                                                        <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-widest italic">Checklist Progress</h4>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                            {visit.checklist.map((item, idx) => (
+                                                                <div key={idx} className="flex items-center gap-3 p-4 bg-white/[0.01] border border-white/5 rounded-2xl">
+                                                                    <div className={`w-5 h-5 rounded-lg flex items-center justify-center border ${item.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-white/10 text-transparent'}`}>
+                                                                        <Check className="w-3.5 h-3.5" />
+                                                                    </div>
+                                                                    <span className="text-[12px] font-bold text-slate-300 uppercase tracking-tight">{item.item}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </Card>
+                                </motion.div>
+                            ))
+                        ) : (
+                            <div className="text-center py-20 p-8 border border-white/5 rounded-[3rem] bg-white/[0.01]">
+                                <Activity className="w-12 h-12 text-slate-800 mx-auto mb-6" />
+                                <h3 className="text-xl font-black text-white italic uppercase tracking-widest">No Visits Scheduled</h3>
+                                <p className="text-slate-500 mt-4 uppercase text-[10px] font-black tracking-widest">Your clinical timeline is currently clear.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            ) : (
+                renderCalendar()
+            )}
         </div>
     );
 };

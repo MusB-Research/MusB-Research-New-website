@@ -64,19 +64,19 @@ export default function LiveActiveUsers({ allUsers }: { allUsers?: any[] }) {
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div>
-           <div className="flex items-center gap-3 mb-3">
+           <div className="flex items-center gap-3 mb-2">
              <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_15px_#10b981]"></div>
-             <span className="text-sm font-black text-emerald-500 uppercase tracking-[0.4em] italic leading-none">Stream Live</span>
+             <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.4em] italic leading-none">Stream Live</span>
            </div>
-          <h1 className="text-3xl sm:text-5xl font-black text-white italic uppercase tracking-tighter">Live Active <span className="text-[#f59e0b]">Users</span></h1>
-          <p className="text-[12px] sm:text-base text-[#8b8fa8] uppercase tracking-[0.2em] font-black mt-3">Real-time session occupancy and global activity stream</p>
+           <h1 className="text-xl font-black text-white italic uppercase tracking-tighter">Live Active <span className="text-[#f59e0b]">Users</span></h1>
+          <p className="text-[10px] text-[#8b8fa8] uppercase tracking-[0.2em] font-black mt-1">Real-time session occupancy and global activity stream</p>
         </div>
-          <div className="px-8 py-5 bg-[#f59e0b]/10 border border-[#f59e0b]/20 rounded-3xl flex items-center gap-6 shadow-xl shadow-amber-900/20">
+          <div className="px-5 py-3 bg-[#f59e0b]/10 border border-[#f59e0b]/20 rounded-2xl flex items-center gap-4 shadow-xl shadow-amber-900/20">
              <div className="text-right">
-                <p className="text-[12px] font-black text-[#f59e0b] uppercase tracking-[0.3em]">{isDemo ? 'Simulation' : 'Active Now'}</p>
-                <p className="text-2xl sm:text-3xl font-black text-white italic tracking-tighter mt-1">{users.length} {isDemo ? 'VIRTUAL' : 'GLOBAL'}</p>
+                <p className="text-[10px] font-black text-[#f59e0b] uppercase tracking-[0.3em]">{isDemo ? 'Simulation' : 'Active Now'}</p>
+                <p className="text-lg sm:text-xl font-black text-white italic tracking-tighter mt-0.5">{users.length} {isDemo ? 'VIRTUAL' : 'GLOBAL'}</p>
              </div>
-             <Activity className="w-8 h-8 text-[#f59e0b]" />
+             <Activity className="w-5 h-5 text-[#f59e0b]" />
           </div>
       </div>
 
@@ -89,7 +89,7 @@ export default function LiveActiveUsers({ allUsers }: { allUsers?: any[] }) {
                  initial={{ opacity: 0, scale: 0.9 }}
                  animate={{ opacity: 1, scale: 1 }}
                  exit={{ opacity: 0, scale: 0.9 }}
-                 className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-10 relative overflow-hidden group hover:border-[#f59e0b]/30 transition-all shadow-2xl bg-gradient-to-br from-[#0f1133] to-[#0a0b1a]"
+                 className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-8 relative overflow-hidden group hover:border-[#f59e0b]/30 transition-all shadow-2xl bg-gradient-to-br from-[#0f1133] to-[#0a0b1a]"
                >
                   <div className="absolute -top-10 -right-10 w-40 h-40 bg-amber-500/5 blur-3xl rounded-full group-hover:bg-amber-500/10 transition-colors"></div>
                   
@@ -101,7 +101,7 @@ export default function LiveActiveUsers({ allUsers }: { allUsers?: any[] }) {
                   </div>
 
                   <div className="space-y-6">
-                     <h4 className="text-2xl sm:text-3xl font-black text-white italic uppercase truncate tracking-tight">{user.name}</h4>
+                     <h4 className="text-base font-black text-white italic uppercase truncate tracking-tight">{user.name}</h4>
                      
                      <div className="space-y-4 pt-6 border-t border-white/5">
                         <div className="flex items-center gap-4 text-slate-500 group-hover:text-slate-300 transition-colors">

@@ -201,9 +201,9 @@ export default function SignIn() {
             const res = await fetch(`${API}/api/auth/google-login/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     credential: response.credential,
-                    timezone: detectedTimezone 
+                    timezone: detectedTimezone
                 }),
                 credentials: 'include'
             });
@@ -212,7 +212,7 @@ export default function SignIn() {
 
             const userRole = (data.user.role || '').toUpperCase();
             if (userRole === 'SUPER_ADMIN') {
-                 throw new Error('RESTRICTED_ACCESS: Super Admin accounts must use the Restricted Portal for login.');
+                throw new Error('RESTRICTED_ACCESS: Super Admin accounts must use the Restricted Portal for login.');
             }
 
             saveToken(data.access, userRole, undefined, data.refresh);
@@ -252,7 +252,7 @@ export default function SignIn() {
             if (window.google?.accounts?.id && !googleInitRef.current) {
                 const client_id = import.meta.env.VITE_GOOGLE_CLIENT_ID;
                 if (!client_id) return;
-                
+
                 try {
                     window.google.accounts.id.initialize({
                         client_id: client_id,
@@ -447,7 +447,7 @@ export default function SignIn() {
                     {/* Branding Section */}
                     <div className="flex flex-col items-center mb-12 relative z-10">
                         <Link to="/" target="_blank" rel="noopener noreferrer">
-                            <motion.div 
+                            <motion.div
                                 whileHover={{ scale: 1.05 }}
                                 className="bg-white rounded-3xl shadow-2xl border border-white/20 mb-8 flex items-center justify-center overflow-hidden h-16 md:h-20"
                             >
@@ -461,10 +461,13 @@ export default function SignIn() {
                                     initial={{ opacity: 0, y: -10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: 10 }}
-                                    className="text-5xl md:text-7xl font-black text-white italic uppercase tracking-tighter leading-[0.85] flex flex-col items-center"
+                                    className="text-3xl md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none whitespace-nowrap"
                                 >
-                                    <span>{mode === 'LOGIN' ? 'Welcome' : 'Start'}</span>
-                                    <span className="text-cyan-400">{mode === 'LOGIN' ? 'Back' : 'Journey'}</span>
+                                    {mode === 'LOGIN' ? (
+                                        <>Welcome <span className="text-cyan-400">Back</span></>
+                                    ) : (
+                                        <>Start <span className="text-cyan-400">Journey</span></>
+                                    )}
                                 </motion.h1>
                             </AnimatePresence>
                             <p className="text-[12px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center justify-center gap-3">
@@ -491,14 +494,14 @@ export default function SignIn() {
                                     { id: 'PASSWORD', label: 'SET PASSWORD' }
                                 ].map((s, idx) => {
                                     const isActive = step === s.id;
-                                    const isCompleted = (step === 'OTP' && idx < 1) || 
-                                                       (step === 'PASSWORD' && idx < 2);
+                                    const isCompleted = (step === 'OTP' && idx < 1) ||
+                                        (step === 'PASSWORD' && idx < 2);
 
                                     return (
                                         <div key={s.id} className="flex items-center gap-3 relative">
                                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-black transition-all duration-500 z-20 ${isActive ? 'bg-cyan-500 text-slate-900 shadow-[0_0_20px_rgba(6,182,212,0.4)]' :
-                                                    isCompleted ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40' :
-                                                        'bg-slate-900/50 border border-white/5 text-slate-600'
+                                                isCompleted ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40' :
+                                                    'bg-slate-900/50 border border-white/5 text-slate-600'
                                                 }`}>
                                                 {idx + 1}
                                             </div>
@@ -635,7 +638,7 @@ export default function SignIn() {
                                                 />
                                             </div>
                                         </div>
- 
+
                                         <div className="space-y-2">
                                             <label className="text-[12px] font-black uppercase tracking-widest text-slate-500 ml-4">Password</label>
                                             <div className="relative group">

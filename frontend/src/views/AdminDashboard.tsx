@@ -13,10 +13,10 @@ import { authFetch, clearToken, getRole, performLogout, API } from '../utils/aut
 import DashboardModule from '../components/admin/DashboardModule';
 import TeamModule from '../components/admin/TeamModule';
 import AuditLogs from '../components/admin/AuditLogs';
-import ScreenerBuilder from '../components/admin/ScreenerBuilder';
-import LaunchStudyForm from '../components/admin/LaunchStudyForm';
+import QuestionnaireBuilder from '../components/coordinator/QuestionnaireBuilder';
+import LaunchStudyForm from '../components/coordinator/LaunchStudyForm';
 import ApprovalModule from '../components/admin/ApprovalModule';
-import SubmitContentForms from '../components/admin/SubmitContentForms';
+import SubmitContentForms from '../components/coordinator/SubmitContentForms';
 import WorkflowModerationPanel from '../components/admin/WorkflowModerationPanel';
 import PIMessagesModule from '../components/pi/PIMessagesModule';
 import { MessageSquare } from 'lucide-react';
@@ -127,6 +127,34 @@ export default function AdminDashboard() {
             console.error('Metrics fetch error:', error);
         }
     };
+
+    const profileRef = useRef<HTMLDivElement>(null);
+    const notifRef = useRef<HTMLDivElement>(null);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [isNotifOpen, setIsNotifOpen] = useState(false);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+                setIsProfileOpen(false);
+            }
+            if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+                setIsNotifOpen(false);
+            }
+        };
+
+        const handleScroll = () => {
+            if (isProfileOpen) setIsProfileOpen(false);
+            if (isNotifOpen) setIsNotifOpen(false);
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        window.addEventListener('scroll', handleScroll, true);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            window.removeEventListener('scroll', handleScroll, true);
+        };
+    }, [isProfileOpen, isNotifOpen]);
 
     useEffect(() => {
         const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -264,25 +292,63 @@ export default function AdminDashboard() {
                         </span>
                     </div>
 
-                    <NotificationBell unreadCount={0} />
-
-                    <div className="flex items-center gap-6 pl-4 border-l border-white/5">
-                        <div className="text-right hidden sm:block">
-                            <p className="text-[12px] font-black text-white uppercase tracking-widest">{user?.role?.replace('_', ' ') || 'Admin Control'}</p>
-                            <div className="flex items-center justify-end gap-2 mt-0.5 pointer-events-none">
-                                <span className={`text-[12px] font-black uppercase tracking-widest italic px-2 py-0.5 rounded border ${user?.affiliation === 'onsite' ? 'text-indigo-400 border-indigo-400/30' : 'text-cyan-400 border-cyan-400/30'
-                                    }`}>
-                                    {user?.affiliation || 'MusB'}
-                                </span>
-                                <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest italic">Active</p>
-                            </div>
-                        </div>
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-indigo-600 p-0.5 shadow-xl hover:rotate-6 transition-transform cursor-pointer">
-                            <div className="w-full h-full bg-[#0B101B] rounded-[0.9rem] flex items-center justify-center font-black text-white uppercase italic text-[12px]">
-                                {user?.first_name?.[0] || 'A'}{user?.last_name?.[0] || 'D'}
-                            </div>
-                        </div>
+                    <div className="relative" ref={notifRef}>
+                        <NotificationBell 
+                            unreadCount={0} 
+                            onClick={() => setIsNotifOpen(!isNotifOpen)}
+                        />
                     </div>
+
+                        <div 
+                            className="flex items-center gap-6 pl-4 border-l border-white/5 relative" 
+                            ref={profileRef}
+                        >
+                            <div className="text-right hidden sm:block">
+                                <p className="text-[12px] font-black text-white uppercase tracking-widest">{user?.role?.replace('_', ' ') || 'Admin Control'}</p>
+                                <div className="flex items-center justify-end gap-2 mt-0.5 pointer-events-none">
+                                    <span className={`text-[12px] font-black uppercase tracking-widest italic px-2 py-0.5 rounded border ${user?.affiliation === 'onsite' ? 'text-indigo-400 border-indigo-400/30' : 'text-cyan-400 border-cyan-400/30'
+                                        }`}>
+                                        {user?.affiliation || 'MusB'}
+                                    </span>
+                                    <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest italic">Active</p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                                className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-indigo-600 p-0.5 shadow-xl hover:rotate-6 transition-transform cursor-pointer"
+                            >
+                                <div className="w-full h-full bg-[#0B101B] rounded-[0.9rem] flex items-center justify-center font-black text-white uppercase italic text-[12px]">
+                                    {user?.first_name?.[0] || 'A'}{user?.last_name?.[0] || 'D'}
+                                </div>
+                            </button>
+
+                            <AnimatePresence>
+                                {isProfileOpen && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        className="absolute right-0 top-full mt-4 w-56 bg-[#0f1133] border border-white/10 rounded-3xl shadow-2xl p-2 z-[100] overflow-hidden"
+                                    >
+                                        <div className="p-5 border-b border-white/5 mb-2">
+                                            <p className="text-sm font-black text-white uppercase italic truncate tracking-tight">
+                                                {user?.full_name || 'Admin'}
+                                            </p>
+                                            <p className="text-[12px] text-cyan-400 font-black uppercase tracking-widest mt-2">
+                                                {user?.role?.replace('_', ' ') || 'Admin'}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={confirmSignOut}
+                                            className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-red-100 hover:text-white hover:bg-red-500 transition-all text-sm font-black uppercase tracking-widest"
+                                        >
+                                            <LogOut className="w-5 h-5 text-red-400 group-hover:text-white" /> 
+                                            <span className="text-red-400 group-hover:text-white">Sign Out Interface</span>
+                                        </button>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
                 </div>
             </header>
 
@@ -305,7 +371,7 @@ export default function AdminDashboard() {
                 )}
 
                 {activeModule === 'SCREENER_BUILDER' && (
-                    <ScreenerBuilder />
+                    <QuestionnaireBuilder />
                 )}
 
                 {activeModule === 'AUDIT_LOGS' && (

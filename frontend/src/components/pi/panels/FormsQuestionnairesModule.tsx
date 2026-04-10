@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import QuestionnaireBuilder from '../../coordinator/QuestionnaireBuilder';
 import {
     ClipboardList,
     Search,
@@ -197,7 +198,6 @@ export default function FormsQuestionnairesModule() {
     );
 }
 
-import QuestionnaireBuilder from '../QuestionnaireBuilder';
 
 
 

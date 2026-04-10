@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    Clock, Calendar, CheckCircle2, AlertCircle, Lock, 
-    ChevronRight, Zap, Trophy, Play, FileText, 
+import {
+    Clock, Calendar, CheckCircle2, AlertCircle, Lock,
+    ChevronRight, Zap, Trophy, Play, FileText,
     ClipboardList, Filter, LayoutGrid, List as ListIcon,
     Download, ExternalLink, HelpCircle, Eye, ArrowRight, Ship
 } from 'lucide-react';
@@ -24,49 +24,57 @@ interface Task {
     };
 }
 
-const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; onAction: (t: string, task?: any) => void; study?: any; userName?: string }) => {
-    const [filter, setFilter] = useState('All');
+const TasksView = ({ tasks = [], onAction, study, userName, defaultFilter = 'Overdue' }: { tasks: any[]; onAction: (t: string, task?: any) => void; study?: any; userName?: string; defaultFilter?: string }) => {
+    const [filter, setFilter] = useState(defaultFilter);
     const [viewMode, setViewMode] = useState<'timeline' | 'list'>('timeline');
 
     // Stats Calculation
+    // Reset filter if defaultFilter changes (e.g. from nav action)
+    useEffect(() => {
+        if (defaultFilter) setFilter(defaultFilter);
+    }, [defaultFilter]);
+
     const stats = useMemo(() => {
         const total = tasks.length;
-        const completed = tasks.filter(t => t.status === 'COMPLETED').length;
-        
+        const completed = tasks.filter(t => (t.status || '').toUpperCase() === 'COMPLETED').length;
+
         const today = new Date();
-        today.setHours(0,0,0,0);
-        
+        today.setHours(0, 0, 0, 0);
+
         const overdue = tasks.filter(t => {
-            if (t.status === 'COMPLETED') return false;
+            if ((t.status || '').toUpperCase() === 'COMPLETED') return false;
             const dueDate = new Date(t.due_date);
-            dueDate.setHours(0,0,0,0);
+            dueDate.setHours(0, 0, 0, 0);
             const diff = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-            return diff > 1 && diff <= 5; // 5 day locking window
+            const isDailyLog = t.task_type === 'DAILY_LOG' || t.task_details?.task_type === 'DAILY_LOG';
+            if (isDailyLog) return diff >= 1;
+            return diff >= 1 && diff <= 5; // 5 day locking window
         }).length;
 
         const locked = tasks.filter(t => {
-            if (t.status === 'COMPLETED') return false;
+            if ((t.status || '').toUpperCase() === 'COMPLETED') return false;
             const dueDate = new Date(t.due_date);
-            dueDate.setHours(0,0,0,0);
+            dueDate.setHours(0, 0, 0, 0);
             const diff = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-            return diff > 5;
+            const isDailyLog = t.task_type === 'DAILY_LOG' || t.task_details?.task_type === 'DAILY_LOG';
+            return diff > 5 && !isDailyLog;
         }).length;
 
         const todayTasks = tasks.filter(t => {
-            if (t.status === 'COMPLETED') return false;
+            if ((t.status || '').toUpperCase() === 'COMPLETED') return false;
             const dueDate = new Date(t.due_date);
-            dueDate.setHours(0,0,0,0);
+            dueDate.setHours(0, 0, 0, 0);
             return dueDate.getTime() === today.getTime();
         }).length;
 
         const upcoming = tasks.filter(t => {
-            if (t.status === 'COMPLETED') return false;
+            if ((t.status || '').toUpperCase() === 'COMPLETED') return false;
             const dueDate = new Date(t.due_date);
-            dueDate.setHours(0,0,0,0);
+            dueDate.setHours(0, 0, 0, 0);
             return dueDate.getTime() > today.getTime();
         }).length;
 
-        const inProgress = tasks.filter(t => t.status === 'IN_PROGRESS').length;
+        const inProgress = tasks.filter(t => (t.status || '').toUpperCase() === 'IN_PROGRESS').length;
         const pending = total - completed - overdue - locked;
 
         return {
@@ -81,18 +89,20 @@ const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; on
         today.setHours(0, 0, 0, 0);
 
         const getTaskCategory = (task: any) => {
-            if (task.status === 'COMPLETED') return 'Completed';
-            
+            const rawStatus = String(task.status || '').trim().toUpperCase();
+            if (rawStatus === 'COMPLETED' || rawStatus === 'VIEW_SUBMISSION') return 'Completed';
+
             const dueDate = new Date(task.due_date);
-            dueDate.setHours(0,0,0,0);
-            
+            dueDate.setHours(0, 0, 0, 0);
+
             const diffDays = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
 
-            if (diffDays > 5) return 'Locked';
-            if (diffDays > 1) return 'Overdue';
+            const isDailyLog = task.task_type === 'DAILY_LOG' || task.task_details?.task_type === 'DAILY_LOG';
+            if (diffDays > 5 && !isDailyLog) return 'Locked';
+            if (diffDays >= 1) return 'Overdue';
             if (diffDays === 0) return 'Today';
             if (dueDate > today) return 'Upcoming';
-            return 'Today'; 
+            return 'Upcoming'; // Future fallback
         };
 
         const categorized: Record<string, any[]> = {
@@ -149,14 +159,14 @@ const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; on
                     <p className="text-slate-500 font-black uppercase tracking-widest text-[14px]">Manage and complete your daily study activities.</p>
                 </div>
                 <div className="flex bg-[#0a0f1d] p-1 rounded-2xl border border-white/5 shadow-2xl relative z-50">
-                    <button 
-                        onClick={() => setViewMode('timeline')} 
+                    <button
+                        onClick={() => setViewMode('timeline')}
                         className={`p-2.5 rounded-xl transition-all duration-300 ${viewMode === 'timeline' ? 'bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20' : 'text-slate-600 hover:text-slate-400'} cursor-pointer`}
                     >
                         <LayoutGrid className="w-5 h-5" />
                     </button>
-                    <button 
-                        onClick={() => setViewMode('list')} 
+                    <button
+                        onClick={() => setViewMode('list')}
                         className={`p-2.5 rounded-xl transition-all duration-300 ${viewMode === 'list' ? 'bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20' : 'text-slate-600 hover:text-slate-400'} cursor-pointer`}
                     >
                         <ListIcon className="w-5 h-5" />
@@ -176,14 +186,14 @@ const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; on
                             <span className="text-4xl font-black text-white italic">{stats.percent}%</span>
                         </div>
                     </div>
-                    <SegmentedProgressBar 
+                    <SegmentedProgressBar
                         segments={[
                             { count: stats.completed, color: 'bg-[#00e676]', label: 'Submitted' },
                             { count: stats.inProgress, color: 'bg-indigo-500', label: 'In Progress' },
                             { count: stats.pending, color: 'bg-white/10', label: 'Not Started' },
                             { count: stats.locked, color: 'bg-amber-500', label: 'Locked' },
                             { count: stats.overdue, color: 'bg-red-500', label: 'Overdue' }
-                        ]} 
+                        ]}
                     />
                 </Card>
 
@@ -207,13 +217,13 @@ const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; on
                     <Filter className="w-5 h-5" /><span className="text-[15px] font-black uppercase tracking-widest">Filter</span>
                 </button>
                 {['Overdue', 'Today', 'Upcoming', 'Completed', 'Locked', 'All'].map((f) => {
-                    const count = 
+                    const count =
                         f === 'All' ? stats.total :
-                        f === 'Overdue' ? stats.overdue :
-                        f === 'Today' ? stats.today :
-                        f === 'Upcoming' ? stats.upcoming :
-                        f === 'Completed' ? stats.completed :
-                        f === 'Locked' ? stats.locked : 0;
+                            f === 'Overdue' ? stats.overdue :
+                                f === 'Today' ? stats.today :
+                                    f === 'Upcoming' ? stats.upcoming :
+                                        f === 'Completed' ? stats.completed :
+                                            f === 'Locked' ? stats.locked : 0;
                     return <FilterChip key={f} label={f} active={filter === f} onClick={() => setFilter(f)} count={count} />;
                 })}
             </div>
@@ -235,14 +245,15 @@ const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; on
                             </div>
                             <div className={viewMode === 'timeline' ? "grid grid-cols-1 lg:grid-cols-2 gap-4" : "space-y-3"}>
                                 {section.tasks.map((task: any, tIdx: number) => {
-                                    const today = new Date(); today.setHours(0,0,0,0);
-                                    const dueDate = new Date(task.due_date); dueDate.setHours(0,0,0,0);
+                                    const today = new Date(); today.setHours(0, 0, 0, 0);
+                                    const dueDate = new Date(task.due_date); dueDate.setHours(0, 0, 0, 0);
                                     const diffDays = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-                                    
-                                    let sLabel = task.status === 'COMPLETED' ? 'Completed' : 'Pending';
-                                    if (task.status !== 'COMPLETED') {
-                                        if (diffDays > 5) sLabel = 'Locked';
-                                        else if (diffDays > 1) sLabel = 'Overdue';
+
+                                    let sLabel = (task.status || '').toUpperCase() === 'COMPLETED' ? 'Completed' : 'Pending';
+                                    if (sLabel !== 'Completed') {
+                                        const isDailyLog = task.task_type === 'DAILY_LOG' || task.task_details?.task_type === 'DAILY_LOG';
+                                        if (diffDays > 5 && !isDailyLog) sLabel = 'Locked';
+                                        else if (diffDays >= 1) sLabel = 'Overdue';
                                         else if (diffDays === 0) sLabel = 'Today';
                                         else if (dueDate > today) sLabel = 'Upcoming';
                                         else sLabel = 'Today';
@@ -258,13 +269,13 @@ const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; on
                                                     <div className={`flex flex-1 justify-between items-start ${viewMode === 'list' ? 'items-center' : ''}`}>
                                                         <div className={viewMode === 'list' ? 'flex items-center gap-6' : ''}>
                                                             {viewMode === 'list' && <div className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0`}>
-                                                                {task.status === 'COMPLETED' ? <CheckCircle2 className="w-5 h-5 text-green-400" /> : 
-                                                                 task.task_details?.task_type === 'FORM_SIGNATURE' ? <FileText className="w-5 h-5 text-cyan-400" /> :
-                                                                 <Clock className="w-5 h-5 text-slate-500" />}
+                                                                {(task.status || '').toUpperCase() === 'COMPLETED' ? <CheckCircle2 className="w-5 h-5 text-green-400" /> :
+                                                                    task.task_details?.task_type === 'FORM_SIGNATURE' ? <FileText className="w-5 h-5 text-cyan-400" /> :
+                                                                        <Clock className="w-5 h-5 text-slate-500" />}
                                                             </div>}
                                                             <div>
-                                                                <span className="text-[15px] font-black text-slate-600 uppercase tracking-widest block mb-1.5">{task.task_details?.task_type || 'STUDY ACTIVITY'}</span>
-                                                                <h5 className={`${viewMode === 'timeline' ? 'text-[20px]' : 'text-[21px]'} font-black text-white italic uppercase tracking-tight group-hover:text-cyan-400 transition-colors`}>{task.title}</h5>
+                                                                <span className="text-[12px] font-black text-slate-600 uppercase tracking-widest block mb-1">{task.task_details?.task_type || 'STUDY ACTIVITY'}</span>
+                                                                <h5 className={`${viewMode === 'timeline' ? 'text-[17px]' : 'text-[18px]'} font-black text-white italic uppercase tracking-tight group-hover:text-cyan-400 transition-colors`}>{task.title}</h5>
                                                             </div>
                                                         </div>
                                                         <Badge color={sColor}>{sLabel}</Badge>
@@ -280,15 +291,18 @@ const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; on
                                                     <div className={`flex gap-3 ${viewMode === 'timeline' ? 'pt-2' : 'w-64'}`}>
                                                         {sLabel === 'Locked' ? (
                                                             <button className="flex-1 bg-white/5 text-slate-500 py-4 rounded-xl border border-white/5 cursor-not-allowed flex items-center justify-center gap-2 text-[15px] font-black uppercase tracking-widest"><Lock className="w-5 h-5" />Task Locked</button>
-                                                        ) : task.status === 'COMPLETED' ? (
-                                                            <button onClick={() => onAction('VIEW_SUBMISSION', task)} className="flex-1 bg-white/5 border border-white/10 text-white py-4 rounded-xl flex items-center justify-center gap-2 text-[15px] font-black uppercase tracking-widest group-hover:bg-cyan-500/10 group-hover:border-cyan-500/30 group-hover:text-cyan-400 transition-all"><Eye className="w-5 h-5" />View Signed PDF</button>
+                                                        ) : (task.status || '').toUpperCase() === 'COMPLETED' ? (
+                                                            <button onClick={() => onAction('VIEW_SUBMISSION', task)} className="flex-1 bg-white/5 border border-white/10 text-white py-4 rounded-xl flex items-center justify-center gap-2 text-[13px] font-black uppercase tracking-widest group-hover:bg-cyan-500/10 group-hover:border-cyan-500/30 group-hover:text-cyan-400 transition-all">
+                                                                <Eye className="w-4 h-4" />
+                                                                {task.task_details?.task_type === 'DAILY_LOG' ? 'View Log Details' : 'View Signed PDF'}
+                                                            </button>
                                                         ) : (
-                                                            <button 
+                                                            <button
                                                                 onClick={() => onAction(
-                                                                    task.task_details?.task_type === 'FORM_SIGNATURE' ? 'SIGN_FORM' : 
-                                                                    (task.status === 'IN_PROGRESS' ? 'RESUME_TASK' : 'START_TASK'), 
+                                                                    task.task_details?.task_type === 'FORM_SIGNATURE' ? 'SIGN_FORM' :
+                                                                        ((task.status || '').toUpperCase() === 'IN_PROGRESS' ? 'RESUME_TASK' : 'START_TASK'),
                                                                     task
-                                                                )} 
+                                                                )}
                                                                 className={`flex-1 ${sLabel === 'Overdue' ? 'bg-red-500 shadow-lg shadow-red-500/20' : 'bg-cyan-500 shadow-lg shadow-cyan-500/20'} text-slate-950 py-4 rounded-xl font-black text-[15px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95 group-hover:scale-[1.02]`}
                                                             >
                                                                 {task.task_details?.task_type === 'FORM_SIGNATURE' ? <FileText className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current" />}
@@ -311,5 +325,7 @@ const TasksView = ({ tasks = [], onAction, study, userName }: { tasks: any[]; on
 };
 
 export default TasksView;
+
+
 
 

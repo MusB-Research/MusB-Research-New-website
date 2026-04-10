@@ -10,21 +10,43 @@ interface ParticipantTask {
     title: string;
     due_date: string;
     status: string;
+    task_type?: string;
+    participant_id?: string;
     grace_period: number;
     delay_allowed: number;
 }
 
-export default function ParticipantTaskManagement({ primaryColor = 'indigo' }: { primaryColor?: string }) {
-    const [tasks, setTasks] = useState<ParticipantTask[]>([
-        { id: '1', participant_name: 'John Doe', protocol_id: 'STUDY-101', title: 'Daily Health Log', due_date: '2026-04-05', status: 'OVERDUE', grace_period: 5, delay_allowed: 2 },
-        { id: '2', participant_name: 'Alice Smith', protocol_id: 'STUDY-101', title: 'Baseline Bio-Scan', due_date: '2026-04-10', status: 'UPCOMING', grace_period: 5, delay_allowed: 2 },
-        { id: '3', participant_name: 'Bob Wilson', protocol_id: 'STUDY-202', title: 'Post-Dose Feedback', due_date: '2026-04-01', status: 'LOCKED', grace_period: 5, delay_allowed: 2 },
-    ]);
+export default function ParticipantTaskManagement({ primaryColor = 'indigo', selectedStudyId = 'all' }: { primaryColor?: string; selectedStudyId?: string }) {
+    const [tasks, setTasks] = useState<ParticipantTask[]>([]);
     const [showNewTaskModal, setShowNewTaskModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
+
+    const fetchTasks = async () => {
+        try {
+            const url = selectedStudyId && selectedStudyId !== 'all' 
+                ? `${API}/api/participant-tasks/?study=${selectedStudyId}`
+                : `${API}/api/participant-tasks/`;
+            const res = await authFetch(url);
+            if (res.ok) {
+                const data = await res.json();
+                setTasks(data);
+            }
+        } catch (err) {
+            console.error("Task sync failure:", err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchTasks();
+        const timer = setInterval(fetchTasks, 30000);
+        return () => clearInterval(timer);
+    }, [selectedStudyId]);
 
     const getStatusStyle = (status: string) => {
-        switch (status.toUpperCase()) {
+        switch (status?.toUpperCase()) {
             case 'COMPLETED': return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
             case 'OVERDUE': return 'text-red-400 bg-red-500/10 border-red-500/20';
             case 'LOCKED': return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
@@ -33,6 +55,12 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo' }: {
     };
 
     const colorHex = primaryColor === 'teal' ? '#14b8a6' : '#6366f1';
+
+    const filteredTasks = tasks.filter(t => 
+        t.participant_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.protocol_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.title?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
         <div className="space-y-8">
@@ -53,110 +81,140 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo' }: {
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                 {[
-                    { label: 'Active Missions', count: 124, icon: List, color: 'cyan' },
-                    { label: 'Overdue Syncs', count: 12, icon: AlertCircle, color: 'red' },
-                    { label: 'Locked Protocols', count: 8, icon: Lock, color: 'amber' },
-                    { label: 'Completion Rate', count: '92%', icon: CheckCircle2, color: 'emerald' }
-                 ].map((stat, i) => (
-                    <div key={i} className="bg-[#0B1222] border border-white/5 p-6 rounded-3xl hover:border-white/10 transition-all">
-                        <div className="flex items-center gap-3 mb-4">
-                            <stat.icon className={`w-4 h-4 text-${stat.color}-400`} />
-                            <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest">{stat.label}</span>
+            {isLoading ? (
+                <div className="py-20 text-center animate-pulse">
+                    <Activity className="w-12 h-12 text-slate-800 mx-auto mb-4" />
+                    <p className="text-slate-500 font-black uppercase tracking-widest text-[12px]">Fetching Clinical Missions...</p>
+                </div>
+            ) : (
+                <>
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                         {[
+                            { label: 'Active Missions', count: tasks.filter(t => t.status !== 'COMPLETED').length, icon: List, color: 'cyan' },
+                            { label: 'Overdue Syncs', count: tasks.filter(t => t.status === 'OVERDUE').length, icon: AlertCircle, color: 'red' },
+                            { label: 'Locked Protocols', count: tasks.filter(t => t.status === 'LOCKED' && !t.title?.toUpperCase().includes('DAILY MEDICINE LOG')).length, icon: Lock, color: 'amber' },
+                            { label: 'Completion Rate', count: `${Math.round((tasks.filter(t => t.status === 'COMPLETED').length / (tasks.length || 1)) * 100)}%`, icon: CheckCircle2, color: 'emerald' }
+                         ].map((stat, i) => (
+                            <div key={i} className="bg-[#0B1222] border border-white/5 p-6 rounded-3xl hover:border-white/10 transition-all">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <stat.icon className={`w-4 h-4 text-${stat.color}-400`} />
+                                    <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest">{stat.label}</span>
+                                </div>
+                                <div className="text-2xl font-black text-white italic">{stat.count}</div>
+                            </div>
+                         ))}
+                    </div>
+
+                    <div className="bg-[#0a101f]/80 backdrop-blur-xl border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
+                        <div className="p-8 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                            <div className="flex items-center gap-4 bg-white/5 border border-white/10 px-5 py-2.5 rounded-2xl flex-1 max-w-md group focus-within:border-cyan-500/50 transition-all">
+                                <Search className="w-4 h-4 text-slate-500 group-focus-within:text-cyan-400" />
+                                <input 
+                                    type="text" 
+                                    placeholder="SEARCH BY PARTICIPANT OR PROTOCOL ID..." 
+                                    className="bg-transparent border-none outline-none text-white text-[12px] font-black tracking-widest uppercase w-full"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
                         </div>
-                        <div className="text-2xl font-black text-white italic">{stat.count}</div>
-                    </div>
-                 ))}
-            </div>
 
-            <div className="bg-[#0a101f]/80 backdrop-blur-xl border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
-                <div className="p-8 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex items-center gap-4 bg-white/5 border border-white/10 px-5 py-2.5 rounded-2xl flex-1 max-w-md group focus-within:border-cyan-500/50 transition-all">
-                        <Search className="w-4 h-4 text-slate-500 group-focus-within:text-cyan-400" />
-                        <input 
-                            type="text" 
-                            placeholder="SEARCH BY PARTICIPANT OR PROTOCOL ID..." 
-                            className="bg-transparent border-none outline-none text-white text-[12px] font-black tracking-widest uppercase w-full"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-white/[0.02]">
+                                        <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest">Participant / Study</th>
+                                        <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest">Mission Title</th>
+                                        <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest">Deadline</th>
+                                        <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest">Status / Intelligence</th>
+                                        <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest text-right">Operational Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredTasks.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={5} className="px-10 py-20 text-center">
+                                                <p className="text-slate-500 font-black uppercase tracking-widest">No active missions found in current search scope.</p>
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        filteredTasks.map((task) => (
+                                            <tr key={task.id} className="border-b border-white/5 group hover:bg-white/[0.01] transition-all">
+                                                <td className="px-10 py-8">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-white/10 italic font-black text-white text-[12px]">
+                                                            {task.participant_name?.charAt(0) || 'S'}
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-sm font-black text-white uppercase tracking-tight">{task.participant_name || 'Anonymous Subject'}</div>
+                                                            <div className="text-[12px] font-bold text-slate-600 uppercase tracking-widest">{task.protocol_id || 'GENERAL'}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-10 py-8">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                                                        <span className="text-[13px] font-black text-white uppercase tracking-tight italic">{task.title}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-10 py-8">
+                                                    <div className="flex items-center gap-2">
+                                                        <Calendar className="w-4 h-4 text-slate-600" />
+                                                        <span className="text-[12px] font-bold text-slate-300 uppercase">{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'NO DEADLINE'}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-10 py-8">
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className={`px-4 py-1.5 rounded-full border text-[12px] font-black uppercase tracking-widest w-fit ${
+                                                            (task.status === 'LOCKED' && task.title?.toUpperCase().includes('DAILY MEDICINE LOG'))
+                                                                ? 'text-red-400 bg-red-500/10 border-red-500/20' // Change Locked Log to Overdue style
+                                                                : getStatusStyle(task.status)
+                                                        }`}>
+                                                            {(task.status === 'LOCKED' && task.title?.toUpperCase().includes('DAILY MEDICINE LOG')) ? 'OVERDUE' : task.status}
+                                                        </div>
+                                                        <span className="text-[12px] font-bold text-slate-600 uppercase italic">
+                                                            Rules: {task.delay_allowed}d Delay | {task.grace_period}d Grace
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-10 py-8 text-right">
+                                                     <div className="flex items-center justify-end gap-3 transition-opacity">
+                                                        {task.title?.toUpperCase().includes('DAILY MEDICINE LOG') && (
+                                                            <button 
+                                                                onClick={() => {
+                                                                    // Navigate to a log entry form or open a modal
+                                                                    alert(`Opening Log Entry Terminal for ${task.participant_name} [${task.due_date}]`);
+                                                                }}
+                                                                className="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg flex items-center gap-2"
+                                                            >
+                                                                <FileText className="w-4 h-4" /> Fill Clinical Data
+                                                            </button>
+                                                        )}
+                                                        <button 
+                                                            onClick={() => alert(`Reviewing clinical compliance metrics for ${task.participant_name}...`)}
+                                                            className="p-3 bg-white/5 border border-white/10 text-slate-400 hover:text-white rounded-xl transition-all shadow-lg"
+                                                        >
+                                                            <Shield className="w-4 h-4" />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => {
+                                                                alert(`Operational Override: Granting ${task.participant_name} extension for ${task.title}.`);
+                                                            }}
+                                                            className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all shadow-lg shadow-cyan-900/40"
+                                                        >
+                                                            Override Rules
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-white/[0.02]">
-                                <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest">Participant / Study</th>
-                                <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest">Mission Title</th>
-                                <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest">Deadline</th>
-                                <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest">Status / Intelligence</th>
-                                <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest text-right">Operational Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {tasks.map((task) => (
-                                <tr key={task.id} className="border-b border-white/5 group hover:bg-white/[0.01] transition-all">
-                                    <td className="px-10 py-8">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-white/10 italic font-black text-white text-[12px]">
-                                                {task.participant_name.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <div className="text-sm font-black text-white uppercase tracking-tight">{task.participant_name}</div>
-                                                <div className="text-[12px] font-bold text-slate-600 uppercase tracking-widest">{task.protocol_id}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-10 py-8">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
-                                            <span className="text-[13px] font-black text-white uppercase tracking-tight italic">{task.title}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-10 py-8">
-                                        <div className="flex items-center gap-2">
-                                            <Calendar className="w-4 h-4 text-slate-600" />
-                                            <span className="text-[12px] font-bold text-slate-300 uppercase">{task.due_date}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-10 py-8">
-                                        <div className="flex flex-col gap-2">
-                                            <div className={`px-4 py-1.5 rounded-full border text-[12px] font-black uppercase tracking-widest w-fit ${getStatusStyle(task.status)}`}>
-                                                {task.status}
-                                            </div>
-                                            <span className="text-[12px] font-bold text-slate-600 uppercase italic">
-                                                Rules: {task.delay_allowed}d Delay | {task.grace_period}d Grace
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-10 py-8 text-right">
-                                        <div className="flex items-center justify-end gap-3 transition-opacity">
-                                            <button 
-                                                onClick={() => alert(`Reviewing clinical compliance metrics for ${task.participant_name}...`)}
-                                                className="p-3 bg-white/5 border border-white/10 text-slate-400 hover:text-white rounded-xl transition-all shadow-lg"
-                                            >
-                                                <Shield className="w-4 h-4" />
-                                            </button>
-                                            <button 
-                                                onClick={() => {
-                                                    alert(`Overriding protocol rules for ${task.title}. Subject now granted 48h emergency extension.`);
-                                                    const updated = tasks.map(t => t.id === task.id ? { ...t, status: 'LOCKED' } : t);
-                                                    setTasks(updated);
-                                                }}
-                                                className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all shadow-lg shadow-cyan-900/40"
-                                            >
-                                                Override Rules
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                </>
+            )}
 
             {/* NEW TASK MODAL */}
             <AnimatePresence>

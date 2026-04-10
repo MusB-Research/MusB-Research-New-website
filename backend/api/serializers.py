@@ -153,6 +153,7 @@ class SponsorOrganizationSerializer(SanitizedModelSerializer):
         fields = '__all__'
 
 class StudySerializer(SanitizedModelSerializer):
+    # --- Relational ID fields ---
     pi_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), source='pi', required=False, allow_null=True
     )
@@ -167,12 +168,31 @@ class StudySerializer(SanitizedModelSerializer):
     )
     pi_ids = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all(), write_only=True, required=False)
     coordinator_ids = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all(), write_only=True, required=False)
-    
-    # Read-only fields for current assignments
+
+    # --- Explicit optional overrides for fields that are required in the DB model ---
+    # 'sponsor_name' and 'title' have no blank=True in the model, but we handle defaults here.
+    title = serializers.CharField(required=False, allow_blank=True, default='Untitled Study')
+    sponsor_name = serializers.CharField(required=False, allow_blank=True, default='')
+    study_type = serializers.CharField(required=False, default='IN_PERSON')
+    status = serializers.CharField(required=False, default='DRAFT')
+    stage = serializers.CharField(required=False, default='DRAFT')
+    reward_type = serializers.CharField(required=False, default='CASH')
+    reward_logic = serializers.CharField(required=False, default='PER_TASK')
+    reward_config = serializers.JSONField(required=False, default=dict)
+    compensation = serializers.CharField(required=False, allow_blank=True, default='')
+    tags = serializers.JSONField(required=False, default=list)
+    timeline = serializers.JSONField(required=False, default=list)
+    privacy_standards = serializers.JSONField(required=False, default=list)
+    target_subjects = serializers.IntegerField(required=False, default=0)
+    target_screened = serializers.IntegerField(required=False, default=0)
+
+    # --- Read-only nested fields ---
     assigned_pis = UserSerializer(many=True, read_only=True)
     assigned_coordinators = UserSerializer(many=True, read_only=True)
     documents = DocumentSerializer(many=True, read_only=True)
-    
+    # consent_templates is a reverse FK relation — MUST be read_only, never required on write
+    consent_templates = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+
     class Meta:
         model = Study
         fields = [
@@ -191,6 +211,28 @@ class StudySerializer(SanitizedModelSerializer):
             'reward_type', 'reward_logic', 'reward_config',
             'consent_template_file', 'consent_templates', 'documents'
         ]
+
+    def to_internal_value(self, data):
+        import logging
+        logger = logging.getLogger(__name__)
+        # Strip unknown/extra frontend-only fields that the serializer doesn't know about
+        KNOWN_FIELDS = set(self.fields.keys()) | {
+            'pi_ids', 'coordinator_ids', 'pi_id', 'coordinator_id', 'sponsor_id', 'sponsor_org_id'
+        }
+        FRONTEND_ONLY_FIELDS = {
+            'reward_amount', 'rct_design', 'masking', 'consent_collection', 'medication_supply',
+            'compensation_currency', 'brief_description', 'indication', 'execution_type',
+            'assigned_sponsors', 'startDate', 'endDate',
+            # Also strip these if frontend accidentally sends them (they are read-only relations)
+            'consent_templates', 'documents', 'assigned_pis', 'assigned_coordinators'
+        }
+        if isinstance(data, dict):
+            data = {k: v for k, v in data.items() if k not in FRONTEND_ONLY_FIELDS}
+        try:
+            return super().to_internal_value(data)
+        except Exception as e:
+            logger.error(f"[StudySerializer] Validation Error: {e}")
+            raise
 
 class PublicStudySerializer(SanitizedModelSerializer):
     """Lighter version for discovery page to boost performance"""
@@ -326,6 +368,8 @@ class ParticipantTaskSerializer(SanitizedModelSerializer):
     task_details = TaskSerializer(source='task', read_only=True)
     assigned_form_details = AssignedFormSerializer(source='assigned_form', read_only=True)
     study = serializers.SerializerMethodField()
+    participant_name = serializers.SerializerMethodField()
+    protocol_id = serializers.SerializerMethodField()
 
     def get_study(self, obj):
         """Expose the participant's study ID so the frontend can filter tasks per-study."""
@@ -334,9 +378,26 @@ class ParticipantTaskSerializer(SanitizedModelSerializer):
         except Exception:
             return None
 
+    def get_participant_name(self, obj):
+        try:
+            return obj.participant.user.decrypted_name
+        except Exception:
+            return "Anonymous"
+
+    def get_protocol_id(self, obj):
+        try:
+            return obj.participant.study.protocol_id
+        except Exception:
+            return "N/A"
+
     class Meta:
         model = ParticipantTask
-        fields = ['id', 'participant', 'task', 'task_details', 'study', 'due_date', 'completed_at', 'status', 'visit_name', 'timeline_group', 'estimated_time', 'is_locked', 'current_data', 'assigned_form', 'assigned_form_details']
+        fields = [
+            'id', 'participant', 'task', 'task_details', 'study', 'due_date', 
+            'completed_at', 'status', 'visit_name', 'timeline_group', 'estimated_time', 
+            'is_locked', 'current_data', 'assigned_form', 'assigned_form_details',
+            'participant_name', 'protocol_id'
+        ]
 
 class StaffTaskSerializer(SanitizedModelSerializer):
     id = ObjectIdField(read_only=True)
@@ -650,6 +711,19 @@ class ParticipantSerializer(SanitizedModelSerializer):
     def safe_day(self, obj):
         return obj.dob.day if obj.dob else 1
 
+class ParticipantBriefSerializer(SanitizedModelSerializer):
+    """Senior Developer: Light-weight serializer for dashboard lists to prevent 15s loading delays."""
+    id = serializers.CharField(read_only=True)
+    study_name = serializers.CharField(source='study.title', read_only=True)
+    protocol_id = serializers.CharField(source='study.protocol_id', read_only=True)
+    
+    class Meta:
+        model = Participant
+        fields = [
+            'id', 'study', 'study_name', 'protocol_id', 'user', 
+            'participant_sid', 'status', 'created_at', 'reviewed_at'
+        ]
+
 class DeIdentifiedParticipantSerializer(SanitizedModelSerializer):
     """Restricted view for Sponsors (No PII)"""
     id = serializers.CharField(read_only=True)
@@ -658,7 +732,10 @@ class DeIdentifiedParticipantSerializer(SanitizedModelSerializer):
     
     class Meta:
         model = Participant
-        fields = ['id', 'study', 'participant_sid', 'status', 'gender', 'age', 'assigned_arm', 'completion_date']
+        fields = [
+            'id', 'study', 'participant_sid', 'status', 'gender', 'age', 
+            'assigned_arm', 'completion_date', 'created_at', 'reviewed_at'
+        ]
 
     def get_gender(self, obj):
         return obj.decrypted_gender

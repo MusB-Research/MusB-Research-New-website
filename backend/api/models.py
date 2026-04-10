@@ -80,7 +80,7 @@ class Study(BaseMongoModel):
     full_title = models.TextField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     protocol_id = models.CharField(max_length=100, unique=True, null=True, blank=True, verbose_name="Protocol ID / Internal ID")
-    sponsor_name = models.CharField(max_length=255)
+    sponsor_name = models.CharField(max_length=255, blank=True, default='')
     study_type = models.CharField(max_length=20, choices=STUDY_TYPES, default='IN_PERSON')
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='DRAFT')
     stage = models.CharField(max_length=30, choices=STATUS_CHOICES, default='DRAFT')
@@ -156,6 +156,12 @@ class Study(BaseMongoModel):
     REWARD_TYPE_CHOICES = [
         ('CASH', 'Cash'),
         ('COUPONS', 'Coupons'),
+        ('MASTER_CARD', 'Master Card'),
+        ('VISA_CARD', 'Visa Card'),
+        ('WALMART_CARDS', 'Walmart Cards'),
+        ('TARGET_CARD', 'Target Card'),
+        ('CVS_CARD', 'CVS Card'),
+        ('PUBLIX_CARDS', 'Publix Cards'),
         ('MIXED', 'Mixed (Both)')
     ]
     REWARD_LOGIC_CHOICES = [

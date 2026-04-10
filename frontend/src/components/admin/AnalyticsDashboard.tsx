@@ -53,7 +53,7 @@ export default function AnalyticsDashboard() {
     <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div>
-          <h1 className="text-3xl sm:text-5xl font-black text-white italic uppercase tracking-tighter">Visitor <span className="text-[#3b82f6]">Analytics</span></h1>
+          <h1 className="text-2xl sm:text-4xl font-black text-white italic uppercase tracking-tighter">Visitor <span className="text-[#3b82f6]">Analytics</span></h1>
           <p className="text-[12px] sm:text-base text-[#8b8fa8] uppercase tracking-[0.2em] font-black mt-3">Real-time global traffic and engagement metrics</p>
         </div>
         <div className="flex gap-4">
@@ -66,13 +66,13 @@ export default function AnalyticsDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         {mainStats.map((stat, i) => (
-          <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-10 relative overflow-hidden group hover:border-white/10 transition-all shadow-2xl bg-gradient-to-br from-[#0f1133] to-[#0a0b1a]">
+          <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-8 relative overflow-hidden group hover:border-white/10 transition-all shadow-2xl bg-gradient-to-br from-[#0f1133] to-[#0a0b1a]">
             <div className={`p-5 rounded-2xl ${stat.bg} ${stat.color} inline-flex mb-8 group-hover:scale-110 transition-transform`}>
                <stat.icon className="w-8 h-8" />
             </div>
             <p className="text-[12px] font-black text-[#555a7a] uppercase tracking-[0.2em] mb-2">{stat.label}</p>
             <div className="flex items-end gap-4">
-              <h4 className="text-4xl font-black text-white italic tracking-tighter">{stat.value}</h4>
+              <h4 className="text-3xl font-black text-white italic tracking-tighter">{stat.value}</h4>
               <span className={`text-[12px] font-black uppercase flex items-center mb-1.5 ${stat.down ? 'text-red-500' : 'text-emerald-500'}`}>
                 {stat.change} <ArrowUpRight className={`w-4 h-4 ${stat.down ? 'rotate-90' : ''}`} />
               </span>
@@ -83,7 +83,7 @@ export default function AnalyticsDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         <div className="lg:col-span-2 space-y-8">
-           <div className="bg-[#0f1133] border border-white/5 rounded-[4rem] p-12 h-full min-h-[450px] relative overflow-hidden shadow-2xl transition-all hover:border-blue-500/20">
+           <div className="bg-[#0f1133] border border-white/5 rounded-[4rem] p-8 h-full min-h-[450px] relative overflow-hidden shadow-2xl transition-all hover:border-blue-500/20">
              <div className="flex justify-between items-center mb-12">
                <div className="flex items-center gap-4">
                   <Activity className="w-6 h-6 text-blue-500" />
@@ -111,7 +111,7 @@ export default function AnalyticsDashboard() {
         </div>
 
         <div className="lg:col-span-1 space-y-8">
-           <div className="bg-[#0f1133] border border-white/5 rounded-[4rem] p-12 h-full shadow-2xl transition-all hover:border-indigo-500/20">
+           <div className="bg-[#0f1133] border border-white/5 rounded-[4rem] p-8 h-full shadow-2xl transition-all hover:border-indigo-500/20">
               <h3 className="text-sm font-black text-white uppercase italic tracking-[0.3em] mb-12">Global Footprint</h3>
               <div className="space-y-10">
                  {locations.length > 0 ? locations.map((loc: any, i: number) => (
@@ -144,7 +144,7 @@ export default function AnalyticsDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-         <div className="bg-[#0f1133] border border-white/5 rounded-[3rem] p-10 space-y-8 shadow-xl transition-all hover:border-pink-500/20">
+          <div className="bg-[#0f1133] border border-white/5 rounded-[3rem] p-8 space-y-8 shadow-xl transition-all hover:border-pink-500/20">
             <h3 className="text-[12px] font-black text-white uppercase italic tracking-[0.3em] border-b border-white/5 pb-6 flex items-center gap-3">
                <MousePointer2 className="w-5 h-5 text-pink-500" /> Active Platform Segments
             </h3>
@@ -161,7 +161,7 @@ export default function AnalyticsDashboard() {
             </div>
          </div>
 
-         <div className="bg-[#0f1133] border border-white/5 rounded-[3rem] p-10 space-y-8 shadow-xl transition-all hover:border-blue-500/20">
+         <div className="bg-[#0f1133] border border-white/5 rounded-[3rem] p-8 space-y-8 shadow-xl transition-all hover:border-blue-500/20">
             <h3 className="text-[12px] font-black text-white uppercase italic tracking-[0.3em] border-b border-white/5 pb-6 flex items-center gap-3">
                <Search className="w-5 h-5 text-blue-500" /> Interaction Sources
             </h3>
@@ -188,7 +188,7 @@ export default function AnalyticsDashboard() {
             <div className="w-20 h-20 bg-indigo-500/10 rounded-3xl flex items-center justify-center animate-bounce">
               <TrendingUp className="w-10 h-10 text-indigo-400" />
             </div>
-            <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter relative z-10">Real-Time Core</h3>
+            <h3 className="text-xl font-black text-white italic uppercase tracking-tighter relative z-10">Real-Time Core</h3>
             <p className="text-[12px] text-slate-400 font-black uppercase tracking-[0.3em] relative z-10 leading-relaxed">Websocket status: Operational. Monitoring global platform synchronization.</p>
             <div className="px-10 py-4 bg-indigo-500 rounded-2xl text-[12px] font-black text-white uppercase tracking-[0.3em] shadow-2xl shadow-indigo-500/40 cursor-pointer hover:scale-110 active:scale-95 transition-all z-10">
                Enter Watchroom

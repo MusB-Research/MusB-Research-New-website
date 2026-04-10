@@ -3,46 +3,58 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Trophy, ChevronRight, TrendingUp, Wallet, 
     ArrowRight, CheckCircle, Clock, History, Download,
-    ShieldCheck, Gem, CreditCard, Gift, Info
+    ShieldCheck, Gem, CreditCard, Gift, Info, Building
 } from 'lucide-react';
 import { Card, Badge, ProgressBar } from './SharedComponents';
 
-const CompensationView = ({ study, compensations = [], onAction }: any) => {
-    // Senior Developer: Using realistic clinical dummy data as fallback for demonstration
+const CompensationView = ({ study, compensations = [], tasks = [], visits = [], onAction }: any) => {
+    // Senior Developer: Single End-of-Study Reward Pattern
     const dummyCompensations = [
-        { id: 'd1', transaction_type: 'VISIT_COMPLETION', description: 'Screening & Consent Visit', amount: 150.00, status: 'PAID', paid_at: '2026-03-10T09:00:00Z', created_at: '2026-03-10T09:00:00Z' },
-        { id: 'd2', transaction_type: 'TASK_COMPLETION', description: 'Bio-Marker Sensor Sync (Week 1)', amount: 45.00, status: 'PAID', paid_at: '2026-03-17T14:30:00Z', created_at: '2026-03-17T14:30:00Z' },
-        { id: 'd3', transaction_type: 'VISIT_COMPLETION', description: 'Monthly Vital Assessment', amount: 250.00, status: 'APPROVED', created_at: '2026-04-02T11:15:00Z' },
-        { id: 'd4', transaction_type: 'TASK_COMPLETION', description: 'Adverse Event Log Review', amount: 25.00, status: 'PENDING', created_at: '2026-04-08T16:45:00Z' },
+        { 
+            id: 'd1', 
+            study_name: study?.title || 'Beat the Bloat', 
+            description: 'Full Study Completion Reward', 
+            amount: 200.00, 
+            status: (study?.status || '').toUpperCase() === 'COMPLETED' ? 'PAID' : 'PENDING', 
+            paid_at: (study?.status || '').toUpperCase() === 'COMPLETED' ? '2026-05-15T10:00:00Z' : null,
+            created_at: '2026-04-10T09:00:00Z', 
+            reward_method: 'Gift Card' 
+        }
     ];
 
     const activeData = compensations.length > 0 ? compensations : dummyCompensations;
 
     const handleDownload = () => {
-        if (!history || history.length === 0) {
-            return;
-        }
-        const csvHeaders = "Transaction Type,Description,Date,Amount,Status\n";
+        if (!history || history.length === 0) return;
+        const csvHeaders = "Study Name,Description,Reward Method,Date,Amount,Status\n";
         const csvRows = history.map(h => 
-            `"${h.type}","${h.desc}","${h.date}",$${h.amount.toFixed(2)},"${h.status}"`
+            `"${h.study}","${h.desc}","${h.method}","${h.date}",$${h.amount.toFixed(2)},"${h.status}"`
         ).join("\n");
         
         const blob = new Blob([csvHeaders + csvRows], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `REWARD_STATEMENT_${study?.protocol_id || 'LOG'}_${new Date().toISOString().split('T')[0]}.csv`;
+        a.download = `STUDY_REWARD_${study?.protocol_id || 'LOG'}.csv`;
         a.click();
         URL.revokeObjectURL(url);
     };
 
-    const handleAction = (type: string) => {
-        if (onAction) {
-            onAction(type);
-        } else {
-            alert(`Your request for "${type}" has been received. Our clinical finance team will contact you shortly.`);
-        }
-    };
+    // ELIGIBILITY LOGIC
+    // Rewards are ONLY available after Study Completion.
+    const isStudyCompleted = (study?.status || '').toUpperCase() === 'COMPLETED';
+    
+    // Check if the participant has finished all protocol items
+    const allTasksCompleted = tasks.length > 0 && tasks.every((t: any) => 
+        (t.status || '').toUpperCase() === 'COMPLETED' || 
+        (t.status || '').toUpperCase() === 'VIEW_SUBMISSION'
+    );
+    const allVisitsCompleted = visits.length > 0 && visits.every((v: any) => 
+        (v.status || '').toUpperCase() === 'COMPLETED' || 
+        (v.status || '').toUpperCase() === 'ATTENDED'
+    );
+
+    const isEligible = isStudyCompleted && allTasksCompleted && allVisitsCompleted;
 
     const totalEarned = React.useMemo(() => {
         return activeData
@@ -52,33 +64,28 @@ const CompensationView = ({ study, compensations = [], onAction }: any) => {
 
     const pendingPayment = React.useMemo(() => {
         return activeData
-            .filter((c: any) => c.status === 'PENDING' || c.status === 'APPROVED')
+            .filter((c: any) => c.status === 'PENDING' || c.status === 'APPROVED' || c.status === 'VERIFIED')
             .reduce((sum: number, c: any) => sum + parseFloat(c.amount || 0), 0);
     }, [activeData]);
 
     const history = React.useMemo(() => {
         return Array.isArray(activeData) ? activeData.map((c: any) => ({
             id: c.id,
-            type: (c.transaction_type || 'Activity').replace(/_/g, ' '),
-            desc: c.description || 'Visit Assessment',
+            study: c.study_name || study?.title || 'Clinical Study',
+            desc: c.description || 'Study Completion',
+            method: c.reward_method || 'Gift Card',
             amount: parseFloat(c.amount || 0),
-            date: new Date(c.paid_at || c.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+            date: c.paid_at ? new Date(c.paid_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Pending Completion',
             status: (c.status || 'PENDING').toUpperCase()
         })) : [];
-    }, [activeData]);
+    }, [activeData, study]);
 
-    const rewardMethodLabel = React.useMemo(() => {
-        if (!study) return 'Not Configured';
-        const type = (study.reward_type || 'CASH').toUpperCase();
-        
-        // Show "AWAITED" instead of specific logic if no activity recorded yet (ignoring dummy data for this status)
-        if (compensations.length === 0 && activeData === dummyCompensations) {
-            return `${type} (AWAITED)`;
-        }
-
-        const logic = (study.reward_logic || 'PER_VISIT').replace(/_/g, ' ');
-        return `${type} (${logic})`;
-    }, [study, compensations, activeData]);
+    const mainRewardMethod = React.useMemo(() => {
+        if (!study) return 'Gift Card';
+        const type = (study.reward_type || 'GIFT_CARD').toUpperCase();
+        if (type === 'CASH') return 'Gift Card (Restricted)';
+        return 'Gift Card';
+    }, [study]);
 
     return (
         <div className="flex flex-col gap-10 max-w-[1500px] animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -92,29 +99,36 @@ const CompensationView = ({ study, compensations = [], onAction }: any) => {
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 mb-16 relative z-10">
                         <div>
                             <div className="flex items-center gap-2 text-sm font-black text-slate-500 uppercase tracking-[0.25em] mb-4 italic">
-                                <span>Compensation Unit</span>
+                                <span>Compensation</span>
                                 <ChevronRight className="w-3 h-3" />
-                                <span className="text-white">Active Participation</span>
+                                <span className="text-white">Participation Reward</span>
                             </div>
-                            <h2 className="text-2xl lg:text-3xl font-black italic tracking-tighter text-white uppercase leading-none">Your Clinical Rewards Hub</h2>
-                            <p className="text-slate-500 text-sm mt-4 font-bold uppercase tracking-widest italic max-w-2xl">
-                                Payments are triggered automatically based on task completion and clinical verification.
-                            </p>
                         </div>
                         <div className="flex flex-col items-end">
-                            <span className="text-[12px] font-black text-[#00e676] uppercase tracking-[0.3em] mb-1 italic">Total Rewards Earned</span>
-                            <span className="text-4xl lg:text-5xl font-black italic tracking-tighter text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">${totalEarned.toFixed(2)}</span>
+                            <span className="text-[12px] font-black text-[#00e676] uppercase tracking-[0.3em] mb-1 italic">Total Study Reward</span>
+                            <span className="text-4xl lg:text-5xl font-black italic tracking-tighter text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+                                ${isStudyCompleted ? totalEarned.toFixed(2) : '0.00'}
+                            </span>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10 mb-10">
                         <div className="p-8 bg-white/[0.03] border border-white/10 rounded-[2rem] hover:bg-white/[0.05] transition-all">
                             <h4 className="text-[12px] font-black text-slate-500 uppercase tracking-widest mb-4 italic flex items-center gap-2">
-                                <TrendingUp className="w-3.5 h-3.5 text-[#00e676]" /> Awaiting Disbursement
+                                <CheckCircle className="w-3.5 h-3.5 text-[#00e676]" /> Amount Paid
                             </h4>
                             <div className="flex items-center justify-between">
-                                <span className="text-3xl font-black text-white italic tracking-tighter">${pendingPayment.toFixed(2)}</span>
-                                <Badge color="indigo">Log Verified</Badge>
+                                <span className="text-3xl font-black text-white italic tracking-tighter">${isStudyCompleted ? totalEarned.toFixed(2) : '0.00'}</span>
+                                <Badge color={isStudyCompleted ? 'green' : 'gray'}>{isStudyCompleted ? 'Paid' : 'Awaiting'}</Badge>
+                            </div>
+                        </div>
+                        <div className="p-8 bg-white/[0.03] border border-white/10 rounded-[2rem] hover:bg-white/[0.05] transition-all">
+                            <h4 className="text-[12px] font-black text-slate-500 uppercase tracking-widest mb-4 italic flex items-center gap-2">
+                                <Clock className="w-3.5 h-3.5 text-amber-500" /> Amount Pending
+                            </h4>
+                            <div className="flex items-center justify-between">
+                                <span className="text-3xl font-black text-white italic tracking-tighter">${!isStudyCompleted ? pendingPayment.toFixed(2) : '0.00'}</span>
+                                <Badge color="amber">{!isStudyCompleted ? 'Earned' : 'Processed'}</Badge>
                             </div>
                         </div>
                         <div className="p-8 bg-white/[0.03] border border-white/10 rounded-[2rem] hover:bg-white/[0.05] transition-all">
@@ -124,28 +138,26 @@ const CompensationView = ({ study, compensations = [], onAction }: any) => {
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-white/10 rounded-lg text-white">
-                                        {study?.reward_type === 'COUPONS' ? <Gift className="w-4 h-4" /> : <CreditCard className="w-4 h-4" />}
+                                        <Gift className="w-4 h-4" />
                                     </div>
-                                    <span className="text-sm font-bold text-white uppercase tracking-widest italic">{rewardMethodLabel}</span>
+                                    <span className="text-sm font-bold text-white uppercase tracking-widest italic">{mainRewardMethod}</span>
                                 </div>
-                                <Badge color="gray">Assigned</Badge>
-                            </div>
-                        </div>
-                        <div className="p-8 bg-white/[0.03] border border-white/10 rounded-[2rem] hover:bg-white/[0.05] transition-all border-dashed border-cyan-500/20">
-                            <h4 className="text-[12px] font-black text-slate-500 uppercase tracking-widest mb-4 italic flex items-center gap-2">
-                                <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" /> Compliance Status
-                            </h4>
-                            <div className="flex items-center justify-between">
-                                <span className="text-xl font-black text-white italic tracking-tighter uppercase">Audit Ready</span>
-                                <Badge color="green">Secure</Badge>
+                                <Badge color="indigo">Gift Card</Badge>
                             </div>
                         </div>
                     </div>
 
                     <div className="mt-6 pt-10 border-t border-white/[0.03] flex items-center justify-between relative z-10">
-                        <div className="flex items-center gap-3 text-sm font-black text-slate-500 uppercase tracking-widest italic">
-                            <span className="w-2 h-2 rounded-full bg-[#00e676] animate-pulse" /> Incentive Log Secure
-                        </div>
+                        {!isStudyCompleted && (
+                            <div className="flex items-center gap-3 text-[11px] font-black text-amber-500 uppercase tracking-widest italic animate-pulse">
+                                <Info className="w-3.5 h-3.5" /> Total reward is disbursed upon full study completion. Current Status: {study?.status || 'ENROLLED'}
+                            </div>
+                        )}
+                        {isStudyCompleted && (
+                            <div className="flex items-center gap-3 text-sm font-black text-[#00e676] uppercase tracking-widest italic">
+                                <span className="w-2 h-2 rounded-full bg-[#00e676] animate-pulse" /> Study Completed - Reward Processed
+                            </div>
+                        )}
                     </div>
                 </Card>
             </div>
@@ -155,9 +167,9 @@ const CompensationView = ({ study, compensations = [], onAction }: any) => {
                 <div className="p-10 border-b border-white/5 flex items-center justify-between">
                     <div>
                         <h3 className="text-2xl font-black text-white uppercase italic tracking-tight flex items-center gap-4">
-                            <History className="w-6 h-6 text-indigo-400" /> Transaction Audit Registry
+                            <History className="w-6 h-6 text-indigo-400" /> Reward Registry
                         </h3>
-                        <p className="text-base font-bold text-slate-500 uppercase tracking-widest mt-1">Full breakdown of all incentive disbursements.</p>
+                        <p className="text-base font-bold text-slate-500 uppercase tracking-widest mt-1">Status of study completion rewards.</p>
                     </div>
                     <button 
                         onClick={handleDownload}
@@ -170,7 +182,7 @@ const CompensationView = ({ study, compensations = [], onAction }: any) => {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-white/[0.02]">
-                                {['Transaction Type', 'Description', 'Timestamp', 'Amount', 'Status'].map(h => (
+                                {['Study Name', 'Description', 'Reward Method', 'Payment Date', 'Amount', 'Status'].map(h => (
                                     <th key={h} className="p-6 text-[12px] font-black text-slate-500 uppercase tracking-widest italic border-b border-white/5">{h}</th>
                                 ))}
                             </tr>
@@ -180,24 +192,27 @@ const CompensationView = ({ study, compensations = [], onAction }: any) => {
                                 <tr key={row.id} className="hover:bg-white/[0.01] transition-colors group">
                                     <td className="p-6 px-10">
                                         <div className="flex items-center gap-4">
-                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all ${row.status === 'PAID' ? 'bg-[#00e676]/10 text-[#00e676] border-[#00e676]/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
-                                                {row.status === 'PAID' ? <CheckCircle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
-                                            </div>
-                                            <span className="text-sm font-black text-white italic uppercase tracking-tight">{row.type}</span>
+                                            <Building className="w-4 h-4 text-cyan-400 opacity-40" />
+                                            <span className="text-sm font-black text-white italic uppercase tracking-tight">{row.study}</span>
                                         </div>
                                     </td>
                                     <td className="p-6 text-sm font-bold text-slate-300 uppercase tracking-widest">{row.desc}</td>
+                                    <td className="p-6">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                                            <span className="text-sm font-bold text-slate-400 uppercase tracking-tighter italic">{row.method}</span>
+                                        </div>
+                                    </td>
                                     <td className="p-6 text-[12px] font-black text-slate-500 italic uppercase">{row.date}</td>
                                     <td className="p-6 text-base font-black text-white italic tracking-tighter">${row.amount.toFixed(2)}</td>
-                                    <td className="p-6"><Badge color={row.status === 'PAID' ? 'green' : row.status === 'APPROVED' ? 'indigo' : 'amber'}>{row.status}</Badge></td>
+                                    <td className="p-6"><Badge color={row.status === 'PAID' ? 'green' : 'amber'}>{row.status}</Badge></td>
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={5} className="p-20 text-center">
+                                    <td colSpan={6} className="p-20 text-center">
                                         <div className="flex flex-col items-center gap-4 opacity-30">
                                             <History className="w-12 h-12 text-slate-500 mb-2" />
-                                            <p className="text-sm font-black text-slate-500 uppercase tracking-[0.2em] italic">No Transactions Authenticated Yet</p>
-                                            <p className="text-[12px] font-bold text-slate-600 uppercase tracking-widest max-w-[300px]">Clinical rewards are disbursed upon protocol verification. Complete your next task to trigger a payment cycle.</p>
+                                            <p className="text-sm font-black text-slate-500 uppercase tracking-[0.2em] italic">Reward Processing</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -205,16 +220,9 @@ const CompensationView = ({ study, compensations = [], onAction }: any) => {
                         </tbody>
                     </table>
                 </div>
-                <div className="p-10 bg-white/[0.01] border-t border-white/5 text-center">
-                    <p className="text-[12px] font-black text-slate-600 uppercase tracking-[0.3em] italic group cursor-default">
-                        Institutional Review Board approved incentive structure: <span className="text-slate-400 underline underline-offset-4 decoration-white/10 shadow-glow">Study ID #{study?.protocol_id || 'N/A'}</span>
-                    </p>
-                </div>
             </Card>
         </div>
     );
 };
 
 export default CompensationView;
-
-

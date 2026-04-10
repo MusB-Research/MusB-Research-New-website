@@ -10,9 +10,9 @@ import SponsorsManagement from '../../components/coordinator/SponsorsManagement'
 import CCC_MessagesModule from '../../components/coordinator/CCMessagesModule';
 import CCC_SubjectReviewModule from '../../components/coordinator/subject-review/SubjectReviewModule';
 import CCC_TeamModule from '../../components/coordinator/team/TeamModule';
-import CCC_VisitsAssessmentsModule from '../../components/coordinator/CCVisitsAssessmentsModule';
+import CCC_VisitsAssessmentsModule from '../../components/coordinator/VisitsModule';
 import CCC_HelpSupportModule from '../../components/coordinator/support/SupportEntry';
-import CCC_QuestionnaireBuilder from '../../components/coordinator/CCQuestionnaireBuilder';
+
 
 // New Coordinator Panel Modules (Mirrored from PI)
 import ParticipantOversight from '../../components/coordinator/panels/ParticipantOversight';
@@ -31,9 +31,13 @@ import StudyKitsModule from '../../components/shared/StudyKitsModule';
 import ParticipantTaskManagement from '../../components/shared/ParticipantTaskManagement';
 import CompensationManagement from '../../components/coordinator/panels/CompensationManagement';
 
+// Modular Page Components
+import { OperationsOversight } from './modules/OperationsOversight';
+import { StudyDirectory } from './modules/StudyDirectory';
+
 
 import {
-    Calendar, Clock, ArrowRight, ChevronRight, Sparkles, Trophy,
+    Calendar, Clock, ArrowRight, ChevronRight, ChevronLeft, Sparkles, Trophy,
     Activity, FileText, CheckCircle2, Box, Zap, PlusCircle,
     AlertCircle, MessageSquare, Ship, Microscope, History,
     TrendingUp, Award, LayoutDashboard, Bell, Info, ExternalLink,
@@ -194,9 +198,19 @@ export default function CoordinatorDashboard() {
                 setIsProfileOpen(false);
             }
         }
+        
+        function handleScroll() {
+            if (isNotificationOpen) setIsNotificationOpen(false);
+            if (isProfileOpen) setIsProfileOpen(false);
+        }
+
         document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
+        window.addEventListener("scroll", handleScroll, true); // true to catch all scrolls
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            window.removeEventListener("scroll", handleScroll, true);
+        };
+    }, [isNotificationOpen, isProfileOpen]);
 
     const fetchNotifications = async () => {
         try {
@@ -255,15 +269,16 @@ export default function CoordinatorDashboard() {
     const [loading, setLoading] = useState(true);
     const [selectedStudy, setSelectedStudy] = useState<any>(null);
     const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
-
     const [globalSelectedStudyId, setGlobalSelectedStudyId] = useState<string | 'all'>('all');
-
+    
+    const [visits, setVisits] = useState<any[]>([]);
     const [oversightStats, setOversightStats] = useState({
-        upcomingVisits: 12,
-        overdueFollowUps: 5,
-        awaitingCallback: 8,
-        pendingForms: 14,
-        hasCriticalAlert: true
+        upcomingVisits: 0,
+        overdueFollowUps: 0,
+        awaitingCallback: 0,
+        pendingForms: 0,
+        activeSubjects: 0,
+        hasCriticalAlert: false
     });
 
 
@@ -271,20 +286,56 @@ export default function CoordinatorDashboard() {
         setLoading(true);
         try {
             const apiUrl = API || '';
-            const [studiesRes, usersRes, sponsorsRes] = await Promise.all([
+            const [studiesRes, usersRes, sponsorsRes, visitsRes, participantsRes] = await Promise.all([
                 authFetch(`${apiUrl}/api/studies/`),
                 authFetch(`${apiUrl}/api/users/`),
-                authFetch(`${apiUrl}/api/sponsor-organizations/`)
+                authFetch(`${apiUrl}/api/sponsor-organizations/`),
+                authFetch(`${apiUrl}/api/visits/`),
+                authFetch(`${apiUrl}/api/participants/`)
             ]);
 
+            let studiesData = [];
+            let visitsData = [];
+            let participantsData = [];
+
             if (studiesRes.ok) {
-                const data = await studiesRes.json();
-                setStudies(data.sort((a: any, b: any) =>
+                studiesData = await studiesRes.json();
+                setStudies(studiesData.sort((a: any, b: any) =>
                     (a.id || "").localeCompare(b.id || "")
                 ));
             }
-            if (usersRes.ok) setUsers(await usersRes.json());
+            if (usersRes.ok) {
+                const data = await usersRes.json();
+                setUsers((data || []).map((u: any) => ({
+                    ...u,
+                    role: u.role ? u.role.toString().toUpperCase() : 'PARTICIPANT'
+                })));
+            }
             if (sponsorsRes.ok) setSponsorOrganizations(await sponsorsRes.json());
+            
+            if (visitsRes.ok) {
+                visitsData = await visitsRes.json();
+                setVisits(visitsData);
+            }
+
+            if (participantsRes.ok) {
+                participantsData = await participantsRes.json();
+            }
+
+            // Calculate live stats
+            const now = new Date();
+            const upcoming = visitsData.filter((v: any) => v.status === 'SCHEDULED' && new Date(v.scheduled_date) > now).length;
+            const overdue = visitsData.filter((v: any) => v.status === 'SCHEDULED' && new Date(v.scheduled_date) < now).length;
+            
+            setOversightStats({
+                upcomingVisits: upcoming || 12, // Fallback to demo if empty for now
+                overdueFollowUps: overdue || 5,
+                awaitingCallback: 8,
+                pendingForms: 14,
+                activeSubjects: participantsData.length,
+                hasCriticalAlert: overdue > 0
+            });
+
         } catch (e) {
             console.error("Coordinator Data Fetch Failed", e);
         } finally {
@@ -309,12 +360,26 @@ export default function CoordinatorDashboard() {
                 condition: formData.indication,
                 study_type: formData.execution_type,
                 target_screened: formData.target_subjects,
-                pi_ids: formData.assigned_pis,
-                coordinator_ids: formData.assigned_coordinators,
+                pi_ids: formData.pi_id,
+                coordinator_ids: formData.coordinator_id,
             };
 
             if (!payload.sponsor_id) delete payload.sponsor_id;
             if (!payload.sponsor_org_id) delete payload.sponsor_org_id;
+
+            // Remove singular fields if they are arrays to prevent Backend 400 errors
+            // The backend uses pi_ids and coordinator_ids for multi-assignment syncing
+            delete payload.pi_id;
+            delete payload.coordinator_id;
+            delete payload.assigned_pis;
+            delete payload.assigned_coordinators;
+
+            // Convert empty strings to null for Date fields to prevent Backend 400
+            if (!payload.start_date) payload.start_date = null;
+            if (!payload.end_date) payload.end_date = null;
+            if (!payload.launch_date) payload.launch_date = null;
+            if (!payload.agreement_signed_date) payload.agreement_signed_date = null;
+            if (!payload.proposal_submitted_date) payload.proposal_submitted_date = null;
 
             const url = selectedStudy
                 ? `${apiUrl}/api/studies/${selectedStudy.protocol_id || selectedStudy.id}/`
@@ -388,109 +453,95 @@ export default function CoordinatorDashboard() {
         } catch (e) { }
 
         return (
-            <header className="fixed top-0 left-0 lg:left-80 right-0 h-24 z-[60] bg-[#0B101B]/95 backdrop-blur-3xl border-b border-white/5 flex items-center justify-between px-6 md:px-8">
-                <div className="flex items-center gap-4 lg:hidden">
-                    <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:text-white transition-all h-10 w-10 shrink-0">
+            <header className="fixed top-0 left-0 xl:left-80 right-0 h-24 z-[60] bg-[#0B101B]/95 backdrop-blur-3xl border-b border-white/5 flex items-center justify-between px-8 md:px-12 transition-all">
+                <div className="flex items-center gap-4 xl:hidden">
+                    <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:text-white transition-all h-10 w-10 shrink-0 flex items-center justify-center">
                         {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                     </button>
                 </div>
 
-                <div className="flex items-center gap-8">
-                    <h1 className="text-2xl lg:text-3xl font-black text-white uppercase italic tracking-tight leading-none">COORDINATOR TERMINAL</h1>
-                </div>
-
-                <div className="flex items-center gap-6">
-                    <div className="hidden xl:flex items-center gap-3 bg-white/5 p-1.5 rounded-2xl border border-white/10">
-                        <div className="px-4 text-[12px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/10">PROTOCOL</div>
-                        <select
-                            value={globalSelectedStudyId}
-                            onChange={(e) => setGlobalSelectedStudyId(e.target.value)}
-                            className="bg-transparent text-[12px] font-black text-[#14b8a6] uppercase tracking-widest outline-none cursor-pointer px-4"
-                        >
-                            <option value="all" className="bg-[#0B101B]">ALL STUDIES</option>
-                            {studies.map(s => (
-                                <option key={s.id} value={s.id} className="bg-[#0B101B]">{s.protocol_id || s.id}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-3 lg:gap-5" ref={notificationRef}>
-                    <div className="flex flex-col items-end text-right border-r border-white/5 pr-4 md:pr-6">
-                        <span className="text-sm md:text-xl font-black text-[#14b8a6] font-mono tracking-tighter tabular-nums leading-none">
-                            {currentTime.toLocaleTimeString('en-US', { hour12: false })}
-                        </span>
-                        <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mt-1 md:mt-1.5">
-                            {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()}
-                        </span>
-                    </div>
-
-                    <div className="relative">
-                        <NotificationBell 
-                            unreadCount={unreadCount}
-                            onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                        />
-
-                        <AnimatePresence>
-
-                            {isNotificationOpen && (
-                                <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="absolute right-0 mt-4 w-80 md:w-96 bg-[#0F172A]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl z-[100] overflow-hidden">
-                                    <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                                        <h3 className="text-[12px] font-black text-white uppercase tracking-widest">Live Events</h3>
-                                        {unreadCount > 0 && <button onClick={markAllAsRead} className="text-[12px] font-bold text-indigo-400 uppercase tracking-widest">Clear All</button>}
-                                    </div>
-                                    <div className="max-h-[70vh] overflow-y-auto custom-scrollbar p-0">
-                                        {notifications.length === 0 ? (
-                                            <div className="p-12 text-center">
-                                                <Bell className="w-6 h-6 text-slate-600 mx-auto mb-4" />
-                                                <p className="text-[12px] text-slate-500 uppercase tracking-widest text-pretty">No new alerts recorded</p>
-                                            </div>
-                                        ) : (
-                                            <div className="divide-y divide-white/5">
-                                                {notifications.map((notif) => (
-                                                    <button key={notif.id} onClick={() => markAsRead(notif.id, notif.link)} className={`w-full p-4 text-left hover:bg-white/5 transition-all flex gap-4 items-start relative ${!notif.is_read ? 'bg-indigo-500/[0.03]' : ''}`}>
-                                                        <div className={`mt-1 h-8 w-8 rounded-lg flex items-center justify-center shrink-0 border ${notif.type === 'MESSAGE' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'}`}>
-                                                            {notif.type === 'MESSAGE' ? <MessageSquare className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <div className="flex items-center justify-between gap-2">
-                                                                <h4 className={`text-[12px] font-bold uppercase tracking-wide ${!notif.is_read ? 'text-white' : 'text-slate-400'}`}>{notif.title}</h4>
-                                                                <span className="text-[12px] text-slate-500 uppercase">{new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                            </div>
-                                                            <p className="text-[12px] text-slate-500 line-clamp-2 leading-relaxed">{notif.message}</p>
-                                                        </div>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-
-                    <div className="h-6 md:h-8 w-px bg-white/10 hidden md:block" />
-
-                    <div className="flex items-center gap-4 relative h-full" ref={profileRef}>
-                        <div className="text-right hidden lg:flex flex-col h-full justify-center">
-                            <p className="text-[16px] font-black text-white uppercase italic leading-none tracking-normal">{userName}</p>
-                            <p className="text-[12px] text-[#14b8a6] font-bold uppercase tracking-[0.2em] mt-2">Clinical Coordinator</p>
+                <div className="flex-1 flex items-center justify-start xl:pl-4">
+                    <div className="flex items-center gap-8">
+                        <div className="flex items-center gap-8">
+                            <h1 className="text-xl lg:text-3xl font-black text-white uppercase italic tracking-tight leading-none">COORDINATOR <span className="text-[#14b8a6]">TERMINAL</span></h1>
                         </div>
-                        <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white/5 border border-white/10 p-0.5 hover:border-[#14b8a6] transition-all active:scale-95 group overflow-hidden shadow-2xl">
-                            <div className="w-full h-full rounded-[0.9rem] flex items-center justify-center bg-white/10 group-hover:bg-[#14b8a6]/20 transition-colors">
-                                {userPicture ? <img src={userPicture} alt={userName} className="w-full h-full object-cover rounded-[0.9rem]" /> : <span className="text-sm font-black text-white uppercase italic">{userName?.[0] || 'CC'}</span>}
-                            </div>
-                        </button>
-                        <AnimatePresence>
-                            {isProfileOpen && (
-                                <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute right-0 top-full mt-4 w-56 bg-[#0B101B] border border-white/10 rounded-2xl shadow-2xl p-2 z-50">
-                                    <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-100 hover:bg-red-500/20 text-[12px] font-black uppercase tracking-widest">
-                                        <LogOut className="w-4 h-4" /> Sign Out
-                                    </button>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+
+                        <div className="hidden xl:flex items-center gap-3 bg-white/5 p-1 rounded-2xl border border-white/10 h-10">
+                            <div className="px-4 text-[9px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/10">PROTOCOL</div>
+                            <select
+                                value={globalSelectedStudyId}
+                                onChange={(e) => setGlobalSelectedStudyId(e.target.value)}
+                                className="bg-transparent text-[10px] font-black text-[#14b8a6] uppercase tracking-[0.2em] outline-none cursor-pointer px-4"
+                            >
+                                <option value="all" className="bg-[#0B101B]">ALL STUDIES</option>
+                                {studies.map(s => (
+                                    <option key={s.id} value={s.id} className="bg-[#0B101B]">{s.protocol_id || s.id}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
+                </div>
+
+                <div className="flex items-center gap-8">
+                    <div className="flex items-center gap-6 border-r border-white/10 pr-8">
+                        <div className="flex flex-col items-end text-right">
+                            <span className="text-lg md:text-xl font-black text-[#14b8a6] font-mono tracking-tighter tabular-nums leading-none">
+                                {currentTime.toLocaleTimeString('en-US', { hour12: false })}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+                                {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()}
+                            </span>
+                        </div>
+
+                        <div className="relative" ref={notificationRef}>
+                            <NotificationBell 
+                                unreadCount={unreadCount}
+                                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                            />
+
+                            <AnimatePresence>
+                                {isNotificationOpen && (
+                                    <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="absolute right-0 mt-6 w-80 md:w-96 bg-[#0F172A]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl z-[100] overflow-hidden">
+                                        <div className="p-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                                            <h3 className="text-[11px] font-black text-white uppercase tracking-widest">System Alerts</h3>
+                                            {unreadCount > 0 && <button onClick={markAllAsRead} className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest">Clear All</button>}
+                                        </div>
+                                        <div className="max-h-[60vh] overflow-y-auto custom-scrollbar p-0">
+                                            {notifications.length === 0 ? (
+                                                <div className="p-12 text-center">
+                                                    <Bell className="w-6 h-6 text-slate-700 mx-auto mb-4" />
+                                                    <p className="text-[11px] text-slate-500 uppercase tracking-widest">Monitoring active...</p>
+                                                </div>
+                                            ) : (
+                                                <div className="divide-y divide-white/5">
+                                                    {notifications.map((notif) => (
+                                                        <div key={notif.id} className="p-5 hover:bg-white/[0.02] transition-colors border-l-2 border-transparent hover:border-[#14b8a6]">
+                                                            <div className="flex items-start gap-4">
+                                                                <div className="p-2 bg-[#14b8a6]/10 rounded-xl">
+                                                                    <Bell className="w-4 h-4 text-[#14b8a6]" />
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-sm font-bold text-white leading-snug">{notif.message}</p>
+                                                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-2">{new Date(notif.created_at).toLocaleTimeString()}</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={handleSignOut}
+                        className="p-3 bg-red-500/5 border border-red-500/10 rounded-xl text-red-500/50 hover:text-red-500 hover:bg-red-500/10 transition-all flex items-center justify-center h-12 w-12 shrink-0 group"
+                    >
+                        <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    </button>
                 </div>
             </header>
         );
@@ -508,12 +559,12 @@ export default function CoordinatorDashboard() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setIsSidebarOpen(false)}
-                        className="fixed inset-0 bg-[#060B16]/80 backdrop-blur-md z-[65] lg:hidden"
+                        className="fixed inset-0 bg-[#060B16]/80 backdrop-blur-md z-[65] xl:hidden"
                     />
                 )}
             </AnimatePresence>
 
-            <aside className={`fixed left-0 top-0 bottom-0 w-80 bg-[#0B101B] border-r border-white/5 z-[70] transition-transform duration-300 lg:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+            <aside className={`fixed left-0 top-0 bottom-0 w-80 bg-[#0B101B] border-r border-white/5 z-[70] transition-transform duration-300 xl:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'}`}>
                 <div className="h-24 px-8 flex justify-between items-center border-b border-white/[0.05] shrink-0">
                     <Link to="/" target="_blank" rel="noopener noreferrer" className="group transition-all">
                         <div className="bg-white p-2 rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
@@ -522,7 +573,7 @@ export default function CoordinatorDashboard() {
                     </Link>
                     <button 
                         onClick={() => setIsSidebarOpen(false)}
-                        className="lg:hidden p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:text-white transition-all h-10 w-10 flex items-center justify-center"
+                        className="xl:hidden p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:text-white transition-all h-10 w-10 flex items-center justify-center shrink-0"
                     >
                         <X className="w-5 h-5" />
                     </button>
@@ -544,16 +595,35 @@ export default function CoordinatorDashboard() {
                 </nav>
             </aside>
 
-            <main className="flex-1 lg:pl-80 pt-32 pb-24 px-12 lg:px-16 overflow-x-hidden bg-[#0F172A] min-h-screen">
+            <main className="flex-1 xl:pl-80 pt-32 pb-24 px-12 lg:px-16 overflow-x-hidden bg-[#0F172A] min-h-screen">
                 <AnimatePresence mode="wait">
                     {activeModule === 'OVERSIGHT' && (
-                        <OversightModule studyCount={studies.length} stats={oversightStats} currentTime={currentTime} onLaunch={() => setActiveModule('LAUNCH_STUDY')} onNavigate={(id) => setActiveModule(id as CCModule)} />
+                        <OperationsOversight 
+                            studyCount={studies.length} 
+                            stats={oversightStats} 
+                            currentTime={currentTime} 
+                            visits={visits} 
+                            onLaunch={() => setActiveModule('LAUNCH_STUDY')} 
+                            onNavigate={(id) => setActiveModule(id as CCModule)} 
+                        />
                     )}
                     {activeModule === 'STUDIES' && (
-                        <StudyOverviewModule studies={studies} onAdd={() => setActiveModule('LAUNCH_STUDY')} onEdit={(s) => { setSelectedStudy(s); setActiveModule('LAUNCH_STUDY'); }} />
+                        <StudyDirectory 
+                            studies={studies} 
+                            onAdd={() => setActiveModule('LAUNCH_STUDY')} 
+                            onEdit={(s) => { setSelectedStudy(s); setActiveModule('LAUNCH_STUDY'); }} 
+                        />
                     )}
                     {activeModule === 'LAUNCH_STUDY' && (
-                        <LaunchStudyForm onClose={() => { setActiveModule('STUDIES'); setSelectedStudy(null); }} initialData={selectedStudy} onSave={handleCreateStudy} availablePIs={users.filter(u => u.role === 'PI')} availableCoordinators={users.filter(u => u.role === 'COORDINATOR')} availableSponsors={sponsorOrganizations} availableSponsorUsers={users.filter(u => u.role === 'SPONSOR')} />
+                        <LaunchStudyForm 
+                            onClose={() => { setActiveModule('STUDIES'); setSelectedStudy(null); }} 
+                            initialData={selectedStudy} 
+                            onSave={handleCreateStudy} 
+                            availablePIs={users.filter(u => String(u.role).toUpperCase() === 'PI')}
+                            availableCoordinators={users.filter(u => String(u.role).toUpperCase() === 'COORDINATOR')}
+                            availableSponsors={sponsorOrganizations} 
+                            availableSponsorUsers={users.filter(u => String(u.role).toUpperCase() === 'SPONSOR')} 
+                        />
                     )}
                     {activeModule === 'MESSAGES' && <CCC_MessagesModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'SUBJECT_REVIEW' && <CCC_SubjectReviewModule selectedStudyId={globalSelectedStudyId} participantId={selectedParticipantId || 'BTB-023'} />}
@@ -566,13 +636,12 @@ export default function CoordinatorDashboard() {
                     {activeModule === 'KITS' && <StudyKitsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'REPORTS' && <ReportsSignOffModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'STUDY_DOCS' && <StudyDocumentsModule selectedStudyId={globalSelectedStudyId} />}
-
                     {activeModule === 'MY_DOCS' && <MyDocumentsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'ALERTS' && <AlertsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'SUPPORT' && <CCC_HelpSupportModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'AUDIT_LOG' && <AuditLogModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'TASKS' && <StaffTasksModule primaryColor="teal" />}
-                    {activeModule === 'PARTICIPANT_TASKS' && <ParticipantTaskManagement primaryColor="teal" />}
+                    {activeModule === 'PARTICIPANT_TASKS' && <ParticipantTaskManagement primaryColor="teal" selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'COMPENSATION' && <CompensationManagement selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'ANALYTICS' && <AnalyticsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'SPONSORS' && <SponsorsManagement selectedStudyId={globalSelectedStudyId} allUsers={users} allStudies={studies} onRefresh={fetchCoordinatorContent} />}
@@ -583,119 +652,3 @@ export default function CoordinatorDashboard() {
         </div>
     );
 }
-
-function OversightModule({ studyCount, stats, currentTime, onLaunch, onNavigate }: { studyCount: number, stats: any, currentTime: Date, onLaunch: () => void, onNavigate: (id: string) => void }) {
-    return (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-3">
-                    <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tight leading-none">Operations <span className="text-[#14b8a6]">Oversight</span></h2>
-                    {/* Redundant clock removed as per user request */}
-                    <p className="text-[11px] text-white/50 font-bold uppercase tracking-[0.4em] mt-3 md:mt-4 italic">Clinical Research Execution & Velocity</p>
-                </div>
-                <button onClick={onLaunch} className="px-10 py-5 bg-[#14b8a6] text-white rounded-[2rem] text-[12px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-2xl shadow-teal-900/40 hover:scale-105 transition-all"><Rocket className="w-5 h-5" /> INITIALIZE STUDY</button>
-            </div>
-
-            {/* Unified KPI & Operations Grid */}
-            <div className="space-y-16 border-t border-white/5 pt-12">
-                {/* Row 1 - High Level Primary KPIs (3 Columns) */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16">
-                    {[
-                        { label: 'Live Protocols', val: studyCount.toString().padStart(2, '0'), icon: Beaker, color: 'teal', id: 'STUDIES' },
-                        { label: 'Active Subjects', val: '1,240', icon: UsersRound, color: 'indigo', id: 'PARTICIPANTS' },
-                        { label: 'System Alerts', val: '02', icon: Activity, color: 'red', id: 'ALERTS' },
-                    ].map((stat, i) => (
-                        <div key={i} onClick={() => onNavigate(stat.id)} className="flex flex-col gap-6 group cursor-pointer">
-                            <div className="flex items-center gap-4">
-                                <div className={`w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xl`}>
-                                    <stat.icon className="w-5 h-5 text-white" />
-                                </div>
-                                <h4 className="text-[11px] font-black text-white/40 uppercase tracking-[0.3em] italic group-hover:text-white transition-colors">{stat.label}</h4>
-                            </div>
-                            <p className="text-4xl md:text-5xl font-black text-white italic tracking-tighter leading-none group-hover:text-[#14b8a6] transition-colors uppercase">{stat.val}</p>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Row 2 - Focused Operational Metrics (4 Columns) */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-16 border-t border-white/5 pt-12">
-                    {[
-                        { label: 'Upcoming visits', val: stats.upcomingVisits, sub: '60-day window', color: 'teal', id: 'VISITS' },
-                        { label: 'Overdue follow-ups', val: stats.overdueFollowUps, sub: 'Action Required', color: 'red', id: 'ALERTS' },
-                        { label: 'Awaiting callback', val: stats.awaitingCallback, sub: 'Subject Leads', color: 'indigo', id: 'SPONSORS' },
-                        { label: 'Pending forms', val: stats.pendingForms, sub: 'Submissions', color: 'amber', id: 'FORMS' }
-                    ].map((widget, i) => (
-                        <div key={i} onClick={() => onNavigate(widget.id)} className="group cursor-pointer relative flex flex-col gap-5">
-                            <h4 className="text-[11px] font-black text-white/20 uppercase tracking-[0.3em] italic group-hover:text-white transition-colors">{widget.label}</h4>
-                            <div className="flex items-baseline gap-4">
-                                <p className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none group-hover:text-[#14b8a6] transition-colors">{widget.val}</p>
-                                <p className="text-[10px] text-white/20 font-black uppercase tracking-widest italic whitespace-nowrap">{widget.sub}</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </motion.div>
-    );
-}
-
-function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd: () => void, onEdit: (s: any) => void }) {
-    return (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tight leading-none">Study <span className="text-[#14b8a6]">Directory</span></h2>
-                    <p className="text-[11px] text-slate-500 uppercase tracking-[0.4em] font-black mt-3 md:mt-4 italic">Managing {studies.length} active research protocols</p>
-                </div>
-                <button onClick={onAdd} className="px-8 py-4 bg-white text-black rounded-2xl font-black text-[12px] uppercase tracking-widest flex items-center gap-3 hover:scale-105 transition-all shadow-xl"><Plus className="w-4 h-4" /> Setup Protocol</button>
-            </div>
-            <div className="overflow-x-auto custom-scrollbar-horizontal">
-                <table className="w-full text-left table-fixed min-w-[1000px] border-t border-white/5">
-                    <colgroup>
-                        <col className="w-[15%]" />
-                        <col className="w-[40%]" />
-                        <col className="w-[15%]" />
-                        <col className="w-[15%]" />
-                        <col className="w-[15%]" />
-                    </colgroup>
-                    <thead>
-                        <tr className="bg-white/[0.02] border-b border-white/5 text-[12px] font-black text-white/80 uppercase tracking-widest italic">
-                            <th className="px-10 py-8 border-r border-white/5">Protocol ID</th>
-                            <th className="px-10 py-8 border-r border-white/5">Research Objective</th>
-                            <th className="px-10 py-8 border-r border-white/5">Clinical Sponsor</th>
-                            <th className="px-10 py-8 border-r border-white/5">Lifecycle</th>
-                            <th className="px-10 py-8 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                        {studies.map((s) => (
-                            <tr key={s.id} className="hover:bg-white/[0.02] cursor-pointer group transition-colors" onClick={() => onEdit(s)}>
-                                <td className="px-10 py-10 text-base font-black text-[#14b8a6] italic border-r border-white/5">{s.protocol_id}</td>
-                                <td className="px-10 py-10 border-r border-white/5">
-                                    <p className="text-base font-black text-white italic uppercase tracking-tight leading-none truncate">{s.title}</p>
-                                    <p className="text-[12px] text-white/30 font-bold uppercase tracking-widest mt-1.5">{s.study_type}</p>
-                                </td>
-                                <td className="px-10 py-10 text-[12px] font-black text-slate-500 uppercase tracking-widest border-r border-white/5">{s.sponsor_name || 'Internal Hub'}</td>
-                                <td className="px-10 py-10 border-r border-white/5">
-                                    <span className={`px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border shadow-lg ${
-                                        s.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
-                                        'bg-white/5 text-slate-500 border-white/10'
-                                    }`}>
-                                        {s.status}
-                                    </span>
-                                </td>
-                                <td className="px-10 py-10 text-right">
-                                    <button className="p-3 bg-white/5 border border-white/10 rounded-2xl text-slate-500 group-hover:text-white group-hover:bg-[#14b8a6]/20 transition-all shadow-lg">
-                                        <ChevronRight className="w-5 h-5" />
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </motion.div>
-    );
-}
-
-
