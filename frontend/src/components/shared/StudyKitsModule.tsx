@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { authFetch, API } from '../../utils/auth';
 import { 
     Box, 
     Search, 
@@ -33,44 +34,128 @@ interface StudyKit {
 
 export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?: string }) {
     const [searchQuery, setSearchQuery] = useState('');
-    const [kits, setKits] = useState<StudyKit[]>([
-        { 
-            id: 'KIT-001', 
-            kit_number: 'SK-8291-A', 
-            participant_name: 'Alice Johnson', 
-            participant_id: 'BTB-021',
-            protocol_id: 'STUDY-2024-01', 
-            address: '123 Clinical Way, San Francisco, CA 94107',
-            status: 'PREPARING', 
-            last_updated: 'Pending', 
-            carrier: 'FedEx',
-            tracking_number: ''
-        },
-        { 
-            id: 'KIT-002', 
-            kit_number: 'SK-8291-B', 
-            participant_name: 'Bob Smith', 
-            participant_id: 'BTB-042',
-            protocol_id: 'STUDY-2024-01', 
-            address: '456 Research Blvd, Austin, TX 78701',
-            status: 'PENDING', 
-            last_updated: 'Pending', 
-            tracking_number: '', 
-            carrier: 'UPS' 
-        },
-        { 
-            id: 'KIT-003', 
-            kit_number: 'SK-8291-C', 
-            participant_name: 'Charlie Davis', 
-            participant_id: 'BTB-089',
-            protocol_id: 'STUDY-2024-02', 
-            address: '789 Biotech Lane, Boston, MA 02118',
-            status: 'PREPARING', 
-            last_updated: 'Pending', 
-            tracking_number: '', 
-            carrier: 'DHL' 
-        },
-    ]);
+    const [kits, setKits] = useState<StudyKit[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    const [participants, setParticipants] = useState<any[]>([]);
+    
+    // Form state for new kit
+    const [newKit, setNewKit] = useState({
+        participantId: '',
+        kitNumber: '',
+        kitType: 'Standard',
+        carrier: 'FedEx'
+    });
+
+    const fetchKits = async () => {
+        setIsLoading(true);
+        try {
+            let url = `${API}/api/kits/`;
+            if (selectedStudyId && selectedStudyId !== 'all') {
+                url += `?study_id=${selectedStudyId}`;
+            }
+            const res = await authFetch(url);
+            if (res.ok) {
+                const data = await res.json();
+                const mapped: StudyKit[] = data.map((k: any) => ({
+                    id: k.id,
+                    kit_number: k.kit_number,
+                    participant_name: k.participant_name || 'Anonymous',
+                    participant_id: k.participant_sid || 'N/A',
+                    protocol_id: k.protocol_id || 'N/A',
+                    address: k.address_override || 'Primary Subject Address',
+                    status: k.status,
+                    carrier: k.carrier as any,
+                    last_updated: k.assignment_date?.split('T')[0] || 'Pending',
+                    tracking_number: k.tracking_number || '',
+                    shipping_label_url: k.shipping_label_url,
+                    return_label_url: k.return_label_url
+                }));
+                setKits(mapped);
+            }
+        } catch (err) {
+            console.error("Failed to fetch kits:", err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const fetchParticipants = async () => {
+        try {
+            let url = `${API}/api/participants/`;
+            if (selectedStudyId && selectedStudyId !== 'all') {
+                url += `?study_id=${selectedStudyId}`;
+            }
+            const res = await authFetch(url);
+            if (res.ok) {
+                const data = await res.json();
+                setParticipants(data);
+            }
+        } catch (err) { }
+    };
+
+    useEffect(() => {
+        fetchKits();
+        fetchParticipants();
+    }, [selectedStudyId]);
+
+    const handleUpdateKit = async (kitId: string, updates: Partial<StudyKit>) => {
+        try {
+            // Map frontend fields back to backend naming if necessary
+            const backendUpdates: any = {};
+            if (updates.status) backendUpdates.status = updates.status;
+            if (updates.tracking_number !== undefined) backendUpdates.tracking_number = updates.tracking_number;
+            if (updates.carrier) backendUpdates.carrier = updates.carrier;
+            if (updates.address) backendUpdates.address_override = updates.address;
+
+            const res = await authFetch(`${API}/api/kits/${kitId}/`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(backendUpdates)
+            });
+
+            if (res.ok) {
+                setKits(prev => prev.map(k => k.id === kitId ? { ...k, ...updates } : k));
+            }
+        } catch (err) {
+            console.error("Failed to update kit:", err);
+        }
+    };
+
+    const handleAssignKit = async () => {
+        if (!newKit.participantId || !newKit.kitNumber) {
+            alert("Please select a participant and enter a kit number.");
+            return;
+        }
+
+        try {
+            const selectedPart = participants.find(p => p.id === newKit.participantId);
+            const res = await authFetch(`${API}/api/kits/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    participant: newKit.participantId,
+                    study: selectedPart?.study,
+                    kit_number: newKit.kitNumber,
+                    kit_type: newKit.kitType,
+                    carrier: newKit.carrier,
+                    status: 'PENDING',
+                    assignment_date: new Date().toISOString()
+                })
+            });
+
+            if (res.ok) {
+                setIsAssignModalOpen(false);
+                fetchKits();
+                setNewKit({ participantId: '', kitNumber: '', kitType: 'Standard', carrier: 'FedEx' });
+            } else {
+                const err = await res.json();
+                alert(err.detail || "Failed to assign kit.");
+            }
+        } catch (err) {
+            console.error("Error assigning kit:", err);
+        }
+    };
 
     const filteredKits = kits.filter(kit => 
         (selectedStudyId === 'all' || !selectedStudyId || kit.protocol_id === selectedStudyId) &&
@@ -99,7 +184,7 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
     };
 
     return (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div className="flex items-center gap-6">
                     <div className="p-4 bg-cyan-500/10 rounded-3xl border border-cyan-500/20">
@@ -121,7 +206,10 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                             className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-4 text-[12px] text-white font-bold outline-none focus:border-cyan-500/50 transition-all w-80 uppercase tracking-widest placeholder:text-slate-700 font-mono shadow-2xl"
                         />
                     </div>
-                    <button className="flex items-center gap-3 px-8 py-4 bg-cyan-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.03] active:scale-95 transition-all shadow-2xl shadow-cyan-600/30">
+                    <button 
+                        onClick={() => setIsAssignModalOpen(true)}
+                        className="flex items-center gap-3 px-8 py-4 bg-cyan-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.03] active:scale-95 transition-all shadow-2xl shadow-cyan-600/30"
+                    >
                         Assign New Kit <Plus className="w-4 h-4" />
                     </button>
                 </div>
@@ -185,9 +273,10 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                                         <textarea 
                                             value={kit.address}
                                             onChange={(e) => {
-                                                const updated = kits.map(k => k.id === kit.id ? { ...k, address: e.target.value } : k);
-                                                setKits(updated);
+                                                const val = e.target.value;
+                                                setKits(prev => prev.map(k => k.id === kit.id ? { ...k, address: val } : k));
                                             }}
+                                            onBlur={(e) => handleUpdateKit(kit.id, { address: e.target.value })}
                                             className="bg-transparent text-[11px] text-slate-400 font-medium leading-relaxed outline-none border-none resize-none h-16 w-full focus:text-white transition-colors"
                                         />
                                     </div>
@@ -198,8 +287,8 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                                             <select 
                                                 value={kit.carrier}
                                                 onChange={(e) => {
-                                                    const updated = kits.map(k => k.id === kit.id ? { ...k, carrier: e.target.value as any } : k);
-                                                    setKits(updated);
+                                                    const val = e.target.value as any;
+                                                    handleUpdateKit(kit.id, { carrier: val });
                                                 }}
                                                 className="bg-transparent text-[12px] font-black text-slate-400 uppercase tracking-widest outline-none cursor-pointer w-full px-4 py-2"
                                             >
@@ -216,9 +305,10 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                                                 value={kit.tracking_number}
                                                 placeholder={kit.status === 'PREPARING' ? 'AWAITING DISPATCH...' : 'ENTER TRACKING...'}
                                                 onChange={(e) => {
-                                                    const updated = kits.map(k => k.id === kit.id ? { ...k, tracking_number: e.target.value } : k);
-                                                    setKits(updated);
+                                                    const val = e.target.value;
+                                                    setKits(prev => prev.map(k => k.id === kit.id ? { ...k, tracking_number: val } : k));
                                                 }}
+                                                onBlur={(e) => handleUpdateKit(kit.id, { tracking_number: e.target.value })}
                                                 className="bg-transparent text-sm font-black text-white italic outline-none w-full placeholder:text-slate-800 tracking-tighter"
                                             />
                                             {!kit.tracking_number && (
@@ -263,8 +353,8 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                                             <select 
                                                 value={kit.status}
                                                 onChange={(e) => {
-                                                    const updated = kits.map(k => k.id === kit.id ? { ...k, status: e.target.value as any, last_updated: new Date().toISOString().split('T')[0] } : k);
-                                                    setKits(updated);
+                                                    const val = e.target.value as any;
+                                                    handleUpdateKit(kit.id, { status: val });
                                                 }}
                                                 className={`bg-transparent text-[12px] font-black uppercase tracking-widest outline-none cursor-pointer w-full px-4 py-2 ${getStatusStyle(kit.status).split(' ')[0]}`}
                                             >
@@ -305,7 +395,7 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                                                 onClick={() => {
                                                     const tracking = prompt("CRITICAL: Enter Carrier Tracking Number to finalize dispatch [SHIPMENT PROTOCOL]:", kit.tracking_number || "");
                                                     if (tracking && tracking.trim() !== "") {
-                                                        setKits(prev => prev.map(k => k.id === kit.id ? { ...k, status: 'SHIPPED', tracking_number: tracking.trim(), last_updated: new Date().toISOString().split('T')[0] } : k));
+                                                        handleUpdateKit(kit.id, { status: 'SHIPPED', tracking_number: tracking.trim() });
                                                         alert(`✅ SYSTEM SYNC COMPLETE: Kit dispatched with Tracking ID [${tracking.trim()}]. Participant notified.`);
                                                     } else {
                                                         alert("🚨 PROTOCOL BLOCKED: A valid tracking number is mandatory for clinical dispatch synchronization.");
@@ -340,6 +430,105 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                     </tbody>
                 </table>
             </div>
+            {/* Assign New Kit Modal */}
+            <AnimatePresence>
+                {isAssignModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsAssignModalOpen(false)}
+                            className="absolute inset-0 bg-[#020617]/90 backdrop-blur-md"
+                        />
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative w-full max-w-2xl bg-[#0B101B] border border-white/10 rounded-[3rem] p-10 shadow-2xl overflow-hidden"
+                        >
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent" />
+                            
+                            <div className="flex items-center gap-6 mb-10">
+                                <div className="p-4 bg-cyan-500/10 rounded-3xl border border-cyan-500/20">
+                                    <Package className="w-8 h-8 text-cyan-400" />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Assign New <span className="text-cyan-400">Clinical Kit</span></h3>
+                                    <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest mt-1">Register specimen box with clinical logistics network</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-8">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Select Participant</label>
+                                    <select 
+                                        value={newKit.participantId}
+                                        onChange={(e) => setNewKit({ ...newKit, participantId: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-[12px] font-bold text-white outline-none focus:border-cyan-500/50 transition-all uppercase appearance-none"
+                                    >
+                                        <option value="">Select Subject...</option>
+                                        {participants.map(p => (
+                                            <option key={p.id} value={p.id} className="bg-[#0B101B]">{p.participant_sid} - {p.user_details?.full_name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Kit Serial Number</label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="EX: SK-2024-XXXX"
+                                        value={newKit.kitNumber}
+                                        onChange={(e) => setNewKit({ ...newKit, kitNumber: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-[12px] font-bold text-white outline-none focus:border-cyan-500/50 transition-all uppercase placeholder:text-slate-700"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Kit Protocol Type</label>
+                                    <select 
+                                        value={newKit.kitType}
+                                        onChange={(e) => setNewKit({ ...newKit, kitType: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-[12px] font-bold text-white outline-none focus:border-cyan-500/50 transition-all uppercase appearance-none"
+                                    >
+                                        <option value="Standard" className="bg-[#0B101B]">Standard Collection</option>
+                                        <option value="Genetic" className="bg-[#0B101B]">Genetic Sampling</option>
+                                        <option value="Biohazard" className="bg-[#0B101B]">Biohazard / High Risk</option>
+                                        <option value="Ambient" className="bg-[#0B101B]">Ambient Storage</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Preferred Carrier</label>
+                                    <select 
+                                        value={newKit.carrier}
+                                        onChange={(e) => setNewKit({ ...newKit, carrier: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-[12px] font-bold text-white outline-none focus:border-cyan-500/50 transition-all uppercase appearance-none"
+                                    >
+                                        <option value="FedEx" className="bg-[#0B101B]">FedEx Express</option>
+                                        <option value="UPS" className="bg-[#0B101B]">UPS Worldwide</option>
+                                        <option value="DHL" className="bg-[#0B101B]">DHL Global</option>
+                                        <option value="USPS" className="bg-[#0B101B]">USPS Priority</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="mt-12 flex gap-4">
+                                <button 
+                                    onClick={() => setIsAssignModalOpen(false)}
+                                    className="flex-1 px-8 py-4 bg-white/5 border border-white/10 text-slate-400 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={handleAssignKit}
+                                    className="flex-[2] px-8 py-4 bg-cyan-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-cyan-900/40"
+                                >
+                                    Register Protocol Kit
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </motion.div>
     );
 }

@@ -5,7 +5,7 @@ interface SubjectAuditTrailProps {
     auditLog: any[];
 }
 
-export const SubjectAuditTrail: React.FC<SubjectAuditTrailProps> = ({ auditLog }) => {
+export const SubjectAuditTrail: React.FC<SubjectAuditTrailProps> = ({ auditLog = [] }) => {
     return (
         <div style={S.card}>
             <label style={S.label}>Node Transaction Log</label>

@@ -137,7 +137,7 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
         authHeaders['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(url, {
+    const response = await fetch(url.startsWith('http') ? url : `${API}${url}`, {
         ...options,
         credentials: 'include',
         headers: authHeaders,
@@ -153,7 +153,7 @@ export const authFetch = async (url: string, options: RequestInit = {}): Promise
             const retryHeaders = { ...authHeaders };
             if (newToken) retryHeaders['Authorization'] = `Bearer ${newToken}`;
 
-            const retryResponse = await fetch(url, {
+            const retryResponse = await fetch(url.startsWith('http') ? url : `${API}${url}`, {
                 ...options,
                 credentials: 'include',
                 headers: retryHeaders,

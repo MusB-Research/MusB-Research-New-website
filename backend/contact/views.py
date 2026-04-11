@@ -203,7 +203,7 @@ class SubmissionCreateView(generics.CreateAPIView):
                     study = Study.objects.filter(protocol_id=study_id).first()
                 
                 if study:
-                    # Create the lead
+                    # 1. Create the lead (Recruitment tracking)
                     names = (submission.name or "Anonymous").split(" ", 1)
                     first_name = names[0]
                     last_name = names[1] if len(names) > 1 else ""
@@ -218,6 +218,40 @@ class SubmissionCreateView(generics.CreateAPIView):
                         source='ONLINE_SCREENER',
                         notes=f"Auto-generated from screening form. Outcome: {metadata.get('outcome', 'Unknown')}"
                     )
-                    print(f"Lead created successfully for study: {study.protocol_id}")
+                    
+                    # 2. ALSO Create/Update the Participant (Clinical Review tracking)
+                    # This ensures the "Subject Review" module in the Coordinator Dashboard is NOT empty.
+                    from api.models import Participant
+                    from django.contrib.auth import get_user_model
+                    User = get_user_model()
+                    
+                    user_obj = User.objects.filter(email=submission.email).first()
+                    
+                    # Check if a participant record already exists for this study/user or study/email
+                    # (Note: Since Participant doesn't have an email field, we use study/user if user exists)
+                    participant = None
+                    if user_obj:
+                        participant = Participant.objects.filter(study=study, user=user_obj).first()
+                    
+                    if not participant:
+                        import secrets
+                        import string
+                        random_id = "".join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
+                        p_sid = f"SCR-{random_id}"
+                        
+                        participant = Participant.objects.create(
+                            study=study,
+                            user=user_obj,
+                            participant_sid=p_sid,
+                            status='PENDING_REVIEW'
+                        )
+                    
+                    # Always update eligibility data and timestamp
+                    participant.eligibility_data = metadata.get('formData', {})
+                    participant.status = 'PENDING_REVIEW'
+                    participant.submitted_at = submission.created_at
+                    participant.save()
+                    
+                    print(f"Lead and Participant created successfully for study: {study.protocol_id}")
             except Exception as e:
-                print(f"Failed to create Lead record: {e}")
+                print(f"Failed to create Clinical records: {e}")

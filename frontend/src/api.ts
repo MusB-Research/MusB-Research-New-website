@@ -4,7 +4,8 @@
 import { getToken } from './utils/auth';
 
 // @ts-ignore - Vite provides import.meta.env at runtime
-const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) || 'http://localhost:8000';
+const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) || 
+                 (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' ? 'https://musb-research-new-website.onrender.com' : 'http://localhost:8000');
 
 async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${API_BASE}${endpoint}`;
@@ -29,7 +30,14 @@ async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> 
         const errorBody = await res.text().catch(() => '');
         throw new Error(`API ${res.status}: ${errorBody || res.statusText}`);
     }
-    return res.json();
+    if (res.status === 204) {
+        return {} as T;
+    }
+    const json = await res.json();
+    if (json && typeof json === 'object' && Array.isArray((json as any).results)) {
+        return (json as any).results as T;
+    }
+    return json as T;
 }
 
 // ---- Page Settings (singletons) ----
@@ -142,5 +150,7 @@ export const submitFacilityInquiry = (data: Record<string, any>) =>
         method: 'POST',
         body: JSON.stringify(data),
     });
+
+export { apiFetch };
 
 

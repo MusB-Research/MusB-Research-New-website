@@ -19,6 +19,15 @@ export const TicketChat: React.FC<TicketChatProps> = ({
     selectedTicket, messageInput, setMessageInput, handleSendMessage,
     isFlagged, setIsFlagged, hasAttachment, setHasAttachment, fileInputRef
 }) => {
+    if (!selectedTicket) {
+        return (
+            <div className="flex-1 flex flex-col items-center justify-center bg-[#0B101B] text-slate-500 italic font-black uppercase tracking-widest gap-4">
+                <MessageCircle className="w-16 h-16 opacity-10" />
+                Select a support ticket to view conversation
+            </div>
+        );
+    }
+
     return (
         <div className="flex-1 flex flex-col overflow-hidden bg-[#0B101B] relative">
             <div className="p-8 border-b border-white/5 bg-white/[0.01] flex items-center justify-between">

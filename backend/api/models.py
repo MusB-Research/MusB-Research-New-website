@@ -379,6 +379,7 @@ class Visit(BaseMongoModel):
         ('MISSED', 'Missed'),
         ('CANCELLED', 'Cancelled'),
     ])
+    location_address = models.TextField(blank=True, help_text="Specific address or room for this visit")
     
     # Clinical Measures & Protocol State
     notes = models.TextField(blank=True)
@@ -475,6 +476,42 @@ class Form(BaseMongoModel):
 
     def __str__(self):
         return f"{self.title} v{self.version}"
+
+class QuestionnaireTemplate(BaseMongoModel):
+    name = models.CharField(max_length=255)
+    pdf_file = models.FileField(upload_to='questionnaire_pdfs/', null=True, blank=True)
+    json_structure = models.JSONField(default=dict, blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+class StudyQuestionnaire(BaseMongoModel):
+    study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='study_questionnaires')
+    template = models.ForeignKey(QuestionnaireTemplate, on_delete=models.CASCADE)
+    mode = models.CharField(max_length=20, choices=[('PDF', 'Full PDF'), ('STRUCTURED', 'Structured Questions')], default='STRUCTURED')
+    repeat_type = models.CharField(max_length=20, choices=[('DAILY', 'Daily'), ('WEEKLY', 'Weekly'), ('MONTHLY', 'Monthly'), ('CUSTOM', 'Custom')], default='MONTHLY')
+    repeat_count = models.IntegerField(default=1)
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    show_answers_to_participant = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.study.protocol_id} - {self.template.name}"
+
+class QuestionnaireScheduleInstance(BaseMongoModel):
+    study_questionnaire = models.ForeignKey(StudyQuestionnaire, on_delete=models.CASCADE, related_name='instances')
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='scheduled_questionnaires')
+    scheduled_date = models.DateField()
+    status = models.CharField(max_length=20, choices=[('PENDING', 'Pending'), ('COMPLETED', 'Completed'), ('OVERDUE', 'Overdue')], default='PENDING')
+    completed_at = models.DateTimeField(null=True, blank=True)
+    response_data = models.JSONField(default=dict, blank=True)
+    response_file = models.FileField(upload_to='questionnaire_responses/', null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.participant.participant_sid} - {self.study_questionnaire.template.name} ({self.scheduled_date})"
 
 class FormResponse(BaseMongoModel):
     form = models.ForeignKey(Form, on_delete=models.CASCADE)
@@ -576,6 +613,7 @@ class StaffTask(BaseMongoModel):
 class ConsentTemplate(BaseMongoModel):
     """Protocol definition for Informed Consent (Signatory requirements, versions, etc.)"""
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='consent_templates')
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     title = models.CharField(max_length=255)
     version = models.CharField(max_length=20, default='1.0')
     status = models.CharField(max_length=20, default='DRAFT', choices=[
@@ -1135,7 +1173,7 @@ class DailyMedicationLog(BaseMongoModel):
     ]
 
     participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='daily_logs')
-    date = models.DateField(auto_now_add=True)
+    date = models.DateField()
     
     # A. Medicine intake
     took_medicine = models.BooleanField(default=True)
@@ -1344,3 +1382,44 @@ def notify_sponsor_on_new_report(sender, instance, created, **kwargs):
             type="SUCCESS",
             link="/dashboard/sponsor/reports"
         )
+@receiver(post_save, sender=Participant)
+def generate_questionnaire_schedules_for_new_participant(sender, instance, created, **kwargs):
+    """When a new participant joins, generate all schedule instances for existing study questionnaires"""
+    if created and instance.study:
+        from datetime import timedelta
+        study_qs = StudyQuestionnaire.objects.filter(study=instance.study)
+        for sq in study_qs:
+            # Simple spread logic: spread over repeat_count occurrences
+            # Start from either sq.start_date or study.start_date
+            base_date = sq.start_date or instance.study.start_date or instance.created_at.date()
+            for i in range(sq.repeat_count):
+                offset_days = 0
+                if sq.repeat_type == 'DAILY': offset_days = i
+                elif sq.repeat_type == 'WEEKLY': offset_days = i * 7
+                elif sq.repeat_type == 'MONTHLY': offset_days = i * 30
+                
+                QuestionnaireScheduleInstance.objects.create(
+                    study_questionnaire=sq,
+                    participant=instance,
+                    scheduled_date=base_date + timedelta(days=offset_days)
+                )
+
+@receiver(post_save, sender=StudyQuestionnaire)
+def generate_schedules_for_existing_participants(sender, instance, created, **kwargs):
+    """When a new questionnaire is added to a study, generate instances for all enrolled participants"""
+    if created:
+        from datetime import timedelta
+        participants = Participant.objects.filter(study=instance.study)
+        base_date = instance.start_date or instance.study.start_date or instance.created_at.date()
+        for p in participants:
+            for i in range(instance.repeat_count):
+                offset_days = 0
+                if instance.repeat_type == 'DAILY': offset_days = i
+                elif instance.repeat_type == 'WEEKLY': offset_days = i * 7
+                elif instance.repeat_type == 'MONTHLY': offset_days = i * 30
+                
+                QuestionnaireScheduleInstance.objects.create(
+                    study_questionnaire=instance,
+                    participant=p,
+                    scheduled_date=base_date + timedelta(days=offset_days)
+                )

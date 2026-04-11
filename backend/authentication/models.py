@@ -23,13 +23,13 @@ class UserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = [
-        ('super_admin', 'Super Admin'),
-        ('admin', 'Admin'),
-        ('sponsor', 'Sponsor'),
-        ('coordinator', 'Coordinator'),
-        ('pi', 'PI'),
-        ('team_member', 'Team Member'),
-        ('PARTICIPANT', 'Participant'), # Keep existing for compatibility
+        ('SUPER_ADMIN', 'Super Admin'),
+        ('ADMIN', 'Admin'),
+        ('SPONSOR', 'Sponsor'),
+        ('COORDINATOR', 'Coordinator'),
+        ('PI', 'PI'),
+        ('TEAM_MEMBER', 'Team Member'),
+        ('PARTICIPANT', 'Participant'),
     ]
     AFFILIATION_CHOICES = [
         ('musb', 'MusB'),

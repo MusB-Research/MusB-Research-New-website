@@ -1,204 +1,314 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useMemo } from 'react';
 import QuestionnaireBuilder from '../QuestionnaireBuilder';
 import {
     ClipboardList,
     Search,
     Filter,
     Plus,
-    MessageSquare,
     CheckCircle2,
     Clock,
     AlertCircle,
     ChevronRight,
-    Layers,
-    DraftingCompass,
-    ArrowUpRight,
     FileText,
-    Settings2,
     Database,
-    BarChart
+    Loader2,
+    RefreshCw,
+    ExternalLink,
+    Trash2
 } from 'lucide-react';
+import { API, authFetch } from '../../../utils/auth';
 
-interface FormStatus {
+interface AssignedForm {
     id: string;
-    subjectId: string;
-    formName: string;
-    visit: string;
-    status: 'Pending' | 'Completed' | 'Query Open';
-    lastUpdated: string;
-    completion: number;
+    form_details?: {
+        id: string;
+        title: string;
+    };
+    participant: string;
+    status: string;
+    updated_at: string;
+    due_date?: string;
 }
 
 export default function FormsQuestionnairesModule({ selectedStudyId }: { selectedStudyId?: string }) {
-
     const [view, setView] = useState<'Tracking' | 'Splash' | 'Architect'>('Tracking');
     const [builderTab, setBuilderTab] = useState('Create New');
     const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('All');
+    
+    const [forms, setForms] = useState<AssignedForm[]>([]);
+    const [templates, setTemplates] = useState<any[]>([]); // To store saved form definitions
+    const [selectedTemplate, setSelectedTemplate] = useState<any | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const forms: FormStatus[] = [
-        { id: 'FRM-001', subjectId: 'SUB-001', formName: 'Vital Signs', visit: 'Visit 4', status: 'Completed', lastUpdated: '2026-03-20', completion: 100 },
-        { id: 'FRM-002', subjectId: 'SUB-001', formName: 'Adverse Events', visit: 'Visit 4', status: 'Query Open', lastUpdated: '2026-03-21', completion: 85 },
-        { id: 'FRM-003', subjectId: 'SUB-002', formName: 'Medical History', visit: 'Screening', status: 'Pending', lastUpdated: '--', completion: 0 },
-        { id: 'FRM-004', subjectId: 'SUB-003', formName: 'Physical Exam', visit: 'Visit 3', status: 'Completed', lastUpdated: '2026-03-15', completion: 100 },
-    ];
+    const apiUrl = API || 'http://localhost:8000';
+
+    const fetchForms = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const url = selectedStudyId && selectedStudyId !== 'all' 
+                ? `${apiUrl}/api/assigned-forms/?study_id=${selectedStudyId}`
+                : `${apiUrl}/api/assigned-forms/`;
+            
+            const res = await authFetch(url);
+            if (res.ok) {
+                const data = await res.json();
+                setForms(Array.isArray(data) ? data : (data.results || []));
+            }
+
+            // Also fetch templates (form definitions)
+            const templateRes = await authFetch(
+                selectedStudyId && selectedStudyId !== 'all'
+                    ? `${apiUrl}/api/forms/?study_id=${selectedStudyId}`
+                    : `${apiUrl}/api/forms/`
+            );
+            if (templateRes.ok) {
+                const templateData = await templateRes.json();
+                setTemplates(Array.isArray(templateData) ? templateData : (templateData.results || []));
+            }
+        } catch (err) {
+            setError('Connection error. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleDeleteTemplate = async (templateId: string) => {
+        if (!confirm("Are you sure you want to delete this study template? This action cannot be undone.")) return;
+        
+        try {
+            const res = await authFetch(`${apiUrl}/api/forms/${templateId}/`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                fetchForms(); // Refresh
+            }
+        } catch (err) {
+            console.error("Failed to delete template", err);
+        }
+    };
+
+    useEffect(() => {
+        fetchForms();
+    }, [selectedStudyId]);
+
+    const filteredForms = useMemo(() => {
+        return (forms || []).filter(f => {
+            const title = f.form_details?.title || '';
+            const participant = f.participant || '';
+            const matchesSearch = title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                participant.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesStatus = statusFilter === 'All' || f.status === statusFilter;
+            return matchesSearch && matchesStatus;
+        });
+    }, [forms, searchQuery, statusFilter]);
+
+    const stats = useMemo(() => {
+        if (!forms?.length) return { completion: '0%', pending: 0, queries: 0, synced: 0 };
+        const completed = forms.filter(f => f.status === 'COMPLETED').length;
+        const pending = forms.filter(f => f.status === 'PENDING').length;
+        const queries = forms.filter(f => f.status === 'PARTICIPANT_SIGNED').length;
+        
+        return {
+            completion: `${Math.round((completed / forms.length) * 100)}%`,
+            pending,
+            queries,
+            synced: completed
+        };
+    }, [forms]);
+
+    if (isLoading && forms.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20">
+                <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
+                <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Synchronizing metadata...</p>
+            </div>
+        );
+    }
 
     return (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
-            {/* Header */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+        <div className="space-y-8">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
-                    <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tight">ELIGIBILITY <span className="text-indigo-400">QUESTIONNAIRES</span></h2>
-                    <p className="text-[11px] text-white/50 font-bold uppercase tracking-[0.4em] mt-3 md:mt-4 italic">eCRF Management & Dynamic Instrument Design</p>
+                    <h2 className="text-xl font-bold text-white tracking-tight">Eligibility Questionnaires</h2>
+                    <p className="text-xs text-slate-500 font-medium mt-1">eCRF Management & Dynamic Instrument Design</p>
                 </div>
-                <div className="flex bg-white/5 p-1.5 md:p-2 rounded-2xl border border-white/10 w-full lg:w-auto">
+                <div className="flex items-center gap-3">
+                    <button onClick={fetchForms} className="p-2 text-slate-500 hover:text-white transition-colors border border-slate-800 rounded-lg hover:bg-slate-800">
+                        <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    </button>
+                </div>
+            </div>
+
+            <div className="flex items-center justify-start border-b border-slate-800 pb-6">
+                <div className="flex items-center gap-1.5 bg-slate-900/50 p-1 rounded-lg border border-slate-800">
                     <button
                         onClick={() => setView('Tracking')}
-                        className={`flex-1 lg:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${view === 'Tracking' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'}`}
+                        className={`px-5 py-2.5 text-xs font-bold uppercase tracking-widest rounded-md transition-all ${view === 'Tracking' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
                     >
                         Form Tracking
                     </button>
                     <button
-                        onClick={() => setView('Splash')}
-                        className={`flex-1 lg:flex-none px-6 md:px-8 py-3 md:py-4 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${view === 'Splash' || view === 'Architect' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'}`}
+                        onClick={() => { setSelectedTemplate(null); setView('Splash'); }}
+                        className={`px-5 py-2.5 text-xs font-bold uppercase tracking-widest rounded-md transition-all ${view !== 'Tracking' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
                     >
                         Form Builder
                     </button>
                 </div>
             </div>
 
-            <AnimatePresence mode="wait">
-                {view === 'Tracking' && (
-                    <motion.div key="tracking" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
-                        {/* Stats Row */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-16">
-                            {[
-                                { label: 'Completion Rate', val: '88.4%', icon: CheckCircle2, color: 'emerald' },
-                                { label: 'Pending Forms', val: '42', icon: Clock, color: 'blue' },
-                                { label: 'Active Queries', val: '12', icon: MessageSquare, color: 'red' },
-                                { label: 'Synced to EDC', val: '1,240', icon: Database, color: 'indigo' }
-                            ].map((stat, i) => (
-                                <div key={i} className="flex items-center gap-6 lg:gap-8 group">
-                                    <div className={`flex-shrink-0 w-16 h-16 bg-${stat.color}-500/5 border border-${stat.color}-500/10 rounded-2xl flex items-center justify-center text-${stat.color}-400 group-hover:scale-110 transition-transform`}>
-                                        <stat.icon className="w-8 h-8" />
+            {view === 'Tracking' && (
+                <div className="space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        {[
+                            { label: 'Completion Rate', val: stats.completion, icon: CheckCircle2, color: 'emerald' },
+                            { label: 'Pending Forms', val: stats.pending, icon: Clock, color: 'amber' },
+                            { label: 'Active Queries', val: stats.queries, icon: AlertCircle, color: 'rose' },
+                            { label: 'Synced to EDC', val: stats.synced, icon: Database, color: 'indigo' }
+                        ].map((stat, i) => (
+                            <div key={i} className="bg-slate-900/40 border border-slate-800/50 p-6 rounded-xl flex items-center gap-4">
+                                <stat.icon className={`w-6 h-6 text-${stat.color}-500`} />
+                                <div>
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                                    <p className="text-2xl font-black text-white mt-1">{stat.val}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                        <div className="relative w-full md:w-96">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+                            <input 
+                                type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-2.5 pl-10 pr-4 text-xs text-white focus:outline-none focus:border-indigo-500"
+                            />
+                        </div>
+                        <select 
+                            value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+                            className="bg-slate-950 border border-slate-800 rounded-lg py-2.5 px-4 text-[10px] font-bold text-slate-400 focus:outline-none focus:text-white uppercase tracking-widest"
+                        >
+                            <option value="All">All Statuses</option>
+                            <option value="PENDING">Pending</option>
+                            <option value="COMPLETED">Completed</option>
+                        </select>
+                    </div>
+
+                    <div className="bg-slate-900/20 border border-slate-800/50 rounded-xl overflow-hidden">
+                        <div className="px-6 py-5 bg-slate-800/20 border-b border-slate-800 flex items-center justify-between">
+                            <h4 className="text-sm font-black uppercase tracking-widest text-white">Subject Submissions</h4>
+                            <span className="text-xs font-bold text-slate-400">{filteredForms.length} Participants</span>
+                        </div>
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-slate-800">
+                                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">Form Name</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">Subject ID</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">Status</th>
+                                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Last Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800">
+                                {filteredForms.length > 0 ? filteredForms.map((f) => (
+                                    <tr key={f.id} className="hover:bg-slate-800/10 transition-colors group">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <FileText className="w-4 h-4 text-slate-400" />
+                                                <span className="text-xs font-bold text-slate-100">{f.form_details?.title || 'Unknown Form'}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4"><span className="text-xs font-mono text-slate-400">{f.participant}</span></td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${
+                                                f.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400' : 
+                                                f.status === 'PENDING' ? 'bg-amber-500/10 text-amber-400' : 
+                                                'bg-slate-800 text-slate-400'
+                                            }`}>
+                                                {f.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex flex-col items-end gap-1">
+                                                <span className="text-xs text-slate-300 font-bold">{new Date(f.updated_at).toLocaleDateString('en-US')}</span>
+                                                <span className="text-[9px] text-slate-500 uppercase tracking-widest">{new Date(f.updated_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )) : (
+                                    <tr><td colSpan={4} className="px-6 py-20 text-center text-slate-400 text-base font-bold uppercase tracking-widest">No submissions found</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* NEW: ACTIVE TEMPLATES SECTION */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 px-1">
+                            <h3 className="text-sm font-black text-indigo-400 uppercase tracking-widest">Deployed Study Templates</h3>
+                            <div className="h-px bg-indigo-500/20 flex-1" />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {templates.map((t, i) => (
+                                <div key={i} className="bg-slate-900/40 border border-slate-800 p-5 rounded-2xl hover:border-indigo-500/40 transition-all group">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="p-2 bg-indigo-500/10 rounded-lg group-hover:bg-indigo-500/20">
+                                            <Database className="w-4 h-4 text-indigo-400" />
+                                        </div>
+                                        <span className={`px-3 py-1 rounded text-xs font-black uppercase tracking-widest ${t.is_published ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-500'}`}>
+                                            {t.is_published ? 'LIVE' : 'DRAFT'}
+                                        </span>
+                                        <button 
+                                            onClick={() => handleDeleteTemplate(t.id)}
+                                            className="ml-2 p-1.5 text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-md transition-all"
+                                            title="Delete Template"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
                                     </div>
-                                    <div>
-                                        <span className="text-[11px] text-white/40 font-black uppercase tracking-widest italic block mb-1">{stat.label}</span>
-                                        <p className="text-2xl lg:text-3xl font-black text-white italic tracking-tighter leading-none">{stat.val}</p>
+                                    <h5 className="text-base font-black text-white mb-2 group-hover:text-indigo-400 transition-colors uppercase truncate">{t.title}</h5>
+                                    <p className="text-xs text-slate-500 font-medium line-clamp-2 mb-4 italic">"{t.description}"</p>
+                                    <div className="flex items-center justify-between pt-4 border-t border-slate-800/50">
+                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">v{t.version || 1.0}</span>
+                                        <button 
+                                            onClick={() => { setSelectedTemplate(t); setView('Architect'); }}
+                                            className="text-xs font-black text-indigo-400 uppercase tracking-widest hover:text-white transition-colors"
+                                        >
+                                            Modify Template →
+                                        </button>
                                     </div>
                                 </div>
                             ))}
+                            {templates.length === 0 && (
+                                <div className="col-span-full py-10 border-2 border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-600">
+                                     <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-500">No templates deployed</p>
+                                </div>
+                            )}
                         </div>
+                    </div>
+                </div>
+            )}
 
-                        {/* Table */}
-                        <div className="overflow-x-auto custom-scrollbar-horizontal">
-                            <table className="w-full table-fixed text-left min-w-[1000px] border-t border-white/5">
-                                <colgroup>
-                                    <col className="w-[30%]" />
-                                    <col className="w-[15%]" />
-                                    <col className="w-[20%]" />
-                                    <col className="w-[20%]" />
-                                    <col className="w-[15%]" />
-                                </colgroup>
-                                <thead>
-                                    <tr className="bg-white/[0.02] border-b border-white/5">
-                                            <th className="px-10 py-8 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5 text-left">eCRF Instrument</th>
-                                            <th className="px-10 py-8 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5 text-left">Subject ID</th>
-                                            <th className="px-10 py-8 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5 text-left">Protocol Visit</th>
-                                            <th className="px-10 py-8 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5 text-left">Form Health</th>
-                                            <th className="px-10 py-8 text-[12px] font-black text-white/80 uppercase tracking-widest italic text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                <tbody className="divide-y divide-white/5">
-                                    {forms.map((f) => (
-                                            <motion.tr key={f.id} className="hover:bg-white/[0.02] transition-colors group">
-                                                <td className="px-10 py-10 border-r border-white/5">
-                                                    <div className="flex items-center gap-6">
-                                                        <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 group-hover:text-indigo-400 group-hover:border-indigo-500/40 transition-all shadow-lg shadow-black/20">
-                                                            <FileText className="w-5 h-5" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm md:text-base font-black text-white italic truncate tracking-tight uppercase leading-none">{f.formName}</p>
-                                                            <p className="text-[12px] text-slate-500 font-mono tracking-widest mt-1.5">{f.id}</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-10 py-10 border-r border-white/5">
-                                                    <p className="text-base md:text-lg font-black text-white italic uppercase tracking-tighter leading-none">{f.subjectId}</p>
-                                                </td>
-                                                <td className="px-10 py-10 border-r border-white/5">
-                                                    <p className="text-[12px] md:text-[12px] text-indigo-300/60 font-black uppercase tracking-widest italic mb-2">{f.visit}</p>
-                                                    <div className="flex flex-col items-start gap-2 text-[12px] text-slate-500 font-bold uppercase tracking-widest italic opacity-60">
-                                                        <div className="flex items-center gap-2">
-                                                            <Clock className="w-3 h-3" />
-                                                            <span>UPDATED: <span className="text-slate-400">{f.lastUpdated}</span></span>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-10 py-10 border-r border-white/5">
-                                                    <div className="flex flex-col items-start gap-5">
-                                                        <div className={`px-5 py-2 rounded-xl border text-[12px] font-black uppercase tracking-widest shadow-lg ${f.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/10' :
-                                                                f.status === 'Query Open' ? 'bg-red-500/10 text-red-500 border-red-500/40 animate-pulse shadow-red-500/10' :
-                                                                    f.status === 'Pending' ? 'bg-amber-500/10 text-amber-500 border-amber-500/40 shadow-amber-500/10' :
-                                                                        'bg-white/5 border-white/10 text-slate-500'
-                                                            }`}>
-                                                            {f.status}
-                                                        </div>
-                                                        <div className="w-32 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                                            <div className={`h-full bg-indigo-600 rounded-full transition-all shadow-[0_0_10px_rgba(79,70,229,0.5)]`} style={{ width: `${f.completion}%` }} />
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-10 py-10 text-right">
-                                                    <div className="flex items-center justify-end gap-3 transition-all">
-                                                        <button className="p-3 bg-white/5 border border-white/10 rounded-2xl text-slate-400 hover:text-white hover:bg-white/10 transition-all shadow-lg active:scale-95 group/btn">
-                                                            <Settings2 className="w-3.5 h-3.5 group-hover/btn:rotate-90 transition-transform" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => alert(`Reviewing Instrument ${f.formName} for Subject ${f.subjectId}...`)}
-                                                            className="px-8 py-4 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-white hover:text-indigo-900 shadow-xl shadow-indigo-600/30 active:scale-95 transition-all flex items-center gap-3 whitespace-nowrap"
-                                                        >
-                                                            Open <span className="hidden xl:inline">eCRF</span> <ChevronRight className="w-5 h-5" />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </motion.tr>
-                                    ))}
-                                </tbody>
-                                </table>
-                            </div>
-                        </motion.div>
-                    )}
+            {view === 'Splash' && (
+                <div className="p-12 bg-slate-900/30 border border-slate-800 rounded-3xl flex flex-col items-center text-center space-y-8">
+                    <div className="w-20 h-20 bg-indigo-600/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center text-indigo-400"><Plus className="w-10 h-10" /></div>
+                    <div className="max-w-md">
+                        <h3 className="text-xl font-bold text-white tracking-tight mb-2 uppercase">Instrument Architect</h3>
+                        <p className="text-xs text-slate-400">Design multi-page electronic case report forms (eCRF) with built-in edit checks and logic branching.</p>
+                    </div>
+                    <div className="flex gap-4">
+                        <button onClick={() => { setBuilderTab('Create New'); setView('Architect'); }} className="px-8 py-3 bg-white text-slate-950 rounded-xl text-[11px] font-bold uppercase tracking-widest hover:scale-105 transition-all">Create New eCRF</button>
+                    </div>
+                </div>
+            )}
 
-                {view === 'Splash' && (
-                    <motion.div key="splash" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="p-20 bg-[#0B101B]/40 border border-white/5 rounded-[3rem] flex flex-col items-center text-center space-y-10 group">
-                        <div className="w-32 h-32 bg-indigo-600/10 border border-indigo-500/20 rounded-[3rem] flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
-                            <DraftingCompass className="w-16 h-16" />
-                        </div>
-                        <div className="max-w-xl space-y-4">
-                            <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">Instrument Architect</h3>
-                            <p className="text-[12px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed italic">Design multi-page electronic case report forms (eCRF) with built-in edit checks, logic branching, and dynamic field visibility.</p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 w-full max-w-lg">
-                            <button onClick={() => { setBuilderTab('Create New'); setView('Architect'); }} className="py-5 bg-white text-slate-950 rounded-[2rem] text-[12px] font-black uppercase tracking-widest hover:scale-[1.05] transition-all">Create New eCRF</button>
-                            <button onClick={() => { setBuilderTab('Templates'); setView('Architect'); }} className="py-5 bg-white/5 border border-white/10 text-slate-400 rounded-[2rem] text-[12px] font-black uppercase tracking-widest hover:text-white transition-all">Import Template</button>
-                        </div>
-                    </motion.div>
-                )}
-
-                {view === 'Architect' && (
-                    <motion.div key="architect" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-                        <div className="mb-6">
-                            <button onClick={() => setView('Splash')} className="text-[12px] font-black text-slate-600 uppercase tracking-widest hover:text-white transition-all">← Back to Architect Home</button>
-                        </div>
-                        <QuestionnaireBuilder initialTab={builderTab} />
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </motion.div>
+            {view === 'Architect' && (
+                <div className="">
+                    <button onClick={() => { setView('Tracking'); fetchForms(); }} className="mb-6 text-[10px] font-bold text-slate-600 uppercase tracking-widest hover:text-white transition-all">← Back to Dashboard</button>
+                    <QuestionnaireBuilder initialTemplate={selectedTemplate} />
+                </div>
+            )}
+        </div>
     );
 }
-
-
-
-

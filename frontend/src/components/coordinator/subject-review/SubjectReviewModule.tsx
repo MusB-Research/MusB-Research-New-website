@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { authFetch, API } from '../../../utils/auth';
 import { 
-    AlertCircle, Info, ShieldAlert, Bookmark, ArrowLeft, Target 
+    AlertCircle, Info, ShieldAlert, Bookmark, ArrowLeft, Loader2, Target, Activity
 } from 'lucide-react';
 import { COLORS, S } from './SubRevConstants';
 import { SubjectOverview } from './views/SubjectOverview';
@@ -49,42 +50,17 @@ const MOCK_PARTICIPANT = {
     flagged: false,
     consent: { status: 'Signed', method: 'eConsent', date: '2025-10-28', version: '2.1' },
     compliance: 85,
-    visits: [
-        { id: 'v1', label: 'Visit 1 — Screening', date: '2025-11-01', status: 'Completed', notes: 'All assessments completed', deviations: [] },
-        { id: 'v2', label: 'Visit 2 — Baseline', date: '2025-11-15', status: 'Completed', notes: 'BP slightly elevated, noted', deviations: ['BP not rechecked'] },
-        { id: 'v3', label: 'Visit 3 — Week 4', date: '2025-12-13', status: 'Pending', notes: '', deviations: [] }
-    ],
-    symptoms: [
-        { name: 'Bloating Score', baseline: 8, week2: 6, week4: 4 },
-        { name: 'Gas Frequency', baseline: 7, week2: 5, week4: 3 },
-        { name: 'Indigestion', baseline: 6, week2: 5, week4: 4 }
-    ],
-    adverseEvents: [
-        { id: 'ae1', event: 'Mild Nausea', onset: '2025-11-20', severity: 'Mild', relatedness: 'Possibly Related', action: 'Monitored', status: 'Resolved', confirmed: false } as AE
-    ],
-    labs: [
-        { biomarker: 'Glucose', result: '95 mg/dL', range: '70–100', status: 'Normal', date: '2025-11-15' },
-        { biomarker: 'CRP', result: '8.2 mg/L', range: '0–5', status: 'High', date: '2025-11-15' },
-        { biomarker: 'Microbiome Diversity', result: '3.4', range: '3.0–5.0', status: 'Normal', date: '2025-11-15' }
-    ],
-    documents: [
-        { id: 'd1', name: 'Signed_Consent_v2.1.pdf', type: 'Consent', date: '2025-10-28', version: 1 },
-        { id: 'd2', name: 'Lab_Report_Visit2.pdf', type: 'Lab', date: '2025-11-15', version: 1 }
-    ],
-    inclusions: [
-        { label: 'Age 18–65', met: true },
-        { label: 'IBS diagnosis confirmed', met: true },
-        { label: 'Symptom frequency ≥ 3x/week', met: true }
-    ],
-    exclusions: [
-        { label: 'Antibiotic use in last 3 months', present: false },
-        { label: 'Active probiotic use', present: true },
-        { label: 'Inflammatory bowel disease', present: false }
-    ]
+    visits: [],
+    symptoms: [],
+    adverseEvents: [],
+    labs: [],
+    documents: [],
+    inclusions: [],
+    exclusions: []
 };
 
 // --- COMPONENT ---
-export default function CCC_SubjectReviewModule({ participantId = 'BTB-023', selectedStudyId }: { participantId?: string, selectedStudyId?: string }) {
+export default function CCC_SubjectReviewModule({ participantId, selectedStudyId }: { participantId?: string, selectedStudyId?: string }) {
     // State
     const [participant, setParticipant] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -95,8 +71,8 @@ export default function CCC_SubjectReviewModule({ participantId = 'BTB-023', sel
     const [screeningNotes, setScreeningNotes] = useState('');
 
     const fetchData = useCallback(async () => {
-        if (!participantId || participantId === 'BTB-023') {
-            setParticipant(MOCK_PARTICIPANT);
+        if (!participantId) {
+            setParticipant(null);
             setLoading(false);
             return;
         }
@@ -106,20 +82,110 @@ export default function CCC_SubjectReviewModule({ participantId = 'BTB-023', sel
             const res = await authFetch(`${API}/api/participants/${participantId}/`);
             if (res.ok) {
                 const data = await res.json();
-                setParticipant(data);
+                // Ensure critical nested objects exist to prevent crashes
+                setParticipant({
+                    ...data,
+                    consent: data.consent || { status: 'Unknown' },
+                    adverseEvents: data.adverseEvents || [],
+                    symptoms: data.symptoms || [],
+                    documents: data.documents || [],
+                    lab_results: data.lab_results || data.labs || []
+                });
+            } else {
+                // If ID exists but fetch fails, fallback to something safe or show error
+                setParticipant(null);
             }
         } catch (err) {
             console.error("Failed to fetch participant:", err);
+            setParticipant(null);
         } finally {
             setLoading(false);
         }
     }, [participantId]);
 
+    const [screenerSchema, setScreenerSchema] = useState<any>(null);
+    useEffect(() => {
+        const fetchSchema = async () => {
+            if (!selectedStudyId) return;
+            try {
+                const res = await authFetch(`${API}/api/forms/?study_id=${selectedStudyId}&public=true`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const forms = Array.isArray(data) ? data : (data.results || []);
+                    if (forms.length > 0) {
+                        setScreenerSchema(forms[0].schema);
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fetch schema:", err);
+            }
+        };
+        fetchSchema();
+    }, [selectedStudyId]);
+
+    const processedParticipant = useMemo(() => {
+        if (!participant) return null;
+        
+        let inclusions: any[] = [];
+        let exclusions: any[] = [];
+        
+        let autoAge = participant.age;
+        let autoSex = participant.gender || participant.sex;
+        let autoArm = participant.assigned_arm_name || (typeof participant.assigned_arm === 'string' ? participant.assigned_arm : participant.assigned_arm?.name);
+
+        if (participant.eligibility_data && screenerSchema) {
+            const questions = Array.isArray(screenerSchema.questions) ? screenerSchema.questions : [];
+            Object.entries(participant.eligibility_data).forEach(([key, value]) => {
+                const q = questions.find((quest: any) => quest.id === key || quest.key === key);
+                const label = q ? q.label : key;
+                const lowLabel = label.toLowerCase();
+                
+                // Try to auto-populate missing fields from screener data
+                if (!autoAge && (lowLabel.includes('age') || lowLabel.includes('old'))) autoAge = value;
+                if (!autoSex && (lowLabel.includes('sex') || lowLabel.includes('gender'))) autoSex = value;
+                if (!autoArm && lowLabel.includes('arm')) autoArm = value;
+
+                const isExclusion = lowLabel.includes('exclusion');
+                
+                const entry = {
+                    label: label,
+                    met: value === 'Yes' || value === true || value === 'Eligible',
+                    present: value === 'Yes' || value === true || value === 'Present'
+                };
+                
+                if (isExclusion) exclusions.push(entry);
+                else inclusions.push(entry);
+            });
+        }
+        
+        // Fallback if schema doesn't exist but data does
+        if (inclusions.length === 0 && exclusions.length === 0 && participant.eligibility_data) {
+             Object.entries(participant.eligibility_data).forEach(([key, value]) => {
+                const lowKey = key.toLowerCase();
+                if (!autoAge && (lowKey.includes('age') || lowKey.includes('old'))) autoAge = value;
+                if (!autoSex && (lowKey.includes('sex') || lowKey.includes('gender'))) autoSex = value;
+                
+                inclusions.push({
+                    label: key.replace(/_/g, ' ').toUpperCase(),
+                    met: value === 'Yes' || value === true || value === 'Eligible'
+                });
+             });
+        }
+
+        return {
+            ...participant,
+            age: autoAge,
+            sex: autoSex,
+            assigned_arm_name: autoArm,
+            inclusions: inclusions,
+            exclusions: exclusions
+        };
+    }, [participant, screenerSchema]);
+
     React.useEffect(() => {
         fetchData();
     }, [fetchData]);
 
-    // Helpers
     const addToast = useCallback((message: string, type: string = 'success') => {
         const id = Math.random().toString(36).substr(2, 9);
         setToasts(prev => [...prev.slice(-2), { id, message, type }]);
@@ -179,131 +245,185 @@ export default function CCC_SubjectReviewModule({ participantId = 'BTB-023', sel
         }
     };
 
-    if (loading || !participant) return (
-        <div style={{ ...S.panel, justifyContent: 'center', alignItems: 'center' }}>
-            <Target size={48} className="animate-pulse text-indigo-500 mb-6" />
-            <h1 style={{ fontSize: '24px', fontWeight: 900, textTransform: 'uppercase', fontStyle: 'italic', letterSpacing: '0.05em' }}>Loading Clinical Profile...</h1>
+    if (loading) return (
+        <div className="flex flex-col items-center justify-center h-screen bg-[#0F172A]">
+            <Loader2 size={40} className="animate-spin text-indigo-500 mb-6" />
+            <h1 className="text-xl font-bold text-slate-500 uppercase tracking-widest">Synchronizing Database...</h1>
         </div>
     );
 
-    const alerts: any[] = []; // In a real app, derive from participant.ae_reports etc.
+    if (!participantId) return (
+        <div className="flex flex-col items-center justify-center h-screen bg-[#0F172A] text-center p-10">
+            <Target size={64} className="text-indigo-500 mb-8 opacity-20" />
+            <h1 className="text-2xl font-bold text-white mb-2">No Subject Selected</h1>
+            <p className="text-slate-500 max-w-md mx-auto mb-8">Select a participant from the Oversight dashboard to view their clinical profile and eligibility status.</p>
+            <button 
+                onClick={() => window.dispatchEvent(new CustomEvent('nav-to-participants'))}
+                className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all uppercase tracking-widest text-xs"
+            >
+                Go to Oversight
+            </button>
+        </div>
+    );
+
+    if (!participant) return (
+        <div className="flex flex-col items-center justify-center h-screen bg-[#0F172A] text-center p-10">
+            <AlertCircle size={64} className="text-rose-500 mb-8 opacity-20" />
+            <h1 className="text-2xl font-bold text-white mb-2">Subject Record Unreachable</h1>
+            <p className="text-slate-500 max-w-md mx-auto mb-8">The requested clinical profile could not be retrieved from the central repository. Please verify the Subject ID and your network connection.</p>
+            <button 
+                onClick={() => window.dispatchEvent(new CustomEvent('nav-to-participants'))}
+                className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all uppercase tracking-widest text-xs"
+            >
+                Return to Oversight
+            </button>
+        </div>
+    );
+
+    const alerts: any[] = []; 
 
     return (
-        <div style={S.panel}>
-            {/* STICKY TOP HEADER */}
-            <header style={S.header}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+        <div style={{...S.panel, backgroundColor: '#0B1221', color: '#CBD5E1'}}>
+            <header className="flex items-center justify-between px-8 py-6 border-b border-[#1F2937] bg-[#0B1221]">
+                <div className="flex items-center gap-6">
                     <button 
                         onClick={() => window.dispatchEvent(new CustomEvent('nav-to-participants'))}
-                        style={{ ...S.btnGhost, padding: '0.6rem', borderRadius: '12px' }}
-                        title="Back to Participant Oversight"
+                        className="p-2 border border-[#1F2937] rounded-lg text-slate-500 hover:text-white hover:bg-white/5 transition-all"
                     >
-                        <ArrowLeft size={20} />
+                        <ArrowLeft size={18} />
                     </button>
                     <div>
-                        <div style={{ ...S.name, fontSize: '24px' }}>{participant.participant_sid} <span style={{ color: COLORS.text, fontWeight: 'normal', fontSize: '16px' }}>| {participant.study_name}</span></div>
-                        <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.6rem', alignItems: 'center' }}>
-                             <span style={{ fontSize: '12px', fontWeight: 900, color: COLORS.success, backgroundColor: `${COLORS.success}15`, padding: '0.25rem 0.6rem', borderRadius: '4px', border: `1px solid ${COLORS.success}30` }}>
-                                 {participant.status.toUpperCase()} SUBJECT
-                             </span>
-                             <span style={{ fontSize: '12px', color: COLORS.info, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                 <Target size={12} /> {participant.assigned_arm || 'Discovery'} Arm
-                             </span>
+                        <div className="text-xl font-black text-white uppercase tracking-tight italic">
+                            {participant.participant_sid || 'AWAITING ID'}
+                            <span className="text-slate-600 font-bold text-[11px] ml-3 uppercase tracking-[0.2em] italic">/ {participant.study_name || 'PROTOCOL UNSPECIFIED'}</span>
+                        </div>
+                        <div className="flex items-center gap-4 mt-2">
+                            <div className="flex items-center gap-2 px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20">
+                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{processedParticipant.status || 'ACTIVE SUBJECT'}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Activity size={12} className="text-slate-500" />
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{processedParticipant.assigned_arm_name || 'GENERAL COHORT'}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div style={{ display: 'flex', gap: '1.25rem' }}>
-                    <button style={S.btnGhost} onClick={handleToggleFlag}>
-                        <Bookmark size={16} fill={participant.is_flagged ? COLORS.warning : 'none'} color={participant.is_flagged ? COLORS.warning : COLORS.text} style={{ marginRight: '8px' }} /> 
+                <div className="flex items-center gap-3">
+                    <button 
+                        onClick={handleToggleFlag}
+                        className={`flex items-center gap-2 px-5 py-2.5 border rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all ${participant.is_flagged ? 'bg-amber-500 text-white border-amber-500' : 'bg-transparent border-[#1F2937] text-slate-400 hover:text-white hover:bg-white/5'}`}
+                    >
+                        <Bookmark size={14} fill={participant.is_flagged ? "currentColor" : "none"} /> 
                         {participant.is_flagged ? 'FLAGGED' : 'FLAG'}
                     </button>
-                    <button style={{ ...S.btnPrimary, backgroundColor: COLORS.success }} onClick={() => handleReviewDecision('ELIGIBLE')}>Approve</button>
-                    <button style={{ ...S.btnPrimary, backgroundColor: COLORS.danger }} onClick={() => setConfirmModal({
-                        message: `Terminate participation for ${participant.participant_sid} immediately?`,
-                        type: 'danger',
-                        onConfirm: () => handleWithdraw('PI decision during subject review.')
-                    })}>Withdraw</button>
+                    <button 
+                        onClick={() => handleReviewDecision('ELIGIBLE')}
+                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-emerald-900/10"
+                    >
+                        Approve
+                    </button>
+                    <button 
+                        onClick={() => setConfirmModal({
+                            message: `Terminate participation for ${participant.participant_sid}? This action is irreversible.`,
+                            type: 'danger',
+                            onConfirm: () => handleWithdraw('PI decision during subject review.')
+                        })}
+                        className="px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-rose-900/10"
+                    >
+                        Withdraw
+                    </button>
                 </div>
             </header>
 
-            {/* TAB BAR */}
-            <div style={S.tabBar}>
-                {['Overview', 'Eligibility', 'Medical History', 'Consent', 'Visits', 'Outcomes', 'Safety', 'Labs', 'Documents', 'Notes', 'Audit Trail'].map(tab => {
-                    const hasAlert = (tab === 'Safety' && participant.ae_reports?.length > 0) || (tab === 'Labs' && participant.lab_results?.some((l: any) => l.status === 'High'));
-                    return (
-                        <div key={tab} style={{ position: 'relative' }}>
-                            <button onClick={() => setActiveTab(tab)} style={S.tab(activeTab === tab)}>{tab}</button>
-                            {hasAlert && <div style={{ position: 'absolute', top: -4, right: -4, width: '8px', height: '8px', borderRadius: '50%', backgroundColor: COLORS.danger, border: `2px solid ${COLORS.bg}` }} />}
-                        </div>
-                    );
-                })}
-            </div>
+            <nav className="flex items-center px-8 border-b border-[#1F2937] bg-[#0B1221] overflow-x-auto no-scrollbar">
+                {['Overview', 'Screening Review', 'Outcomes', 'Safety', 'Core Diagnostics', 'Artifacts', 'Audit'].map((tab) => (
+                    <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={`px-6 py-4 text-[10px] font-black uppercase tracking-[0.25em] transition-all relative whitespace-nowrap ${activeTab === tab ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
+                    >
+                        {tab}
+                        {activeTab === tab && (
+                            <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]" />
+                        )}
+                    </button>
+                ))}
+            </nav>
 
-            {/* MAIN CONTENT AREA */}
-            <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-                <main style={{ flex: 1, overflowY: 'auto', padding: '3rem', paddingBottom: '8rem' }}>
-                    {activeTab === 'Overview' && <SubjectOverview {...{ participant, alerts, setParticipant, addToast, logAction }} />}
-                    {activeTab === 'Eligibility' && <EligibilityAudit {...{ participant, screeningNotes, setScreeningNotes, logAction }} />}
-                    {activeTab === 'Outcomes' && <ClinicalOutcomes {...{ participant }} />}
-                    {activeTab === 'Audit Trail' && <SubjectAuditTrail {...{ auditLog }} />}
-                    {activeTab === 'Safety' && <SafetySignals {...{ participant }} />}
-                    {activeTab === 'Labs' && <LabParameters {...{ participant }} />}
-                    {activeTab === 'Documents' && <DocumentRegistry {...{ participant }} />}
-                    
-                    {!['Overview', 'Eligibility', 'Outcomes', 'Audit Trail', 'Safety', 'Labs', 'Documents'].includes(activeTab) && (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', color: COLORS.label }}>
-                            <AlertCircle size={64} style={{ opacity: 0.1, marginBottom: '2rem' }} />
-                            <div style={{ fontSize: '20px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' }}>{activeTab} Feed Active</div>
-                            <div style={{ fontSize: '14px', marginTop: '1rem' }}>Streaming clinical parameters for {participant.participant_sid}...</div>
-                        </div>
-                    )}
+            <div className="flex-1 flex overflow-hidden">
+                <main className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={activeTab}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.2 }}
+                        >
+                            {activeTab === 'Overview' && <SubjectOverview participant={processedParticipant} />}
+                            {activeTab === 'Screening Review' && <EligibilityAudit participant={processedParticipant} screeningNotes={screeningNotes} setScreeningNotes={setScreeningNotes} logAction={logAction} />}
+                            {activeTab === 'Outcomes' && <ClinicalOutcomes participant={processedParticipant} />}
+                            {activeTab === 'Safety' && <SafetySignals participant={processedParticipant} />}
+                            {activeTab === 'Core Diagnostics' && <LabParameters participant={processedParticipant} />}
+                            {activeTab === 'Artifacts' && <DocumentRegistry participant={processedParticipant} />}
+                            {activeTab === 'Audit' && <SubjectAuditTrail auditLog={auditLog} />}
+                        </motion.div>
+                    </AnimatePresence>
                 </main>
 
-                <SummaryPanel participant={participant} setActiveTab={setActiveTab} />
+                <aside className="w-[320px] bg-[#0B1221]/50 border-l border-[#1F2937] flex flex-col overflow-hidden">
+                    <SummaryPanel participant={processedParticipant} setActiveTab={setActiveTab} />
+                    <ActionFooter 
+                        addToast={addToast} 
+                        logAction={logAction} 
+                    />
+                </aside>
             </div>
 
-            <ActionFooter addToast={addToast} logAction={logAction} />
-
-            {/* TOAST SYSTEM */}
-            <div style={{ position: 'fixed', bottom: '6rem', right: '2rem', zIndex: 1000, display: 'flex', flexDirection: 'column-reverse', gap: '0.75rem' }}>
-                {toasts.map(t => (
-                    <div key={t.id} style={{ 
-                        padding: '1rem 2rem', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '1rem',
-                        backgroundColor: t.type === 'success' ? COLORS.success : t.type === 'error' ? COLORS.danger : COLORS.warning,
-                        color: 'white', fontWeight: 900, textTransform: 'uppercase', fontSize: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-                        animation: 'slideIn 0.3s forwards'
-                    }}>
-                        <Info size={16} /> {t.message}
-                    </div>
-                ))}
+            <div className="fixed bottom-24 right-8 z-[1000] flex flex-col-reverse gap-3">
+                <AnimatePresence>
+                    {toasts.map(t => (
+                        <motion.div 
+                            key={t.id} 
+                            initial={{ x: 100, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: 100, opacity: 0 }}
+                            className={`px-6 py-3 rounded-lg flex items-center gap-3 text-xs font-bold uppercase tracking-wide shadow-2xl border ${
+                                t.type === 'success' ? 'bg-emerald-600 border-emerald-500 text-white' : 
+                                t.type === 'error' ? 'bg-rose-600 border-rose-500 text-white' : 
+                                'bg-amber-600 border-amber-500 text-white'
+                            }`}
+                        >
+                            <Info size={14} /> {t.message}
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
             </div>
 
-            {/* CONFIRM MODAL */}
-            {confirmModal && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(10px)' }} onClick={() => setConfirmModal(null)} />
-                    <div style={{ ...S.card, width: '400px', padding: '3rem', position: 'relative', textAlign: 'center' }}>
-                        <ShieldAlert size={48} color={confirmModal.type === 'danger' ? COLORS.danger : COLORS.accent} style={{ marginBottom: '1.5rem' }} />
-                        <p style={{ fontSize: '16px', fontWeight: 'bold', lineHeight: 1.6, marginBottom: '2.5rem' }}>{confirmModal.message}</p>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <button style={{ ...S.btnGhost, flex: 1 }} onClick={() => setConfirmModal(null)}>ABORT</button>
-                            <button style={{ ...S.btnPrimary, flex: 1, backgroundColor: confirmModal.type === 'danger' ? COLORS.danger : COLORS.accent }} onClick={confirmModal.onConfirm}>CONFIRM</button>
-                        </div>
+            <AnimatePresence>
+                {confirmModal && (
+                    <div className="fixed inset-0 z-[1100] flex items-center justify-center p-6">
+                        <motion.div 
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setConfirmModal(null)} 
+                        />
+                        <motion.div 
+                            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-[#0B1221] border border-white/10 w-full max-w-md rounded-2xl p-8 relative z-10 shadow-2xl"
+                        >
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 ${confirmModal.type === 'danger' ? 'bg-rose-500/10 text-rose-500' : 'bg-indigo-500/10 text-indigo-500'}`}>
+                                <ShieldAlert size={24} />
+                            </div>
+                            <h3 className="text-lg font-bold text-white mb-2">Confirm Action</h3>
+                            <p className="text-sm text-slate-400 leading-relaxed mb-8">{confirmModal.message}</p>
+                            <div className="flex gap-3">
+                                <button onClick={() => setConfirmModal(null)} className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl text-xs font-bold transition-all uppercase tracking-widest">Abort</button>
+                                <button onClick={() => { confirmModal.onConfirm(); setConfirmModal(null); }} className={`flex-1 py-3 text-white rounded-xl text-xs font-bold transition-all uppercase tracking-widest ${confirmModal.type === 'danger' ? 'bg-rose-600 hover:bg-rose-500' : 'bg-indigo-600 hover:bg-indigo-500'}`}>Confirm</button>
+                            </div>
+                        </motion.div>
                     </div>
-                </div>
-            )}
-            
-            <style>{`
-                @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.2); border-radius: 2px; }
-            `}</style>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
-
-
-
-
-

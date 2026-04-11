@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, UserCheck, Eye, Edit2, ClipboardList, TrendingUp, Loader2 } from 'lucide-react';
-import { authFetch , API } from '../../utils/auth';
+import { authFetch , API, revealValue } from '../../utils/auth';
 
 interface Coordinator {
   id: string;
@@ -35,8 +35,8 @@ export default function CoordinatorsManagement({ allUsers = [], allStudies = [],
       .map(u => ({
         id: u.id,
         raw: u,
-        name: u.full_name || u.name || 'Unnamed Coordinator',
-        email: u.email,
+        name: revealValue(u.full_name, u.decrypted_name) || revealValue(u.name, u.decrypted_name) || (u.email ? u.email.split('@')[0] : 'Unnamed Coordinator'),
+        email: revealValue(u.email) || u.email || 'unknown@domain',
         status: (u as any).status === 'Suspended' ? 'Inactive' : 'Active',
         assignedStudies: allStudies
           .filter(s => s.coordinator === u.id || s.coordinator_id === u.id || (s.assigned_coordinators || []).some((c: any) => c.id === u.id))

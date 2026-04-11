@@ -47,13 +47,14 @@ export default function CompensationManagement({ selectedStudyId }: { selectedSt
     const fetchCompensations = async () => {
         setIsLoading(true);
         try {
-            const res = await authFetch(`${apiUrl}/api/compensations/`);
+            const query = selectedStudyId && selectedStudyId !== 'all' ? `?study_id=${selectedStudyId}` : '';
+            const res = await authFetch(`${apiUrl}/api/compensations/${query}`);
             if (res.ok) {
                 const data = await res.json();
                 // Map backend data to frontend interface
                 const mapped: Compensation[] = data.map((item: any) => ({
                     id: item.id,
-                    participant_name: item.participant_details?.full_name || item.participant_details?.participant_sid || 'Unknown',
+                    participant_name: item.participant_details?.full_name || item.participant_details?.user_details?.decrypted_name || item.participant_details?.participant_sid || 'Unknown',
                     participant_sid: item.participant_details?.participant_sid || 'N/A',
                     study_id: item.study,
                     study_protocol: item.study_details?.protocol_id || item.study_details?.id || 'N/A',
@@ -76,7 +77,7 @@ export default function CompensationManagement({ selectedStudyId }: { selectedSt
 
     useEffect(() => {
         fetchCompensations();
-    }, [apiUrl]);
+    }, [apiUrl, selectedStudyId]);
 
     const handleUpdateStatus = async (id: string, newStatus: string) => {
         try {

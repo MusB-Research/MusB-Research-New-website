@@ -245,7 +245,11 @@ const DashboardView = ({
                                 <div>
                                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Time</span>
                                     <p className="text-[15px] font-black text-white italic uppercase tracking-tight">
-                                        {nextMilestone ? new Date(nextMilestone.scheduled_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBD'}
+                                        {nextMilestone ? new Date(nextMilestone.scheduled_date).toLocaleTimeString([], { 
+                                            hour: '2-digit', 
+                                            minute: '2-digit',
+                                            timeZone: userTimezone || undefined
+                                        }) : 'TBD'}
                                     </p>
                                 </div>
                                 <div>

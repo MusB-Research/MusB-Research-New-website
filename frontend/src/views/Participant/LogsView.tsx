@@ -505,7 +505,7 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                         onClick={() => setViewMode('FORM')}
                         className={`px-10 py-3.5 rounded-2xl text-[13px] font-black uppercase tracking-widest transition-all ${viewMode === 'FORM' ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-white'}`}
                     >
-                        Daily Log Form
+                        Daily Log
                     </button>
                     <button
                         onClick={() => setViewMode('HISTORY')}
@@ -514,9 +514,10 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                         History
                     </button>
                 </div>
-                <div className="px-6 text-[12px] font-black text-slate-600 uppercase tracking-[0.3em]">
-                    SECURE HUB v2.4
+                <div className="px-6 text-[12px] font-black text-slate-600 uppercase tracking-widest">
+                    MusB Health
                 </div>
+
             </div>
 
             {viewMode === 'FORM' ? (
@@ -528,7 +529,7 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                                 <ClipboardList className="w-24 h-24 text-white" />
                             </div>
                             <h2 className="text-2xl sm:text-3xl font-black text-white italic uppercase tracking-tighter relative z-10">Daily Medicine Log</h2>
-                            <p className="text-[12px] sm:text-[13px] font-bold text-cyan-400/80 uppercase tracking-widest mt-1 relative z-10">Study Participation Tracker</p>
+                            <p className="text-[12px] sm:text-[13px] font-bold text-cyan-400/80 uppercase tracking-widest mt-1 relative z-10">Study Daily Status</p>
                         </div>
                     </Card>
 
@@ -550,8 +551,8 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                         <section className="space-y-10">
                             <SectionHeader
                                 icon={Thermometer}
-                                title="A. Medicine Intake"
-                                subtitle="Tracking your daily compliance"
+                                title="A. Medication Use"
+                                subtitle="Tracking your daily use"
                             />
 
                             <div className="space-y-10">

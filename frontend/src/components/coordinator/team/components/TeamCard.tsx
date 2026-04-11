@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Shield, Edit2, Lock, Unlock, Trash2, MoreVertical } from 'lucide-react';
+import { User, Shield, Edit2, Lock, Unlock, Trash2, MoreVertical, ChevronRight } from 'lucide-react';
 import { COLORS, TeamMember } from '../TeamConstants';
 
 interface TeamCardProps {
@@ -21,94 +21,88 @@ export const TeamCard: React.FC<TeamCardProps> = ({
 }) => {
     const isMusB = member.type === 'MusB';
 
-    const S = {
-        td: { padding: '2rem', backgroundColor: 'transparent', borderBottom: '1px solid rgba(255,255,255,0.06)' },
-        name: { fontSize: '15px', fontWeight: 900, fontStyle: 'italic' as const, textTransform: 'uppercase' as const, color: 'white', marginBottom: '8px', letterSpacing: '-0.01em' },
-        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.5rem 1.25rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '6px' }),
-        btnGhost: { backgroundColor: 'transparent', color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: '0.75rem 1.25rem', borderRadius: '6px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' }
-    };
-
     return (
         <tr className="hover:bg-white/[0.03] transition-all group relative">
-            <td style={S.td}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease' }} className="group-hover:border-indigo-500/50 group-hover:bg-indigo-500/10">
-                        <User size={24} className="text-slate-400 group-hover:text-indigo-400" />
+            <td className="px-6 py-6">
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center transition-all group-hover:border-blue-500/30 group-hover:bg-blue-500/10 shrink-0">
+                        <User size={20} className="text-slate-500 group-hover:text-blue-400" />
                     </div>
-                    <div>
-                        <div style={S.name}>{member.name}</div>
-                        <div style={{ fontSize: '12px', color: COLORS.text, fontWeight: 700, letterSpacing: '0.02em' }}>{member.email}</div>
+                    <div className="min-w-0">
+                        <div className="text-sm font-black text-white group-hover:text-blue-400 transition-colors truncate uppercase italic tracking-tight">{member.name}</div>
+                        <div className="text-[11px] text-slate-500 font-bold mt-1 truncate uppercase tracking-widest">{member.email}</div>
                     </div>
                 </div>
             </td>
-            <td style={S.td}>
-                <div style={{ fontSize: '13px', fontWeight: 900, color: 'white', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{member.role}</div>
-                {member.expertise && <div style={{ fontSize: '12px', color: COLORS.accent, marginTop: '8px', fontWeight: 800, textTransform: 'uppercase', fontStyle: 'italic' }}>{member.expertise}</div>}
+            <td className="px-6 py-6">
+                <div className="text-sm font-black text-slate-300 uppercase tracking-widest leading-none">{member.role}</div>
+                {member.expertise && <div className="text-[11px] text-slate-500 mt-2 font-bold uppercase tracking-wider opacity-60 leading-none">{member.expertise}</div>}
             </td>
-            <td style={S.td}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <td className="px-6 py-6">
+                <div className="flex flex-wrap gap-2">
                     {member.assignedStudies.length > 0 ? member.assignedStudies.map(s => (
-                        <span key={s} style={{ ...S.badge(COLORS.accent), padding: '0.5rem 1rem' }}>{s}</span>
-                    )) : <span style={{ fontSize: '13px', color: COLORS.label, fontWeight: 900, letterSpacing: '0.1em' }}>NO ACTIVE ASSIGNMENTS</span>}
+                        <span key={s} className="px-2.5 py-1 rounded-md bg-white/5 border border-white/5 text-[10px] font-black text-slate-400 uppercase tracking-widest">{s}</span>
+                    )) : <span className="text-[11px] text-slate-600 font-black uppercase tracking-widest opacity-60">no assignments</span>}
                 </div>
             </td>
-            <td style={{ ...S.td }}>
-                <span style={S.badge(member.status === 'Active' ? COLORS.success : COLORS.danger)}>{member.status}</span>
+            <td className="px-6 py-6">
+                <span className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] border ${
+                    member.status === 'Active' 
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                    : 'bg-white/5 text-slate-500 border-white/5'
+                }`}>
+                    {member.status}
+                </span>
             </td>
-            <td style={{ ...S.td, textAlign: 'right' }}>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', position: 'relative' }}>
+            <td className="px-6 py-8 text-right">
+                <div className="flex justify-end gap-3 position-relative">
                     {!isMusB ? (
                         <div className="relative">
                             <button 
-                                style={{ ...S.btnGhost, padding: '0.75rem' }} 
                                 onClick={(e) => { e.stopPropagation(); setActiveRowMenu(activeRowMenu === member.id ? null : member.id); }}
-                                className="hover:bg-white/10 hover:text-white transition-all flex items-center justify-center border border-white/10 rounded-lg"
+                                className={`p-2 rounded-lg border transition-all ${
+                                    activeRowMenu === member.id 
+                                    ? 'bg-blue-600/20 border-blue-500/30 text-white shadow-lg' 
+                                    : 'bg-white/5 border-white/5 text-slate-600 hover:text-white hover:bg-white/10'
+                                }`}
                             >
-                                <MoreVertical size={18} />
+                                <MoreVertical size={16} />
                             </button>
 
                             {activeRowMenu === member.id && (
                                 <>
-                                    <div 
-                                        className="fixed inset-0 z-40" 
-                                        onClick={() => setActiveRowMenu(null)}
-                                    />
-                                    <div style={{
-                                        position: 'absolute', right: 0, top: '120%',
-                                        backgroundColor: '#0B101B', border: '1px solid rgba(255,255,255,0.1)',
-                                        borderRadius: '12px', zIndex: 50, width: '240px',
-                                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', overflow: 'hidden'
-                                    }}>
+                                    <div className="fixed inset-0 z-40" onClick={() => setActiveRowMenu(null)} />
+                                    <div className="absolute right-0 top-full mt-2 bg-[#1E293B] border border-white/10 rounded-xl z-50 w-52 shadow-2xl overflow-hidden py-1">
                                         <button 
-                                            className="w-full p-5 flex items-center gap-4 text-[12px] font-black uppercase text-slate-300 hover:bg-white/5 hover:text-white transition-all text-left border-b border-white/5"
+                                            className="w-full px-5 py-4 flex items-center gap-3 text-xs font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 hover:text-white transition-all text-left"
                                             onClick={() => { onEdit(member); setActiveRowMenu(null); }}
                                         >
-                                            <Edit2 size={16} className="text-indigo-400" /> Edit Personnel
+                                            <Edit2 size={16} className="text-blue-400" /> Edit record
                                         </button>
                                         <button 
-                                            className="w-full p-5 flex items-center gap-4 text-[12px] font-black uppercase text-slate-300 hover:bg-white/5 hover:text-white transition-all text-left border-b border-white/5"
+                                            className="w-full px-5 py-4 flex items-center gap-3 text-xs font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 hover:text-white transition-all text-left"
                                             onClick={() => { onStatusToggle(member); setActiveRowMenu(null); }}
                                         >
-                                            {member.status === 'Inactive' ? <><Unlock size={16} className="text-emerald-400" /> Activate Access</> : <><Lock size={16} className="text-amber-400" /> Revoke Access</>}
+                                            {member.status === 'Inactive' ? <><Unlock size={16} className="text-emerald-400" /> Activate access</> : <><Lock size={16} className="text-amber-400" /> Suspend access</>}
                                         </button>
+                                        <div className="h-px bg-white/5 mx-2 my-1" />
                                         <button 
-                                            className="w-full p-5 flex items-center gap-4 text-[12px] font-black uppercase text-rose-400 hover:bg-rose-500/10 transition-all text-left"
+                                            className="w-full px-5 py-4 flex items-center gap-3 text-xs font-black uppercase tracking-widest text-rose-400 hover:bg-rose-500/10 transition-all text-left"
                                             onClick={() => { onDelete(member); setActiveRowMenu(null); }}
                                         >
-                                            <Trash2 size={16} /> Registry Purge
+                                            <Trash2 size={16} /> Remove member
                                         </button>
                                     </div>
                                 </>
                             )}
                         </div>
                     ) : (
-                        <div style={S.badge(COLORS.label)} className="opacity-60 bg-white/5 border border-white/10"><Shield size={16} /> Network Node</div>
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-md bg-blue-500/5 border border-blue-500/10 text-[10px] font-black uppercase tracking-widest text-blue-400/70">
+                            <Shield size={14} /> Network
+                        </div>
                     )}
                 </div>
             </td>
         </tr>
     );
 };
-
-
-

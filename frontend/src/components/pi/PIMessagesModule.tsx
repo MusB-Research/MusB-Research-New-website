@@ -162,7 +162,7 @@ export default function PIMessagesModule() {
                 }
             }
         } catch (e) {
-            addToast('Synchronicity failure', 'error');
+            addToast('Loading error', 'error');
         } finally {
             setLoading(false);
         }
@@ -195,7 +195,7 @@ export default function PIMessagesModule() {
             const matchesFilter = filterStatus === 'All' || 
                                  (filterStatus === 'Unread' && c.status === 'Unread') ||
                                  (filterStatus === 'Flagged' && c.flagged) ||
-                                 (filterStatus === 'Requires Action' && c.status === 'Action Required');
+                                 (filterStatus === 'Requires Action' && c.status === 'Needs Review');
             return matchesSearch && matchesFilter;
         });
 
@@ -231,10 +231,10 @@ export default function PIMessagesModule() {
                 setMessageInput('');
                 setAttachedFile(null);
                 setSelectedTag('General');
-                addToast('Message dispatched');
+                addToast('Message sent');
             }
         } catch (e) {
-            addToast('Transmission failure', 'error');
+            addToast('Send error', 'error');
         }
     };
 
@@ -357,7 +357,7 @@ export default function PIMessagesModule() {
                     <Search size={16} color="#64748b" style={{ marginTop: '0.75rem' }} />
                     <input 
                         style={{ backgroundColor: 'transparent', border: 'none', color: 'white', padding: '0.75rem', fontSize: '14px', outline: 'none', width: '100%' }}
-                        placeholder="Search IDs, studies, or clinical keywords..."
+                        placeholder="Search IDs, studies, or keywords..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                     />
@@ -451,8 +451,8 @@ export default function PIMessagesModule() {
                                         <div>
                                             <div style={{ ...G.label, marginBottom: '0.6rem' }}>Clinical Actions</div>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem' }} onClick={() => handleAction('Info Request', 'PI has requested additional information. Please update clinical details.', 'General')}>Request MI</button>
-                                                <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem' }} onClick={() => handleAction('Deviation', 'Marked as protocol deviation by PI.', 'Protocol')}>Protocol Dev.</button>
+                                                <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem' }} onClick={() => handleAction('Info Request', 'PI has requested more information. Please update details.', 'General')}>Request More Info</button>
+                                                <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem' }} onClick={() => handleAction('Deviation', 'Marked as study deviation by PI.', 'Protocol')}>Study Deviation</button>
                                                 <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', borderColor: '#ef444430', color: '#ef4444' }} onClick={() => handleAction('Escalation', 'Escalated to safety event by PI. Immediate review required.', 'Safety', true)}>Escalate Safety</button>
                                             </div>
                                         </div>
@@ -596,7 +596,7 @@ export default function PIMessagesModule() {
                         </div>
                         <div style={{ display: 'flex', gap: '1rem', marginTop: '3rem', justifyContent: 'flex-end' }}>
                             <button style={G.btnGhost} onClick={() => setComposeOpen(false)}>CANCEL</button>
-                            <button style={G.btnPrimary} onClick={() => { setComposeOpen(false); addToast('Direct message initialized'); }}>SEND DISPATCH</button>
+                            <button style={G.btnPrimary} onClick={() => { setComposeOpen(false); addToast('Message started'); }}>SEND MESSAGE</button>
                         </div>
                     </div>
                 </div>
@@ -639,7 +639,7 @@ export default function PIMessagesModule() {
                                 <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#6366f1', marginTop: '0.5rem' }}>{activeConv.study}</div>
                             </div>
                             <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '2rem' }}>
-                                <button style={{ ...G.btnPrimary, width: '100%' }}>OPEN FULL MEDICAL VULCAN</button>
+                                <button style={{ ...G.btnPrimary, width: '100%' }}>OPEN FULL RECORD</button>
                             </div>
                         </div>
                     )}

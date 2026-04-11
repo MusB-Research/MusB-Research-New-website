@@ -7,7 +7,8 @@ from .models import (
     BookletDownloadRequest, Partnership, Publication, EducationMaterial,
     StudyInquiry, ClinicalConversation, ClinicalMessage, Kit,
     DosingLog, AEReport, Document, Notification, ProgressReport,
-    StudyActionRequest, DailyMedicationLog, AssignedForm, SponsorOrganization
+    StudyActionRequest, DailyMedicationLog, AssignedForm, SponsorOrganization,
+    QuestionnaireTemplate, StudyQuestionnaire, QuestionnaireScheduleInstance
 )
 from authentication.models import User
 from authentication.security import decrypt_data
@@ -166,8 +167,9 @@ class StudySerializer(SanitizedModelSerializer):
     sponsor_org_id = serializers.PrimaryKeyRelatedField(
         queryset=SponsorOrganization.objects.all(), source='sponsor_org', required=False, allow_null=True
     )
-    pi_ids = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all(), write_only=True, required=False)
-    coordinator_ids = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all(), write_only=True, required=False)
+    pi_ids = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all(), required=False)
+    coordinator_ids = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all(), required=False)
+    sponsor_ids = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all(), required=False)
 
     # --- Explicit optional overrides for fields that are required in the DB model ---
     # 'sponsor_name' and 'title' have no blank=True in the model, but we handle defaults here.
@@ -185,10 +187,12 @@ class StudySerializer(SanitizedModelSerializer):
     privacy_standards = serializers.JSONField(required=False, default=list)
     target_subjects = serializers.IntegerField(required=False, default=0)
     target_screened = serializers.IntegerField(required=False, default=0)
+    study_questionnaires = serializers.JSONField(required=False, write_only=True)
 
     # --- Read-only nested fields ---
     assigned_pis = UserSerializer(many=True, read_only=True)
     assigned_coordinators = UserSerializer(many=True, read_only=True)
+    assigned_sponsors = UserSerializer(many=True, read_only=True)
     documents = DocumentSerializer(many=True, read_only=True)
     # consent_templates is a reverse FK relation — MUST be read_only, never required on write
     consent_templates = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
@@ -197,8 +201,8 @@ class StudySerializer(SanitizedModelSerializer):
         model = Study
         fields = [
             'id', 'title', 'full_title', 'description', 'protocol_id', 'sponsor_name', 'study_type', 'status', 'stage',
-            'pi_id', 'coordinator_id', 'sponsor_id', 'sponsor_org_id', 'pi_ids', 'coordinator_ids',
-            'assigned_pis', 'assigned_coordinators', 'approval_status', 'created_by', 'created_by_role',
+            'pi_id', 'coordinator_id', 'sponsor_id', 'sponsor_org_id', 'pi_ids', 'coordinator_ids', 'sponsor_ids',
+            'assigned_pis', 'assigned_coordinators', 'assigned_sponsors', 'approval_status', 'created_by', 'created_by_role',
             'primary_indication', 'trial_model', 'phase', 'is_double_blind', 'has_placebo_control',
             'has_screening_log', 'shipment_mode', 'consent_mode', 'condition',
             'trial_format', 'benefit', 'duration', 'tags', 'compensation', 'location', 'uses_kit',
@@ -209,25 +213,37 @@ class StudySerializer(SanitizedModelSerializer):
             'contract_status', 'sponsor_contact_name', 'sponsor_contact_email',
             'show_dosing_log', 'show_ae_report', 'show_lab_upload', 'is_archived',
             'reward_type', 'reward_logic', 'reward_config',
-            'consent_template_file', 'consent_templates', 'documents'
+            'consent_template_file', 'consent_templates', 'documents',
+            'study_questionnaires',
+            'created_at', 'updated_at'
         ]
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        # Populate the ID lists from assignments — cast to str to handle MongoDB ObjectIds
+        ret['pi_ids'] = [str(a.user.id) for a in instance.assignments.filter(role='PI')]
+        ret['coordinator_ids'] = [str(a.user.id) for a in instance.assignments.filter(role='COORDINATOR')]
+        ret['sponsor_ids'] = [str(a.user.id) for a in instance.assignments.filter(role='SPONSOR_ADMIN')]
+        return ret
 
     def to_internal_value(self, data):
         import logging
         logger = logging.getLogger(__name__)
         # Strip unknown/extra frontend-only fields that the serializer doesn't know about
         KNOWN_FIELDS = set(self.fields.keys()) | {
-            'pi_ids', 'coordinator_ids', 'pi_id', 'coordinator_id', 'sponsor_id', 'sponsor_org_id'
+            'pi_ids', 'coordinator_ids', 'sponsor_ids', 'pi_id', 'coordinator_id', 'sponsor_id', 'sponsor_org_id'
         }
         FRONTEND_ONLY_FIELDS = {
             'reward_amount', 'rct_design', 'masking', 'consent_collection', 'medication_supply',
             'compensation_currency', 'brief_description', 'indication', 'execution_type',
-            'assigned_sponsors', 'startDate', 'endDate',
+            'startDate', 'endDate',
             # Also strip these if frontend accidentally sends them (they are read-only relations)
-            'consent_templates', 'documents', 'assigned_pis', 'assigned_coordinators'
+            'consent_templates', 'documents', 'assigned_pis', 'assigned_coordinators', 'assigned_sponsors'
         }
         if isinstance(data, dict):
-            data = {k: v for k, v in data.items() if k not in FRONTEND_ONLY_FIELDS}
+            # Include study_questionnaires in KNOWN_FIELDS so it's not stripped
+            LOCAL_KNOWN = KNOWN_FIELDS | {'study_questionnaires'}
+            data = {k: v for k, v in data.items() if k not in FRONTEND_ONLY_FIELDS or k == 'study_questionnaires'}
         try:
             return super().to_internal_value(data)
         except Exception as e:
@@ -241,8 +257,9 @@ class PublicStudySerializer(SanitizedModelSerializer):
         fields = [
             'id', 'title', 'protocol_id', 'description', 'condition', 
             'duration', 'location', 'compensation', 'status', 'stage', 
-            'tags', 'uses_kit'
+            'tags', 'uses_kit', 'created_at'
         ]
+        ordering = ['created_at']
 
 class InterventionArmSerializer(SanitizedModelSerializer):
     class Meta:
@@ -267,8 +284,8 @@ class VisitSerializer(SanitizedModelSerializer):
         model = Visit
         fields = [
             'id', 'participant', 'visit_type', 'scheduled_date', 'actual_date', 
-            'status', 'notes', 'location', 'checklist', 'assessments', 
-            'measurements', 'deviations', 'samples', 'dispensing', 
+            'status', 'notes', 'location', 'location_address', 'checklist', 
+            'assessments', 'measurements', 'deviations', 'samples', 'dispensing', 
             'pi_approved', 'locked'
         ]
 
@@ -302,13 +319,17 @@ class KitSerializer(SanitizedModelSerializer):
     shipping_label_url = serializers.SerializerMethodField()
     return_label_url = serializers.SerializerMethodField()
     
+    participant_name = serializers.CharField(source='participant.user.decrypted_name', read_only=True)
+    participant_sid = serializers.CharField(source='participant.participant_sid', read_only=True)
+    protocol_id = serializers.CharField(source='participant.study.protocol_id', read_only=True)
+    
     class Meta:
         model = Kit
         fields = [
-            'id', 'study', 'participant', 'kit_number', 'kit_type', 'status', 
-            'assignment_date', 'collection_date', 'shipping_date', 'received_date', 
-            'carrier', 'tracking_number', 'tracking_url', 'expected_delivery', 
-            'collection_guide', 'shipping_label', 'return_label', 
+            'id', 'study', 'participant', 'participant_name', 'participant_sid', 'protocol_id',
+            'kit_number', 'kit_type', 'status', 'assignment_date', 'collection_date', 
+            'shipping_date', 'received_date', 'carrier', 'tracking_number', 'tracking_url', 
+            'expected_delivery', 'collection_guide', 'shipping_label', 'return_label', 
             'collection_guide_url', 'shipping_label_url', 'return_label_url',
             'symptom_note', 'address_override'
         ]
@@ -634,7 +655,10 @@ class ClinicalConversationBriefSerializer(SanitizedModelSerializer):
             'study_protocol', 'status', 'is_flagged', 'last_message_preview', 
             'last_updated', 'created_at', 'assigned_coordinator'
         ]
-        read_only_fields = ['participant', 'study']
+        extra_kwargs = {
+            'participant': {'required': False},
+            'study': {'required': False}
+        }
 
 class ClinicalConversationSerializer(SanitizedModelSerializer):
     id = ObjectIdField(read_only=True)
@@ -651,7 +675,10 @@ class ClinicalConversationSerializer(SanitizedModelSerializer):
             'study_protocol', 'status', 'is_flagged', 'last_message_preview', 
             'last_updated', 'created_at', 'messages', 'assigned_coordinator'
         ]
-        read_only_fields = ['participant', 'study']
+        extra_kwargs = {
+            'participant': {'required': False},
+            'study': {'required': False}
+        }
 
 class DosingLogSerializer(SanitizedModelSerializer):
     class Meta:
@@ -714,14 +741,19 @@ class ParticipantSerializer(SanitizedModelSerializer):
 class ParticipantBriefSerializer(SanitizedModelSerializer):
     """Senior Developer: Light-weight serializer for dashboard lists to prevent 15s loading delays."""
     id = serializers.CharField(read_only=True)
+    user_details = UserSerializer(source='user', read_only=True)
     study_name = serializers.CharField(source='study.title', read_only=True)
     protocol_id = serializers.CharField(source='study.protocol_id', read_only=True)
+    # Added for Clinical Dashboard Timeline/Action awareness
+    visits = VisitSerializer(many=True, read_only=True)
+    ae_reports = AEReportSerializer(many=True, read_only=True)
     
     class Meta:
         model = Participant
         fields = [
-            'id', 'study', 'study_name', 'protocol_id', 'user', 
-            'participant_sid', 'status', 'created_at', 'reviewed_at'
+            'id', 'study', 'study_name', 'protocol_id', 'user', 'user_details',
+            'participant_sid', 'status', 'created_at', 'reviewed_at',
+            'visits', 'ae_reports'
         ]
 
 class DeIdentifiedParticipantSerializer(SanitizedModelSerializer):
@@ -788,3 +820,27 @@ class CompensationSerializer(SanitizedModelSerializer):
             'transaction_type', 'description', 'amount', 'status', 'payment_method', 
             'paid_at', 'notes', 'created_at'
         ]
+class QuestionnaireTemplateSerializer(SanitizedModelSerializer):
+    class Meta:
+        model = QuestionnaireTemplate
+        fields = '__all__'
+
+class StudyQuestionnaireSerializer(SanitizedModelSerializer):
+    template_details = QuestionnaireTemplateSerializer(source='template', read_only=True)
+    class Meta:
+        model = StudyQuestionnaire
+        fields = '__all__'
+
+class QuestionnaireScheduleInstanceSerializer(SanitizedModelSerializer):
+    questionnaire_details = StudyQuestionnaireSerializer(source='study_questionnaire', read_only=True)
+    participant_details = serializers.SerializerMethodField()
+
+    class Meta:
+        model = QuestionnaireScheduleInstance
+        fields = '__all__'
+
+    def get_participant_details(self, obj):
+        return {
+            'sid': obj.participant.participant_sid,
+            'name': obj.participant.user.decrypted_name if obj.participant.user else 'Subject'
+        }

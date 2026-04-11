@@ -3,6 +3,7 @@ import NotificationBell from '../../components/NotificationBell';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authFetch, clearToken, getRole, performLogout, getUser, getDisplayName, API } from '../../utils/auth';
+import { apiFetch } from '../../api';
 import LogoutConfirmationModal from '../../components/LogoutConfirmationModal';
 import SubmitContentForms from '../../components/coordinator/SubmitContentForms';
 import LaunchStudyForm from '../../components/coordinator/LaunchStudyForm';
@@ -83,7 +84,7 @@ export default function CoordinatorDashboard() {
         const path = location.pathname.toLowerCase().replace(/\/$/, "");
         const parts = path.split('/');
         const route = parts[parts.length - 1];
-        
+
         if (route === 'studies') return 'STUDIES';
         if (route === 'team') return 'TEAM';
         if (route === 'participants') return 'PARTICIPANTS';
@@ -113,7 +114,7 @@ export default function CoordinatorDashboard() {
         const path = location.pathname.toLowerCase().replace(/\/$/, "");
         const parts = path.split('/');
         const route = parts[parts.length - 1];
-        
+
         if (route === 'coordinator' || !route || route === 'oversight') setActiveModule('OVERSIGHT');
         else if (route === 'studies') setActiveModule('STUDIES');
         else if (route === 'participants') setActiveModule('PARTICIPANTS');
@@ -198,7 +199,7 @@ export default function CoordinatorDashboard() {
                 setIsProfileOpen(false);
             }
         }
-        
+
         function handleScroll() {
             if (isNotificationOpen) setIsNotificationOpen(false);
             if (isProfileOpen) setIsProfileOpen(false);
@@ -214,11 +215,8 @@ export default function CoordinatorDashboard() {
 
     const fetchNotifications = async () => {
         try {
-            const resp = await authFetch(`${API}/api/notifications/`);
-            if (resp.ok) {
-                const data = await resp.json();
-                setNotifications(data);
-            }
+            const data = await apiFetch<any[]>('/api/notifications/');
+            setNotifications(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error("Failed to fetch notifications:", err);
         }
@@ -244,15 +242,26 @@ export default function CoordinatorDashboard() {
 
     const unreadCount = notifications.filter(n => !n.is_read).length;
 
+    // Security & Authorization check
     useEffect(() => {
         const user = getUser();
         const role = getRole();
-
         const allowedRoles = ['COORDINATOR', 'ADMIN', 'SUPER_ADMIN'];
         if (!user || !allowedRoles.includes(role)) {
             console.warn("Unauthorized access to Coordinator Dashboard. Redirecting...");
             navigate('/signin');
         }
+    }, [navigate]);
+
+    // Handle events from modular components (e.g., Subject Review)
+    useEffect(() => {
+        const handleNav = () => {
+            setActiveModule('PARTICIPANTS');
+            setSelectedParticipantId(null);
+            navigate('/dashboard/coordinator/participants');
+        };
+        window.addEventListener('nav-to-participants', handleNav);
+        return () => window.removeEventListener('nav-to-participants', handleNav);
     }, [navigate]);
 
     const handleSignOut = () => {
@@ -270,7 +279,7 @@ export default function CoordinatorDashboard() {
     const [selectedStudy, setSelectedStudy] = useState<any>(null);
     const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
     const [globalSelectedStudyId, setGlobalSelectedStudyId] = useState<string | 'all'>('all');
-    
+
     const [visits, setVisits] = useState<any[]>([]);
     const [oversightStats, setOversightStats] = useState({
         upcomingVisits: 0,
@@ -285,57 +294,40 @@ export default function CoordinatorDashboard() {
     const fetchCoordinatorContent = async () => {
         setLoading(true);
         try {
-            const apiUrl = API || '';
-            const [studiesRes, usersRes, sponsorsRes, visitsRes, participantsRes] = await Promise.all([
-                authFetch(`${apiUrl}/api/studies/`),
-                authFetch(`${apiUrl}/api/users/`),
-                authFetch(`${apiUrl}/api/sponsor-organizations/`),
-                authFetch(`${apiUrl}/api/visits/`),
-                authFetch(`${apiUrl}/api/participants/`)
+            const [studiesData, usersData, sponsorsData, visitsData, participantsData] = await Promise.all([
+                apiFetch<any[]>('/api/studies/'),
+                apiFetch<any[]>('/api/users/'),
+                apiFetch<any[]>('/api/sponsor-organizations/'),
+                apiFetch<any[]>('/api/visits/'),
+                apiFetch<any[]>('/api/participants/')
             ]);
 
-            let studiesData = [];
-            let visitsData = [];
-            let participantsData = [];
+            setStudies((studiesData || []).sort((a: any, b: any) =>
+                (a.id || "").localeCompare(b.id || "")
+            ));
 
-            if (studiesRes.ok) {
-                studiesData = await studiesRes.json();
-                setStudies(studiesData.sort((a: any, b: any) =>
-                    (a.id || "").localeCompare(b.id || "")
-                ));
-            }
-            if (usersRes.ok) {
-                const data = await usersRes.json();
-                setUsers((data || []).map((u: any) => ({
-                    ...u,
-                    role: u.role ? u.role.toString().toUpperCase() : 'PARTICIPANT'
-                })));
-            }
-            if (sponsorsRes.ok) setSponsorOrganizations(await sponsorsRes.json());
-            
-            if (visitsRes.ok) {
-                visitsData = await visitsRes.json();
-                setVisits(visitsData);
-            }
+            setUsers((usersData || []).map((u: any) => ({
+                ...u,
+                role: u.role ? u.role.toString().toUpperCase() : 'PARTICIPANT'
+            })));
 
-            if (participantsRes.ok) {
-                participantsData = await participantsRes.json();
-            }
+            setSponsorOrganizations(sponsorsData || []);
+            setVisits(visitsData || []);
 
-            // Calculate live stats
+            const activeParticipants = participantsData || [];
+
             const now = new Date();
-            const upcoming = visitsData.filter((v: any) => v.status === 'SCHEDULED' && new Date(v.scheduled_date) > now).length;
-            const overdue = visitsData.filter((v: any) => v.status === 'SCHEDULED' && new Date(v.scheduled_date) < now).length;
-            
+            const upcoming = (visitsData || []).filter((v: any) => v.status === 'SCHEDULED' && new Date(v.scheduled_date) > now).length;
+            const overdue = (visitsData || []).filter((v: any) => v.status === 'SCHEDULED' && new Date(v.scheduled_date) < now).length;
+
             setOversightStats({
-                upcomingVisits: upcoming || 12, // Fallback to demo if empty for now
-                overdueFollowUps: overdue || 5,
-                awaitingCallback: 8,
-                pendingForms: 14,
-                activeSubjects: participantsData.length,
+                upcomingVisits: upcoming,
+                overdueFollowUps: overdue,
+                awaitingCallback: 0,
+                pendingForms: 0,
+                activeSubjects: activeParticipants.length,
                 hasCriticalAlert: overdue > 0
             });
-
         } catch (e) {
             console.error("Coordinator Data Fetch Failed", e);
         } finally {
@@ -347,39 +339,61 @@ export default function CoordinatorDashboard() {
         fetchCoordinatorContent();
     }, []);
 
+    const toStudyAssignmentIds = (value: any) => {
+        const list = Array.isArray(value) ? value : value ? [value] : [];
+        return list
+            .map((item: any) => {
+                if (!item) return '';
+                if (typeof item === 'object') return item.id || item.pk || item.user_id || '';
+                return String(item);
+            })
+            .filter(Boolean);
+    };
+
+    const normalizeStudyPayload = (formData: any) => {
+        const payload: any = { ...formData };
+
+        payload.start_date = formData.startDate ?? formData.start_date ?? null;
+        payload.end_date = formData.endDate ?? formData.end_date ?? null;
+        payload.description = formData.brief_description ?? formData.description ?? '';
+        payload.primary_indication = formData.indication ?? formData.primary_indication ?? '';
+        payload.condition = formData.indication ?? formData.condition ?? formData.primary_indication ?? '';
+        payload.study_type = formData.execution_type ?? formData.study_type ?? 'IN_PERSON';
+        payload.target_subjects = formData.target_subjects ?? formData.target_screened ?? 0;
+        payload.target_screened = formData.target_screened ?? payload.target_subjects;
+        payload.pi_ids = toStudyAssignmentIds(formData.pi_ids ?? formData.pi_id);
+        payload.coordinator_ids = toStudyAssignmentIds(formData.coordinator_ids ?? formData.coordinator_id);
+
+        if (!payload.sponsor_id) delete payload.sponsor_id;
+        if (!payload.sponsor_org_id) delete payload.sponsor_org_id;
+
+        delete payload.pi_id;
+        delete payload.coordinator_id;
+        delete payload.assigned_pis;
+        delete payload.assigned_coordinators;
+        delete payload.assigned_sponsors;
+        delete payload.startDate;
+        delete payload.endDate;
+        delete payload.brief_description;
+        delete payload.indication;
+        delete payload.execution_type;
+
+        ['start_date', 'end_date', 'launch_date', 'agreement_signed_date', 'proposal_submitted_date'].forEach((field) => {
+            if (!payload[field]) payload[field] = null;
+        });
+
+        Object.keys(payload).forEach((key) => {
+            if (payload[key] === undefined) delete payload[key];
+        });
+
+        return payload;
+    };
+
     const handleCreateStudy = async (formData: any) => {
         try {
             const apiUrl = API || '';
             const method = selectedStudy ? 'PATCH' : 'POST';
-            const payload: any = {
-                ...formData,
-                start_date: formData.startDate,
-                end_date: formData.endDate,
-                description: formData.brief_description,
-                primary_indication: formData.indication,
-                condition: formData.indication,
-                study_type: formData.execution_type,
-                target_screened: formData.target_subjects,
-                pi_ids: formData.pi_id,
-                coordinator_ids: formData.coordinator_id,
-            };
-
-            if (!payload.sponsor_id) delete payload.sponsor_id;
-            if (!payload.sponsor_org_id) delete payload.sponsor_org_id;
-
-            // Remove singular fields if they are arrays to prevent Backend 400 errors
-            // The backend uses pi_ids and coordinator_ids for multi-assignment syncing
-            delete payload.pi_id;
-            delete payload.coordinator_id;
-            delete payload.assigned_pis;
-            delete payload.assigned_coordinators;
-
-            // Convert empty strings to null for Date fields to prevent Backend 400
-            if (!payload.start_date) payload.start_date = null;
-            if (!payload.end_date) payload.end_date = null;
-            if (!payload.launch_date) payload.launch_date = null;
-            if (!payload.agreement_signed_date) payload.agreement_signed_date = null;
-            if (!payload.proposal_submitted_date) payload.proposal_submitted_date = null;
+            const payload = normalizeStudyPayload(formData);
 
             const url = selectedStudy
                 ? `${apiUrl}/api/studies/${selectedStudy.protocol_id || selectedStudy.id}/`
@@ -391,8 +405,30 @@ export default function CoordinatorDashboard() {
                 handleModuleChange('STUDIES');
                 setSelectedStudy(null);
                 fetchCoordinatorContent();
+                return true;
             }
-        } catch (e) { }
+
+            const err = await res.json().catch(() => null);
+            console.error("Study Save Failed:", err);
+            throw new Error(`Study save failed: ${err ? JSON.stringify(err) : res.statusText}`);
+        } catch (e) {
+            console.error("Coordinator study launch failed:", e);
+            throw e instanceof Error ? e : new Error("Study save failed due to a network error.");
+        }
+    };
+
+    const handleUpdateStudyStatus = async (studyId: string, newStatus: string) => {
+        try {
+            const res = await authFetch(`${API}/api/studies/${studyId}/`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status: newStatus, stage: newStatus })
+            });
+            if (res.ok) {
+                setStudies(studies.map(s => s.id === studyId ? { ...s, status: newStatus, stage: newStatus } : s));
+            }
+        } catch (e) {
+            console.error("Failed to update status", e);
+        }
     };
 
     const sidebarGroups = [
@@ -434,8 +470,8 @@ export default function CoordinatorDashboard() {
             items: [
                 { id: 'LAUNCH_STUDY', label: 'Setup Study', icon: Rocket },
                 { id: 'SPONSORS', label: 'Sponsor Leads', icon: Database },
-                { id: 'ANALYTICS', label: 'Trial Metrics', icon: TrendingUp },
-                { id: 'AUDIT_LOG', label: 'Clinical Audit', icon: ShieldCheck },
+                { id: 'ANALYTICS', label: 'Metrics', icon: TrendingUp },
+                { id: 'AUDIT_LOG', label: 'Audit Log', icon: ShieldCheck },
                 { id: 'SUPPORT', label: 'Help Desk', icon: HelpCircle },
             ]
         }
@@ -453,7 +489,7 @@ export default function CoordinatorDashboard() {
         } catch (e) { }
 
         return (
-            <header className="fixed top-0 left-0 xl:left-80 right-0 h-24 z-[60] bg-[#0B101B]/95 backdrop-blur-3xl border-b border-white/5 flex items-center justify-between px-8 md:px-12 transition-all">
+            <header className="fixed top-0 left-0 xl:left-[260px] right-0 h-20 z-[60] bg-[#0B101B] border-b border-white/5 flex items-center justify-between px-8 md:px-12 transition-all">
                 <div className="flex items-center gap-4 xl:hidden">
                     <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:text-white transition-all h-10 w-10 shrink-0 flex items-center justify-center">
                         {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -462,23 +498,21 @@ export default function CoordinatorDashboard() {
 
                 <div className="flex-1 flex items-center justify-start xl:pl-4">
                     <div className="flex items-center gap-8">
-                        <div className="flex items-center gap-8">
-                            <h1 className="text-xl lg:text-3xl font-black text-white uppercase italic tracking-tight leading-none">COORDINATOR <span className="text-[#14b8a6]">TERMINAL</span></h1>
-                        </div>
 
-                        <div className="hidden xl:flex items-center gap-3 bg-white/5 p-1 rounded-2xl border border-white/10 h-10">
-                            <div className="px-4 text-[9px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/10">PROTOCOL</div>
+                        <div className="hidden xl:flex items-center gap-3 bg-white/5 p-1 rounded-2xl border border-white/10 h-12">
+                            <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/10">Study</div>
                             <select
                                 value={globalSelectedStudyId}
                                 onChange={(e) => setGlobalSelectedStudyId(e.target.value)}
-                                className="bg-transparent text-[10px] font-black text-[#14b8a6] uppercase tracking-[0.2em] outline-none cursor-pointer px-4"
+                                className="bg-transparent text-[14px] font-black text-[#14b8a6] uppercase tracking-[0.2em] outline-none cursor-pointer px-6"
                             >
-                                <option value="all" className="bg-[#0B101B]">ALL STUDIES</option>
+                                <option value="all" className="bg-[#0B101B]">All Studies</option>
                                 {studies.map(s => (
                                     <option key={s.id} value={s.id} className="bg-[#0B101B]">{s.protocol_id || s.id}</option>
                                 ))}
                             </select>
                         </div>
+
                     </div>
                 </div>
 
@@ -494,7 +528,7 @@ export default function CoordinatorDashboard() {
                         </div>
 
                         <div className="relative" ref={notificationRef}>
-                            <NotificationBell 
+                            <NotificationBell
                                 unreadCount={unreadCount}
                                 onClick={() => setIsNotificationOpen(!isNotificationOpen)}
                             />
@@ -536,12 +570,54 @@ export default function CoordinatorDashboard() {
                         </div>
                     </div>
 
-                    <button
-                        onClick={handleSignOut}
-                        className="p-3 bg-red-500/5 border border-red-500/10 rounded-xl text-red-500/50 hover:text-red-500 hover:bg-red-500/10 transition-all flex items-center justify-center h-12 w-12 shrink-0 group"
-                    >
-                        <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                    </button>
+                    <div className="flex items-center gap-6 relative" ref={profileRef}>
+                        <div className="hidden sm:flex flex-col items-end text-right">
+                            <p className="text-[12px] font-black text-white uppercase italic tracking-tighter">
+                                {getDisplayName(getUser())}
+                            </p>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">
+                                {getUser()?.email}
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setIsProfileOpen(!isProfileOpen)}
+                            className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#14b8a6] to-[#0d9488] p-0.5 shadow-xl hover:scale-105 active:scale-95 transition-all"
+                        >
+                            <div className="w-full h-full bg-[#0B101B] rounded-[0.9rem] flex items-center justify-center font-black text-white uppercase italic text-[12px]">
+                                {getDisplayName(getUser())?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                            </div>
+                        </button>
+
+                        <AnimatePresence>
+                            {isProfileOpen && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    className="absolute right-0 top-full mt-4 w-64 bg-[#0F172A]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl p-2 z-[100] overflow-hidden"
+                                >
+                                    <div className="p-5 border-b border-white/5 mb-2">
+                                        <p className="text-sm font-black text-white uppercase italic truncate tracking-tight">
+                                            {getDisplayName(getUser())}
+                                        </p>
+                                        <p className="text-[11px] text-[#14b8a6] font-black uppercase tracking-widest mt-2 px-2 py-0.5 bg-[#14b8a6]/10 border border-[#14b8a6]/20 rounded-lg inline-block">
+                                            {getRole()?.replace('_', ' ') || 'Coordinator'}
+                                        </p>
+                                        <p className="text-[11px] text-slate-500 font-bold lowercase tracking-normal mt-2.5 truncate">
+                                            {getUser()?.email}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={handleSignOut}
+                                        className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-red-400 hover:text-white hover:bg-red-500/20 transition-all text-[11px] font-black uppercase tracking-widest"
+                                    >
+                                        <LogOut className="w-4 h-4" />
+                                        <span>Terminate Session</span>
+                                    </button>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 </div>
             </header>
         );
@@ -554,7 +630,7 @@ export default function CoordinatorDashboard() {
 
             <AnimatePresence>
                 {isSidebarOpen && (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -564,69 +640,64 @@ export default function CoordinatorDashboard() {
                 )}
             </AnimatePresence>
 
-            <aside className={`fixed left-0 top-0 bottom-0 w-80 bg-[#0B101B] border-r border-white/5 z-[70] transition-transform duration-300 xl:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'}`}>
-                <div className="h-24 px-8 flex justify-between items-center border-b border-white/[0.05] shrink-0">
+            <aside className={`fixed left-0 top-0 bottom-0 w-[260px] bg-[#0B101B] border-r border-white/5 z-[70] transition-transform duration-300 xl:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'}`}>
+                <div className="h-20 px-8 flex justify-between items-center border-b border-white/[0.05] shrink-0">
                     <Link to="/" target="_blank" rel="noopener noreferrer" className="group transition-all">
                         <div className="bg-white p-2 rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
                             <img src="/logo.jpg" alt="Logo" className="h-12 w-auto object-contain rounded-xl" />
                         </div>
                     </Link>
-                    <button 
+                    <button
                         onClick={() => setIsSidebarOpen(false)}
                         className="xl:hidden p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:text-white transition-all h-10 w-10 flex items-center justify-center shrink-0"
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
-                <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-6 custom-scrollbar">
-                    {sidebarGroups.map((group, i) => (
-                        <div key={i} className="space-y-2">
-                            <p className="px-4 text-[12px] font-bold text-white/40 uppercase tracking-widest">{group.group}</p>
-                            <div className="space-y-1.5">
-                                {group.items.map((item, j) => (
-                                    <button key={j} onClick={() => { if (item.id === 'WEBSITE') window.open('/', '_blank'); else { handleModuleChange(item.id as CCModule); setIsSidebarOpen(false); } }} className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group relative ${activeModule === item.id ? 'bg-[#14b8a6]/20 text-[#14b8a6] border border-[#14b8a6]/30' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'}`}>
-                                        <item.icon className={`w-5 h-5 ${activeModule === item.id ? 'text-[#14b8a6]' : 'text-slate-500'}`} />
-                                        <span className="text-base font-bold text-left flex-1">{item.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 custom-scrollbar">
+                    {sidebarGroups.flatMap(g => g.items).map((item, j) => (
+                        <button key={j} onClick={() => { if (item.id === 'WEBSITE') window.open('/', '_blank'); else { handleModuleChange(item.id as CCModule); setIsSidebarOpen(false); } }} className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group relative ${activeModule === item.id ? 'bg-[#14b8a6]/10 text-[#14b8a6] border border-[#14b8a6]/20' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'}`}>
+                            <item.icon className={`w-5 h-5 ${activeModule === item.id ? 'text-[#14b8a6]' : 'text-slate-500 group-hover:text-white'}`} />
+                            <span className="text-sm font-bold text-left flex-1">{item.label}</span>
+                        </button>
                     ))}
                 </nav>
             </aside>
 
-            <main className="flex-1 xl:pl-80 pt-32 pb-24 px-12 lg:px-16 overflow-x-hidden bg-[#0F172A] min-h-screen">
-                <AnimatePresence mode="wait">
+            <main className="flex-1 xl:pl-[260px] pt-24 pb-24 overflow-x-hidden bg-[#0F172A] min-h-screen">
+                <div className="px-8 flex-1">
+                    <AnimatePresence mode="wait">
                     {activeModule === 'OVERSIGHT' && (
-                        <OperationsOversight 
-                            studyCount={studies.length} 
-                            stats={oversightStats} 
-                            currentTime={currentTime} 
-                            visits={visits} 
-                            onLaunch={() => setActiveModule('LAUNCH_STUDY')} 
-                            onNavigate={(id) => setActiveModule(id as CCModule)} 
+                        <OperationsOversight
+                            studyCount={studies.length}
+                            stats={oversightStats}
+                            currentTime={currentTime}
+                            visits={visits}
+                            onLaunch={() => handleModuleChange('LAUNCH_STUDY')}
+                            onNavigate={(id) => handleModuleChange(id as CCModule)}
                         />
                     )}
                     {activeModule === 'STUDIES' && (
-                        <StudyDirectory 
-                            studies={studies} 
-                            onAdd={() => setActiveModule('LAUNCH_STUDY')} 
-                            onEdit={(s) => { setSelectedStudy(s); setActiveModule('LAUNCH_STUDY'); }} 
+                        <StudyDirectory
+                            studies={studies}
+                            onAdd={() => handleModuleChange('LAUNCH_STUDY')}
+                            onEdit={(s) => { setSelectedStudy(s); handleModuleChange('LAUNCH_STUDY'); }}
+                            onUpdateStatus={handleUpdateStudyStatus}
                         />
                     )}
                     {activeModule === 'LAUNCH_STUDY' && (
-                        <LaunchStudyForm 
-                            onClose={() => { setActiveModule('STUDIES'); setSelectedStudy(null); }} 
-                            initialData={selectedStudy} 
-                            onSave={handleCreateStudy} 
+                        <LaunchStudyForm
+                            onClose={() => { setSelectedStudy(null); handleModuleChange('STUDIES'); }}
+                            initialData={selectedStudy}
+                            onSave={handleCreateStudy}
                             availablePIs={users.filter(u => String(u.role).toUpperCase() === 'PI')}
                             availableCoordinators={users.filter(u => String(u.role).toUpperCase() === 'COORDINATOR')}
-                            availableSponsors={sponsorOrganizations} 
-                            availableSponsorUsers={users.filter(u => String(u.role).toUpperCase() === 'SPONSOR')} 
+                            availableSponsors={sponsorOrganizations}
+                            availableSponsorUsers={users.filter(u => String(u.role).toUpperCase() === 'SPONSOR')}
                         />
                     )}
                     {activeModule === 'MESSAGES' && <CCC_MessagesModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'SUBJECT_REVIEW' && <CCC_SubjectReviewModule selectedStudyId={globalSelectedStudyId} participantId={selectedParticipantId || 'BTB-023'} />}
+                    {activeModule === 'SUBJECT_REVIEW' && <CCC_SubjectReviewModule selectedStudyId={globalSelectedStudyId} participantId={selectedParticipantId || undefined} />}
                     {activeModule === 'TEAM' && <CCC_TeamModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'PARTICIPANTS' && <ParticipantOversight selectedStudyId={globalSelectedStudyId} onOpenProfile={(id) => { setSelectedParticipantId(id); setActiveModule('SUBJECT_REVIEW'); }} onMessage={() => setActiveModule('MESSAGES')} />}
                     {activeModule === 'FORMS' && <FormsQuestionnairesModule selectedStudyId={globalSelectedStudyId} />}
@@ -646,6 +717,7 @@ export default function CoordinatorDashboard() {
                     {activeModule === 'ANALYTICS' && <AnalyticsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'SPONSORS' && <SponsorsManagement selectedStudyId={globalSelectedStudyId} allUsers={users} allStudies={studies} onRefresh={fetchCoordinatorContent} />}
                 </AnimatePresence>
+                </div>
             </main>
 
             <LogoutConfirmationModal isOpen={isLogoutModalOpen} onClose={() => setIsLogoutModalOpen(false)} onConfirm={confirmSignOut} />

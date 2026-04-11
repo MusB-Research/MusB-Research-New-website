@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, UserPlus, Eye, Edit2, Shield, MoreVertical, GraduationCap, Loader2 } from 'lucide-react';
-import { authFetch , API } from '../../utils/auth';
+import { authFetch , API, revealValue } from '../../utils/auth';
 
 interface PI {
   id: string;
@@ -31,8 +31,8 @@ export default function PIsManagement({ allUsers = [], allStudies = [], onRefres
       .map(u => ({
         id: u.id,
         raw: u, // Keep original object for modal
-        name: u.full_name || u.name || 'Unnamed PI',
-        email: u.email,
+        name: revealValue(u.full_name, u.decrypted_name) || revealValue(u.name, u.decrypted_name) || (u.email ? u.email.split('@')[0] : 'Unnamed PI'),
+        email: revealValue(u.email) || u.email || 'unknown@domain',
         credentials: (u as any).credentials || 'MD, PhD',
         status: (u as any).status === 'Suspended' ? 'Inactive' : 'Active',
         studies: allStudies

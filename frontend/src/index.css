@@ -467,3 +467,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }
+
+/* Custom Date Format Transparent Overlay Fix */
+.transparent-date-input,
+.transparent-date-input::-webkit-datetime-edit,
+.transparent-date-input::-webkit-datetime-edit-fields-wrapper,
+.transparent-date-input::-webkit-datetime-edit-text,
+.transparent-date-input::-webkit-datetime-edit-month-field,
+.transparent-date-input::-webkit-datetime-edit-day-field,
+.transparent-date-input::-webkit-datetime-edit-year-field {
+    color: transparent;
+    text-shadow: none;
+    -webkit-text-fill-color: transparent;
+}

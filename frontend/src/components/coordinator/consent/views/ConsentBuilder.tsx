@@ -41,7 +41,9 @@ export const ConsentBuilder: React.FC<ConsentBuilderProps> = ({
     const activeConsent = consents.find(c => c.id === activeConsentId);
     
     const filteredConsents = consents.filter(c => {
-        const matchesSearch = c.title.toLowerCase().includes(leftSearch.toLowerCase()) || c.study.toLowerCase().includes(leftSearch.toLowerCase());
+        const studyVal = typeof c.study === 'object' ? (c.study as any).title : String(c.study || '');
+        const matchesSearch = (c.title?.toLowerCase() || '').includes(leftSearch.toLowerCase()) || 
+                             studyVal.toLowerCase().includes(leftSearch.toLowerCase());
         const matchesFilter = leftFilter === 'All' || c.status.toUpperCase() === leftFilter.toUpperCase();
         return matchesSearch && matchesFilter;
     });
@@ -77,7 +79,9 @@ export const ConsentBuilder: React.FC<ConsentBuilderProps> = ({
                                 <span style={{ ...S.title, fontSize: '13px' }}>{c.title}</span>
                                 <span style={S.badge(COLORS.accent)}>{c.version}</span>
                             </div>
-                            <div style={{ fontSize: '12px', color: COLORS.label, marginBottom: '1rem' }}>{c.study}</div>
+                            <div style={{ fontSize: '12px', color: COLORS.label, marginBottom: '1rem' }}>
+                                {typeof c.study === 'object' ? (c.study as any).title : String(c.study || 'No Study Linked')}
+                            </div>
                             <div style={S.badge(c.status === 'Active' ? COLORS.success : c.status === 'Draft' ? COLORS.label : COLORS.warning)}>{c.status}</div>
                         </div>
                     ))}

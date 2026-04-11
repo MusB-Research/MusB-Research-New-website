@@ -70,7 +70,7 @@ export const PDFPage: React.FC<PDFPageProps> = ({
             </div>
         </div>
 
-        {!isThumbnail && placedFields.filter((f: any) => f.page === pageNumber).map((f: any) => {
+        {!isThumbnail && Array.isArray(placedFields) && placedFields.filter((f: any) => f.page === pageNumber).map((f: any) => {
             const colorMap: any = { 
                 'Participant Signature': COLORS.success, 
                 'Participant Date': COLORS.info, 

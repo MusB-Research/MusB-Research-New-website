@@ -1,5 +1,6 @@
 import React from 'react';
 import { COLORS, S } from '../SubRevConstants';
+import { ChevronRight } from 'lucide-react';
 
 interface SummaryPanelProps {
     participant: any;
@@ -8,50 +9,67 @@ interface SummaryPanelProps {
 
 export const SummaryPanel: React.FC<SummaryPanelProps> = ({ participant, setActiveTab }) => {
     return (
-        <aside style={S.rightSummary}>
+        <aside className="w-64 border-l border-[#1F2937] bg-[#0B1221] p-8 flex flex-col gap-10 overflow-y-auto flex-shrink-0 animate-in slide-in-from-right duration-500">
+            {/* Triage Section */}
             <div>
-                <label style={S.label}>Clinical Triage</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                        <span style={{ color: COLORS.label }}>Eligibility</span>
-                        <span style={{ color: participant.eligibility === 'Approved' ? COLORS.success : COLORS.warning, fontWeight: 'bold' }}>{participant.eligibility}</span>
+                <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] italic mb-6 block">Clinical Triage</label>
+                <div className="flex flex-col gap-5 mt-4">
+                    <div className="flex justify-between items-center group cursor-pointer" onClick={() => setActiveTab('Eligibility')}>
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-300 transition-colors">Triage Status</span>
+                        <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded border ${participant.status === 'ENROLLED' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
+                            {participant.status || 'PENDING'}
+                        </span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                        <span style={{ color: COLORS.label }}>Consent</span>
-                        <span style={{ color: COLORS.success, fontWeight: 'bold' }}>{participant.consent.status}</span>
+                    <div className="flex justify-between items-center group cursor-pointer" onClick={() => setActiveTab('Consent')}>
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-300 transition-colors">Consent</span>
+                        <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded border ${participant.consent?.status === 'Signed' || participant.consent?.status === 'SIGNED' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-slate-500/10 text-slate-500 border-slate-500/20'}`}>
+                            {participant.consent?.status || 'AWAITING'}
+                        </span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                        <span style={{ color: COLORS.label }}>Compliance</span>
-                        <span style={{ color: COLORS.accent, fontWeight: 'bold' }}>{participant.compliance}%</span>
+                    <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Compliance</span>
+                        <span className="text-[10px] font-black text-white italic">
+                            {participant.compliance || 0}%
+                        </span>
                     </div>
                 </div>
             </div>
 
-            <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: '2rem' }}>
-                <label style={S.label}>Compliance Vector</label>
-                <div style={{ height: '8px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '4px', marginTop: '1rem', overflow: 'hidden' }}>
-                    <div style={{ width: `${participant.compliance}%`, height: '100%', backgroundColor: COLORS.accent, boxShadow: `0 0 10px ${COLORS.accent}40` }} />
+            {/* Compliance Section */}
+            <div className="pt-2 border-t border-white/5">
+                <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] italic mb-4 block">Compliance Vector</label>
+                <div className="h-1 w-full bg-[#111827] rounded-full overflow-hidden mt-2">
+                    <div 
+                        style={{ width: `${participant.compliance || 0}%` }} 
+                        className="h-full bg-indigo-500 transition-all duration-1000" 
+                    />
                 </div>
-                <p style={{ fontSize: '12px', color: COLORS.label, marginTop: '0.8rem', fontStyle: 'italic' }}>Visit completion velocity stable.</p>
+                <p className="text-[10px] text-slate-600 mt-4 font-black uppercase tracking-widest italic opacity-50">Velocity: Stable</p>
             </div>
 
-            <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: '2rem' }}>
-                <label style={S.label}>Safety Status</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginTop: '1rem' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: participant.adverseEvents.length > 0 ? COLORS.danger : COLORS.success }} />
-                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: participant.adverseEvents.length > 0 ? COLORS.danger : COLORS.success }}>
-                        {participant.adverseEvents.length > 0 ? `${participant.adverseEvents.length} AE Reported` : 'No Issues'}
+            {/* Safety Section */}
+            <div className="pt-2 border-t border-white/5">
+                <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] italic mb-4 block">Safety Status</label>
+                <div className="flex items-center gap-3 mt-4">
+                    <div className={`w-2 h-2 rounded-full ${participant.adverseEvents?.length > 0 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`} />
+                    <span className={`text-[10px] font-black uppercase tracking-widest italic ${participant.adverseEvents?.length > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                        {participant.adverseEvents?.length > 0 ? `${participant.adverseEvents.length} AE REPORTED` : '0 ALERTS'}
                     </span>
                 </div>
             </div>
 
-            <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '12px' }} onClick={() => setActiveTab('Overview')}>&gt; Overview</button>
-                <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '12px' }} onClick={() => setActiveTab('Eligibility')}>&gt; Eligibility</button>
-                <button style={{ ...S.btnGhost, textAlign: 'left', fontSize: '12px' }} onClick={() => setActiveTab('Safety')}>&gt; Safety</button>
+            {/* Navigation Shortcuts */}
+            <div className="mt-auto pt-10 border-t border-white/5 flex flex-col gap-2">
+                {['Overview', 'Eligibility', 'Safety'].map((tab) => (
+                    <button 
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className="flex justify-between items-center w-full px-5 py-3 bg-white/5 hover:bg-white/10 hover:border-[#1F2937] border border-transparent rounded-xl text-[10px] font-black text-slate-500 hover:text-white transition-all uppercase tracking-[0.2em] group italic"
+                    >
+                        {tab} <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                    </button>
+                ))}
             </div>
         </aside>
     );
 };
-
-

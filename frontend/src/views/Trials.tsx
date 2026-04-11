@@ -42,9 +42,11 @@ export default function Trials() {
                 const apiUrl = API || '';
                 const response = await authFetch(`${apiUrl}/api/public-studies/`);
                 if (!response.ok) throw new Error('Failed to fetch studies');
+                
                 const data = await response.json();
+                // DRF returns results in a 'results' key when paginated
+                const studyList = Array.isArray(data) ? data : (data.results || []);
 
-                // Map API data to UI structure if needed, or use directly
                 const statusMap: Record<string, string> = {
                     'RECRUITING': 'Recruiting',
                     'UPCOMING': 'Upcoming',
@@ -52,7 +54,7 @@ export default function Trials() {
                     'COMPLETED': 'Completed'
                 };
 
-                const mappedStudies = data.map((s: any) => {
+                const mappedStudies = studyList.map((s: any) => {
                     const mappedType = s.study_type === 'VIRTUAL' ? 'Virtual' : (s.study_type === 'IN_PERSON' ? 'On-site' : 'Hybrid');
                     return {
                         id: s.protocol_id || s.id,
@@ -69,15 +71,12 @@ export default function Trials() {
                     };
                 });
 
-                // Chronological (Oldest First): Sort strings (MongoDB IDs are naturally chronological)
-                const sortedStudies = mappedStudies.sort((a: any, b: any) => 
-                    (a.db_id || '').localeCompare(b.db_id || '')
-                );
-                setStudies(sortedStudies);
+                setStudies(mappedStudies);
             } catch (err) {
                 console.error("Error loading studies:", err);
                 setStudies([]);
-            } finally {
+            }
+ finally {
                 setLoading(false);
             }
         };

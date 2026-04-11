@@ -5,7 +5,7 @@ import {
     ChevronRight, X, Upload, Check, FileText, AlertCircle,
     ChevronDown, User, Briefcase, Database
 } from 'lucide-react';
-import { authFetch, API } from '../../utils/auth';
+import { authFetch, API, revealValue } from '../../utils/auth';
 
 // --- TYPES ---
 interface Document {
@@ -122,8 +122,8 @@ export default function PITeamModule({
         if (allUsers.length > 0) {
             const mapped = allUsers.map((u: any) => ({
                 id: u.id,
-                name: (u.full_name || u.email || 'Unknown User').replace(/^gAAAA.*$/, 'Encrypted User'),
-                email: u.email,
+                name: revealValue(u.full_name, u.decrypted_name) || revealValue(u.email) || 'Unknown User',
+                email: revealValue(u.email) || u.email || 'unknown@domain',
                 phone: u.phone_number || 'N/A',
                 role: (u.role || 'MEMBER').toUpperCase().replace('_', ' '),
                 type: u.affiliation === 'onsite' ? 'Office' : 'MusB',

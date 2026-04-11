@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authFetch, clearToken, getRole, performLogout, getUser, saveUser, getDisplayName, API } from '../../utils/auth';
+import { apiFetch } from '../../api';
 
 // Sub-components from the new modular structure
 import { ActionModal, EditModal, LogoutConfirmationModal } from './SharedComponents';
@@ -26,6 +27,7 @@ import PrivacyDataView from './PrivacyDataView';
 import ConsentModal from './ConsentModal';
 import FormSignatureModal from './FormSignatureModal';
 import DiscoverStudiesView from './DiscoverStudiesView';
+import InstrumentModal from './InstrumentModal';
 
 export default function ParticipantDashboard() {
     const navigate = useNavigate();
@@ -123,6 +125,8 @@ export default function ParticipantDashboard() {
     const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
     const [activeConsentTask, setActiveConsentTask] = useState<any>(null);
     const [activeSignatureTask, setActiveSignatureTask] = useState<any>(null);
+    const [isInstrumentModalOpen, setIsInstrumentModalOpen] = useState(false);
+    const [activeInstrumentTask, setActiveInstrumentTask] = useState<any>(null);
 
     const [userProfile, setUserProfile] = useState(() => {
         const u = getUser();
@@ -225,12 +229,9 @@ export default function ParticipantDashboard() {
                 }
 
 
-                const pRes = await authFetch(`${apiUrl}/api/participants/`);
-                if (pRes.ok) {
-                    let pData = await pRes.json();
-
-                    // Filter out inactive records
-                    pData = pData.filter((p: any) => {
+                const pData = await apiFetch<any[]>('/api/participants/');
+                if (pData) {
+                    let filteredData = pData.filter((p: any) => {
                         const s = (p.status || '').toUpperCase();
                         return !['DROPPED', 'INELIGIBLE', 'COMPLETED'].includes(s);
                     });
@@ -249,11 +250,11 @@ export default function ParticipantDashboard() {
                         return 0;
                     });
 
-                    if (pData.length > 0) {
-                        setAllParticipants(pData);
-                        setActiveParticipant(pData[0]);
+                    if (filteredData.length > 0) {
+                        setAllParticipants(filteredData);
+                        setActiveParticipant(filteredData[0]);
 
-                        const studiesPromises = pData.map((p: any) =>
+                        const studiesPromises = filteredData.map((p: any) =>
                             authFetch(`${apiUrl}/api/studies/${p.study}/`).then(res => res.ok ? res.json() : null)
                         );
                         const fetchedStudies = (await Promise.all(studiesPromises)).filter(s => s !== null);
@@ -277,27 +278,37 @@ export default function ParticipantDashboard() {
 
             try {
                 // Senior Developer: Parallelize all independent clinical fetches to minimize TTI (Time to Interactive)
-                const [tasksRes, logsRes, compRes, visitRes, kitRes, labRes, meshRes, helpRes, afRes] = await Promise.all([
-                    authFetch(`${apiUrl}/api/participant-tasks/`),
-                    authFetch(`${apiUrl}/api/daily-medication-logs/`),
-                    authFetch(`${apiUrl}/api/compensations/`),
-                    authFetch(`${apiUrl}/api/visits/`),
-                    authFetch(`${apiUrl}/api/kits/`),
-                    authFetch(`${apiUrl}/api/lab-results/`),
-                    authFetch(`${apiUrl}/api/clinical-conversations/`),
-                    authFetch(`${apiUrl}/api/help-request/`),
-                    authFetch(`${apiUrl}/api/assigned-forms/`)
+                // Helper for safe fetching
+                async function api_fetch_safe(url: string) {
+                    try {
+                        const res = await apiFetch<any[]>(url);
+                        return res || [];
+                    } catch (e) { return []; }
+                }
+
+                const [tasksData, logsData, compData, visitData, kitData, labData, meshData, helpData, afData, qData] = await Promise.all([
+                    api_fetch_safe('/api/participant-tasks/'),
+                    api_fetch_safe('/api/daily-medication-logs/'),
+                    api_fetch_safe('/api/compensations/'),
+                    api_fetch_safe('/api/visits/'),
+                    api_fetch_safe('/api/kits/'),
+                    api_fetch_safe('/api/lab-results/'),
+                    api_fetch_safe('/api/clinical-conversations/'),
+                    api_fetch_safe('/api/help-request/'),
+                    api_fetch_safe('/api/assigned-forms/'),
+                    api_fetch_safe('/api/questionnaire-schedules/')
                 ]);
 
-                let fetchedTasks: any[] = [];
-                if (tasksRes.ok) fetchedTasks = await tasksRes.json();
+                const fetchedQues: any[] = qData || [];
+
+                let fetchedTasks: any[] = tasksData || [];
 
                 // 1b. Fetch Daily Logs and Inject Task (Senior Developer: Dynamic Timeline Generation)
                 try {
-                    if (logsRes.ok) {
-                        const logsData = await logsRes.json();
+                    if (logsData) {
+                        const rawLogsData: any = logsData;
                         // Handle both direct arrays and paginated responses
-                        const logs = Array.isArray(logsData) ? logsData : (logsData.results || []);
+                        const logs = Array.isArray(rawLogsData) ? rawLogsData : (rawLogsData.results || []);
                         setLogs(logs);
                         const today = new Date();
                         today.setHours(0, 0, 0, 0);
@@ -456,16 +467,34 @@ export default function ParticipantDashboard() {
                 });
                 setNotifications(allNotifs.slice(0, 10));
 
-                    if (compRes.ok) setCompensations(await compRes.json());
-                    if (visitRes.ok) setVisits(await visitRes.json());
-                    if (kitRes.ok) setKits(await kitRes.json());
-                    if (labRes.ok) setLabResults(await labRes.json());
-                    if (meshRes.ok) setConversations(await meshRes.json());
-                    if (afRes.ok) setAssignedForms(await afRes.json());
-                    if (helpRes.ok) {
-                        const d = await helpRes.json();
-                        setHelpRequests(Array.isArray(d) ? d : d.results || []);
+                setCompensations(Array.isArray(compData) ? compData : []);
+                setVisits(Array.isArray(visitData) ? visitData : []);
+                setKits(Array.isArray(kitData) ? kitData : []);
+                setLabResults(Array.isArray(labData) ? labData : []);
+                setConversations(Array.isArray(meshData) ? meshData : []);
+                setAssignedForms(Array.isArray(afData) ? afData : []);
+                setHelpRequests(Array.isArray(helpData) ? helpData : ((helpData as any)?.results || []));
+
+                fetchedQues.forEach((q: any) => {
+                    if (getId(q.study_questionnaire?.study) === currentStudyId) {
+                        fetchedTasks.push({
+                            id: `qs-${q.id}`,
+                            study: currentStudyId,
+                            title: q.schedule_name || q.template_details?.name || 'Questionnaire',
+                            status: q.status || 'PENDING',
+                            due_date: q.scheduled_date || q.created_at,
+                            visit_name: 'Instrumentation',
+                            timeline_group: 'Clinical Data',
+                            estimated_time: '10 min',
+                            task_type: 'QUESTIONNAIRE',
+                            q_data: q,
+                            task_details: { 
+                                task_type: 'QUESTIONNAIRE', 
+                                description: `Please complete the ${q.schedule_name} instrument.` 
+                            }
+                        });
                     }
+                });
 
                 setTasks(fetchedTasks);
             } catch (err) {
@@ -647,10 +676,9 @@ export default function ParticipantDashboard() {
             return;
         }
 
-        if (taskType === 'DAILY_LOG') {
-            setLogsPreselectedDate(task.due_date);
-            setLogsDefaultViewMode('FORM');
-            handleNavClick('Logs');
+        if (taskType === 'QUESTIONNAIRE') {
+            setActiveInstrumentTask(task);
+            setIsInstrumentModalOpen(true);
             return;
         }
 
@@ -1254,7 +1282,14 @@ export default function ParticipantDashboard() {
                 userProfile={userProfile}
             />
 
-            <FormSignatureModal
+            <InstrumentModal 
+                 isOpen={isInstrumentModalOpen} 
+                 onClose={() => setIsInstrumentModalOpen(false)} 
+                 task={activeInstrumentTask}
+                 onSuccess={refreshData}
+             />
+
+             <FormSignatureModal
                 isOpen={isSignatureModalOpen}
                 onClose={() => setIsSignatureModalOpen(false)}
                 onComplete={handleFormSignatureComplete}
@@ -1292,5 +1327,3 @@ export default function ParticipantDashboard() {
         </div>
     );
 }
-
-

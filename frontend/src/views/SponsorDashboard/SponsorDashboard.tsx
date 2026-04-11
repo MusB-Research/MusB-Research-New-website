@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import NotificationBell from '../../components/NotificationBell';
 import { getUser, getRole, authFetch, API, performLogout, getDisplayName } from '../../utils/auth';
+import { apiFetch } from '../../api';
 import { User, LogOut, Bell, Sparkles, LayoutDashboard, Database, FileText, Users, BarChart3, Presentation, Globe, X, Menu, Zap } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
@@ -14,7 +15,7 @@ import ReportsPanel from './ReportsPanel';
 
 // === CONSTANTS ===
 const THEME = {
-  bg: '#020617', // Deeper navy for luxury
+  bg: '#020617',
   sidebar: '#000814',
   border: 'rgba(37, 99, 235, 0.2)',
   primary: '#2563eb',
@@ -42,7 +43,6 @@ export default function SponsorDashboard() {
     return 'DASHBOARD';
   });
 
-  // Sync state with URL for back button support
   useEffect(() => {
     const route = location.pathname.split('/').pop();
     if (route === 'studies') setActiveModule('STUDIES');
@@ -82,10 +82,8 @@ export default function SponsorDashboard() {
   const [selectedNotification, setSelectedNotification] = useState<any>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Close dropdowns when clicking outside or scrolling
   useEffect(() => {
     const closeDropdowns = (e?: any) => {
-      // If it's a mouse click, check if outside
       if (e?.type === 'mousedown') {
         const target = e.target as HTMLElement;
         if (!target.closest('[data-dropdown]')) {
@@ -93,12 +91,10 @@ export default function SponsorDashboard() {
           setProfileDropdownOpen(false);
         }
       } else {
-        // If it's a scroll, close regardless
         setNotifDropdownOpen(false);
         setProfileDropdownOpen(false);
       }
     };
-    
     document.addEventListener('mousedown', closeDropdowns);
     window.addEventListener('scroll', closeDropdowns, true);
     return () => {
@@ -109,16 +105,13 @@ export default function SponsorDashboard() {
 
   const isMobile = windowWidth < 1024;
 
-  // Auth Reactivity
   useEffect(() => {
     const handleAuthChange = () => setCurrentUser(getUser());
     window.addEventListener('storage', handleAuthChange);
     return () => window.removeEventListener('storage', handleAuthChange);
   }, []);
 
-  const displayName = useMemo(() => {
-    return getDisplayName(currentUser);
-  }, [currentUser]);
+  const displayName = useMemo(() => getDisplayName(currentUser), [currentUser]);
 
   const initials = useMemo(() => {
     if (!currentUser) return 'U';
@@ -132,63 +125,44 @@ export default function SponsorDashboard() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Clock Update
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+
+
   const fetchData = async () => {
     setLoading(true);
     try {
-      const apiUrl = API || 'http://localhost:8000';
-      const [studiesRes, teamRes, inquiriesRes, notifRes, reportsRes] = await Promise.all([
-        authFetch(`${apiUrl}/api/studies/`),
-        authFetch(`${apiUrl}/api/auth/list-team-members/`),
-        authFetch(`${apiUrl}/api/study-inquiries/`),
-        authFetch(`${apiUrl}/api/notifications/`),
-        authFetch(`${apiUrl}/api/progress-reports/`)
-      ]);
+      const studiesData = await apiFetch<any[]>('/api/studies/');
+      const teamData = await apiFetch<any[]>('/api/auth/list-team-members/');
+      const inquiriesData = await apiFetch<any[]>('/api/study-inquiries/');
+      const notifData = await apiFetch<any[]>('/api/notifications/');
+      const reportsData = await apiFetch<any[]>('/api/progress-reports/');
+      const allReports = reportsData || [];
 
-      let allReports: any[] = [];
-      if (reportsRes.ok) {
-        allReports = await reportsRes.json();
-      }
+      const mapped = (studiesData || []).map((d: any) => ({
+        ...d,
+        id: d.protocol_id || `ID-${d.pk}`,
+        enrollment: { current: d.actual_randomized || 0, target: d.target_randomized || d.target_screened || 100 },
+        lastUpdated: 'Recently updated',
+        kpis: d.kpis || { enrolled: d.actual_randomized || 0, targetEnrolled: d.target_randomized || 100, completed: d.actual_completed || 0, targetCompleted: d.target_completed || 90 },
+        status: d.status === 'PAUSED' ? 'Under Review' : d.status === 'RECRUITING' ? 'Recruiting' : d.status === 'ACTIVE' ? 'Active' : d.status,
+        reports: allReports.filter((r: any) => r.study_protocol === d.protocol_id).map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          date: r.report_date,
+          status: r.status,
+          type: r.report_type_display
+        }))
+      }));
+      setProtocols(mapped);
+      setTeam(teamData || []);
+      setInquiries(inquiriesData || []);
 
-      if (studiesRes.ok) {
-        const data = await studiesRes.json();
-        const mapped = data.map((d: any) => ({
-          ...d,
-          id: d.protocol_id || `ID-${d.pk}`,
-          enrollment: { current: d.actual_randomized || 0, target: d.target_randomized || d.target_screened || 100 },
-          lastUpdated: 'Recently updated',
-          kpis: d.kpis || { enrolled: d.actual_randomized || 0, targetEnrolled: d.target_randomized || 100, completed: d.actual_completed || 0, targetCompleted: d.target_completed || 90 },
-          status: d.status === 'PAUSED' ? 'Under Review' : d.status === 'RECRUITING' ? 'Recruiting' : d.status === 'ACTIVE' ? 'Active' : d.status,
-          reports: allReports.filter((r: any) => r.study_protocol === d.protocol_id).map((r: any) => ({
-            id: r.id,
-            name: r.name,
-            date: r.report_date,
-            status: r.status,
-            type: r.report_type_display
-          }))
-        }));
-        setProtocols(mapped);
-      }
-
-      if (teamRes.ok) {
-        const teamData = await teamRes.json();
-        setTeam(teamData);
-      }
-
-      if (inquiriesRes.ok) {
-        const inquiryData = await inquiriesRes.json();
-        setInquiries(inquiryData);
-      }
-
-      if (notifRes.ok) {
-        const rawNotifs = await notifRes.json();
-        // Convert to UI format
-        const mappedNotifs = rawNotifs.map((n: any) => ({
+      if (notifData) {
+        const mappedNotifs = notifData.map((n: any) => ({
           id: n.id,
           message: n.message,
           time: new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -196,15 +170,15 @@ export default function SponsorDashboard() {
           type: n.type,
           title: n.title
         }));
-        setNotifications(mappedNotifs.slice(0, 5)); // Keep last 5 for top dropdown
+        setNotifications(mappedNotifs.slice(0, 5));
       }
     } catch (e) {
       console.error('FETCH_ERROR:', e);
+    } finally {
+      setLoading(false);
     }
-    finally { setLoading(false); }
   };
 
-  // Real-time synchronization for notifications
   useEffect(() => {
     fetchData();
     const interval = setInterval(() => {
@@ -219,8 +193,8 @@ export default function SponsorDashboard() {
           title: n.title
         }));
         setNotifications(mapped.slice(0, 5));
-      }).catch(err => console.warn("Refresh failed:", err));
-    }, 30000); // 30s heartbeat
+      }).catch(err => console.warn('Refresh failed:', err));
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -244,10 +218,8 @@ export default function SponsorDashboard() {
     const apiUrl = API || 'http://localhost:8000';
     try {
       const res = await authFetch(`${apiUrl}/api/notifications/${id}/read/`, { method: 'POST' });
-      if (res.ok) {
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-      }
-    } catch (e) { console.error("Mark read failed", e); }
+      if (res.ok) setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    } catch (e) { console.error('Mark read failed', e); }
   };
 
   const markAllRead = async () => {
@@ -258,60 +230,58 @@ export default function SponsorDashboard() {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         addToast({ type: 'success', message: 'All alerts acknowledged.' });
       }
-    } catch (e) { console.error("Mark all read failed", e); }
+    } catch (e) { console.error('Mark all read failed', e); }
   };
 
-  const triggerTestNotification = () => {
-    addToast({ type: 'info', message: 'System alerts are now fully automated based on study activity.' });
-  };
-
-  const menuBtnBase = {
-    width: '100%', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '16px',
-    background: 'none', border: 'none', cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', borderRadius: '16px',
-    fontSize: '16px', fontWeight: 'bold'
-  };
-
-  const getMenuBtnStyle = (id: string, isWhiteText = false) => ({
-    ...menuBtnBase,
-    color: activeModule === id ? '#22d3ee' : '#94a3b8', // cyan-400 vs slate-400
-    background: activeModule === id ? '#0a1525' : 'transparent',
-    border: activeModule === id ? '1px solid rgba(34, 211, 238, 0.3)' : '1px solid transparent',
-    boxShadow: 'none'
-  });
+  const SIDEBAR_W = 260;
 
   return (
-    <div style={{ display: 'flex', height: '100vh', backgroundColor: 'transparent', color: 'white', fontFamily: 'Inter, system-ui, sans-serif', overflow: 'hidden', position: 'relative' }}>
-
-      {/* ANIMATED BACKGROUND IS HANDLED BY APP.TSX, JUST ENSURE NO SOLID OVERLAY */}
+    <div style={{ width: '100vw', height: '100vh', backgroundColor: 'transparent', color: 'white', fontFamily: 'Inter, system-ui, sans-serif', overflow: 'hidden', position: 'relative' }}>
 
       <style>{`
-        @keyframes bgMove {
-          0% { transform: scale(1) translate(0, 0); }
-          100% { transform: scale(1.1) translate(20px, 10px); }
-        }
-        @keyframes pulse { 0% { scale: 1; opacity: 1; } 50% { scale: 1.25; opacity: 0.7; } 100% { scale: 1; opacity: 1; } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .logo-pill { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .logo-pill:hover { 
-          transform: scale(1.03) translateY(-2px); 
-          box-shadow: 0 10px 40px rgba(255,255,255,0.2), 0 0 20px rgba(59, 130, 246, 0.3) !important;
-          filter: brightness(1.05);
-        }
+        .logo-pill:hover { transform: scale(1.03) translateY(-2px); box-shadow: 0 10px 40px rgba(255,255,255,0.2), 0 0 20px rgba(59, 130, 246, 0.3) !important; filter: brightness(1.05); }
       `}</style>
 
-      {/* MOBILE OVERLAY */}
+      {/* MOBILE OVERLAY — covers full screen behind the sidebar */}
       {isMobile && isSidebarOpen && (
         <div
           onClick={() => setIsSidebarOpen(false)}
-          style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 90, animation: 'fadeIn 0.3s' }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.75)',
+            zIndex: 99,       // below sidebar (100) but above everything else
+            animation: 'fadeIn 0.2s'
+          }}
         />
       )}
 
-      <aside className={`h-full flex-shrink-0 flex-col border-r border-white/[0.05] z-40 transition-transform duration-300 ${isMobile ? (isSidebarOpen ? 'fixed flex w-[260px] left-0 translate-x-0 bg-[#0d1525]/90 shadow-[0_0_50px_rgba(0,0,0,0.5)]' : 'hidden') : 'relative flex w-[260px] translate-x-0'}`} style={{ background: 'rgba(13, 21, 37, 0.8)', backdropFilter: 'blur(12px)' }}>
-
+      <aside
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          bottom: 0,
+          width: `${SIDEBAR_W}px`,
+          display: isMobile ? (isSidebarOpen ? 'flex' : 'none') : 'flex',
+          flexDirection: 'column',
+          flexShrink: 0,
+          borderRight: '1px solid rgba(255,255,255,0.05)',
+          zIndex: 100,   // above overlay (99) on mobile, and above header (50) on desktop
+          background: isMobile ? '#0a0f1e' : 'rgba(13, 21, 37, 0.95)',  // fully opaque on mobile so nothing bleeds through
+          backdropFilter: isMobile ? 'none' : 'blur(20px)',
+          WebkitBackdropFilter: isMobile ? 'none' : 'blur(20px)',
+          boxShadow: isMobile ? '4px 0 40px rgba(0,0,0,0.8)' : 'none',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+        }}
+      >
+        {/* SIDEBAR HEADER — Logo */}
         <div className="h-24 px-8 flex justify-between items-center border-b border-white/[0.05]">
           <Link to="/">
-            <img src="/logo.jpg" alt="MusB" className="h-14 w-auto object-contain rounded-2xl" />
+            <img src="/logo.jpg" alt="MusB Research" className="h-14 w-auto object-contain rounded-2xl" />
           </Link>
           {isMobile && (
             <button className="text-slate-400 hover:text-white" onClick={() => setIsSidebarOpen(false)}>
@@ -320,36 +290,21 @@ export default function SponsorDashboard() {
           )}
         </div>
 
-        {/* USER PROFILE CARD - Matching Participant Dashboard */}
-        <div style={{
-          margin: '8px 20px 24px 20px',
-          backgroundColor: 'rgba(20, 30, 53, 0.6)',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
-          borderRadius: '16px',
-          padding: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
-        }}>
-          <div style={{
-            width: '48px', height: '48px',
-            borderRadius: '50%',
-            background: 'linear-gradient(to bottom right, #22d3ee, #6366f1)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'white', fontWeight: 900, overflow: 'hidden'
-          }}>
-            {currentUser?.picture || currentUser?.avatar || currentUser?.profile_picture ? <img src={currentUser.picture || currentUser.avatar || currentUser.profile_picture} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
+        {/* USER PROFILE CARD */}
+        <div style={{ margin: '8px 20px 24px 20px', backgroundColor: 'rgba(20, 30, 53, 0.6)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', padding: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(to bottom right, #22d3ee, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 900, overflow: 'hidden' }}>
+            {currentUser?.picture || currentUser?.avatar || currentUser?.profile_picture
+              ? <img src={currentUser.picture || currentUser.avatar || currentUser.profile_picture} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : initials}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             <p style={{ fontSize: '16px', fontWeight: 900, color: 'white', textTransform: 'uppercase', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</p>
-            <p style={{ fontSize: '12px', fontWeight: 900, color: '#22d3ee', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '4px', margin: 0 }}>Sponsor</p>
+            <p style={{ fontSize: '12px', fontWeight: 900, color: '#22d3ee', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>Sponsor</p>
           </div>
         </div>
 
-        {/* MENU */}
-        <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px', padding: '0 16px' }}>
-
-          {/* MENU ITEMS */}
+        {/* NAVIGATION */}
+        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px', padding: '0 16px', overflowY: 'auto' }}>
           <div className="space-y-1.5">
             <button
               onClick={() => window.location.href = '/'}
@@ -379,43 +334,66 @@ export default function SponsorDashboard() {
               );
             })}
           </div>
-
         </nav>
 
-        {/* SIDEBAR FOOTER: IDENTITY & TELEMETRY */}
+        {/* SIDEBAR FOOTER */}
         <div style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-          <button onClick={performLogout} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '16px', padding: '14px 16px', borderRadius: '16px', color: '#94a3b8', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'all 0.3s', fontWeight: 'bold' }} className="hover:text-red-400 hover:bg-red-500/5">
+          <button
+            onClick={performLogout}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '16px', padding: '14px 16px', borderRadius: '16px', color: '#94a3b8', background: 'transparent', border: 'none', cursor: 'pointer', transition: 'all 0.3s', fontWeight: 'bold' }}
+            className="hover:text-red-400 hover:bg-red-500/5"
+          >
             <LogOut size={20} />
             <span style={{ fontSize: '14px' }}>Sign Out</span>
           </button>
         </div>
-
       </aside>
 
-      {/* MAIN CONTENT AREA */}
-      <main style={{ flex: 1, overflowY: 'auto', backgroundColor: 'transparent', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+      {/* MAIN CONTENT AREA — marginLeft offsets the fixed sidebar on desktop */}
+      <main style={{
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        width: isMobile ? '100vw' : `calc(100vw - ${SIDEBAR_W}px)`,
+        marginLeft: isMobile ? 0 : SIDEBAR_W,
+        height: '100vh',
+        overflowY: 'auto',
+        backgroundColor: 'transparent',
+      }}>
 
-        <header className="fixed top-0 left-0 right-0 h-24 bg-[#0b101b]/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-8 z-50">
+        {/* Fixed top header — use inline style for left offset so Tailwind doesn't need to compile an arbitrary value */}
+        <header
+          style={{
+            position: 'fixed',
+            top: 0,
+            right: 0,
+            left: isMobile ? 0 : SIDEBAR_W,
+            height: '96px',
+            background: 'rgba(11, 16, 27, 0.85)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderBottom: '1px solid rgba(255,255,255,0.05)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 32px',
+            zIndex: 50,
+            transition: 'left 0.3s'
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            {isMobile && (
+            {isMobile ? (
               <button
                 onClick={() => setIsSidebarOpen(true)}
-                className="lg:hidden text-slate-300 hover:text-cyan-400 transition-colors mr-1"
+                className="text-slate-300 hover:text-cyan-400 transition-colors"
                 style={{ background: 'none', border: 'none', cursor: 'pointer' }}
               >
                 <Menu size={24} />
               </button>
-            )}
-
-            <div className="hidden lg:flex flex-col">
-              <h1 className="text-2xl lg:text-3xl font-black text-white tracking-tighter uppercase italic">SPONSOR COMMAND</h1>
-              <div className="flex items-center gap-2">
-                <span className="text-[12px] font-black uppercase tracking-[0.4em] text-cyan-400 font-mono italic">{activeModule.replace('_', ' ')} SECTOR</span>
-              </div>
-            </div>
+            ) : null}
 
             {/* Real-time Clock */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'right', paddingRight: '16px', borderRight: '1px solid rgba(255,255,255,0.05)', marginLeft: isMobile ? '0' : '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'right', paddingRight: '16px', borderRight: '1px solid rgba(255,255,255,0.05)', marginLeft: '20px' }}>
               <span style={{ fontSize: isMobile ? '14px' : '20px', fontWeight: 900, color: '#22d3ee', fontFamily: 'monospace', letterSpacing: '-0.02em', lineHeight: 1 }}>
                 {currentTime.toLocaleTimeString('en-US', { hour12: false })}
               </span>
@@ -425,9 +403,10 @@ export default function SponsorDashboard() {
             </div>
           </div>
 
+          {/* Right side: Notifications + Profile */}
           <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '24px' }}>
             <div style={{ position: 'relative' }} data-dropdown="true">
-              <NotificationBell 
+              <NotificationBell
                 unreadCount={notifications.filter(n => !n.read).length}
                 onClick={() => {
                   setNotifDropdownOpen(!notifDropdownOpen);
@@ -471,7 +450,7 @@ export default function SponsorDashboard() {
                 <div className="hidden sm:flex flex-col items-end">
                   <span className="text-sm font-black text-white italic uppercase tracking-tight leading-none mb-1">{displayName.toUpperCase()}</span>
                   <span className="text-[12px] text-slate-500 font-bold uppercase tracking-widest bg-white/5 px-2 py-1 rounded border border-white/5">
-                    SPONSOR.ADMIN@MUSBRESEARCH.COM
+                    {currentUser?.email || 'SPONSOR'}
                   </span>
                 </div>
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-white/10 overflow-hidden shadow-2xl hover:border-cyan-500/40 transition-all ring-1 ring-white/5">
@@ -481,7 +460,7 @@ export default function SponsorDashboard() {
 
               {profileDropdownOpen && (
                 <div style={{ position: 'absolute', top: 48, right: 0, width: 200, background: '#1e293b', border: '1px solid #334155', borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
-                  <button onClick={() => addToast({ type: 'info', message: 'Profile settings' })} style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', borderBottom: '1px solid #334155', color: '#f1f5f9', textAlign: 'left', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Profile Settings</button>
+                  <button onClick={() => addToast({ type: 'info', message: 'Profile settings coming soon.' })} style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', borderBottom: '1px solid #334155', color: '#f1f5f9', textAlign: 'left', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Profile Settings</button>
                   <button onClick={() => performLogout()} style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', color: '#ef4444', textAlign: 'left', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Sign Out</button>
                 </div>
               )}
@@ -489,7 +468,7 @@ export default function SponsorDashboard() {
           </div>
         </header>
 
-        {/* MODULE DEPLOYMENT */}
+        {/* MODULE PANELS */}
         <div style={{ flex: 1, padding: isMobile ? '120px 20px 60px 20px' : '128px 40px 80px 40px', overflowY: 'auto' }}>
           {activeModule === 'DASHBOARD' && (
             <DashboardPanel
@@ -510,9 +489,10 @@ export default function SponsorDashboard() {
           {activeModule === 'TEAM' && <TeamManagementPanel addToast={addToast} />}
         </div>
       </main>
+
       <ToastContainer toasts={toasts} removeToast={removeToast} />
 
-      {/* DETAILED NOTIFICATION MODAL */}
+      {/* NOTIFICATION DETAIL MODAL */}
       {selectedNotification && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           <div style={{ width: '100%', maxWidth: '500px', background: '#1e293b', border: `1px solid ${THEME.border}`, borderRadius: '24px', padding: '32px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', animation: 'fadeIn 0.3s' }}>
@@ -520,10 +500,8 @@ export default function SponsorDashboard() {
               <div style={{ padding: '8px 12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', color: '#60a5fa', fontSize: '12px', fontWeight: 900, letterSpacing: '0.1em' }}>{selectedNotification.title?.toUpperCase() || 'SYSTEM ALERT'}</div>
               <button onClick={() => setSelectedNotification(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '24px', cursor: 'pointer' }}>×</button>
             </div>
-
             <h2 style={{ fontSize: '24px', fontWeight: 900, color: 'white', marginBottom: '16px', lineHeight: '1.2' }}>{selectedNotification.message}</h2>
             <div style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '24px' }}>Log Timestamp: <span style={{ color: 'white', fontWeight: 800 }}>{selectedNotification.time}</span></div>
-
             <div style={{ padding: '20px', background: 'rgba(0,0,0,0.2)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '24px' }}>
               <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 800, marginBottom: '8px' }}>TELEMETRY STATUS:</div>
               <div style={{ fontSize: '13px', color: '#cbd5e1', lineHeight: '1.6' }}>
@@ -532,7 +510,6 @@ export default function SponsorDashboard() {
                 No further action required at this moment.
               </div>
             </div>
-
             <button onClick={() => setSelectedNotification(null)} style={{ width: '100%', padding: '16px', background: '#3b82f6', border: 'none', borderRadius: '16px', color: 'white', fontWeight: 900, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)' }}>ACKNOWLEDGMENT CONFIRMED</button>
           </div>
         </div>
@@ -540,4 +517,3 @@ export default function SponsorDashboard() {
     </div>
   );
 }
-

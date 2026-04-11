@@ -1,29 +1,29 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
     Calendar,
     ChevronUp,
-    Clock, 
-    CheckCircle2, 
-    AlertCircle, 
-    XCircle, 
-    ChevronRight, 
-    ChevronDown, 
-    Plus, 
-    Search, 
-    Filter, 
-    MoreHorizontal, 
-    Activity, 
-    Thermometer, 
-    Droplet, 
-    FileText, 
+    Clock,
+    CheckCircle2,
+    AlertCircle,
+    XCircle,
+    ChevronRight,
+    ChevronDown,
+    Plus,
+    Search,
+    Filter,
+    MoreHorizontal,
+    Activity,
+    Thermometer,
+    Droplet,
+    FileText,
     Flag,
-    Clipboard, 
-    ShieldAlert, 
-    Edit3, 
-    ArrowRight, 
-    User, 
-    MapPin, 
+    Clipboard,
+    ShieldAlert,
+    Edit3,
+    ArrowRight,
+    User,
+    MapPin,
     X,
     History,
     MoreVertical,
@@ -69,8 +69,11 @@ interface AEReport {
 }
 
 interface Participant {
-    id: string;
-    db_id: string;
+    id: string; // Database ID
+    db_id: string; // Database ID
+    participant_sid: string;
+    name: string;
+    protocol_id: string;
     status: 'Screening' | 'Active' | 'Completed';
     coordinator: string;
     nextVisitDue: string;
@@ -95,13 +98,15 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
     const [openAccordion, setOpenAccordion] = useState<string | null>('Checklist');
     const [tempVitals, setTempVitals] = useState({ weight: 78.5, height: 1.82 });
     const [viewDate, setViewDate] = useState(new Date());
-    const [scheduleData, setScheduleData] = useState({ 
+    const [scheduleData, setScheduleData] = useState({
         studyId: '',
-        participantId: '', 
-        visitType: 'Baseline / Dosing', 
+        participantId: '',
+        visitType: 'BASELINE',
+        location: 'Clinic',
+        locationAddress: '',
         taskId: '',
-        date: new Date().toISOString().split('T')[0], 
-        time: '09:00' 
+        date: new Date().toISOString().split('T')[0],
+        time: '09:00'
     });
     const [problemData, setProblemData] = useState({
         description: '',
@@ -125,15 +130,21 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
             ]);
 
             if (pRes.ok) {
-                const data = await pRes.json();
+                const rawData = await pRes.json();
+                // Handle paginated responses from Django Rest Framework
+                const data = Array.isArray(rawData) ? rawData : (rawData.results || []);
+
                 if (!Array.isArray(data)) {
-                    console.error("[Clinical Sync] Dataset malformation:", data);
+                    console.error("[Clinical Sync] Dataset malformation:", rawData);
                     setParticipants([]);
                     return;
                 }
                 const mapped: Participant[] = data.map((p: any) => ({
-                    id: p.participant_sid || p.id,
+                    id: p.id,
                     db_id: p.id,
+                    participant_sid: p.participant_sid || 'REQ-000',
+                    name: p.user_details?.full_name || p.participant_sid || 'Subject',
+                    protocol_id: p.protocol_id || 'N/A',
                     status: p.status === 'ACTIVE' ? 'Active' : p.status === 'SCREENING' ? 'Screening' : (p.status || 'Active'),
                     coordinator: p.coordinator_name || 'Coordinator Unassigned',
                     nextVisitDue: p.next_visit_date || 'N/A',
@@ -142,7 +153,8 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                     visits: (Array.isArray(p.visits) ? p.visits : []).map((v: any) => ({
                         id: v.id,
                         name: v.visit_type || 'Unspecified Visit',
-                        scheduledDate: v.scheduled_date ? new Date(v.scheduled_date).toLocaleDateString() : 'N/A',
+                        // Keep the raw ISO string for data logic, but format it for the UI later
+                        scheduledDate: v.scheduled_date || v.date || null,
                         status: v.status === 'COMPLETED' ? 'Completed' : v.status === 'SCHEDULED' ? 'Scheduled' : 'Overdue',
                         window: '±3 days',
                         actualDate: v.actual_date,
@@ -177,8 +189,14 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
             }
 
 
-            if (sRes.ok) setAllStudies(await sRes.json());
-            if (tRes.ok) setGlobalTasks(await tRes.json());
+            if (sRes.ok) {
+                const sData = await sRes.json();
+                setAllStudies(Array.isArray(sData) ? sData : (sData.results || []));
+            }
+            if (tRes.ok) {
+                const tData = await tRes.json();
+                setGlobalTasks(Array.isArray(tData) ? tData : (tData.results || []));
+            }
 
         } catch (error) {
             console.error("Clinical sync failure:", error);
@@ -196,40 +214,54 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
     const filteredParticipants = useMemo(() => {
         let list = participants;
         if (selectedStudyId && selectedStudyId !== 'all') {
-            list = list.filter(p => p.study_id === selectedStudyId || p.study === selectedStudyId);
+            // Robust comparison using String cast for MongoDB ObjectIDs vs Frontend selection
+            list = list.filter(p =>
+                String(p.study_id) === String(selectedStudyId) ||
+                String(p.study) === String(selectedStudyId)
+            );
         }
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
-            list = list.filter(p => p.id.toLowerCase().includes(query) || 
-                                p.coordinator.toLowerCase().includes(query));
+            list = list.filter(p =>
+                (p.name || '').toLowerCase().includes(query) ||
+                (p.participant_sid || '').toLowerCase().includes(query) ||
+                (p.coordinator || '').toLowerCase().includes(query)
+            );
         }
         return list;
     }, [participants, selectedStudyId, searchQuery]);
 
     useEffect(() => {
         if (filteredParticipants.length > 0) {
-            // Auto-select first if nothing selected or current selection is NOT in filtered list
-            if (!selectedParticipantId || !filteredParticipants.find(p => p.id === selectedParticipantId)) {
-                setSelectedParticipantId(filteredParticipants[0].id);
-                if (filteredParticipants[0].visits.length > 0) {
-                    setSelectedVisitId(filteredParticipants[0].visits[0].id);
+            // 1. Auto-select Participant
+            const firstId = String(filteredParticipants[0].id);
+            if (!selectedParticipantId || !filteredParticipants.find(p => String(p.id) === String(selectedParticipantId))) {
+                setSelectedParticipantId(firstId);
+            }
+
+            // 2. Auto-select Visit (with guard to prevent infinite re-renders)
+            const firstParticipantVisits = filteredParticipants.find(p => String(p.id) === (selectedParticipantId || firstId))?.visits || [];
+            if (firstParticipantVisits.length > 0) {
+                const firstVisitId = String(firstParticipantVisits[0].id);
+                if (!selectedVisitId || !firstParticipantVisits.find(v => String(v.id) === String(selectedVisitId))) {
+                    setSelectedVisitId(firstVisitId);
                 }
             }
         } else {
-            setSelectedParticipantId(null);
-            setSelectedVisitId(null);
+            if (selectedParticipantId !== null) setSelectedParticipantId(null);
+            if (selectedVisitId !== null) setSelectedVisitId(null);
         }
-    }, [filteredParticipants, selectedParticipantId]);
+    }, [filteredParticipants, selectedParticipantId, selectedVisitId]);
 
 
     // ─── COMPUTED STATE ──────────────────────────────────────────────────────
-    const selectedParticipant = useMemo(() => 
+    const selectedParticipant = useMemo(() =>
         participants.find(p => p.id === selectedParticipantId) || null,
-    [participants, selectedParticipantId]);
+        [participants, selectedParticipantId]);
 
-    const selectedVisit = useMemo(() => 
+    const selectedVisit = useMemo(() =>
         selectedParticipant?.visits?.find(v => v.id === selectedVisitId) || selectedParticipant?.visits?.[0] || null,
-    [selectedParticipant, selectedVisitId]);
+        [selectedParticipant, selectedVisitId]);
 
     const bmi = useMemo(() => {
         if (!tempVitals.weight || !tempVitals.height) return 0;
@@ -241,7 +273,7 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
     const handleSignOff = async (action: 'Approve' | 'Flag') => {
         if (!selectedVisit) return;
         const confirmMsg = action === 'Approve' ? 'Confirm clinical sign-off for this visit?' : 'Flag this visit for PI review?';
-        
+
         if (window.confirm(confirmMsg)) {
             try {
                 const payload = {
@@ -273,14 +305,18 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
         if (!targetParticipant) return;
 
         try {
+            const localDateTime = new Date(`${scheduleData.date}T${scheduleData.time || '09:00'}:00`);
+            const isoDateTime = localDateTime.toISOString();
+
             const visitResp = await authFetch(`${apiUrl}/api/visits/`, {
                 method: 'POST',
                 body: JSON.stringify({
                     participant: targetParticipant.db_id,
                     visit_type: scheduleData.visitType,
-                    scheduled_date: `${scheduleData.date}T${scheduleData.time || '09:00'}:00Z`,
+                    scheduled_date: isoDateTime,
                     status: 'SCHEDULED',
-                    location: 'Clinic'
+                    location: scheduleData.location,
+                    location_address: scheduleData.locationAddress
                 })
             });
 
@@ -290,7 +326,7 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                     body: JSON.stringify({
                         participant: targetParticipant.db_id,
                         task: scheduleData.taskId,
-                        due_date: `${scheduleData.date}T${scheduleData.time || '09:00'}:00Z`,
+                        due_date: isoDateTime,
                         status: 'PENDING',
                         visit_name: scheduleData.visitType
                     })
@@ -362,18 +398,20 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
     // ─── CALENDAR LOGIC ──────────────────────────────────────────────────────
     const calendarData = useMemo(() => {
         if (!viewDate) return { daysInMonth: 0, firstDay: 0, sessionsByDate: {} };
-        
+
         const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
         const firstDay = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay();
         const sessionsByDate: Record<string, any[]> = {};
-        
+
         participants.forEach(p => {
             (p.visits || []).forEach(v => {
-                if (!v.scheduledDate || v.scheduledDate === 'N/A') return;
+                if (!v.scheduledDate) return;
                 try {
-                    const d = new Date(v.scheduledDate).toISOString().split('T')[0];
+                    const dateObj = new Date(v.scheduledDate);
+                    if (isNaN(dateObj.getTime())) return; // Safety check
+                    const d = dateObj.toISOString().split('T')[0];
                     if (!sessionsByDate[d]) sessionsByDate[d] = [];
-                    sessionsByDate[d].push({ type: 'VISIT', label: `${p.id}: ${v.name}`, status: v.status });
+                    sessionsByDate[d].push({ type: 'VISIT', label: `${p.participant_sid}: ${v.name}`, status: v.status });
                 } catch { /* skip */ }
             });
         });
@@ -393,60 +431,59 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
     const renderCalendar = () => {
         const { daysInMonth, firstDay, sessionsByDate } = calendarData;
         const monthYear = viewDate.toLocaleString('default', { month: 'long', year: 'numeric' });
-        
+
         return (
-            <div className="flex-1 flex flex-col p-6 lg:p-12 space-y-8 overflow-y-auto no-scrollbar">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
-                    <div className="space-y-1">
-                        <h2 className="text-3xl lg:text-4xl font-black text-white italic uppercase tracking-tighter">Site <span className="text-indigo-500">Calendar</span></h2>
-                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] italic">{monthYear} • Protocol Sync: ACTIVE</p>
-                    </div>
-                    <div className="flex items-center gap-4 bg-white/5 p-2 rounded-2xl border border-white/5 self-start">
-                        <button onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() - 1)))} className="p-2 hover:bg-white/10 rounded-xl transition-all">
-                            <ChevronDown className="w-5 h-5 rotate-90 text-slate-400" />
+            <div className="flex-1 flex flex-col p-6 lg:p-10 bg-[#0B101B]">
+                <div className="flex items-center justify-between mb-8">
+                    <h2 className="text-xl font-bold text-white tracking-wide">SITE CALENDAR</h2>
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() - 1)))} className="p-2 text-slate-400 hover:text-white transition-colors">
+                            <ChevronDown className="w-5 h-5 rotate-90" />
                         </button>
-                        <span className="text-sm font-black text-white px-2 uppercase italic tracking-widest min-w-[150px] text-center">{monthYear}</span>
-                        <button onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() + 1)))} className="p-2 hover:bg-white/10 rounded-xl transition-all">
-                            <ChevronDown className="w-5 h-5 -rotate-90 text-slate-400" />
+                        <span className="text-sm font-semibold text-white min-w-[120px] text-center">{monthYear.toUpperCase()}</span>
+                        <button onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() + 1)))} className="p-2 text-slate-400 hover:text-white transition-colors">
+                            <ChevronDown className="w-5 h-5 -rotate-90" />
                         </button>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-7 gap-px bg-white/5 border border-white/5 rounded-[2rem] lg:rounded-[3rem] overflow-hidden shadow-2xl">
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                        <div key={d} className="bg-[#0D1424] p-4 lg:p-6 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center border-b border-white/5 italic">
-                            {d}
-                        </div>
-                    ))}
-                    {Array.from({ length: 42 }).map((_, i) => {
-                        const dayNum = i - firstDay + 1;
-                        const isCurrentMonth = dayNum > 0 && dayNum <= daysInMonth;
-                        const currentDayDate = isCurrentMonth ? new Date(viewDate.getFullYear(), viewDate.getMonth(), dayNum) : null;
-                        const dateString = currentDayDate ? currentDayDate.toISOString().split('T')[0] : '';
-                        const daySessions = sessionsByDate[dateString] || [];
-
-                        return (
-                            <div key={i} className={`min-h-[120px] lg:min-h-[160px] bg-[#0B101B] p-2 lg:p-4 border-r border-b border-white/[0.03] transition-all hover:bg-white/[0.02] ${!isCurrentMonth ? 'opacity-10' : ''}`}>
-                                <div className="flex justify-between items-start mb-2">
-                                    <span className={`text-base lg:text-lg font-black italic ${currentDayDate?.toDateString() === new Date().toDateString() ? 'text-indigo-500' : 'text-slate-600'}`}>
-                                        {isCurrentMonth ? dayNum : ''}
-                                    </span>
-                                </div>
-                                <div className="space-y-1">
-                                    {daySessions.slice(0, 3).map((s, idx) => (
-                                        <div key={idx} className={`p-1.5 rounded-lg border text-[9px] font-black uppercase tracking-tighter truncate ${
-                                            s.type === 'VISIT' ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                        }`}>
-                                            {s.label}
-                                        </div>
-                                    ))}
-                                    {daySessions.length > 3 && (
-                                        <p className="text-[9px] text-slate-700 font-bold italic text-center">+{daySessions.length - 3} MORE</p>
-                                    )}
-                                </div>
+                <div className="flex-1 border border-white/10 rounded-xl overflow-hidden bg-[#0D1424]">
+                    <div className="grid grid-cols-7 border-b border-white/10">
+                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                            <div key={d} className="p-4 text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center">
+                                {d}
                             </div>
-                        );
-                    })}
+                        ))}
+                    </div>
+                    <div className="grid grid-cols-7 grid-rows-6 flex-1 h-[calc(100%-48px)] bg-white/[0.02]">
+                        {Array.from({ length: 42 }).map((_, i) => {
+                            const dayNum = i - firstDay + 1;
+                            const isCurrentMonth = dayNum > 0 && dayNum <= daysInMonth;
+                            const currentDayDate = isCurrentMonth ? new Date(viewDate.getFullYear(), viewDate.getMonth(), dayNum) : null;
+                            const dateString = currentDayDate ? currentDayDate.toISOString().split('T')[0] : '';
+                            const daySessions = sessionsByDate[dateString] || [];
+                            const isToday = currentDayDate?.toDateString() === new Date().toDateString();
+
+                            return (
+                                <div key={i} className={`p-3 border-r border-b border-white/10 ${!isCurrentMonth ? 'opacity-20 bg-black/20' : 'hover:bg-white/[0.04] transition-colors'} ${isToday ? 'bg-indigo-500/10' : ''}`}>
+                                    <div className={`text-sm font-semibold mb-2 ${isToday ? 'text-indigo-400' : 'text-slate-300'}`}>
+                                        {isCurrentMonth ? dayNum : ''}
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        {daySessions.slice(0, 3).map((s, idx) => (
+                                            <div key={idx} className={`px-2 py-1 rounded text-[10px] font-medium truncate ${s.type === 'VISIT' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-emerald-500/20 text-emerald-300'
+                                                }`}>
+                                                {s.label}
+                                            </div>
+                                        ))}
+                                        {daySessions.length > 3 && (
+                                            <p className="text-[10px] text-slate-500 pl-1">+{daySessions.length - 3} more</p>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
         );
@@ -455,114 +492,120 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
     // ─── MAIN RENDER ─────────────────────────────────────────────────────────
 
     return (
-        <div className="max-w-[1920px] mx-auto flex flex-col h-[calc(100vh-14rem)] bg-[#0B101B] border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl relative">
-            
+        <div className="w-full flex flex-col h-[calc(100vh-6rem)] bg-[#0B101B]">
+
             {/* Overlays */}
             {isLoading && (
-                <div className="absolute inset-0 z-[100] bg-[#0B101B]/90 backdrop-blur-md flex flex-col items-center justify-center">
-                    <Activity className="w-12 h-12 text-indigo-500 animate-pulse mb-6" />
-                    <h2 className="text-xl font-black text-white italic uppercase tracking-[0.2em]">Synchronizing Records</h2>
+                <div className="absolute inset-0 z-[100] bg-[#0B101B]/80 flex flex-col items-center justify-center">
+                    <Activity className="w-8 h-8 text-indigo-500 animate-spin mb-4" />
+                    <p className="text-sm font-medium text-white tracking-wide">Loading records...</p>
                 </div>
             )}
 
             {!isLoading && participants.length === 0 && (
-                <div className="absolute inset-0 z-[100] bg-[#0B101B] flex flex-col items-center justify-center p-12 text-center">
-                    <Users className="w-16 h-16 text-slate-800 mb-8" />
-                    <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">No Subjects Found</h3>
-                    <p className="text-slate-500 max-w-md mx-auto mt-4 uppercase text-[10px] font-black tracking-widest">The participant pool is currently empty for the selected study context.</p>
+                <div className="absolute inset-0 z-[100] bg-[#0B101B] flex flex-col items-center justify-center p-8 text-center">
+                    <Users className="w-12 h-12 text-slate-600 mb-6" />
+                    <h3 className="text-lg font-semibold text-white mb-2">No Subjects Found</h3>
+                    <p className="text-sm text-slate-400 max-w-md">The participant pool is currently empty for the selected study context.</p>
                 </div>
             )}
 
             {/* Header Bar */}
-            <div className="flex-shrink-0 px-6 lg:px-10 py-4 lg:py-8 bg-[#0B101B]/80 backdrop-blur-3xl border-b border-white/5 flex flex-col lg:flex-row lg:items-center justify-between gap-6 z-40">
-                <div className="flex flex-col md:flex-row md:items-center gap-6">
-                    <h2 className="text-xl lg:text-2xl font-black text-white italic uppercase tracking-tighter">Visits & Assessments</h2>
-                    <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5 self-start">
+            <div className="flex-shrink-0 px-6 py-5 bg-[#0B101B] border-b border-white/10 flex items-center justify-between">
+                <div className="flex items-center gap-8">
+                    <h2 className="text-lg font-bold text-white tracking-wider">VISITS & ASSESSMENTS</h2>
+                    <div className="flex bg-white/5 p-1 rounded-lg border border-white/10">
                         {(['Timeline', 'Calendar'] as const).map(mode => (
-                            <button key={mode} onClick={() => setViewMode(mode)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === mode ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>
-                                {mode}
+                            <button key={mode} onClick={() => setViewMode(mode)} className={`px-4 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-colors ${viewMode === mode ? 'bg-indigo-500 text-white' : 'text-slate-400 hover:text-white'}`}>
+                                {mode.toUpperCase()}
                             </button>
                         ))}
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    <div className="relative w-64 hidden xl:block">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                        <input type="text" placeholder="Search Subjects..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-3 text-[10px] text-white uppercase outline-none focus:border-indigo-500/50" />
+                    <div className="relative w-64 hidden md:block">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input type="text" placeholder="Search Subjects..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm text-white outline-none focus:border-indigo-500" />
                     </div>
-                    <button onClick={() => setIsScheduleOpen(true)} className="px-6 py-3 bg-white/5 border border-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all">
-                        + Schedule Flow
+                    <button onClick={() => setIsScheduleOpen(true)} className="px-5 py-2 border border-white/20 text-white rounded-lg text-xs font-bold tracking-wider hover:bg-white/10 transition-colors">
+                        + SCHEDULE FLOW
                     </button>
-                    <button onClick={() => setIsProblemModalOpen(true)} className="px-6 py-3 bg-red-600/20 text-red-500 border border-red-500/30 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600/30 transition-all shadow-xl shadow-red-900/10">
-                        + Report Problem
+                    <button onClick={() => setIsProblemModalOpen(true)} className="px-5 py-2 border border-red-500/50 text-red-400 rounded-lg text-xs font-bold tracking-wider hover:bg-red-500/10 transition-colors">
+                        + REPORT PROBLEM
                     </button>
                 </div>
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+            <div className="flex-1 flex overflow-hidden">
                 {viewMode === 'Timeline' ? (
                     <>
                         {/* Sidebar */}
-                        <div className="w-full lg:w-80 h-[200px] lg:h-full border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col bg-white/[0.01] shrink-0">
-                            <div className="flex-1 overflow-x-auto lg:overflow-y-auto no-scrollbar p-4 lg:p-6 space-y-4">
+                        <div className="w-80 h-full border-r border-white/10 bg-[#0f172a] flex flex-col shrink-0">
+                            <div className="flex-1 overflow-y-auto w-[250px] p-4 space-y-2">
                                 {filteredParticipants.map(p => (
-                                    <button key={p.id} onClick={() => setSelectedParticipantId(p.id)} className={`w-full text-left p-6 rounded-[2rem] border transition-all relative group overflow-hidden ${selectedParticipantId === p.id ? 'bg-indigo-600/10 border-indigo-500' : 'bg-white/5 border-white/5 hover:border-white/10'}`}>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-[12px] font-black text-white italic uppercase tracking-wider">{p.id}</span>
-                                            <div className={`w-2 h-2 rounded-full ${p.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-500'}`} />
+                                    <button key={p.id} onClick={() => setSelectedParticipantId(p.id)} className={`w-full text-left p-4 rounded-xl border transition-colors ${selectedParticipantId === p.id ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-transparent border-transparent hover:bg-white/[0.03]'}`}>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-sm font-bold text-white">{p.participant_sid}</span>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${p.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-500'}`} />
                                         </div>
-                                        <p className="text-[10px] text-indigo-400/60 font-black uppercase tracking-widest italic truncate">{p.coordinator}</p>
+                                        <p className="text-xs font-medium text-slate-300 truncate">{p.name}</p>
+                                        <p className="text-[10px] text-slate-500 mt-1 truncate">[{p.protocol_id}] {p.study}</p>
                                     </button>
                                 ))}
                             </div>
                         </div>
 
                         {/* Center Panel */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-12 bg-[#0B101B]">
+                        <div className="flex-1 overflow-y-auto p-8 lg:p-12 bg-[#0B101B]">
                             {!selectedParticipant ? (
-                                <div className="h-full flex flex-col items-center justify-center text-center opacity-20">
-                                    <Users className="w-20 h-20 mb-6" />
-                                    <p className="text-[10px] uppercase font-black tracking-widest">Select Subject to View Pipeline</p>
+                                <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
+                                    <p className="text-sm font-medium text-slate-400">Select a subject to view timeline</p>
                                 </div>
                             ) : (
-                                <div className="max-w-4xl mx-auto space-y-16">
-                                    <section>
-                                        <div className="flex items-end justify-between mb-12">
-                                            <div>
-                                                <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter">Clinical Execution</h3>
-                                                <p className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.3em] mt-2 italic">{selectedParticipant.id} • {selectedParticipant.study}</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="relative flex items-center justify-between px-10">
-                                            <div className="absolute left-10 right-10 top-[calc(50%-12px)] h-px bg-white/5" />
-                                            {selectedParticipant.visits.map(v => (
-                                                <button key={v.id} onClick={() => setSelectedVisitId(v.id)} className="relative flex flex-col items-center gap-4 z-10 group">
-                                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border-4 transition-all ${v.id === selectedVisitId ? 'bg-indigo-600 border-indigo-400 shadow-[0_0_30px_rgba(99,102,241,0.4)]' : 'bg-white/5 border-white/5'}`}>
-                                                        {v.status === 'Completed' ? <Check className="w-6 h-6 text-emerald-400" /> : <div className="w-3 h-3 rounded-full bg-slate-700" />}
-                                                    </div>
-                                                    <div className="text-center">
-                                                        <p className="text-[10px] text-white font-black italic">{v.name}</p>
-                                                        <p className="text-[9px] text-slate-600 uppercase font-black mt-1">{v.scheduledDate}</p>
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </section>
+                                <div className="max-w-4xl mx-auto">
+                                    {/* Subject Header */}
+                                    <div className="mb-12">
+                                        <h3 className="text-2xl font-bold text-white mb-2 uppercase">{selectedParticipant.name}</h3>
+                                        <p className="text-xs text-slate-400 tracking-wide">
+                                            SID: {selectedParticipant.participant_sid} &bull; [{selectedParticipant.protocol_id}] {selectedParticipant.study}
+                                        </p>
+                                    </div>
 
                                     {/* Stats Grid */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                                        <div className="p-8 bg-indigo-500/5 border border-indigo-500/10 rounded-[2.5rem] flex items-center gap-6">
-                                            <Activity className="w-10 h-10 text-indigo-500" />
+                                    <div className="grid grid-cols-2 gap-6 mb-12">
+                                        <div className="p-6 bg-[#0f172a] border border-white/10 rounded-2xl flex items-center gap-5">
+                                            <Activity className="w-8 h-8 text-indigo-400" />
                                             <div>
-                                                <p className="text-[10px] text-indigo-400 font-black uppercase tracking-widest italic">Protocol Progress</p>
-                                                <p className="text-4xl font-black text-white italic tracking-tighter mt-1">{Math.round((selectedParticipant.visits.filter(v => v.status === 'Completed').length / (selectedParticipant.visits.length || 1)) * 100)}%</p>
+                                                <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Protocol Progress</p>
+                                                <p className="text-3xl font-bold text-white">{(selectedParticipant.visits && selectedParticipant.visits.length > 0) ? Math.round((selectedParticipant.visits.filter(v => v.status === 'Completed').length / selectedParticipant.visits.length) * 100) : 0}%</p>
                                             </div>
                                         </div>
-                                        <div className="p-8 bg-white/5 border border-white/5 rounded-[2.5rem] flex flex-col justify-center">
-                                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest italic mb-2">Next Target window</p>
-                                            <p className="text-sm font-black text-white italic uppercase tracking-tight">{selectedParticipant.nextVisitDue}</p>
+                                        <div className="p-6 bg-[#0f172a] border border-white/10 rounded-2xl flex flex-col justify-center">
+                                            <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-2">Next Target Window</p>
+                                            <p className="text-lg font-bold text-white uppercase">{selectedParticipant.nextVisitDue !== 'N/A' ? new Date(selectedParticipant.nextVisitDue).toLocaleDateString() : 'Not Available'}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Horizontal Timeline */}
+                                    <div className="relative pt-6">
+                                        <div className="absolute left-0 right-0 top-[40px] h-px bg-white/10" />
+                                        <div className="flex justify-between items-start w-full relative z-10 px-8">
+                                            {selectedParticipant.visits.length > 0 ? selectedParticipant.visits.map(v => (
+                                                <button key={v.id} onClick={() => setSelectedVisitId(v.id)} className="flex flex-col items-center gap-3 w-24">
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${v.id === selectedVisitId ? 'bg-indigo-600 border-indigo-400' : 'bg-[#0f172a] border-white/20'}`}>
+                                                        {v.status === 'Completed' ? <Check className="w-4 h-4 text-emerald-400" /> : <div className="w-2 h-2 rounded-full bg-slate-500" />}
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <p className="text-[11px] text-white font-semibold truncate w-full">{v.name}</p>
+                                                        <p className="text-[10px] text-slate-500 mt-1">
+                                                            {v.scheduledDate ? new Date(v.scheduledDate).toLocaleDateString() : 'Pending'}
+                                                        </p>
+                                                    </div>
+                                                </button>
+                                            )) : (
+                                                <div className="w-full py-8 text-center"><p className="text-sm text-slate-500 font-medium tracking-wide">No visits scheduled for this participant</p></div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -570,50 +613,50 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                         </div>
 
                         {/* Right Panel */}
-                        <div className="w-full lg:w-[450px] border-t lg:border-t-0 lg:border-l border-white/5 flex flex-col bg-white/[0.02] shrink-0">
+                        <div className="w-[450px] border-l border-white/10 bg-[#0f172a] flex flex-col shrink-0">
                             {!selectedVisit ? (
-                                <div className="flex-1 flex flex-col items-center justify-center opacity-10">
-                                    <Stethoscope className="w-16 h-16 mb-4" />
-                                    <p className="text-[10px] font-black uppercase tracking-widest italic">Awaiting Selection</p>
+                                <div className="flex-1 flex flex-col items-center justify-center opacity-50">
+                                    <Stethoscope className="w-12 h-12 mb-4 text-slate-500" />
+                                    <p className="text-sm font-medium tracking-wide text-slate-400">Awaiting Selection</p>
                                 </div>
                             ) : (
                                 <>
-                                    <div className="p-8 border-b border-white/5 bg-white/[0.01]">
-                                        <div className="flex items-center justify-between mb-8">
+                                    <div className="p-6 border-b border-white/10">
+                                        <div className="flex items-center justify-between mb-4">
                                             <div>
-                                                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">{selectedVisit.name}</h4>
-                                                <p className="text-lg font-black text-white italic uppercase tracking-tighter mt-1">Core Metrics</p>
+                                                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">{selectedVisit.name}</h4>
+                                                <p className="text-xl font-bold text-white mt-1">Core Metrics</p>
                                             </div>
-                                            <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] bg-${getStatusColor(selectedVisit.status)}-500/10 text-${getStatusColor(selectedVisit.status)}-400 border border-${getStatusColor(selectedVisit.status)}-500/20`}>
+                                            <span className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${selectedVisit.status === 'Completed' ? 'bg-emerald-500/20 text-emerald-400' : selectedVisit.status === 'Scheduled' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-red-500/20 text-red-400'}`}>
                                                 {selectedVisit.status}
                                             </span>
                                         </div>
-                                        <div className="flex gap-4">
-                                            <button className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-[1.02] transition-all">Capture Vitals</button>
-                                            <button className="p-4 bg-white/5 rounded-2xl border border-white/10"><MoreHorizontal className="w-5 h-5 text-slate-500"/></button>
+                                        <div className="flex gap-3">
+                                            <button className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold uppercase tracking-widest transition-colors">Capture Vitals</button>
+                                            <button className="p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"><MoreHorizontal className="w-4 h-4 text-slate-400" /></button>
                                         </div>
                                     </div>
 
-                                    <div className="flex-1 overflow-y-auto no-scrollbar p-8 space-y-4">
+                                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
                                         {/* Accordion 1: Visit Checklist */}
-                                        <div className="border border-white/5 rounded-[2rem] overflow-hidden bg-white/[0.01]">
-                                            <button 
+                                        <div className="border border-white/10 rounded-xl overflow-hidden bg-[#0B101B]">
+                                            <button
                                                 onClick={() => setOpenAccordion(openAccordion === 'Checklist' ? null : 'Checklist')}
-                                                className="w-full flex items-center justify-between p-6 hover:bg-white/5 transition-colors"
+                                                className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
                                             >
-                                                <div className="flex items-center gap-4">
-                                                    <Clipboard className="w-4 h-4 text-indigo-400" />
-                                                    <span className="text-[10px] font-black text-white uppercase italic tracking-widest">Protocol Checklist</span>
+                                                <div className="flex items-center gap-3">
+                                                    <Clipboard className="w-4 h-4 text-slate-400" />
+                                                    <span className="text-xs font-semibold text-white tracking-wide">Protocol Checklist</span>
                                                 </div>
-                                                {openAccordion === 'Checklist' ? <ChevronUp className="w-4 h-4 text-slate-600" /> : <ChevronDown className="w-4 h-4 text-slate-600" />}
+                                                {openAccordion === 'Checklist' ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
                                             </button>
                                             {openAccordion === 'Checklist' && (
-                                                <div className="px-6 pb-6 space-y-3">
+                                                <div className="px-4 pb-4 space-y-2">
                                                     {(selectedVisit?.checklist || []).map((item, idx) => (
-                                                        <div key={idx} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
-                                                            <span className={`text-[11px] font-bold italic uppercase tracking-tight ${item.done ? 'text-slate-400' : 'text-white'}`}>{item.item}</span>
-                                                            <div className={`w-5 h-5 rounded-lg border flex items-center justify-center ${item.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-transparent border-white/10'}`}>
-                                                                {item.done && <Check className="w-3.5 h-3.5" />}
+                                                        <div key={idx} className="flex items-center justify-between p-3 bg-white/[0.02] rounded-lg border border-white/5">
+                                                            <span className={`text-xs font-medium tracking-wide ${item.done ? 'text-slate-500' : 'text-slate-300'}`}>{item.item}</span>
+                                                            <div className={`w-4 h-4 rounded flex items-center justify-center ${item.done ? 'bg-emerald-500 text-white' : 'bg-transparent border border-white/20'}`}>
+                                                                {item.done && <Check className="w-3 h-3" />}
                                                             </div>
                                                         </div>
                                                     ))}
@@ -622,106 +665,105 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                         </div>
 
                                         {/* Accordion 2: Vitals */}
-                                        <div className="border border-white/5 rounded-[2rem] overflow-hidden bg-white/[0.01]">
-                                            <button 
+                                        <div className="border border-white/10 rounded-xl overflow-hidden bg-[#0B101B]">
+                                            <button
                                                 onClick={() => setOpenAccordion(openAccordion === 'Vitals' ? null : 'Vitals')}
-                                                className="w-full flex items-center justify-between p-6 hover:bg-white/5 transition-colors"
+                                                className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
                                             >
-                                                <div className="flex items-center gap-4">
-                                                    <Activity className="w-4 h-4 text-indigo-400" />
-                                                    <span className="text-[10px] font-black text-white uppercase italic tracking-widest">Vitals & Metrics</span>
+                                                <div className="flex items-center gap-3">
+                                                    <Activity className="w-4 h-4 text-slate-400" />
+                                                    <span className="text-xs font-semibold text-white tracking-wide">Vitals & Metrics</span>
                                                 </div>
-                                                {openAccordion === 'Vitals' ? <ChevronUp className="w-4 h-4 text-slate-600" /> : <ChevronDown className="w-4 h-4 text-slate-600" />}
+                                                {openAccordion === 'Vitals' ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
                                             </button>
                                             {openAccordion === 'Vitals' && (
-                                                <div className="px-6 pb-6 space-y-4">
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                                                            <p className="text-[9px] text-slate-600 uppercase font-black mb-1">Weight (kg)</p>
-                                                            <input 
-                                                                type="number" 
-                                                                value={tempVitals.weight} 
+                                                <div className="px-4 pb-4 space-y-3">
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div className="p-3 bg-white/[0.02] rounded-lg border border-white/5">
+                                                            <p className="text-[10px] text-slate-500 uppercase font-semibold mb-1">Weight (kg)</p>
+                                                            <input
+                                                                type="number"
+                                                                value={tempVitals.weight}
                                                                 onChange={e => setTempVitals(prev => ({ ...prev, weight: parseFloat(e.target.value) || 0 }))}
-                                                                className="w-full bg-transparent text-lg font-black text-white outline-none"
+                                                                className="w-full bg-transparent text-sm font-semibold text-white outline-none"
                                                             />
                                                         </div>
-                                                        <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                                                            <p className="text-[9px] text-slate-600 uppercase font-black mb-1">Height (m)</p>
-                                                            <input 
-                                                                type="number" 
-                                                                value={tempVitals.height} 
+                                                        <div className="p-3 bg-white/[0.02] rounded-lg border border-white/5">
+                                                            <p className="text-[10px] text-slate-500 uppercase font-semibold mb-1">Height (m)</p>
+                                                            <input
+                                                                type="number"
+                                                                value={tempVitals.height}
                                                                 onChange={e => setTempVitals(prev => ({ ...prev, height: parseFloat(e.target.value) || 0 }))}
-                                                                className="w-full bg-transparent text-lg font-black text-white outline-none"
+                                                                className="w-full bg-transparent text-sm font-semibold text-white outline-none"
                                                             />
                                                         </div>
                                                     </div>
-                                                    <div className="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl flex justify-between items-center">
+                                                    <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg flex justify-between items-center">
                                                         <div>
-                                                            <p className="text-[9px] text-indigo-400 font-black uppercase">Calculated BMI</p>
-                                                            <p className="text-xl font-black text-white italic">{bmi}</p>
+                                                            <p className="text-[10px] text-indigo-300 font-semibold uppercase">Calculated BMI</p>
+                                                            <p className="text-lg font-bold text-indigo-400">{bmi}</p>
                                                         </div>
-                                                        <span className="px-2 py-1 bg-indigo-600/20 text-indigo-400 text-[8px] font-black uppercase tracking-widest rounded">Stable</span>
+                                                        <span className="px-2 py-1 bg-indigo-500/20 text-indigo-300 text-[10px] font-bold uppercase rounded">Stable</span>
                                                     </div>
                                                 </div>
                                             )}
                                         </div>
-                                        
+
                                         {/* Accordion 3: Medication */}
-                                        <div className="border border-white/5 rounded-[2rem] overflow-hidden bg-white/[0.01]">
-                                            <button 
+                                        <div className="border border-white/10 rounded-xl overflow-hidden bg-[#0B101B]">
+                                            <button
                                                 onClick={() => setOpenAccordion(openAccordion === 'Meds' ? null : 'Meds')}
-                                                className="w-full flex items-center justify-between p-6 hover:bg-white/5 transition-colors"
+                                                className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
                                             >
-                                                <div className="flex items-center gap-4">
-                                                    <Droplet className="w-4 h-4 text-indigo-400" />
-                                                    <span className="text-[10px] font-black text-white uppercase italic tracking-widest">Medication Tracking</span>
+                                                <div className="flex items-center gap-3">
+                                                    <Droplet className="w-4 h-4 text-slate-400" />
+                                                    <span className="text-xs font-semibold text-white tracking-wide">Medication Tracking</span>
                                                 </div>
-                                                {openAccordion === 'Meds' ? <ChevronUp className="w-4 h-4 text-slate-600" /> : <ChevronDown className="w-4 h-4 text-slate-600" />}
+                                                {openAccordion === 'Meds' ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
                                             </button>
                                             {openAccordion === 'Meds' && (
-                                                <div className="px-6 pb-6 space-y-4">
-                                                    <div className="p-4 border border-white/5 rounded-2xl bg-white/5">
-                                                        <p className="text-[9px] text-slate-500 uppercase font-black mb-1">Active Dispensation</p>
-                                                        <p className="text-sm font-black text-white uppercase italic">{selectedVisit?.meds?.dispensed || 'No medication assigned'}</p>
+                                                <div className="px-4 pb-4">
+                                                    <div className="p-3 border border-white/5 rounded-lg bg-white/[0.02]">
+                                                        <p className="text-[10px] text-slate-500 uppercase font-semibold mb-1">Active Dispensation</p>
+                                                        <p className="text-sm font-semibold text-white">{selectedVisit?.meds?.dispensed || 'No medication assigned'}</p>
                                                         <div className="mt-2 flex items-center gap-2">
-                                                            <span className="text-[9px] text-slate-600 uppercase">Compliance:</span>
-                                                            <span className="text-[9px] text-indigo-400 font-bold">{selectedVisit?.meds?.compliance || 0}%</span>
+                                                            <span className="text-[10px] text-slate-400">Compliance:</span>
+                                                            <span className="text-[10px] font-bold text-slate-300">{selectedVisit?.meds?.compliance || 0}%</span>
                                                         </div>
                                                     </div>
                                                 </div>
                                             )}
                                         </div>
-                                        
+
                                         {/* Accordion 4: Medical Concerns */}
-                                        <div className="border border-white/5 rounded-[2rem] overflow-hidden bg-white/[0.01]">
-                                            <button 
+                                        <div className="border border-white/10 rounded-xl overflow-hidden bg-[#0B101B]">
+                                            <button
                                                 onClick={() => setOpenAccordion(openAccordion === 'Concerns' ? null : 'Concerns')}
-                                                className="w-full flex items-center justify-between p-6 hover:bg-white/5 transition-colors"
+                                                className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
                                             >
-                                                <div className="flex items-center gap-4">
-                                                    <ShieldAlert className="w-4 h-4 text-red-400" />
-                                                    <span className="text-[10px] font-black text-white uppercase italic tracking-widest">Medical Concerns</span>
+                                                <div className="flex items-center gap-3">
+                                                    <ShieldAlert className="w-4 h-4 text-slate-400" />
+                                                    <span className="text-xs font-semibold text-white tracking-wide">Medical Concerns</span>
                                                 </div>
-                                                {openAccordion === 'Concerns' ? <ChevronUp className="w-4 h-4 text-slate-600" /> : <ChevronDown className="w-4 h-4 text-slate-600" />}
+                                                {openAccordion === 'Concerns' ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
                                             </button>
                                             {openAccordion === 'Concerns' && (
-                                                <div className="px-6 pb-6 space-y-4">
+                                                <div className="px-4 pb-4 space-y-3">
                                                     {(selectedParticipant?.aeReports || []).length === 0 ? (
-                                                        <p className="text-[10px] text-slate-600 italic text-center py-4 uppercase font-black tracking-widest">No active medical findings</p>
+                                                        <p className="text-xs text-slate-500 text-center py-2">No active medical findings</p>
                                                     ) : (
                                                         selectedParticipant?.aeReports.map((ae, idx) => (
-                                                            <div key={idx} className="p-4 border border-white/5 rounded-2xl bg-white/5 space-y-2">
+                                                            <div key={idx} className="p-3 border border-white/5 rounded-lg bg-white/[0.02] space-y-2">
                                                                 <div className="flex items-center justify-between">
-                                                                    <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${
-                                                                        ae.severity === 'SEVERE' ? 'bg-red-500/20 text-red-400' : 
+                                                                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${ae.severity === 'SEVERE' ? 'bg-red-500/20 text-red-400' :
                                                                         ae.severity === 'MODERATE' ? 'bg-orange-500/20 text-orange-400' : 'bg-blue-500/20 text-blue-400'
-                                                                    }`}>{ae.severity}</span>
-                                                                    <span className="text-[8px] text-slate-600 font-black uppercase tracking-widest">{new Date(ae.start_date).toLocaleDateString()}</span>
+                                                                        }`}>{ae.severity}</span>
+                                                                    <span className="text-[10px] text-slate-500">{new Date(ae.start_date).toLocaleDateString()}</span>
                                                                 </div>
-                                                                <p className="text-[11px] font-bold text-white uppercase italic leading-relaxed">{ae.description}</p>
-                                                                <div className="flex items-center gap-2 mt-2">
-                                                                    <span className="text-[8px] text-slate-600 uppercase font-black">Action:</span>
-                                                                    <span className="text-[8px] text-indigo-400 font-bold uppercase">{ae.action_taken || 'Monitoring'}</span>
+                                                                <p className="text-xs text-slate-300">{ae.description}</p>
+                                                                <div className="flex items-center gap-2 mt-1">
+                                                                    <span className="text-[10px] text-slate-500">Action:</span>
+                                                                    <span className="text-[10px] text-slate-300 font-medium">{ae.action_taken || 'Monitoring'}</span>
                                                                 </div>
                                                             </div>
                                                         ))
@@ -731,13 +773,13 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                         </div>
                                     </div>
 
-                                    <div className="p-8 border-t border-white/5 mt-auto bg-[#0B101B]/95 backdrop-blur-xl">
-                                        <div className="flex flex-col md:flex-row gap-4">
-                                            <button onClick={() => handleSignOff('Approve')} className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-900/40 hover:scale-[1.02] transition-all">
+                                    <div className="p-6 border-t border-white/10 bg-[#0f172a]">
+                                        <div className="flex gap-3">
+                                            <button onClick={() => handleSignOff('Approve')} className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors">
                                                 Approve Visit
                                             </button>
-                                            <button onClick={() => handleSignOff('Flag')} className="p-4 bg-white/5 border border-white/5 text-red-500/60 rounded-2xl hover:text-red-400 transition-all">
-                                                <Flag className="w-5 h-5" />
+                                            <button onClick={() => handleSignOff('Flag')} className="px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-red-400 rounded-lg transition-colors">
+                                                <Flag className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </div>
@@ -754,90 +796,127 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
             <AnimatePresence>
                 {isScheduleOpen && (
                     <>
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsScheduleOpen(false)} className="fixed inset-0 bg-black/90 backdrop-blur-lg z-[100]" />
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] bg-[#0B101B] border border-white/10 rounded-[3rem] z-[101] p-12 space-y-8 shadow-2xl">
-                             <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Clinical Scheduling</h3>
-                             <div className="space-y-6">
-                                 <div className="space-y-2">
-                                     <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Target Participant</label>
-                                     <select value={scheduleData.participantId} onChange={e => setScheduleData(prev => ({ ...prev, participantId: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white uppercase text-[12px] outline-none">
-                                         <option value="">Select Subject</option>
-                                         {participants.map(p => <option key={p.id} value={p.id}>{p.id}</option>)}
-                                     </select>
-                                 </div>
-                                 <div className="grid grid-cols-2 gap-6">
-                                     <input type="date" value={scheduleData.date} onChange={e => setScheduleData(prev => ({ ...prev, date: e.target.value }))} className="bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-[12px]" />
-                                     <input type="time" value={scheduleData.time} onChange={e => setScheduleData(prev => ({ ...prev, time: e.target.value }))} className="bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-[12px]" />
-                                 </div>
-                                 <button onClick={handleScheduleConfirm} className="w-full py-5 bg-indigo-600 text-white rounded-3xl text-[12px] font-black uppercase tracking-widest shadow-2xl hover:scale-[1.02] transition-all">
-                                     Confirm Deployment
-                                 </button>
-                             </div>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsScheduleOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]" />
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] bg-[#1e293b] border border-white/10 rounded-xl z-[101] p-8 shadow-2xl">
+                            <h3 className="text-xl font-bold text-white mb-6">Schedule Clinical Visit</h3>
+                            <div className="space-y-5">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs text-slate-400 font-semibold tracking-wide">Target Participant</label>
+                                    <select value={scheduleData.participantId} onChange={e => setScheduleData(prev => ({ ...prev, participantId: e.target.value }))} className="w-full bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white text-sm outline-none focus:border-indigo-500">
+                                        <option value="">Select Subject...</option>
+                                        {participants.map(p => <option key={p.id} value={p.id}>{p.name} ({p.participant_sid})</option>)}
+                                    </select>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs text-slate-400 font-semibold tracking-wide">Visit Type</label>
+                                        <select value={scheduleData.visitType} onChange={e => setScheduleData(prev => ({ ...prev, visitType: e.target.value }))} className="w-full bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white text-sm outline-none focus:border-indigo-500">
+                                            <option value="SCREENING">Screening Visit</option>
+                                            <option value="BASELINE">Baseline Visit</option>
+                                            <option value="FOLLOW_UP">Follow-up Visit</option>
+                                            <option value="FINAL">Final Visit</option>
+                                            <option value="UNSCHEDULED">Unscheduled Visit</option>
+                                            <option value="ONBOARDING">Onboarding Call</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs text-slate-400 font-semibold tracking-wide">Visit Mode</label>
+                                        <select value={scheduleData.location} onChange={e => setScheduleData(prev => ({ ...prev, location: e.target.value }))} className="w-full bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white text-sm outline-none focus:border-indigo-500">
+                                            <option value="Clinic">In-Clinic Visit</option>
+                                            <option value="Virtual">Telehealth / Virtual</option>
+                                            <option value="Home Visit">At-Home Visit</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs text-slate-400 font-semibold tracking-wide">Specific Address / Room Details</label>
+                                    <input 
+                                        type="text" 
+                                        value={scheduleData.locationAddress} 
+                                        onChange={e => setScheduleData(prev => ({ ...prev, locationAddress: e.target.value }))} 
+                                        placeholder="e.g., Level 4, Clinical Suite 102"
+                                        className="w-full bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white text-sm outline-none focus:border-indigo-500" 
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs text-slate-400 font-semibold tracking-wide">Date</label>
+                                        <input type="date" value={scheduleData.date} onChange={e => setScheduleData(prev => ({ ...prev, date: e.target.value }))} className="w-full bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white text-sm focus:border-indigo-500" />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs text-slate-400 font-semibold tracking-wide">Local Time</label>
+                                        <input type="time" value={scheduleData.time} onChange={e => setScheduleData(prev => ({ ...prev, time: e.target.value }))} className="w-full bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white text-sm focus:border-indigo-500" />
+                                    </div>
+                                </div>
+                                <button onClick={handleScheduleConfirm} className="w-full mt-2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold tracking-wide transition-colors">
+                                    Confirm Schedule
+                                </button>
+                            </div>
                         </motion.div>
                     </>
                 )}
                 {isProblemModalOpen && (
                     <>
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsProblemModalOpen(false)} className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[100]" />
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] bg-[#0B101B] border border-white/10 rounded-[3rem] z-[101] p-12 space-y-8 shadow-2xl">
-                             <div className="flex items-center gap-4">
-                                <ShieldAlert className="w-8 h-8 text-red-500" />
-                                <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Clinical Concern <span className="text-red-500">Notice</span></h3>
-                             </div>
-                             
-                             <div className="space-y-6">
-                                 <div className="space-y-2">
-                                     <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest italic">Problem Description</label>
-                                     <textarea 
-                                        value={problemData.description} 
-                                        onChange={e => setProblemData(prev => ({ ...prev, description: e.target.value }))} 
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsProblemModalOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]" />
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] bg-[#1e293b] border border-white/10 rounded-xl z-[101] p-8 shadow-2xl">
+                            <div className="flex items-center gap-3 mb-6">
+                                <ShieldAlert className="w-6 h-6 text-red-500" />
+                                <h3 className="text-xl font-bold text-white">Report Clinical Concern</h3>
+                            </div>
+
+                            <div className="space-y-5">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs text-slate-400 font-semibold tracking-wide">Problem Description</label>
+                                    <textarea
+                                        value={problemData.description}
+                                        onChange={e => setProblemData(prev => ({ ...prev, description: e.target.value }))}
                                         placeholder="Describe the clinical finding or symptom..."
-                                        className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-[12px] outline-none focus:border-red-500/50 transition-colors resize-none"
-                                     />
-                                 </div>
+                                        className="w-full h-24 bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white text-sm outline-none focus:border-red-500/50 resize-none"
+                                    />
+                                </div>
 
-                                 <div className="grid grid-cols-2 gap-6">
-                                     <div className="space-y-2">
-                                         <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest italic">Severity Rating</label>
-                                         <select 
-                                            value={problemData.severity} 
-                                            onChange={e => setProblemData(prev => ({ ...prev, severity: e.target.value as any }))} 
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white uppercase text-[12px] outline-none"
-                                         >
-                                             <option value="MILD">Mild</option>
-                                             <option value="MODERATE">Moderate</option>
-                                             <option value="SEVERE">Severe</option>
-                                         </select>
-                                     </div>
-                                     <div className="space-y-2">
-                                         <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest italic">Product Relation</label>
-                                         <select 
-                                            value={problemData.related_to_product} 
-                                            onChange={e => setProblemData(prev => ({ ...prev, related_to_product: e.target.value as any }))} 
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white uppercase text-[12px] outline-none"
-                                         >
-                                             <option value="YES">Related</option>
-                                             <option value="NO">Not Related</option>
-                                             <option value="UNSURE">Unsure</option>
-                                         </select>
-                                     </div>
-                                 </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs text-slate-400 font-semibold tracking-wide">Severity</label>
+                                        <select
+                                            value={problemData.severity}
+                                            onChange={e => setProblemData(prev => ({ ...prev, severity: e.target.value as any }))}
+                                            className="w-full bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white text-sm outline-none focus:border-red-500/50"
+                                        >
+                                            <option value="MILD">Mild</option>
+                                            <option value="MODERATE">Moderate</option>
+                                            <option value="SEVERE">Severe</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs text-slate-400 font-semibold tracking-wide">Product Related</label>
+                                        <select
+                                            value={problemData.related_to_product}
+                                            onChange={e => setProblemData(prev => ({ ...prev, related_to_product: e.target.value as any }))}
+                                            className="w-full bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white text-sm outline-none focus:border-red-500/50"
+                                        >
+                                            <option value="YES">Yes</option>
+                                            <option value="NO">No</option>
+                                            <option value="UNSURE">Unsure</option>
+                                        </select>
+                                    </div>
+                                </div>
 
-                                 <div className="space-y-2">
-                                     <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest italic">Immediate Action Taken</label>
-                                     <input 
+                                <div className="space-y-1.5">
+                                    <label className="text-xs text-slate-400 font-semibold tracking-wide">Immediate Action Taken</label>
+                                    <input
                                         type="text"
-                                        value={problemData.action_taken} 
-                                        onChange={e => setProblemData(prev => ({ ...prev, action_taken: e.target.value }))} 
-                                        placeholder="e.g., Hospital referral, Dose reduction..."
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-[12px] outline-none focus:border-indigo-500/50 transition-colors"
-                                     />
-                                 </div>
+                                        value={problemData.action_taken}
+                                        onChange={e => setProblemData(prev => ({ ...prev, action_taken: e.target.value }))}
+                                        placeholder="e.g., Medication prescribed..."
+                                        className="w-full bg-[#0f172a] border border-white/10 rounded-lg p-3 text-white text-sm outline-none focus:border-red-500/50"
+                                    />
+                                </div>
 
-                                 <button onClick={handleProblemConfirm} className="w-full py-5 bg-red-600 text-white rounded-3xl text-[12px] font-black uppercase tracking-widest shadow-2xl hover:scale-[1.02] transition-all">
-                                     Submit Medical Record
-                                 </button>
-                             </div>
+                                <button onClick={handleProblemConfirm} className="w-full mt-2 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-bold tracking-wide transition-colors">
+                                    Submit Report
+                                </button>
+                            </div>
                         </motion.div>
                     </>
                 )}

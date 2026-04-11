@@ -192,7 +192,14 @@ STORAGES = {
 CORS_ALLOW_CREDENTIALS = True
 
 # Base allowed origins for local development
-BASE_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
+BASE_ORIGINS = [
+    "http://localhost:5173", 
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000"
+]
 
 if DEBUG:
     CORS_ALLOWED_ORIGINS = BASE_ORIGINS
@@ -211,11 +218,12 @@ else:
     # Use the primary website domain for emails/links if FRONTEND_URL environment variable is missing
     FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://musbhealth.com').strip()
 
-CORS_ALLOW_HEADERS = [
-    "authorization",
-    "content-type",
-    "x-csrftoken",
-]
+# CORS_ALLOW_HEADERS = [
+#     "authorization",
+#     "content-type",
+#     "x-csrftoken",
+# ]
+
 
 # Default primary key field type (MongoDB ObjectId)
 DEFAULT_AUTO_FIELD = 'django_mongodb_backend.fields.ObjectIdAutoField'
@@ -272,6 +280,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 50,
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle'

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, UserPlus, Eye, Edit2, Shield, MoreVertical, Building2, Loader2, X, ShieldAlert, Mail, History } from 'lucide-react';
-import { authFetch , API } from '../../utils/auth';
+import { authFetch , API, revealValue } from '../../utils/auth';
 
 interface Sponsor {
   id: string;
@@ -43,9 +43,9 @@ export default function SponsorsManagement({ allUsers = [], allStudies = [], onR
       .map(u => ({
         id: u.id,
         raw: u,
-        name: u.full_name || u.name || 'Unnamed Sponsor',
-        email: u.email,
-        company: (u as any).company || 'PharmaCorp / CRO',
+        name: revealValue(u.full_name, u.decrypted_name) || revealValue(u.name, u.decrypted_name) || (u.email ? u.email.split('@')[0] : 'Unnamed Sponsor'),
+        email: revealValue(u.email) || u.email || 'unknown@domain',
+        company: revealValue((u as any).company) || (u as any).company || 'PharmaCorp / CRO',
         status: (u as any).status === 'Suspended' ? 'Inactive' : 'Active',
         studies: allStudies
           .filter(s => s.sponsor === u.id || s.sponsor_id === u.id)

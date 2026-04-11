@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { 
-    Rocket, Beaker, UsersRound, Bell, Calendar, 
-    ArrowUpRight, ChevronLeft, ChevronRight 
+import {
+    Plus, Beaker, Users, Bell, Calendar as CalendarIcon,
+    ChevronLeft, ChevronRight, Clock, Phone, FileText
 } from 'lucide-react';
 
 interface Stats {
@@ -30,19 +30,19 @@ interface OversightModuleProps {
     onNavigate: (id: string) => void;
 }
 
-export const OperationsOversight: React.FC<OversightModuleProps> = ({ 
-    studyCount, 
-    stats, 
-    currentTime, 
-    visits, 
-    onLaunch, 
-    onNavigate 
+export const OperationsOversight: React.FC<OversightModuleProps> = ({
+    studyCount,
+    stats,
+    currentTime,
+    visits,
+    onLaunch,
+    onNavigate
 }) => {
     const [viewDate, setViewDate] = useState(new Date());
 
     const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
     const firstDayOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay();
-    
+
     const calendarDays = Array.from({ length: 42 }, (_, i) => {
         const day = i - firstDayOfMonth + 1;
         if (day <= 0 || day > daysInMonth) return null;
@@ -52,97 +52,111 @@ export const OperationsOversight: React.FC<OversightModuleProps> = ({
     const getVisitsForDay = (date: Date) => {
         return visits.filter(v => {
             const vDate = new Date(v.scheduled_date);
-            return vDate.getDate() === date.getDate() && 
-                   vDate.getMonth() === date.getMonth() && 
-                   vDate.getFullYear() === date.getFullYear();
+            return vDate.getDate() === date.getDate() &&
+                vDate.getMonth() === date.getMonth() &&
+                vDate.getFullYear() === date.getFullYear();
         });
     };
 
     return (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-16">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/5">
-                <div className="space-y-4">
-                    <h2 className="text-2xl md:text-3xl font-black text-white italic uppercase tracking-tight leading-none">Operations <span className="text-[#14b8a6]">Oversight</span></h2>
-                    <p className="text-[11px] text-white/40 font-bold uppercase tracking-[0.4em] italic leading-none">Clinical Research Execution & Velocity</p>
+        <div className="space-y-10 pt-4">
+            {/* Minimal Header */}
+            <div className="flex items-center justify-between pb-6 border-b border-white/5">
+                <div>
+                    <h1 className="text-2xl font-bold text-white tracking-tight">Daily Status</h1>
+                    <p className="text-sm text-slate-400 mt-1 font-medium opacity-50">Monitoring progress and essential tasks</p>
                 </div>
-                <button onClick={onLaunch} className="px-10 py-5 bg-[#14b8a6] text-white rounded-2xl text-[12px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-2xl shadow-teal-900/40 hover:scale-105 transition-all"><Rocket className="w-5 h-5" /> INITIALIZE STUDY</button>
+                <button
+                    onClick={onLaunch}
+                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-white text-slate-900 rounded-lg text-sm font-bold transition-all hover:bg-slate-100 active:scale-95"
+                >
+                    <Plus className="w-4 h-4" />
+                    New study
+                </button>
             </div>
 
-            {/* Premium Multi-Box KPI Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* Simplified KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
-                    { label: 'Live Protocols', val: studyCount.toString().padStart(2, '0'), icon: Beaker, color: 'teal', id: 'STUDIES' },
-                    { label: 'Active Subjects', val: stats.activeSubjects || '1,240', icon: UsersRound, color: 'indigo', id: 'PARTICIPANTS' },
-                    { label: 'System Alerts', val: '02', icon: Bell, color: 'red', id: 'ALERTS' },
-                    { label: 'Upcoming Visits', val: stats.upcomingVisits || '12', icon: Calendar, color: 'amber', id: 'VISITS' },
+                    { label: 'Active studies', val: studyCount, icon: Beaker, id: 'STUDIES', color: 'text-blue-400', bg: 'bg-blue-400/10' },
+                    { label: 'Participants', val: stats.activeSubjects, icon: Users, id: 'PARTICIPANTS', color: 'text-slate-400', bg: 'bg-slate-400/10' },
+                    { label: 'New alerts', val: stats.overdueFollowUps > 0 ? stats.overdueFollowUps.toString().padStart(2, '0') : '00', icon: Bell, id: 'ALERTS', color: 'text-rose-400', bg: 'bg-rose-400/10' },
+                    { label: 'Upcoming visits', val: stats.upcomingVisits, icon: CalendarIcon, id: 'VISITS', color: 'text-amber-400', bg: 'bg-amber-400/10' },
                 ].map((stat, i) => (
-                    <motion.div 
-                        key={i} 
-                        whileHover={{ y: -8 }}
-                        onClick={() => onNavigate(stat.id)} 
-                        className={`bg-[#0F172A] border border-white/5 p-10 rounded-[2.5rem] cursor-pointer group transition-all relative overflow-hidden flex flex-col items-center justify-center text-center`}
+                    <div
+                        key={i}
+                        onClick={() => onNavigate(stat.id)}
+                        className="bg-[#1E293B]/40 border border-white/5 p-5 rounded-2xl hover:bg-[#1E293B]/60 cursor-pointer transition-all group"
                     >
-                        <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-[#14b8a6]/5 blur-[80px] rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity`} />
-                        <div className="flex items-center justify-center mb-8 relative">
-                            <div className={`w-16 h-16 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform group-hover:border-[#14b8a6]/40`}>
-                                <stat.icon className="w-7 h-7 text-white" />
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className={`p-2 rounded-lg ${stat.bg}`}>
+                                <stat.icon className={`w-5 h-5 ${stat.color}`} />
                             </div>
-                            <ArrowUpRight className="absolute -top-2 -right-12 w-5 h-5 text-white/10 group-hover:text-white transition-colors" />
+                            <span className="text-[13px] font-black text-slate-500 tracking-wide uppercase">{stat.label}</span>
                         </div>
-                        <p className="text-5xl md:text-6xl font-black text-white italic tracking-tighter leading-none mb-4 group-hover:text-[#14b8a6] transition-colors uppercase">{stat.val}</p>
-                        <h4 className="text-[12px] font-black text-white/30 uppercase tracking-[0.3em] italic group-hover:text-white transition-colors">{stat.label}</h4>
-                    </motion.div>
-                ))}
-            </div>
-
-            {/* Secondary Operational Tier */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-                {[
-                    { label: 'Overdue Follow-ups', val: stats.overdueFollowUps, color: 'text-rose-500' },
-                    { label: 'Awaiting Callback', val: stats.awaitingCallback, color: 'text-[#14b8a6]' },
-                    { label: 'Pending Forms', val: stats.pendingForms, color: 'text-indigo-400' },
-                    { label: '60-Day Window', val: '12', color: 'text-slate-500' },
-                ].map((stat, i) => (
-                    <div key={i} className="bg-white/[0.02] border border-white/5 p-8 rounded-[1.5rem] flex flex-col items-center justify-center text-center">
-                        <p className={`text-4xl font-black italic ${stat.color} mb-2 uppercase leading-none`}>{stat.val}</p>
-                        <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">{stat.label}</p>
+                        <p className="text-4xl font-black text-white">{stat.val}</p>
                     </div>
                 ))}
             </div>
 
-            {/* Operations Calendar Section & Upcoming Events */}
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-12 pt-12 border-t border-white/5">
-                <div className="xl:col-span-8 space-y-8">
-                    <div className="flex items-center justify-between h-12">
-                        <div className="flex items-center gap-4">
-                            <div className="w-1.5 h-8 bg-[#14b8a6] rounded-full" />
-                            <h3 className="text-2xl font-black text-white italic uppercase tracking-tight leading-none">Clinical <span className="text-[#14b8a6]">Schedule</span></h3>
+            {/* Action Required - Clean Grid to use space */}
+            <div className="space-y-6">
+                <h3 className="text-sm font-black text-slate-500 tracking-widest uppercase italic">Action items Required</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {[
+                        { label: 'Late tasks', val: stats.overdueFollowUps, icon: Clock, color: 'text-rose-400', bg: 'bg-rose-400/10', sub: 'Immediate attention required' },
+                        { label: 'Calls to make', val: stats.awaitingCallback, icon: Phone, color: 'text-amber-400', bg: 'bg-amber-400/10', sub: 'Pending participant outreach' },
+                        { label: 'Forms to finish', val: stats.pendingForms, icon: FileText, color: 'text-blue-400', bg: 'bg-blue-400/10', sub: 'Incomplete study documentation' },
+                    ].map((item, i) => (
+                        <div key={i} className="flex items-center justify-between p-5 bg-[#1E293B]/20 border border-white/5 rounded-2xl hover:bg-white/5 transition-colors cursor-pointer group">
+                            <div className="flex items-center gap-4">
+                                <div className={`p-2.5 rounded-xl ${item.bg}`}>
+                                    <item.icon className={`w-5 h-5 ${item.color}`} />
+                                </div>
+                                <div className="flex flex-col">
+                                    <p className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">{item.label}</p>
+                                    <p className="text-xs text-slate-500 font-medium">{item.sub}</p>
+                                </div>
+                            </div>
+                            <span className={`text-2xl font-bold ${item.color}`}>{item.val}</span>
                         </div>
-                        <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/10">
-                            <button onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() - 1)))} className="p-2 hover:bg-white/10 rounded-xl transition-colors text-white"><ChevronLeft className="w-5 h-5" /></button>
-                            <span className="px-6 text-[12px] font-black text-white uppercase tracking-widest italic min-w-[160px] text-center">{viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
-                            <button onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() + 1)))} className="p-2 hover:bg-white/10 rounded-xl transition-colors text-white"><ChevronRight className="w-5 h-5" /></button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Calendar & Next Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-6">
+                {/* Calendar Side */}
+                <div className="lg:col-span-8 space-y-6">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-bold text-slate-400 tracking-widest">Visit calendar</h3>
+                        <div className="flex items-center gap-4 bg-white/5 border border-white/5 rounded-xl p-1">
+                            <button onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() - 1)))} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400"><ChevronLeft className="w-4 h-4" /></button>
+                            <span className="text-[11px] font-bold text-white tracking-widest min-w-[140px] text-center">{viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
+                            <button onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() + 1)))} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400"><ChevronRight className="w-4 h-4" /></button>
                         </div>
                     </div>
 
-                    <div className="bg-[#0F172A] border border-white/5 rounded-[2.5rem] p-10 shadow-2xl overflow-hidden">
-                        <div className="grid grid-cols-7 gap-2 mb-6">
-                            {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(d => (
-                                <div key={d} className="text-center text-[10px] font-black text-white/20 tracking-widest pb-4">{d}</div>
+                    <div className="bg-[#1E293B]/20 border border-white/5 rounded-2xl p-6 overflow-hidden">
+                        <div className="grid grid-cols-7 gap-1">
+                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                                <div key={d} className="text-center text-xs font-black text-slate-600 py-3 tracking-tighter uppercase">{d}</div>
                             ))}
                             {calendarDays.map((date, i) => {
-                                if (!date) return <div key={i} className="aspect-square opacity-0" />;
+                                if (!date) return <div key={i} className="aspect-square opacity-10" />;
                                 const isToday = date.toDateString() === new Date().toDateString();
                                 const dayVisits = getVisitsForDay(date);
-                                
+
                                 return (
-                                    <div key={i} className={`aspect-[4/3] relative group transition-all`}>
-                                        <div className={`w-full h-full rounded-2xl border ${isToday ? 'bg-[#14b8a6]/10 border-[#14b8a6]/40' : 'bg-white/[0.01] border-white/5 hover:border-white/20'} flex flex-col items-center justify-center gap-2 relative transition-all`}>
-                                            <span className={`text-sm font-black italic ${isToday ? 'text-white' : 'text-white/30 group-hover:text-white'}`}>{date.getDate()}</span>
+                                    <div key={i} className="aspect-[4/3] p-1 relative group">
+                                        <div className={`w-full h-full rounded-xl border ${isToday ? 'bg-blue-500/10 border-blue-500/50' : 'bg-white/5 border-transparent hover:border-white/10'} flex flex-col items-center justify-center gap-1 transition-all`}>
+                                            <span className={`text-xs font-bold ${isToday ? 'text-blue-400' : 'text-slate-500 group-hover:text-white'}`}>
+                                                {date.getDate()}
+                                            </span>
                                             {dayVisits.length > 0 && (
-                                                <div className="flex gap-1.5">
+                                                <div className="flex gap-1">
                                                     {dayVisits.slice(0, 3).map((v, j) => (
-                                                        <div key={j} className={`w-2 h-2 rounded-full ${v.status === 'COMPLETED' ? 'bg-[#14b8a6]' : 'bg-amber-400 animate-pulse'}`} />
+                                                        <div key={j} className={`w-1 h-1 rounded-full ${v.status === 'COMPLETED' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                                                     ))}
                                                 </div>
                                             )}
@@ -154,36 +168,40 @@ export const OperationsOversight: React.FC<OversightModuleProps> = ({
                     </div>
                 </div>
 
-                <div className="xl:col-span-4 space-y-8">
-                    <div className="flex items-center gap-4 h-12">
-                        <div className="w-1.5 h-8 bg-indigo-500 rounded-full" />
-                        <h3 className="text-2xl font-black text-white italic uppercase tracking-tight leading-none">Upcoming <span className="text-indigo-400">Events</span></h3>
-                    </div>
-                    
-                    <div className="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
-                        {visits.filter(v => v.status === 'SCHEDULED' || v.status === 'PENDING').sort((a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()).slice(0, 6).map((v, i) => (
-                            <motion.div 
+                {/* What's Next Side */}
+                <div className="lg:col-span-4 space-y-6">
+                    <h3 className="text-sm font-bold text-slate-400 tracking-widest">What's next</h3>
+                    <div className="bg-[#1E293B]/20 border border-white/5 rounded-2xl divide-y divide-white/5">
+                        {visits.filter(v => v.status === 'SCHEDULED' || v.status === 'PENDING').sort((a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()).slice(0, 5).map((v, i) => (
+                            <div
                                 key={i}
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: i * 0.1 }}
-                                className="bg-white/[0.02] border border-white/5 p-6 rounded-3xl hover:bg-white/5 transition-all cursor-pointer group"
+                                className="p-5 hover:bg-white/5 transition-colors cursor-pointer group"
+                                onClick={() => onNavigate('VISITS')}
                             >
-                                <div className="flex items-center justify-between gap-4 mb-4">
-                                    <div className="bg-white/5 p-2.5 rounded-xl border border-white/10 group-hover:border-indigo-500/50 transition-colors">
-                                        <Calendar className="w-4 h-4 text-white/40 group-hover:text-white" />
-                                    </div>
-                                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{v.scheduled_date ? new Date(v.scheduled_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'NOT SET'}</span>
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-[10px] font-bold text-blue-400 tracking-widest">
+                                        {v.scheduled_date ? new Date(v.scheduled_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Pending'}
+                                    </span>
+                                    <span className="text-[10px] font-medium text-slate-500">
+                                        {v.scheduled_date ? new Date(v.scheduled_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                                    </span>
                                 </div>
-                                <h5 className="text-white font-bold text-lg leading-tight uppercase italic mb-1 truncate">{v.visit_type}</h5>
-                                <p className="text-[11px] text-slate-500 font-bold tracking-[0.2em] uppercase truncate">ID: {v.participant}</p>
-                            </motion.div>
+                                <h5 className="text-sm font-bold text-white truncate group-hover:text-blue-400 transition-colors leading-none mb-1.5">{v.visit_type}</h5>
+                                <p className="text-[11px] text-slate-500 font-medium">Participant: {v.participant}</p>
+                            </div>
                         ))}
+                        {visits.length === 0 && (
+                            <div className="p-10 text-center text-slate-500 text-sm italic">No upcoming visits</div>
+                        )}
+                        <button
+                            onClick={() => onNavigate('VISITS')}
+                            className="w-full py-4 text-[10px] font-bold text-slate-500 hover:text-white tracking-[0.2em] transition-all bg-white/5 border-t border-white/5"
+                        >
+                            View all visits
+                        </button>
                     </div>
-                    
-                    <button onClick={() => onNavigate('VISITS')} className="w-full py-6 bg-white/5 border border-white/10 rounded-2xl text-[12px] font-bold text-white uppercase tracking-[0.3em] italic hover:bg-white/10 transition-all shadow-xl">VIEW OPERATIONS OVERVIEW</button>
                 </div>
             </div>
-        </motion.div>
+        </div>
     );
 };

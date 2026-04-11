@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { 
     Users, Shield, CheckCircle2, Building2, AlertTriangle, 
-    Search, Plus, X, Globe, User, Briefcase, RefreshCcw
+    Search, Plus, X, Globe, User, Briefcase, RefreshCcw,
+    Check, ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { COLORS, TeamMember, TeamDocument, ROLE_DOCS, PROTOCOLS } from './TeamConstants';
 import { TeamCard } from './components/TeamCard';
 import { PersonnelPanel } from './components/PersonnelPanel';
-import { authFetch } from '../../../utils/auth';
+import { authFetch, revealValue } from '../../../utils/auth';
 
 export default function TeamModule({ selectedStudyId }: { selectedStudyId?: string }) {
     // State
@@ -25,7 +26,6 @@ export default function TeamModule({ selectedStudyId }: { selectedStudyId?: stri
 
     const [toasts, setToasts] = useState<{ id: string, type: string, message: string }[]>([]);
     const [confirmModal, setConfirmModal] = useState<{ message: string, onConfirm: () => void, type?: string } | null>(null);
-    const [musbModalOpen, setMusbModalOpen] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const activeDocId = useRef<string | null>(null);
@@ -43,25 +43,32 @@ export default function TeamModule({ selectedStudyId }: { selectedStudyId?: stri
             const response = await authFetch('/api/users/');
             if (response.ok) {
                 const data = await response.json();
+                const results = data.results !== undefined ? data.results : data;
+                const membersArray = Array.isArray(results) ? results : [];
                 
-                const formatted: TeamMember[] = data.map((u: any) => ({
+                const formatted: TeamMember[] = membersArray.map((u: any) => ({
                     id: u.id,
-                    name: u.full_name || u.email.split('@')[0],
-                    email: u.email,
+                    name: revealValue(u.full_name, u.decrypted_name) || u.email?.split('@')[0] || 'Unknown User',
+                    email: revealValue(u.email) || u.email || 'unknown@domain',
                     phone: u.phone_number || 'N/A',
                     role: u.role === 'PARTICIPANT' ? 'Participant' : u.role || 'Staff',
                     type: (u.affiliation || 'musb').toLowerCase() === 'onsite' ? 'Office' : 'MusB',
                     status: u.is_active ? 'Active' : 'Inactive',
                     assignedStudies: u.assigned_studies || [],
-                    permissionLevel: 'Full', // Defaulting for visual
+                    permissionLevel: 'Full',
                     expertise: u.affiliation === 'musb' ? (u.role === 'PI' ? 'Principal Investigator' : 'Clinical Ops') : undefined,
-                    documents: [] // Documents are managed in a separate vault but initialized here for UI
+                    documents: []
                 }));
 
                 setMusbTeam(formatted.filter(m => m.type === 'MusB'));
                 setOfficeTeam(formatted.filter(m => m.type === 'Office'));
+            } else {
+                // If status is not 200, log it and show a precise error
+                console.error(`Registry fetch failed: ${response.status}`);
+                addToast(`Sync failed: ${response.status}`, 'error');
             }
         } catch (error) {
+            console.error("Team Sync Error:", error);
             addToast('Clinical terminal synchronization failed', 'error');
         } finally {
             setLoading(false);
@@ -175,7 +182,7 @@ export default function TeamModule({ selectedStudyId }: { selectedStudyId?: stri
 
     const getVisibleTeam = useMemo(() => {
         const filterFn = (m: TeamMember) => {
-            const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) || m.email.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesSearch = (m.name || "").toLowerCase().includes(searchQuery.toLowerCase()) || (m.email || "").toLowerCase().includes(searchQuery.toLowerCase());
             const matchesFilter = filterStatus === 'All' || (filterStatus === 'Available' && m.assignedStudies.length === 0) || (filterStatus === 'Assigned' && m.assignedStudies.length > 0) || (filterStatus === 'Active' && m.status === 'Active');
             return matchesSearch && matchesFilter;
         };
@@ -191,119 +198,141 @@ export default function TeamModule({ selectedStudyId }: { selectedStudyId?: stri
         alerts: officeTeam.filter(m => m.status === 'Inactive').length
     };
 
-    const S = {
-        title: { fontSize: '24px', fontWeight: 900, fontStyle: 'italic' as const, textTransform: 'uppercase' as const, letterSpacing: '-0.02em', color: 'white' },
-        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.5rem 1.25rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '6px' }),
-        btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(99, 102, 241, 0.2)' },
-        btnGhost: { backgroundColor: 'transparent', color: 'white', border: `1.5px solid ${COLORS.border}`, padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }
-    };
-
     return (
-        <div className="flex flex-col h-full bg-[#0B101B] overflow-hidden">
+        <div className="flex flex-col h-full space-y-10 pt-4">
             <input type="file" ref={fileInputRef} hidden onChange={handleFileChange} />
 
-            {/* HEADER */}
-            <div className="px-6 lg:px-10 py-6 lg:py-8 border-b border-white/10 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 bg-[#0B101B]">
-                <div className="flex items-center gap-6">
-                    <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-                        <Users size={32} />
-                    </div>
-                    <div>
-                        <h1 style={S.title}>Staffing <span className="text-indigo-400">&</span> Personnel</h1>
-                        <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1 italic">Clinical RBAC & Credentials Vault</p>
-                    </div>
+            {/* Header */}
+            <div className="flex justify-between items-center pb-6 border-b border-white/5">
+                <div>
+                    <h2 className="text-2xl font-black text-white tracking-tight uppercase italic leading-none">Staffing and personnel</h2>
+                    <p className="text-sm text-slate-400 mt-2 font-bold uppercase tracking-widest opacity-80">Clinical network and personnel records</p>
                 </div>
-                <div className="flex flex-col md:flex-row gap-4 w-full xl:w-auto">
-                    <button style={S.btnGhost} onClick={fetchTeam} className="hover:bg-white/5 transition-colors">
-                        <RefreshCcw size={18} className={loading ? 'animate-spin' : ''} />
-                        Sync Terminal
+                <div className="flex items-center gap-4">
+                    <button 
+                        onClick={fetchTeam} 
+                        className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs font-black text-slate-300 flex items-center gap-2 hover:bg-white/10 transition-all uppercase tracking-widest"
+                    >
+                        <RefreshCcw size={14} className={loading ? 'animate-spin' : ''} />
+                        Sync list
                     </button>
-                    <button style={S.btnIndigo} onClick={() => {
-                        setPanelMode('add');
-                        setEditedMember({ name: '', email: '', phone: '', role: 'Clinical Coordinator', type: 'Office', assignedStudies: [], status: 'Active', documents: [] });
-                        setPanelOpen(true);
-                    }} className="hover:brightness-110 transition-all">
-                        <Plus size={20} /> New Team Member
+                    <button 
+                        onClick={() => {
+                            setPanelMode('add');
+                            setEditedMember({ name: '', email: '', phone: '', role: 'Clinical Coordinator', type: 'Office', assignedStudies: [], status: 'Active', documents: [] });
+                            setPanelOpen(true);
+                        }} 
+                        className="px-6 py-2.5 bg-white text-black rounded-xl font-black text-xs flex items-center gap-2 hover:bg-slate-100 transition-all active:scale-95 shadow-lg shadow-white/10 uppercase tracking-widest"
+                    >
+                        <Plus size={16} /> Add member
                     </button>
                 </div>
             </div>
 
-            {/* KPI STRIP */}
-            <div className="bg-white/[0.01] border-b border-white/5 flex overflow-x-auto custom-scrollbar-horizontal shrink-0">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
-                    { l: 'Total Personnel', v: stats.total, i: Users, c: COLORS.accent },
-                    { l: 'Active Status', v: stats.active, i: CheckCircle2, c: COLORS.success },
-                    { l: 'MusB Network', v: stats.musb, i: Building2, c: COLORS.accent },
-                    { l: 'Inactive / Alerts', v: stats.alerts, i: AlertTriangle, c: COLORS.warning }
+                    { label: 'Total Personnel', val: stats.total, icon: Users, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+                    { label: 'Active Status', val: stats.active, icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+                    { label: 'MusB Network', val: stats.musb, icon: Building2, color: 'text-slate-400', bg: 'bg-slate-400/10' },
+                    { label: 'Inactive / Alerts', val: stats.alerts, icon: AlertTriangle, color: 'text-rose-400', bg: 'bg-rose-400/10' },
                 ].map((k, idx) => (
-                    <div key={idx} className="flex-1 min-w-[200px] p-6 lg:p-10 flex items-center gap-8 border-r border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-colors">
-                        <div style={{ padding: '1rem', borderRadius: '16px', backgroundColor: `${k.c}10`, color: k.c }}><k.i size={28} /></div>
+                    <div key={idx} className="p-6 bg-[#1E293B]/20 border border-white/5 rounded-2xl flex items-center gap-6">
+                        <div className={`p-4 rounded-xl ${k.bg}`}>
+                            <k.icon className={`w-6 h-6 ${k.color}`} />
+                        </div>
                         <div>
-                            <div className="text-4xl font-black text-white tracking-tighter font-mono italic leading-none">{k.v.toString().padStart(2, '0')}</div>
-                            <div className="text-[12px] font-bold uppercase tracking-widest text-slate-500 mt-2">{k.l}</div>
+                            <p className="text-2xl font-black text-white leading-none">{k.val.toString().padStart(2, '0')}</p>
+                            <p className="text-[11px] font-black text-slate-500 mt-3 uppercase tracking-[0.2em]">{k.label}</p>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* NAVIGATION / SEARCH */}
-            <div className="p-6 lg:p-10 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-8 bg-[#0B101B]">
-                <div className="flex items-center bg-white/5 p-2 rounded-2xl border border-white/10 w-full md:w-auto">
-                    {['MusB', 'Office', 'All'].map(t => (
-                        <button key={t} onClick={() => setActiveTab(t as any)} className={`flex-1 md:flex-none px-10 py-4 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${activeTab === t ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/20' : 'text-slate-400 hover:text-white'}`}>{t === 'MusB' ? 'MusB Net' : t === 'Office' ? 'My Office' : 'Global'}</button>
+            {/* Filters and Search */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
+                <div className="flex items-center gap-2 bg-white/5 p-1.5 rounded-xl border border-white/5">
+                    {[
+                        { id: 'MusB', label: 'MusB net' },
+                        { id: 'Office', label: 'My office' },
+                        { id: 'All', label: 'Global' }
+                    ].map(t => (
+                        <button 
+                            key={t.id} 
+                            onClick={() => setActiveTab(t.id as any)} 
+                            className={`px-8 py-3 rounded-lg text-[11px] font-black uppercase tracking-[0.15em] transition-all ${activeTab === t.id ? 'bg-white/10 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                        >
+                            {t.label}
+                        </button>
                     ))}
                 </div>
-                <div className="flex flex-col md:flex-row gap-8 w-full md:w-auto items-center">
-                    <div className="flex gap-3 overflow-x-auto pb-2 md:pb-0">
+                
+                <div className="flex flex-col sm:flex-row gap-6 w-full lg:w-auto items-center">
+                    <div className="flex gap-2">
                         {['All', 'Available', 'Assigned', 'Active'].map(f => (
-                            <button key={f} onClick={() => setFilterStatus(f)} style={{ ...S.badge(filterStatus === f ? COLORS.accent : COLORS.label), cursor: 'pointer' }} className="hover:brightness-125 transition-all">{f}</button>
+                            <button 
+                                key={f} 
+                                onClick={() => setFilterStatus(f)} 
+                                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${
+                                    filterStatus === f 
+                                    ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' 
+                                    : 'bg-transparent text-slate-500 border-white/5 hover:border-white/10'
+                                }`}
+                            >
+                                {f}
+                            </button>
                         ))}
                     </div>
-                    <div className="relative w-full md:w-[360px]">
-                        <Search size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500" />
-                        <input className="w-full bg-white/5 border border-white/10 rounded-xl py-4 pl-14 pr-6 text-[14px] text-white outline-none focus:border-indigo-500 focus:bg-white/[0.08] transition-all" placeholder="SEARCH CLINICAL REGISTRY..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                    <div className="relative w-full sm:w-[320px]">
+                        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
+                        <input 
+                            className="w-full bg-white/5 border border-white/5 rounded-xl py-3 pl-12 pr-6 text-sm text-white outline-none focus:border-blue-500/50 transition-all transition-colors font-bold" 
+                            placeholder="Search clinical registry..." 
+                            value={searchQuery} 
+                            onChange={e => setSearchQuery(e.target.value)} 
+                        />
                     </div>
                 </div>
             </div>
 
-            {/* TABLE AREA */}
-            <div className="flex-1 overflow-auto custom-scrollbar p-6 lg:p-10 bg-[#0B101B]">
+            {/* Registry Table */}
+            <div className="flex-1 overflow-auto">
                 {loading ? (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-500 gap-4">
-                        <RefreshCcw size={48} className="animate-spin text-indigo-500/50" />
-                        <p className="text-[14px] font-black uppercase tracking-widest italic">Synchronizing Personnel Ledger...</p>
+                    <div className="py-24 text-center">
+                        <RefreshCcw size={40} className="animate-spin text-slate-700 mx-auto mb-4" />
+                        <p className="text-sm text-slate-400 font-black uppercase tracking-widest">Synchronizing clinical records...</p>
                     </div>
                 ) : getVisibleTeam.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-500 gap-6 opacity-40">
-                        <Users size={64} />
-                        <p className="text-[16px] font-black uppercase tracking-[0.3em] italic">No Match Found in Registry</p>
+                    <div className="py-32 text-center opacity-40">
+                        <Users size={48} className="text-slate-600 mx-auto mb-4" />
+                        <p className="text-sm text-slate-600 font-bold uppercase tracking-widest">No match found in registry</p>
                     </div>
                 ) : (
-                    <div className="bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden shadow-2xl relative">
-                        <div className="overflow-x-auto">
-                            <table className="w-full border-collapse min-w-[1100px]">
-                                <thead>
-                                    <tr className="bg-white/[0.04] border-b border-white/10">
-                                        {['Personnel Node', 'Functional Role', 'Study Assignments', 'Status', 'Actions'].map(h => (
-                                            <th key={h} className="p-10 text-left uppercase tracking-[0.25em] text-[13px] font-black text-slate-400 italic">{h}</th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {getVisibleTeam.map(m => (
-                                        <TeamCard 
-                                            key={m.id} 
-                                            member={m} 
-                                            onEdit={(mem) => { setPanelMode('edit'); setEditedMember(mem); setPanelOpen(true); }}
-                                            onDelete={handleDeleteMember}
-                                            onStatusToggle={handleStatusToggle}
-                                            activeRowMenu={activeRowMenu}
-                                            setActiveRowMenu={setActiveRowMenu}
-                                        />
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left min-w-[1000px]">
+                            <thead>
+                                <tr className="border-b border-white/5 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">
+                                    <th className="px-6 py-4 pb-2 w-1/4">Personnel node</th>
+                                    <th className="px-6 py-4 pb-2 w-1/6">Functional role</th>
+                                    <th className="px-6 py-4 pb-2">Study assignments</th>
+                                    <th className="px-6 py-4 pb-2 w-24">Status</th>
+                                    <th className="px-6 py-4 pb-2 text-right w-32">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/[0.03]">
+                                {getVisibleTeam.map(m => (
+                                    <TeamCard 
+                                        key={m.id} 
+                                        member={m} 
+                                        onEdit={(mem) => { setPanelMode('edit'); setEditedMember(mem); setPanelOpen(true); }}
+                                        onDelete={handleDeleteMember}
+                                        onStatusToggle={handleStatusToggle}
+                                        activeRowMenu={activeRowMenu}
+                                        setActiveRowMenu={setActiveRowMenu}
+                                    />
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 )}
             </div>
@@ -322,35 +351,50 @@ export default function TeamModule({ selectedStudyId }: { selectedStudyId?: stri
             {/* CONFIRMATION MODAL */}
             <AnimatePresence>
                 {confirmModal && (
-                    <div style={{ position: 'fixed', inset: 0, zIndex: 300, backgroundColor: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} style={{ width: '100%', maxWidth: '520px', backgroundColor: '#0B101B', border: `1px solid ${COLORS.border}`, borderRadius: '24px', padding: '4rem', textAlign: 'center', boxShadow: '0 30px 60px rgba(0,0,0,1)' }}>
-                            <div style={{ width: '96px', height: '96px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 2.5rem', color: confirmModal.type === 'danger' ? COLORS.danger : COLORS.warning }}><Shield size={40} /></div>
-                            <h3 style={{ ...S.title, fontSize: '24px', marginBottom: '1.5rem' }}>Security Protocol Action</h3>
-                            <p style={{ color: COLORS.text, fontSize: '16px', lineHeight: '1.7', marginBottom: '3rem', fontWeight: 600 }}>{confirmModal.message}</p>
-                            <div style={{ display: 'flex', gap: '1.5rem' }}>
-                                <button style={{ ...S.btnGhost, flex: 1, padding: '1.25rem' }} onClick={() => setConfirmModal(null)} className="hover:bg-white/5 transition-all">Abort</button>
-                                <button style={{ ...S.btnIndigo, flex: 1, backgroundColor: confirmModal.type === 'danger' ? COLORS.danger : COLORS.accent, padding: '1.25rem' }} onClick={() => { confirmModal.onConfirm(); setConfirmModal(null); }} className="hover:brightness-110 transition-all">Proceed</button>
+                    <div className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-sm flex items-center justify-center p-6">
+                        <motion.div 
+                            initial={{ scale: 0.95, opacity: 0, y: 10 }} 
+                            animate={{ scale: 1, opacity: 1, y: 0 }} 
+                            className="w-full max-w-md bg-[#0F172A] border border-white/10 rounded-3xl p-10 text-center shadow-2xl"
+                        >
+                            <div className={`w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center bg-white/5 border border-white/10 ${confirmModal.type === 'danger' ? 'text-rose-500' : 'text-amber-500'}`}>
+                                <Shield size={32} />
+                            </div>
+                            <h3 className="text-xl font-bold text-white mb-4">Security protocol action</h3>
+                            <p className="text-slate-400 text-sm leading-relaxed mb-10">{confirmModal.message}</p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <button className="px-6 py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl text-sm font-bold transition-all" onClick={() => setConfirmModal(null)}>Abort</button>
+                                <button 
+                                    className={`px-6 py-3 text-white rounded-xl text-sm font-bold transition-all ${confirmModal.type === 'danger' ? 'bg-rose-600 hover:bg-rose-500' : 'bg-blue-600 hover:bg-blue-500'}`} 
+                                    onClick={() => { confirmModal.onConfirm(); setConfirmModal(null); }}
+                                >
+                                    Proceed
+                                </button>
                             </div>
                         </motion.div>
                     </div>
                 )}
             </AnimatePresence>
 
-            {/* TOAST SYSTEM */}
-            <div className="fixed bottom-12 right-12 z-[200] flex flex-col gap-6">
+            {/* TOAST SYSTEM (Simplified) */}
+            <div className="fixed bottom-8 right-8 z-[200] flex flex-col gap-4">
                 <AnimatePresence>
                     {toasts.map(t => (
-                        <motion.div key={t.id} initial={{ opacity: 0, x: 100, scale: 0.9 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 100, scale: 0.9 }} style={{ padding: '1.5rem 3rem', backgroundColor: t.type === 'error' ? COLORS.danger : t.type === 'warning' ? COLORS.warning : COLORS.success, color: 'white', borderRadius: '16px', fontWeight: 900, textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.15em', boxShadow: '0 20px 50px rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', gap: '1.25rem', border: '1px solid rgba(255,255,255,0.1)' }}>
-                            {t.type === 'error' ? <AlertTriangle size={20} /> : <CheckCircle2 size={20} />} 
-                            {t.message}
+                        <motion.div 
+                            key={t.id} 
+                            initial={{ opacity: 0, x: 50 }} 
+                            animate={{ opacity: 1, x: 0 }} 
+                            exit={{ opacity: 0, x: 50 }} 
+                            className={`px-6 py-4 rounded-xl shadow-2xl border border-white/10 flex items-center gap-4 ${
+                                t.type === 'error' ? 'bg-rose-600 text-white' : 'bg-[#1E293B] text-white'
+                            }`}
+                        >
+                            {t.type === 'error' ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} className="text-emerald-400" />} 
+                            <span className="text-xs font-bold leading-none">{t.message}</span>
                         </motion.div>
                     ))}
                 </AnimatePresence>
             </div>
-
         </div>
     );
 }
-
-
-

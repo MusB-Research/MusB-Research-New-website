@@ -32,10 +32,10 @@ export default function DashboardModule({
     onNavigate 
 }: DashboardModuleProps) {
     const stats = [
-        { label: 'Active Protocols', value: studyCount.toString().padStart(2, '0'), icon: Beaker, color: 'text-cyan-400', bg: 'bg-cyan-500/10', trend: '+2', module: 'STUDIES' },
-        { label: 'Active Participants', value: participantCount.toLocaleString(), icon: Users, color: 'text-indigo-400', bg: 'bg-indigo-500/10', trend: 'Live', module: 'TEAM' },
-        { label: 'Research Staff', value: staffCount.toString().padStart(2, '0'), icon: Globe, color: 'text-emerald-400', bg: 'bg-emerald-500/10', trend: 'Live', module: 'TEAM' },
-        { label: 'System Health', value: 'Optimal', icon: Shield, color: 'text-pink-400', bg: 'bg-pink-500/10', trend: 'Audit', module: 'AUDIT_LOGS' }
+        { label: 'Total Studies', value: studyCount.toString().padStart(2, '0'), icon: Beaker, color: 'text-cyan-400', bg: 'bg-cyan-500/10', trend: '+2', module: 'STUDIES' },
+        { label: 'Total Participants', value: participantCount.toLocaleString(), icon: Users, color: 'text-indigo-400', bg: 'bg-indigo-500/10', trend: 'Live', module: 'TEAM' },
+        { label: 'Team Members', value: staffCount.toString().padStart(2, '0'), icon: Globe, color: 'text-emerald-400', bg: 'bg-emerald-500/10', trend: 'Live', module: 'TEAM' },
+        { label: 'System Status', value: 'Optimal', icon: Shield, color: 'text-pink-400', bg: 'bg-pink-500/10', trend: 'Audit', module: 'AUDIT_LOGS' }
     ];
 
     const recentActivities = auditLogs.length > 0 ? auditLogs.slice(0, 4).map((log: any) => ({
@@ -45,7 +45,7 @@ export default function DashboardModule({
         time: new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         status: 'Success'
     })) : [
-        { id: 1, action: 'Synchronizing Clinical Node...', user: 'MusB Research', time: 'Just now', status: 'Success' }
+        { id: 1, action: 'System checking...', user: 'MusB Health', time: 'Just now', status: 'Success' }
     ];
 
     return (
@@ -54,21 +54,21 @@ export default function DashboardModule({
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
                     <h1 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none">
-                        System <span className="text-cyan-400">Intelligence</span>
+                        System <span className="text-cyan-400">Status</span>
                     </h1>
                     <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[12px] mt-2 italic">
-                        Real-time Clinical Research Command & Control
+                        Manage studies and team in real-time
                     </p>
                 </div>
                 <div className="flex gap-4">
                     <div className="bg-white/5 border border-white/10 rounded-2xl px-6 py-4 flex items-center gap-3 backdrop-blur-xl">
                         <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
-                        <span className="text-[12px] font-black text-slate-300 uppercase tracking-widest italic font-mono">Terminal Synchronized</span>
+                        <span className="text-[12px] font-black text-slate-300 uppercase tracking-widest italic font-mono">System Connected</span>
                     </div>
                 </div>
             </div>
 
-            {/* KPI Matrix */}
+            {/* Key Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {stats.map((stat, i) => (
                     <motion.div 
@@ -95,12 +95,12 @@ export default function DashboardModule({
 
             {/* Main Insights Grid */}
             <div className="grid lg:grid-cols-12 gap-12">
-                {/* Protocol Health Map */}
                 <div className="lg:col-span-8 bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3.5rem] p-12 space-y-10 relative overflow-hidden shadow-2xl transition-all hover:border-cyan-500/20">
+                    <h3 className="text-sm font-black text-white uppercase italic tracking-[0.3em]">Progress</h3>
                     <div className="flex justify-between items-center relative z-10">
                         <div className="flex items-center gap-4">
                             <TrendingUp className="w-5 h-5 text-indigo-400" />
-                            <h3 className="text-sm font-black text-white uppercase italic tracking-[0.3em]">Protocol Lifecycle Velocity</h3>
+                            <h3 className="text-sm font-black text-white uppercase italic tracking-[0.3em]">Study Progress</h3>
                         </div>
                         <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
                              {['Week', 'Month', 'Quarter'].map(t => (
@@ -133,7 +133,7 @@ export default function DashboardModule({
                 <div className="lg:col-span-4 bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3.5rem] p-12 space-y-10 shadow-2xl transition-all hover:border-pink-500/20">
                     <div className="flex items-center gap-4">
                         <Activity className="w-5 h-5 text-pink-500" />
-                        <h3 className="text-sm font-black text-white uppercase italic tracking-[0.3em]">Operational Pulse</h3>
+                        <h3 className="text-sm font-black text-white uppercase italic tracking-[0.3em]">Recent Activity</h3>
                     </div>
                     <div className="space-y-8">
                         {recentActivities.map((act) => (
@@ -154,20 +154,20 @@ export default function DashboardModule({
                         onClick={() => onNavigate('AUDIT_LOGS')}
                         className="w-full py-5 bg-white/5 border border-white/10 rounded-2xl text-[12px] font-black text-slate-500 uppercase tracking-[0.3em] hover:bg-white hover:text-slate-950 transition-all italic"
                     >
-                        View Full Terminal Log
+                        View All Activity
                     </button>
                 </div>
             </div>
 
-            {/* Network Infrastructure Summary */}
+            {/* Network Summary */}
             <div className="bg-[#0B101B]/40 backdrop-blur-3xl border border-white/5 rounded-[3rem] p-10 grid md:grid-cols-3 gap-10">
                 <div className="flex items-center gap-6">
                     <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
                         <Users className="w-6 h-6" />
                     </div>
                     <div>
-                        <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Clinical Site Cohorts</p>
-                        <p className="text-2xl font-black text-white italic tracking-tighter">{participantCount.toLocaleString()} Nodes</p>
+                        <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Participant Groups</p>
+                        <p className="text-2xl font-black text-white italic tracking-tighter">{participantCount.toLocaleString()} Groups</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-6">
@@ -175,8 +175,8 @@ export default function DashboardModule({
                         <CheckCircle2 className="w-6 h-6" />
                     </div>
                     <div>
-                        <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Protocol Deployment</p>
-                        <p className="text-2xl font-black text-white italic tracking-tighter">{studyCount.toString().padStart(2, '0')} Modules</p>
+                        <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Active Studies</p>
+                        <p className="text-2xl font-black text-white italic tracking-tighter">{studyCount.toString().padStart(2, '0')} Studies</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-6">
@@ -184,8 +184,8 @@ export default function DashboardModule({
                         <AlertCircle className="w-6 h-6" />
                     </div>
                     <div>
-                        <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Clinical Clearances</p>
-                        <p className="text-2xl font-black text-white italic tracking-tighter">Certified Live</p>
+                        <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic">Compliance Status</p>
+                        <p className="text-2xl font-black text-white italic tracking-tighter">Approved</p>
                     </div>
                 </div>
             </div>

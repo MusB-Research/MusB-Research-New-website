@@ -109,12 +109,14 @@ export default function StudyScreener() {
                         duration: data.duration || "4-12 Weeks"
                     });
 
-                    // Try to fetch dynamic form for this study
-                    const formRes = await fetch(`${apiUrl}/api/forms/?study_id=${data.id}`);
+                    // Fetch published screener form for this study (public endpoint - no auth needed)
+                    const formRes = await fetch(`${apiUrl}/api/forms/?study_id=${data.id}&public=true`);
                     if (formRes.ok) {
                         const forms = await formRes.json();
-                        const relevantForm = forms
-                            .filter((f: any) => f.title === 'Screener Form' || f.is_published)
+                        // Pick the most recently published form
+                        const formList = Array.isArray(forms) ? forms : (forms.results || []);
+                        const relevantForm = formList
+                            .filter((f: any) => f.is_published)
                             .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
                         
                         if (relevantForm) {
@@ -448,37 +450,39 @@ export default function StudyScreener() {
                                                             <Clock className="w-5 h-5" /> Protocol Synchronization Active
                                                         </div>
                                                         <div className="space-y-12">
-                                                            {(Array.isArray(dynamicForm.schema) 
-                                                              ? dynamicForm.schema 
-                                                              : (dynamicForm.schema.sections 
-                                                                  ? dynamicForm.schema.sections.flatMap((s: any) => s.questions || [])
-                                                                  : (dynamicForm.schema.questions || []))
-                                                            ).map((q: any, i: number) => {
-                                                                const fieldId = q.id || q.key;
+                                                            {(() => {
+                                                                // Universal schema extractor — handles ALL formats from any portal
+                                                                const schema = dynamicForm.schema;
+                                                                let qs: any[] = [];
+                                                                if (Array.isArray(schema)) qs = schema;
+                                                                else if (schema && Array.isArray(schema.questions)) qs = schema.questions;
+                                                                else if (schema && Array.isArray(schema.sections)) qs = schema.sections.flatMap((s: any) => s.questions || []);
+                                                                
+                                                                return qs.map((q: any, i: number) => {
+                                                                const fieldId = q.id || q.key || `q_${i}`;
                                                                 const isMissing = q.required && isAttemptingSubmit && !formData[fieldId];
                                                                 
-                                                                // Normalize types from QuestionnaireBuilder
+                                                                // Universal type normalizer
                                                                 const rawType = (q.type || '').toLowerCase();
-                                                                const type = rawType.includes('text') ? 'text' : 
-                                                                             rawType.includes('number') ? 'text' :
-                                                                             rawType.includes('date') ? 'date' :
-                                                                             rawType.includes('yesno') || rawType.includes('yes/no') ? 'yesno' :
-                                                                             rawType.includes('likert') || rawType.includes('choice') || rawType.includes('dropdown') ? 'choice' :
-                                                                             rawType;
+                                                                const type = (rawType === 'short_text' || rawType === 'text' || rawType === 'number') ? 'text' :
+                                                                             rawType === 'date' ? 'date' :
+                                                                             (rawType === 'yesno' || rawType === 'yes/no' || rawType === 'boolean') ? 'yesno' :
+                                                                             (rawType === 'choice' || rawType === 'dropdown' || rawType === 'multiple_choice' || rawType === 'likert') ? 'choice' :
+                                                                             'text'; // safe default
 
                                                                 return (
-                                                                    <div key={i} className="space-y-4">
+                                                                    <div key={fieldId} className="space-y-4">
                                                                         <label className={`text-sm font-black uppercase tracking-widest transition-colors flex items-center gap-3 ${isMissing ? 'text-red-500' : 'text-slate-300'}`}>
                                                                             {q.label}
                                                                             {q.required && <span className="text-cyan-500 text-[12px]">*</span>}
                                                                         </label>
                                                                         
-                                                                        {(type === 'text' || type === 'file') && (
+                                                                        {type === 'text' && (
                                                                             <input
-                                                                                type={type === 'file' ? "file" : "text"}
-                                                                                placeholder="Enter response..."
+                                                                                type="text"
+                                                                                placeholder={q.placeholder || "Enter response..."}
                                                                                 className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isMissing ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
-                                                                                value={type === 'text' ? (formData[fieldId] || '') : undefined}
+                                                                                value={formData[fieldId] || ''}
                                                                                 onChange={(e) => setFormData({ ...formData, [fieldId]: e.target.value })}
                                                                             />
                                                                         )}
@@ -486,6 +490,7 @@ export default function StudyScreener() {
                                                                         {type === 'date' && (
                                                                             <input
                                                                                 type="date"
+                                                                                lang="en-US"
                                                                                 className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isMissing ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
                                                                                 value={formData[fieldId] || ''}
                                                                                 onChange={(e) => setFormData({ ...formData, [fieldId]: e.target.value })}
@@ -506,7 +511,7 @@ export default function StudyScreener() {
                                                                             </div>
                                                                         )}
 
-                                                                        {(type === 'choice' || type === 'dropdown') && (
+                                                                        {type === 'choice' && (
                                                                             <div className="grid grid-cols-1 gap-3">
                                                                                 {(q.options || ['Option 1', 'Option 2']).map((opt: string) => (
                                                                                     <button
@@ -521,7 +526,7 @@ export default function StudyScreener() {
                                                                         )}
                                                                     </div>
                                                                 );
-                                                            })}
+                                                            })})()}
                                                         </div>
                                                     </div>
                                                 ) : (

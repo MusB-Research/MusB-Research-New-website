@@ -30,7 +30,8 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
             const res = await authFetch(url);
             if (res.ok) {
                 const data = await res.json();
-                setTasks(data);
+                const results = data.results !== undefined ? data.results : data;
+                setTasks(Array.isArray(results) ? results : []);
             }
         } catch (err) {
             console.error("Task sync failure:", err);
@@ -69,7 +70,7 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                     <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">
                         Participant <span style={{ color: colorHex }}>Task Monitor</span>
                     </h2>
-                    <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">
+                    <p className="text-xs text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">
                         Control research protocols, deadlines, and compliance rules.
                     </p>
                 </div>
@@ -98,7 +99,7 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                             <div key={i} className="bg-[#0B1222] border border-white/5 p-6 rounded-3xl hover:border-white/10 transition-all">
                                 <div className="flex items-center gap-3 mb-4">
                                     <stat.icon className={`w-4 h-4 text-${stat.color}-400`} />
-                                    <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest">{stat.label}</span>
+                                    <span className="text-xs font-black text-slate-500 uppercase tracking-widest">{stat.label}</span>
                                 </div>
                                 <div className="text-2xl font-black text-white italic">{stat.count}</div>
                             </div>
@@ -112,7 +113,7 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                                 <input 
                                     type="text" 
                                     placeholder="SEARCH BY PARTICIPANT OR PROTOCOL ID..." 
-                                    className="bg-transparent border-none outline-none text-white text-[12px] font-black tracking-widest uppercase w-full"
+                                    className="bg-transparent border-none outline-none text-white text-xs font-black tracking-widest uppercase w-full"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
@@ -123,11 +124,11 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-white/[0.02]">
-                                        <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest">Participant / Study</th>
-                                        <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest">Mission Title</th>
-                                        <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest">Deadline</th>
-                                        <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest">Status / Intelligence</th>
-                                        <th className="px-10 py-6 text-[12px] font-black text-slate-500 uppercase tracking-widest text-right">Operational Actions</th>
+                                        <th className="px-10 py-6 text-xs font-black text-slate-500 uppercase tracking-widest">Participant / Study</th>
+                                        <th className="px-10 py-6 text-xs font-black text-slate-500 uppercase tracking-widest">Mission Title</th>
+                                        <th className="px-10 py-6 text-xs font-black text-slate-500 uppercase tracking-widest">Deadline</th>
+                                        <th className="px-10 py-6 text-xs font-black text-slate-500 uppercase tracking-widest">Status / Intelligence</th>
+                                        <th className="px-10 py-6 text-xs font-black text-slate-500 uppercase tracking-widest text-right">Operational Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -147,7 +148,7 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                                                         </div>
                                                         <div>
                                                             <div className="text-sm font-black text-white uppercase tracking-tight">{task.participant_name || 'Anonymous Subject'}</div>
-                                                            <div className="text-[12px] font-bold text-slate-600 uppercase tracking-widest">{task.protocol_id || 'GENERAL'}</div>
+                                                            <div className="text-xs font-bold text-slate-600 uppercase tracking-widest">{task.protocol_id || 'GENERAL'}</div>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -165,14 +166,14 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                                                 </td>
                                                 <td className="px-10 py-8">
                                                     <div className="flex flex-col gap-2">
-                                                        <div className={`px-4 py-1.5 rounded-full border text-[12px] font-black uppercase tracking-widest w-fit ${
+                                                        <div className={`px-4 py-1.5 rounded-full border text-xs font-black uppercase tracking-widest w-fit ${
                                                             (task.status === 'LOCKED' && task.title?.toUpperCase().includes('DAILY MEDICINE LOG'))
                                                                 ? 'text-red-400 bg-red-500/10 border-red-500/20' // Change Locked Log to Overdue style
                                                                 : getStatusStyle(task.status)
                                                         }`}>
                                                             {(task.status === 'LOCKED' && task.title?.toUpperCase().includes('DAILY MEDICINE LOG')) ? 'OVERDUE' : task.status}
                                                         </div>
-                                                        <span className="text-[12px] font-bold text-slate-600 uppercase italic">
+                                                        <span className="text-xs font-bold text-slate-600 uppercase italic">
                                                             Rules: {task.delay_allowed}d Delay | {task.grace_period}d Grace
                                                         </span>
                                                     </div>

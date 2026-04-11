@@ -10,6 +10,7 @@ import NotificationBell from '../components/NotificationBell';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { authFetch, clearToken, getRole, performLogout, API } from '../utils/auth';
+import { apiFetch } from '../api';
 import DashboardModule from '../components/admin/DashboardModule';
 import TeamModule from '../components/admin/TeamModule';
 import AuditLogs from '../components/admin/AuditLogs';
@@ -102,11 +103,8 @@ export default function AdminDashboard() {
 
     const fetchStudies = async () => {
         try {
-            const res = await authFetch(`${apiUrl}/api/studies/`);
-            if (res.ok) {
-                const data = await res.json();
-                setStudies(data);
-            }
+            const data = await apiFetch<any[]>('/api/studies/');
+            setStudies(data || []);
         } catch (error) {
             console.error('Fetch error:', error);
         }
@@ -114,15 +112,15 @@ export default function AdminDashboard() {
 
     const fetchDashboardMetrics = async () => {
         try {
-            const [pRes, sRes, aRes] = await Promise.all([
-                authFetch(`${apiUrl}/api/participants/`),
-                authFetch(`${apiUrl}/api/staff/`),
-                authFetch(`${apiUrl}/api/audit-logs/`)
+            const [participantsData, staffData, auditData] = await Promise.all([
+                apiFetch<any[]>('/api/participants/'),
+                apiFetch<any[]>('/api/staff/'),
+                apiFetch<any[]>('/api/audit-logs/')
             ]);
 
-            if (pRes.ok) setParticipants(await pRes.json());
-            if (sRes.ok) setStaff(await sRes.json());
-            if (aRes.ok) setAuditLogs(await aRes.json());
+            setParticipants(participantsData || []);
+            setStaff(staffData || []);
+            setAuditLogs(auditData || []);
         } catch (error) {
             console.error('Metrics fetch error:', error);
         }
@@ -201,15 +199,15 @@ export default function AdminDashboard() {
     const navItems = [
         { id: 'DASHBOARD', label: 'Overview', icon: Layout, roles: ['super_admin', 'admin', 'sponsor', 'coordinator', 'pi'] },
         { id: 'TEAM', label: 'Medical Team', icon: Users, roles: ['super_admin', 'admin', 'coordinator', 'pi'] },
-        { id: 'MESSAGES', label: 'PI Messaging', icon: MessageSquare, roles: ['super_admin', 'admin', 'coordinator', 'pi'] },
+        { id: 'MESSAGES', label: 'Messages', icon: MessageSquare, roles: ['super_admin', 'admin', 'coordinator', 'pi'] },
 
-        { id: 'APPROVALS', label: 'Review Queue', icon: ShieldCheck, roles: ['super_admin'] },
-        { id: 'STUDIES', label: 'Protocols', icon: ClipboardList, roles: ['super_admin', 'admin', 'sponsor', 'coordinator', 'pi'] },
+        { id: 'APPROVALS', label: 'Approvals', icon: ShieldCheck, roles: ['super_admin'] },
+        { id: 'STUDIES', label: 'Study List', icon: ClipboardList, roles: ['super_admin', 'admin', 'sponsor', 'coordinator', 'pi'] },
         { id: 'SCREENER_BUILDER', label: 'Screeners', icon: Rocket, roles: ['super_admin', 'admin'] },
-        { id: 'AUDIT_LOGS', label: 'Audit Trail', icon: ShieldAlert, roles: ['super_admin', 'admin'] },
+        { id: 'AUDIT_LOGS', label: 'Audit Logs', icon: ShieldAlert, roles: ['super_admin', 'admin'] },
         { id: 'COMPLIANCE', label: 'Compliance Docs', icon: ShieldCheck, roles: ['coordinator', 'pi'] },
         { id: 'SUBMIT_CONTENT', label: 'Submit Content', icon: Plus, roles: ['super_admin', 'admin', 'coordinator', 'pi'] },
-        { id: 'WORKFLOW', label: 'Moderation Queue', icon: ShieldCheck, roles: ['super_admin', 'admin'] },
+        { id: 'WORKFLOW', label: 'Moderation', icon: ShieldCheck, roles: ['super_admin', 'admin'] },
         { id: 'WEBSITE', label: 'View Public Site', icon: Globe, roles: ['*'] },
 
 
@@ -267,9 +265,9 @@ export default function AdminDashboard() {
             {/* Top Bar Header */}
             <header className={`fixed top-0 right-0 h-24 z-[60] bg-[#0B101B]/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between px-10 transition-all duration-500 ${isSidebarOpen ? 'left-80' : 'left-24'}`}>
                 <div className="flex lg:flex flex-col">
-                    <h1 className="text-2xl lg:text-3xl font-black text-white tracking-tighter uppercase italic">ADMIN PORTAL</h1>
+                    <h1 className="text-2xl lg:text-3xl font-black text-white tracking-tighter uppercase italic">Admin Panel</h1>
                     <div className="flex items-center gap-2">
-                        <span className="text-[12px] font-black uppercase tracking-[0.4em] text-cyan-400 font-mono italic">MATRIX CONTROLLER</span>
+                        <span className="text-[14px] font-black uppercase tracking-[0.4em] text-cyan-400 font-mono italic">Main Control</span>
                     </div>
                 </div>
 
@@ -277,10 +275,11 @@ export default function AdminDashboard() {
                     <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
                     <input
                         type="text"
-                        placeholder="SEARCH SYSTEM DATA..."
-                        className="bg-white/5 border border-white/10 rounded-2xl pl-16 pr-8 py-4 w-96 text-[12px] font-bold text-white outline-none focus:border-cyan-500/30 transition-all uppercase tracking-widest placeholder:text-slate-800"
+                        placeholder="SEARCH DATA..."
+                        className="bg-white/5 border border-white/10 rounded-2xl pl-16 pr-8 py-4 w-[500px] text-[15px] font-bold text-white outline-none focus:border-cyan-500/30 transition-all uppercase tracking-widest placeholder:text-slate-800 shadow-2xl shadow-black/20"
                     />
                 </div>
+
 
                 <div className="flex items-center gap-8">
                     <div className="flex flex-col items-end text-right border-r border-white/5 pr-4 md:pr-6">
@@ -305,13 +304,7 @@ export default function AdminDashboard() {
                         >
                             <div className="text-right hidden sm:block">
                                 <p className="text-[12px] font-black text-white uppercase tracking-widest">{user?.role?.replace('_', ' ') || 'Admin Control'}</p>
-                                <div className="flex items-center justify-end gap-2 mt-0.5 pointer-events-none">
-                                    <span className={`text-[12px] font-black uppercase tracking-widest italic px-2 py-0.5 rounded border ${user?.affiliation === 'onsite' ? 'text-indigo-400 border-indigo-400/30' : 'text-cyan-400 border-cyan-400/30'
-                                        }`}>
-                                        {user?.affiliation || 'MusB'}
-                                    </span>
-                                    <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest italic">Active</p>
-                                </div>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">{user?.email}</p>
                             </div>
                             <button 
                                 onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -334,8 +327,11 @@ export default function AdminDashboard() {
                                             <p className="text-sm font-black text-white uppercase italic truncate tracking-tight">
                                                 {user?.full_name || 'Admin'}
                                             </p>
-                                            <p className="text-[12px] text-cyan-400 font-black uppercase tracking-widest mt-2">
+                                            <p className="text-[11px] text-cyan-400 font-black uppercase tracking-widest mt-2 px-2 py-0.5 bg-cyan-400/10 border border-cyan-400/20 rounded-lg inline-block">
                                                 {user?.role?.replace('_', ' ') || 'Admin'}
+                                            </p>
+                                            <p className="text-[11px] text-slate-500 font-bold lowercase tracking-normal mt-2.5 truncate">
+                                                {user?.email}
                                             </p>
                                         </div>
                                         <button

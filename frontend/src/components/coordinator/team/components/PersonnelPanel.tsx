@@ -1,6 +1,6 @@
 import React from 'react';
-import { X, Upload, CheckCircle2, ShieldCheck } from 'lucide-react';
-import { COLORS, TeamMember, ROLE_DOCS, PROTOCOLS } from '../TeamConstants';
+import { X, Upload, ShieldCheck, FileText, Check } from 'lucide-react';
+import { TeamMember, ROLE_DOCS, PROTOCOLS } from '../TeamConstants';
 
 interface PersonnelPanelProps {
     isOpen: boolean;
@@ -23,138 +23,187 @@ export const PersonnelPanel: React.FC<PersonnelPanelProps> = ({
     handleActivate,
     triggerUpload
 }) => {
-    const S = {
-        title: { fontSize: '22px', fontWeight: 900, fontStyle: 'italic' as const, textTransform: 'uppercase' as const, letterSpacing: '-0.02em', color: 'white' },
-        label: { fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.15em', color: COLORS.label },
-        input: { width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: COLORS.border, borderRadius: '4px', padding: '1rem', color: 'white', fontSize: '12px', outline: 'none', marginTop: '0.5rem' },
-        btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(99, 102, 241, 0.2)' },
-        btnGhost: { backgroundColor: 'transparent', color: 'white', border: COLORS.border, padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' },
-        badge: (c: string) => ({ backgroundColor: `${c}15`, color: c, border: `1px solid ${c}30`, padding: '0.4rem 1rem', borderRadius: '4px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, display: 'inline-flex', alignItems: 'center', gap: '4px' }),
-    };
+    // Ensure documents array exists
+    const documents = editedMember.documents || [];
+    const validDocsCount = documents.filter(d => d.status === 'Valid').length;
 
     return (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, pointerEvents: isOpen ? 'auto' : 'none' }}>
-            <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', opacity: isOpen ? 1 : 0, transition: 'opacity 0.4s' }} onClick={onClose} />
-            <div style={{ position: 'absolute', right: 0, top: 0, width: '720px', height: '100%', backgroundColor: COLORS.bgDark, borderLeft: `1px solid ${COLORS.accent}30`, transform: isOpen ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ padding: '2rem 3rem', borderBottom: COLORS.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)' }}>
-                    <h3 style={S.title}>{mode === 'add' ? 'ADD TEAM MEMBER' : 'MODIFY TEAM MEMBER'}</h3>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: COLORS.text, cursor: 'pointer' }}><X size={24} /></button>
+        <div className={`fixed inset-0 z-[100] transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
+            <div className={`absolute right-0 top-0 w-full max-w-2xl h-full bg-[#0F172A] border-l border-white/5 shadow-2xl transition-transform duration-500 ease-out flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+                {/* Header */}
+                <div className="flex items-center justify-between px-10 py-8 border-b border-white/5 bg-white/[0.02]">
+                    <h3 className="text-xl font-black text-white tracking-tight uppercase italic leading-none">
+                        {mode === 'add' ? 'Add team member' : 'Modify team member'}
+                    </h3>
+                    <button onClick={onClose} className="p-2 text-slate-500 hover:text-white transition-colors">
+                        <X size={24} />
+                    </button>
                 </div>
 
-                <div style={{ flex: 1, overflowY: 'auto', padding: '3.5rem' }} className="custom-scrollbar">
-                    <section style={{ marginBottom: '3.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                            <div style={{ width: '4px', height: '18px', backgroundColor: COLORS.accent, borderRadius: '2px' }} />
-                            <h4 style={{ ...S.title, fontSize: '15px' }}>Staff Details</h4>
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-10 space-y-12 custom-scrollbar">
+                    {/* Basic Info */}
+                    <section className="space-y-6">
+                        <div className="flex items-center gap-2 mb-8">
+                            <div className="w-1.5 h-6 bg-blue-500 rounded-full" />
+                            <h4 className="text-sm font-black text-white uppercase tracking-widest leading-none">Personnel details</h4>
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                            <div>
-                                <label style={S.label}>Full Identity Name</label>
-                                <input style={S.input} value={editedMember.name || ''} onChange={e => setEditedMember({ ...editedMember, name: e.target.value })} />
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-3">
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-[0.15em]">Full name</label>
+                                <input
+                                    className="w-full bg-white/5 border border-white/5 rounded-xl p-5 text-sm text-white focus:border-blue-500/50 outline-none transition-all font-bold"
+                                    value={editedMember.name || ''}
+                                    onChange={e => setEditedMember({ ...editedMember, name: e.target.value })}
+                                />
                             </div>
-                            <div>
-                                <label style={S.label}>Functional Role</label>
-                                <select style={{ ...S.input, fontSize: '15px', fontWeight: 900, textTransform: 'uppercase' }} value={editedMember.role} onChange={e => {
-                                    const role = e.target.value;
-                                    setEditedMember({
-                                        ...editedMember,
-                                        role,
-                                        documents: (ROLE_DOCS[role] || ['CV']).map(name => ({
-                                            id: Math.random().toString(36).substr(2, 9),
-                                            name, status: 'Missing', isRequired: true
-                                        }))
-                                    });
-                                }}>
-                                    {Object.keys(ROLE_DOCS).map(r => <option key={r} value={r} style={{ backgroundColor: '#0B101B', color: 'white' }}>{r.toUpperCase()}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label style={S.label}>Communications (Email)</label>
-                                <input style={S.input} value={editedMember.email || ''} onChange={e => setEditedMember({ ...editedMember, email: e.target.value })} />
-                            </div>
-                            <div>
-                                <label style={S.label}>Encrypted Direct Line</label>
-                                <input style={S.input} value={editedMember.phone || ''} onChange={e => setEditedMember({ ...editedMember, phone: e.target.value })} />
-                            </div>
-                        </div>
-                    </section>
-
-                    <section style={{ marginBottom: '3.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                            <div style={{ width: '4px', height: '18px', backgroundColor: COLORS.accent, borderRadius: '2px' }} />
-                            <h4 style={{ ...S.title, fontSize: '15px' }}>Study Access</h4>
-                        </div>
-                        <label style={{ ...S.label, marginBottom: '1rem' }}>Assigned Studies</label>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '2.5rem' }}>
-                            {PROTOCOLS.map(p => {
-                                const selected = editedMember.assignedStudies?.includes(p);
-                                return (
-                                    <button key={p}
-                                        onClick={() => setEditedMember({
+                            <div className="space-y-3">
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-[0.15em]">Registry role</label>
+                                <select
+                                    className="w-full bg-white/5 border border-white/5 rounded-xl p-5 text-sm text-white focus:border-blue-500/50 outline-none transition-all appearance-none cursor-pointer font-bold"
+                                    value={editedMember.role || ''}
+                                    onChange={e => {
+                                        const role = e.target.value;
+                                        setEditedMember({
                                             ...editedMember,
-                                            assignedStudies: selected
-                                                ? editedMember.assignedStudies?.filter(s => s !== p)
-                                                : [...(editedMember.assignedStudies || []), p]
-                                        })}
-                                        style={{
-                                            ...S.btnGhost, padding: '0.6rem 1.25rem',
-                                            border: `1px solid ${selected ? COLORS.accent : COLORS.border}`,
-                                            backgroundColor: selected ? `${COLORS.accent}20` : 'transparent',
-                                            color: selected ? 'white' : COLORS.text, fontSize: '12px'
-                                        }}
-                                    >{p}</button>
-                                );
-                            })}
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                            <div>
-                                <label style={S.label}>Permission Level</label>
-                                <select style={S.input} value={editedMember.permissionLevel} onChange={e => setEditedMember({ ...editedMember, permissionLevel: e.target.value as any })}>
-                                    <option value="Full">LEVEL 3: FULL ACCESS</option>
-                                    <option value="Limited">LEVEL 2: WRITE ACCESS</option>
-                                    <option value="Read-only">LEVEL 1: READ ONLY</option>
+                                            role,
+                                            documents: (ROLE_DOCS[role] || ['CV']).map(name => ({
+                                                id: Math.random().toString(36).substr(2, 9),
+                                                name,
+                                                status: 'Missing' as const,
+                                                isRequired: true
+                                            }))
+                                        });
+                                    }}
+                                >
+                                    <option value="" className="bg-[#0f172a]">Select a role</option>
+                                    {Object.keys(ROLE_DOCS).map(r => <option key={r} value={r} className="bg-[#0f172a]">{r}</option>)}
                                 </select>
                             </div>
-                            <div>
-                                <label style={S.label}>Clinical Expertise</label>
-                                <input style={S.input} value={editedMember.expertise || ''} onChange={e => setEditedMember({ ...editedMember, expertise: e.target.value })} />
+                            <div className="space-y-3">
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-[0.15em]">Email address</label>
+                                <input
+                                    className="w-full bg-white/5 border border-white/5 rounded-xl p-5 text-sm text-white focus:border-blue-500/50 outline-none transition-all font-bold"
+                                    value={editedMember.email || ''}
+                                    onChange={e => setEditedMember({ ...editedMember, email: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-3">
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-[0.15em]">Contact line</label>
+                                <input
+                                    className="w-full bg-white/5 border border-white/5 rounded-xl p-5 text-sm text-white focus:border-blue-500/50 outline-none transition-all font-bold"
+                                    value={editedMember.phone || ''}
+                                    onChange={e => setEditedMember({ ...editedMember, phone: e.target.value })}
+                                />
                             </div>
                         </div>
                     </section>
 
-                    <section>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                            <h4 style={{ ...S.title, fontSize: '15px' }}>Required Documents ({editedMember.documents?.filter(d => d.status === 'Valid').length}/{editedMember.documents?.length})</h4>
+                    {/* Access & Studies */}
+                    <section className="space-y-6">
+                        <div className="flex items-center gap-2 mb-8">
+                            <div className="w-1.5 h-6 bg-blue-500 rounded-full" />
+                            <h4 className="text-sm font-black text-white uppercase tracking-widest leading-none">Clinical access</h4>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {editedMember.documents?.map(doc => (
-                                <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.75rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: COLORS.border }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                        {doc.status === 'Valid' ? <CheckCircle2 size={18} color={COLORS.success} /> : <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: `2px dashed ${COLORS.label}` }} />}
-                                        <div>
-                                            <div style={{ fontSize: '13px', fontWeight: 900, color: 'white' }}>{doc.name}</div>
-                                            <div style={{ fontSize: '12px', color: COLORS.label }}>{doc.status === 'Valid' ? `Uploaded: ${doc.uploadDate}` : 'Pending Verification'}</div>
+                        <div className="space-y-4">
+                            <label className="text-[11px] font-black text-slate-500 uppercase tracking-[0.15em]">Active study assignments</label>
+                            <div className="flex flex-wrap gap-2">
+                                {PROTOCOLS && PROTOCOLS.map(p => {
+                                    const selected = editedMember.assignedStudies?.includes(p);
+                                    return (
+                                        <button key={p}
+                                            onClick={() => setEditedMember({
+                                                ...editedMember,
+                                                assignedStudies: selected
+                                                    ? editedMember.assignedStudies?.filter(s => s !== p)
+                                                    : [...(editedMember.assignedStudies || []), p]
+                                            })}
+                                            className={`px-6 py-3 rounded-lg text-xs font-black uppercase tracking-widest border transition-all ${selected
+                                                    ? 'bg-blue-600/10 border-blue-500/30 text-white'
+                                                    : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/10'
+                                                }`}
+                                        >{p}</button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-6 mt-8">
+                            <div className="space-y-3">
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-[0.15em]">Access level</label>
+                                <select
+                                    className="w-full bg-white/5 border border-white/5 rounded-xl p-5 text-sm text-white focus:border-blue-500/50 outline-none transition-all cursor-pointer font-bold"
+                                    value={editedMember.permissionLevel || ''}
+                                    onChange={e => setEditedMember({ ...editedMember, permissionLevel: e.target.value as any })}
+                                >
+                                    <option value="" className="bg-[#0f172a]">Select access level</option>
+                                    <option value="Full" className="bg-[#0f172a]">Level 3: Full access</option>
+                                    <option value="Limited" className="bg-[#0f172a]">Level 2: Write access</option>
+                                    <option value="Read-only" className="bg-[#0f172a]">Level 1: Read only</option>
+                                </select>
+                            </div>
+                            <div className="space-y-3">
+                                <label className="text-[11px] font-black text-slate-500 uppercase tracking-[0.15em]">Clinical focus</label>
+                                <input
+                                    className="w-full bg-white/5 border border-white/5 rounded-xl p-5 text-sm text-white focus:border-blue-500/50 outline-none transition-all font-bold"
+                                    value={editedMember.expertise || ''}
+                                    onChange={e => setEditedMember({ ...editedMember, expertise: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Verification Documents */}
+                    <section className="space-y-6 pb-8">
+                        <div className="flex items-center gap-2 mb-8">
+                            <div className="w-1.5 h-6 bg-blue-500 rounded-full" />
+                            <h4 className="text-sm font-black text-white uppercase tracking-widest leading-none">Required documentation ({validDocsCount}/{documents.length})</h4>
+                        </div>
+                        <div className="space-y-3">
+                            {documents.length > 0 ? (
+                                documents.map(doc => (
+                                    <div key={doc.id} className="flex items-center justify-between p-5 bg-white/[0.02] border border-white/5 rounded-2xl group hover:bg-white/[0.04] transition-all">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${doc.status === 'Valid' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-white/5 text-slate-700'}`}>
+                                                {doc.status === 'Valid' ? <Check size={16} /> : <FileText size={16} />}
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-black text-white leading-none uppercase tracking-tight">{doc.name}</p>
+                                                <p className="text-[11px] text-slate-500 mt-2 font-bold uppercase tracking-widest">{doc.status === 'Valid' ? `Uploaded: ${doc.uploadDate}` : 'Pending upload'}</p>
+                                            </div>
                                         </div>
+                                        <button
+                                            className={`px-6 py-3 rounded-lg text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all ${doc.status === 'Valid' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-blue-600/10 text-blue-400 border border-blue-500/20 hover:bg-blue-600/20'
+                                                }`}
+                                            onClick={() => triggerUpload(doc.id)}
+                                        >
+                                            <Upload size={14} /> {doc.status === 'Valid' ? 'Replace' : 'Upload'}
+                                        </button>
                                     </div>
-                                    <button style={{ ...S.btnGhost, padding: '0.5rem 1.25rem', borderColor: doc.status === 'Valid' ? COLORS.success : COLORS.accent, color: doc.status === 'Valid' ? COLORS.success : 'white' }} onClick={() => triggerUpload(doc.id)}>
-                                        <Upload size={14} style={{ marginRight: '8px' }} /> {doc.status === 'Valid' ? 'REPLACE' : 'UPLOAD'}
-                                    </button>
-                                </div>
-                            ))}
+                                ))
+                            ) : (
+                                <p className="text-sm text-slate-500 text-center py-8">Select a role to see required documents</p>
+                            )}
                         </div>
                     </section>
                 </div>
 
-                <div style={{ padding: '2rem 3.5rem', borderTop: COLORS.border, background: 'rgba(0,0,0,0.2)', display: 'flex', gap: '1rem' }}>
-                    <button style={{ ...S.btnGhost, flex: 1 }} onClick={onClose}>ABORT</button>
-                    {editedMember.status === 'Draft' && (mode === 'edit' || true) && (
-                        <button style={{ ...S.btnGhost, flex: 1, borderColor: COLORS.success, color: COLORS.success }} onClick={handleActivate}>ACTIVATE ACCOUNT</button>
-                    )}
-                    <button style={{ ...S.btnIndigo, flex: 2 }} onClick={handleSave}><ShieldCheck size={18} /> SAVE DETAILS</button>
+                {/* Footer Actions */}
+                <div className="px-10 py-8 border-t border-white/5 bg-black/20 flex gap-4">
+                    <button
+                        className="flex-1 px-8 py-5 bg-white/5 hover:bg-white/10 text-slate-400 rounded-xl text-sm font-black uppercase tracking-widest transition-all"
+                        onClick={onClose}
+                    >
+                        Discard
+                    </button>
+                    <button
+                        className="flex-[2] px-8 py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 active:scale-[0.98] transition-all"
+                        onClick={handleSave}
+                    >
+                        <ShieldCheck size={18} /> Save record
+                    </button>
                 </div>
             </div>
         </div>
     );
 };
-
-

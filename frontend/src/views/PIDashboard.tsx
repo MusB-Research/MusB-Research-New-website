@@ -3,6 +3,7 @@ import NotificationBell from '../components/NotificationBell';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authFetch, clearToken, getRole, performLogout, getUser, getDisplayName, API } from '../utils/auth';
+import { apiFetch } from '../api';
 import LogoutConfirmationModal from '../components/LogoutConfirmationModal';
 import SubmitContentForms from '../components/coordinator/SubmitContentForms';
 import LaunchStudyForm from '../components/coordinator/LaunchStudyForm';
@@ -252,19 +253,13 @@ export default function PIDashboard() {
     const fetchPIContent = async () => {
         setLoading(true);
         try {
-            const apiUrl = API || '';
-            const [studiesRes, usersRes] = await Promise.all([
-                authFetch(`${apiUrl}/api/studies/`),
-                authFetch(`${apiUrl}/api/users/`)
-            ]);
+            const studiesData = await apiFetch<any[]>('/api/studies/');
+            const usersData = await apiFetch<any[]>('/api/users/');
 
-            if (studiesRes.ok) {
-                const data = await studiesRes.json();
-                setStudies(data.sort((a: any, b: any) =>
-                    (a.id || "").localeCompare(b.id || "")
-                ));
-            }
-            if (usersRes.ok) setUsers(await usersRes.json());
+            setStudies((studiesData || []).sort((a: any, b: any) =>
+                (a.id || "").localeCompare(b.id || "")
+            ));
+            setUsers(usersData || []);
         } catch (e) {
             console.error("PI Data Fetch Failed", e);
         } finally {
@@ -434,7 +429,7 @@ export default function PIDashboard() {
                     <div className="flex items-center gap-4 relative" ref={profileRef}>
                         <div className="text-right hidden lg:block">
                             <p className="text-[14px] font-black text-white uppercase italic leading-none tracking-tight">{userName}</p>
-                            <p className="text-[12px] text-indigo-400 font-bold uppercase tracking-[0.2em] mt-2">Principal Investigator</p>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1.5">{getUser()?.email}</p>
                         </div>
                         <button
                             onClick={() => setIsProfileOpen(!isProfileOpen)}

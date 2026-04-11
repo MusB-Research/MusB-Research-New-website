@@ -47,7 +47,7 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
     const [piNotes, setPiNotes] = useState('');
     
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
-    const [uploadForm, setUploadForm] = useState({ title: '', study: '', type: 'Main Consent', version: '1.0', irbNumber: '', irbApprovalDate: '', effectiveDate: '', expirationDate: '', language: 'English', notes: '', file: null });
+    const [uploadForm, setUploadForm] = useState<any>({ title: '', study: '', type: 'Main Consent', version: '1.0', irbNumber: '', irbApprovalDate: '', effectiveDate: '', expirationDate: '', language: 'English', notes: '', file: null });
 
     const [toasts, setToasts] = useState<{ id: string, type: string, message: string }[]>([]);
     const [confirmModal, setConfirmModal] = useState<{ message: string, onConfirm: () => void, type?: string, confirmLabel?: string } | null>(null);
@@ -57,46 +57,53 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
     const activeRecord = useMemo(() => consentRecords.find(r => r.id === activeRecordId), [consentRecords, activeRecordId]);
 
     // Initial Data Load
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                const queryStr = selectedStudyId ? `?study_id=${selectedStudyId}` : '';
-                const [templatesRes, recordsRes, studiesRes] = await Promise.all([
-                    authFetch(`${API}/api/consent-templates/${queryStr}`).then(res => res.json()),
-                    authFetch(`${API}/api/consent/${queryStr}`).then(res => res.json()),
-                    authFetch(`${API}/api/studies/`).then(res => res.json())
-                ]);
-                
-                const correctedTemplates = (templatesRes || []).map((t: any) => ({
-                    ...t,
-                    id: t.id || t._id, // Handle Mongo ID variations
-                    title: t.title?.replace(/Baet/g, 'Beat') || 'Untitled Protocol',
-                    signatureRequirements: t.signatureRequirements || {
-                        participantSignature: true,
-                        participantDate: true,
-                        ccSignature: true,
-                        piVerification: true
-                    },
-                    placedFields: t.placedFields || t.placed_fields || []
-                }));
-                
-                setConsents(correctedTemplates);
-                setConsentRecords((recordsRes || []).map((r: any) => ({ ...r, id: r.id || r._id })));
-                setStudies((studiesRes || []).map((s: any) => ({ ...s, id: s.id || s._id })));
-                
-                if (correctedTemplates.length > 0 && !activeConsentId) {
-                    setActiveConsentId(correctedTemplates[0].id);
-                }
-            } catch (err) {
-                console.error("Failed to fetch consent data:", err);
-                setError("Clinical data connection failed. Check backend status.");
-            } finally {
-                setLoading(false);
+    const fetchData = useCallback(async () => {
+        try {
+            setLoading(true);
+            const queryStr = selectedStudyId ? `?study_id=${selectedStudyId}` : '';
+            const [templatesRes, recordsRes, studiesRes] = await Promise.all([
+                authFetch(`${API}/api/consent-templates/${queryStr}`).then(res => res.json()),
+                authFetch(`${API}/api/consent/${queryStr}`).then(res => res.json()),
+                authFetch(`${API}/api/studies/`).then(res => res.json())
+            ]);
+            
+            const rawTemplates = templatesRes.results || templatesRes || [];
+            const rawRecords = recordsRes.results || recordsRes || [];
+            const rawStudies = studiesRes.results || studiesRes || [];
+
+            const correctedTemplates = rawTemplates.map((t: any) => ({
+                ...t,
+                id: t.id || t._id,
+                title: t.title?.replace(/Baet/g, 'Beat').replace(/CONCENT/g, 'CONSENT') || 'Untitled Protocol',
+                signatureRequirements: t.signatureRequirements || {
+                    participantSignature: true,
+                    participantDate: true,
+                    ccSignature: true,
+                    piVerification: true
+                },
+                placedFields: typeof t.placed_fields === 'string' 
+                    ? JSON.parse(t.placed_fields) 
+                    : (t.placed_fields || t.placedFields || [])
+            }));
+            
+            setConsents(correctedTemplates);
+            setConsentRecords(rawRecords.map((r: any) => ({ ...r, id: r.id || r._id })));
+            setStudies(rawStudies.map((s: any) => ({ ...s, id: s.id || s._id })));
+            
+            if (correctedTemplates.length > 0 && !activeConsentId) {
+                setActiveConsentId(correctedTemplates[0].id);
             }
-        };
+        } catch (err) {
+            console.error("Failed to fetch consent data:", err);
+            setError("Clinical data connection failed. Check backend status.");
+        } finally {
+            setLoading(false);
+        }
+    }, [selectedStudyId, activeConsentId]);
+
+    useEffect(() => {
         fetchData();
-    }, [selectedStudyId]);
+    }, [fetchData]);
 
     const addToast = useCallback((message: string, type = 'success') => {
         const id = Math.random().toString(36).substr(2, 9);
@@ -105,28 +112,102 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
     }, []);
 
     const handleUpload = async () => {
+        if (!uploadForm.file) {
+            addToast('Please attach a protocol PDF first', 'error');
+            return;
+        }
+
+        if (!uploadForm.title.trim()) {
+            addToast('Protocol Identity is required', 'error');
+            return;
+        }
+
+        if (!uploadForm.study) {
+            addToast('Study Cluster assignment is required', 'error');
+            return;
+        }
+        
         try {
+            const formData = new FormData();
+            formData.append('title', uploadForm.title);
+            formData.append('study', uploadForm.study);
+            formData.append('version', uploadForm.version);
+            formData.append('irb_number', uploadForm.irbNumber);
+            formData.append('file', uploadForm.file);
+            formData.append('status', 'DRAFT');
+
+            // Format date for backend (YYYY-MM-DD) from UI format (MM/DD/YYYY)
+            let backendDate = '';
+            if (uploadForm.effectiveDate && uploadForm.effectiveDate.includes('/')) {
+                const parts = uploadForm.effectiveDate.split('/');
+                if (parts.length === 3) {
+                    const [m, d, y] = parts;
+                    backendDate = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                }
+            }
+            
+            formData.append('effective_date', backendDate);
+            formData.append('notes', uploadForm.notes || '');
+            formData.append('placed_fields', JSON.stringify([]));
+
             const res = await authFetch(`${API}/api/consent-templates/`, {
                 method: 'POST',
-                body: JSON.stringify({
-                    title: uploadForm.title,
-                    study: uploadForm.study,
-                    version: uploadForm.version,
-                    status: 'DRAFT',
-                    irb_number: uploadForm.irbNumber,
-                    placed_fields: []
-                })
+                body: formData
             });
+
             if (res.ok) {
                 const newTemplate = await res.json();
-                setConsents([newTemplate, ...consents]);
-                setActiveConsentId(newTemplate.id);
+                const processed = {
+                    ...newTemplate,
+                    id: newTemplate.id || newTemplate._id,
+                    title: newTemplate.title?.replace(/CONCENT/g, 'CONSENT') || 'Untitled Protocol',
+                    placedFields: typeof newTemplate.placed_fields === 'string' 
+                        ? JSON.parse(newTemplate.placed_fields) 
+                        : (newTemplate.placed_fields || [])
+                };
+                setConsents([processed, ...consents]);
+                setActiveConsentId(processed.id);
                 setUploadModalOpen(false);
+                setUploadForm({ title: '', study: '', type: 'Main Consent', version: '1.0', irbNumber: '', effectiveDate: '', notes: '', file: null });
                 addToast('Protocol record initialized in secure vault', 'success');
+            } else {
+                const err = await res.json();
+                addToast(err.detail || 'Failed to initialize registry record', 'error');
             }
         } catch (err) {
             console.error("Upload failed:", err);
             addToast("Sync Error", "error");
+        }
+    };
+
+    const handleUpdateTemplate = async (templateId: string, updates: any) => {
+        const backendUpdates: any = { ...updates };
+        if (updates.placedFields) {
+            backendUpdates.placed_fields = updates.placedFields;
+            delete backendUpdates.placedFields;
+        }
+
+        try {
+            const res = await authFetch(`${API}/api/consent-templates/${templateId}/`, {
+                method: 'PATCH',
+                body: JSON.stringify(backendUpdates)
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                const processed = {
+                    ...updated,
+                    id: updated.id || updated._id,
+                    placedFields: updated.placed_fields || []
+                };
+                setConsents(consents.map(c => c.id === processed.id ? processed : c));
+                addToast('Protocol structure committed to secure vault', 'success');
+            } else {
+                const errData = await res.json();
+                addToast(errData.detail || 'Sync failed', 'error');
+            }
+        } catch (err) {
+            console.error("Template update failed:", err);
+            addToast("Vault communication error", "error");
         }
     };
 
@@ -149,31 +230,6 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
         } catch (err) {
             console.error("Verification failed:", err);
             addToast("Record sync failed", "error");
-        }
-    };
-
-    const handleUpdateTemplate = async (templateId: string, updates: any) => {
-        try {
-            const res = await authFetch(`${API}/api/consent-templates/${templateId}/`, {
-                method: 'PATCH',
-                body: JSON.stringify(updates)
-            });
-            if (res.ok) {
-                const updated = await res.json();
-                const processed = {
-                    ...updated,
-                    id: updated.id || updated._id,
-                    placedFields: updated.placedFields || updated.placed_fields || []
-                };
-                setConsents(consents.map(c => c.id === processed.id ? processed : c));
-                addToast('Protocol structure committed to secure vault', 'success');
-            } else {
-                const errData = await res.json();
-                addToast(errData.detail || 'Sync failed', 'error');
-            }
-        } catch (err) {
-            console.error("Template update failed:", err);
-            addToast("Vault communication error", "error");
         }
     };
 
@@ -202,7 +258,7 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
         btnGhost: { backgroundColor: 'transparent', color: 'white', border: COLORS.border, padding: '1rem 2rem', borderRadius: '8px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }
     };
 
-    if (loading) return (
+    if (loading && consents.length === 0) return (
         <div className="flex-1 flex flex-col items-center justify-center bg-[#060a14] min-h-[800px]">
             <RefreshCw size={40} className="text-indigo-500 animate-spin mb-6" />
             <h1 style={S.title}>Synchronizing Consent Repository...</h1>
@@ -212,7 +268,7 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
     return (
         <div className="flex flex-col h-full bg-[#0B101B]">
             {/* MODULE TAB NAV */}
-            <div className="px-6 lg:px-10 py-6 lg:py-8 border-b border-white/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-[#0B101B] sticky top-0 z-40">
+            <div className="py-6 lg:py-8 border-b border-white/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-[#0B101B] sticky top-0 z-40">
                 <div className="flex items-center gap-6">
                     <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
                         <FileText size={28} />
@@ -268,7 +324,7 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
                         setRecordsSearch={setRecordsSearch}
                         setActiveRecordId={setActiveRecordId}
                         setActiveView={setActiveView}
-                        setAuditDrawerRecordId={setActiveRecordId /* reuse */}
+                        setAuditDrawerRecordId={setActiveRecordId}
                         setAuditDrawerOpen={setAuditDrawerOpen}
                     />
                 )}
@@ -357,9 +413,6 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
                     </div>
                 )}
             </AnimatePresence>
-
         </div>
     );
 }
-
-

@@ -122,6 +122,9 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
     const [actionPanelOpen, setActionPanelOpen] = useState(true);
     const [participantDrawerOpen, setParticipantDrawerOpen] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [allParticipants, setAllParticipants] = useState<any[]>([]);
+    const [allStudies, setAllStudies] = useState<any[]>([]);
+    const [composeForm, setComposeForm] = useState({ participantId: '', studyId: '', text: '' });
     
     // Refs
     const threadEndRef = useRef<HTMLDivElement>(null);
@@ -130,7 +133,8 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
     const fetchConversations = async () => {
         setLoading(true);
         try {
-            const res = await authFetch(`${API}/api/clinical-conversations/`);
+            const query = selectedStudyId && selectedStudyId !== 'all' ? `?study_id=${selectedStudyId}` : '';
+            const res = await authFetch(`${API}/api/clinical-conversations/${query}`);
             if (res.ok) {
                 const data = await res.json();
                 const mapped: Conversation[] = data.map((c: any) => ({
@@ -160,6 +164,8 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                 if (mapped.length > 0 && !activeConvId) {
                     setActiveConvId(mapped[0].id);
                 }
+            } else {
+                addToast('Synchronicity failure', 'error');
             }
         } catch (e) {
             addToast('Synchronicity failure', 'error');
@@ -169,9 +175,29 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
     };
 
     // Auto-scroll on active conversation or messages change
+    const fetchComposeData = async () => {
+        try {
+            const [pRes, sRes] = await Promise.all([
+                authFetch(`${API}/api/participants/`),
+                authFetch(`${API}/api/studies/`)
+            ]);
+            if (pRes.ok) {
+                const pData = await pRes.json();
+                setAllParticipants(Array.isArray(pData) ? pData : (pData.results ?? []));
+            }
+            if (sRes.ok) {
+                const sData = await sRes.json();
+                setAllStudies(Array.isArray(sData) ? sData : (sData.results ?? []));
+            }
+        } catch (e) {
+            console.error("Failed to fetch composer data", e);
+        }
+    };
+
     useEffect(() => {
         fetchConversations();
-    }, []);
+        fetchComposeData();
+    }, [selectedStudyId]);
 
     useEffect(() => {
         threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -298,6 +324,47 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
         addToast(`${label} executed successfully`);
     };
 
+    const handleComposeSubmit = async () => {
+        if (!composeForm.participantId || !composeForm.studyId || !composeForm.text) {
+            addToast('Please complete all fields', 'warning');
+            return;
+        }
+
+        try {
+            const res = await authFetch(`${API}/api/clinical-conversations/`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    participant: composeForm.participantId,
+                    study: composeForm.studyId,
+                    status: 'OPEN',
+                    last_message_preview: composeForm.text
+                })
+            });
+
+            if (res.ok) {
+                const newConv = await res.json();
+                
+                // Add the initial message
+                await authFetch(`${API}/api/clinical-conversations/${newConv.id}/add_message/`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        text: composeForm.text,
+                        tag: selectedTag.toUpperCase()
+                    })
+                });
+
+                addToast('Clinical thread initialized', 'success');
+                setComposeOpen(false);
+                setComposeForm({ participantId: '', studyId: '', text: '' });
+                fetchConversations();
+            } else {
+                addToast('Failed to initialize thread', 'error');
+            }
+        } catch (err) {
+            addToast('Transmission failure', 'error');
+        }
+    };
+
     // --- STYLES ---
     const G = {
         glass: {
@@ -328,7 +395,7 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
             border: 'none',
             padding: '1rem 2rem',
             borderRadius: '6px',
-            fontSize: '14px',
+            fontSize: '12px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             cursor: 'pointer',
@@ -354,9 +421,9 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                 <h1 style={{ ...G.title, fontSize: '2rem' }}>Messages</h1>
 
                 <div style={{ display: 'flex', flex: 1, maxWidth: '600px', margin: '0 2rem', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '0 1rem' }}>
-                    <Search size={16} color="#64748b" style={{ marginTop: '0.75rem' }} />
+                    <Search size={14} color="#64748b" style={{ marginTop: '0.75rem' }} />
                     <input 
-                        style={{ backgroundColor: 'transparent', border: 'none', color: 'white', padding: '0.75rem', fontSize: '14px', outline: 'none', width: '100%' }}
+                        style={{ backgroundColor: 'transparent', border: 'none', color: 'white', padding: '0.75rem', fontSize: '12px', outline: 'none', width: '100%', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.1em' }}
                         placeholder="Search IDs, studies, or clinical keywords..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
@@ -490,7 +557,7 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                                             backgroundColor: m.fromPI ? 'rgba(99, 102, 241, 0.15)' : 'rgba(255, 255, 255, 0.03)',
                                             border: `1px solid ${m.fromPI ? 'rgba(99, 102, 241, 0.3)' : 'rgba(255, 255, 255, 0.08)'}`,
                                             lineHeight: '1.6',
-                                            fontSize: '16px',
+                                            fontSize: '14px',
                                             color: '#f8fafc',
                                             boxShadow: m.fromPI ? '0 10px 30px rgba(99, 102, 241, 0.1)' : 'none'
                                         }}>
@@ -548,7 +615,7 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                                             </div>
                                         )}
                                         <textarea 
-                                            style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'white', padding: '1.25rem', fontSize: '16px', outline: 'none', minHeight: '80px', resize: 'vertical' }}
+                                            style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'white', padding: '1.25rem', fontSize: '14px', outline: 'none', minHeight: '80px', resize: 'vertical' }}
                                             placeholder="Compose clinical feedback..."
                                             value={messageInput}
                                             onChange={e => setMessageInput(e.target.value)}
@@ -580,23 +647,43 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '2.5rem' }}>
                             <div>
                                 <label style={G.label}>Participant ID / To</label>
-                                <input style={{ ...G.btnGhost, width: '100%', padding: '1rem', marginTop: '0.5rem', textAlign: 'left', cursor: 'text' }} placeholder="Select Recipient..." />
+                                <select 
+                                    style={{ ...G.btnGhost, width: '100%', padding: '1rem', marginTop: '0.5rem', backgroundColor: '#0B101B' }}
+                                    value={composeForm.participantId}
+                                    onChange={e => setComposeForm({ ...composeForm, participantId: e.target.value })}
+                                >
+                                    <option value="">Select Recipient...</option>
+                                    {allParticipants.map(p => (
+                                        <option key={p.id} value={p.id}>{p.participant_sid} - {p.user_details?.decrypted_name || 'Subject'}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
                                 <label style={G.label}>Select Study</label>
-                                <select style={{ ...G.btnGhost, width: '100%', padding: '1rem', marginTop: '0.5rem', backgroundColor: '#0B101B' }}>
-                                    <option>Beat the Bloat</option>
-                                    <option>Menopause Study</option>
+                                <select 
+                                    style={{ ...G.btnGhost, width: '100%', padding: '1rem', marginTop: '0.5rem', backgroundColor: '#0B101B' }}
+                                    value={composeForm.studyId}
+                                    onChange={e => setComposeForm({ ...composeForm, studyId: e.target.value })}
+                                >
+                                    <option value="">Select Study...</option>
+                                    {allStudies.map(s => (
+                                        <option key={s.id} value={s.id}>{s.protocol_id} - {s.title}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
                         <div style={{ marginTop: '2rem' }}>
                             <label style={G.label}>Clinical Assessment / Message</label>
-                            <textarea style={{ ...G.glass, width: '100%', padding: '1.5rem', marginTop: '0.5rem', minHeight: '200px', fontSize: '16px', color: 'white', outline: 'none' }} placeholder="Detail assessment..." />
+                            <textarea 
+                                style={{ ...G.glass, width: '100%', padding: '1.5rem', marginTop: '0.5rem', minHeight: '200px', fontSize: '14px', color: 'white', outline: 'none' }} 
+                                placeholder="Detail assessment..." 
+                                value={composeForm.text}
+                                onChange={e => setComposeForm({ ...composeForm, text: e.target.value })}
+                            />
                         </div>
                         <div style={{ display: 'flex', gap: '1rem', marginTop: '3rem', justifyContent: 'flex-end' }}>
                             <button style={G.btnGhost} onClick={() => setComposeOpen(false)}>CANCEL</button>
-                            <button style={G.btnPrimary} onClick={() => { setComposeOpen(false); addToast('Direct message initialized'); }}>SEND DISPATCH</button>
+                            <button style={G.btnPrimary} onClick={handleComposeSubmit}>SEND DISPATCH</button>
                         </div>
                     </div>
                 </div>

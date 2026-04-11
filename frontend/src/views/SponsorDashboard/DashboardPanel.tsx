@@ -60,13 +60,8 @@ const TIMEZONES = [
 ];
 
 export default function DashboardPanel({ protocols, team, inquiries, setProtocols, addToast, windowWidth, setActiveModule }: any) {
-  const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Handle live clock for location-aware telemetry
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+
 
   const [protocolFilter, setProtocolFilter] = useState('All');
   const [overviewModalOpen, setOverviewModalOpen] = useState(false);
@@ -205,21 +200,6 @@ export default function DashboardPanel({ protocols, team, inquiries, setProtocol
           <h1 className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter leading-none">
             WELCOME BACK, <span style={{ color: '#60a5fa' }}>{getDisplayName(getUser()).toUpperCase()}</span>
           </h1>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ color: '#60a5fa', fontSize: '22px', fontWeight: 900, fontFamily: 'monospace' }}>
-                {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
-              </span>
-              <span style={{ color: '#94a3b8', fontSize: '12px', fontWeight: 900, letterSpacing: '0.05em', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '4px' }}>
-                {Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop()?.replace('_', ' ')}
-              </span>
-            </div>
-            <div style={{ width: '1px', height: '14px', background: 'rgba(255,255,255,0.1)' }} />
-            <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 800, letterSpacing: '0.1em' }}>
-              {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}
-            </div>
-          </div>
         </div>
 
         {/* INTEGRATED ACTION BUTTON - MOVED UP MORE */}

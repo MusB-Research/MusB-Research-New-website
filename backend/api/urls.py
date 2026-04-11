@@ -40,6 +40,9 @@ router.register(r'study-inquiries', views.StudyInquiryViewSet)
 router.register(r'intervention-arms', views.InterventionArmViewSet)
 router.register(r'clinical-conversations', views.ClinicalConversationViewSet)
 router.register(r'notifications', views.NotificationViewSet, basename='notification')
+router.register(r'questionnaire-templates', views.QuestionnaireTemplateViewSet)
+router.register(r'study-questionnaires', views.StudyQuestionnaireViewSet)
+router.register(r'questionnaire-schedules', views.QuestionnaireScheduleInstanceViewSet)
 
 urlpatterns = [
     path('apply/', csrf_exempt(views.CandidateApplyView.as_view({'post': 'apply'})), name='candidate-apply'),

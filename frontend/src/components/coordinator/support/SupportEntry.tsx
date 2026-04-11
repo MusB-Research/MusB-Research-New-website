@@ -91,7 +91,8 @@ export default function SupportModule({ selectedStudyId }: { selectedStudyId?: s
             const res = await authFetch(`${API}/api/support/tickets/`);
             if (res.ok) {
                 const data = await res.json();
-                const mapped: TicketType[] = data.map((t: any) => ({
+                const results = Array.isArray(data) ? data : (data.results || []);
+                const mapped: TicketType[] = results.map((t: any) => ({
                     id: t.ticket_id || `TCK-${t.id}`,
                     title: t.title,
                     study: t.study_protocol || 'Global Node',

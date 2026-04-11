@@ -11,44 +11,56 @@ interface SubjectOverviewProps {
 }
 
 export const SubjectOverview: React.FC<SubjectOverviewProps> = ({ 
-    participant, alerts, addToast, logAction 
+    participant, alerts = []
 }) => {
+    const formatVal = (val: any) => (val === undefined || val === null || val === 'N/A' || val === '') ? 'Not Available' : val;
+
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div className="space-y-10">
+            {/* Alerts Section (Flat Design) */}
             {alerts.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div className="flex flex-wrap gap-2">
                     {alerts.map((a, i) => (
-                        <div key={i} style={{ padding: '0.6rem 1rem', borderRadius: '4px', backgroundColor: `${a.color}15`, border: `1px solid ${a.color}30`, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <AlertCircle size={14} color={a.color} />
-                            <span style={{ fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', color: a.color }}>{a.text}</span>
-                            <X size={12} color={a.color} style={{ cursor: 'pointer' }} />
+                        <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded bg-rose-500/10 border border-rose-500/20">
+                            <AlertCircle size={14} className="text-rose-500" />
+                            <span className="text-[10px] font-bold text-rose-500 uppercase tracking-widest">{a.text}</span>
+                            <button className="text-rose-500/50 hover:text-rose-500 transition-colors">
+                                <X size={12} />
+                            </button>
                         </div>
                     ))}
                 </div>
             )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+
+            {/* Practical Info Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[
-                    { l: 'Participant Age', v: participant.age || 'N/A' },
-                    { l: 'Biological Sex', v: participant.gender || 'N/A' },
-                    { l: 'Assigned Study Arm', v: participant.assigned_arm || 'Default' },
-                    { l: 'Enrollment Date', v: participant.reviewed_at ? new Date(participant.reviewed_at).toLocaleDateString() : 'Pending Review' },
-                    { l: 'Protocol ID', v: participant.protocol_id || 'N/A' },
-                    { l: 'Assigned Coordinator', v: participant.coordinator_name || 'Unassigned' }
+                    { l: 'Participant Age', v: formatVal(participant.age) },
+                    { l: 'Sex', v: formatVal(participant.gender || participant.sex) },
+                    { l: 'Assigned Study Arm', v: formatVal(participant.assigned_arm_name || participant.assigned_arm?.name || 'Default') },
+                    { l: 'Enrollment Date', v: participant.reviewed_at ? new Date(participant.reviewed_at).toLocaleDateString() : (participant.status === 'ENROLLED' ? new Date(participant.created_at).toLocaleDateString() : 'Pending Review') },
+                    { l: 'Study ID', v: formatVal(participant.protocol_id) },
+                    { l: 'Assigned Coordinator', v: formatVal(participant.coordinator_name || 'Unassigned') }
                 ].map((item, i) => (
-                    <div key={i} style={S.card}>
+                    <div key={i} style={S.card} className="group hover:border-indigo-500/30 transition-colors">
                         <label style={S.label}>{item.l}</label>
-                        <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{item.v}</div>
+                        <div className="text-lg font-bold text-white mt-1">{item.v}</div>
                     </div>
                 ))}
             </div>
-            <div style={{ ...S.card, display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: `1px solid ${COLORS.accent}30` }}>
+
+            {/* Enrollment Status Card (Minimal) */}
+            <div style={S.card} className="flex items-center justify-between border-l-4 border-l-indigo-500">
                 <div>
                     <label style={S.label}>Enrollment Verification</label>
-                    <div style={{ fontSize: '24px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' }}>Clinical Review Status: <span style={{ color: COLORS.accent }}>{participant.status}</span></div>
+                    <div className="text-xl font-bold text-white uppercase tracking-tight mt-1">
+                        Clinical Review Status: <span className="text-indigo-400">{participant.status || 'Active'}</span>
+                    </div>
+                </div>
+                <div className="hidden sm:block text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] italic opacity-50">
+                    Synchronized with Regulatory Vault
                 </div>
             </div>
         </div>
     );
 };
-
-
