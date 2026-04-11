@@ -33,6 +33,7 @@ interface Conversation {
     participantStatus: 'Active' | 'Screening' | 'Completed';
     draft: string;
     messages: Message[];
+    rawLastUpdated: number;
 }
 
 interface Toast {

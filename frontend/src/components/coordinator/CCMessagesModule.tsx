@@ -27,7 +27,7 @@ interface Conversation {
     senderRole: string;
     preview: string;
     timestamp: string;
-    rawLastUpdated: Date;
+    rawLastUpdated: number;
     status: 'Unread' | 'Action Required' | 'Resolved' | 'Open';
     flagged: boolean;
     assignedCoordinator: string;
@@ -147,7 +147,7 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                     senderRole: 'Coordinator',
                     preview: c.last_message_preview || 'No messages yet',
                     timestamp: c.last_updated ? new Date(c.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A',
-                    rawLastUpdated: c.last_updated ? new Date(c.last_updated) : new Date(0),
+                    rawLastUpdated: c.last_updated ? new Date(c.last_updated).getTime() : 0,
                     status: !c.status ? 'Open' : c.status === 'ACTION_REQUIRED' ? 'Action Required' : c.status.charAt(0).toUpperCase() + c.status.slice(1).toLowerCase().replace('_', ' '),
                     flagged: !!c.is_flagged,
                     assignedCoordinator: c.assigned_coordinator || 'Unassigned',
@@ -234,7 +234,7 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
         if (sortMode === 'unread') {
             return filtered.sort((a, b) => (a.status === 'Unread' ? -1 : 1));
         }
-        return filtered.sort((a, b) => b.rawLastUpdated.getTime() - a.rawLastUpdated.getTime());
+        return filtered.sort((a, b) => b.rawLastUpdated - a.rawLastUpdated);
     };
 
     const handleSelectConv = (id: string) => {
