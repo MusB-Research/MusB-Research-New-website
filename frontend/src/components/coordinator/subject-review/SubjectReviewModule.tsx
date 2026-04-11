@@ -360,7 +360,7 @@ export default function CCC_SubjectReviewModule({ participantId, selectedStudyId
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.2 }}
                         >
-                            {activeTab === 'Overview' && <SubjectOverview participant={processedParticipant} />}
+                            {activeTab === 'Overview' && <SubjectOverview participant={processedParticipant} alerts={[]} addToast={addToast} logAction={logAction} />}
                             {activeTab === 'Screening Review' && <EligibilityAudit participant={processedParticipant} screeningNotes={screeningNotes} setScreeningNotes={setScreeningNotes} logAction={logAction} />}
                             {activeTab === 'Outcomes' && <ClinicalOutcomes participant={processedParticipant} />}
                             {activeTab === 'Safety' && <SafetySignals participant={processedParticipant} />}

@@ -25,8 +25,13 @@ interface Template {
     created_at: string;
 }
 
-export default function QuestionnaireBuilder() {
-    const [viewMode, setViewMode] = useState<'BUILDER' | 'LIBRARY'>('LIBRARY');
+interface QuestionnaireBuilderProps {
+    initialTemplate?: any;
+    initialTab?: string;
+}
+
+export default function QuestionnaireBuilder({ initialTemplate, initialTab }: QuestionnaireBuilderProps) {
+    const [viewMode, setViewMode] = useState<'BUILDER' | 'LIBRARY'>(initialTab === 'Create New' ? 'BUILDER' : 'LIBRARY');
     const [templates, setTemplates] = useState<Template[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [previewPdf, setPreviewPdf] = useState<string | null>(null);
@@ -50,6 +55,18 @@ export default function QuestionnaireBuilder() {
     useEffect(() => {
         fetchTemplates();
     }, []);
+
+    useEffect(() => {
+        if (initialTemplate) {
+            setName(initialTemplate.title || initialTemplate.name || '');
+            setQuestions(initialTemplate.json_structure?.questions || []);
+            setViewMode('BUILDER');
+        } else if (initialTab === 'Create New') {
+            setName('');
+            setQuestions([]);
+            setViewMode('BUILDER');
+        }
+    }, [initialTemplate, initialTab]);
 
     const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];

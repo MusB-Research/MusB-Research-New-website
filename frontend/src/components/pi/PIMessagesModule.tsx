@@ -133,27 +133,30 @@ export default function PIMessagesModule() {
             const res = await authFetch(`${API}/api/clinical-conversations/`);
             if (res.ok) {
                 const data = await res.json();
-                const mapped: Conversation[] = data.map((c: any) => ({
+                const rawResults = Array.isArray(data) ? data : (data.results || []);
+                
+                const mapped: Conversation[] = rawResults.map((c: any) => ({
                     id: c.id,
-                    participantId: c.participant_sid,
-                    study: c.study_protocol,
-                    sender: c.assigned_coordinator || 'N/A',
+                    participantId: c.participant_sid || 'ID-PENDING',
+                    study: c.study_protocol || 'Protocol Not Linked',
+                    sender: c.assigned_coordinator || 'Unassigned',
                     senderRole: 'Coordinator',
-                    preview: c.last_message_preview,
-                    timestamp: new Date(c.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    status: c.status === 'ACTION_REQUIRED' ? 'Action Required' : c.status.charAt(0).toUpperCase() + c.status.slice(1).toLowerCase().replace('_', ' '),
-                    flagged: c.is_flagged,
-                    assignedCoordinator: c.assigned_coordinator,
-                    participantStatus: c.participant_status,
+                    preview: c.last_message_preview || 'No messages yet',
+                    timestamp: c.last_updated ? new Date(c.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '---',
+                    rawLastUpdated: c.last_updated ? new Date(c.last_updated).getTime() : 0,
+                    status: c.status === 'ACTION_REQUIRED' ? 'Action Required' : (c.status ? c.status.charAt(0).toUpperCase() + c.status.slice(1).toLowerCase().replace('_', ' ') : 'Open'),
+                    flagged: !!c.is_flagged,
+                    assignedCoordinator: c.assigned_coordinator || 'Unassigned',
+                    participantStatus: c.participant_status || 'Active',
                     draft: '',
-                    messages: c.messages.map((m: any) => ({
+                    messages: (c.messages || []).map((m: any) => ({
                         id: m.id,
-                        sender: m.sender_name,
-                        role: m.user_role_label,
-                        time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        text: m.text,
-                        tag: m.tag.charAt(0).toUpperCase() + m.tag.slice(1).toLowerCase(),
-                        fromPI: m.is_from_pi
+                        sender: m.sender_name || 'System',
+                        role: m.user_role_label || 'User',
+                        time: m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '---',
+                        text: m.text || '',
+                        tag: m.tag ? (m.tag.charAt(0).toUpperCase() + m.tag.slice(1).toLowerCase()) : 'General',
+                        fromPI: !!m.is_from_pi
                     }))
                 }));
                 setConversations(mapped);
@@ -195,17 +198,11 @@ export default function PIMessagesModule() {
             const matchesFilter = filterStatus === 'All' || 
                                  (filterStatus === 'Unread' && c.status === 'Unread') ||
                                  (filterStatus === 'Flagged' && c.flagged) ||
-                                 (filterStatus === 'Requires Action' && c.status === 'Needs Review');
+                                 (filterStatus === 'Requires Action' && c.status === 'Action Required');
             return matchesSearch && matchesFilter;
         });
 
-        if (sortMode === 'priority') {
-            return filtered.sort((a, b) => (a.flagged === b.flagged) ? 0 : a.flagged ? -1 : 1);
-        }
-        if (sortMode === 'unread') {
-            return filtered.sort((a, b) => (a.status === 'Unread' ? -1 : 1));
-        }
-        return filtered; // Default to recent (order in mock)
+        return filtered.sort((a: any, b: any) => b.rawLastUpdated - a.rawLastUpdated);
     };
 
     const handleSelectConv = (id: string) => {
@@ -366,11 +363,16 @@ export default function PIMessagesModule() {
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                     <button style={G.btnPrimary} onClick={() => setComposeOpen(true)}><Plus size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Compose</button>
                     <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem' }}>
-                        {['All', 'Unread', 'Flagged', 'Requires Action'].map(f => (
-                            <button key={f} 
-                                onClick={() => setFilterStatus(f)}
-                                style={{ ...G.btnGhost, borderColor: filterStatus === f ? '#6366f1' : 'rgba(255,255,255,0.1)', backgroundColor: filterStatus === f ? 'rgba(99,102,241,0.1)' : 'transparent', color: filterStatus === f ? 'white' : '#64748b' }}>
-                                {f}
+                        {[
+                            { label: 'All', count: conversations.length },
+                            { label: 'Unread', count: conversations.filter(c => c.status === 'Unread').length },
+                            { label: 'Flagged', count: conversations.filter(c => c.flagged).length },
+                            { label: 'Requires Action', count: conversations.filter(c => c.status === 'Action Required').length }
+                        ].map(f => (
+                            <button key={f.label} 
+                                onClick={() => setFilterStatus(f.label)}
+                                style={{ ...G.btnGhost, borderColor: filterStatus === f.label ? '#6366f1' : 'rgba(255,255,255,0.1)', backgroundColor: filterStatus === f.label ? 'rgba(99,102,241,0.1)' : 'transparent', color: filterStatus === f.label ? 'white' : '#64748b' }}>
+                                {f.label} <span style={{ opacity: 0.5, marginLeft: '4px' }}>{f.count}</span>
                             </button>
                         ))}
                     </div>
@@ -391,35 +393,43 @@ export default function PIMessagesModule() {
                         </div>
                     </div>
                     <div style={{ flex: 1, overflowY: 'auto' }}>
-                        {getSortedConversations().map(conv => (
-                            <div 
-                                key={conv.id}
-                                onClick={() => handleSelectConv(conv.id)}
-                                style={{
-                                    padding: '1.25rem 1.5rem',
-                                    borderBottom: '1px solid rgba(255,255,255,0.03)',
-                                    cursor: 'pointer',
-                                    borderLeft: activeConvId === conv.id ? '4px solid #6366f1' : '4px solid transparent',
-                                    backgroundColor: activeConvId === conv.id ? 'rgba(99,102,241,0.08)' : 'transparent',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                    <span style={{ fontSize: '16px', fontWeight: 900, fontStyle: 'italic', color: 'white' }}>{conv.participantId} <span style={{ color: '#64748b', fontSize: '12px' }}>| {conv.study}</span></span>
-                                    <span style={{ fontSize: '12px', color: '#64748b' }}>{conv.timestamp}</span>
-                                </div>
-                                <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: 'bold', textTransform: 'uppercase' }}>{conv.sender} • {conv.senderRole}</div>
-                                <div style={{ fontSize: '13px', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.preview}</div>
-                                
-                                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', alignItems: 'center' }}>
-                                    {conv.status === 'Unread' && <span style={{ backgroundColor: '#6366f1', height: '8px', width: '8px', borderRadius: '50%' }} />}
-                                    {conv.status === 'Action Required' && <span style={{ backgroundColor: '#ef4444', height: '8px', width: '8px', borderRadius: '50%' }} />}
-                                    {conv.status === 'Resolved' && <CheckCircle2 size={12} color="#10b981" />}
-                                    {conv.flagged && <Bookmark size={12} color="#f59e0b" fill="#f59e0b" />}
-                                    <span style={{ fontSize: '12px', fontWeight: 900, color: conv.status === 'Resolved' ? '#10b981' : '#64748b', textTransform: 'uppercase' }}>{conv.status}</span>
-                                </div>
+                        {getSortedConversations().length === 0 ? (
+                            <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: '#64748b' }}>
+                                <MessageSquare size={32} style={{ opacity: 0.1, marginBottom: '1rem' }} />
+                                <p style={{ fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>No results found</p>
+                                <p style={{ fontSize: '10px', marginTop: '0.5rem' }}>Check your filters or search query</p>
                             </div>
-                        ))}
+                        ) : (
+                            getSortedConversations().map(conv => (
+                                <div 
+                                    key={conv.id}
+                                    onClick={() => handleSelectConv(conv.id)}
+                                    style={{
+                                        padding: '1.25rem 1.5rem',
+                                        borderBottom: '1px solid rgba(255,255,255,0.03)',
+                                        cursor: 'pointer',
+                                        borderLeft: activeConvId === conv.id ? '4px solid #6366f1' : '4px solid transparent',
+                                        backgroundColor: activeConvId === conv.id ? 'rgba(99,102,241,0.08)' : 'transparent',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                        <span style={{ fontSize: '16px', fontWeight: 900, fontStyle: 'italic', color: 'white' }}>{conv.participantId} <span style={{ color: '#64748b', fontSize: '12px' }}>| {conv.study}</span></span>
+                                        <span style={{ fontSize: '12px', color: '#64748b' }}>{conv.timestamp}</span>
+                                    </div>
+                                    <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: 'bold', textTransform: 'uppercase' }}>{conv.sender} • {conv.senderRole}</div>
+                                    <div style={{ fontSize: '13px', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.preview}</div>
+                                    
+                                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', alignItems: 'center' }}>
+                                        {conv.status === 'Unread' && <span style={{ backgroundColor: '#6366f1', height: '8px', width: '8px', borderRadius: '50%' }} />}
+                                        {conv.status === 'Action Required' && <span style={{ backgroundColor: '#ef4444', height: '8px', width: '8px', borderRadius: '50%' }} />}
+                                        {conv.status === 'Resolved' && <CheckCircle2 size={12} color="#10b981" />}
+                                        {conv.flagged && <Bookmark size={12} color="#f59e0b" fill="#f59e0b" />}
+                                        <span style={{ fontSize: '12px', fontWeight: 900, color: conv.status === 'Resolved' ? '#10b981' : '#64748b', textTransform: 'uppercase' }}>{conv.status}</span>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
 

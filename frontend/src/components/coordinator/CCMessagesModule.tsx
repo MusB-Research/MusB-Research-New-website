@@ -27,6 +27,7 @@ interface Conversation {
     senderRole: string;
     preview: string;
     timestamp: string;
+    rawLastUpdated: Date;
     status: 'Unread' | 'Action Required' | 'Resolved' | 'Open';
     flagged: boolean;
     assignedCoordinator: string;
@@ -137,27 +138,29 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
             const res = await authFetch(`${API}/api/clinical-conversations/${query}`);
             if (res.ok) {
                 const data = await res.json();
-                const mapped: Conversation[] = data.map((c: any) => ({
+                const results = Array.isArray(data) ? data : (data.results || []);
+                const mapped: Conversation[] = results.map((c: any) => ({
                     id: c.id,
-                    participantId: c.participant_sid,
-                    study: c.study_protocol,
+                    participantId: c.participant_sid || 'N/A',
+                    study: c.study_protocol || 'Global',
                     sender: c.assigned_coordinator || 'N/A',
                     senderRole: 'Coordinator',
-                    preview: c.last_message_preview,
-                    timestamp: new Date(c.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    status: c.status === 'ACTION_REQUIRED' ? 'Action Required' : c.status.charAt(0).toUpperCase() + c.status.slice(1).toLowerCase().replace('_', ' '),
-                    flagged: c.is_flagged,
-                    assignedCoordinator: c.assigned_coordinator,
-                    participantStatus: c.participant_status,
+                    preview: c.last_message_preview || 'No messages yet',
+                    timestamp: c.last_updated ? new Date(c.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A',
+                    rawLastUpdated: c.last_updated ? new Date(c.last_updated) : new Date(0),
+                    status: !c.status ? 'Open' : c.status === 'ACTION_REQUIRED' ? 'Action Required' : c.status.charAt(0).toUpperCase() + c.status.slice(1).toLowerCase().replace('_', ' '),
+                    flagged: !!c.is_flagged,
+                    assignedCoordinator: c.assigned_coordinator || 'Unassigned',
+                    participantStatus: c.participant_status || 'Active',
                     draft: '',
-                    messages: c.messages.map((m: any) => ({
+                    messages: (c.messages || []).map((m: any) => ({
                         id: m.id,
-                        sender: m.sender_name,
-                        role: m.user_role_label,
+                        sender: m.sender_name || 'System',
+                        role: m.user_role_label || 'Bot',
                         time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        text: m.text,
-                        tag: m.tag.charAt(0).toUpperCase() + m.tag.slice(1).toLowerCase(),
-                        fromPI: m.is_from_pi
+                        text: m.text || '',
+                        tag: (m.tag || 'General').charAt(0).toUpperCase() + (m.tag || 'General').slice(1).toLowerCase(),
+                        fromPI: !!m.is_from_pi
                     }))
                 }));
                 setConversations(mapped);
@@ -231,7 +234,7 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
         if (sortMode === 'unread') {
             return filtered.sort((a, b) => (a.status === 'Unread' ? -1 : 1));
         }
-        return filtered; // Default to recent (order in mock)
+        return filtered.sort((a, b) => b.rawLastUpdated.getTime() - a.rawLastUpdated.getTime());
     };
 
     const handleSelectConv = (id: string) => {
@@ -433,13 +436,22 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                     <button style={G.btnPrimary} onClick={() => setComposeOpen(true)}><Plus size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Compose</button>
                     <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem' }}>
-                        {['All', 'Unread', 'Flagged', 'Requires Action'].map(f => (
-                            <button key={f} 
-                                onClick={() => setFilterStatus(f)}
-                                style={{ ...G.btnGhost, borderColor: filterStatus === f ? '#6366f1' : 'rgba(255,255,255,0.1)', backgroundColor: filterStatus === f ? 'rgba(99,102,241,0.1)' : 'transparent', color: filterStatus === f ? 'white' : '#64748b' }}>
-                                {f}
-                            </button>
-                        ))}
+                        {['All', 'Unread', 'Flagged', 'Requires Action'].map(f => {
+                            const count = conversations.filter(c => {
+                                if (f === 'All') return true;
+                                if (f === 'Unread') return c.status === 'Unread';
+                                if (f === 'Flagged') return c.flagged;
+                                if (f === 'Requires Action') return c.status === 'Action Required';
+                                return true;
+                            }).length;
+                            return (
+                                <button key={f} 
+                                    onClick={() => setFilterStatus(f)}
+                                    style={{ ...G.btnGhost, borderColor: filterStatus === f ? '#6366f1' : 'rgba(255,255,255,0.1)', backgroundColor: filterStatus === f ? 'rgba(99,102,241,0.1)' : 'transparent', color: filterStatus === f ? 'white' : '#64748b' }}>
+                                    {f} <span style={{ marginLeft: '6px', opacity: 0.5, fontSize: '10px' }}>({count})</span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
             </header>
@@ -458,7 +470,14 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                         </div>
                     </div>
                     <div style={{ flex: 1, overflowY: 'auto' }}>
-                        {getSortedConversations().map(conv => (
+                        {getSortedConversations().length === 0 ? (
+                            <div style={{ padding: '3rem 2rem', textAlign: 'center', opacity: 0.3 }}>
+                                <MessageSquare size={32} style={{ margin: '0 auto 1rem' }} />
+                                <p style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>No conversations found</p>
+                                <p style={{ fontSize: '10px', marginTop: '0.5rem' }}>Check your filters or search query</p>
+                            </div>
+                        ) : (
+                            getSortedConversations().map(conv => (
                             <div 
                                 key={conv.id}
                                 onClick={() => handleSelectConv(conv.id)}
@@ -486,7 +505,7 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                                     <span style={{ fontSize: '12px', fontWeight: 900, color: conv.status === 'Resolved' ? '#10b981' : '#64748b', textTransform: 'uppercase' }}>{conv.status}</span>
                                 </div>
                             </div>
-                        ))}
+                        )))}
                     </div>
                 </div>
 
