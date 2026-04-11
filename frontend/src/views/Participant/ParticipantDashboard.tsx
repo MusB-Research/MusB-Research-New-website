@@ -238,16 +238,18 @@ export default function ParticipantDashboard() {
 
                     // Senior Developer: Strict Priority Sorting (Full Enrollment > Partial > Screening)
                     const priority = ['ENROLLED', 'RANDOMIZED', 'ACTIVE', 'CONSENTED'];
-                    pData.sort((a: any, b: any) => {
-                        const sA = (a.status || '').toUpperCase();
-                        const sB = (b.status || '').toUpperCase();
+                    filteredData.sort((a: any, b: any) => {
+                        const sA = (a.status || '').toUpperCase().trim();
+                        const sB = (b.status || '').toUpperCase().trim();
                         const idxA = priority.indexOf(sA);
                         const idxB = priority.indexOf(sB);
 
                         if (idxA !== -1 && idxB !== -1) return idxA - idxB;
                         if (idxA !== -1) return -1;
                         if (idxB !== -1) return 1;
-                        return 0;
+                        
+                        // Secondary sort: Newest first for same-status studies
+                        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
                     });
 
                     if (filteredData.length > 0) {
