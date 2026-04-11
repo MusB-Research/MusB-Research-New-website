@@ -21,7 +21,8 @@ export default function DiscoverStudiesView() {
                 ]);
 
                 if (pRes.ok) {
-                    const pData = await pRes.json();
+                    const data = await pRes.json();
+                    const pData = Array.isArray(data) ? data : (data.results || []);
                     // Senior Developer: Strict Priority Sorting to ensure "Current Study" matches ground-truth enrollment
                     const priority = ['ENROLLED', 'RANDOMIZED', 'ACTIVE', 'CONSENTED'];
                     const sortedPData = [...pData].sort((a: any, b: any) => {
@@ -47,8 +48,10 @@ export default function DiscoverStudiesView() {
 
                 if (res.ok) {
                     const data = await res.json();
-                    const sorted = [...data].sort((a: any, b: any) =>
-                        (a.id || '').localeCompare(b.id || '')
+                    const results = Array.isArray(data) ? data : (data.results || []);
+                    // Primary Sort: created_at (Oldest First) to match backend standard
+                    const sorted = [...results].sort((a: any, b: any) =>
+                        (a.created_at || '').localeCompare(b.created_at || '')
                     );
                     setPublicStudies(sorted);
                 }
