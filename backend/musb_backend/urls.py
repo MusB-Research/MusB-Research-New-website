@@ -13,7 +13,24 @@ def api_root(request):
     })
 
 def health_check(request):
-    return JsonResponse({"status": "healthy", "timestamp": now().isoformat()}, status=200)
+    """
+    Enhanced health check that verifies database connectivity.
+    This keeps the MongoDB connection pool 'warm' for faster user logins.
+    """
+    db_ok = True
+    try:
+        from authentication.models import User
+        # Perform a tiny, lightweight query to keep the connection alive
+        User.objects.limit(1).exists() 
+    except Exception as e:
+        db_ok = False
+        print(f"Health Check DB Error: {e}")
+
+    return JsonResponse({
+        "status": "healthy" if db_ok else "degraded",
+        "database": "connected" if db_ok else "disconnected",
+        "timestamp": now().isoformat()
+    }, status=200 if db_ok else 503)
 
 urlpatterns = [
     path('', api_root),
