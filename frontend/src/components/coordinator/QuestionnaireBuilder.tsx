@@ -360,7 +360,7 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                                     onClick={() => {
                                         setEditingId(t.id);
                                         setEditingPdfUrl(getFullUrl(t.pdf_file));
-                                        setEditingPdfName(t.pdf_file ? t.pdf_file.split('/').pop() : 'Protocol.pdf');
+                                        setEditingPdfName(t.pdf_file ? (t.pdf_file.split('/').pop() || 'Protocol.pdf') : 'Protocol.pdf');
                                         setName(t.name);
                                         setQuestions(Array.isArray(t.json_structure) ? t.json_structure : []);
                                         setViewMode('BUILDER');

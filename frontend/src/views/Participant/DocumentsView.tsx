@@ -100,10 +100,10 @@ const DocumentsView = ({ study, signatures = [], assignedForms = [], isLoading =
 
     const getFileIcon = (type: string) => {
         switch (type) {
-            case 'pdf': return <FileText className="text-amber-500" />;
-            case 'image': return <FileImage className="text-amber-400" />;
-            case 'csv': return <FileSpreadsheet className="text-amber-300" />;
-            default: return <FileText className="text-slate-400" />;
+            case 'pdf': return FileText;
+            case 'image': return FileImage;
+            case 'csv': return FileSpreadsheet;
+            default: return FileText;
         }
     };
 
@@ -303,7 +303,7 @@ const DocumentsView = ({ study, signatures = [], assignedForms = [], isLoading =
                                                     <td className="px-8 py-7">
                                                         <div className="flex items-center gap-5 text-left">
                                                             <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-amber-500/10 group-hover:text-amber-500 transition-all border border-white/5 group-hover:border-amber-500/20">
-                                                                {React.cloneElement(getFileIcon(doc.type) as React.ReactElement, { className: "w-5 h-5" })}
+                                                                {React.createElement(getFileIcon(doc.type), { className: "w-5 h-5" })}
                                                             </div>
                                                             <div className="flex flex-col">
                                                                 <span className="text-[14px] font-black text-white uppercase italic group-hover:text-amber-500 transition-colors tracking-tight">{doc.name}</span>
@@ -350,7 +350,7 @@ const DocumentsView = ({ study, signatures = [], assignedForms = [], isLoading =
                                                 <div className="flex flex-col h-full space-y-8">
                                                     <div className="flex items-start justify-between">
                                                         <div className="w-16 h-16 rounded-[1.75rem] bg-white/5 flex items-center justify-center group-hover:bg-amber-500 transition-all duration-500 shadow-2xl group-hover:shadow-[0_0_30px_rgba(245,158,11,0.3)] border border-white/5 group-hover:border-amber-400 group-hover:scale-110">
-                                                            {React.cloneElement(getFileIcon(doc.type) as React.ReactElement, { className: "w-8 h-8 transition-colors group-hover:text-slate-950" })}
+                                                            {React.createElement(getFileIcon(doc.type), { className: "w-8 h-8 transition-colors group-hover:text-slate-950" })}
                                                         </div>
                                                         <div className="flex gap-2">
                                                             <button 

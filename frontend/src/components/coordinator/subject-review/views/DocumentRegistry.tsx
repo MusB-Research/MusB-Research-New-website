@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, ArrowUpRight } from 'lucide-react';
+import { FileText, ArrowUpRight, Eye } from 'lucide-react';
 import { COLORS, S } from '../SubRevConstants';
 
 interface DocumentRegistryProps {

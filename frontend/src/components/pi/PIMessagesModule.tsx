@@ -60,7 +60,8 @@ const MOCK_CONVERSATIONS: Conversation[] = [
         messages: [
             { id: 'm1', sender: 'John Doe', role: 'Coordinator', time: '10:32 AM', text: 'Participant BTB-023 reported mild bloating increase after dose 3.', tag: 'Safety', attachment: 'Symptom_Log.pdf', fromPI: false },
             { id: 'm2', sender: 'You', role: 'PI', time: '10:45 AM', text: 'Please monitor for 24 hours and report any escalation immediately.', tag: 'Protocol', attachment: null, fromPI: true }
-        ]
+        ],
+        rawLastUpdated: 0
     },
     {
         id: 'conv-2',
@@ -77,7 +78,8 @@ const MOCK_CONVERSATIONS: Conversation[] = [
         draft: '',
         messages: [
             { id: 'm3', sender: 'Sarah Lee', role: 'Coordinator', time: 'Yesterday 2:15 PM', text: 'Visit 4 completed successfully. Labs submitted to central lab.', tag: 'General', attachment: null, fromPI: false }
-        ]
+        ],
+        rawLastUpdated: 0
     },
     {
         id: 'conv-3',
@@ -94,7 +96,8 @@ const MOCK_CONVERSATIONS: Conversation[] = [
         draft: '',
         messages: [
             { id: 'm4', sender: 'Admin', role: 'Admin', time: 'Mon 9:00 AM', text: 'IRB approval renewal is due in 14 days. Please submit required documents.', tag: 'Protocol', attachment: 'IRB_Renewal_Form.pdf', fromPI: false }
-        ]
+        ],
+        rawLastUpdated: 0
     }
 ];
 

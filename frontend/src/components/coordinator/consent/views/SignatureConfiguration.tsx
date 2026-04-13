@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Trash2, Save } from 'lucide-react';
+import { ArrowLeft, Trash2, Save, ShieldCheck } from 'lucide-react';
 import { COLORS, ConsentTemplate } from '../ConsentConstants';
 import { PDFPage } from '../components/PDFPage';
 

@@ -54,6 +54,7 @@ export interface ConsentTemplate {
     };
     placedFields: ConsentField[];
     auditLog: AuditEntry[];
+    terms_content?: string;
 }
 
 export interface ConsentField {
