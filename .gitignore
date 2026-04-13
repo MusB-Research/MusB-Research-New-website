@@ -6,9 +6,9 @@ Allabout.txt
 .env
 .env.*
 !.env.example
-*.txt
-*.json
+# Specific ignores
 *.pem
+*.log
 
 # Additional global ignores
 node_modules/
