@@ -144,15 +144,16 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                 for (const line of rawLines) {
                     const trimmed = line.trim();
                     if (!trimmed) continue;
+                    if (trimmed.startsWith('©') || trimmed.includes('All rights reserved') || trimmed.toLowerCase().includes('page')) continue;
                     
-                    // If it starts with a number (1. ) or letter (a. ), start a new block
-                    const isNewControl = /^\d+\.\s/.test(trimmed) || /^[a-e]\.\s/i.test(line);
+                    const isNewQuestion = /^\d+[\.\)]\s/.test(trimmed);
+                    const isNewExplicitOption = /^[a-g][\.\)]\s/i.test(trimmed);
                     
-                    if (isNewControl && currentPara) {
+                    if ((isNewQuestion || isNewExplicitOption) && currentPara) {
                         paragraphs.push(currentPara.trim());
                         currentPara = trimmed;
                     } else {
-                        currentPara += " " + trimmed;
+                        currentPara += (currentPara ? " " : "") + trimmed;
                     }
                 }
                 if (currentPara) paragraphs.push(currentPara.trim());
@@ -161,25 +162,60 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                 const suggested: Question[] = [];
                 let parentQuestion: Question | null = null;
 
-                for (const para of paragraphs) {
-                    const isOption = /^[a-e]\.\s/i.test(para) || /^\d+\)\s/.test(para);
+                // Enhanced detection for scores (0, 1) AND Checkboxes ([], \u25A1, etc)
+                const scorePattern = /(\d)[\s\.\)-]+([A-Za-z\s\/\\,\(\)-]+?)(?=\s+\d|\s*$)/g;
+                const boxPattern = /[\u25A1\u2610\u2611\u2612\uf0a8\uf0fe\uf071\u0001\u0002]|(?:\[\s?\])/g;
 
-                    if (isOption && parentQuestion) {
-                        const cleanedOpt = para.replace(/^[a-e]\.\s+/i, '').replace(/^\d+\)\s+/, '').trim();
+                for (let para of paragraphs) {
+                    if (para.length < 5 || para.startsWith('©')) continue;
+
+                    let options: string[] = [];
+                    let label = para;
+                    
+                    // Priority 1: Checkbox-based splitting
+                    if (boxPattern.test(para)) {
+                        const parts = para.split(boxPattern).map(p => p.trim()).filter(p => p.length > 1);
+                        if (parts.length > 1) {
+                            label = parts[0];
+                            options = parts.slice(1);
+                        }
+                    } 
+                    // Priority 2: Score-based splitting
+                    else {
+                        let match;
+                        scorePattern.lastIndex = 0;
+                        while ((match = scorePattern.exec(para)) !== null) {
+                            options.push(`${match[1]} ${match[2].trim()}`);
+                        }
+                        if (options.length > 0) {
+                            const firstMatchIdx = para.search(/\d[\s\.\)-]+[A-Za-z]/);
+                            if (firstMatchIdx > 10) label = para.substring(0, firstMatchIdx).trim();
+                        }
+                    }
+
+                    const isExplicitOption = /^[a-g][\.\)]\s/i.test(para);
+
+                    if (isExplicitOption && parentQuestion) {
+                        const cleanedOpt = para.replace(/^[a-g][\.\)]\s+/i, '').trim();
                         parentQuestion.type = 'choice';
                         parentQuestion.options = [...(parentQuestion.options || []), cleanedOpt];
+                    } else if (options.length > 0 && parentQuestion && label.length < 20) {
+                        parentQuestion.type = 'choice';
+                        parentQuestion.options = [...(parentQuestion.options || []), ...options];
                     } else {
-                        // Skip if it looks like a header (all caps or very long without a number)
-                        const isNumberStart = /^\d+\.\s/.test(para);
-                        if (!isNumberStart && para.length > 200) continue;
+                        const isNumberStart = /^\d+[\.\)]\s/.test(para);
+                        if (!isNumberStart && para.length > 300) continue;
+
+                        const cleanLabel = label.replace(/^\d+[\.\)]\s+/, '').trim();
+                        if (cleanLabel.length < 5) continue;
 
                         parentQuestion = {
                             id: `ai_${suggested.length}_${Date.now()}`,
-                            type: 'short_text',
-                            label: para.replace(/^\d+\.\s+/, '').trim(),
+                            type: options.length > 0 ? 'choice' : 'short_text',
+                            label: cleanLabel,
                             placeholder: '...',
                             required: true,
-                            options: []
+                            options: options.length > 0 ? options : []
                         };
                         suggested.push(parentQuestion);
                     }
@@ -187,7 +223,7 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
 
                 const final = suggested.filter(q => q.label.length > 5);
                 setQuestions(final);
-                alert(`Clinical Structure Restored: Consolidated ${final.length} meaningful instruments.`);
+                alert(`Clinical Structure Restored: Extracted ${final.length} instruments with automated option mapping.`);
             }
         } catch (err) {
             console.error(err);
@@ -412,10 +448,10 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                                                     onChange={e => setQuestions(questions.map(item => item.id === q.id ? { ...item, type: e.target.value as any } : item))}
                                                     className="bg-[#0f172a] border border-white/10 rounded-lg px-3 py-2 text-[10px] font-black text-indigo-400 uppercase tracking-widest outline-none focus:border-indigo-500"
                                                 >
-                                                    <option value="short_text">Short Text</option>
-                                                    <option value="choice">Multiple Choice</option>
-                                                    <option value="dropdown">Dropdown</option>
-                                                    <option value="date">Date Picker</option>
+                                                    <option value="short_text">One Line Text</option>
+                                                    <option value="choice">Choice (Radio)</option>
+                                                    <option value="dropdown">Selection Menu</option>
+                                                    <option value="date">Date Field</option>
                                                     <option value="yesno">Yes / No</option>
                                                 </select>
                                                 <button onClick={() => setQuestions(questions.filter(item => item.id !== q.id))} className="p-2 opacity-0 group-hover:opacity-100 text-rose-500 hover:rotate-90 transition-all hover:bg-rose-500/10 rounded-lg">
@@ -428,15 +464,15 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                                             <div className="pl-14 pr-4">
                                                 <div className="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
                                                     <div className="flex items-center justify-between mb-4">
-                                                        <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Options / Choices</h5>
+                                                        <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Options / Selection Levels</h5>
                                                         <button
                                                             onClick={() => {
                                                                 const opts = q.options || [];
-                                                                setQuestions(questions.map(item => item.id === q.id ? { ...item, options: [...opts, `Option ${opts.length + 1}`] } : item));
+                                                                setQuestions(questions.map(item => item.id === q.id ? { ...item, options: [...opts, `Level ${opts.length + 1}`] } : item));
                                                             }}
                                                             className="text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:text-white transition-all"
                                                         >
-                                                            + Add Option
+                                                            + Add New Level
                                                         </button>
                                                     </div>
                                                     <div className="flex flex-wrap gap-2">
@@ -471,10 +507,10 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
 
                                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-8">
                                     {[
-                                        { type: 'short_text', icon: FileText, label: 'Short Text' },
-                                        { type: 'choice', icon: List, label: 'Multiple Choice' },
-                                        { type: 'dropdown', icon: ChevronDown, label: 'Dropdown' },
-                                        { type: 'date', icon: Calendar, label: 'Date Picker' },
+                                        { type: 'short_text', icon: FileText, label: 'One Line Text' },
+                                        { type: 'choice', icon: List, label: 'Choice Selection' },
+                                        { type: 'dropdown', icon: ChevronDown, label: 'Menu List' },
+                                        { type: 'date', icon: Calendar, label: 'Date Pick' },
                                         { type: 'yesno', icon: AlertCircle, label: 'Yes / No' }
                                     ].map((btn) => (
                                         <button
@@ -582,60 +618,97 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                         <motion.div
                             initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="fixed right-0 top-0 bottom-0 w-[400px] bg-[#0f172a] border-l border-white/10 z-[251] shadow-2xl flex flex-col"
+                            className="fixed right-0 top-0 bottom-0 w-[500px] bg-[#0f172a] border-l border-white/10 z-[251] shadow-2xl flex flex-col"
                         >
                             <div className="p-8 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
                                 <div>
-                                    <h4 className="text-xl font-black text-white uppercase italic tracking-tighter">Choose Questions</h4>
-                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">Select lines from the protocol text</p>
+                                    <h4 className="text-xl font-black text-white uppercase italic tracking-tighter">Choose Component</h4>
+                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">Select logic or options from the protocol</p>
                                 </div>
                                 <button onClick={() => setShowSourceText(false)} className="p-2 text-slate-500 hover:text-white transition-all"><X /></button>
                             </div>
                             <div className="flex-1 overflow-y-auto p-4 space-y-2">
                                 {sourceLines.map((line, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => {
-                                            // Smart Line Parsing
-                                            let type: 'short_text' | 'choice' | 'date' = 'short_text';
-                                            let label = line;
-                                            let options: string[] = [];
+                                    <div key={idx} className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 hover:border-indigo-500/30 transition-all group">
+                                        <p className="text-[12px] font-bold text-slate-300 group-hover:text-white mb-4">{line}</p>
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                 onClick={() => {
+                                                     // Smart New Question Logic
+                                                     let type: 'short_text' | 'choice' | 'date' | 'yesno' = 'short_text';
+                                                     let label = line;
+                                                     let options: string[] = [];
 
-                                            // Detect Score-based patterns like 0 No problem 1 Slight problem
-                                            const scorePattern = /\s+(\d)[\s\.]([A-Za-z\s\-]+?)(?=\s+\d|\s*$)/g;
-                                            let match;
-                                            while ((match = scorePattern.exec(line)) !== null) {
-                                                options.push(`${match[1]} ${match[2].trim()}`);
-                                            }
+                                                     const boxPattern = /[\u25A1\u2610\u2611\u2612\uf0a8\uf0fe\uf071\u0001\u0002]|(?:\[\s?\])/g;
 
-                                            if (options.length > 0) {
-                                                type = 'choice';
-                                                // Take the part before the first number as the label
-                                                const firstNumIndex = line.search(/\s\d[\s\.]/);
-                                                if (firstNumIndex > 0) {
-                                                    label = line.substring(0, firstNumIndex).trim();
-                                                }
-                                            } else if (line.toLowerCase().includes('date')) {
-                                                type = 'date';
-                                            }
+                                                     if (boxPattern.test(line)) {
+                                                         const parts = line.split(boxPattern).map(p => p.trim()).filter(p => p.length > 1);
+                                                         if (parts.length > 1) {
+                                                             label = parts[0];
+                                                             options = parts.slice(1);
+                                                             type = 'choice';
+                                                         }
+                                                     } else {
+                                                         const scorePattern = /\s*(\d)[\s\.-]([A-Za-z\s\/\\-]+?)(?=\s+\d|\s*$)/g;
+                                                         let match;
+                                                         while ((match = scorePattern.exec(line)) !== null) {
+                                                             options.push(`${match[1]} ${match[2].trim()}`);
+                                                         }
+                                                         if (options.length > 0) {
+                                                             type = 'choice';
+                                                             const firstMatchIdx = line.search(/\s*\d[\s\.-][A-Za-z\s\/\\-]+?(?=\s+\d|\s*$)/);
+                                                             if (firstMatchIdx > 5) label = line.substring(0, firstMatchIdx).trim();
+                                                         } else if (line.toLowerCase().includes('date')) {
+                                                             type = 'date';
+                                                         } else if (line.toLowerCase().includes('yes') && line.toLowerCase().includes('no')) {
+                                                             type = 'yesno';
+                                                         }
+                                                     }
 
-                                            const newQ: Question = {
-                                                id: `q_src_${Date.now()}`,
-                                                type,
-                                                label,
-                                                placeholder: '...',
-                                                required: true,
-                                                options: options.length > 0 ? options : undefined
-                                            };
-                                            setQuestions([...questions, newQ]);
-                                        }}
-                                        className="w-full text-left p-4 rounded-xl bg-white/5 border border-white/5 hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all group"
-                                    >
-                                        <p className="text-[12px] font-bold text-slate-300 group-hover:text-white transition-colors">{line}</p>
-                                        <div className="mt-2 text-[9px] font-black text-indigo-400 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
-                                            <Plus className="w-3 h-3" /> Add as structured field
+                                                     const newQ: Question = {
+                                                         id: `q_src_${Date.now()}`,
+                                                         type,
+                                                         label: label.replace(/^\d+[\.\)]\s+/, '').trim(),
+                                                         placeholder: '...',
+                                                         required: true,
+                                                         options: options.length > 0 ? options : []
+                                                     };
+                                                     setQuestions([...questions, newQ]);
+                                                 }}
+                                                 className="flex-1 py-2 bg-indigo-500/10 rounded-lg text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:bg-indigo-500/20 transition-all flex items-center justify-center gap-2"
+                                             >
+                                                 <Plus className="w-3 h-3" /> New Question
+                                             </button>
+                                             <button
+                                                 onClick={() => {
+                                                     if (questions.length === 0) return;
+                                                     const lastQ = questions[questions.length - 1];
+                                                     let newOpts: string[] = [];
+                                                     const boxPattern = /[\u25A1\u2610\u2611\u2612\uf0a8\uf0fe\uf071\u0001\u0002]|(?:\[\s?\])/g;
+
+                                                     if (boxPattern.test(line)) {
+                                                         newOpts = line.split(boxPattern).map(p => p.trim()).filter(p => p.length > 1);
+                                                     } else {
+                                                         const scorePattern = /\s*(\d)[\s\.-]([A-Za-z\s\/\\-]+?)(?=\s+\d|\s*$)/g;
+                                                         let match;
+                                                         while ((match = scorePattern.exec(line)) !== null) {
+                                                             newOpts.push(`${match[1]} ${match[2].trim()}`);
+                                                         }
+                                                     }
+                                                     if (newOpts.length === 0) newOpts = [line.trim()];
+
+                                                     setQuestions(questions.map((q, qIdx) => 
+                                                         qIdx === questions.length - 1 
+                                                         ? { ...q, type: 'choice', options: [...(q.options || []), ...newOpts] } 
+                                                         : q
+                                                     ));
+                                                 }}
+                                                className="flex-1 py-2 bg-pink-500/10 rounded-lg text-[9px] font-black text-pink-400 uppercase tracking-widest hover:bg-pink-500/20 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <Layers className="w-3 h-3" /> + Add to Options
+                                            </button>
                                         </div>
-                                    </button>
+                                    </div>
                                 ))}
                             </div>
                         </motion.div>

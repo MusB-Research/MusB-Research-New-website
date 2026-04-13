@@ -2112,30 +2112,40 @@ class QuestionnaireTemplateViewSet(viewsets.ModelViewSet):
             for page in reader.pages:
                 raw_text += page.extract_text() + "\n"
             
-            # Smart Sentence Reconstructor
+            # Smart Sentence Reconstructor for Clinical Instruments
             raw_lines = [l.strip() for l in raw_text.split('\n') if l.strip()]
             final_lines = []
             current_buffer = ""
 
             for line in raw_lines:
-                # If line is a marker (1. or a.) or ends with punctuation, flush buffer
-                is_marker = re.match(r'^(\d+\.|[a-e]\.|•|\-)\s', line.lower())
+                # Detect markers: Numbers (1., 01.), Letters (a., a)), Bullets, and Scores (0, 1, 2)
+                is_marker = re.match(r'^(\d+[\.\)]?|[a-g][\.\)]|•|\-)\s', line.lower())
+                # Detect lines that look like a multi-score range (e.g. "0 None 1 Mild 2 Moderate")
+                is_multi_score = re.search(r'\d\s+[A-Za-z]+\s+\d\s+[A-Za-z]+', line)
                 
-                if is_marker and current_buffer:
+                if (is_marker or is_multi_score) and current_buffer:
                     final_lines.append(current_buffer.strip())
                     current_buffer = line
                 elif not current_buffer:
                     current_buffer = line
                 else:
-                    # Check if previous buffer ended with punctuation
-                    if re.search(r'[\.\?\!\:]$', current_buffer.strip()):
+                    # Check if previous buffer ended with definitive punctuation (not just any punctuation)
+                    if re.search(r'[\?\!]$', current_buffer.strip()):
                         final_lines.append(current_buffer.strip())
                         current_buffer = line
+                    elif re.search(r'[\.\:]$', current_buffer.strip()) and not re.search(r'(No\.|Vol\.|Dr\.)$', current_buffer.strip()):
+                         # Standard sentence end or section end
+                         final_lines.append(current_buffer.strip())
+                         current_buffer = line
                     else:
+                        # Continue joining lines if they seem part of the same block
                         current_buffer += " " + line
             
             if current_buffer:
                 final_lines.append(current_buffer.strip())
+
+            # Post-process: Filter out empty or extremely long junk blocks
+            final_lines = [l for l in final_lines if len(l) > 3 and not l.startswith('©')]
 
             return Response({'lines': final_lines})
         except Exception as e:
