@@ -23,6 +23,7 @@ class OnboardingEnforcementMiddleware:
         re.compile(r'^/api/auth/logout/?$'),
         re.compile(r'^/api/auth/reset-forced/?$'),
         re.compile(r'^/api/auth/setup-credentials/?$'),
+        re.compile(r'^/api/health/?$'),  # Whitelist health checks for monitoring tools
         re.compile(r'^/admin/'),  # Django admin
     ]
 
