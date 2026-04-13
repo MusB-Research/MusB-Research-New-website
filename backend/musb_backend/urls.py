@@ -15,11 +15,18 @@ def api_root(request):
 from django.db import connections
 from django.db.utils import OperationalError
 
+APP_VERSION = "1.2.5-STABLE"
+
 def health_check(request):
+    """
+    Finalized high-availability health check.
+    Uses connections['default'].ensure_connection() to verify MongoDB 
+    without relying on application-level Model Managers.
+    """
     db_status = "connected"
     db_detail = "ok"
     try:
-        # For MongoDB, we check if we can reach the server
+        # Check direct connectivity to keep the pool warm
         connections['default'].ensure_connection()
         db_detail = "MongoDB responding"
     except Exception as e:
@@ -32,6 +39,7 @@ def health_check(request):
         "status": "healthy" if db_status == "connected" else "degraded",
         "database": db_status,
         "detail": db_detail,
+        "version": APP_VERSION,
         "timestamp": now().isoformat()
     }, status=status_code)
 
