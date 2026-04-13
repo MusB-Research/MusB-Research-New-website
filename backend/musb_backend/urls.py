@@ -3,6 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.http import JsonResponse
 from django.utils.timezone import now
+from django.db import connections
 
 def api_root(request):
     return JsonResponse({
@@ -13,12 +14,32 @@ def api_root(request):
     })
 
 def health_check(request):
-    return JsonResponse({"status": "healthy", "timestamp": now().isoformat()}, status=200)
+    """
+    High-availability health check diagnostic.
+    This helps us confirm if the MongoDB user has correct permissions.
+    """
+    db_status = "connected"
+    db_detail = "ok"
+    try:
+        # Verify direct connectivity and permissions
+        connections['default'].ensure_connection()
+        db_detail = "MongoDB responding"
+    except Exception as e:
+        db_status = "disconnected"
+        db_detail = str(e)
+
+    # Return 200 for monitor stability, but 'degraded' status if DB fails
+    return JsonResponse({
+        "status": "healthy" if db_status == "connected" else "degraded",
+        "database": db_status,
+        "detail": db_detail,
+        "timestamp": now().isoformat()
+    }, status=200)
 
 urlpatterns = [
     path('', api_root),
     path('api/health/', health_check, name='health_check'),
-    path('api/health', health_check), # Fallback for no-slash pingers
+    path('api/health', health_check), # Fallback for monitoring tools
     path('admin/', admin.site.urls),
     path('api/careers/', include('careers.urls')),
     path('api/', include('api.urls')),
