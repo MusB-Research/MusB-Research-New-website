@@ -12,8 +12,28 @@ def api_root(request):
         "health": "ok"
     })
 
+from django.db import connections
+from django.db.utils import OperationalError
+
 def health_check(request):
-    return JsonResponse({"status": "healthy", "timestamp": now().isoformat()}, status=200)
+    db_status = "connected"
+    db_detail = "ok"
+    try:
+        # For MongoDB, we check if we can reach the server
+        connections['default'].ensure_connection()
+        db_detail = "MongoDB responding"
+    except Exception as e:
+        db_status = "disconnected"
+        db_detail = str(e)
+
+    status_code = 200 if db_status == "connected" else 503
+    
+    return JsonResponse({
+        "status": "healthy" if db_status == "connected" else "degraded",
+        "database": db_status,
+        "detail": db_detail,
+        "timestamp": now().isoformat()
+    }, status=status_code)
 
 urlpatterns = [
     path('', api_root),
