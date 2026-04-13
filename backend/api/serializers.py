@@ -15,6 +15,9 @@ from authentication.security import decrypt_data
 from .utils.sanitizers import sanitize_html
 import bson
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ObjectIdField(serializers.Field):
     """Custom field to handle MongoDB ObjectId serialization."""
@@ -236,8 +239,6 @@ class StudySerializer(SanitizedModelSerializer):
         return ret
 
     def to_internal_value(self, data):
-        import logging
-        logger = logging.getLogger(__name__)
         # Strip unknown/extra frontend-only fields that the serializer doesn't know about
         KNOWN_FIELDS = set(self.fields.keys()) | {
             'pi_ids', 'coordinator_ids', 'sponsor_ids', 'pi_id', 'coordinator_id', 'sponsor_id', 'sponsor_org_id'

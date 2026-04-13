@@ -417,7 +417,7 @@ export default function AdminDashboard() {
                             <table className="w-full text-left">
                                 <thead>
                                     <tr className="bg-white/[0.03] border-b border-white/5">
-                                        <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Protocol ID</th>
+                                        <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Study ID</th>
                                         <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Study Title & Phase</th>
                                         <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Medical Sponsor</th>
                                         <th className="px-8 py-5 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em]">Status</th>

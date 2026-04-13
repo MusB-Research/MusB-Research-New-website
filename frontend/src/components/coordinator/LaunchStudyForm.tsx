@@ -908,7 +908,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                     <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 space-y-6">
                                         <h4 className="text-[11px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2 italic"><Layers className="w-4 h-4" /> Identity Synopsis</h4>
                                         <div className="grid grid-cols-2 gap-6">
-                                            <div><p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Protocol ID</p><p className="text-sm font-bold text-white mt-1 italic font-mono">{formData.protocol_id}</p></div>
+                                            <div><p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Study ID</p><p className="text-sm font-bold text-white mt-1 italic font-mono">{formData.protocol_id}</p></div>
                                             <div><p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Target Sample</p><p className="text-lg font-black text-white mt-1 italic">{formData.target_subjects}</p></div>
                                             <div><p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Sponsor</p><p className="text-[12px] font-black text-indigo-300 mt-1 uppercase italic truncate">{formData.sponsor_name || "MISSING"}</p></div>
                                             <div><p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Indication</p><p className="text-[12px] font-black text-emerald-400 mt-1 uppercase italic truncate">{formData.indication || "MISSING"}</p></div>

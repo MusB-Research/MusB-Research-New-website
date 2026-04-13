@@ -148,8 +148,8 @@ const TasksView = ({ tasks = [], onAction, study, userName, defaultFilter = 'Ove
         pdf.text('OFFICIAL RECORD | SECURE ASSET', 105, 35, { align: 'center' });
         pdf.setTextColor(0, 0, 0);
         pdf.setFontSize(18);
-        pdf.text(`${task?.title || 'ACTIVITY RECORD'}`, 20, 70);
-        pdf.save('Protocol.pdf');
+        pdf.text(`Study ID: ${study?.protocol_id || 'MUSB-PROTOCOL-SYNC'}`, 20, 75);
+        pdf.save(`${task?.title?.replace(/\s+/g, '_') || 'Activity'}_Registry.pdf`);
     };
 
     return (
