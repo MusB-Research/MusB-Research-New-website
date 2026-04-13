@@ -1639,12 +1639,19 @@ export default function Home() {
                                         </Link>
                                     </div>
                                 </div>
-                                <div className="relative animate-fade-in-up stagger-1">
-                                    <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/30 to-indigo-500/30 rounded-[4rem] blur-[80px]"></div>
-                                    <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-[4rem] p-4 overflow-hidden shadow-2xl group">
-                                        <div className="w-full h-[500px] rounded-[3.5rem] bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 group-hover:scale-105 transition-transform duration-700"></div>
-                                        <div className="absolute inset-x-8 bottom-8 p-10 rounded-3xl bg-slate-950/80 backdrop-blur-md border border-white/10 space-y-3">
-                                            <h4 className="text-white font-black text-xl uppercase tracking-wider">Mission-Driven Innovation</h4>
+                                <div className="relative animate-fade-in-up stagger-1 h-[500px] rounded-[4rem] overflow-hidden group">
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/30 to-indigo-500/30 blur-[80px] z-0"></div>
+                                    <div className="relative w-full h-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-[4rem] p-4 overflow-hidden shadow-2xl z-10 transition-all duration-700">
+                                        <div className="w-full h-full rounded-[3.5rem] overflow-hidden relative">
+                                            <img
+                                                src="/why-choose-us.webp"
+                                                alt="MUSB Research Innovation"
+                                                className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 animate-slow-zoom transition-all duration-1000 ease-out"
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-80 group-hover:opacity-40 transition-opacity duration-700"></div>
+                                        </div>
+                                        <div className="absolute inset-x-8 bottom-8 p-10 rounded-3xl bg-slate-950/80 backdrop-blur-md border border-white/10 space-y-3 transform group-hover:-translate-y-2 transition-transform duration-700 z-20">
+                                            <h4 className="text-white font-black text-xl md:text-2xl uppercase tracking-wider">Mission-Driven Innovation</h4>
                                             <p className="text-slate-400 text-lg font-medium">Empowering brands with credible scientific substantiation.</p>
                                         </div>
                                     </div>
@@ -1755,12 +1762,16 @@ export default function Home() {
                                 </div>
                             </div>
 
-                            <div className="relative group">
+                            <div className="relative group h-full">
                                 <div className="absolute -inset-4 bg-gradient-to-tr from-cyan-500/20 to-indigo-500/20 blur-3xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
                                 <div className="relative aspect-square rounded-[4rem] bg-indigo-500/5 border border-white/10 overflow-hidden flex items-center justify-center">
-                                    <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 group-hover:scale-110 transition-transform duration-1000"></div>
-                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60"></div>
-                                    <div className="absolute bottom-12 left-12 right-12 p-8 glass-dark rounded-3xl border border-white/10 backdrop-blur-md">
+                                    <img
+                                        src="/facilities-infrastructure.webp"
+                                        alt="MUSB Research Facilities"
+                                        className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 animate-slow-zoom transition-all duration-1000 ease-out"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-700"></div>
+                                    <div className="absolute bottom-12 left-12 right-12 p-8 glass-dark rounded-3xl border border-white/10 backdrop-blur-md transform group-hover:-translate-y-2 transition-transform duration-700 z-10">
                                         <p className="text-slate-300 italic text-sm">"Our facility is more than just a lab; it's a hub of clinical innovation designed with participant care at its core."</p>
                                     </div>
                                 </div>
@@ -2167,6 +2178,22 @@ export default function Home() {
                     </div>
                 </div>
             )}
+
+            {/* Mellow Consortium Circular Animated Button */}
+            <Link
+                to="/mellow-consortium"
+                className="fixed bottom-10 right-10 z-[60] w-24 h-24 md:w-28 md:h-28 rounded-full bg-cyan-500 text-slate-900 shadow-[0_0_40px_rgba(6,182,212,0.6)] flex flex-col items-center justify-center group hover:scale-110 transition-all duration-500 animate-bounce-slow border-4 border-white/20 backdrop-blur-md"
+            >
+                <div className="absolute inset-0 rounded-full border-[3px] border-cyan-400 animate-ping opacity-40"></div>
+                <div className="absolute inset-0 rounded-full border border-cyan-300 animate-spin-slow opacity-20"></div>
+                
+                <Activity className="w-8 h-8 md:w-10 md:h-10 mb-1 group-hover:rotate-[360deg] transition-transform duration-1000" />
+                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-tighter leading-tight text-center px-1">
+                    Mellow<br />Consortium
+                </span>
+                
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -mt-1 w-2 h-2 bg-white rounded-full shadow-lg shadow-white/50 animate-pulse"></div>
+            </Link>
         </div >
     );
 }

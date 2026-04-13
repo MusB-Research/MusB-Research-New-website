@@ -5,6 +5,34 @@ import AnimatedBackground from './components/AnimatedBackground';
 import MeshBackground from './components/MeshBackground';
 import PageLoader from './components/PageLoader';
 import ScrollToTop from './components/ScrollToTop';
+import Home from './views/Home';
+import About from './views/About';
+import Team from './views/Team';
+import Contact from './views/Contact';
+import Innovations from './views/Innovations';
+import News from './views/News';
+import NewsDetail from './views/NewsDetail';
+import Careers from './views/Careers';
+import JobDetail from './views/JobDetail';
+import Facilities from './views/Facilities';
+import Trials from './views/Trials';
+import Support from './views/Support';
+import WhyChooseUs from './views/WhyChooseUs';
+import Capabilities from './views/Capabilities';
+import MellowConsortium from './views/MellowConsortium';
+import SignIn from './views/auth/SignIn';
+import SuperAdminSignIn from './views/auth/SuperAdminSignIn';
+import StudyDetail from './views/StudyDetail';
+import StudyScreener from './views/StudyScreener';
+import SuperAdminDashboard from './views/SuperAdminDashboard';
+import AdminDashboard from './views/AdminDashboard';
+import ParticipantDashboard from './views/ParticipantDashboard';
+import PIDashboard from './views/PIDashboard';
+import SponsorDashboard from './views/SponsorDashboard/SponsorDashboard';
+import StudyConsent from './views/StudyConsent';
+import ResetForced from './views/auth/ResetForced';
+import ResetPassword from './views/auth/ResetPassword';
+import ProfileSetup from './views/auth/ProfileSetup';
 import { performLogout, isLoggedIn } from './utils/auth';
 
 // LAZY LOAD VIEWS (Dynamic Code Splitting)
@@ -92,6 +120,7 @@ function AppContent() {
                         <Route path="/facilities" element={<Facilities />} />
                         <Route path="/trials" element={<Trials />} />
                         <Route path="/capabilities" element={<Capabilities />} />
+                        <Route path="/mellow-consortium" element={<MellowConsortium />} />
                         <Route path="/support" element={<Support />} />
                         <Route path="/signin" element={<SignIn />} />
                         <Route path="/mainframe/restricted-auth" element={<SuperAdminSignIn />} />

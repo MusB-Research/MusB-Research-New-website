@@ -140,12 +140,19 @@ export default function WhyChooseUs() {
                                 </Link>
                             </div>
                         </div>
-                        <div className="relative animate-fade-in-up stagger-1">
-                            <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/30 to-indigo-500/30 rounded-[4rem] blur-[80px]"></div>
-                            <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-[4rem] p-4 overflow-hidden shadow-2xl group">
-                                <div className="w-full h-[500px] rounded-[3.5rem] bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 group-hover:scale-105 transition-all duration-700"></div>
-                                <div className="absolute inset-x-8 bottom-8 p-10 rounded-3xl bg-slate-950/80 backdrop-blur-md border border-white/10 space-y-3">
-                                    <h4 className="text-white font-black text-xl uppercase tracking-wider">Goal-Oriented Innovation</h4>
+                        <div className="relative animate-fade-in-up stagger-1 h-[500px] rounded-[4rem] overflow-hidden group">
+                            <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/30 to-indigo-500/30 rounded-[4rem] blur-[80px] z-0"></div>
+                            <div className="relative w-full h-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-[4rem] p-4 overflow-hidden shadow-2xl z-10 transition-all duration-700">
+                                <div className="w-full h-full rounded-[3.5rem] overflow-hidden relative">
+                                    <img
+                                        src="/why-choose-us.webp"
+                                        alt="MUSB Research Innovation"
+                                        className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 animate-slow-zoom transition-all duration-1000 ease-out"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-80 group-hover:opacity-40 transition-opacity duration-700"></div>
+                                </div>
+                                <div className="absolute inset-x-8 bottom-8 p-10 rounded-3xl bg-slate-950/80 backdrop-blur-md border border-white/10 space-y-3 transform group-hover:-translate-y-2 transition-transform duration-700 z-20">
+                                    <h4 className="text-white font-black text-xl md:text-2xl uppercase tracking-wider">Mission-Driven Innovation</h4>
                                     <p className="text-slate-400 text-lg font-medium">Empowering brands with credible scientific substantiation.</p>
                                 </div>
                             </div>

@@ -70,7 +70,8 @@ export default function Layout({ children }: LayoutProps) {
                 { path: '/why-choose-us', label: 'Why Choose MusB Research' },
                 { path: '/capabilities', label: 'Capabilities' },
                 { path: '/facilities', label: 'Facilities' },
-                { path: '/team', label: 'Our Team' }
+                { path: '/team', label: 'Our Team' },
+                { path: '/mellow-consortium', label: 'Mellow Consortium' }
             ]
         },
         { path: '/innovations', label: 'Innovation' },
