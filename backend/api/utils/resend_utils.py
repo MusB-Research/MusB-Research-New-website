@@ -379,3 +379,89 @@ def send_help_request_notification(study_title, participant_name, participant_id
     }
 
     return safe_resend_send(params)
+
+@run_in_background
+def send_sponsor_inquiry_email(inquiry):
+    """
+    Sends an email notification when a new Sponsor Inquiry (Partnership) is submitted.
+    Includes an admin notification and a confirmation to the inquirer.
+    """
+    resend.api_key = os.environ.get('RESEND_API_KEY', getattr(settings, 'RESEND_API_KEY', ''))
+    
+    if not resend.api_key:
+        print("ERROR: Resend API key not found. Cannot send sponsor inquiry email.")
+        return False
+        
+    # 1. ADMIN NOTIFICATION
+    admin_recipient = "info@musbresearch.com"
+    subject = f"New Partnership Inquiry: {inquiry.name} - {inquiry.company}"
+    
+    html_content = f"""
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+        <h2 style="color: #0ea5e9;">MusB Research: New Partnership Inquiry</h2>
+        <p>A new partnership inquiry has been submitted via the 'Become a Partner' form.</p>
+        <div style="background: #f9fafb; padding: 15px; border-radius: 8px;">
+            <p><strong>Name:</strong> {inquiry.name}</p>
+            <p><strong>Email:</strong> {inquiry.email}</p>
+            <p><strong>Company:</strong> {inquiry.company}</p>
+            <div style="margin-top: 15px; border-top: 1px solid #ddd; padding-top: 10px;">
+                <p><strong>Submission Details:</strong></p>
+                <pre style="white-space: pre-wrap; font-size: 13px; color: #374151; font-family: sans-serif;">{inquiry.message}</pre>
+            </div>
+        </div>
+        <p style="font-size: 11px; color: #94a3b8; margin-top: 20px;">Submitted on {inquiry.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC</p>
+    </div>
+    """
+    
+    # 2. INQUIRER CONFIRMATION
+    confirmation_subject = "Partnership Inquiry Received - MusB Research"
+    confirmation_html = f"""
+    <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: auto; padding: 40px; border: 1px solid #e2e8f0; border-radius: 24px; background-color: #ffffff;">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #0ea5e9; margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; font-weight: 900;">MusB Research</h1>
+            <p style="color: #64748b; font-size: 12px; margin-top: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Partnering for the Future</p>
+        </div>
+        
+        <div style="background: #f8fafc; padding: 30px; border-radius: 16px; border: 1px solid #f1f5f9; color: #1e293b;">
+            <h2 style="font-size: 18px; font-weight: 800; margin-top: 0;">Interest Received</h2>
+            <p style="font-size: 15px; line-height: 1.6;">Hello {inquiry.name},</p>
+            <p style="font-size: 15px; line-height: 1.6;">Thank you for your interest in partnering with MusB Research. We have received your inquiry and our team is currently reviewing your information.</p>
+            <p style="font-size: 15px; line-height: 1.6;">Someone from our partnership team will reach out to you within the next 2 business days to discuss potential collaboration opportunities.</p>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                <p style="font-size: 13px; font-weight: 701; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Review Timeline</p>
+                <ul style="font-size: 14px; margin: 0; padding-left: 20px; color: #475569;">
+                    <li>Initial Review: < 24 Hours</li>
+                    <li>Expert Consultation: < 48 Hours</li>
+                </ul>
+            </div>
+        </div>
+        
+        <p style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 30px; font-weight: 500;">
+            This is an automated confirmation. If you have immediate questions, please contact us at info@musbresearch.com.
+        </p>
+    </div>
+    """
+    
+    try:
+        # Send Admin Notification
+        res1 = safe_resend_send({
+            "from": "MusB Partnership System <info@musbresearch.com>",
+            "to": [admin_recipient],
+            "subject": subject,
+            "html": html_content
+        })
+        
+        # Send Inquirer Confirmation
+        res2 = safe_resend_send({
+            "from": "MusB Research Team <info@musbresearch.com>",
+            "to": [inquiry.email],
+            "subject": confirmation_subject,
+            "html": confirmation_html,
+            "reply_to": "info@musbresearch.com"
+        })
+        
+        return res1 or res2
+    except Exception as e:
+        print(f"Error sending sponsor inquiry emails: {e}")
+        return False

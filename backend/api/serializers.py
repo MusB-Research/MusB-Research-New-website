@@ -8,7 +8,8 @@ from .models import (
     StudyInquiry, ClinicalConversation, ClinicalMessage, Kit,
     DosingLog, AEReport, Document, Notification, ProgressReport,
     StudyActionRequest, DailyMedicationLog, AssignedForm, SponsorOrganization,
-    QuestionnaireTemplate, StudyQuestionnaire, QuestionnaireScheduleInstance
+    QuestionnaireTemplate, StudyQuestionnaire, QuestionnaireScheduleInstance,
+    Technology, InnovationPageSettings, SponsorInquiry
 )
 from authentication.models import User
 from authentication.security import decrypt_data
@@ -869,6 +870,26 @@ class CompensationSerializer(SanitizedModelSerializer):
 class QuestionnaireTemplateSerializer(SanitizedModelSerializer):
     class Meta:
         model = QuestionnaireTemplate
+        fields = '__all__'
+
+class QuestionnaireScheduleInstanceSerializer(SanitizedModelSerializer):
+    class Meta:
+        model = QuestionnaireScheduleInstance
+        fields = '__all__'
+
+class TechnologySerializer(SanitizedModelSerializer):
+    class Meta:
+        model = Technology
+        fields = '__all__'
+
+class InnovationPageSettingsSerializer(SanitizedModelSerializer):
+    class Meta:
+        model = InnovationPageSettings
+        fields = '__all__'
+
+class SponsorInquirySerializer(SanitizedModelSerializer):
+    class Meta:
+        model = SponsorInquiry
         fields = '__all__'
 
 class StudyQuestionnaireSerializer(SanitizedModelSerializer):

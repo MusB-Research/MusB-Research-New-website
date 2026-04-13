@@ -6,12 +6,13 @@ from .models import (
     Visit, Study, StudyAssignment, Participant, Form, FormResponse, Task, 
     ParticipantTask, StaffTask, Consent, ConsentTemplate, Lead, CommunicationLog, 
     Compensation, LabResult, DataAuditLog, InterventionArm,
-    News, Event, FacilityInquiry, Candidate, NewsletterSubscriber, 
+    News, Event, FacilityInquiry, Candidate, NewsletterSubscriber,
     BookletDownloadRequest, Partnership, Publication, EducationMaterial,
     StudyInquiry, ClinicalConversation, ClinicalMessage, Kit,
-    DosingLog, AEReport, Document, Notification, ProgressReport, DailyMedicationLog,
-    AssignedForm, SponsorOrganization, QuestionnaireTemplate, StudyQuestionnaire,
-    QuestionnaireScheduleInstance
+    DosingLog, AEReport, Document, Notification, ProgressReport,
+    StudyActionRequest, DailyMedicationLog, AssignedForm, SponsorOrganization,
+    QuestionnaireTemplate, StudyQuestionnaire, QuestionnaireScheduleInstance,
+    Technology, InnovationPageSettings, SponsorInquiry
 )
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
@@ -30,7 +31,8 @@ from .serializers import (
     NotificationSerializer, ProgressReportSerializer, DocumentSerializer,
     DailyMedicationLogSerializer, AssignedFormSerializer, SponsorOrganizationSerializer,
     PublicStudySerializer, QuestionnaireTemplateSerializer, StudyQuestionnaireSerializer,
-    QuestionnaireScheduleInstanceSerializer
+    QuestionnaireScheduleInstanceSerializer,
+    TechnologySerializer, InnovationPageSettingsSerializer, SponsorInquirySerializer
 )
 from authentication.models import User, AuditLog
 from django.db.models import Q
@@ -2226,3 +2228,27 @@ class QuestionnaireScheduleInstanceViewSet(viewsets.ModelViewSet):
                 qs = qs.filter(study_questionnaire__study__protocol_id=study_id)
 
         return qs.order_by('scheduled_date')
+
+class TechnologyViewSet(viewsets.ModelViewSet):
+    queryset = Technology.objects.all().order_by('display_order')
+    serializer_class = TechnologySerializer
+    permission_classes = [permissions.AllowAny]
+
+class InnovationPageSettingsView(APIView):
+    permission_classes = [permissions.AllowAny]
+    def get(self, request):
+        settings = InnovationPageSettings.load()
+        serializer = InnovationPageSettingsSerializer(settings)
+        return Response(serializer.data)
+
+class SponsorInquiryView(APIView):
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+    def post(self, request):
+        serializer = SponsorInquirySerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"status": "success", "message": "Inquiry submitted successfully. A confirmation email has been sent."}, status=status.HTTP_201_CREATED)
+        import logging
+        logging.getLogger(__name__).error(f"Sponsor Inquiry Validation Failed: {serializer.errors}")
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -43,6 +43,8 @@ router.register(r'notifications', views.NotificationViewSet, basename='notificat
 router.register(r'questionnaire-templates', views.QuestionnaireTemplateViewSet)
 router.register(r'study-questionnaires', views.StudyQuestionnaireViewSet)
 router.register(r'questionnaire-schedules', views.QuestionnaireScheduleInstanceViewSet)
+router.register(r'innovation/technologies', views.TechnologyViewSet)
+
 
 urlpatterns = [
     path('apply/', csrf_exempt(views.CandidateApplyView.as_view({'post': 'apply'})), name='candidate-apply'),
@@ -50,5 +52,9 @@ urlpatterns = [
     path('newsletter/subscribe/', views.SubscribeNewsletterView.as_view(), name='newsletter-subscribe'),
     path('booklet-download/', views.BookletDownloadRequestCreateView.as_view(), name='booklet-download'),
     path('help-request/', views.ParticipantHelpRequestView.as_view(), name='participant-help-request'),
+    path('innovation/inquiry/', csrf_exempt(views.SponsorInquiryView.as_view()), name='innovation-inquiry'),
+    path('innovation/settings/', views.InnovationPageSettingsView.as_view(), name='innovation-settings'),
+
+
     path('', include(router.urls)),
 ]

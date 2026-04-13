@@ -1515,3 +1515,55 @@ def generate_schedules_for_existing_participants(sender, instance, created, **kw
         participants = Participant.objects.filter(study=instance.study)
         for p in participants:
             instance.generate_instances_for_participant(p)
+
+class Technology(BaseMongoModel):
+    name = models.CharField(max_length=255)
+    tagline = models.CharField(max_length=255)
+    positioning = models.TextField()
+    focus_areas = models.JSONField(default=list)
+    icon_name = models.CharField(max_length=100, default='FlaskConical')
+    gradient_theme = models.CharField(max_length=100, default='blue-indigo')
+    display_order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+class InnovationPageSettings(BaseMongoModel):
+    hero_title = models.CharField(max_length=255, default="Where Innovation Meets Scientific Proof")
+    hero_subtitle = models.TextField(default="Partner with MusB™ Research to design and execute rigorous research")
+    
+    # Inquiry Routing
+    study_inquiry_email = models.EmailField(default="sales@musbresearch.com")
+    concept_inquiry_email = models.EmailField(default="innovation@musbresearch.com")
+    partnership_inquiry_email = models.EmailField(default="partnerships@musbresearch.com")
+    
+    updated_at = models.DateTimeField(auto_now=True)
+
+    @classmethod
+    def load(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def __str__(self):
+        return "Innovation Page Settings"
+
+class SponsorInquiry(BaseMongoModel):
+    name = models.CharField(max_length=255)
+    email = models.EmailField()
+    company = models.CharField(max_length=255)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Sponsor Inquiry: {self.name} ({self.company})"
+
+@receiver(post_save, sender=SponsorInquiry)
+def notify_team_on_sponsor_inquiry(sender, instance, created, **kwargs):
+    if created:
+        from .utils.resend_utils import send_sponsor_inquiry_email
+        try:
+            send_sponsor_inquiry_email(instance)
+        except Exception as e:
+            print(f"Error triggering sponsor inquiry email: {e}")
+
