@@ -800,11 +800,11 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                                         onChange={handleFileChange}
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                     />
-                                    <div className={`p-8 rounded-[2rem] border-2 border-dashed flex flex-col items-center justify-center gap-4 transition-all ${supportingFile ? 'bg-cyan-500/5 border-cyan-500/40' : 'bg-white/[0.02] border-white/10 group-hover:bg-white/[0.04]'} ${uploadError ? 'border-red-500/50 bg-red-500/5' : ''}`}>
+                                    <div className={`p-8 rounded-[2rem] border-2 border-dashed flex flex-col items-center justify-center gap-4 transition-all ${supportingFile ? 'bg-amber-500/5 border-amber-500/40' : 'bg-white/[0.02] border-white/10 group-hover:bg-white/[0.04]'} ${uploadError ? 'border-red-500/50 bg-red-500/5' : ''}`}>
                                         {isProcessingFile ? (
                                             <div className="flex flex-col items-center gap-3">
-                                                <div className="w-8 h-8 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
-                                                <span className="text-[12px] font-black text-cyan-400 uppercase tracking-widest">Optimizing & Protecting Privacy...</span>
+                                                <div className="w-8 h-8 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+                                                <span className="text-[12px] font-black text-amber-400 uppercase tracking-widest">Optimizing & Protecting Privacy...</span>
                                             </div>
                                         ) : supportingFile ? (
                                             <div className="flex flex-col items-center gap-4 w-full">
@@ -817,7 +817,7 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                                                     </div>
                                                 ) : (
                                                     <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center border border-white/10">
-                                                        <FileText className="w-10 h-10 text-cyan-500" />
+                                                        <FileText className="w-10 h-10 text-amber-500" />
                                                     </div>
                                                 )}
                                                 <div className="flex items-center gap-2 bg-white/5 p-2 px-4 rounded-2xl border border-white/10">
@@ -830,7 +830,7 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                                                                 e.stopPropagation();
                                                                 setIsPreviewModalOpen(true);
                                                             }}
-                                                            className="p-2 text-cyan-400 hover:bg-cyan-400/10 rounded-xl transition-all cursor-pointer"
+                                                            className="p-2 text-amber-400 hover:bg-amber-400/10 rounded-xl transition-all cursor-pointer"
                                                             title="Preview File"
                                                         >
                                                             <Eye className="w-5 h-5" />
@@ -883,7 +883,7 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                                 >
                                     <div className="p-6 border-b border-white/5 flex items-center justify-between">
                                         <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">File Preview: {supportingFile.name}</h3>
-                                        <div className="px-4 py-1.5 bg-cyan-500/10 border border-cyan-500/20 rounded-full text-[10px] font-black text-cyan-400 uppercase tracking-widest">Supporting Document</div>
+                                        <div className="px-4 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-full text-[10px] font-black text-amber-400 uppercase tracking-widest">Supporting Document</div>
                                     </div>
 
                                     <div className="flex-1 flex items-center justify-center p-4 bg-black/20">
@@ -939,7 +939,7 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                         <button
                             onClick={() => handleSubmitLog(false)}
                             disabled={isSubmitting}
-                            className="flex-[2] py-5 rounded-[2.5rem] bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-black uppercase tracking-[0.3em] shadow-2xl shadow-indigo-500/30 hover:shadow-cyan-500/40 hover:scale-[1.02] transition-all active:scale-[0.98] flex items-center justify-center gap-4 relative overflow-hidden group disabled:opacity-50"
+                            className="flex-[2] py-5 rounded-[2.5rem] bg-gradient-to-r from-amber-600 to-indigo-600 text-white font-black uppercase tracking-[0.3em] shadow-2xl shadow-indigo-500/30 hover:shadow-amber-500/40 hover:scale-[1.02] transition-all active:scale-[0.98] flex items-center justify-center gap-4 relative overflow-hidden group disabled:opacity-50"
                         >
                             <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                             {isSubmitting ? (
@@ -966,7 +966,7 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                             <Card
                                 key={log.id}
                                 onClick={() => setSelectedLog(log)}
-                                className="p-8 border-white/5 hover:border-cyan-500/20 transition-all cursor-pointer group"
+                                className="p-8 border-white/5 hover:border-amber-500/20 transition-all cursor-pointer group"
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
@@ -975,10 +975,10 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                                         </div>
                                         <div>
                                             <h5 className="text-[15px] font-black text-white italic uppercase tracking-tighter">Entry: {new Date(log.date).toLocaleDateString()}</h5>
-                                            <p className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] group-hover:text-cyan-400 transition-colors">{log.took_medicine ? 'Dose Taken' : 'Dose Missed'} • {log.overall_feeling?.replace('_', ' ') || 'No feeling reported'}</p>
+                                            <p className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] group-hover:text-amber-400 transition-colors">{log.took_medicine ? 'Dose Taken' : 'Dose Missed'} • {log.overall_feeling?.replace('_', ' ') || 'No feeling reported'}</p>
                                         </div>
                                     </div>
-                                    <button className="p-3 bg-white/5 rounded-xl text-slate-400 group-hover:text-white group-hover:bg-cyan-500/20 transition-all"><ChevronRight className="w-5 h-5" /></button>
+                                    <button className="p-3 bg-white/5 rounded-xl text-slate-400 group-hover:text-white group-hover:bg-amber-500/20 transition-all"><ChevronRight className="w-5 h-5" /></button>
                                 </div>
                             </Card>
                         ))

@@ -11,11 +11,10 @@ export const Card = ({ children, className = '', ...props }: any) => (
 
 export const Badge = ({ children, color = 'amber', className = '', ...props }: any) => {
     const colors: Record<string, string> = {
-        cyan: 'bg-amber-400/10 text-amber-500 border-amber-400/20',
-        green: 'bg-green-400/10 text-green-400 border-green-400/20',
         amber: 'bg-amber-400/10 text-amber-500 border-amber-400/20',
+        green: 'bg-green-400/10 text-green-400 border-green-400/20',
         red: 'bg-red-400/10 text-red-500 border-red-400/20',
-        indigo: 'bg-amber-400/10 text-amber-500 border-indigo-400/20',
+        indigo: 'bg-indigo-400/10 text-indigo-400 border-indigo-400/20',
         blue: 'bg-blue-400/10 text-blue-400 border-blue-400/20',
     };
     return (

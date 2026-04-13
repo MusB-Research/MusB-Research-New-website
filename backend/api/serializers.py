@@ -197,6 +197,15 @@ class StudySerializer(SanitizedModelSerializer):
     # consent_templates is a reverse FK relation — MUST be read_only, never required on write
     consent_templates = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
+    PHASE_CHOICES = [
+        ('N/A', 'N/A'),
+        ('Phase 1', 'Phase 1'),
+        ('Phase 2', 'Phase 2'),
+        ('Phase 3', 'Phase 3'),
+        ('Phase 4', 'Phase 4'),
+    ]
+    phase = serializers.ChoiceField(choices=PHASE_CHOICES, required=False, allow_blank=True, default='N/A')
+
     class Meta:
         model = Study
         fields = [
@@ -415,10 +424,13 @@ class ParticipantTaskSerializer(SanitizedModelSerializer):
         except Exception:
             return "N/A"
 
+    participant_sid = serializers.CharField(source='participant.participant_sid', read_only=True)
+    participant_status = serializers.CharField(source='participant.status', read_only=True)
+
     class Meta:
         model = ParticipantTask
         fields = [
-            'id', 'participant', 'task', 'task_details', 'study', 'due_date', 
+            'id', 'participant', 'participant_sid', 'participant_status', 'task', 'task_details', 'study', 'due_date', 
             'completed_at', 'status', 'visit_name', 'timeline_group', 'estimated_time', 
             'is_locked', 'current_data', 'assigned_form', 'assigned_form_details',
             'participant_name', 'protocol_id'
@@ -533,7 +545,7 @@ class ConsentSerializer(SanitizedModelSerializer):
             'pi_verified', 'pi_verified_at', 'pi_user', 'pi_name',
             'agreed_at', 'signed_pdf', 'signed_pdf_url', 'is_valid', 'audit_trail'
         ]
-        read_only_fields = ['agreed_at', 'ip_address']
+        read_only_fields = ['agreed_at', 'ip_address', 'signed_pdf']
 
     def get_signed_pdf_url(self, obj):
         if not obj.signed_pdf: return None
@@ -731,13 +743,32 @@ class ParticipantSerializer(SanitizedModelSerializer):
     class Meta:
         model = Participant
         fields = [
-            'id', 'study', 'study_name', 'protocol_id', 'user', 'user_details', 
-            'participant_sid', 'status', 'gender', 'dob', 'age', 'assigned_arm', 
-            'is_locked', 'completion_date', 'created_at', 'coordinator_name', 
-            'visits', 'ae_reports', 'daily_logs', 'lab_results', 'consent_records',
-            'eligibility_data', 'submitted_at', 'reviewed_by', 'reviewer_name',
-            'reviewed_at', 'status_notes'
+            'id', 'participant_sid', 'participant_status', 'user', 'user_details', 'study', 'study_name', 'protocol_id',
+            'coordinator_name', 'gender', 'dob', 'age', 'status', 'assigned_arm', 'completion_date',
+            'is_archived', 'created_at', 'updated_at', 'reviewed_at', 'reviewed_by', 'reviewer_name',
+            'visits', 'ae_reports', 'daily_logs', 'lab_results', 'consent_records'
         ]
+
+    def validate(self, data):
+        """
+        PLATFORM CORE LOGIC: Prevent multi-study active enrollment.
+        A participant cannot be 'ACTIVE', 'RANDOMIZED', or 'CONSENTED' in more than one study at a time.
+        """
+        user = data.get('user') or self.context['request'].user
+        study = data.get('study')
+        
+        if user and study:
+            from django.db.models import Q
+            active_studies = Participant.objects.filter(
+                user=user,
+                status__in=['CONSENTED', 'RANDOMIZED', 'ACTIVE']
+            ).exclude(study=study)
+            
+            if active_studies.exists():
+                raise serializers.ValidationError({
+                    "detail": "Action Blocked: You are currently active in another clinical protocol. You must formally complete or withdraw from your current study before joining a new one."
+                })
+        return data
 
     def get_gender(self, obj):
         return obj.decrypted_gender

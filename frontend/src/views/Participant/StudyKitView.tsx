@@ -151,7 +151,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
         if (s.includes('SHIPPED')) return 'indigo';
         if (s === 'IN PREPARATION' || s === 'PREPARING') return 'amber';
         if (s === 'DAMAGED' || s === 'MISSING') return 'red';
-        return 'cyan';
+        return 'amber';
     };
 
     const getStatusStep = (status: string) => {
@@ -192,13 +192,13 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
             <div className="flex p-2 bg-white/5 rounded-3xl border border-white/5 w-fit">
                 <button
                     onClick={() => setActiveTab('outbound')}
-                    className={`px-10 py-5 rounded-2xl text-[14px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'outbound' ? 'bg-cyan-500 text-slate-950 shadow-xl' : 'text-slate-500 hover:text-white'}`}
+                    className={`px-10 py-5 rounded-2xl text-[14px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'outbound' ? 'bg-amber-500 text-slate-950 shadow-xl' : 'text-slate-500 hover:text-white'}`}
                 >
                     Outbound Shipments
                 </button>
                 <button
                     onClick={() => setActiveTab('return')}
-                    className={`px-10 py-5 rounded-2xl text-[14px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'return' ? 'bg-cyan-500 text-slate-950 shadow-xl' : 'text-slate-500 hover:text-white'}`}
+                    className={`px-10 py-5 rounded-2xl text-[14px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'return' ? 'bg-amber-500 text-slate-950 shadow-xl' : 'text-slate-500 hover:text-white'}`}
                 >
                     Return Shipments
                 </button>
@@ -236,13 +236,13 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                 ) : filteredKits.map((kit, idx) => (
 
                     <motion.div key={kit.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.1 }}>
-                        <Card className="group overflow-hidden border-l-4 border-l-cyan-500">
+                        <Card className="group overflow-hidden border-l-4 border-l-amber-500">
                             <div className="p-8 space-y-8">
                                 {/* Top Row */}
                                 <div className="flex justify-between items-start">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 group-hover:border-cyan-500/50 transition-colors">
-                                            <Package className={`w-8 h-8 ${activeTab === 'outbound' ? 'text-cyan-400' : 'text-indigo-400'}`} strokeWidth={1} />
+                                        <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 group-hover:border-amber-500/50 transition-colors">
+                                            <Package className={`w-8 h-8 ${activeTab === 'outbound' ? 'text-amber-400' : 'text-indigo-400'}`} strokeWidth={1} />
                                         </div>
                                         <div>
                                             <h4 className="text-[20px] font-black text-white italic uppercase tracking-tight">{kit.kit_type}</h4>
@@ -273,7 +273,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                                     if (carrier.includes('USPS')) url = 'https://tools.usps.com/go/TrackConfirmAction_input';
                                                     window.open(url, '_blank');
                                                 }}
-                                                className="text-base font-black text-cyan-400 font-mono tracking-tighter cursor-pointer hover:underline underline-offset-4"
+                                                className="text-base font-black text-amber-400 font-mono tracking-tighter cursor-pointer hover:underline underline-offset-4"
                                             >
                                                 {kit.tracking_number || "NO ID"}
                                             </p>
@@ -286,7 +286,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                                     if (carrier.includes('USPS')) url = 'https://tools.usps.com/go/TrackConfirmAction_input';
                                                     window.open(url, '_blank');
                                                 }}
-                                                className="text-[13px] font-black text-white bg-white/10 px-4 py-1.5 rounded-full border border-white/10 hover:bg-cyan-500 hover:text-slate-950 transition-all font-bold italic"
+                                                className="text-[13px] font-black text-white bg-white/10 px-4 py-1.5 rounded-full border border-white/10 hover:bg-amber-500 hover:text-slate-950 transition-all font-bold italic"
                                             >
                                                 TRACK SHIPMENT →
                                             </button>
@@ -302,7 +302,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                     </div>
                                     <div className="flex gap-2">
                                         {[1, 2, 3, 4, 5].map(s => (
-                                            <div key={s} className={`h-2 flex-1 rounded-full ${s <= getStatusStep(kit.status) ? 'bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]' : 'bg-white/5'}`} />
+                                            <div key={s} className={`h-2 flex-1 rounded-full ${s <= getStatusStep(kit.status) ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]' : 'bg-white/5'}`} />
                                         ))}
                                     </div>
                                     <div className="flex items-center gap-2 text-slate-400">
@@ -322,9 +322,9 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                                 downloadDummyPdf('Clinical Collection Guide');
                                                 setSubView('GUIDE');
                                             }}
-                                            className={`flex items-center gap-3 p-5 bg-white/5 border border-white/5 rounded-2xl hover:border-cyan-500/20 transition-all text-left shadow-lg hover:shadow-cyan-500/5 group/btn`}
+                                            className={`flex items-center gap-3 p-5 bg-white/5 border border-white/5 rounded-2xl hover:border-amber-500/20 transition-all text-left shadow-lg hover:shadow-amber-500/5 group/btn`}
                                         >
-                                            <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover/btn:bg-cyan-500 group-hover/btn:text-slate-950 transition-all">
+                                            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 group-hover/btn:bg-amber-500 group-hover/btn:text-slate-950 transition-all">
                                                 <FileIcon className="w-6 h-6" />
                                             </div>
                                             <div className="flex flex-col">
@@ -360,7 +360,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                         <div className="flex-1 flex flex-col gap-2">
                                             <button 
                                                 onClick={() => window.open(kit.tracking_url || 'https://www.fedex.com', '_blank')}
-                                                className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-5 rounded-2xl font-black text-[14px] uppercase tracking-[0.2em] transition-all shadow-[0_0_30px_rgba(6,182,212,0.3)] flex items-center justify-center gap-2"
+                                                className="w-full bg-amber-600 hover:bg-amber-500 text-white py-5 rounded-2xl font-black text-[14px] uppercase tracking-[0.2em] transition-all shadow-[0_0_30px_rgba(245,158,11,0.3)] flex items-center justify-center gap-2"
                                             >
                                                 <Truck className="w-4 h-4" />
                                                 Track Shipment
@@ -379,7 +379,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                                 setSelectedKit(kit);
                                                 handleKitAction(kit.id, 'initialize_collection');
                                             }}
-                                            className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 py-5 rounded-2xl font-black text-[14px] uppercase tracking-[0.2em] transition-all shadow-[0_0_30px_rgba(6,182,212,0.3)] flex items-center justify-center gap-2"
+                                            className="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 py-5 rounded-2xl font-black text-[14px] uppercase tracking-[0.2em] transition-all shadow-[0_0_30px_rgba(245,158,11,0.3)] flex items-center justify-center gap-2"
                                         >
                                             <Play className="w-4 h-4 fill-current" />
                                             Start Collection
@@ -495,8 +495,8 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                     {collectionStep === 0 && (
                                         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                                             <div className="space-y-8">
-                                                <div className="p-6 bg-cyan-500/5 border border-cyan-500/20 rounded-3xl space-y-4">
-                                                    <div className="flex items-center gap-3 text-cyan-400">
+                                                <div className="p-6 bg-amber-500/5 border border-amber-500/20 rounded-3xl space-y-4">
+                                                    <div className="flex items-center gap-3 text-amber-400">
                                                         <Info className="w-5 h-5" />
                                                         <span className="text-sm font-black uppercase tracking-widest">Requirements</span>
                                                     </div>
@@ -512,7 +512,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                     )}
                                     {collectionStep === 1 && (
                                         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8 text-center">
-                                            <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto border border-white/10 text-cyan-400 animate-pulse">
+                                            <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto border border-white/10 text-amber-400 animate-pulse">
                                                 <Zap className="w-10 h-10" />
                                             </div>
                                             <div className="space-y-4">
@@ -579,7 +579,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                                 setCollectionStep(s => s + 1);
                                             }
                                         }}
-                                        className={`flex-1 py-6 rounded-2xl font-black uppercase tracking-widest text-[14px] transition-all shadow-[0_0_30px_rgba(6,182,212,0.2)] ${!isStepValid ? 'bg-slate-800 text-slate-600 cursor-not-allowed opacity-50' : 'bg-cyan-500 text-slate-950 hover:bg-cyan-400'}`}
+                                        className={`flex-1 py-6 rounded-2xl font-black uppercase tracking-widest text-[14px] transition-all shadow-[0_0_30px_rgba(245,158,11,0.2)] ${!isStepValid ? 'bg-slate-800 text-slate-600 cursor-not-allowed opacity-50' : 'bg-amber-500 text-slate-950 hover:bg-amber-400'}`}
                                     >
                                         {collectionStep === collectionSteps.length - 1 ? 'SUBMIT COLLECTION' : 'NEXT'}
                                     </button>

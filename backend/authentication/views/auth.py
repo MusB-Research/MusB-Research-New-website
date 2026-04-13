@@ -141,7 +141,8 @@ def login_view(request):
         'message': 'Login successful',
         'access': access_token, 
         'refresh': refresh_token,
-        'user': get_user_data_dict(user)
+        'user': get_user_data_dict(user),
+        'user_profile_incomplete': not user.profile_completed
     })
     return _set_auth_cookies(response, access_token, refresh_token)
 
@@ -219,7 +220,8 @@ def refresh_token_view(request):
         'message': 'Token refreshed',
         'access': new_access,  
         'refresh': new_refresh,
-        'user': get_user_data_dict(user)
+        'user': get_user_data_dict(user),
+        'user_profile_incomplete': not user.profile_completed
     })
     return _set_auth_cookies(response, new_access, new_refresh)
 
@@ -327,7 +329,8 @@ def google_login(request):
             'message': 'Login successful',
             'access': access_token,
             'refresh': refresh_token,
-            'user': get_user_data_dict(user)
+            'user': get_user_data_dict(user),
+            'user_profile_incomplete': not user.profile_completed
         })
         return _set_auth_cookies(response, access_token, refresh_token)
     except Exception as e:

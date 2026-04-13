@@ -506,7 +506,7 @@ class ParticipantViewSet(viewsets.ModelViewSet):
             
         participant = qs.order_by('-created_at').first()
         if not participant:
-            return Response(None, status=status.HTTP_200_OK)
+            return Response({'error': 'No participant record found.'}, status=status.HTTP_404_NOT_FOUND)
             
         serializer = self.get_serializer(participant)
         return Response(serializer.data)
