@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { authFetch , API } from '../utils/auth';
+import { authFetch, API } from '../utils/auth';
 
 
 
@@ -42,7 +42,7 @@ export default function Trials() {
                 const apiUrl = API || '';
                 const response = await authFetch(`${apiUrl}/api/public-studies/`);
                 if (!response.ok) throw new Error('Failed to fetch studies');
-                
+
                 const data = await response.json();
                 // DRF returns results in a 'results' key when paginated
                 const studyList = Array.isArray(data) ? data : (data.results || []);
@@ -76,7 +76,7 @@ export default function Trials() {
                 console.error("Error loading studies:", err);
                 setStudies([]);
             }
- finally {
+            finally {
                 setLoading(false);
             }
         };
@@ -326,12 +326,11 @@ export default function Trials() {
                                     <div className="absolute -inset-1 bg-gradient-to-tr from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                                     <div className="flex justify-between items-start mb-8">
                                         <div className="space-y-4">
-                                            <div className={`inline-block px-4 py-1.5 rounded-full text-[12px] font-black uppercase tracking-widest ${
-                                                study.status === 'Recruiting' ? 'bg-cyan-500/10 text-cyan-400' : 
-                                                study.status === 'Upcoming' ? 'bg-emerald-500/10 text-emerald-400' :
-                                                study.status === 'Paused' ? 'bg-amber-500/10 text-amber-400' :
-                                                'bg-slate-500/10 text-slate-400 opacity-50'
-                                            }`}>
+                                            <div className={`inline-block px-4 py-1.5 rounded-full text-[12px] font-black uppercase tracking-widest ${study.status === 'Recruiting' ? 'bg-cyan-500/10 text-cyan-400' :
+                                                    study.status === 'Upcoming' ? 'bg-emerald-500/10 text-emerald-400' :
+                                                        study.status === 'Paused' ? 'bg-cyan-500/10 text-amber-400' :
+                                                            'bg-slate-500/10 text-slate-400 opacity-50'
+                                                }`}>
                                                 {study.status}
                                             </div>
                                             <h3 className="text-3xl font-black text-white group-hover:text-cyan-400 transition-colors uppercase">{study.title}</h3>

@@ -21,7 +21,7 @@ interface Kit {
     kit_number: string;
 }
 
-const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (t: string, data?: any) => void; study?: any; kits?: any[] }) => {
+const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = false }: { onAction: (t: string, data?: any) => void; study?: any; kits?: any[]; isLoading?: boolean }) => {
     const [activeTab, setActiveTab] = useState<'outbound' | 'return'>('outbound');
     const [subView, setSubView] = useState<'LIST' | 'GUIDE' | 'LABEL'>('LIST');
     const [selectedKit, setSelectedKit] = useState<any>(null);
@@ -58,30 +58,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
     const [loading, setLoading] = useState(true);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
-    const dummyKits = useMemo(() => [
-        {
-            id: 'DEMO-KIT-001',
-            kit_type: 'Gut Microbiome Kit',
-            status: 'RECEIVED BY PARTICIPANT',
-            carrier: 'FedEx',
-            tracking_number: null,
-            tracking_url: 'https://www.fedex.com/en-us/tracking.html',
-            collection_guide_url: '#',
-            return_label_url: '#',
-            expected_delivery: null,
-            kit_number: 'SK-4920'
-        },
-        {
-            id: 'DEMO-KIT-002',
-            kit_type: 'Cellular Vitality Panel',
-            status: 'SHIPPED FROM CENTER',
-            carrier: 'UPS',
-            tracking_number: null,
-            tracking_url: 'https://www.ups.com/track',
-            expected_delivery: null,
-            kit_number: 'SK-5102'
-        }
-    ], []);
+    const dummyKits: any[] = [];
 
     useEffect(() => {
         if (initialKits && initialKits.length > 0) {
@@ -207,11 +184,8 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
     return (
         <div className="space-y-12 pb-20">
             {/* ──────────────── HEADER ──────────────── */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div>
-                    <h2 className="text-3xl font-black italic tracking-tighter text-white uppercase italic mb-1.5">Study Kits</h2>
-                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[13px]">Track your kits, follow instructions, and complete your sample collection.</p>
-                </div>
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pt-2">
+                <div />
             </div>
 
             {/* ──────────────── TABS ──────────────── */}
@@ -231,11 +205,29 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [] }: { onAction: (
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                {loading ? (
-                    <div className="col-span-full py-20 text-center space-y-4">
-                        <div className="w-12 h-12 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin mx-auto" />
-                        <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-[12px]">Loading Kit Details...</p>
-                    </div>
+                {isLoading ? (
+                    [1, 2, 3, 4].map(sh => (
+                        <div key={sh} className="bg-[#0a1525] border border-white/[0.03] rounded-[3rem] p-8 h-80 relative overflow-hidden animate-pulse">
+                            <div className="shimmer-effect" />
+                            <div className="space-y-8">
+                                <div className="flex justify-between">
+                                    <div className="flex gap-4 items-center">
+                                        <div className="w-14 h-14 bg-white/5 rounded-2xl" />
+                                        <div className="space-y-2">
+                                            <div className="h-6 w-48 bg-white/5 rounded-lg" />
+                                            <div className="h-3 w-32 bg-white/5 rounded-full" />
+                                        </div>
+                                    </div>
+                                    <div className="h-8 w-24 bg-white/5 rounded-full" />
+                                </div>
+                                <div className="h-24 w-full bg-white/5 rounded-3xl" />
+                                <div className="flex gap-4">
+                                    <div className="h-14 flex-1 bg-white/5 rounded-xl" />
+                                    <div className="h-14 w-32 bg-white/5 rounded-xl" />
+                                </div>
+                            </div>
+                        </div>
+                    ))
                 ) : filteredKits.length === 0 ? (
                     <div className="col-span-full py-20 text-center bg-white/[0.02] border border-white/5 rounded-[3rem]">
                         <Package className="w-16 h-16 text-slate-700 mx-auto mb-4" strokeWidth={1} />

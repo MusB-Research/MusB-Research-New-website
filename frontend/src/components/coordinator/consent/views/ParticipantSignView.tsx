@@ -77,26 +77,38 @@ export const ParticipantSignView: React.FC<ParticipantSignViewProps> = ({
                             <div className="space-y-12">
                                 <div className="text-center pb-8 border-b border-slate-100">
                                     <h1 className="text-3xl font-black uppercase tracking-tighter mb-2">{activeConsent.title}</h1>
-                                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[12px] italic">{activeConsent.study} • {activeConsent.irbNumber}</p>
+                                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[12px] italic">{activeConsent.study as any} • {activeConsent.irbNumber}</p>
                                 </div>
-                                <section>
-                                    <h3 className="text-xl font-black uppercase italic mb-4">1.0 Study Purpose</h3>
-                                    <p className="text-slate-600 leading-relaxed">
-                                        The purpose of this clinical trial is to evaluate the efficacy of the experimental protocol. You are being asked to participate voluntarily.
-                                    </p>
-                                </section>
-                                <section>
-                                    <h3 className="text-xl font-black uppercase italic mb-4">2.0 Potential Risks</h3>
-                                    <p className="text-slate-600 leading-relaxed mb-4">
-                                        While the protocol is continually monitored, some participants may experience unknown risks.
-                                    </p>
-                                </section>
-                                <section>
-                                    <h3 className="text-xl font-black uppercase italic mb-4">3.0 Ethical Safeguards</h3>
-                                    <p className="text-slate-600 leading-relaxed">
-                                        Your participation is 100% voluntary. You may withdraw at any time for any reason. Your clinical data will be de-identified and stored securely.
-                                    </p>
-                                </section>
+                                
+                                {activeConsent.terms_content ? (
+                                    <section>
+                                        <h3 className="text-xl font-black uppercase italic mb-4">Protocol Terms</h3>
+                                        <div className="text-slate-600 leading-relaxed whitespace-pre-wrap">
+                                            {activeConsent.terms_content}
+                                        </div>
+                                    </section>
+                                ) : (
+                                    <>
+                                        <section>
+                                            <h3 className="text-xl font-black uppercase italic mb-4">1.0 Study Purpose</h3>
+                                            <p className="text-slate-600 leading-relaxed">
+                                                The purpose of this clinical trial is to evaluate the efficacy of the experimental protocol. You are being asked to participate voluntarily.
+                                            </p>
+                                        </section>
+                                        <section>
+                                            <h3 className="text-xl font-black uppercase italic mb-4">2.0 Potential Risks</h3>
+                                            <p className="text-slate-600 leading-relaxed mb-4">
+                                                While the protocol is continually monitored, some participants may experience unknown risks.
+                                            </p>
+                                        </section>
+                                        <section>
+                                            <h3 className="text-xl font-black uppercase italic mb-4">3.0 Ethical Safeguards</h3>
+                                            <p className="text-slate-600 leading-relaxed">
+                                                Your participation is 100% voluntary. You may withdraw at any time for any reason. Your clinical data will be de-identified and stored securely.
+                                            </p>
+                                        </section>
+                                    </>
+                                )}
                                 <div className="h-[200px] bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-10 text-center gap-4">
                                     <ShieldCheck size={40} className="text-indigo-200" />
                                     <div>

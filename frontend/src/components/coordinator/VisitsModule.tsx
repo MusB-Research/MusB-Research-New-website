@@ -502,14 +502,6 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                 </div>
             )}
 
-            {!isLoading && participants.length === 0 && (
-                <div className="absolute inset-0 z-[100] bg-[#0B101B] flex flex-col items-center justify-center p-8 text-center">
-                    <Users className="w-12 h-12 text-slate-600 mb-6" />
-                    <h3 className="text-lg font-semibold text-white mb-2">No Subjects Found</h3>
-                    <p className="text-sm text-slate-400 max-w-md">The participant pool is currently empty for the selected study context.</p>
-                </div>
-            )}
-
             {/* Header Bar */}
             <div className="flex-shrink-0 px-6 py-5 bg-[#0B101B] border-b border-white/10 flex items-center justify-between">
                 <div className="flex items-center gap-8">
@@ -537,7 +529,16 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex overflow-hidden relative">
+                {!isLoading && participants.length === 0 && (
+                    <div className="absolute inset-0 z-10 bg-[#0B101B]/50 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+                        <Users className="w-16 h-16 text-slate-700/50 mb-6" />
+                        <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-2">No Subjects Found</h3>
+                        <p className="text-sm text-slate-500 max-w-md font-bold uppercase tracking-widest italic">
+                            The participant pool is currently empty for the selected study context.
+                        </p>
+                    </div>
+                )}
                 {viewMode === 'Timeline' ? (
                     <>
                         {/* Sidebar */}

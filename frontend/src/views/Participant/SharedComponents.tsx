@@ -4,21 +4,22 @@ import { AlertCircle, CheckCircle2, X } from 'lucide-react';
 
 // ──────────────── UI COMPONENTS ────────────────
 export const Card = ({ children, className = '', ...props }: any) => (
-    <div className={`bg-[#0a0e1a]/80 backdrop-blur-xl border border-white/[0.05] rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] ${className}`} {...props}>
+    <div className={`bg-[#0a1525] border border-white/[0.05] rounded-3xl ${className}`} {...props}>
         {children}
     </div>
 );
 
-export const Badge = ({ children, color = 'cyan', className = '', ...props }: any) => {
+export const Badge = ({ children, color = 'amber', className = '', ...props }: any) => {
     const colors: Record<string, string> = {
-        cyan: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
-        green: 'bg-[#00e676]/10 text-[#00e676] border-[#00e676]/20',
-        amber: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-        red: 'bg-red-500/10 text-red-400 border-red-500/20',
-        indigo: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+        cyan: 'bg-amber-400/10 text-amber-500 border-amber-400/20',
+        green: 'bg-green-400/10 text-green-400 border-green-400/20',
+        amber: 'bg-amber-400/10 text-amber-500 border-amber-400/20',
+        red: 'bg-red-400/10 text-red-500 border-red-400/20',
+        indigo: 'bg-amber-400/10 text-amber-500 border-indigo-400/20',
+        blue: 'bg-blue-400/10 text-blue-400 border-blue-400/20',
     };
     return (
-        <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-[14px] font-black uppercase tracking-widest border leading-none ${colors[color] || colors.cyan} ${className}`} {...props}>
+        <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-[13px] font-black italic uppercase tracking-tighter border leading-none ${colors[color] || colors.amber} ${className}`} {...props}>
             {children}
         </span>
     );
@@ -26,11 +27,11 @@ export const Badge = ({ children, color = 'cyan', className = '', ...props }: an
 
 export const ProgressBar = ({ percent, className = '', height = 6, ...props }: any) => (
     <div className={`w-full overflow-hidden bg-white/5 rounded-full ${className}`} style={{ height: `${height}px` }} {...props}>
-        <motion.div 
+        <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${percent}%` }}
             transition={{ duration: 1, ease: "easeOut" }}
-            className="h-full bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.5)]"
+            className="h-full bg-amber-500 shadow-[0_0_15px_#f59e0b]"
         />
     </div>
 );
@@ -60,8 +61,8 @@ export const Legend = ({ items }: { items: { label: string; color: string }[] })
     <div className="flex flex-wrap gap-4 mt-4">
         {items.map((item, i) => (
             <div key={i} className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${item.color} shadow-[0_0_5px_currentColor]`} />
-                <span className="text-[14px] font-black text-slate-500 uppercase tracking-widest">{item.label}</span>
+                <div className={`w-2.5 h-2.5 rounded-full ${item.color} shadow-[0_0_5px_currentColor]`} />
+                <span className="text-[14px] font-bold text-slate-500 tracking-tight">{item.label}</span>
             </div>
         ))}
     </div>
@@ -70,13 +71,12 @@ export const Legend = ({ items }: { items: { label: string; color: string }[] })
 export const FilterChip = ({ label, active, onClick, count }: any) => (
     <button
         onClick={onClick}
-        className={`px-6 py-3 rounded-2xl text-[14px] font-black uppercase tracking-[0.2em] transition-all whitespace-nowrap border ${
-            active 
-                ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.4)] scale-105' 
+        className={`px-8 py-3.5 rounded-2xl text-[15px] font-bold tracking-tight transition-all whitespace-nowrap border ${active
+                ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-[0_10px_20px_rgba(245,158,11,0.3)] scale-105'
                 : 'bg-white/5 text-slate-400 border-white/5 hover:border-white/20 hover:bg-white/10'
-        }`}
+            }`}
     >
-        {label} {count !== undefined && <span className={`ml-2 ${active ? 'text-slate-900/60' : 'text-slate-500'}`}>[{count}]</span>}
+        {label} {count !== undefined && <span className={`ml-2 ${active ? 'text-slate-950/60' : 'text-slate-500 font-medium'}`}>({count})</span>}
     </button>
 );
 
@@ -108,7 +108,7 @@ export const CircularProgress = ({ value, size = 120, strokeWidth = 8, ...props 
                     initial={{ strokeDashoffset: circumference }}
                     animate={{ strokeDashoffset: offset }}
                     transition={{ duration: 2, ease: "easeOut" }}
-                    className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]"
+                    className="text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]"
                     strokeLinecap="round"
                 />
             </svg>
@@ -116,10 +116,10 @@ export const CircularProgress = ({ value, size = 120, strokeWidth = 8, ...props 
     );
 };
 
-export const LineChart = ({ data, color = "#06b6d4" }: { data: number[]; color?: string }) => {
+export const LineChart = ({ data, color = "#f59e0b" }: { data: number[]; color?: string }) => {
     const max = Math.max(...data, 1);
     const points = data.map((v, i) => `${(i / (data.length - 1)) * 100},${100 - (v / max) * 100}`).join(' ');
-    
+
     return (
         <div className="w-full h-32 relative mt-4">
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full overflow-visible">
@@ -153,7 +153,7 @@ export const BarChart = ({ data, labels }: { data: number[]; labels: string[] })
                         initial={{ height: 0 }}
                         animate={{ height: `${(v / max) * 100}%` }}
                         transition={{ delay: i * 0.1, duration: 0.8 }}
-                        className="w-full bg-cyan-500/20 group-hover:bg-cyan-500/40 border-t-2 border-cyan-500 transition-colors relative"
+                        className="w-full bg-amber-500/20 group-hover:bg-amber-500/40 border-t-2 border-amber-500 transition-colors relative"
                     >
                         <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[12px] font-black text-white opacity-0 group-hover:opacity-100 transition-opacity">
                             {v}
@@ -171,12 +171,11 @@ export const StepIndicator = ({ steps, currentStep }: { steps: string[]; current
         <div className="absolute top-[21px] left-0 right-0 h-0.5 bg-white/5 -z-10" />
         {steps.map((step, i) => (
             <div key={i} className="flex flex-col items-center gap-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${
-                    i <= currentStep ? 'bg-cyan-500 border-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(6,182,212,0.4)]' : 'bg-slate-900 border-white/10 text-slate-500'
-                }`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${i <= currentStep ? 'bg-amber-500 border-amber-400 text-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'bg-slate-900 border-white/10 text-slate-500'
+                    }`}>
                     {i < currentStep ? <CheckCircle2 className="w-5 h-5" /> : <span className="text-sm font-black italic">{i + 1}</span>}
                 </div>
-                <span className={`text-[13px] font-black uppercase tracking-widest ${i <= currentStep ? 'text-cyan-400' : 'text-slate-600'} text-center max-w-[80px]`}>{step}</span>
+                <span className={`text-[13px] font-black uppercase tracking-widest ${i <= currentStep ? 'text-amber-500' : 'text-slate-600'} text-center max-w-[80px]`}>{step}</span>
             </div>
         ))}
     </div>
@@ -185,12 +184,10 @@ export const StepIndicator = ({ steps, currentStep }: { steps: string[]; current
 export const Checklist = ({ items, checkedItems, onToggle }: { items: string[]; checkedItems: string[]; onToggle: (item: string) => void }) => (
     <div className="space-y-4">
         {items.map((item, i) => (
-            <div key={i} onClick={() => onToggle(item)} className={`flex items-center gap-4 p-5 rounded-2xl border transition-all cursor-pointer ${
-                checkedItems.includes(item) ? 'bg-cyan-500/10 border-cyan-500/50' : 'bg-[#141e35] border-white/5 hover:border-white/10'
-            }`}>
-                <div className={`w-6 h-6 rounded-lg flex items-center justify-center border transition-all ${
-                    checkedItems.includes(item) ? 'bg-cyan-500 border-cyan-400' : 'bg-white/5 border-white/10'
+            <div key={i} onClick={() => onToggle(item)} className={`flex items-center gap-4 p-5 rounded-2xl border transition-all cursor-pointer ${checkedItems.includes(item) ? 'bg-amber-500/10 border-amber-500/50' : 'bg-[#141e35] border-white/5 hover:border-white/10'
                 }`}>
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center border transition-all ${checkedItems.includes(item) ? 'bg-amber-500 border-amber-400' : 'bg-white/5 border-white/10'
+                    }`}>
                     {checkedItems.includes(item) && <CheckCircle2 className="w-4 h-4 text-slate-950" />}
                 </div>
                 <span className={`text-[15px] font-black uppercase tracking-widest transition-colors ${checkedItems.includes(item) ? 'text-white' : 'text-slate-500'}`}>{item}</span>
@@ -206,17 +203,17 @@ export const ActionModal = ({ isOpen, title, desc, action, onClose, onConfirm }:
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#0a0e1a]/95 backdrop-blur-md" onClick={onClose} />
             <motion.div initial={{ scale: 0.9, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }} className="relative w-full max-w-lg bg-[#0d1424] border border-white/10 rounded-[3rem] p-10 shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-400 to-indigo-500" />
+                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-400 to-amber-600" />
                 <div className="flex justify-center mb-8">
-                    <div className="w-20 h-20 bg-cyan-500/10 text-cyan-400 rounded-3xl flex items-center justify-center border border-cyan-500/20 shadow-lg shadow-cyan-500/5">
+                    <div className="w-20 h-20 bg-amber-500/10 text-amber-500 rounded-3xl flex items-center justify-center border border-amber-500/20 shadow-lg shadow-amber-500/5">
                         <AlertCircle className="w-10 h-10" strokeWidth={1} />
                     </div>
                 </div>
-                <h3 className="text-3xl font-black text-white italic tracking-tighter uppercase text-center mb-4">{title}</h3>
-                <p className="text-center text-sm font-bold text-slate-500 uppercase tracking-widest leading-relaxed mb-10 px-4">{desc}</p>
+                <h3 className="text-3xl font-bold text-white tracking-tight text-center mb-4">{title}</h3>
+                <p className="text-center text-base font-medium text-slate-500 tracking-tight leading-relaxed mb-10 px-4">{desc}</p>
                 <div className="flex flex-col gap-3">
-                    <button onClick={onConfirm} className="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 py-5 rounded-2xl font-black text-sm uppercase tracking-[0.25em] transition-all shadow-[0_0_30px_rgba(6,182,212,0.3)] active:scale-[0.98]">{action}</button>
-                    <button onClick={onClose} className="w-full py-5 text-slate-500 hover:text-white font-black text-[13px] uppercase tracking-[0.2em] transition-colors whitespace-nowrap">GO BACK</button>
+                    <button onClick={onConfirm} className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 py-5 rounded-2xl font-bold text-base tracking-tight transition-all shadow-[0_15px_30px_rgba(245,158,11,0.25)] active:scale-[0.98]">{action}</button>
+                    <button onClick={onClose} className="w-full py-5 text-slate-500 hover:text-white font-bold text-[15px] tracking-tight transition-colors whitespace-nowrap">Go Back</button>
                 </div>
             </motion.div>
         </div>
@@ -232,14 +229,14 @@ export const EditModal = ({ isOpen, title, value, field, onClose, onSave }: any)
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-[#0a0e1a]/95 backdrop-blur-md" onClick={onClose} />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative w-full max-w-md bg-[#0d1424] border border-white/10 rounded-3xl p-10">
-                <h3 className="text-2xl font-black text-white italic uppercase mb-8">{title}</h3>
+                <h3 className="text-2xl font-bold text-white tracking-tight mb-8">{title}</h3>
                 <input
                     type="text" value={val} onChange={(e) => setVal(e.target.value)}
-                    className="w-full bg-[#141e35] border border-white/10 rounded-xl p-5 text-white text-lg font-bold outline-none focus:border-cyan-500 italic mb-10"
+                    className="w-full bg-[#141e35] border border-white/10 rounded-2xl p-5 text-white text-lg font-bold outline-none focus:border-amber-500 transition-all mb-10"
                 />
                 <div className="flex gap-4">
-                    <button onClick={onClose} className="flex-1 py-4 bg-white/5 text-slate-400 rounded-xl text-sm font-black uppercase tracking-widest italic">CANCEL</button>
-                    <button onClick={() => onSave(field, val)} className="flex-1 py-4 bg-cyan-500 text-slate-950 rounded-xl text-sm font-black uppercase tracking-widest italic shadow-lg">SAVE CHANGES</button>
+                    <button onClick={onClose} className="flex-1 py-4 bg-white/5 text-slate-400 rounded-xl text-sm font-bold tracking-tight">Cancel</button>
+                    <button onClick={() => onSave(field, val)} className="flex-1 py-4 bg-amber-500 text-slate-950 rounded-xl text-sm font-bold tracking-tight shadow-lg">Save Changes</button>
                 </div>
             </motion.div>
         </div>
@@ -267,3 +264,24 @@ export const LogoutConfirmationModal = ({ isOpen, onClose, onConfirm }: any) => 
 };
 
 
+export const Skeleton = ({ className = '', variant = 'card', ...props }: any) => {
+    const variants: Record<string, string> = {
+        card: 'bg-[#0a1525] border border-white/[0.05] rounded-[2rem]',
+        item: 'bg-white/[0.02] border border-white/5 rounded-2xl',
+        text: 'bg-white/[0.05] rounded-lg',
+        circle: 'bg-white/[0.05] rounded-full'
+    };
+    return (
+        <div className={`relative overflow-hidden ${variants[variant] || variants.card} ${className}`} {...props}>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/5 to-transparent skeleton-shimmer" />
+        </div>
+    );
+};
+
+export const SkeletonText = ({ className = '', width = 'w-full', height = 'h-4' }: any) => (
+    <Skeleton variant="text" className={`${width} ${height} ${className}`} />
+);
+
+export const SkeletonCircle = ({ size = 'w-12 h-12', className = '' }: any) => (
+    <Skeleton variant="circle" className={`${size} ${className}`} />
+);

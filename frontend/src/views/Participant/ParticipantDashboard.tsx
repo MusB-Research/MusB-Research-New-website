@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     LayoutDashboard, ClipboardList, Box, Activity, MessageSquare,
     FileText, Trophy, User, ShieldCheck, LogOut, Menu, X,
-    Bell, Zap, TrendingUp, Globe, Search, LifeBuoy, Calendar
+    Bell, Zap, TrendingUp, Globe, Search, LifeBuoy, Calendar, RefreshCcw
 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authFetch, clearToken, getRole, performLogout, getUser, saveUser, getDisplayName, API } from '../../utils/auth';
@@ -28,6 +28,7 @@ import ConsentModal from './ConsentModal';
 import FormSignatureModal from './FormSignatureModal';
 import DiscoverStudiesView from './DiscoverStudiesView';
 import InstrumentModal from './InstrumentModal';
+import ParticipantBackground from './ParticipantBackground';
 
 export default function ParticipantDashboard() {
     const navigate = useNavigate();
@@ -150,9 +151,23 @@ export default function ParticipantDashboard() {
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
     const [refreshKey, setRefreshKey] = useState(0);
-    const refreshData = () => setRefreshKey(k => k + 1);
+    const [isDataLoading, setIsDataLoading] = useState(true);
 
-    // Senior Developer: Centralized Timezone-Aware Converter
+    // Tracking for notifications
+    const prevStatusRef = useRef<string | null>(null);
+    const prevTaskCountRef = useRef<number | null>(null);
+    const prevMsgCountRef = useRef<number | null>(null);
+    const isFetchingRef = useRef(false);
+    const lastFetchIdRef = useRef<string | null>(null);
+
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    const refreshData = (silent = false) => {
+        if (!silent) setIsDataLoading(true);
+        setRefreshKey(k => k + 1);
+    };
+
+    // Helper functions moved up for hoisting safety
     const formatToParticipantTime = (date: Date | string, options: Intl.DateTimeFormatOptions = {}) => {
         const d = typeof date === 'string' ? new Date(date) : date;
         return d.toLocaleString('en-US', {
@@ -161,13 +176,11 @@ export default function ParticipantDashboard() {
         });
     };
 
-    // Live Clock adjusted to Participant's timezone
-    const [currentTime, setCurrentTime] = useState(new Date());
+    // Live Clock
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
-
 
     // Auto-close dropdowns on scroll
     useEffect(() => {
@@ -179,15 +192,15 @@ export default function ParticipantDashboard() {
         return () => window.removeEventListener('scroll', handleScroll, true);
     }, [isNotificationOpen, isDropdownOpen]);
 
-    const getId = (o: any): string => {
-        if (!o) return '';
-        if (typeof o === 'string') return o.trim();
-        if (o.$oid) return String(o.$oid).trim();
-        if (o._id?.$oid) return String(o._id.$oid).trim();
-        if (o._id) return String(o._id).trim();
-        if (o.id) return String(o.id).trim();
-        return String(o || '').trim();
+    const getId = (obj: any) => {
+        if (!obj) return '';
+        if (typeof obj === 'string') return obj.trim();
+        if (typeof obj === 'number') return String(obj);
+        return (obj.id || obj._id?.$oid || obj._id || obj.$oid || '').toString().trim();
     };
+
+    const safeArray = (data: any) => Array.isArray(data) ? data : [];
+    const safeData = (data: any) => data?.results || (Array.isArray(data) ? data : []);
 
     // ──────────────── INITIAL FETCH (Participants & Studies) ────────────────
     useEffect(() => {
@@ -233,35 +246,51 @@ export default function ParticipantDashboard() {
                 if (pData) {
                     let filteredData = pData.filter((p: any) => {
                         const s = (p.status || '').toUpperCase();
-                        return !['DROPPED', 'INELIGIBLE', 'COMPLETED'].includes(s);
+                        // COMPLETED studies should remain visible for records/compensation history
+                        return !['DROPPED', 'INELIGIBLE'].includes(s);
                     });
 
-                    // Senior Developer: Strict Priority Sorting (Full Enrollment > Partial > Screening)
-                    const priority = ['ENROLLED', 'RANDOMIZED', 'ACTIVE', 'CONSENTED'];
+                    // Senior Developer: Strict Priority Sorting
+                    const priority = ['ENROLLED', 'RANDOMIZED', 'ACTIVE', 'CONSENTED', 'COMPLETED', 'REGISTERED', 'SCREENING'];
                     filteredData.sort((a: any, b: any) => {
                         const sA = (a.status || '').toUpperCase().trim();
                         const sB = (b.status || '').toUpperCase().trim();
                         const idxA = priority.indexOf(sA);
                         const idxB = priority.indexOf(sB);
 
-                        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-                        if (idxA !== -1) return -1;
-                        if (idxB !== -1) return 1;
-                        
-                        // Secondary sort: Newest first for same-status studies
-                        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                        if (idxA !== -1 && idxB !== -1 && idxA !== idxB) return idxA - idxB;
+                        if (idxA !== -1 && idxB === -1) return -1;
+                        if (idxB !== -1 && idxA === -1) return 1;
+
+                        // Established studies remain at the top (Oldest First within same priority)
+                        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
                     });
 
                     if (filteredData.length > 0) {
                         setAllParticipants(filteredData);
-                        setActiveParticipant(filteredData[0]);
+                        
+                        // Smart Preservation: Try to find previous active study
+                        let targetIndex = 0;
+                        const prevActiveId = activeParticipant ? getId(activeParticipant) : null;
+                        
+                        if (prevActiveId) {
+                            const foundIdx = filteredData.findIndex((p: any) => getId(p) === prevActiveId);
+                            if (foundIdx !== -1) targetIndex = foundIdx;
+                        }
+
+                        setSelectedStudyIndex(targetIndex);
+                        setActiveParticipant(filteredData[targetIndex]);
 
                         const studiesPromises = filteredData.map((p: any) =>
                             authFetch(`${apiUrl}/api/studies/${p.study}/`).then(res => res.ok ? res.json() : null)
                         );
                         const fetchedStudies = (await Promise.all(studiesPromises)).filter(s => s !== null);
                         setAllStudies(fetchedStudies);
-                        if (fetchedStudies.length > 0) setActiveStudy(fetchedStudies[0]);
+                        if (fetchedStudies.length > targetIndex) {
+                            setActiveStudy(fetchedStudies[targetIndex]);
+                        } else if (fetchedStudies.length > 0) {
+                            setActiveStudy(fetchedStudies[0]);
+                        }
                     }
                 }
             } catch (err) {
@@ -269,138 +298,116 @@ export default function ParticipantDashboard() {
             }
         };
         initDashboard();
-    }, []);
+    }, [refreshKey]);
 
-    // ──────────────── REACTIVE FETCH (Clinical Data per Study) ────────────────
     useEffect(() => {
-        const fetchClinicalData = async () => {
-            if (!activeStudy) return;
-            const apiUrl = API || 'http://localhost:8000';
-            const currentStudyId = getId(activeStudy);
+        const fetchClinicalData = async (isSilent = false) => {
+            const currentUser = getUser();
+            if (!currentUser || allParticipants.length === 0) return;
+
+            const p = allParticipants[selectedStudyIndex];
+            const pId = getId(p);
+            const currentStudyId = getId(p.study);
+
+            // Senior Developer Optimization: Prevent redundant bursts
+            if (isFetchingRef.current) return;
+            if (isSilent && lastFetchIdRef.current === `${pId}-${currentStudyId}-${refreshKey}`) return;
 
             try {
-                // Senior Developer: Parallelize all independent clinical fetches to minimize TTI (Time to Interactive)
-                // Helper for safe fetching
-                async function api_fetch_safe(url: string) {
-                    try {
-                        const res = await apiFetch<any[]>(url);
-                        return res || [];
-                    } catch (e) { return []; }
-                }
+                isFetchingRef.current = true;
+                if (!isSilent) setIsDataLoading(true);
 
-                const [tasksData, logsData, compData, visitData, kitData, labData, meshData, helpData, afData, qData] = await Promise.all([
-                    api_fetch_safe('/api/participant-tasks/'),
-                    api_fetch_safe('/api/daily-medication-logs/'),
-                    api_fetch_safe('/api/compensations/'),
-                    api_fetch_safe('/api/visits/'),
-                    api_fetch_safe('/api/kits/'),
-                    api_fetch_safe('/api/lab-results/'),
-                    api_fetch_safe('/api/clinical-conversations/'),
-                    api_fetch_safe('/api/help-request/'),
-                    api_fetch_safe('/api/assigned-forms/'),
-                    api_fetch_safe('/api/questionnaire-schedules/')
+                console.log(`[Clinical Sync] Starting ${isSilent ? 'background' : 'full'} data sync for Participant: ${pId}`);
+                // Parallel fetch for speed
+                const [taskRes, quesRes, logRes, doseRes, compRes, visitRes, kitRes, labRes, meshRes, afRes, helpRes, sigRes, protocolRes] = await Promise.all([
+                    authFetch(`${API}/api/tasks/?participant_id=${pId}`),
+                    authFetch(`${API}/api/questionnaire-schedules/?participant_id=${pId}`),
+                    authFetch(`${API}/api/daily-medication-logs/?participant=${pId}`),
+                    authFetch(`${API}/api/dosing-logs/?participant=${pId}`),
+                    authFetch(`${API}/api/compensations/?participant=${pId}`),
+                    authFetch(`${API}/api/visits/?participant=${pId}`),
+                    authFetch(`${API}/api/kits/?study_id=${currentStudyId}`),
+                    authFetch(`${API}/api/lab-results/?participant=${pId}`),
+                    authFetch(`${API}/api/clinical-conversations/?study_id=${currentStudyId}`),
+                    authFetch(`${API}/api/assigned-forms/?participant=${pId}`),
+                    authFetch(`${API}/api/help-request/`),
+                    authFetch(`${API}/api/consent/?participant_id=${pId}`),
+                    authFetch(`${API}/api/consent-templates/?study_id=${currentStudyId}`)
                 ]);
 
-                const fetchedQues: any[] = qData || [];
+                // Extract with safeArray & Normalize
+                const fetchedTasks = safeData(taskRes.ok ? await taskRes.json() : []);
+                const fetchedQues = safeData(quesRes.ok ? await quesRes.json() : []);
+                const fetchedLogs = safeData(logRes.ok ? await logRes.json() : []);
+                const fetchedDoses = safeData(doseRes.ok ? await doseRes.json() : []);
+                const compData = safeData(compRes.ok ? await compRes.json() : []);
+                const visitData = safeData(visitRes.ok ? await visitRes.json() : []);
+                const kitData = safeData(kitRes.ok ? await kitRes.json() : []);
+                const labData = safeData(labRes.ok ? await labRes.json() : []);
+                const meshData = safeData(meshRes.ok ? await meshRes.json() : []);
+                const afData = safeData(afRes.ok ? await afRes.json() : []);
+                const helpData = safeData(helpRes.ok ? await helpRes.json() : []);
 
-                let fetchedTasks: any[] = tasksData || [];
+                // 2. Daily Log Task Synthesis (Critical: Ensure actionability)
+                if (activeStudy?.show_dosing_log) {
+                    const todayStr = new Date().toISOString().split('T')[0];
 
-                // 1b. Fetch Daily Logs and Inject Task (Senior Developer: Dynamic Timeline Generation)
-                try {
-                    if (logsData) {
-                        const rawLogsData: any = logsData;
-                        // Handle both direct arrays and paginated responses
-                        const logs = Array.isArray(rawLogsData) ? rawLogsData : (rawLogsData.results || []);
-                        setLogs(logs);
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
+                    // Handle Future (+3 days), Today (0), and Missed (-3 days)
+                    for (let i = -3; i <= 3; i++) {
+                        const targetDate = new Date();
+                        targetDate.setDate(targetDate.getDate() - i);
+                        const dateStr = targetDate.toISOString().split('T')[0];
 
-                        // Senior Developer: Implement a 'Sliding Window' to prevent performance degradation for long-term participants.
-                        // We cap the lookback to a maximum of 30 days unless specifically requested.
-                        let startDate = new Date();
-                        const part = activeParticipant || allParticipants[0];
-                        if (part?.reviewed_at || part?.created_at) {
-                            startDate = new Date(part.reviewed_at || part.created_at);
-                        } else {
-                            startDate.setDate(startDate.getDate() - 14); 
-                        }
-                        
-                        const thirtyDaysAgo = new Date();
-                        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                        if (startDate < thirtyDaysAgo) startDate = thirtyDaysAgo;
+                        const hasTaskInDB = fetchedTasks.some((t: any) =>
+                            (t.task_type === 'DAILY_LOG' || t.task_details?.task_type === 'LOG' || t.task_details?.task_type === 'DAILY_LOG') &&
+                            (t.due_date?.startsWith(dateStr))
+                        );
+                        const logEntry = fetchedLogs.find((l: any) => l.date === dateStr) || fetchedDoses.find((l: any) => l.date === dateStr);
+                        const isToday = i === 0;
+                        const isFuture = i < 0;
 
-                        startDate.setHours(0, 0, 0, 0);
-
-                        // Generate Dates from Start to 5 days in future
-                        const endDate = new Date();
-                        endDate.setDate(endDate.getDate() + 5);
-                        endDate.setHours(0, 0, 0, 0);
-
-                        // Index logs by date for O(1) lookup speed
-                        const logMap = new Map(logs.map((l: any) => [l.date, l]));
-
-                        const dateCursor = new Date(startDate);
-                        while (dateCursor <= endDate) {
-                            // Senior Developer: Use timezone-safe local date string to avoid 'day-shifting' bugs
-                            const YYYY = dateCursor.getFullYear();
-                            const MM = String(dateCursor.getMonth() + 1).padStart(2, '0');
-                            const DD = String(dateCursor.getDate()).padStart(2, '0');
-                            const dateStr = `${YYYY}-${MM}-${DD}`;
-
-                            const logEntry = logMap.get(dateStr);
-                            
-                            const isToday = dateStr === `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                            const isPast = dateCursor < today;
-                            const isFuture = dateCursor > today;
-
-                            const commonTaskData = {
+                        if (!hasTaskInDB) {
+                            fetchedTasks.unshift({
+                                id: `synth-log-${dateStr}`,
                                 study: currentStudyId,
-                                visit_name: 'Daily Activities',
-                                timeline_group: 'Mandatory',
+                                participant: pId,
+                                title: isToday ? 'Daily Medication Log' : isFuture ? `Upcoming Log: ${dateStr}` : `Missed Log: ${dateStr}`,
+                                status: logEntry ? 'COMPLETED' : 'PENDING',
+                                due_date: targetDate.toISOString(),
+                                visit_name: isToday ? 'Daily Check-in' : isFuture ? 'Scheduled Entry' : 'Retrospective Log',
+                                timeline_group: 'Medication Tracking',
+                                estimated_time: '2 min',
                                 task_type: 'DAILY_LOG',
-                                task_details: { 
-                                    task_type: 'DAILY_LOG', 
-                                    description: isFuture ? 'Upcoming medicine and symptom log placeholder.' : 'Complete your daily medicine and symptom log.' 
+                                task_details: {
+                                    task_type: 'DAILY_LOG',
+                                    description: isToday ? 'Log your medication intake for today.' : isFuture ? `Scheduled medication log for ${dateStr}.` : `You missed your log for ${dateStr}. Please complete it now.`
                                 }
-                            };
-
-                            if (logEntry) {
-                                fetchedTasks.push({
-                                    ...commonTaskData,
-                                    id: `daily-log-${dateStr}`,
-                                    title: `Daily Medicine Log (${dateStr})`,
-                                    status: 'COMPLETED',
-                                    due_date: dateStr,
-                                });
-                            } else {
-                                // Only show PENDING for past (Overdue), today, or specified upcoming window
-                                fetchedTasks.push({
-                                    ...commonTaskData,
-                                    id: `daily-log-${dateStr}`,
-                                    title: isToday ? `Daily Medicine Log` : `Daily Medicine Log (${dateStr})`,
-                                    status: 'PENDING',
-                                    due_date: dateStr,
-                                    estimated_time: '5 min',
-                                });
+                            });
+                        } else if (logEntry) {
+                            const dbTask = fetchedTasks.find((t: any) =>
+                                (t.task_type === 'DAILY_LOG' || t.task_details?.task_type === 'LOG' || t.task_details?.task_type === 'DAILY_LOG') &&
+                                (t.due_date?.startsWith(dateStr))
+                            );
+                            if (dbTask && dbTask.status !== 'COMPLETED') {
+                                dbTask.status = 'COMPLETED';
+                                dbTask.completed_at = logEntry.created_at;
                             }
-                            dateCursor.setDate(dateCursor.getDate() + 1);
                         }
                     }
-                } catch (logsErr) { console.error("Logs Sync error:", logsErr); }
+                }
 
-                // 2. Inject LIVE Protocols
+                // 3. Protocol & eConsent Sync
                 try {
-                    const [cRes, sigRes] = await Promise.all([
-                        authFetch(`${apiUrl}/api/consent-templates/`),
-                        authFetch(`${apiUrl}/api/consent/`)
-                    ]);
+                    if (protocolRes.ok) {
+                        const protocolRaw = await protocolRes.json();
+                        const dbProtocols = safeArray(protocolRaw?.results || protocolRaw);
 
-                    if (cRes.ok) {
-                        const dbProtocols = await cRes.json();
-                        const mySignatures = sigRes.ok ? await sigRes.json() : [];
+                        const sigRaw = sigRes.ok ? await sigRes.json() : [];
+                        const mySignatures = safeArray(sigRaw?.results || sigRaw);
+
                         setSignatures(mySignatures);
 
-                        dbProtocols.filter((p: any) => {
+                        safeArray(dbProtocols).filter((p: any) => {
                             const isActive = p.status?.toUpperCase() === 'ACTIVE';
                             const pStudyId = getId(p.study);
 
@@ -411,16 +418,15 @@ export default function ParticipantDashboard() {
                                 return pStudyId === myStudyId && isEnrolled;
                             });
 
-                            const alreadySigned = mySignatures.some((s: any) =>
-                                getId(s.template) === getId(p.id)
-                            );
+                            const alreadySigned = mySignatures.some((s: any) => getId(s.template) === getId(p.id));
                             return isActive && isMyEnrolledStudy && !alreadySigned;
                         }).forEach((p: any) => {
-                            const pId = getId(p.id);
-                            if (!fetchedTasks.some((t: any) => getId(t) === `db-consent-${pId}`)) {
+                            const pInstanceId = getId(p.id);
+                            if (!fetchedTasks.some((t: any) => getId(t) === `db-consent-${pInstanceId}`)) {
                                 fetchedTasks.unshift({
-                                    id: `db-consent-${pId}`,
+                                    id: `db-consent-${pInstanceId}`,
                                     study: getId(p.study),
+                                    participant: pId,
                                     title: `${p.title} (v${p.version})`,
                                     status: 'PENDING',
                                     due_date: new Date().toISOString(),
@@ -436,52 +442,13 @@ export default function ParticipantDashboard() {
                     }
                 } catch (cErr) { console.error("Protocol Sync error:", cErr); }
 
-                // 3. Notifications
-                let allNotifs: any[] = [];
-                try {
-                    const nRes = await authFetch(`${apiUrl}/api/notifications/`);
-                    if (nRes.ok) {
-                        const rawNotifs = await nRes.json();
-                        allNotifs = rawNotifs.map((n: any) => ({
-                            id: n.id,
-                            title: n.title || 'System Alert',
-                            desc: n.message,
-                            time: new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                            type: n.type || 'system',
-                            read: n.is_read
-                        }));
-                    }
-                } catch (nErr) { console.error("Notif fetch failed:", nErr); }
-
-                // Synthesis
-                fetchedTasks.filter(t => {
-                    const isConsent = (t.task_type === 'CONSENT' || t.id?.includes('consent')) && t.status === 'PENDING';
-                    const tStudyId = getId(t.study || t.p_data?.study || t.p_data?.study_id);
-                    return isConsent && tStudyId === currentStudyId;
-                }).forEach(t => {
-                    const notifTitle = t.title || 'Consent Form';
-                    if (!allNotifs.some(n => n.desc?.includes(notifTitle) || (n.title === 'Action Required' && n.desc?.includes('consent')))) {
-                        allNotifs.unshift({
-                            id: `auto-${t.id}`, title: 'Action Required', desc: `Review and sign: ${notifTitle}`,
-                            time: 'NEW', type: 'protocol', read: false
-                        });
-                    }
-                });
-                setNotifications(allNotifs.slice(0, 10));
-
-                setCompensations(Array.isArray(compData) ? compData : []);
-                setVisits(Array.isArray(visitData) ? visitData : []);
-                setKits(Array.isArray(kitData) ? kitData : []);
-                setLabResults(Array.isArray(labData) ? labData : []);
-                setConversations(Array.isArray(meshData) ? meshData : []);
-                setAssignedForms(Array.isArray(afData) ? afData : []);
-                setHelpRequests(Array.isArray(helpData) ? helpData : ((helpData as any)?.results || []));
-
-                fetchedQues.forEach((q: any) => {
+                // 4. Questionnaire Injection
+                safeArray(fetchedQues).forEach((q: any) => {
                     if (getId(q.study_questionnaire?.study) === currentStudyId) {
                         fetchedTasks.push({
                             id: `qs-${q.id}`,
                             study: currentStudyId,
+                            participant: pId,
                             title: q.schedule_name || q.template_details?.name || 'Questionnaire',
                             status: q.status || 'PENDING',
                             due_date: q.scheduled_date || q.created_at,
@@ -490,22 +457,79 @@ export default function ParticipantDashboard() {
                             estimated_time: '10 min',
                             task_type: 'QUESTIONNAIRE',
                             q_data: q,
-                            task_details: { 
-                                task_type: 'QUESTIONNAIRE', 
-                                description: `Please complete the ${q.schedule_name} instrument.` 
-                            }
+                            task_details: { task_type: 'QUESTIONNAIRE', description: `Please complete the ${q.schedule_name} instrument.` }
                         });
                     }
                 });
 
+                // ──────────────── NOTIFICATION TRIGGERS (REAL-TIME) ────────────────
+                const newNotifs: any[] = [];
+                const currentStatus = activeParticipant?.status;
+                if (prevStatusRef.current && prevStatusRef.current !== currentStatus) {
+                    const statusName = (currentStatus || '').replace(/_/g, ' ');
+                    newNotifs.push({
+                        id: `status-${Date.now()}`,
+                        title: 'Enrollment Status Updated',
+                        desc: `Your status has been updated to: ${statusName}.`,
+                        time: 'Just now',
+                        type: 'system',
+                        read: false
+                    });
+                }
+                prevStatusRef.current = currentStatus;
+
+                const pendingTasksCount = safeArray(fetchedTasks).filter(t => t.status === 'PENDING').length;
+                if (prevTaskCountRef.current !== null && pendingTasksCount > prevTaskCountRef.current) {
+                    newNotifs.push({
+                        id: `task-${Date.now()}`,
+                        title: 'New Task Assigned',
+                        desc: 'A new clinical task requires your attention.',
+                        time: 'Just now',
+                        type: 'protocol',
+                        read: false
+                    });
+                }
+                prevTaskCountRef.current = pendingTasksCount;
+
+                const unreadMsgsCount = safeArray(meshData).reduce((acc: number, c: any) => acc + (c.unread_count || 0), 0);
+                if (prevMsgCountRef.current !== null && unreadMsgsCount > prevMsgCountRef.current) {
+                    newNotifs.push({
+                        id: `msg-${Date.now()}`,
+                        title: 'New Message',
+                        desc: 'You have a new message from the research team.',
+                        time: 'Just now',
+                        type: 'message',
+                        read: false
+                    });
+                }
+                prevMsgCountRef.current = unreadMsgsCount;
+
+                if (newNotifs.length > 0) {
+                    setNotifications(prev => [...newNotifs, ...prev].slice(0, 15));
+                }
+
+                setCompensations(compData);
+                setVisits(visitData);
+                setKits(kitData);
+                setLabResults(labData);
+                setConversations(meshData);
+                setAssignedForms(afData);
+                setHelpRequests(helpData);
+                setLogs(fetchedLogs);
+
                 setTasks(fetchedTasks);
+                lastFetchIdRef.current = `${pId}-${currentStudyId}-${refreshKey}`;
+                setIsDataLoading(false);
             } catch (err) {
                 console.error("Clinical data fetch failed:", err);
+                setIsDataLoading(false);
+            } finally {
+                isFetchingRef.current = false;
             }
         };
 
-        fetchClinicalData();
-    }, [selectedStudyIndex, allParticipants.length, refreshKey, activeStudy]);
+        fetchClinicalData(false);
+    }, [selectedStudyIndex, allParticipants.length, refreshKey]); // Removed activeStudy as it was redundant and caused duplicate firing
 
     const activeStudyId = String(activeStudy?.id || activeStudy?._id?.$oid || activeStudy?._id || activeStudy?.$oid || '').trim();
 
@@ -513,7 +537,12 @@ export default function ParticipantDashboard() {
 
     const filteredTasks = useMemo(() => {
         if (activeStudyId === '') return [];
-        const matched = tasks.filter(t => {
+        const pId = getId(activeParticipant);
+        const matched = safeArray(tasks).filter(t => {
+            const tParticipantId = getId(t.participant);
+            if (tParticipantId && pId) {
+                return tParticipantId === pId;
+            }
             const tStudyId = getId(t.study || t.p_data?.study || t.p_data?.study_id);
             return tStudyId === activeStudyId;
         });
@@ -538,31 +567,34 @@ export default function ParticipantDashboard() {
 
         matched.sort((a: any, b: any) => getPriority(a) - getPriority(b));
         return matched;
-    }, [tasks, activeStudyId]);
+    }, [tasks, activeStudyId, activeParticipant]);
 
     const filteredKits = useMemo(() => {
         if (activeStudyId === '') return [];
-        return kits.filter(k => getId(k.study) === activeStudyId);
+        return safeArray(kits).filter(k => getId(k.study) === activeStudyId);
     }, [kits, activeStudyId]);
 
     const filteredVisits = useMemo(() => {
-        if (activeStudyId === '') return [];
-        return visits.filter(v => getId(v.participant?.study) === activeStudyId);
-    }, [visits, activeStudyId]);
+        if (!activeParticipant) return [];
+        const pId = getId(activeParticipant);
+        return safeArray(visits).filter(v => getId(v.participant) === pId);
+    }, [visits, activeParticipant]);
 
     const filteredCompensations = useMemo(() => {
-        if (activeStudyId === '') return [];
-        return compensations.filter(c => getId(c.participant?.study) === activeStudyId);
-    }, [compensations, activeStudyId]);
+        if (!activeParticipant) return [];
+        const pId = getId(activeParticipant);
+        return safeArray(compensations).filter(c => getId(c.participant) === pId);
+    }, [compensations, activeParticipant]);
 
     const filteredLabResults = useMemo(() => {
-        if (activeStudyId === '') return [];
-        return labResults.filter(l => getId(l.participant?.study) === activeStudyId);
-    }, [labResults, activeStudyId]);
+        if (!activeParticipant) return [];
+        const pId = getId(activeParticipant);
+        return safeArray(labResults).filter(l => getId(l.participant) === pId);
+    }, [labResults, activeParticipant]);
 
     const filteredConversations = useMemo(() => {
         if (activeStudyId === '') return [];
-        return conversations.filter(c => getId(c.study) === activeStudyId);
+        return safeArray(conversations).filter(c => getId(c.study) === activeStudyId);
     }, [conversations, activeStudyId]);
 
     // ──────────────── HANDLERS ────────────────
@@ -621,6 +653,39 @@ export default function ParticipantDashboard() {
         // We intercept here if the task is a CONSENT type
         const taskType = (task?.task_type || task?.task_details?.task_type || '').toUpperCase();
 
+        // ── DOWNLOAD HANDLER ──────────────────────────
+        if (title === 'DOWNLOAD_PDF') {
+            let downloadUrl = null;
+            if (taskType === 'CONSENT') {
+                const currentStudyId = getId(task.study || activeStudy);
+                const sig = signatures.find(s => getId(s.study) === currentStudyId);
+                downloadUrl = sig?.signed_pdf_url || sig?.signed_pdf;
+            } else if (taskType === 'FORM_SIGNATURE' || task.assigned_form) {
+                const afId = getId(task.assigned_form);
+                const af = assignedForms.find(f => getId(f.id) === afId);
+                downloadUrl = af?.signed_pdf_url || af?.signed_pdf;
+            }
+
+            if (downloadUrl) {
+                window.open(downloadUrl, '_blank'); // Usually triggers download if disposition is set, or allows saving from viewer
+                // For direct download intent:
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.setAttribute('download', `Signed_${task.title || 'Document'}.pdf`);
+                // document.body.appendChild(link); // Optional for many browsers
+                link.click();
+                // document.body.removeChild(link);
+            } else {
+                setModalConfig({
+                    isOpen: true,
+                    title: 'Processing Document',
+                    desc: "Your signed document is currently being securely prepared for download. Please retry in a few moments.",
+                    primaryAction: 'OK'
+                });
+            }
+            return;
+        }
+
         // Handle Viewing Completed Tasks (Eye Button Integration)
         if (title === 'VIEW_SUBMISSION' || task?.status === 'COMPLETED') {
             if (taskType === 'CONSENT') {
@@ -637,7 +702,12 @@ export default function ParticipantDashboard() {
                     window.open(pdfUrl, '_blank');
                     return;
                 }
-                alert("Signed Consent PDF is still being generated. Please retry in a few minutes.");
+                setModalConfig({
+                    isOpen: true,
+                    title: 'Document Update',
+                    desc: "Your signed Consent PDF is still being generated. Please retry in a few minutes.",
+                    primaryAction: 'OK'
+                });
                 return;
             }
             if (taskType === 'DAILY_LOG') {
@@ -649,7 +719,12 @@ export default function ParticipantDashboard() {
                     setActiveNav('Logs');
                     navigate('/dashboard/participant/logs');
                 } else {
-                    alert("Historical data for this log is being synchronized. Please refresh.");
+                    setModalConfig({
+                        isOpen: true,
+                        title: 'Data Synchronization',
+                        desc: "Historical data for this log is being synchronized. Please refresh in a moment.",
+                        primaryAction: 'OK'
+                    });
                 }
                 return;
             }
@@ -661,9 +736,36 @@ export default function ParticipantDashboard() {
                     window.open(pdfUrl, '_blank');
                     return;
                 }
-                alert("Signed Form PDF is still being generated. Please retry in a few minutes.");
+                setModalConfig({
+                    isOpen: true,
+                    title: 'Generation in Progress',
+                    desc: "Your signed Form PDF is still being generated. Please retry in a few minutes.",
+                    primaryAction: 'OK'
+                });
                 return;
             }
+        }
+
+        if (taskType === 'DAILY_LOG' || taskType === 'LOG') {
+            // Check if it's already completed to allow viewing history
+            if (task.status === 'COMPLETED') {
+                const dateStr = task.due_date?.split('T')[0];
+                const logEntry = logs.find((l: any) => l.date === dateStr);
+                if (logEntry) {
+                    setSelectedLog(logEntry);
+                    setLogsDefaultViewMode('HISTORY');
+                    handleNavClick('Logs');
+                } else {
+                    setLogsPreselectedDate(dateStr);
+                    setLogsDefaultViewMode('HISTORY');
+                    handleNavClick('Logs');
+                }
+            } else {
+                setLogsPreselectedDate(task.due_date?.split('T')[0]);
+                setLogsDefaultViewMode('FORM');
+                handleNavClick('Logs');
+            }
+            return;
         }
 
         if (taskType === 'CONSENT') {
@@ -1022,10 +1124,11 @@ export default function ParticipantDashboard() {
 
     return (
         <div className="h-screen flex overflow-hidden font-sans relative" style={{ background: 'transparent' }}>
+            <ParticipantBackground />
             {/* Sidebar Overlay */}
             {isMobileMenuOpen && <div className="fixed inset-0 bg-black/60 z-30 lg:hidden backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />}
 
-            <aside className={`h-full flex-shrink-0 flex-col border-r border-white/[0.05] z-40 transition-transform duration-300 ${isMobileMenuOpen ? 'fixed flex w-[260px] left-0 translate-x-0 bg-[#0d1525]/90 shadow-[0_0_50px_rgba(0,0,0,0.5)]' : 'hidden lg:flex lg:relative lg:w-[260px] lg:translate-x-0 transition-none'}`} style={{ background: 'rgba(13, 21, 37, 0.8)', backdropFilter: 'blur(12px)' }}>
+            <aside className={`h-full flex-shrink-0 flex-col border-r border-white/[0.05] z-40 transition-transform duration-300 ${isMobileMenuOpen ? 'fixed flex w-[260px] left-0 translate-x-0 bg-[#050b18]/95 shadow-[0_0_50px_rgba(0,0,0,0.5)]' : 'hidden lg:flex lg:relative lg:w-[260px] lg:translate-x-0 transition-none'}`} style={{ background: 'rgba(5, 11, 24, 0.9)', backdropFilter: 'blur(16px)' }}>
                 <div className="h-20 px-8 flex justify-between items-center border-b border-white/[0.05]">
                     <Link to="/" className="group transition-all">
                         <div className="bg-white p-2 rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
@@ -1035,70 +1138,70 @@ export default function ParticipantDashboard() {
                     <button className="lg:hidden text-slate-400 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}><X className="w-6 h-6" /></button>
                 </div>
 
-                <div className="mx-5 mt-2 mb-6 bg-[#141e35]/60 border border-white/5 rounded-2xl p-4 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-indigo-500 flex items-center justify-center text-white font-black overflow-hidden">
-                        {userProfile.userPicture ? <img src={userProfile.userPicture} className="w-full h-full object-cover" /> : initials}
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                        <p className="text-base font-black text-white uppercase truncate">{userProfile.userName}</p>
-                        <p className="text-[12px] font-black text-cyan-400 uppercase tracking-widest mt-1">Participant</p>
-                    </div>
-                </div>
 
-                <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto">
+                <nav className="flex-1 px-6 space-y-1 overflow-y-auto mt-6 no-scrollbar">
                     {navItems.map((item) => {
                         const isActive = activeNav === item.label;
                         return (
                             <button
                                 key={item.label}
-                                onClick={() => { handleNavClick(item.label); }}
-                                className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group ${isActive ? 'bg-[#0a1525] text-cyan-400 border border-cyan-500/30' : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'}`}
+                                onClick={() => { handleNavClick(item.label); setIsMobileMenuOpen(false); }}
+                                className={`w-full flex items-center gap-5 px-5 py-2.5 rounded-3xl transition-all duration-300 group relative overflow-hidden ${isActive ? 'bg-amber-500/10 text-amber-400 border border-amber-500/40 shadow-[0_10px_30px_rgba(245,158,11,0.12)]' : 'text-slate-500 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
                             >
-                                <item.icon className={`w-5 h-5 ${isActive ? 'text-cyan-400' : 'text-slate-500'}`} />
-                                <span className="text-base font-bold">{item.label}</span>
+                                <item.icon className={`w-6 h-6 transition-all duration-300 ${isActive ? 'text-amber-400 scale-110' : 'text-slate-600 group-hover:text-amber-400 group-hover:scale-110 group-hover:drop-shadow-[0_0_12px_rgba(245,158,11,0.4)]'}`} />
+                                <span className={`text-[17px] font-bold tracking-tight transition-colors ${isActive ? 'text-amber-400' : 'group-hover:text-white'}`}>{item.label}</span>
                             </button>
                         );
                     })}
                 </nav>
 
-                <div className="px-4 pb-6 pt-4 border-t border-white/[0.05]">
-                    <button onClick={() => setIsLogoutModalOpen(true)} className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-500 hover:text-red-400 hover:bg-red-500/5 transition-all">
-                        <LogOut className="w-5 h-5" />
-                        <span className="text-sm font-bold">Sign Out</span>
+                <div className="px-6 pb-10 pt-4 border-t border-white/[0.04] mt-auto">
+                    <button onClick={() => setIsLogoutModalOpen(true)} className="w-full flex items-center gap-5 px-5 py-5 rounded-3xl text-slate-500 hover:text-red-400 hover:bg-red-500/5 transition-all group">
+                        <LogOut className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                        <span className="text-[17px] font-bold">Sign Out</span>
                     </button>
                 </div>
             </aside>
 
             <div className="flex-1 flex flex-col overflow-hidden relative z-20 w-full">
-                <header className="h-20 flex items-center justify-between px-6 lg:px-12 border-b border-white/[0.04] shrink-0 relative bg-[#0a0e1a]/60 backdrop-blur-xl z-[100] transition-all">
+                <header className="h-20 flex items-center justify-between px-6 lg:px-12 border-b border-white/[0.04] shrink-0 relative bg-[#050b18]/80 backdrop-blur-2xl z-[100] transition-all">
                     <div className="flex items-center gap-3 sm:gap-6">
-                        <button className="lg:hidden text-slate-300 hover:text-cyan-400 transition-colors mr-1" onClick={() => setIsMobileMenuOpen(true)}>
+                        <button className="lg:hidden text-slate-300 hover:text-amber-400 transition-colors mr-1" onClick={() => setIsMobileMenuOpen(true)}>
                             <Menu className="w-6 h-6" />
                         </button>
 
-                        <div className="w-10 h-10 rounded-xl bg-cyan-500/10 hidden md:flex items-center justify-center border border-cyan-500/20 group hover:border-cyan-400 transition-all shadow-inner">
-                            <Zap className="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]" />
-                        </div>
                         <div className="flex flex-col">
-                            <span className="text-[12px] font-black text-cyan-500/50 uppercase tracking-[0.3em] mb-0.5 italic hidden sm:block">Participant Suite</span>
+                            <span className="text-xs font-black text-amber-500/70 uppercase tracking-[0.3em] mb-0.5 italic hidden sm:block">Participant Suite</span>
                             <div className="flex items-center gap-2">
-                                <h1 className="text-lg font-black text-white italic uppercase tracking-tighter leading-none">{activeNav}</h1>
+                                <h1 className="text-xl font-bold text-white tracking-tight leading-none">{activeNav}</h1>
                             </div>
                         </div>
                     </div>
                     <div className="flex items-center gap-4 relative" ref={dropdownRef}>
-                        <div className="hidden xl:flex flex-col items-end text-right border-r border-white/5 pr-6">
-                            <span className="text-xl font-black text-cyan-400 font-mono tracking-tighter tabular-nums leading-none">
+                        <div className="hidden md:flex flex-col items-end text-right border-r border-white/5 pr-6">
+                            <span className="text-xl font-black text-amber-400 font-mono tracking-tighter tabular-nums leading-none">
                                 {formatToParticipantTime(currentTime, { weekday: 'long', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
                             </span>
-                            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mt-1.5 flex items-center gap-2">
-                                <Globe className="w-3 h-3 text-cyan-500" />
-                                {userProfile.userTimezone || 'UTC'}
-                            </span>
+                            <div className="flex items-center gap-2 mt-1.5 grayscale opacity-60">
+                                <Globe className="w-3 h-3 text-amber-500" />
+                                <span className="text-xs font-bold text-white uppercase tracking-widest leading-none">
+                                    {userProfile.userTimezone || 'UTC'}
+                                </span>
+                            </div>
                         </div>
+
+                        {/* Manual Refresh Button */}
+                        <button
+                            onClick={() => refreshData()}
+                            className="p-2.5 rounded-2xl bg-white/5 border border-white/5 text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 hover:border-amber-500/20 transition-all flex items-center justify-center group"
+                            title="Sync Clinical Data"
+                        >
+                            <RefreshCcw className={`w-5 h-5 transition-transform duration-700 ${isDataLoading ? 'animate-spin text-amber-500' : 'group-active:rotate-180'}`} />
+                        </button>
+
                         <div className="relative">
                             <NotificationBell
-                                unreadCount={notifications.filter(n => !n.read).length}
+                                unreadCount={safeArray(notifications).filter(n => !n.read).length}
                                 onClick={() => {
                                     setIsNotificationOpen(!isNotificationOpen);
                                     setIsDropdownOpen(false);
@@ -1115,12 +1218,12 @@ export default function ParticipantDashboard() {
                                     >
                                         <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.03]">
                                             <div className="flex flex-col gap-1">
-                                                <h3 className="text-[12px] font-black text-white uppercase tracking-[0.2em] italic">Notifications Hub</h3>
-                                                <span className="text-[12px] text-slate-500 font-bold uppercase tracking-widest leading-none">Updates & Alerts</span>
+                                                <h3 className="text-xs font-black text-white uppercase tracking-[0.2em] italic">Notifications Hub</h3>
+                                                <span className="text-xs text-slate-400 font-bold uppercase tracking-widest leading-none">Updates & Alerts</span>
                                             </div>
                                             <button
                                                 onClick={() => setNotifications(notifications.map(n => ({ ...n, read: true })))}
-                                                className="px-4 py-2 bg-cyan-400/10 border border-cyan-400/20 text-[12px] font-black text-cyan-400 uppercase tracking-tighter hover:bg-cyan-400 hover:text-black rounded-xl transition-all"
+                                                className="px-4 py-2 bg-amber-400/10 border border-amber-400/20 text-xs font-black text-amber-400 uppercase tracking-tighter hover:bg-amber-400 hover:text-black rounded-xl transition-all"
                                             >
                                                 Mark all read
                                             </button>
@@ -1129,17 +1232,17 @@ export default function ParticipantDashboard() {
                                             {notifications.length > 0 ? notifications.map(n => (
                                                 <div
                                                     key={n.id}
-                                                    className={`p-6 border-b border-white/[0.03] last:border-0 hover:bg-white/[0.03] transition-all cursor-pointer relative group/notif ${!n.read ? 'bg-cyan-500/[0.03]' : ''}`}
+                                                    className={`p-6 border-b border-white/[0.03] last:border-0 hover:bg-white/[0.03] transition-all cursor-pointer relative group/notif ${!n.read ? 'bg-amber-500/[0.03]' : ''}`}
                                                     onClick={() => {
                                                         if (n.type === 'protocol') setActiveNav('Tasks');
                                                         setNotifications(notifications.map(notif => notif.id === n.id ? { ...notif, read: true } : notif));
                                                         setIsNotificationOpen(false);
                                                     }}
                                                 >
-                                                    {!n.read && <div className="absolute top-0 bottom-0 left-0 w-1 bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.5)]" />}
+                                                    {!n.read && <div className="absolute top-0 bottom-0 left-0 w-1 bg-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.5)]" />}
                                                     <div className="flex flex-col gap-2">
                                                         <div className="flex justify-between items-baseline gap-4">
-                                                            <span className={`text-[13px] font-black uppercase italic tracking-tight leading-none ${n.type === 'protocol' ? 'text-amber-400' : 'text-white group-hover/notif:text-cyan-400'} transition-colors truncate`}>{n.title}</span>
+                                                            <span className={`text-[13px] font-black uppercase italic tracking-tight leading-none ${n.type === 'protocol' ? 'text-amber-400' : 'text-white group-hover/notif:text-amber-400'} transition-colors truncate`}>{n.title}</span>
                                                             <span className="text-[12px] font-black text-slate-700 uppercase tracking-tighter flex-shrink-0">{n.time}</span>
                                                         </div>
                                                         <p className="text-[13px] text-slate-400 font-medium leading-relaxed">{n.desc}</p>
@@ -1164,10 +1267,24 @@ export default function ParticipantDashboard() {
                             >
                                 <div className="hidden sm:flex flex-col items-end mr-1">
                                     <span className="text-sm font-black text-white italic uppercase tracking-tighter leading-none mb-1.5">{userProfile.userName}</span>
-                                    <span className="text-[12px] text-cyan-400/60 font-black uppercase tracking-widest bg-cyan-400/[0.03] px-2 py-0.5 rounded border border-cyan-400/10 truncate max-w-[120px]">{userProfile.userEmail}</span>
+                                    <span className="text-xs text-amber-500/70 font-black uppercase tracking-widest bg-amber-500/[0.03] px-2 py-0.5 rounded border border-amber-500/10 truncate max-w-[120px]">{userProfile.userEmail}</span>
                                 </div>
-                                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-white/10 overflow-hidden shadow-2xl hover:border-cyan-500/40 transition-all ring-1 ring-white/5">
-                                    {userProfile.userPicture ? <img src={userProfile.userPicture} className="w-full h-full object-cover" /> : <span className="text-sm font-black italic">{initials}</span>}
+                                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center border border-white/10 overflow-hidden shadow-2xl hover:border-amber-500/40 transition-all ring-1 ring-white/5 relative">
+                                    {userProfile.userPicture ? (
+                                        <img
+                                            src={userProfile.userPicture}
+                                            alt=""
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).style.display = 'none';
+                                                const fallback = (e.target as HTMLImageElement).nextElementSibling;
+                                                if (fallback) fallback.classList.remove('hidden');
+                                            }}
+                                        />
+                                    ) : null}
+                                    <span className={`text-sm font-black italic avatar-initials absolute inset-0 flex items-center justify-center z-0 ${userProfile.userPicture ? 'hidden' : ''}`}>
+                                        {initials}
+                                    </span>
                                 </div>
                             </div>
 
@@ -1181,7 +1298,7 @@ export default function ParticipantDashboard() {
                                         className="absolute right-0 top-full mt-6 w-60 bg-[#0d1424] border border-white/10 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl z-[150] overflow-hidden"
                                     >
                                         <div className="p-5 border-b border-white/5 bg-white/[0.02]">
-                                            <p className="text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic mb-1.5">Current Session</p>
+                                            <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1.5">Current Session</p>
                                             <p className="text-sm font-black text-white uppercase italic truncate tracking-tight">{userProfile.userName}</p>
                                         </div>
                                         <div className="p-2">
@@ -1189,15 +1306,15 @@ export default function ParticipantDashboard() {
                                                 onClick={() => { setActiveNav('Profile'); setIsDropdownOpen(false); }}
                                                 className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-2xl transition-all group"
                                             >
-                                                <User className="w-4 h-4 text-cyan-500 group-hover:scale-110 transition-transform" />
-                                                <span className="text-[12px] font-bold uppercase tracking-widest italic">View Profile</span>
+                                                <User className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
+                                                <span className="text-xs font-bold uppercase tracking-widest italic">View Profile</span>
                                             </button>
                                             <button
                                                 onClick={() => { setIsLogoutModalOpen(true); setIsDropdownOpen(false); }}
                                                 className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-2xl transition-all group"
                                             >
                                                 <LogOut className="w-4 h-4 text-red-500 group-hover:scale-110 transition-transform" />
-                                                <span className="text-[12px] font-bold uppercase tracking-widest italic">Sign Out</span>
+                                                <span className="text-xs font-bold uppercase tracking-widest italic">Sign Out</span>
                                             </button>
                                         </div>
                                     </motion.div>
@@ -1207,12 +1324,18 @@ export default function ParticipantDashboard() {
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-y-auto px-6 lg:px-12 py-8 scroll-smooth no-scrollbar">
-                    <AnimatePresence mode="wait">
-                        <motion.div key={activeNav} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
-                            {activeNav === 'Discover Studies' && <DiscoverStudiesView />}
+                <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-12 py-6 sm:py-8 scroll-smooth no-scrollbar">
+                    <AnimatePresence initial={false}>
+                        <motion.div
+                            key={activeNav}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.15 }}
+                        >
+                            {activeNav === 'Discover Studies' && <DiscoverStudiesView loading={isDataLoading} />}
                             {activeNav === 'Dashboard' && (
                                 <DashboardView
+                                    isLoading={isDataLoading}
                                     firstName={userProfile.userName || userProfile.firstName}
                                     userTimezone={userProfile.userTimezone}
                                     onAction={(v: string) => handleNavClick(v)}
@@ -1233,11 +1356,11 @@ export default function ParticipantDashboard() {
                                     conversations={filteredConversations}
                                 />
                             )}
-                            {activeNav === 'Tasks' && <TasksView tasks={filteredTasks} onAction={openActionModal} study={activeStudy} userName={userProfile.userName} defaultFilter={tasksDefaultFilter} />}
-                            {activeNav === 'Study Kit' && <StudyKitView onAction={openActionModal} study={activeStudy} kits={filteredKits} />}
-                             {activeNav === 'Logs' && <LogsView study={activeStudy} onAction={openActionModal} preselectedDate={logsPreselectedDate} preselectedLog={selectedLog} defaultViewMode={logsDefaultViewMode} />}
-                            {activeNav === 'Messages' && <MessagesView study={activeStudy} conversations={filteredConversations} onAction={refreshData} />}
-                            {activeNav === 'Documents' && <DocumentsView study={activeStudy} signatures={signatures} assignedForms={assignedForms} />}
+                            {activeNav === 'Tasks' && <TasksView isLoading={isDataLoading} tasks={filteredTasks} onAction={openActionModal} study={activeStudy} userName={userProfile.userName} defaultFilter={tasksDefaultFilter} />}
+                            {activeNav === 'Study Kit' && <StudyKitView isLoading={isDataLoading} onAction={openActionModal} study={activeStudy} kits={filteredKits} />}
+                            {activeNav === 'Logs' && <LogsView study={activeStudy} onAction={openActionModal} preselectedDate={logsPreselectedDate} preselectedLog={selectedLog} defaultViewMode={logsDefaultViewMode} />}
+                            {activeNav === 'Messages' && <MessagesView isLoading={isDataLoading} study={activeStudy} conversations={filteredConversations} onAction={refreshData} />}
+                            {activeNav === 'Documents' && <DocumentsView study={activeStudy} signatures={signatures} assignedForms={assignedForms} isLoading={isDataLoading} />}
                             {activeNav === 'Reports' && (
                                 <ReportsView
                                     userName={userProfile.userName}
@@ -1247,9 +1370,10 @@ export default function ParticipantDashboard() {
                                     visits={filteredVisits}
                                     kits={filteredKits}
                                     participant={activeParticipant}
+                                    isLoading={isDataLoading}
                                 />
                             )}
-                            {activeNav === 'Visits' && <VisitsView visits={filteredVisits} study={activeStudy} tasks={filteredTasks} />}
+                            {activeNav === 'Visits' && <VisitsView visits={filteredVisits} study={activeStudy} tasks={filteredTasks} isLoading={isDataLoading} />}
                             {activeNav === 'Compensation' && (
                                 <CompensationView
                                     study={activeStudy}
@@ -1257,6 +1381,7 @@ export default function ParticipantDashboard() {
                                     tasks={filteredTasks}
                                     visits={filteredVisits}
                                     onAction={openActionModal}
+                                    isLoading={isDataLoading}
                                 />
                             )}
 
@@ -1267,9 +1392,10 @@ export default function ParticipantDashboard() {
                                     notificationSettings={notificationSettings}
                                     toggleNotification={toggleNotification}
                                     onAction={openActionModal}
+                                    isLoading={isDataLoading}
                                 />
                             )}
-                            {activeNav === 'Privacy & Data' && <PrivacyDataView onAction={openActionModal} />}
+                            {activeNav === 'Privacy & Data' && <PrivacyDataView onAction={openActionModal} isLoading={isDataLoading} />}
                         </motion.div>
                     </AnimatePresence>
                 </main>
@@ -1281,17 +1407,18 @@ export default function ParticipantDashboard() {
                 onClose={() => setIsConsentModalOpen(false)}
                 onComplete={handleConsentComplete}
                 study={activeStudy}
+                template={activeConsentTask?.p_data}
                 userProfile={userProfile}
             />
 
-            <InstrumentModal 
-                 isOpen={isInstrumentModalOpen} 
-                 onClose={() => setIsInstrumentModalOpen(false)} 
-                 task={activeInstrumentTask}
-                 onSuccess={refreshData}
-             />
+            <InstrumentModal
+                isOpen={isInstrumentModalOpen}
+                onClose={() => setIsInstrumentModalOpen(false)}
+                task={activeInstrumentTask}
+                onSuccess={refreshData}
+            />
 
-             <FormSignatureModal
+            <FormSignatureModal
                 isOpen={isSignatureModalOpen}
                 onClose={() => setIsSignatureModalOpen(false)}
                 onComplete={handleFormSignatureComplete}
@@ -1302,10 +1429,16 @@ export default function ParticipantDashboard() {
             <ActionModal
                 isOpen={modalConfig?.isOpen || false}
                 onClose={() => setModalConfig(null)}
-                onConfirm={handleActionConfirm}
+                onConfirm={() => {
+                    if (modalConfig?.primaryAction === 'OK') {
+                        setModalConfig(null);
+                    } else {
+                        handleActionConfirm();
+                    }
+                }}
                 title={modalConfig?.title || ''}
                 desc={modalConfig?.desc || ''}
-                primaryAction={modalConfig?.primaryAction || 'CONTINUE'}
+                action={modalConfig?.primaryAction || 'CONTINUE'}
                 isProcessing={isActionProcessing}
             />
 
@@ -1320,9 +1453,14 @@ export default function ParticipantDashboard() {
                         reader.onload = (event) => {
                             const result = event.target?.result as string;
                             handleSaveProfileField('userPicture', result);
+                            setModalConfig({
+                                isOpen: true,
+                                title: 'Request Received',
+                                desc: "We have received your profile update request. A research team member will review and contact you shortly.",
+                                primaryAction: 'OK'
+                            });
                         };
                         reader.readAsDataURL(file);
-                        alert("we got your request and our team members contact you shortly");
                     }
                 }}
             />

@@ -99,7 +99,7 @@ class Submission(models.Model):
     
     # Inquiry Details
     inquiry_type = models.ForeignKey(InquiryType, on_delete=models.SET_NULL, null=True)
-    message = models.TextField()
+    message = models.TextField(blank=True, null=True)
     
     # Config Snapshot (in case settings change later, we know what was required at the time? 
     # identifying metadata is usually enough)

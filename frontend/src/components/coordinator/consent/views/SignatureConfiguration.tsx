@@ -83,14 +83,37 @@ export const SignatureConfiguration: React.FC<SignatureConfigurationProps> = ({
                     <span style={S.title}>Signature Configuration Engine</span>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button style={{ ...S.btnGhost, color: COLORS.danger, borderColor: COLORS.danger }} onClick={() => setConfirmModal({ message: 'Wipe all signature fields from this protocol?', onConfirm: () => {
-                        if (activeConsent) {
-                            const updated = { ...activeConsent, placedFields: [] };
-                            setConsents(consents.map(c => c.id === updated.id ? updated : c));
-                        }
-                        addToast('Field registry cleared', 'warning');
-                    } })}><Trash2 size={14} /> Clear All</button>
-                    <button style={S.btnIndigo} onClick={handleCommit}><Save size={14} /> Commit Changes</button>
+                    <button 
+                        style={{ ...S.btnGhost, color: COLORS.danger, borderColor: COLORS.danger }} 
+                        onClick={() => setConfirmModal({ message: 'Wipe all signature fields from this protocol?', onConfirm: () => {
+                            if (activeConsent) {
+                                const updated = { ...activeConsent, placedFields: [] };
+                                setConsents(consents.map(c => c.id === updated.id ? updated : c));
+                            }
+                            addToast('Field registry cleared', 'warning');
+                        } })}
+                    >
+                        <Trash2 size={14} /> Clear All
+                    </button>
+                    <button style={S.btnGhost} onClick={handleCommit}>
+                        <Save size={14} /> Sync to Registry
+                    </button>
+                    {activeConsent?.status === 'Draft' && (
+                        <button 
+                            style={{ ...S.btnIndigo, backgroundColor: COLORS.success }} 
+                            onClick={() => {
+                                if (handleUpdateTemplate && activeConsent) {
+                                    handleUpdateTemplate(activeConsent.id, { 
+                                        placed_fields: activeConsent.placedFields,
+                                        status: 'Active' 
+                                    });
+                                    setActiveView('builder');
+                                }
+                            }}
+                        >
+                            <ShieldCheck size={14} /> Finalize & Launch
+                        </button>
+                    )}
                 </div>
             </div>
 

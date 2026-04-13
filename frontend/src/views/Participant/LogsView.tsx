@@ -5,7 +5,7 @@ import {
     Activity, AlertCircle, FileUp, ClipboardList, CheckCircle2,
     AlertTriangle, ChevronRight, Info, Plus, Calendar,
     FileText, Save, Clock, ArrowRight, X, Trash2, Microscope,
-    Heart, Thermometer, User, Upload, Eye
+    Heart, Thermometer, User, Upload, Eye, RefreshCcw
 } from 'lucide-react';
 import { Card } from './SharedComponents';
 
@@ -13,7 +13,7 @@ import { Card } from './SharedComponents';
 
 const SectionHeader = ({ title, icon: Icon, subtitle }: any) => (
     <div className="flex items-center gap-4 mb-8">
-        <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 text-cyan-400">
+        <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 text-amber-500">
             <Icon className="w-6 h-6" />
         </div>
         <div>
@@ -25,32 +25,32 @@ const SectionHeader = ({ title, icon: Icon, subtitle }: any) => (
 
 const BooleanChoice = ({ value, onChange, label, inverse = false }: any) => {
     const getYesStyle = () => {
-        if (value !== true) return 'text-slate-500 hover:text-white';
+        if (value !== true) return 'text-slate-500 hover:text-slate-300 bg-white/[0.02]';
         return inverse
-            ? 'bg-red-500 text-white shadow-xl shadow-red-500/20 scale-105'
-            : 'bg-[#00e676] text-slate-900 shadow-xl shadow-[#00e676]/20 scale-105';
+            ? 'bg-rose-500 text-white shadow-xl shadow-rose-500/30 scale-105 z-10'
+            : 'bg-emerald-500 text-slate-950 shadow-xl shadow-emerald-500/30 scale-105 z-10 font-black';
     };
 
     const getNoStyle = () => {
-        if (value !== false) return 'text-slate-500 hover:text-white';
+        if (value !== false) return 'text-slate-500 hover:text-slate-300 bg-white/[0.02]';
         return inverse
-            ? 'bg-[#00e676] text-slate-900 shadow-xl shadow-[#00e676]/20 scale-105'
-            : 'bg-red-500 text-white shadow-xl shadow-red-500/20 scale-105';
+            ? 'bg-emerald-500 text-slate-950 shadow-xl shadow-emerald-500/30 scale-105 z-10 font-black'
+            : 'bg-rose-500 text-white shadow-xl shadow-rose-500/30 scale-105 z-10';
     };
 
     return (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-1">
-            {label && <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest block flex-1">{label}</label>}
-            <div className="flex gap-2 p-1.5 bg-white/[0.02] border border-white/5 rounded-[1.5rem] w-fit shadow-inner-white">
+            {label && <label className="text-[14px] font-black text-slate-400 uppercase tracking-[0.15em] block flex-1 drop-shadow-sm">{label}</label>}
+            <div className="flex gap-1.5 p-1 bg-[#050b18] border border-white/10 rounded-[1.5rem] w-fit shadow-2xl relative overflow-hidden">
                 <button
                     onClick={() => onChange(true)}
-                    className={`px-10 py-3 rounded-2xl text-[14px] font-black uppercase tracking-widest transition-all ${getYesStyle()}`}
+                    className={`px-12 py-3 rounded-2xl text-[13px] font-bold uppercase tracking-widest transition-all duration-300 ${getYesStyle()}`}
                 >
                     Yes
                 </button>
                 <button
                     onClick={() => onChange(false)}
-                    className={`px-10 py-3 rounded-2xl text-[14px] font-black uppercase tracking-widest transition-all ${getNoStyle()}`}
+                    className={`px-12 py-3 rounded-2xl text-[13px] font-bold uppercase tracking-widest transition-all duration-300 ${getNoStyle()}`}
                 >
                     No
                 </button>
@@ -86,9 +86,9 @@ const LogDetailModal = ({ log, onClose }: { log: any; onClose: () => void }) => 
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Modal Header */}
-                <div className="p-8 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-cyan-900/20 to-transparent">
+                <div className="p-8 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-amber-900/20 to-transparent">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-cyan-500/10 rounded-2xl flex items-center justify-center text-cyan-400 border border-cyan-500/20">
+                        <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 border border-amber-500/20">
                             <Calendar className="w-6 h-6" />
                         </div>
                         <div>
@@ -104,7 +104,7 @@ const LogDetailModal = ({ log, onClose }: { log: any; onClose: () => void }) => 
                     {/* Section A */}
                     <div className="space-y-6">
                         <div className="flex items-center gap-3">
-                            <Thermometer className="w-5 h-5 text-cyan-400" />
+                            <Thermometer className="w-5 h-5 text-amber-500" />
                             <h4 className="text-[14px] font-black text-white uppercase tracking-widest">Medicine Intake</h4>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -112,7 +112,7 @@ const LogDetailModal = ({ log, onClose }: { log: any; onClose: () => void }) => 
                             <DetailRow icon={Clock} label="Time Taken" value={log.time_taken} />
                             {log.took_medicine && (
                                 <>
-                                    <DetailRow icon={Activity} label="Full Dose" value={log.full_dose ? 'YES' : 'NO'} color={log.full_dose ? 'text-cyan-400' : 'text-orange-400'} />
+                                    <DetailRow icon={Activity} label="Full Dose" value={log.full_dose ? 'YES' : 'NO'} color={log.full_dose ? 'text-amber-500' : 'text-orange-400'} />
                                     {!log.full_dose && <DetailRow icon={Plus} label="Dose Amount" value={log.dose_amount} />}
                                 </>
                             )}
@@ -162,13 +162,13 @@ const LogDetailModal = ({ log, onClose }: { log: any; onClose: () => void }) => 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <DetailRow icon={Activity} label="Overall Feeling" value={log.overall_feeling?.replace('_', ' ')} color="text-purple-400" />
                             {log.supporting_file && (
-                                <div className="flex items-start gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-2xl group cursor-pointer hover:bg-cyan-500/5 hover:border-cyan-500/20 transition-all">
-                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-white/5 text-cyan-400">
+                                <div className="flex items-start gap-4 p-4 bg-white/[0.02] border border-white/5 rounded-2xl group cursor-pointer hover:bg-amber-500/5 hover:border-amber-500/20 transition-all">
+                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-white/5 text-amber-500">
                                         <FileUp className="w-4 h-4" />
                                     </div>
                                     <div>
                                         <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest">Attachment</p>
-                                        <a href={log.supporting_file} target="_blank" rel="noreferrer" className="text-[14px] font-bold text-cyan-400 uppercase hover:underline">View Uploaded File</a>
+                                        <a href={log.supporting_file} target="_blank" rel="noreferrer" className="text-[14px] font-bold text-amber-500 uppercase hover:underline">View Uploaded File</a>
                                     </div>
                                 </div>
                             )}
@@ -213,8 +213,8 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
     const [timeTaken, setTimeTaken] = useState(() => {
         const u = getUser();
         const tz = u?.timezone || 'UTC';
-        return new Date().toLocaleTimeString('en-US', { 
-            hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz 
+        return new Date().toLocaleTimeString('en-US', {
+            hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz
         });
     });
     const [fullDose, setFullDose] = useState<boolean | null>(null);
@@ -408,7 +408,9 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
             const resp = await authFetch(`${apiUrl}/api/daily-medication-logs/`);
             if (resp.ok) {
                 const data = await resp.json();
-                setHistory(data);
+                console.log("Medication History API Response:", data);
+                const cleanData = Array.isArray(data) ? data : (data.results || []);
+                setHistory(cleanData);
             }
         } catch (e) {
             console.error("History fetch failed", e);
@@ -499,52 +501,54 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
     return (
         <div className="max-w-[1500px] mx-auto space-y-8 pb-20 mt-10">
             {/* Navigation Strip */}
-            <div className="flex justify-between items-center bg-white/[0.02] border border-white/5 p-2 rounded-[2rem]">
+            <div className="flex justify-between items-center bg-[#050b18]/40 backdrop-blur-xl border border-white/5 p-2 rounded-[2rem] shadow-2xl relative z-[100]">
                 <div className="flex gap-1">
                     <button
                         onClick={() => setViewMode('FORM')}
-                        className={`px-10 py-3.5 rounded-2xl text-[13px] font-black uppercase tracking-widest transition-all ${viewMode === 'FORM' ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-white'}`}
+                        className={`px-10 py-3.5 rounded-2xl text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative overflow-hidden ${viewMode === 'FORM' ? 'bg-amber-500 text-slate-950 shadow-[0_0_30px_rgba(245,158,11,0.2)]' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
                     >
                         Daily Log
                     </button>
                     <button
                         onClick={() => setViewMode('HISTORY')}
-                        className={`px-10 py-3.5 rounded-2xl text-[13px] font-black uppercase tracking-widest transition-all ${viewMode === 'HISTORY' ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-white'}`}
+                        className={`px-10 py-3.5 rounded-2xl text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative overflow-hidden ${viewMode === 'HISTORY' ? 'bg-amber-500 text-slate-950 shadow-[0_0_30px_rgba(245,158,11,0.2)]' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
                     >
                         History
                     </button>
                 </div>
-                <div className="px-6 text-[12px] font-black text-slate-600 uppercase tracking-widest">
+                <div className="px-8 text-[11px] font-black text-slate-500 uppercase tracking-[0.3em] flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_#f59e0b]" />
                     MusB Health
                 </div>
-
             </div>
 
             {viewMode === 'FORM' ? (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
                     {/* Header Image/Gradient */}
-                    <Card className="p-0 border border-white/5 overflow-hidden">
-                        <div className="h-32 bg-gradient-to-r from-cyan-600/20 via-indigo-600/20 to-purple-600/20 flex flex-col justify-center px-8 sm:px-12 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-8 opacity-10">
-                                <ClipboardList className="w-24 h-24 text-white" />
+                    <Card className="p-0 border border-white/5 overflow-hidden bg-[#0d1424]">
+                        <div className="h-44 bg-gradient-to-br from-[#0d1424] via-amber-950/20 to-[#0d1424] flex flex-col justify-center px-8 sm:px-14 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-10 opacity-10 rotate-12">
+                                <ClipboardList className="w-32 h-32 text-white" />
                             </div>
-                            <h2 className="text-2xl sm:text-3xl font-black text-white italic uppercase tracking-tighter relative z-10">Daily Medicine Log</h2>
-                            <p className="text-[12px] sm:text-[13px] font-bold text-cyan-400/80 uppercase tracking-widest mt-1 relative z-10">Study Daily Status</p>
+                            <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none" />
+                            <h2 className="text-3xl sm:text-4xl font-black text-white italic uppercase tracking-tighter relative z-10 drop-shadow-2xl">Daily Medicine Log</h2>
+                            <p className="text-[12px] sm:text-[14px] font-black text-amber-500 uppercase tracking-[0.2em] mt-2 relative z-10 flex items-center gap-2">
+                                <span className="w-8 h-[1px] bg-amber-500/30" />
+                                Study Daily Status
+                            </p>
                         </div>
                     </Card>
 
                     {/* Intro Statement  */}
-                    <Card className="p-8 sm:p-10 border border-white/5 bg-white/[0.01]">
-                        <div className="space-y-6 text-center md:text-left">
-                            <div className="flex items-center justify-center md:justify-start gap-3 text-cyan-400">
-                                <Info className="w-5 h-5" />
-                                <span className="text-[14px] font-black uppercase tracking-widest italic">Important Notice</span>
-                            </div>
-                            <p className="text-[18px] font-bold text-slate-300 leading-relaxed">
-                                Please complete this daily log after taking your study medicine. This helps the study team track daily use and monitor any side effects or health concerns.
-                            </p>
+                    <div className="px-2">
+                        <div className="flex items-center gap-3 text-amber-500 mb-4 px-1">
+                            <Info className="w-5 h-5 text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                            <span className="text-[13px] font-black uppercase tracking-[0.2em] italic">Important Notice</span>
                         </div>
-                    </Card>
+                        <p className="text-[16px] font-bold text-slate-400 leading-relaxed border-l-2 border-amber-500/20 pl-6 py-2">
+                            Please complete this daily log after taking your study medicine. This helps the study team track daily use and monitor any side effects or health concerns.
+                        </p>
+                    </div>
 
                     {/* Section A: Medicine Intake */}
                     <Card className="p-8 sm:p-10 border border-white/5 bg-white/[0.01]">
@@ -565,27 +569,27 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                                 <div className="flex flex-col md:flex-row gap-8 pb-8 border-t border-white/5 pt-10">
                                     <div className="flex-1 space-y-4">
                                         <label className="text-[14px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1">
-                                            <Calendar className="w-4 h-4 text-cyan-400" />
+                                            <Calendar className="w-4 h-4 text-amber-500" />
                                             Log Date
                                         </label>
-                                        <input 
+                                        <input
                                             type="date"
                                             value={logDate}
                                             onChange={(e) => setLogDate(e.target.value)}
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold text-xl outline-none focus:border-cyan-500/30 transition-all cursor-pointer"
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold text-xl outline-none focus:border-amber-500/30 transition-all cursor-pointer"
                                         />
                                         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Select the date this entry refers to</p>
                                     </div>
                                     <div className="flex-1 space-y-4">
                                         <label className="text-[14px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1">
-                                            <Clock className="w-4 h-4 text-indigo-400" />
+                                            <Clock className="w-4 h-4 text-amber-500" />
                                             Current Time
                                         </label>
-                                        <input 
+                                        <input
                                             type="time"
                                             value={timeTaken}
                                             onChange={(e) => setTimeTaken(e.target.value)}
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold text-xl outline-none focus:border-indigo-500/30 transition-all cursor-pointer"
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold text-xl outline-none focus:border-amber-500/30 transition-all cursor-pointer"
                                         />
                                         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Select the time of this recording</p>
                                     </div>
@@ -597,7 +601,7 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                                     <motion.div
                                         initial={{ opacity: 0, scale: 0.98 }}
                                         animate={{ opacity: 1, scale: 1 }}
-                                        className="grid grid-cols-1 lg:grid-cols-2 gap-10 bg-cyan-500/5 p-8 rounded-[2rem] border border-cyan-500/10"
+                                        className="grid grid-cols-1 lg:grid-cols-2 gap-10 bg-amber-500/5 p-8 rounded-[2rem] border border-amber-500/10"
                                     >
                                         <BooleanChoice
                                             label="Did you take the full dose?"
@@ -614,7 +618,7 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                                                         placeholder="Specify amount (e.g., 5ml, 1 pill)"
                                                         value={doseAmount}
                                                         onChange={(e) => setDoseAmount(e.target.value)}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none focus:border-cyan-500/30"
+                                                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none focus:border-amber-500/30"
                                                     />
                                                 </div>
                                                 <div className="space-y-3">
@@ -623,7 +627,7 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                                                         placeholder="Explain why a partial dose was taken..."
                                                         value={reasonMissed}
                                                         onChange={(e) => setReasonMissed(e.target.value)}
-                                                        className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 h-24 text-white font-bold outline-none focus:border-cyan-500/30 resize-none"
+                                                        className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 h-24 text-white font-bold outline-none focus:border-amber-500/30 resize-none"
                                                     />
                                                 </div>
                                             </div>
@@ -913,35 +917,37 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                         )}
                     </AnimatePresence>
 
-                    <div className="p-8 bg-red-500/5 border border-red-500/10 rounded-2xl shadow-inner-white">
-                        <p className="text-[16px] font-black text-red-400 uppercase tracking-widest flex items-center gap-3 italic leading-relaxed">
-                            <AlertCircle className="w-5 h-5 shrink-0" />
-                            If you experience severe symptoms or a medical emergency, call 911 immediately and contact the study team at (813) 419-0781.
+                    {/* Emergency Footer Advisory */}
+                    <div className="bg-rose-500/10 border border-rose-500/20 p-8 rounded-[2rem] flex items-center justify-center gap-4 text-center mt-12 animate-pulse shadow-[0_0_30px_rgba(244,63,94,0.1)]">
+                        <AlertTriangle className="w-7 h-7 text-rose-500 shrink-0" />
+                        <p className="text-[14px] font-black text-rose-500 uppercase tracking-[0.1em] italic leading-relaxed">
+                            If you experience severe symptoms or a medical emergency, call 911 immediately and contact the study team at (612) 419-0781.
                         </p>
                     </div>
 
 
-                    {/* Form Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-6 pt-10 pb-20">
+                    {/* Form Action Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-6 pt-10 pb-20 px-2 lg:px-0">
                         <button
                             onClick={() => handleSubmitLog(true)}
                             disabled={isSubmitting}
-                            className="flex-1 py-6 bg-white/5 hover:bg-white/10 text-white border border-white/5 rounded-[2rem] text-[15px] font-black uppercase tracking-[0.25em] transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
+                            className="flex-1 py-5 rounded-[2.5rem] border border-slate-700 bg-[#0a101f] text-slate-400 font-black uppercase tracking-[0.2em] transition-all duration-300 hover:border-slate-500 hover:text-white hover:bg-white/5 active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50"
                         >
-                            <Save className="w-6 h-6" />
+                            <Save className={`w-5 h-5 ${isSubmitting ? 'animate-spin' : ''}`} />
                             Save Draft
                         </button>
                         <button
                             onClick={() => handleSubmitLog(false)}
                             disabled={isSubmitting}
-                            className="flex-[2] py-6 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-[2rem] text-[15px] font-black uppercase tracking-[0.25em] shadow-2xl shadow-indigo-500/40 transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
+                            className="flex-[2] py-5 rounded-[2.5rem] bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-black uppercase tracking-[0.3em] shadow-2xl shadow-indigo-500/30 hover:shadow-cyan-500/40 hover:scale-[1.02] transition-all active:scale-[0.98] flex items-center justify-center gap-4 relative overflow-hidden group disabled:opacity-50"
                         >
+                            <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                             {isSubmitting ? (
-                                <div className="w-6 h-6 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                                <RefreshCcw className="w-6 h-6 animate-spin text-white" />
                             ) : (
-                                <ArrowRight className="w-6 h-6" />
+                                <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                             )}
-                            Submit Daily Log
+                            <span className="italic">Submit Daily Log</span>
                         </button>
                     </div>
                 </div>
@@ -950,7 +956,7 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                 <div className="space-y-6">
                     {isLoadingHistory ? (
                         <div className="text-center py-20 animate-pulse text-slate-500 uppercase font-black tracking-widest text-[14px]">Syncing health history...</div>
-                    ) : history.length === 0 ? (
+                    ) : (!Array.isArray(history) || history.length === 0) ? (
                         <Card className="text-center py-20 flex flex-col items-center">
                             <ClipboardList className="w-12 h-12 text-slate-700 mb-4" />
                             <p className="text-[14px] font-black text-slate-500 uppercase tracking-widest">No previous logs recorded.</p>

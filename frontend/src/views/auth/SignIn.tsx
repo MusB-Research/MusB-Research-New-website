@@ -223,7 +223,7 @@ export default function SignIn() {
                 return;
             }
             if (data.user.profile_incomplete) {
-                navigate('/auth/profile-setup');
+                navigate('/auth/profile-setup', { state: location.state });
                 return;
             }
 
@@ -365,7 +365,7 @@ export default function SignIn() {
                 return;
             }
             if (data.user.profile_incomplete) {
-                navigate('/auth/profile-setup');
+                navigate('/auth/profile-setup', { state: location.state });
                 return;
             }
 

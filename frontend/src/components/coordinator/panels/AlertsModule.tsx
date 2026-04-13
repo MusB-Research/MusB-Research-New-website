@@ -19,6 +19,8 @@ import {
     ClipboardList
 } from 'lucide-react';
 
+import { fetchNotifications, markNotificationRead, markAllNotificationsRead, deleteNotification } from '../../../api';
+
 interface AlertItem {
     id: string;
     title: string;
@@ -32,27 +34,91 @@ interface AlertItem {
 export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: string }) {
     const [activeSeverity, setActiveSeverity] = useState<'All' | 'Critical' | 'Warning' | 'Info'>('All');
     const [searchQuery, setSearchQuery] = useState('');
-    const [alerts, setAlerts] = useState<AlertItem[]>([
-        { id: 'AL-001', title: 'SAE Reported: SUB-023', description: 'Severe GI distress reported during V4. Immediate PI review required.', severity: 'Critical', category: 'Safety', timestamp: '2026-03-21 14:22', read: false },
-        { id: 'AL-002', title: 'Kit Shipment Delayed', description: 'Pharmacy Manual kit #1292 is delayed due to logistics. Impact: V5 scheduling.', severity: 'Warning', category: 'Operational', timestamp: '2026-03-21 11:05', read: false },
-        { id: 'AL-003', title: 'Consent Version Update', description: 'New Protocol v3.3 requires re-consent for all Cohort Alpha subjects.', severity: 'Info', category: 'Clinical', timestamp: '2026-03-20 09:44', read: true },
-        { id: 'AL-004', title: 'Screen Fail Detected: SUB-102', description: 'Inclusion Criteria #4 failure (BMI out of range).', severity: 'Info', category: 'Clinical', timestamp: '2026-03-20 08:12', read: true },
-        { id: 'AL-005', title: 'System Maintenance', description: 'Platform will be offline for 30 mins tonight at 02:00 UTC.', severity: 'Info', category: 'System', timestamp: '2026-03-19 16:00', read: false },
-    ]);
+    const [alerts, setAlerts] = useState<AlertItem[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const handleMarkRead = (id: string) => {
-        setAlerts(prev => prev.map(a => a.id === id ? { ...a, read: true } : a));
+    const fetchAlertData = async () => {
+        setIsLoading(true);
+        try {
+            const data = await fetchNotifications();
+            // Map backend Notifications to AlertItems
+            const mapped = data.map((n: any) => {
+                // Heuristic mapping for category and severity based on backend 'type'
+                let category: AlertItem['category'] = 'Clinical';
+                let severity: AlertItem['severity'] = 'Info';
+
+                const type = (n.type || '').toUpperCase();
+                if (type === 'ERROR' || n.title.toLowerCase().includes('sae')) {
+                    severity = 'Critical';
+                    category = 'Safety';
+                } else if (type === 'WARNING') {
+                    severity = 'Warning';
+                    category = 'Operational';
+                } else if (type === 'SUCCESS') {
+                    severity = 'Info';
+                    category = 'Clinical';
+                } else if (n.title.toLowerCase().includes('maintenance') || type === 'SYSTEM') {
+                    category = 'System';
+                }
+
+                return {
+                    id: String(n.id),
+                    title: n.title,
+                    description: n.message,
+                    severity,
+                    category,
+                    timestamp: new Date(n.created_at).toLocaleString(),
+                    read: n.is_read
+                };
+            });
+            setAlerts(mapped);
+        } catch (err) {
+            console.error("Failed to sync alert intelligence:", err);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const handleResolve = (id: string) => {
-        setAlerts(prev => prev.filter(a => a.id !== id));
+    React.useEffect(() => {
+        fetchAlertData();
+        // Polling for real-time vibe
+        const timer = setInterval(fetchAlertData, 30000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const handleMarkRead = async (id: string) => {
+        try {
+            await markNotificationRead(id);
+            setAlerts(prev => prev.map(a => a.id === id ? { ...a, read: true } : a));
+        } catch (err) {
+            console.error("Failed to mark as read:", err);
+        }
     };
 
-    const handleMarkAllRead = () => {
-        setAlerts(prev => prev.map(a => ({ ...a, read: true })));
+    const handleResolve = async (id: string) => {
+        try {
+            await deleteNotification(id);
+            setAlerts(prev => prev.filter(a => a.id !== id));
+        } catch (err) {
+            console.error("Failed to resolve alert:", err);
+        }
     };
 
-    const handleArchive = () => {
+    const handleMarkAllRead = async () => {
+        try {
+            await markAllNotificationsRead();
+            setAlerts(prev => prev.map(a => ({ ...a, read: true })));
+        } catch (err) {
+            console.error("Failed to mark all as read:", err);
+        }
+    };
+
+    const handleArchive = async () => {
+        // Clear read alerts locally and on backend sequentially for robustness
+        const readAlerts = alerts.filter(a => a.read);
+        for (const a of readAlerts) {
+            try { await deleteNotification(a.id); } catch(e) {}
+        }
         setAlerts(prev => prev.filter(a => !a.read));
     };
 
@@ -67,7 +133,7 @@ export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: st
         switch (severity) {
             case 'Critical': return 'text-red-400 bg-red-500/10 border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.15)]';
             case 'Warning': return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
-            case 'Info': return 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20';
+            case 'Info': return 'text-blue-400 bg-blue-500/10 border-blue-500/20';
             default: return 'text-slate-400 bg-white/5 border-white/10';
         }
     };
@@ -77,7 +143,7 @@ export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: st
             {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div>
-                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Alert <span className="text-indigo-400">Intelligence</span></h2>
+                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Alert <span className="text-blue-400">Intelligence</span></h2>
                     <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">Priority Notifications & Clinical Triggers</p>
                 </div>
                 <div className="flex items-center gap-4">
@@ -100,7 +166,7 @@ export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: st
             <div className="bg-[#0B101B]/40 border border-white/5 rounded-[3rem] p-4 lg:p-10 space-y-10 relative overflow-hidden">
                 {/* Background Decor */}
                 <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none">
-                    <Bell className="w-64 h-64 text-indigo-400" />
+                    <Bell className="w-64 h-64 text-blue-400" />
                 </div>
 
                 {/* Filter Controls */}
@@ -111,7 +177,7 @@ export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: st
                                 key={s}
                                 onClick={() => setActiveSeverity(s)}
                                 className={`px-6 py-2.5 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${
-                                    activeSeverity === s ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'
+                                    activeSeverity === s ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:text-white'
                                 }`}
                             >
                                 {s}
@@ -125,7 +191,7 @@ export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: st
                             placeholder="Search Alerts..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3 text-sm text-white font-bold outline-none focus:border-indigo-500/50 transition-all w-64 uppercase tracking-widest font-mono"
+                            className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3 text-sm text-white font-bold outline-none focus:border-blue-500/50 transition-all w-64 uppercase tracking-widest font-mono"
                         />
                     </div>
                 </div>
@@ -133,7 +199,12 @@ export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: st
                 {/* Alerts List */}
                 <div className="space-y-4">
                     <AnimatePresence mode="popLayout">
-                        {filteredAlerts.length > 0 ? filteredAlerts.map((alert) => (
+                        {isLoading ? (
+                            <div className="py-24 text-center">
+                                <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                                <p className="text-[12px] font-black uppercase tracking-[0.3em] text-blue-500 animate-pulse italic">Scanning Signals...</p>
+                            </div>
+                        ) : filteredAlerts.length > 0 ? filteredAlerts.map((alert) => (
                             <motion.div 
                                 key={alert.id}
                                 layout
@@ -150,10 +221,10 @@ export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: st
                                     </div>
                                     <div className="space-y-1.5">
                                         <div className="flex items-center gap-3">
-                                            <span className={`w-2.5 h-2.5 rounded-full ${!alert.read ? 'bg-indigo-500 animate-ping shadow-[0_0_8px_rgba(99,102,241,1)]' : 'bg-transparent'}`} />
+                                            <span className={`w-2.5 h-2.5 rounded-full ${!alert.read ? 'bg-blue-500 animate-ping shadow-[0_0_8px_rgba(59,130,246,1)]' : 'bg-transparent'}`} />
                                             <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest italic leading-none">{alert.timestamp}</p>
                                         </div>
-                                         <p className="text-[12px] font-black uppercase tracking-[0.2em] text-indigo-400/80 italic">{alert.category}</p>
+                                         <p className="text-[12px] font-black uppercase tracking-[0.2em] text-blue-400/80 italic">{alert.category}</p>
                                     </div>
                                 </div>
 
@@ -176,7 +247,7 @@ export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: st
                                          className="px-6 py-3.5 bg-white text-slate-950 rounded-xl font-black text-[12px] uppercase tracking-[0.15em] hover:scale-[1.05] active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,255,255,0.1)] flex items-center gap-3"
                                      >
                                         Resolve <ChevronRight className="w-4 h-4" />
-                                    </button>
+                                     </button>
                                 </div>
                             </motion.div>
                         )) : (
@@ -185,7 +256,7 @@ export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: st
                                 animate={{ opacity: 1 }} 
                                 className="p-20 text-center space-y-4"
                             >
-                                <CheckCircle2 className="w-16 h-16 text-indigo-500/20 mx-auto" />
+                                <CheckCircle2 className="w-16 h-16 text-blue-500/20 mx-auto" />
                                 <p className="text-slate-500 font-black uppercase tracking-widest text-[12px] italic">All Tactical Signals Resolved • Research Environment Clear</p>
                             </motion.div>
                         )}

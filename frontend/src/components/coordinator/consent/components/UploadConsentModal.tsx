@@ -137,47 +137,56 @@ export const UploadConsentModal: React.FC<UploadConsentModalProps> = ({
                                 </select>
                             </div>
                         </div>
-                    </div>
 
-                    {/* RIGHT COLUMN */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                        <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept="application/pdf" />
-                        <div
-                            onClick={() => fileInputRef.current?.click()}
-                            style={{
-                                backgroundColor: uploadForm.file ? 'rgba(34, 197, 94, 0.05)' : 'rgba(30, 41, 59, 0.5)',
-                                border: `2px dashed ${uploadForm.file ? '#22c55e' : '#334155'}`,
-                                borderRadius: '20px',
-                                padding: '3rem 1.5rem',
-                                textAlign: 'center',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: uploadForm.file ? 'rgba(34, 197, 94, 0.1)' : 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: uploadForm.file ? '#22c55e' : '#6366f1' }}>
-                                {uploadForm.file ? <CheckCircle2 size={32} /> : <Plus size={32} />}
+                        {/* RIGHT COLUMN */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                            <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept="application/pdf" />
+                            <div
+                                onClick={() => fileInputRef.current?.click()}
+                                style={{
+                                    backgroundColor: uploadForm.file ? 'rgba(34, 197, 94, 0.05)' : 'rgba(30, 41, 59, 0.5)',
+                                    border: `2px dashed ${uploadForm.file ? '#22c55e' : '#334155'}`,
+                                    borderRadius: '20px',
+                                    padding: '3rem 1.5rem',
+                                    textAlign: 'center',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: uploadForm.file ? 'rgba(34, 197, 94, 0.1)' : 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: uploadForm.file ? '#22c55e' : '#6366f1' }}>
+                                    {uploadForm.file ? <CheckCircle2 size={32} /> : <Plus size={32} />}
+                                </div>
+                                <div style={{ fontSize: '15px', fontWeight: 600, color: 'white', marginBottom: '0.5rem' }}>
+                                    {uploadForm.file ? uploadForm.file.name : 'Upload PDF File'}
+                                </div>
+                                <div style={{ fontSize: '12px', color: '#64748b' }}>
+                                    Max file size: 50MB
+                                </div>
                             </div>
-                            <div style={{ fontSize: '15px', fontWeight: 600, color: 'white', marginBottom: '0.5rem' }}>
-                                {uploadForm.file ? uploadForm.file.name : 'Upload PDF File'}
-                            </div>
-                            <div style={{ fontSize: '12px', color: '#64748b' }}>
-                                Max file size: 50MB
-                            </div>
-                        </div>
 
-                        <div>
-                            <label style={S.label}>Description & Notes</label>
-                            <textarea style={{ ...S.input, height: '140px', resize: 'none' }} placeholder="Additional details..." value={uploadForm.notes} onChange={e => setUploadForm({ ...uploadForm, notes: e.target.value })} />
+                            <div>
+                                <label style={S.label}>Protocol Terms Content</label>
+                                <textarea
+                                    style={{ ...S.input, height: '180px', resize: 'none', marginBottom: '1.5rem' }}
+                                    placeholder="Paste the actual clinical consent terms here... participants will review this text before signing."
+                                    value={uploadForm.terms_content || ''}
+                                    onChange={e => setUploadForm({ ...uploadForm, terms_content: e.target.value })}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={S.label}>Short Notes (Internal Only)</label>
+                                <textarea style={{ ...S.input, height: '100px', resize: 'none' }} placeholder="Additional internal details..." value={uploadForm.notes} onChange={e => setUploadForm({ ...uploadForm, notes: e.target.value })} />
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {/* FOOTER */}
-            <div style={{ padding: '2rem 3rem', background: '#1e293b', display: 'flex', justifyContent: 'flex-end', gap: '1.5rem' }}>
-                <button style={S.btnGhost} onClick={onClose}>Cancel</button>
-                <button style={S.btnIndigo} onClick={handleUpload}><Save size={20} /> Save Form</button>
+                {/* FOOTER */}
+                <div style={{ padding: '2rem 3rem', backgroundColor: '#0f172a', borderTop: '1px solid #1e293b', display: 'flex', justifyContent: 'flex-end', gap: '1.5rem' }}>
+                    <button style={S.btnGhost} onClick={onClose}>Cancel</button>
+                    <button style={S.btnIndigo} onClick={handleUpload}><Save size={20} /> Save Form</button>
+                </div>
             </div>
         </div>
-
     );
-}
+};

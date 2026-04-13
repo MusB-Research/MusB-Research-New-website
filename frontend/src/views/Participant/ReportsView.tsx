@@ -4,9 +4,9 @@ import {
     TrendingUp, Calendar, CheckCircle2, Award, 
     BarChart3, Download, Share2, 
     Filter, Clock, Target, Zap, ChevronRight,
-    ArrowUpRight, AlertCircle, Info, PieChart
+    ArrowUpRight, AlertCircle, Info, PieChart, Globe
 } from 'lucide-react';
-import { Card, Badge, CircularProgress, ProgressBar, LineChart, BarChart } from './SharedComponents';
+import { Card, Badge, CircularProgress, ProgressBar, LineChart, BarChart, Skeleton, SkeletonText, SkeletonCircle } from './SharedComponents';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
@@ -17,7 +17,8 @@ const ReportsView = ({
     tasks = [],
     visits = [],
     kits = [],
-    participant
+    participant,
+    isLoading = false
 }: { 
     userName?: string; 
     study?: any;
@@ -26,6 +27,7 @@ const ReportsView = ({
     visits?: any[];
     kits?: any[];
     participant?: any;
+    isLoading?: boolean;
 }) => {
     const [timeRange, setTimeRange] = useState('Entire Study');
 
@@ -46,8 +48,6 @@ const ReportsView = ({
             .reduce((sum: number, c: any) => sum + parseFloat(c?.amount || 0), 0);
     }, [safeCompensations]);
 
-    const totalValue = totalEarned + pendingPayment;
-
     const completedTasks = safeTasks.filter((t: any) => t?.is_completed || (t?.status || '').toUpperCase() === 'COMPLETED').length;
     const totalTasks = safeTasks.length || 0;
     const taskCompletionPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -55,7 +55,6 @@ const ReportsView = ({
     const recruitmentDate = participant?.reviewed_at || participant?.created_at || study?.created_at;
     const daysInStudy = recruitmentDate ? Math.max(1, Math.ceil((new Date().getTime() - new Date(recruitmentDate).getTime()) / (1000 * 3600 * 24))) : 0;
 
-    // ──────────────── ENGAGEMENT LOGIC ────────────────
     const adherencePercent = totalTasks > 0 
         ? Math.round((safeTasks.filter((t: any) => (t?.status || '').toUpperCase() === 'COMPLETED').length / totalTasks) * 100) 
         : 0;
@@ -88,28 +87,27 @@ const ReportsView = ({
         return streak;
     }, [safeTasks]);
 
-    const handleDownloadPDF = async () => {
-        const element = document.getElementById('reports-content');
-        if (!element) return;
-
-        const canvas = await html2canvas(element, {
-            backgroundColor: '#0a0e1a',
-            scale: 2,
-            logging: false,
-            useCORS: true
-        });
-        
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const imgProps = pdf.getImageProperties(imgData);
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-        
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-        pdf.save('MusB_Research_Progress_Report.pdf');
-
-        alert("we got your request and our team members contact you shortly");
-    };
+    if (isLoading) {
+        return (
+            <div className="space-y-12 pb-20">
+                <div className="flex justify-between items-end">
+                    <div className="space-y-4">
+                        <SkeletonText width="w-32" height="h-3" />
+                        <SkeletonText width="w-48" height="h-8" />
+                        <SkeletonText width="w-64" height="h-4" />
+                    </div>
+                    <Skeleton variant="item" className="w-64 h-12" />
+                </div>
+                <Skeleton className="w-full h-32" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {[1, 2, 3].map(i => <Skeleton key={i} className="h-48" />)}
+                </div>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                    {[1, 2].map(i => <Skeleton key={i} className="h-96" />)}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div id="reports-content" className="space-y-12 pb-20">
@@ -119,9 +117,9 @@ const ReportsView = ({
                     <div className="flex items-center gap-2 text-slate-500 text-[13px] font-black uppercase tracking-widest mb-4">
                         <span>Dashboard</span>
                         <ChevronRight className="w-3 h-3" />
-                        <span className="text-cyan-500">Reports</span>
+                        <span className="text-amber-500">Reports</span>
                     </div>
-                    <h2 className="text-2xl font-black italic tracking-tighter text-white uppercase italic mb-2">Reports</h2>
+                    <h2 className="text-2xl font-black italic tracking-tighter text-white uppercase mb-2">Reports</h2>
                     <p className="text-slate-500 font-bold uppercase tracking-widest text-[13px]">Track your progress, stay motivated, and see your study achievements</p>
                 </div>
                 <div className="flex flex-wrap gap-4">
@@ -130,7 +128,7 @@ const ReportsView = ({
                             <button 
                                 key={range}
                                 onClick={() => setTimeRange(range)}
-                                className={`px-4 py-2 rounded-xl text-[13px] font-black uppercase tracking-widest transition-all ${timeRange === range ? 'bg-cyan-500 text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                                className={`px-4 py-2 rounded-xl text-[13px] font-black uppercase tracking-widest transition-all ${timeRange === range ? 'bg-amber-500 text-slate-950 shadow-lg' : 'text-slate-500 hover:text-white'}`}
                             >
                                 {range}
                             </button>
@@ -143,14 +141,14 @@ const ReportsView = ({
             <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative overflow-hidden bg-gradient-to-r from-indigo-950 via-[#1e293b] to-slate-900 rounded-[2.5rem] p-8 shadow-2xl border border-white/5"
+                className="relative overflow-hidden bg-gradient-to-r from-[#0a101f] via-[#0d1424] to-[#0a101f] rounded-[2.5rem] p-8 shadow-2xl border border-white/5"
             >
                 <div className="absolute top-0 right-0 p-8 opacity-10">
-                    <Award className="w-32 h-32 rotate-12" />
+                    <Award className="w-32 h-32 rotate-12 text-amber-500" />
                 </div>
                 <div className="relative z-10 flex flex-col md:flex-row items-center gap-6">
-                    <div className="w-16 h-16 bg-cyan-500/10 backdrop-blur-xl rounded-2xl flex items-center justify-center border border-cyan-500/20 shadow-inner group">
-                        <Zap className="w-8 h-8 text-cyan-400 fill-cyan-400 group-hover:scale-110 transition-transform" />
+                    <div className="w-16 h-16 bg-amber-500/10 backdrop-blur-xl rounded-2xl flex items-center justify-center border border-amber-500/20 shadow-inner group">
+                        <Zap className="w-8 h-8 text-amber-400 fill-amber-400 group-hover:scale-110 transition-transform" />
                     </div>
                     <div>
                         <h4 className="text-xl font-black text-white italic uppercase tracking-tight">You’re making great progress!</h4>
@@ -161,10 +159,10 @@ const ReportsView = ({
 
             {/* ──────────────── SUMMARY OVERVIEW ──────────────── */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-                <Card className="p-8 group hover:border-cyan-500/30 transition-all duration-500">
+                <Card className="p-8 group hover:border-amber-500/30 transition-all duration-500">
                     <div className="flex justify-between items-start mb-8">
                         <h4 className="text-[13px] font-black text-slate-500 uppercase tracking-[0.2em]">Study Completion</h4>
-                        <div className="w-10 h-10 bg-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-400 border border-cyan-500/20 shadow-inner">
+                        <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-400 border border-amber-500/20 shadow-inner">
                             <Target className="w-5 h-5" />
                         </div>
                     </div>
@@ -172,31 +170,31 @@ const ReportsView = ({
                         <CircularProgress value={taskCompletionPercent} size={90} strokeWidth={8} />
                         <div>
                             <span className="text-[13px] font-black text-white uppercase italic block mb-1">On Track</span>
-                            <p className="text-[13px] font-bold text-slate-500 uppercase leading-relaxed tracking-wider">Study completion status: {taskCompletionPercent}% synchronized</p>
+                            <p className="text-[13px] font-bold text-slate-500 uppercase leading-relaxed tracking-wider">Status: {taskCompletionPercent}% synchronized</p>
                         </div>
                     </div>
                 </Card>
 
-                <Card className="p-8 group hover:border-indigo-500/30 transition-all duration-500">
+                <Card className="p-8 group hover:border-amber-500/30 transition-all duration-500">
                     <div className="flex justify-between items-start mb-8">
                         <h4 className="text-[13px] font-black text-slate-500 uppercase tracking-[0.2em]">Days in Study</h4>
-                        <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400 border border-indigo-500/20 shadow-inner">
+                        <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-400 border border-amber-500/20 shadow-inner">
                             <Clock className="w-5 h-5" />
                         </div>
                     </div>
                     <div className="space-y-4">
                         <div className="flex items-baseline gap-2">
-                            <span className="text-6xl font-black text-white italic leading-none drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">{daysInStudy}</span>
+                            <span className="text-6xl font-black text-white italic leading-none drop-shadow-[0_0_15px_rgba(245,158,11,0.2)]">{daysInStudy}</span>
                             <span className="text-2xl font-black text-slate-600 uppercase italic">Days</span>
                         </div>
-                        <p className="text-[13px] font-black text-slate-500 uppercase tracking-[0.3em]">Total active study duration</p>
+                        <p className="text-[13px] font-black text-slate-500 uppercase tracking-[0.3em]">Total active duration</p>
                     </div>
                 </Card>
 
-                <Card className="p-8 group hover:border-[#00e676]/30 transition-all duration-500 md:col-span-2 lg:col-span-1">
+                <Card className="p-8 group hover:border-amber-500/30 transition-all duration-500 md:col-span-2 lg:col-span-1">
                     <div className="flex justify-between items-start mb-8">
                         <h4 className="text-[13px] font-black text-slate-500 uppercase tracking-[0.2em]">Tasks Completed</h4>
-                        <div className="w-10 h-10 bg-[#00e676]/10 rounded-xl flex items-center justify-center text-[#00e676] border border-[#00e676]/20 shadow-inner">
+                        <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-400 border border-amber-500/20 shadow-inner">
                             <CheckCircle2 className="w-5 h-5" />
                         </div>
                     </div>
@@ -206,7 +204,7 @@ const ReportsView = ({
                                 <span className="text-5xl font-black text-white italic leading-none">{completedTasks}</span>
                                 <span className="text-slate-500 font-bold uppercase text-lg">/ {totalTasks}</span>
                             </div>
-                            <Badge color="green" className="animate-pulse">{taskCompletionPercent}% SYNCED</Badge>
+                            <Badge color="amber">{taskCompletionPercent}% SYNCED</Badge>
                         </div>
                         <ProgressBar percent={taskCompletionPercent} height={10} />
                     </div>
@@ -218,7 +216,7 @@ const ReportsView = ({
                 {/* Progress Details */}
                 <Card className="p-8 space-y-10">
                     <h3 className="text-xl font-black text-white italic uppercase tracking-tighter flex items-center gap-3">
-                        <TrendingUp className="w-5 h-5 text-cyan-400" />
+                        <TrendingUp className="w-5 h-5 text-amber-500" />
                         Progress Tracking
                     </h3>
                     
@@ -236,9 +234,9 @@ const ReportsView = ({
                                 <div className="p-6 bg-white/[0.02] border border-white/[0.05] rounded-3xl space-y-4">
                                     <span className="text-[13px] font-black text-slate-500 uppercase tracking-widest">Kits Completion</span>
                                     <div className="space-y-3">
-                                        {(safeKits.length > 0 ? safeKits.slice(0, 3) : [{ id: 1, status: 'PENDING', batch_number: 'N/A' }]).map((k: any, i: number) => (
+                                        {(safeKits.length > 0 ? safeKits.slice(0, 3) : [{ id: 1, status: 'PENDING' }]).map((k: any, i: number) => (
                                             <div key={k.id || i} className="flex items-center gap-2">
-                                                <div className={`w-2 h-2 rounded-full ${(k.status || '').toUpperCase() === 'DELIVERED' || (k.status || '').toUpperCase() === 'RECEIVED' ? 'bg-[#00e676]' : 'bg-amber-500'}`} />
+                                                <div className={`w-2 h-2 rounded-full ${(k.status || '').toUpperCase() === 'DELIVERED' || (k.status || '').toUpperCase() === 'RECEIVED' ? 'bg-amber-500' : 'bg-slate-700'}`} />
                                                 <span className={`text-[13px] font-black uppercase tracking-widest ${(k.status || '').toUpperCase() === 'DELIVERED' || (k.status || '').toUpperCase() === 'RECEIVED' ? 'text-white' : 'text-slate-500 italic'}`}>
                                                     Kit {i + 1}: {(k.status || '').toUpperCase() === 'DELIVERED' || (k.status || '').toUpperCase() === 'RECEIVED' ? 'Done' : 'Pending'}
                                                 </span>
@@ -251,15 +249,15 @@ const ReportsView = ({
                                 <span className="text-[13px] font-black text-slate-500 uppercase tracking-widest">Study Milestones</span>
                                 <div className="space-y-3">
                                     <div className="flex items-center gap-2">
-                                        <CheckCircle2 className="w-3 h-3 text-[#00e676]" />
+                                        <CheckCircle2 className="w-3 h-3 text-amber-500" />
                                         <span className="text-[13px] font-black text-white uppercase tracking-widest">Enrollment</span>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <div className={`w-3 h-3 rounded-full ${completedTasks > 0 ? 'bg-[#00e676]' : 'bg-slate-700'}`} />
+                                        <div className={`w-3 h-3 rounded-full ${completedTasks > 0 ? 'bg-amber-500' : 'bg-slate-700'}`} />
                                         <span className={`text-[13px] font-black uppercase tracking-widest ${completedTasks > 0 ? 'text-white' : 'text-slate-500 italic'}`}>Baseline</span>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Clock className="w-3 h-3 text-slate-500" />
+                                        <Clock className="w-3 h-3 text-slate-700" />
                                         <span className="text-[13px] font-black text-slate-500 uppercase tracking-widest italic">Midpoint</span>
                                     </div>
                                 </div>
@@ -282,9 +280,9 @@ const ReportsView = ({
                                     <span className="text-[13px] font-black text-slate-500 uppercase tracking-widest block mb-1">Daily Adherence</span>
                                     <span className="text-3xl font-black text-white italic leading-none">{adherencePercent}%</span>
                                 </div>
-                                <Badge color="green">{adherencePercent}%</Badge>
+                                <Badge color="amber">{adherencePercent}%</Badge>
                             </div>
-                            <LineChart data={[0, 0, 0, 0, 0, 0, adherencePercent]} color="#00e676" />
+                            <LineChart data={[0, 0, 0, 0, 0, 0, adherencePercent]} color="#f59e0b" />
                         </div>
                         <div className="space-y-4">
                             <div className="flex justify-between items-end">
@@ -302,15 +300,13 @@ const ReportsView = ({
                 </Card>
             </div>
 
-
-
             {/* ──────────────── BADGE SYSTEM ──────────────── */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 {[
                     { label: 'Consistent Participant', icon: Zap, color: 'text-amber-500' },
-                    { label: 'Top Adherence', icon: Target, color: 'text-cyan-400' },
-                    { label: 'Milestone Achiever', icon: Award, color: 'text-[#00e676]' },
-                    { label: 'Data Pioneer', icon: Globe, color: 'text-indigo-400' }
+                    { label: 'Top Adherence', icon: Target, color: 'text-amber-400' },
+                    { label: 'Milestone Achiever', icon: Award, color: 'text-amber-600' },
+                    { label: 'Data Pioneer', icon: Globe, color: 'text-amber-500' }
                 ].map((badge, i) => (
                     <motion.div 
                         key={i}
@@ -336,13 +332,5 @@ const ReportsView = ({
 };
 
 export default ReportsView;
-
-const Globe = ({ className }: { className?: string }) => (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="2" y1="12" x2="22" y2="12" />
-        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-    </svg>
-);
 
 

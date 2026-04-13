@@ -249,7 +249,7 @@ class SubmissionCreateView(generics.CreateAPIView):
                     # Always update eligibility data and timestamp
                     participant.eligibility_data = metadata.get('formData', {})
                     participant.status = 'PENDING_REVIEW'
-                    participant.submitted_at = submission.created_at
+                    participant.submitted_at = submission.submitted_at
                     participant.save()
                     
                     print(f"Lead and Participant created successfully for study: {study.protocol_id}")

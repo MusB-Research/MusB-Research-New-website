@@ -35,6 +35,7 @@ from .serializers import (
 from authentication.models import User, AuditLog
 from django.db.models import Q
 from django.utils import timezone
+from django.utils.timezone import now
 import pytz
 from .utils.reward_logic import trigger_reward_logic
 import datetime
@@ -197,6 +198,8 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         pi_ids = serializer.validated_data.pop('pi_ids', [])
         coord_ids = serializer.validated_data.pop('coordinator_ids', [])
         sponsor_ids = serializer.validated_data.pop('sponsor_ids', [])
+        # Critical Fix: Pop questionnaires_data so serializer.save() doesn't try to set M2M field with JSON
+        questionnaires_data = serializer.validated_data.pop('study_questionnaires', [])
         
         # Staff creation is auto-approved
         approval_status = 'approved' if role in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR'] else 'pending'
@@ -208,7 +211,6 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         )
 
         # Handle Clinical Instruments (Questionnaires) from the Launch Form
-        questionnaires_data = serializer.validated_data.get('study_questionnaires', [])
         for q_data in questionnaires_data:
             template_id = q_data.get('template')
             if not template_id: continue
@@ -231,6 +233,55 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         if user.role.upper() in ['PI', 'COORDINATOR']:
             StudyAssignment.objects.get_or_create(study=study, user=user, role=user.role)
 
+    @action(detail=True, methods=['get'], permission_classes=[IsAdminOrCoordinator])
+    def stats(self, request, protocol_id=None):
+        """High-level completion stats for the PI/Coordinator dashboard"""
+        study = self.get_object()
+        from .models import Participant, QuestionnaireScheduleInstance
+        
+        participants = Participant.objects.filter(study=study)
+        total_enrolled = participants.count()
+        
+        instances = QuestionnaireScheduleInstance.objects.filter(participant__study=study)
+        total_tasks = instances.count()
+        completed = instances.filter(status='COMPLETED').count()
+        late = instances.filter(status='LATE').count()
+        missed = instances.filter(status='MISSED').count()
+        
+        compliance = (completed / total_tasks * 100) if total_tasks > 0 else 0
+        
+        return Response({
+            'enrolled': total_enrolled,
+            'completion': {
+                'total': total_tasks,
+                'completed': completed,
+                'late': late,
+                'missed': missed,
+                'compliance_rate': round(compliance, 1)
+            }
+        })
+
+    @action(detail=True, methods=['get'], permission_classes=[IsAdminOrCoordinator])
+    def participant_tracking(self, request, protocol_id=None):
+        """Real-time progress tracking for each participant in the study"""
+        study = self.get_object()
+        from .models import Participant
+        participants = Participant.objects.filter(study=study)
+        
+        data = []
+        for p in participants:
+            tasks = p.scheduled_questionnaires.all()
+            total = tasks.count()
+            done = tasks.filter(status__in=['COMPLETED', 'LATE']).count()
+            
+            data.append({
+                'id': p.participant_sid,
+                'status': p.status,
+                'progress': round((done / total * 100), 1) if total > 0 else 0,
+                'last_interaction': p.updated_at
+            })
+        return Response(data)
+
     def perform_update(self, serializer):
         user = self.request.user
         role = user.role.upper()
@@ -246,6 +297,8 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         pi_ids = serializer.validated_data.pop('pi_ids', None)
         coord_ids = serializer.validated_data.pop('coordinator_ids', None)
         sponsor_ids = serializer.validated_data.pop('sponsor_ids', None)
+        # Fix for update flow: Pop questionnaires_data to avoid M2M crash
+        _ = serializer.validated_data.pop('study_questionnaires', None)
         
         # Logic 4: If stage is moved to CLOSED_ARCHIVED, auto-archive
         if serializer.validated_data.get('stage') == 'CLOSED_ARCHIVED':
@@ -414,6 +467,8 @@ class ParticipantViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = 'participant_sid'
 
+    # Removed _ensure_test_participant logic to allow 'No Active Study' states for testing as per user request.
+
     def get_object(self):
         queryset = self.filter_queryset(self.get_queryset())
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
@@ -438,16 +493,63 @@ class ParticipantViewSet(viewsets.ModelViewSet):
         raise Http404("Participant not found with provided Study ID or DB ID.")
 
 
-    # (get_queryset consolidated below)
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def me(self, request):
-        """Endpoint to get the current user's most recent participant profile."""
-        participant = Participant.objects.filter(user=request.user).order_by('-created_at').first()
+        user = request.user
+        study_id = request.query_params.get('study_id')
+        
+        # Multi-study support: Get the latest/active participant record
+        qs = Participant.objects.filter(user=user)
+        if study_id:
+            # Handle both DB ID and Protocol ID
+            qs = qs.filter(Q(study__id=study_id) | Q(study__protocol_id=study_id))
+            
+        participant = qs.order_by('-created_at').first()
         if not participant:
-            return Response({'error': 'No participant record found.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(None, status=status.HTTP_200_OK)
             
         serializer = self.get_serializer(participant)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAdminOrCoordinator])
+    def admin_reassign(self, request):
+        """Administrative tool to move a user between studies."""
+        user_email = request.data.get('email')
+        new_study_title = request.data.get('study_title')
+        
+        if not user_email or not new_study_title:
+            return Response({'error': 'Email and study_title are required.'}, status=400)
+            
+        target_user = User.objects.filter(email=user_email).first()
+        if not target_user:
+            return Response({'error': f'User {user_email} not found.'}, status=404)
+            
+        new_study = Study.objects.filter(title__icontains=new_study_title).first()
+        if not new_study:
+            return Response({'error': f'Study containing "{new_study_title}" not found.'}, status=404)
+            
+        # Remove from other studies
+        Participant.objects.filter(user=target_user).exclude(study=new_study).delete()
+        
+        # Enroll in new study
+        participant, created = Participant.objects.get_or_create(
+            user=target_user,
+            study=new_study,
+            defaults={'status': 'ACTIVE'}
+        )
+        
+        if created:
+            import secrets
+            pid_clean = "".join(filter(str.isalnum, new_study.protocol_id))[:4].upper()
+            sid = f"{pid_clean}-{secrets.token_hex(4).upper()}"
+            participant.participant_sid = sid
+            participant.save()
+            
+        return Response({
+            'status': 'success',
+            'message': f'User {user_email} successfully moved to {new_study.title}',
+            'sid': participant.participant_sid
+        })
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def submit_eligibility(self, request, *args, **kwargs):
@@ -631,6 +733,8 @@ class ParticipantViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return Participant.objects.none()
+
+        # Removed auto-enrollment logic to allow clean 'Not Enrolled' states.
 
         role = user.role.upper()
         if role in ['SUPER_ADMIN', 'ADMIN']:
@@ -881,19 +985,18 @@ class ConsentViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         user = self.request.user
         study_id = self.request.data.get('study')
-        
+        # Robust study lookup (handle Protocol ID strings)
+        if study_id:
+            import bson
+            if not bson.ObjectId.is_valid(study_id):
+                study_obj = Study.objects.filter(protocol_id=study_id).first()
+                if study_obj:
+                    study_id = study_obj.id
+
         participant = Participant.objects.filter(user=user, study_id=study_id).first()
         if not participant:
             participant = Participant.objects.filter(user=user).first()
             
-        # 1. Blocks if active in another study (Not COMPLETED or DROPPED or INELIGIBLE)
-        active_studies = Participant.objects.filter(
-            user=user, 
-            status__in=['CONSENTED', 'RANDOMIZED', 'ACTIVE']
-        ).exclude(study_id=study_id)
-        if active_studies.exists():
-            raise serializers.ValidationError({"error": "You are currently active in another study. You must complete it before joining a new one."})
-
         # Determine template: Use explicitly provided template ID if present, otherwise fallback to latest active
         template_id = self.request.data.get('template')
         if template_id:
@@ -905,9 +1008,16 @@ class ConsentViewSet(viewsets.ModelViewSet):
                 status='ACTIVE'
             ).order_by('-version').first()
         
+        # Ensure Study is set if participant found
+        actual_study_id = study_id
+        if not actual_study_id and participant:
+            actual_study_id = participant.study_id
+
         consent = serializer.save(
             participant=participant,
+            study_id=actual_study_id,
             template=template,
+            agreed_at=now(),
             participant_signed_at=now(),
             audit_trail=[{
                 "action": "PARTICIPANT_SIGNED",
@@ -1289,7 +1399,7 @@ class ParticipantTaskViewSet(viewsets.ModelViewSet):
 
         # CRITICAL: Only return tasks for participants who are formally ENROLLED or PENDING REVIEW.
         # This allows candidates to see screening-phase tasks like eConsent.
-        visible_statuses = ['PENDING_REVIEW', 'ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE']
+        visible_statuses = ['RECRUITING', 'SCREENING', 'PENDING_REVIEW', 'ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE']
         return queryset.filter(
             participant__user=user,
             participant__status__in=visible_statuses
@@ -1817,13 +1927,14 @@ class ClinicalConversationViewSet(viewsets.ModelViewSet):
         conv = self.get_object()
         text = request.data.get('text')
         tag = request.data.get('tag', 'GENERAL').upper()
-        # attachment = request.FILES.get('attachment')
+        attachment = request.FILES.get('attachment')
         
         msg = ClinicalMessage.objects.create(
             conversation=conv,
             sender=request.user,
             text=text,
             tag=tag,
+            attachment=attachment,
             is_from_pi=(request.user.role.upper() == 'PI')
         )
         
@@ -1985,9 +2096,50 @@ class StudyMetaView(APIView):
             'STUDY_TYPES': [{'val': k, 'label': v} for k, v in Study.STUDY_TYPES]
         })
 class QuestionnaireTemplateViewSet(viewsets.ModelViewSet):
-    queryset = QuestionnaireTemplate.objects.all()
+    queryset = QuestionnaireTemplate.objects.all().order_by('-created_at')
     serializer_class = QuestionnaireTemplateSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    @action(detail=True, methods=['get'])
+    def extract_text(self, request, pk=None):
+        template = self.get_object()
+        if not template.pdf_file:
+            return Response({'error': 'No PDF associated with this template'}, status=400)
+        
+        try:
+            import pypdf
+            import re
+            reader = pypdf.PdfReader(template.pdf_file.path)
+            raw_text = ""
+            for page in reader.pages:
+                raw_text += page.extract_text() + "\n"
+            
+            # Smart Sentence Reconstructor
+            raw_lines = [l.strip() for l in raw_text.split('\n') if l.strip()]
+            final_lines = []
+            current_buffer = ""
+
+            for line in raw_lines:
+                # If line is a marker (1. or a.) or ends with punctuation, flush buffer
+                is_marker = re.match(r'^(\d+\.|[a-e]\.|•|\-)\s', line.lower())
+                
+                if is_marker and current_buffer:
+                    final_lines.append(current_buffer.strip())
+                    current_buffer = line
+                elif not current_buffer:
+                    current_buffer = line
+                else:
+                    # Check if previous buffer ended with punctuation
+                    if re.search(r'[\.\?\!\:]$', current_buffer.strip()):
+                        final_lines.append(current_buffer.strip())
+                        current_buffer = line
+                    else:
+                        current_buffer += " " + line
+            
+            if current_buffer:
+                final_lines.append(current_buffer.strip())
+
+            return Response({'lines': final_lines})
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
 
     def perform_create(self, serializer):
         user = self.request.user

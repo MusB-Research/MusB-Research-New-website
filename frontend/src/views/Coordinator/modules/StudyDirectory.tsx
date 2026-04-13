@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Plus, ChevronRight, CheckCircle2, Clock, PlayCircle } from 'lucide-react';
+import { SkeletonLoader } from '../../../components/shared/SkeletonLoader';
 
 interface Study {
     id: string;
@@ -61,7 +62,10 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
             </div>
 
             <div className="overflow-x-auto">
-                <table className="w-full text-left min-w-[900px]">
+                {studies.length === 0 ? (
+                   <SkeletonLoader type="table" rows={5} />
+                ) : (
+                    <table className="w-full text-left min-w-[900px]">
                     <thead>
                         <tr className="border-b border-white/5 text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">
                             <th className="px-6 py-4 pb-2">Study ID</th>
@@ -117,6 +121,7 @@ export const StudyDirectory: React.FC<StudyDirectoryProps> = ({
                         ))}
                     </tbody>
                 </table>
+                )}
             </div>
         </div>
     );

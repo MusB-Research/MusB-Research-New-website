@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ChevronLeft,
@@ -16,25 +16,232 @@ import {
     Phone,
     Plus,
     Loader2,
-    X
+    X,
+    ChevronDown,
+    CalendarDays
 } from 'lucide-react';
 import { fetchStudies, Study } from '../data/studies';
-import { authFetch , API } from '../utils/auth';
+import { authFetch, API } from '../utils/auth';
+import { Skeleton } from './Participant/SharedComponents';
 
-type ScreenerStep = 'STEP1' | 'STEP2' | 'STEP3' | 'OUTCOME';
+// ──────────────── BIRTH DATE INPUT COMPONENT ────────────────
+const BirthDateField = ({ value, onChange, isMissing }: { value: string; onChange: (val: string) => void; isMissing: boolean }) => {
+    const [displayValue, setDisplayValue] = useState('');
+    const [showCalendar, setShowCalendar] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    // Initial value conversion: ISO (YYYY-MM-DD) -> Display (MM / DD / YYYY)
+    useEffect(() => {
+        if (value && value.includes('-')) {
+            const [y, m, d] = value.split('-');
+            setDisplayValue(`${m} / ${d} / ${y}`);
+        } else if (!value) {
+            setDisplayValue('');
+        }
+    }, [value]);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let val = e.target.value.replace(/\D/g, ''); // Numbers only
+        if (val.length > 8) val = val.substring(0, 8);
+
+        // Masking logic: 04122000 -> 04 / 12 / 2000
+        let formatted = '';
+        if (val.length > 0) {
+            formatted += val.substring(0, 2);
+            if (val.length > 2) {
+                formatted += ' / ' + val.substring(2, 4);
+                if (val.length > 4) {
+                    formatted += ' / ' + val.substring(4, 8);
+                }
+            }
+        }
+        setDisplayValue(formatted);
+
+        // Convert to ISO for storage if complete
+        if (val.length === 8) {
+            const m = val.substring(0, 2);
+            const d = val.substring(2, 4);
+            const y = val.substring(4, 8);
+            
+            // Basic validation check before saving
+            const date = new Date(`${y}-${m}-${d}`);
+            if (!isNaN(date.getTime()) && date <= new Date() && parseInt(m) <= 12 && parseInt(d) <= 31) {
+                onChange(`${y}-${m}-${d}`);
+            } else {
+                 // Even if invalid date (e.g. 99/99), we store the raw input or handle error
+                 // For now, only save to state if it's a plausible ISO format
+                 onChange(''); 
+            }
+        } else {
+            onChange('');
+        }
+    };
+
+    // ── CALENDAR LOGIC ──
+    const [viewDate, setViewDate] = useState(new Date());
+    const [viewMode, setViewMode] = useState<'days' | 'months' | 'years'>('days');
+
+    const years = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i);
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    const getDaysInMonth = (month: number, year: number) => new Date(year, month + 1, 0).getDate();
+    const getFirstDayOfMonth = (month: number, year: number) => new Date(year, month, 1).getDay();
+
+    const handleDateSelect = (d: number) => {
+        const date = new Date(viewDate.getFullYear(), viewDate.getMonth(), d);
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        onChange(`${y}-${m}-${day}`);
+        setShowCalendar(false);
+    };
+
+    const nextMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1));
+    const prevMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1));
+
+    // Close on click outside
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(e.target as Node)) setShowCalendar(false);
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    return (
+        <div className="relative" ref={containerRef}>
+            <div className="relative group">
+                <input
+                    type="text"
+                    inputMode="numeric"
+                    value={displayValue}
+                    onChange={handleInputChange}
+                    placeholder="MM / DD / YYYY"
+                    className={`w-full bg-[#0d1424] border rounded-2xl py-5 text-white outline-none transition-all px-16 text-center text-xl font-bold ${isMissing ? 'border-red-500/50' : 'border-white/5 focus:border-amber-500/50'}`}
+                />
+                <button 
+                    type="button"
+                    onClick={() => setShowCalendar(!showCalendar)}
+                    className="absolute right-6 top-1/2 -translate-y-1/2 p-2 hover:bg-white/5 rounded-xl transition-all text-slate-500 hover:text-amber-400"
+                >
+                    <CalendarDays className="w-5 h-5" />
+                </button>
+            </div>
+
+            <AnimatePresence>
+                {showCalendar && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute z-[100] mt-4 p-8 bg-[#0d1424] border border-white/10 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.6)] w-[340px] left-1/2 -translate-x-1/2"
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between mb-6">
+                            <button onClick={prevMonth} className="p-2 hover:bg-white/5 rounded-lg text-slate-400"><ChevronLeft className="w-4 h-4" /></button>
+                            
+                            <div className="flex gap-2">
+                                <button onClick={() => setViewMode('months')} className="text-sm font-black uppercase italic text-white hover:text-amber-400 transition-colors">
+                                    {months[viewDate.getMonth()]}
+                                </button>
+                                <button onClick={() => setViewMode('years')} className="text-sm font-black uppercase italic text-white hover:text-amber-400 transition-colors">
+                                    {viewDate.getFullYear()}
+                                </button>
+                            </div>
+
+                            <button onClick={nextMonth} className="p-2 hover:bg-white/5 rounded-lg text-slate-400"><ChevronRight className="w-4 h-4" /></button>
+                        </div>
+
+                        {/* Calendar View Area */}
+                        <div className="min-h-[210px]">
+                            {viewMode === 'days' && (
+                                <>
+                                    <div className="grid grid-cols-7 mb-2">
+                                        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => (
+                                            <span key={d} className="text-[12px] font-black text-slate-500 text-center uppercase">{d}</span>
+                                        ))}
+                                    </div>
+                                    <div className="grid grid-cols-7 gap-1">
+                                        {Array.from({ length: getFirstDayOfMonth(viewDate.getMonth(), viewDate.getFullYear()) }).map((_, i) => <div key={i} />)}
+                                        {Array.from({ length: getDaysInMonth(viewDate.getMonth(), viewDate.getFullYear()) }).map((_, i) => (
+                                            <button
+                                                key={i}
+                                                onClick={() => handleDateSelect(i + 1)}
+                                                className={`aspect-square rounded-lg flex items-center justify-center text-xs font-bold transition-all hover:bg-amber-400 hover:text-black ${
+                                                    new Date(viewDate.getFullYear(), viewDate.getMonth(), i + 1).toDateString() === new Date().toDateString() 
+                                                    ? 'border border-amber-500/50 text-amber-400' : 'text-slate-300'
+                                                }`}
+                                            >
+                                                {i + 1}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+
+                            {viewMode === 'years' && (
+                                <div className="grid grid-cols-3 gap-2">
+                                    {years.map(y => (
+                                        <button 
+                                            key={y} 
+                                            onClick={() => { setViewDate(new Date(y, viewDate.getMonth())); setViewMode('days'); }}
+                                            className="py-2 text-sm font-black italic text-slate-300 hover:text-amber-400 hover:bg-white/5 rounded-lg"
+                                        >
+                                            {y}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            {viewMode === 'months' && (
+                                <div className="grid grid-cols-2 gap-2">
+                                    {months.map((m, i) => (
+                                        <button 
+                                            key={m} 
+                                            onClick={() => { setViewDate(new Date(viewDate.getFullYear(), i)); setViewMode('days'); }}
+                                            className="py-2 text-sm font-black italic text-slate-300 hover:text-amber-400 hover:bg-white/5 rounded-lg"
+                                        >
+                                            {m}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
 type OutcomeType = 'ELIGIBLE' | 'MAYBE' | 'NOT_ELIGIBLE';
+
+interface StepConfig {
+    id: string;
+    title: string;
+    type: 'auto' | 'user_input' | 'clinical';
+    editable?: boolean;
+    required?: boolean;
+}
 
 export default function StudyScreener() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
+
     const [study, setStudy] = useState<any | null>(null);
     const [dynamicForm, setDynamicForm] = useState<any | null>(null);
-    const [step, setStep] = useState<ScreenerStep>('STEP1');
-    const [outcome, setOutcome] = useState<OutcomeType>('ELIGIBLE');
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isAttemptingSubmit, setIsAttemptingSubmit] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     // Existing Participant Check
     const [isExistingParticipant, setIsExistingParticipant] = useState(false);
+    const [isEnrolled, setIsEnrolled] = useState(false);
+
+    // Screen Path State
+    const [currentStepIndex, setCurrentStepIndex] = useState(0);
+    const [outcome, setOutcome] = useState<OutcomeType | null>(null);
 
     // Form Data
     const [formData, setFormData] = useState<any>({
@@ -47,105 +254,8 @@ export default function StudyScreener() {
         fullName: '',
         email: '',
         phone: '',
-        availability: 'Existing Participant'
+        availability: ''
     });
-
-    useEffect(() => {
-        const checkExistingParticipant = async () => {
-            // ONLY check if we likely have an active session (avoiding 403-redirect loop for guests)
-            const token = localStorage.getItem('access') || sessionStorage.getItem('access');
-            if (!token) {
-                console.log("No token found, skipping existing participant check.");
-                return;
-            }
-
-            try {
-                const res = await authFetch(`${API}/api/users/me/`);
-                if (res.ok) {
-                    const user = await res.json();
-                    if (user.role === 'PARTICIPANT') {
-                        setIsExistingParticipant(true);
-                        setStep('STEP2'); // Skip Step 1 entirely for existing participants
-                        
-                        // Also try to get age from participant record if available
-                        try {
-                            const pRes = await authFetch(`${API}/api/participants/me/`);
-                            if (pRes.ok) {
-                                const pData = await pRes.json();
-                                setFormData((prev: any) => ({
-                                    ...prev,
-                                    age: pData.age || (pData.dob ? String(new Date().getFullYear() - new Date(pData.dob).getFullYear()) : '25'),
-                                    zipCode: pData.zip_code || user.zip_code || '33602',
-                                    location: pData.location || `${user.city || 'Tampa'}, ${user.state || 'FL'}`,
-                                    fullName: user.decrypted_name || user.full_name || '',
-                                    email: user.email || '',
-                                    phone: user.phone_number || '',
-                                    availability: 'Existing Participant',
-                                    cvConsent: true
-                                }));
-                            }
-                        } catch (pErr) {
-                            console.error("Could not fetch detailed participant record", pErr);
-                        }
-                    }
-                }
-            } catch (err) {
-                console.warn('Auth check skipped or failed', err);
-            }
-        };
-
-        const fetchStudyAndForm = async () => {
-            setIsLoading(true);
-            const apiUrl = API;
-            try {
-                // Use public-studies for recruitment/screening to avoid assignment restrictions
-                const res = await fetch(`${apiUrl}/api/public-studies/${id}/`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setStudy({
-                        ...data,
-                        id: data.id, 
-                        protocol_id: data.protocol_id,
-                        duration: data.duration || "4-12 Weeks"
-                    });
-
-                    // Fetch published screener form for this study (public endpoint - no auth needed)
-                    const formRes = await fetch(`${apiUrl}/api/forms/?study_id=${data.id}&public=true`);
-                    if (formRes.ok) {
-                        const forms = await formRes.json();
-                        // Pick the most recently published form
-                        const formList = Array.isArray(forms) ? forms : (forms.results || []);
-                        const relevantForm = formList
-                            .filter((f: any) => f.is_published)
-                            .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-                        
-                        if (relevantForm) {
-                            setDynamicForm(relevantForm);
-                        }
-                    }
-                } else {
-                    const studies = await fetchStudies();
-                    const foundStudy = studies.find(s => s.id === id);
-                    if (foundStudy) setStudy(foundStudy);
-                    else navigate('/trials');
-                }
-            } catch (e) {
-                console.error("Error fetching study for screener:", e);
-                const studies = await fetchStudies();
-                const foundStudy = studies.find(s => s.id === id);
-                if (foundStudy) setStudy(foundStudy);
-                else navigate('/trials');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        checkExistingParticipant();
-        fetchStudyAndForm();
-    }, [id, navigate]);
-
-    const [error, setError] = useState<string | null>(null);
-    const [isAttemptingSubmit, setIsAttemptingSubmit] = useState(false);
 
     // ── Condition Details (per selected disease) ────────────────────────
     const [conditionDetails, setConditionDetails] = useState<Record<string, { severity: string; managed: string }>>({});
@@ -154,704 +264,693 @@ export default function StudyScreener() {
     const [isLocating, setIsLocating] = useState(false);
     const locationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // ── Dynamic Steps Logic ──────────────────────────────────────────────
+    const [steps, setSteps] = useState<StepConfig[]>([
+        { id: 'STEP1', title: 'BASICS & LOCATION', type: 'auto', editable: true, required: true },
+        { id: 'STEP2', title: 'ELIGIBILITY CRITERIA', type: 'user_input', editable: true, required: true },
+        { id: 'STEP3', title: 'CONTACT & AVAILABILITY', type: 'auto', editable: true, required: true }
+    ]);
+
+    useEffect(() => {
+        const initializeScreener = async () => {
+            setIsLoading(true);
+
+            // 1. Check Auth & Existing Participant Status
+            const token = localStorage.getItem('access') || sessionStorage.getItem('access');
+            let currentUser: any = null;
+
+            if (token) {
+                try {
+                    const res = await authFetch(`${API}/api/users/me/`);
+                    if (res.ok) {
+                        currentUser = await res.json();
+                        if (currentUser.role === 'PARTICIPANT') {
+                            setIsExistingParticipant(true);
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Auth check failed', err);
+                }
+            }
+
+            // 2. Fetch Study Data
+            try {
+                const res = await fetch(`${API}/api/public-studies/${id}/`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setStudy(data);
+
+                    // Dynamic Steps from Config or Default
+                    if (data.screener_config?.steps) {
+                        const enrichedSteps = data.screener_config.steps.map((s: any) => ({
+                            ...s,
+                            title: s.title || (
+                                s.id === 'STEP1' ? 'BASICS & LOCATION' :
+                                s.id === 'STEP2' ? 'ELIGIBILITY CRITERIA' :
+                                s.id === 'STEP3' ? 'CONTACT & AVAILABILITY' : s.title
+                            )
+                        }));
+                        setSteps(enrichedSteps);
+                    }
+
+                    // 3. If Logged In, check enrollment for THIS study and pre-fill from others
+                    if (currentUser) {
+                        try {
+                            // Check THIS specific study first
+                            const pRes = await authFetch(`${API}/api/participants/me/?study_id=${data.id}`);
+                            if (pRes.ok) {
+                                const pData = await pRes.json();
+                                setIsEnrolled(true);
+
+                                setFormData((prev: any) => ({
+                                    ...prev,
+                                    age: pData.age || '',
+                                    zipCode: pData.zip_code || currentUser.zip_code || '',
+                                    location: pData.location || `${currentUser.city || ''}, ${currentUser.state || ''}`,
+                                    fullName: currentUser.decrypted_name || currentUser.full_name || '',
+                                    email: currentUser.email || '',
+                                    phone: currentUser.phone_number || '',
+                                    cvConsent: true,
+                                    availability: 'Continuing Participant'
+                                }));
+                            } else {
+                                // Not in THIS study, but check if they are in ANY other study for pre-filling
+                                const allPRes = await authFetch(`${API}/api/participants/`);
+                                if (allPRes.ok) {
+                                    const allP = await allPRes.json();
+                                    const records = Array.isArray(allP) ? allP : (allP.results || []);
+                                    
+                                    if (records.length > 0) {
+                                        // Take most recent record
+                                        const latest = records.sort((a: any, b: any) => 
+                                            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                                        )[0];
+                                        
+                                        setIsEnrolled(true); // Treat as enrolled user but for a different study
+                                        setFormData((prev: any) => ({
+                                            ...prev,
+                                            age: latest.age || '',
+                                            zipCode: latest.zip_code || currentUser.zip_code || '',
+                                            location: latest.location || `${currentUser.city || ''}, ${currentUser.state || ''}`,
+                                            fullName: currentUser.decrypted_name || currentUser.full_name || '',
+                                            email: currentUser.email || '',
+                                            phone: currentUser.phone_number || '',
+                                            cvConsent: true
+                                        }));
+                                    }
+                                }
+                            }
+                            
+                            // Auto-navigation for enrolled: Jump to first 'user_input' step
+                            const firstInputIndex = data.screener_config?.steps?.findIndex((s: any) => s.type === 'user_input') ?? 1;
+                            setCurrentStepIndex(firstInputIndex >= 0 ? firstInputIndex : 1);
+                        } catch (pErr) {
+                            console.debug('Enrollment pre-fill skip');
+                        }
+                    }
+
+                    // 4. Fetch Dynamic Eligibility Form
+                    const formRes = await fetch(`${API}/api/forms/?study_id=${data.id}&public=true`);
+                    if (formRes.ok) {
+                        const forms = await formRes.json();
+                        const formList = Array.isArray(forms) ? forms : (forms.results || []);
+                        const relevantForm = formList
+                            .filter((f: any) => f.is_published)
+                            .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+                        if (relevantForm) setDynamicForm(relevantForm);
+                    }
+                } else {
+                    navigate('/trials');
+                }
+            } catch (e) {
+                console.error("Initialization failed", e);
+                navigate('/trials');
+            } finally {
+                // Load from LocalStorage for new users
+                if (!token) {
+                    const saved = localStorage.getItem(`screener_backup_${id}`);
+                    if (saved) {
+                        try {
+                            const parsed = JSON.parse(saved);
+                            setFormData((prev: any) => ({ ...prev, ...parsed }));
+                        } catch (err) { }
+                    }
+                }
+                setIsLoading(false);
+            }
+        };
+
+        initializeScreener();
+    }, [id, navigate]);
+
+    // Persist to LocalStorage for Guests
+    useEffect(() => {
+        if (!isExistingParticipant && !isLoading && study) {
+            localStorage.setItem(`screener_backup_${id}`, JSON.stringify(formData));
+        }
+    }, [formData, study, id, isExistingParticipant, isLoading]);
+
     const handleZipChange = (val: string) => {
         setFormData((prev: any) => ({ ...prev, zipCode: val }));
-
         if (locationTimerRef.current) clearTimeout(locationTimerRef.current);
 
         if (val.length >= 4) {
             setIsLocating(true);
             locationTimerRef.current = setTimeout(async () => {
                 try {
-                    // Use openstreetmap nominatim for global postal code lookup
                     const res = await fetch(`https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(val)}&format=jsonv2&addressdetails=1`);
                     if (res.ok) {
                         const data = await res.json();
                         if (data && data.length > 0) {
                             const address = data[0].address;
-                            // Format: City/Town, State, Country
                             const city = address.city || address.town || address.village || address.county || '';
                             const state = address.state || '';
                             const country = address.country || '';
-
                             const parts = [city, state, country].filter(Boolean);
                             if (parts.length > 0) {
                                 setFormData((prev: any) => ({ ...prev, location: parts.join(', ') }));
                             }
                         }
                     }
-                } catch (e) {
-                    console.error("Location lookup failed", e);
-                } finally {
-                    setIsLocating(false);
-                }
+                } catch (e) { } finally { setIsLocating(false); }
             }, 600);
-        } else {
-            setIsLocating(false);
-        }
+        } else { setIsLocating(false); }
     };
 
-    const validateCurrentStep = () => {
-        if (step === 'STEP1') {
+    const validateStep = (index: number) => {
+        const stepCfg = steps[index];
+        if (!stepCfg) return true;
+
+        if (stepCfg.id === 'STEP1') {
             return formData.age && formData.location;
         }
-        if (step === 'STEP2') {
-            if (dynamicForm) {
-                const questions = Array.isArray(dynamicForm.schema) 
-                    ? dynamicForm.schema 
-                    : (dynamicForm.schema.sections 
-                        ? dynamicForm.schema.sections.flatMap((s: any) => s.questions || [])
-                        : (dynamicForm.schema.questions || []));
-                return questions.every((q: any) => {
-                    if (!q.required) return true;
-                    return !!formData[q.id || q.key];
-                });
-            } else {
-                return formData.trialsInLast30Days && formData.healthConditions.length > 0;
-            }
+        if (stepCfg.id === 'STEP2') {
+            const hasTrialsCheck = !!formData.trialsInLast30Days;
+
+            // Check dynamic questions in the configuration
+            const dynamicQs = (stepCfg as any).questions || [];
+            const allDynamicFilled = dynamicQs.every((q: any, i: number) => {
+                if (!q.required) return true;
+                const fid = q.id || `idx_${i}`;
+                return !!formData[fid];
+            });
+
+            return hasTrialsCheck && allDynamicFilled;
         }
-        if (step === 'STEP3') {
-            return formData.fullName && formData.email && formData.phone && formData.availability && formData.cvConsent;
+        if (stepCfg.id === 'STEP3') {
+            return formData.fullName && formData.email && formData.phone && formData.cvConsent && formData.availability;
         }
         return true;
     };
 
     const handleNext = () => {
         setIsAttemptingSubmit(true);
-        if (!validateCurrentStep()) {
-            setError('Please fill in all required fields to proceed.');
+        if (!validateStep(currentStepIndex)) {
+            setError('Please complete all mandatory fields in this step.');
             return;
         }
         setError(null);
         setIsAttemptingSubmit(false);
-        window.scrollTo({ top: 0, behavior: 'instant' });
-        if (step === 'STEP1') setStep('STEP2');
-        else if (step === 'STEP2') {
-            if (isExistingParticipant) handleSubmit();
-            else setStep('STEP3');
-        }
-        else if (step === 'STEP3') handleSubmit();
-    };
+        window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    const isFieldMissing = (field: string) => {
-        if (!isAttemptingSubmit) return false;
-        if (step === 'STEP1') {
-            if (field === 'age') return !formData.age;
-            if (field === 'location') return !formData.location;
+        if (currentStepIndex < steps.length - 1) {
+            setCurrentStepIndex(currentStepIndex + 1);
+        } else {
+            handleSubmit();
         }
-        if (step === 'STEP2') {
-            if (dynamicForm) {
-                return !formData[field];
-            } else {
-                if (field === 'trialsInLast30Days') return !formData.trialsInLast30Days;
-                if (field === 'healthConditions') return formData.healthConditions.length === 0;
-            }
-        }
-        if (step === 'STEP3') {
-            if (field === 'fullName') return !formData.fullName;
-            if (field === 'email') return !formData.email;
-            if (field === 'phone') return !formData.phone;
-            if (field === 'availability') return !formData.availability;
-            if (field === 'cvConsent') return !formData.cvConsent;
-        }
-        return false;
     };
 
     const handleBack = () => {
-        window.scrollTo({ top: 0, behavior: 'instant' });
-        if (step === 'STEP2' && !isExistingParticipant) setStep('STEP1');
-        else if (step === 'STEP3') setStep('STEP2');
+        setError(null);
+        if (currentStepIndex > 0) {
+            setCurrentStepIndex(currentStepIndex - 1);
+        }
+    };
+
+    const isFieldInvalid = (field: string) => {
+        if (!isAttemptingSubmit) return false;
+        if (field === 'age') return !formData.age;
+        if (field === 'location') return !formData.location;
+        if (field === 'fullName') return !formData.fullName;
+        if (field === 'email') return !formData.email;
+        if (field === 'phone') return !formData.phone;
+        if (field === 'cvConsent') return !formData.cvConsent;
+        if (field === 'availability') return !formData.availability;
+        return false;
     };
 
     const handleSubmit = async () => {
         setIsLoading(true);
-
         let finalOutcome: OutcomeType = 'ELIGIBLE';
 
+        // Logic check
         const ageNum = parseInt(formData.age || '0');
-        if (ageNum < 18 || !formData.location) {
-            finalOutcome = 'NOT_ELIGIBLE';
-        } else if (dynamicForm) {
-            const questions = Array.isArray(dynamicForm.schema) ? dynamicForm.schema : (dynamicForm.schema.questions || []);
-            if (questions.some((q: any) => q.required && !formData[q.id || q.key])) {
-                finalOutcome = 'MAYBE';
-            }
-        } else {
-            if (formData.healthConditions.includes('None of the above')) {
-                finalOutcome = 'ELIGIBLE';
-            } else if (formData.healthConditions.length > 0) {
-                finalOutcome = 'MAYBE';
-            }
-        }
+        if (ageNum < 18) finalOutcome = 'NOT_ELIGIBLE';
+
+        // Simple mock eligibility check (can be improved by study.eligibility_criteria in DB)
+        if (formData.trialsInLast30Days === 'Yes') finalOutcome = 'MAYBE';
 
         setOutcome(finalOutcome);
 
         try {
-            const apiUrl = API || 'http://localhost:8000';
-            await authFetch(`${apiUrl}/api/contact/submit/`, {
+            // Coordinator Notification
+            await authFetch(`${API}/api/contact/submit/`, {
                 method: 'POST',
                 body: JSON.stringify({
-                    name: formData.fullName || 'Anonymous Participant',
-                    email: formData.email?.trim() || (isExistingParticipant ? formData.email : 'no-email@provided.com'),
-                    phone: formData.phone || 'N/A',
-                    message: `
-                        Screening Results for ${study?.protocol_id || study?.title}:
-                        Outcome: ${finalOutcome}
-                        
-                        PRIMARY DATA:
-                        ${JSON.stringify(formData, null, 2)}
-                        
-                        CONDITION DETAILS:
-                        ${JSON.stringify(conditionDetails, null, 2)}
-                    `,
+                    name: formData.fullName || 'Screening Submission',
+                    email: formData.email,
+                    phone: formData.phone,
+                    study_id: study.id,
                     inquiry_type_slug: 'screening',
-                    study_id: study?.id || study?._id || study?.protocol_id,
                     metadata: {
-                        study_protocol: study?.protocol_id || study?.title,
                         outcome: finalOutcome,
-                        formData: formData,
-                        conditionDetails: conditionDetails
+                        formData,
+                        conditionDetails
                     }
                 }),
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            // Inquiry Form to info@musbresearch.com
+            await authFetch(`${API}/api/contact/submit/`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    name: formData.fullName,
+                    email: formData.email,
+                    phone: formData.phone,
+                    recipient_override: 'info@musbresearch.com',
+                    subject_prefix: '[MusB Inquiry]',
+                    message: `New study eligibility inquiry for ${study.title}. Outcome: ${finalOutcome}.`,
+                    metadata: {
+                        source: 'Participant Screener',
+                        study_title: study.title,
+                        eligibility: finalOutcome
+                    }
+                })
             });
         } catch (e) {
-            console.error('Failed to notify clinical team', e);
+            console.error("Submission notification failed", e);
         }
 
         setIsLoading(false);
-        setStep('OUTCOME');
+    };
+
+    const renderProgress = () => {
+        const progress = outcome ? 100 : ((currentStepIndex + 1) / steps.length) * 100;
+        return (
+            <div className="absolute top-0 left-0 w-full h-1 bg-white/5 overflow-hidden">
+                <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    className="h-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.8)]"
+                />
+            </div>
+        );
     };
 
     if (isLoading || !study) {
         return (
             <div className="min-h-screen pt-40 pb-24 px-4">
-                <div className="max-w-2xl mx-auto animate-pulse space-y-6">
-                    {/* Back link skeleton */}
-                    <div className="h-4 w-32 bg-white/5 rounded-full" />
-                    {/* Card skeleton */}
-                    <div className="bg-white/5 border border-white/10 rounded-[3rem] p-10 space-y-8">
-                        <div className="space-y-3">
-                            <div className="h-8 w-3/4 bg-white/5 rounded-xl" />
-                            <div className="h-4 w-1/2 bg-white/5 rounded-lg" />
+                <div className="max-w-2xl mx-auto space-y-8">
+                    <Skeleton className="h-10 w-48 mb-8" />
+                    <div className="bg-[#0a0f1d] border border-white/5 rounded-[2.5rem] p-10 shadow-2xl space-y-6">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-8 w-3/4" />
+                        <div className="space-y-3 pt-6">
+                            <Skeleton className="h-14 w-full rounded-2xl" />
+                            <Skeleton className="h-14 w-full rounded-2xl" />
+                            <Skeleton className="h-14 w-full rounded-2xl" />
                         </div>
-                        <div className="space-y-4">
-                            <div className="h-12 w-full bg-white/5 rounded-xl" />
-                            <div className="h-12 w-full bg-white/5 rounded-xl" />
-                            <div className="h-12 w-full bg-white/5 rounded-xl" />
-                        </div>
-                        <div className="h-14 w-full bg-white/5 rounded-2xl" />
                     </div>
                 </div>
             </div>
         );
     }
 
-    const renderProgress = () => {
-        const stepMap: Record<ScreenerStep, number> = { 'STEP1': 33, 'STEP2': 66, 'STEP3': 100, 'OUTCOME': 100 };
-        const progress = stepMap[step] || 0;
-
-        return (
-            <div className="absolute top-0 left-0 w-full h-1 bg-white/5 overflow-hidden">
-                <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
-                    className="h-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.8)]"
-                />
-            </div>
-        );
-    };
+    const currentStep = steps[currentStepIndex];
+    const isStepReadOnly = isEnrolled && currentStep.type === 'auto';
 
     return (
-        <div className="min-h-screen pt-40 pb-24 px-4 bg-transparent text-slate-200">
+        <div className="min-h-screen pt-32 pb-24 px-4 bg-transparent text-slate-200">
             <div className="max-w-2xl mx-auto">
-                {isExistingParticipant && (
-                    <div className="max-w-xl mx-auto mb-8 bg-cyan-500/10 border border-cyan-500/20 py-4 px-6 rounded-2xl flex items-center gap-3 text-cyan-400 text-sm font-bold uppercase tracking-widest animate-in fade-in slide-in-from-top-4">
-                        <ShieldCheck className="w-5 h-5 shrink-0" />
-                        You are already enrolled. Only required fields need to be completed.
+
+                {/* Status Bar */}
+                {isEnrolled && (
+                    <div className="mb-6 bg-amber-500/10 border border-amber-500/20 py-4 px-6 rounded-2xl flex items-center gap-3 text-amber-400 text-xs font-black uppercase tracking-widest">
+                        <ShieldCheck className="w-5 h-5" />
+                        Authenticated: Some fields are locked based on your profile
                     </div>
                 )}
-                <AnimatePresence mode="wait">
-                    {step !== 'OUTCOME' ? (
+
+                {/* Progress Indicator */}
+                <div className="mb-12 space-y-4">
+                    <div className="flex justify-between items-center px-1">
+                        <span className="text-[12px] font-black uppercase tracking-[0.2em] text-amber-500/50">Progress</span>
+                        <span className="text-[12px] font-black uppercase tracking-[0.2em] text-amber-500">{Math.round(((currentStepIndex + 1) / steps.length) * 100)}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                         <motion.div
-                            key="screener"
-                            initial={{ opacity: 0, y: 20 }}
+                            className="h-full bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.5)]"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${((currentStepIndex + 1) / steps.length) * 100}%` }}
+                        />
+                    </div>
+                </div>
+
+                <AnimatePresence mode="wait">
+                    {!outcome ? (
+                        <motion.div
+                            key={currentStepIndex}
+                            initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            className="bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[3rem] p-8 md:p-12 shadow-2xl relative overflow-hidden"
+                            exit={{ opacity: 0, y: -10 }}
+                            className="bg-[#0a0f1d]/80 backdrop-blur-3xl rounded-[2.5rem] border border-white/5 p-10 md:p-14 shadow-2xl relative overflow-hidden"
                         >
-                            {/* Header */}
-                            <div className="mb-8 space-y-2">
-                                <h1 className="text-3xl font-black text-white uppercase italic tracking-tight">{
-                                    step === 'STEP1' ? 'Step 1: Basics & Location' :
-                                        step === 'STEP2' ? (dynamicForm ? 'Step 2: ELIGIBILITY QUESTIONNAIRES' : 'Step 2: ELIGIBILITY CRITERIA') :
-                                            'Step 3: Contact & Availability'
-                                }</h1>
-                            </div>
+                            <div className="relative z-10">
+                                <div className="mb-10">
+                                    <h1 className="text-3xl font-black text-white italic tracking-tighter leading-none mb-2 whitespace-nowrap">
+                                        Step {currentStepIndex + 1}: {currentStep.title}
+                                    </h1>
+                                </div>
 
-                            {renderProgress()}
+                                <div className="min-h-[350px] space-y-8">
+                                    {currentStep.id === 'STEP1' && (
+                                        <div className="space-y-6">
+                                            <div className="space-y-4">
+                                                <label className={`text-base font-bold ${isFieldInvalid('age') ? 'text-red-500' : 'text-slate-300'}`}>
+                                                What is your age?
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    readOnly={isStepReadOnly}
+                                                    value={formData.age}
+                                                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                                                    className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-slate-200 text-lg outline-none transition-all ${isFieldInvalid('age') ? 'border-red-500/50' : 'border-white/5 focus:border-amber-500/50'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    placeholder="Enter your age"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <label className="text-base font-bold text-slate-300">
+                                                Zip / Postal code
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    readOnly={isStepReadOnly}
+                                                    value={formData.zipCode}
+                                                    onChange={(e) => handleZipChange(e.target.value)}
+                                                    className={`w-full bg-[#0d1424] border border-white/5 rounded-2xl px-8 py-5 text-slate-200 text-lg outline-none focus:border-amber-500/50 ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    placeholder="e.g. 90210"
+                                                />
+                                                {isLocating && <Loader2 className="absolute right-6 top-6 w-5 h-5 text-amber-500 animate-spin" />}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <label className={`text-base font-bold ${isFieldInvalid('location') ? 'text-red-500' : 'text-slate-300'}`}>
+                                                Current city, state, country
+                                            </label>
+                                            <input
+                                                type="text"
+                                                readOnly={isStepReadOnly}
+                                                value={formData.location}
+                                                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                                                className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-slate-200 text-lg outline-none transition-all ${isFieldInvalid('location') ? 'border-red-500/50' : 'border-white/5 focus:border-amber-500/50'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                placeholder="Auto-filled from zip code or enter manually"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
 
-                            {/* Form Steps */}
-                            <div className="min-h-[300px]">
-                                        {step === 'STEP1' && (
-                                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
-                                                <div className="space-y-6">
-                                                    <div className="space-y-3">
-                                                        <label className={`text-sm font-black uppercase tracking-widest transition-colors ${isFieldMissing('age') ? 'text-red-500' : 'text-slate-300'}`}>What is your age?</label>
-                                                        <input
-                                                            type="number"
-                                                            placeholder="Enter your age"
-                                                            value={formData.age}
-                                                            onChange={(e) => !isExistingParticipant && setFormData({ ...formData, age: e.target.value })}
-                                                            readOnly={isExistingParticipant}
-                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isFieldMissing('age') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'} ${isExistingParticipant ? 'opacity-50 cursor-not-allowed border-dashed' : ''}`}
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-3">
-                                                        <label className="text-sm font-black uppercase tracking-widest text-slate-300">Zip / Postal Code</label>
-                                                        <div className="relative">
-                                                            <input
-                                                                type="text"
-                                                                placeholder="e.g. 90210"
-                                                                value={formData.zipCode}
-                                                                onChange={(e) => !isExistingParticipant && handleZipChange(e.target.value)}
-                                                                readOnly={isExistingParticipant}
-                                                                className={`w-full bg-slate-950/50 border border-white/10 rounded-2xl px-6 py-5 text-white text-lg outline-none focus:border-cyan-500/50 transition-all font-bold ${isExistingParticipant ? 'opacity-50 cursor-not-allowed border-dashed' : ''}`}
-                                                            />
-                                                            {isLocating && (
-                                                                <div className="absolute right-6 top-1/2 -translate-y-1/2">
-                                                                    <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
+                                {currentStep.id === 'STEP2' && (
+                                    <div className="space-y-12">
+                                        {/* Section A: Quick Eligibility Check (Fixed) */}
+                                        <div className="space-y-6 bg-white/[0.02] p-8 rounded-[2rem] border border-white/5 shadow-2xl shadow-black/20">
+                                            <div className="space-y-2">
+                                                <span className="text-xs font-bold tracking-wide text-white italic block">Quick eligibility check</span>
+                                                <h4 className="text-base font-bold text-slate-300 leading-relaxed">Have you participated in any other clinical trial in the last 30 days?</h4>
+                                            </div>
+                                            <div className="flex gap-4">
+                                                {['Yes', 'No'].map(opt => (
+                                                    <button
+                                                        key={opt}
+                                                        type="button"
+                                                        onClick={() => setFormData({ ...formData, trialsInLast30Days: opt })}
+                                                        className={`flex-1 py-5 rounded-2xl border text-sm font-bold transition-all ${formData.trialsInLast30Days === opt ? 'bg-amber-500/10 border-cyan-500/50 text-amber-400' : 'bg-white/5 border-white/5 text-slate-500 hover:bg-white/10'}`}
+                                                    >
+                                                        {opt}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Section B: Study-Specific Questions (Dynamic) */}
+                                        {((currentStep as any).questions || []).length > 0 && (
+                                            <div className="space-y-10 pl-4 border-l-2 border-white/5">
+                                                {((currentStep as any).questions as any[]).map((q: any, i: number) => {
+                                                    const fid = q.id || `idx_${i}`;
+                                                    const isMissing = isAttemptingSubmit && q.required && !formData[fid];
+                                                    return (
+                                                        <div key={fid} className="space-y-4">
+                                                            <div className="flex items-baseline gap-3">
+                                                                <h4 className={`text-base font-bold transition-colors leading-relaxed ${isMissing ? 'text-red-500' : 'text-slate-300'}`}>
+                                                                    {q.label} {q.required && <span className="text-amber-500 ml-0.5">*</span>}
+                                                                </h4>
+                                                                {q.type === 'date' && (
+                                                                    <span className="text-[13px] font-black uppercase tracking-widest text-slate-500 italic opacity-50">
+                                                                        (Month / Day / Year)
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {q.type?.toLowerCase().includes('text') || q.type === 'number' ? (
+                                                                <input
+                                                                    type="text"
+                                                                    className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-white outline-none transition-all ${isMissing ? 'border-red-500/50' : 'border-white/5 focus:border-amber-500/50'}`}
+                                                                    value={formData[fid] || ''}
+                                                                    onChange={(e) => setFormData({ ...formData, [fid]: e.target.value })}
+                                                                    placeholder={q.placeholder || "Enter response..."}
+                                                                />
+                                                            ) : q.type === 'date' ? (
+                                                                 <BirthDateField 
+                                                                     value={formData[fid] || ""} 
+                                                                     onChange={(val) => setFormData({ ...formData, [fid]: val })} 
+                                                                     isMissing={isMissing} 
+                                                                 />
+                                                            ) : q.type === 'dropdown' ? (
+                                                                <div className="relative group/select">
+                                                                    <select
+                                                                        className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-white outline-none appearance-none transition-all ${isMissing ? 'border-red-500/50' : 'border-white/5 focus:border-amber-500/50 hover:border-white/20'}`}
+                                                                        value={formData[fid] || ''}
+                                                                        onChange={(e) => setFormData({ ...formData, [fid]: e.target.value })}
+                                                                    >
+                                                                        <option value="">Select an option...</option>
+                                                                        {(q.options || []).map((opt: string) => (
+                                                                            <option key={opt} value={opt} className="bg-[#0d1424] text-white">{opt}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                    <ChevronDown className="absolute right-8 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 pointer-events-none group-hover/select:text-amber-500 transition-colors" />
+                                                                </div>
+                                                            ) : q.type === 'choice' ? (
+                                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                                    {(q.options || ['Yes', 'No']).map((opt: string) => {
+                                                                        const isBinary = (q.options?.length === 2) && q.options.includes('Yes') && q.options.includes('No');
+                                                                        return (
+                                                                            <button
+                                                                                key={opt}
+                                                                                onClick={() => setFormData({ ...formData, [fid]: opt })}
+                                                                                type="button"
+                                                                                className={`px-6 py-4 border text-sm font-bold transition-all text-center ${isBinary ? 'rounded-2xl' : 'rounded-full'} ${formData[fid] === opt ? 'bg-amber-500/10 border-cyan-500/50 text-amber-400' : 'bg-white/5 border-white/5 text-slate-500 hover:bg-white/10'}`}
+                                                                            >
+                                                                                {opt}
+                                                                            </button>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex gap-4">
+                                                                    {(['Yes', 'No']).map((opt: string) => (
+                                                                        <button
+                                                                            key={opt}
+                                                                            onClick={() => setFormData({ ...formData, [fid]: opt })}
+                                                                            type="button"
+                                                                            className={`flex-1 py-5 rounded-2xl border text-sm font-bold transition-all ${formData[fid] === opt ? 'bg-white/10 border-white/20 text-white' : 'bg-white/5 border-white/5 text-slate-500 hover:bg-white/10'}`}
+                                                                        >
+                                                                            {opt}
+                                                                        </button>
+                                                                    ))}
                                                                 </div>
                                                             )}
                                                         </div>
-                                                    </div>
-                                                    <div className="space-y-3">
-                                                        <label className={`text-sm font-black uppercase tracking-widest transition-colors ${isFieldMissing('location') ? 'text-red-500' : 'text-slate-300'}`}>Current City, State, Country</label>
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Auto-filled from Zip Code or enter manually"
-                                                            value={formData.location}
-                                                            onChange={(e) => !isExistingParticipant && setFormData({ ...formData, location: e.target.value })}
-                                                            readOnly={isExistingParticipant}
-                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isFieldMissing('location') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'} ${isExistingParticipant ? 'opacity-50 cursor-not-allowed border-dashed' : ''}`}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </motion.div>
+                                                    );
+                                                })}
+                                            </div>
                                         )}
+                                    </div>
+                                )}
 
-                                        {step === 'STEP2' && (
-                                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
-                                                {dynamicForm ? (
-                                                    <div className="space-y-8">
-                                                        <div className="flex items-center gap-4 text-sm text-cyan-400 font-bold uppercase tracking-[0.2em] bg-cyan-500/5 py-4 px-6 rounded-2xl border border-cyan-500/20 mb-10">
-                                                            <Clock className="w-5 h-5" /> Protocol Synchronization Active
-                                                        </div>
-                                                        <div className="space-y-12">
-                                                            {(() => {
-                                                                // Universal schema extractor — handles ALL formats from any portal
-                                                                const schema = dynamicForm.schema;
-                                                                let qs: any[] = [];
-                                                                if (Array.isArray(schema)) qs = schema;
-                                                                else if (schema && Array.isArray(schema.questions)) qs = schema.questions;
-                                                                else if (schema && Array.isArray(schema.sections)) qs = schema.sections.flatMap((s: any) => s.questions || []);
-                                                                
-                                                                return qs.map((q: any, i: number) => {
-                                                                const fieldId = q.id || q.key || `q_${i}`;
-                                                                const isMissing = q.required && isAttemptingSubmit && !formData[fieldId];
-                                                                
-                                                                // Universal type normalizer
-                                                                const rawType = (q.type || '').toLowerCase();
-                                                                const type = (rawType === 'short_text' || rawType === 'text' || rawType === 'number') ? 'text' :
-                                                                             rawType === 'date' ? 'date' :
-                                                                             (rawType === 'yesno' || rawType === 'yes/no' || rawType === 'boolean') ? 'yesno' :
-                                                                             (rawType === 'choice' || rawType === 'dropdown' || rawType === 'multiple_choice' || rawType === 'likert') ? 'choice' :
-                                                                             'text'; // safe default
-
-                                                                return (
-                                                                    <div key={fieldId} className="space-y-4">
-                                                                        <label className={`text-sm font-black uppercase tracking-widest transition-colors flex items-center gap-3 ${isMissing ? 'text-red-500' : 'text-slate-300'}`}>
-                                                                            {q.label}
-                                                                            {q.required && <span className="text-cyan-500 text-[12px]">*</span>}
-                                                                        </label>
-                                                                        
-                                                                        {type === 'text' && (
-                                                                            <input
-                                                                                type="text"
-                                                                                placeholder={q.placeholder || "Enter response..."}
-                                                                                className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isMissing ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
-                                                                                value={formData[fieldId] || ''}
-                                                                                onChange={(e) => setFormData({ ...formData, [fieldId]: e.target.value })}
-                                                                            />
-                                                                        )}
-
-                                                                        {type === 'date' && (
-                                                                            <input
-                                                                                type="date"
-                                                                                lang="en-US"
-                                                                                className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isMissing ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'}`}
-                                                                                value={formData[fieldId] || ''}
-                                                                                onChange={(e) => setFormData({ ...formData, [fieldId]: e.target.value })}
-                                                                            />
-                                                                        )}
-
-                                                                        {type === 'yesno' && (
-                                                                            <div className="flex gap-4">
-                                                                                {['Yes', 'No'].map(opt => (
-                                                                                    <button
-                                                                                        key={opt}
-                                                                                        onClick={() => setFormData({ ...formData, [fieldId]: opt })}
-                                                                                        className={`flex-1 py-5 rounded-2xl border text-[12px] font-black uppercase tracking-widest transition-all ${formData[fieldId] === opt ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-white/5 border-white/10 text-slate-500 hover:border-white/30'}`}
-                                                                                    >
-                                                                                        {opt}
-                                                                                    </button>
-                                                                                ))}
-                                                                            </div>
-                                                                        )}
-
-                                                                        {type === 'choice' && (
-                                                                            <div className="grid grid-cols-1 gap-3">
-                                                                                {(q.options || ['Option 1', 'Option 2']).map((opt: string) => (
-                                                                                    <button
-                                                                                        key={opt}
-                                                                                        onClick={() => setFormData({ ...formData, [fieldId]: opt })}
-                                                                                        className={`w-full p-5 rounded-2xl border text-left text-[12px] font-black uppercase tracking-widest transition-all ${formData[fieldId] === opt ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-400' : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10'}`}
-                                                                                    >
-                                                                                        {opt}
-                                                                                    </button>
-                                                                                ))}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                );
-                                                            })})()}
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        <div className="space-y-4">
-                                                            <h4 className="text-[12px] font-black uppercase tracking-widest text-slate-500 italic">Major Exclusion Check</h4>
-                                                    <div className="space-y-4">
-                                                        <p className={`text-sm font-bold transition-colors ${isFieldMissing('trialsInLast30Days') ? 'text-red-500' : 'text-slate-400'}`}>Have you participated in any other clinical trial in the last 30 days?</p>
-                                                        <div className="flex gap-4">
-                                                            {['Yes', 'No'].map(opt => (
-                                                                <button
-                                                                    key={opt}
-                                                                    onClick={() => setFormData({ ...formData, trialsInLast30Days: opt })}
-                                                                    className={`flex-1 py-5 rounded-xl border text-[12px] font-black uppercase tracking-widest transition-all ${formData.trialsInLast30Days === opt ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-white/5 border-white/10 text-slate-500 hover:bg-white/10'}`}
-                                                                >
-                                                                    {opt}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
+                                {currentStep.id === 'STEP3' && (
+                                    <div className="space-y-8">
+                                        <div className="space-y-4">
+                                            <label className={`text-base font-bold ${isFieldInvalid('fullName') ? 'text-red-500' : 'text-slate-300'}`}>Full name</label>
+                                            <input
+                                                type="text"
+                                                readOnly={isStepReadOnly}
+                                                value={formData.fullName}
+                                                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                                                className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-slate-200 text-lg outline-none transition-all ${isFieldInvalid('fullName') ? 'border-red-500/50' : 'border-white/5 focus:border-amber-500/50'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                placeholder="John Doe"
+                                            />
+                                        </div>
+                                        <div className="space-y-4">
+                                            <label className={`text-base font-bold ${isFieldInvalid('email') ? 'text-red-500' : 'text-slate-300'}`}>Email address</label>
+                                            <input
+                                                type="email"
+                                                readOnly={isStepReadOnly}
+                                                value={formData.email}
+                                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                                className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-slate-200 text-lg outline-none transition-all ${isFieldInvalid('email') ? 'border-red-500/50' : 'border-white/5 focus:border-amber-500/50'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                placeholder="you@example.com"
+                                            />
+                                        </div>
+                                        <div className="space-y-4">
+                                            <label className={`text-base font-bold ${isFieldInvalid('phone') ? 'text-red-500' : 'text-slate-300'}`}>Phone number</label>
+                                            <input
+                                                type="tel"
+                                                readOnly={isStepReadOnly}
+                                                value={formData.phone}
+                                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                                className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-slate-200 text-lg outline-none transition-all ${isFieldInvalid('phone') ? 'border-red-500/50' : 'border-white/5 focus:border-amber-500/50'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                placeholder="(555) 123-4567"
+                                            />
+                                        </div>
+                                        <div className="space-y-4">
+                                            <label className={`text-base font-bold ${isFieldInvalid('availability') ? 'text-red-500' : 'text-slate-300'}`}>Availability for onboarding call</label>
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                                {['Morning', 'Afternoon', 'Evening'].map((opt) => (
+                                                    <button
+                                                        key={opt}
+                                                        type="button"
+                                                        onClick={() => setFormData({ ...formData, availability: opt })}
+                                                        className={`py-5 rounded-full border text-sm font-bold transition-all ${formData.availability === opt ? 'bg-amber-500/10 border-cyan-500/50 text-amber-400' : 'bg-white/5 border-white/5 text-slate-500 hover:bg-white/10'}`}
+                                                    >
+                                                        {opt}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="pt-6">
+                                            <label className={`flex items-start gap-5 p-6 rounded-2xl border cursor-pointer transition-all ${isFieldInvalid('cvConsent') ? 'bg-red-500/5 border-red-500/20' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
+                                                <div className="relative flex items-center mt-1">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={formData.cvConsent}
+                                                        onChange={(e) => setFormData({ ...formData, cvConsent: e.target.checked })}
+                                                        className="w-5 h-5 rounded border-white/20 bg-black appearance-none checked:bg-white transition-all cursor-pointer"
+                                                    />
+                                                    {formData.cvConsent && <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-black"><CheckCircle2 className="w-3.5 h-3.5" /></div>}
                                                 </div>
-                                                <div className="space-y-4 pt-4 border-t border-white/5">
-                                                    <p className={`text-sm font-bold transition-colors ${isFieldMissing('healthConditions') ? 'text-red-500' : 'text-slate-400'}`}>Please select any of the following conditions you have been diagnosed with (Global Use):</p>
-                                                    <div className="space-y-4">
-                                                        {[
-                                                            'Diabetes', 'Hypertension', 'Asthma', 'Migraine', 'Heart Condition', 'Cancer history', 'None of the above'
-                                                        ].map(condition => {
-                                                            const isSelected = formData.healthConditions.includes(condition);
-                                                            const isNone = condition === 'None of the above';
-
-                                                            return (
-                                                                <div key={condition} className="space-y-3">
-                                                                    <label className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${isSelected ? 'bg-cyan-500/10 border-cyan-500/30' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            checked={isSelected}
-                                                                            onChange={(e) => {
-                                                                                let newConditions = [...formData.healthConditions];
-                                                                                if (isNone) {
-                                                                                    newConditions = e.target.checked ? ['None of the above'] : [];
-                                                                                    setConditionDetails({});
-                                                                                } else {
-                                                                                    newConditions = newConditions.filter(c => c !== 'None of the above');
-                                                                                    if (e.target.checked) {
-                                                                                        newConditions.push(condition);
-                                                                                        setConditionDetails(prev => ({ ...prev, [condition]: { severity: '', managed: '' } }));
-                                                                                    } else {
-                                                                                        newConditions = newConditions.filter(c => c !== condition);
-                                                                                        const newDetails = { ...conditionDetails };
-                                                                                        delete newDetails[condition];
-                                                                                        setConditionDetails(newDetails);
-                                                                                    }
-                                                                                }
-                                                                                setFormData({ ...formData, healthConditions: newConditions });
-                                                                            }}
-                                                                            className="w-5 h-5 rounded border-cyan-500/30 bg-white/5 checked:bg-cyan-500 transition-all cursor-pointer"
-                                                                        />
-                                                                        <span className="text-sm font-bold text-slate-300">{condition}</span>
-                                                                    </label>
-
-                                                                    {/* Condition Detail Panel */}
-                                                                    <AnimatePresence>
-                                                                        {isSelected && !isNone && (
-                                                                            <motion.div
-                                                                                initial={{ height: 0, opacity: 0 }}
-                                                                                animate={{ height: 'auto', opacity: 1 }}
-                                                                                exit={{ height: 0, opacity: 0 }}
-                                                                                className="overflow-hidden"
-                                                                            >
-                                                                                <div className="ml-9 p-5 bg-white/5 border border-white/5 rounded-2xl space-y-4">
-                                                                                    <div className="space-y-2">
-                                                                                        <label className="text-[12px] font-black uppercase tracking-widest text-slate-500">How long have you had this condition?</label>
-                                                                                        <select
-                                                                                            value={conditionDetails[condition]?.managed || ''}
-                                                                                            onChange={(e) => setConditionDetails(prev => ({ ...prev, [condition]: { ...prev[condition], managed: e.target.value } }))}
-                                                                                            className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none appearance-none"
-                                                                                        >
-                                                                                            <option value="">Select duration...</option>
-                                                                                            <option value="Under 1 year">Under 1 year</option>
-                                                                                            <option value="1-5 years">1-5 years</option>
-                                                                                            <option value="Over 5 years">Over 5 years</option>
-                                                                                        </select>
-                                                                                    </div>
-                                                                                    <div className="space-y-2">
-                                                                                        <label className="text-[12px] font-black uppercase tracking-widest text-slate-500">Severity Level</label>
-                                                                                        <div className="flex gap-2">
-                                                                                            {['Mild', 'Moderate', 'Severe'].map(sev => (
-                                                                                                <button
-                                                                                                    key={sev}
-                                                                                                    onClick={() => setConditionDetails(prev => ({ ...prev, [condition]: { ...prev[condition], severity: sev } }))}
-                                                                                                    className={`flex-1 py-3 rounded-lg border text-[12px] font-black uppercase tracking-widest transition-all ${conditionDetails[condition]?.severity === sev ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-white/5 border-white/5 text-slate-500 hover:text-white'}`}
-                                                                                                >
-                                                                                                    {sev}
-                                                                                                </button>
-                                                                                            ))}
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </motion.div>
-                                                                        )}
-                                                                    </AnimatePresence>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
+                                                <div className="space-y-2">
+                                                    <span className="text-sm font-bold tracking-wide text-white block italic">Consent to contact</span>
+                                                    <p className="text-[14px] text-slate-500 leading-relaxed font-bold tracking-tight">By checking this box, I agree that the research team may contact me via email or phone regarding my eligibility and potential study participation.</p>
                                                 </div>
-                                                </>
-                                                )}
-                                            </motion.div>
-                                        )}
-
-                                        {!isExistingParticipant && step === 'STEP3' && (
-                                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-                                                <div className="space-y-6">
-                                                    <div className="space-y-4">
-                                                        <label className={`text-sm font-black uppercase tracking-widest ml-4 transition-colors ${isFieldMissing('fullName') ? 'text-red-500' : 'text-slate-300'}`}>Full Name</label>
-                                                        <input
-                                                            type="text"
-                                                            placeholder="John Doe"
-                                                            value={formData.fullName}
-                                                            onChange={(e) => !isExistingParticipant && setFormData({ ...formData, fullName: e.target.value })}
-                                                            readOnly={isExistingParticipant}
-                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isFieldMissing('fullName') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'} ${isExistingParticipant ? 'opacity-50 cursor-not-allowed border-dashed' : ''}`}
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-4">
-                                                        <label className={`text-sm font-black uppercase tracking-widest ml-4 transition-colors ${isFieldMissing('email') ? 'text-red-500' : 'text-slate-300'}`}>Email Address</label>
-                                                        <input
-                                                            type="email"
-                                                            placeholder="you@example.com"
-                                                            value={formData.email}
-                                                            onChange={(e) => !isExistingParticipant && setFormData({ ...formData, email: e.target.value })}
-                                                            readOnly={isExistingParticipant}
-                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isFieldMissing('email') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'} ${isExistingParticipant ? 'opacity-50 cursor-not-allowed border-dashed' : ''}`}
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-4">
-                                                        <label className={`text-sm font-black uppercase tracking-widest ml-4 transition-colors ${isFieldMissing('phone') ? 'text-red-500' : 'text-slate-300'}`}>Phone Number</label>
-                                                        <input
-                                                            type="tel"
-                                                            placeholder="(555) 123-4567"
-                                                            value={formData.phone}
-                                                            onChange={(e) => !isExistingParticipant && setFormData({ ...formData, phone: e.target.value })}
-                                                            readOnly={isExistingParticipant}
-                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all ${isFieldMissing('phone') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500/50'} ${isExistingParticipant ? 'opacity-50 cursor-not-allowed border-dashed' : ''}`}
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-4">
-                                                        <label className={`text-sm font-black uppercase tracking-widest ml-4 transition-colors ${isFieldMissing('availability') ? 'text-red-500' : 'text-slate-300'}`}>Availability for Onboarding Call</label>
-                                                        <select
-                                                            value={formData.availability}
-                                                            onChange={(e) => !isExistingParticipant && setFormData({ ...formData, availability: e.target.value })}
-                                                            disabled={isExistingParticipant}
-                                                            className={`w-full bg-slate-950/50 border rounded-2xl px-6 py-5 text-white text-lg outline-none transition-all appearance-none cursor-pointer ${isFieldMissing('availability') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-cyan-500 focus:bg-slate-900/90'} ${isExistingParticipant ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                        >
-                                                            <option value="" className="bg-slate-900">Select a time...</option>
-                                                            <option value="Existing Participant" className="bg-slate-900">Existing Participant Profile</option>
-                                                            <option value="Morning" className="bg-slate-900">Morning (9AM - 12PM)</option>
-                                                            <option value="Afternoon" className="bg-slate-900">Afternoon (12PM - 5PM)</option>
-                                                            <option value="Evening" className="bg-slate-900">Evening (5PM - 8PM)</option>
-                                                        </select>
-                                                    </div>
-                                                    <div className="pt-4 border-t border-white/5">
-                                                        <label className={`flex items-start gap-4 p-4 rounded-xl cursor-pointer group transition-all ${isFieldMissing('cvConsent') ? 'bg-red-500/5 animate-error-pulse' : 'hover:bg-white/5'}`}>
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={formData.cvConsent}
-                                                                onChange={(e) => setFormData({ ...formData, cvConsent: e.target.checked })}
-                                                                className={`w-5 h-5 rounded mt-1 transition-all cursor-pointer ${isFieldMissing('cvConsent') ? 'border-red-500' : 'border-white/10 bg-white/5 checked:bg-cyan-500'}`}
-                                                            />
-                                                            <div className="space-y-1">
-                                                                <span className={`text-sm font-black uppercase tracking-widest transition-colors ${isFieldMissing('cvConsent') ? 'text-red-500' : 'text-slate-300'}`}>Consent to Contact</span>
-                                                                <p className="text-[12px] text-slate-500 leading-relaxed">
-                                                                    By checking this box, I agree that the research team may contact me via email or phone regarding my eligibility and potential study participation.
-                                                                </p>
-                                                            </div>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        )}
+                                            </label>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
-                            {/* Error Message */}
-                            <AnimatePresence>
-                                {error && (
-                                    <motion.div
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: 'auto' }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        className="mb-6 overflow-hidden"
-                                    >
-                                        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex items-center gap-3 text-red-500 text-[12px] font-bold uppercase tracking-widest animate-pulse">
-                                            <AlertCircle className="w-4 h-4" />
-                                            {error}
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-
-                            {/* Nav Buttons */}
-                            <div className="flex items-center justify-between pt-8 border-t border-white/5">
+                            {/* Nav */}
+                            <div className="flex items-center justify-between pt-12 mt-auto">
                                 <button
-                                    onClick={() => { setError(null); handleBack(); }}
-                                    className={`flex items-center gap-2 text-[12px] font-black uppercase tracking-[0.2em] transition-all ${ step === 'STEP1' ? 'opacity-0 pointer-events-none' : 'text-slate-500 hover:text-white'}`}
+                                    onClick={handleBack}
+                                    className={`px-6 py-4 text-sm font-bold tracking-wide transition-all flex items-center gap-2 ${currentStepIndex === 0 ? 'opacity-0 pointer-events-none' : 'text-slate-500 hover:text-white'}`}
                                 >
-                                    <ChevronLeft className="w-4 h-4" /> BACK
+                                    <ChevronLeft className="w-4 h-4" /> Back
                                 </button>
                                 <button
                                     onClick={handleNext}
                                     disabled={isLoading}
-                                    className="px-10 py-4 bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-300 rounded-xl font-black text-[12px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 shadow-2xl group active:scale-95"
+                                    className="px-10 py-4 bg-[#0d1424] border border-white/10 hover:border-amber-500/50 text-white rounded-2xl text-sm font-black tracking-widest transition-all flex items-center gap-3 group shadow-2xl shadow-amber-500/5"
                                 >
-                                    {isLoading ? 'PROCESSING...' : ((step === 'STEP3' || (step === 'STEP2' && isExistingParticipant)) ? 'CHECK RESULT' : 'NEXT')}
+                                    {isLoading ? 'Syncing...' : (currentStepIndex === steps.length - 1 ? 'Check result' : 'Next')}
                                     {!isLoading && <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
                                 </button>
                             </div>
 
-                            <div className="mt-8 flex items-center justify-center gap-2 text-[12px] font-black uppercase tracking-widest text-slate-600">
-                                <ShieldCheck className="w-3.5 h-3.5" /> Secure HIPAA-Compliant Screening
+                            {/* Standard Footer */}
+                            <div className="mt-12 flex justify-center items-center gap-3 opacity-40 grayscale">
+                                <ShieldCheck className="w-4 h-4" />
+                                <span className="text-[13px] font-bold tracking-wide text-slate-400">Secure HIPAA-compliant screening</span>
                             </div>
+
+                            </div>
+
+                            {error && (
+                                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-[12px] font-bold tracking-wide text-center animate-pulse">
+                                    <AlertCircle className="w-4 h-4 inline mr-2 mb-0.5" /> {error}
+                                </motion.div>
+                            )}
                         </motion.div>
                     ) : (
                         <motion.div
-                            key="outcome"
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[4rem] p-12 text-center space-y-8 shadow-2xl relative overflow-hidden"
+                            className="bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[4rem] p-12 text-center space-y-10 shadow-2xl relative"
                         >
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-cyan-500/10 blur-[80px] rounded-full pointer-events-none" />
-
                             {outcome === 'ELIGIBLE' && (
-                                <div className="space-y-8 animate-in zoom-in duration-500">
-                                    <div className="w-20 h-20 bg-emerald-500/20 border border-emerald-500/30 rounded-3xl flex items-center justify-center mx-auto text-emerald-400 font-black italic shadow-[0_0_30px_rgba(16,185,129,0.2)]">
-                                        PASS
+                                <div className="space-y-10">
+                                    <div className="w-24 h-24 bg-emerald-500/20 border border-emerald-500/40 rounded-3xl flex items-center justify-center mx-auto text-emerald-400">
+                                        <CheckCircle2 className="w-12 h-12" />
                                     </div>
-                                    <div className="space-y-2">
-                                        <h1 className="text-4xl font-black text-white uppercase italic">Study Match Found!</h1>
-                                        <p className="text-cyan-400 font-bold text-sm uppercase tracking-widest">Initial Screening Successful</p>
-                                    </div>
-                                    <div className="bg-slate-950/50 p-8 rounded-3xl border border-white/5 text-left space-y-4">
-                                        <p className="text-slate-300 font-medium leading-relaxed text-lg">
-                                            Great news! Based on your responses, you meet the initial criteria for the <strong>{study.title}</strong>.
+                                    <div className="space-y-4">
+                                        <h1 className="text-4xl font-black text-white italic tracking-tighter">Initial match confirmed</h1>
+                                        <p className="text-slate-400 text-lg max-w-md mx-auto leading-relaxed">
+                                            You criteria matches the recruitment profile for <strong>{study.title}</strong>.
                                         </p>
-                                        <div className="flex items-start gap-4 bg-white/5 p-6 rounded-xl border border-white/5">
-                                            <CheckCircle2 className="w-6 h-6 text-cyan-400 shrink-0" />
-                                            <p className="text-sm text-slate-400 leading-relaxed">Next step: Review and sign the digital Informed Consent Form (ICF) to officially begin your enrollment process.</p>
-                                        </div>
                                     </div>
-                                    <div className="grid gap-4">
-                                        <button
-                                            onClick={() => isExistingParticipant ? navigate('/dashboard/participant') : navigate('/signin', {
-                                                state: { 
-                                                    redirectTo: `/studies/${study.id}/consent`,
-                                                    email: formData.email,
-                                                    fullName: formData.fullName
-                                                }
-                                            })}
-                                            className="w-full py-6 bg-cyan-500 text-slate-950 rounded-2xl font-black text-base uppercase tracking-widest hover:bg-white transition-all shadow-xl shadow-cyan-500/20 cursor-pointer active:scale-[0.98]"
-                                        >
-                                            {isExistingParticipant ? 'Go To Participant Dashboard' : 'Proceed to Digital Consent'}
-                                        </button>
-                                        <Link to="/dashboard/participant" className="w-full py-4 text-slate-500 font-black text-sm uppercase tracking-widest hover:text-white transition-all text-center">
-                                            Return to Dashboard
-                                        </Link>
-                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            if (isExistingParticipant) {
+                                                navigate('/dashboard/participant');
+                                            } else {
+                                                // New User Flow: Redirect to signin with data
+                                                navigate('/signin', {
+                                                    state: {
+                                                        redirectTo: `/studies/${study.id}/consent`,
+                                                        email: formData.email,
+                                                        fullName: formData.fullName,
+                                                        screenerData: formData
+                                                    }
+                                                });
+                                            }
+                                        }}
+                                        className="w-full py-6 bg-amber-500 text-slate-950 rounded-3xl font-bold text-sm tracking-wide hover:bg-white transition-all shadow-2xl shadow-amber-500/20 active:scale-[0.98]"
+                                    >
+                                        {isExistingParticipant ? 'Go to dashboard' : 'Proceed to consent'}
+                                    </button>
                                 </div>
                             )}
 
-                            {outcome === 'MAYBE' && (
-                                <div className="space-y-8 animate-in zoom-in duration-500">
-                                    <div className="w-20 h-20 bg-yellow-500/20 border border-yellow-500/30 rounded-3xl flex items-center justify-center mx-auto text-yellow-400">
-                                        <Clock className="w-10 h-10" />
-                                    </div>
-                                    <h1 className="text-4xl font-black text-white uppercase italic">Further Review Needed</h1>
-                                    <div className="bg-slate-950/50 p-8 rounded-3xl border border-white/5 text-center">
-                                        <p className="text-slate-300 font-medium leading-relaxed text-lg mb-8">
-                                            Based on your responses, we need to clarify a few details. Please schedule a brief 5-minute screening call with our coordinator.
-                                        </p>
-                                        <button
-                                            onClick={() => window.location.href = 'mailto:info@musbresearch.com?subject=Screening%20Call%20Request'}
-                                            className="bg-white/10 hover:bg-white/20 text-white px-10 py-4 rounded-xl text-sm font-black uppercase tracking-widest border border-white/10 transition-all flex items-center gap-3 mx-auto cursor-pointer active:scale-95"
-                                        >
-                                            <Calendar className="w-5 h-5 text-cyan-400" /> Schedule Call Now
-                                        </button>
-                                    </div>
-                                    <Link to="/trials" className="block text-cyan-400 font-bold text-[12px] uppercase tracking-widest hover:text-white transition-colors">
-                                        Browse Other Studies
-                                    </Link>
-                                </div>
-                            )}
-
-                            {outcome === 'NOT_ELIGIBLE' && (
-                                <div className="space-y-8 animate-in zoom-in duration-500">
+                            {outcome !== 'ELIGIBLE' && (
+                                <div className="space-y-8 py-10">
                                     <div className="w-20 h-20 bg-slate-800 border border-white/10 rounded-3xl flex items-center justify-center mx-auto text-slate-500">
                                         <AlertCircle className="w-10 h-10" />
                                     </div>
-                                    <h1 className="text-4xl font-black text-white uppercase italic text-slate-400">Not Eligible</h1>
+                                    <h1 className="text-3xl font-black text-white italic text-slate-400">Status: Review required</h1>
                                     <div className="bg-slate-950/50 p-8 rounded-3xl border border-white/5">
-                                        <p className="text-slate-400 font-medium leading-relaxed text-lg">
-                                            Thank you for completing the screener. Unfortunately, based on our current protocol, you do not meet the criteria for this specific study.
+                                        <p className="text-slate-400 font-medium leading-relaxed">
+                                            Based on your responses, our clinical team will review your profile manually.
                                         </p>
                                     </div>
-                                    <div className="space-y-4">
-                                        <button
-                                            onClick={() => navigate('/contact')}
-                                            className="w-full py-5 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl font-black text-sm uppercase tracking-widest border border-white/10 transition-all cursor-pointer active:scale-95"
-                                        >
-                                            Notify Me of Future Studies
-                                        </button>
-                                        <Link to="/trials" className="block w-full text-center py-4 text-cyan-500 font-black text-sm uppercase tracking-widest hover:text-white transition-all">
-                                            Explore Other Open Trials
-                                        </Link>
-                                    </div>
+                                    <button
+                                        onClick={() => navigate('/trials')}
+                                        className="w-full py-5 bg-white/5 hover:bg-white/10 text-slate-300 rounded-2xl font-bold text-[10px] tracking-wide border border-white/10 transition-all"
+                                    >
+                                        Explore other trials
+                                    </button>
                                 </div>
                             )}
-
-                            <div className="pt-8 border-t border-white/5 grid grid-cols-2 gap-4">
-                                <div className="flex items-center gap-2 text-[12px] font-black tracking-widest text-slate-600 uppercase">
-                                    <Mail className="w-4 h-4 text-cyan-500" /> info@musbresearch.com
-                                </div>
-                                <div className="flex items-center gap-2 text-[12px] font-black tracking-widest text-slate-600 uppercase justify-end">
-                                    <Phone className="w-4 h-4 text-cyan-500" /> (813) 555-0123
-                                </div>
-                            </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -859,5 +958,3 @@ export default function StudyScreener() {
         </div>
     );
 }
-
-

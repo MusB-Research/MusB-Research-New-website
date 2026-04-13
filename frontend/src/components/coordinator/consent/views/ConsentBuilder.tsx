@@ -18,6 +18,7 @@ interface ConsentBuilderProps {
     thumbnailOpen: boolean;
     setActiveView: (view: string) => void;
     setUploadModalOpen: (open: boolean) => void;
+    handleUpdateTemplate?: (id: string, updates: any) => void;
     addToast: (msg: string, type?: string) => void;
 }
 
@@ -36,6 +37,7 @@ export const ConsentBuilder: React.FC<ConsentBuilderProps> = ({
     thumbnailOpen,
     setActiveView,
     setUploadModalOpen,
+    handleUpdateTemplate,
     addToast
 }) => {
     const activeConsent = consents.find(c => c.id === activeConsentId);
@@ -74,7 +76,7 @@ export const ConsentBuilder: React.FC<ConsentBuilderProps> = ({
                 </div>
                 <div style={{ flex: 1, overflowY: 'auto' }} className="custom-scrollbar">
                     {filteredConsents.map(c => (
-                        <div key={c.id} onClick={() => setActiveConsentId(c.id)} style={{ padding: '1.5rem', borderBottom: COLORS.border, cursor: 'pointer', borderLeft: `3px solid ${activeConsentId === c.id ? COLORS.accent : 'transparent'}`, backgroundColor: activeConsentId === c.id ? 'rgba(99,102,241,0.08)' : 'transparent', transition: 'all 0.2s' }}>
+                        <div key={c.id} onClick={() => setActiveConsentId(c.id)} style={{ padding: '1.5rem', borderBottom: COLORS.border, cursor: 'pointer', borderLeft: `3px solid ${activeConsentId === c.id ? COLORS.accent : 'transparent'}`, backgroundColor: activeConsentId === c.id ? 'rgba(59, 130, 246, 0.08)' : 'transparent', transition: 'all 0.2s' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                                 <span style={{ ...S.title, fontSize: '13px' }}>{c.title}</span>
                                 <span style={S.badge(COLORS.accent)}>{c.version}</span>
@@ -116,6 +118,21 @@ export const ConsentBuilder: React.FC<ConsentBuilderProps> = ({
                         <button style={{ ...S.btnGhost, width: '100%' }} onClick={() => setActiveView('participant-sign')} className="hover:bg-white/5 transition-colors">
                             <User size={18} /> <span className="hidden md:inline">Preview Signing</span><span className="md:hidden">Preview</span>
                         </button>
+                        {activeConsent?.status === 'Draft' && (
+                            <button 
+                                style={{ ...S.btnIndigo, width: '100%', backgroundColor: COLORS.success }} 
+                                onClick={() => {
+                                    if (!activeConsent.placedFields || activeConsent.placedFields.length === 0) {
+                                        addToast('Please setup signature fields before publishing', 'error');
+                                        return;
+                                    }
+                                    handleUpdateTemplate?.(activeConsent.id, { status: 'Active' });
+                                }}
+                                className="hover:scale-[1.02] transition-transform shadow-xl shadow-emerald-500/20"
+                            >
+                                <ShieldCheck size={18} /> Publish & Launch
+                            </button>
+                        )}
                         {activeConsent?.status === 'Active' && (
                             <div className="md:col-span-1 border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 px-6 py-4 rounded-xl flex items-center justify-center gap-3 text-[12px] font-black uppercase tracking-widest italic animate-pulse">
                                 <ShieldCheck size={18} /> READ ONLY
@@ -128,7 +145,7 @@ export const ConsentBuilder: React.FC<ConsentBuilderProps> = ({
                     {thumbnailOpen && (
                         <div className="w-full 2xl:w-[180px] bg-black/30 border-b 2xl:border-b-0 2xl:border-r border-white/10 overflow-x-auto 2xl:overflow-y-auto p-6 flex 2xl:flex-col gap-6 custom-scrollbar">
                             {activeConsent && Array.from({ length: activeConsent.pageCount }).map((_, i) => (
-                                <div key={i} onClick={() => setCurrentViewerPage(i + 1)} className={`shrink-0 mb-0 2xl:mb-4 opacity-${currentViewerPage === i + 1 ? '100' : '40'} border-2 border-${currentViewerPage === i + 1 ? 'indigo-500' : 'transparent'}`}>
+                                <div key={i} onClick={() => setCurrentViewerPage(i + 1)} className={`shrink-0 mb-0 2xl:mb-4 opacity-${currentViewerPage === i + 1 ? '100' : '40'} border-2 border-${currentViewerPage === i + 1 ? 'blue-500' : 'transparent'}`}>
                                     <PDFPage pageNumber={i + 1} isThumbnail={true} placedFields={activeConsent?.placedFields || []} />
                                 </div>
                             ))}

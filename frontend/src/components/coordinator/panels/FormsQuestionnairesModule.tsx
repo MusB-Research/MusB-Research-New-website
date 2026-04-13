@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import QuestionnaireBuilder from '../QuestionnaireBuilder';
+import ScreenerBuilder from '../ScreenerBuilder';
 import {
     ClipboardList,
     Search,
@@ -17,6 +18,7 @@ import {
     Trash2
 } from 'lucide-react';
 import { API, authFetch } from '../../../utils/auth';
+import { SkeletonLoader } from '../../shared/SkeletonLoader';
 
 interface AssignedForm {
     id: string;
@@ -25,13 +27,14 @@ interface AssignedForm {
         title: string;
     };
     participant: string;
+    participant_name?: string;
     status: string;
     updated_at: string;
     due_date?: string;
 }
 
 export default function FormsQuestionnairesModule({ selectedStudyId }: { selectedStudyId?: string }) {
-    const [view, setView] = useState<'Tracking' | 'Splash' | 'Architect'>('Tracking');
+    const [view, setView] = useState<'Tracking' | 'Splash' | 'Architect' | 'Screener'>('Tracking');
     const [builderTab, setBuilderTab] = useState('Create New');
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
@@ -98,8 +101,10 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
         return (forms || []).filter(f => {
             const title = f.form_details?.title || '';
             const participant = f.participant || '';
+            const participantName = f.participant_name || '';
             const matchesSearch = title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                participant.toLowerCase().includes(searchQuery.toLowerCase());
+                                participant.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                participantName.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesStatus = statusFilter === 'All' || f.status === statusFilter;
             return matchesSearch && matchesStatus;
         });
@@ -121,9 +126,9 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
 
     if (isLoading && forms.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-20">
-                <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
-                <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Synchronizing metadata...</p>
+            <div className="space-y-10">
+                <SkeletonLoader type="grid" />
+                <SkeletonLoader type="table" rows={6} />
             </div>
         );
     }
@@ -146,15 +151,21 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                 <div className="flex items-center gap-1.5 bg-slate-900/50 p-1 rounded-lg border border-slate-800">
                     <button
                         onClick={() => setView('Tracking')}
-                        className={`px-5 py-2.5 text-xs font-bold uppercase tracking-widest rounded-md transition-all ${view === 'Tracking' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                        className={`px-5 py-2.5 text-xs font-bold uppercase tracking-widest rounded-md transition-all ${view === 'Tracking' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
                     >
                         Form Tracking
                     </button>
                     <button
                         onClick={() => { setSelectedTemplate(null); setView('Splash'); }}
-                        className={`px-5 py-2.5 text-xs font-bold uppercase tracking-widest rounded-md transition-all ${view !== 'Tracking' ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                        className={`px-5 py-2.5 text-xs font-bold uppercase tracking-widest rounded-md transition-all ${view === 'Splash' || view === 'Architect' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
                     >
                         Form Builder
+                    </button>
+                    <button
+                        onClick={() => setView('Screener')}
+                        className={`px-5 py-2.5 text-xs font-bold uppercase tracking-widest rounded-md transition-all ${view === 'Screener' ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/20' : 'text-slate-500 hover:text-slate-300'}`}
+                    >
+                        Screener Builder
                     </button>
                 </div>
             </div>
@@ -164,9 +175,9 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         {[
                             { label: 'Completion Rate', val: stats.completion, icon: CheckCircle2, color: 'emerald' },
-                            { label: 'Pending Forms', val: stats.pending, icon: Clock, color: 'amber' },
+                            { label: 'Pending Forms', val: stats.pending, icon: Clock, color: 'blue' },
                             { label: 'Active Queries', val: stats.queries, icon: AlertCircle, color: 'rose' },
-                            { label: 'Synced to EDC', val: stats.synced, icon: Database, color: 'indigo' }
+                            { label: 'Synced to EDC', val: stats.synced, icon: Database, color: 'blue' }
                         ].map((stat, i) => (
                             <div key={i} className="bg-slate-900/40 border border-slate-800/50 p-6 rounded-xl flex items-center gap-4">
                                 <stat.icon className={`w-6 h-6 text-${stat.color}-500`} />
@@ -219,7 +230,12 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                                                 <span className="text-xs font-bold text-slate-100">{f.form_details?.title || 'Unknown Form'}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4"><span className="text-xs font-mono text-slate-400">{f.participant}</span></td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-xs font-bold text-slate-100 uppercase tracking-tight">{f.participant_name || 'Anonymous'}</span>
+                                                <span className="text-[10px] font-mono text-slate-500 uppercase">{f.participant}</span>
+                                            </div>
+                                        </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${
                                                 f.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400' : 
@@ -307,6 +323,13 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                 <div className="">
                     <button onClick={() => { setView('Tracking'); fetchForms(); }} className="mb-6 text-[10px] font-bold text-slate-600 uppercase tracking-widest hover:text-white transition-all">← Back to Dashboard</button>
                     <QuestionnaireBuilder initialTemplate={selectedTemplate} />
+                </div>
+            )}
+
+            {view === 'Screener' && (
+                <div className="">
+                    <button onClick={() => { setView('Tracking'); fetchForms(); }} className="mb-6 text-[10px] font-bold text-slate-600 uppercase tracking-widest hover:text-white transition-all">← Back to Dashboard</button>
+                    <ScreenerBuilder />
                 </div>
             )}
         </div>

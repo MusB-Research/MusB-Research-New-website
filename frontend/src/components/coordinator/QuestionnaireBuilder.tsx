@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus, Save, Layout, FileText, List, Calendar,
     X, AlertCircle, ChevronDown, Layers, MousePointer2,
-    CheckSquare, GripVertical, Settings2, Trash2, Upload, Eye, FileUp
+    CheckSquare, GripVertical, Settings2, Trash2, Upload, Eye, FileUp, ExternalLink
 } from 'lucide-react';
 import { apiFetch } from '../../api';
 import { authFetch, API } from '../../utils/auth';
@@ -30,6 +30,22 @@ interface QuestionnaireBuilderProps {
     initialTab?: string;
 }
 
+const getFullUrl = (path: string | null) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+
+    // In Django, media files are usually /media/...
+    // If the path doesn't start with /media/ but it's a relative path, we might need to prepend it
+    let cleanPath = path.startsWith('/') ? path : `/${path}`;
+
+    // If it doesn't already have /media/ and doesn't look like an absolute API path
+    if (!cleanPath.startsWith('/media/')) {
+        cleanPath = `/media${cleanPath}`;
+    }
+
+    return `${API}${cleanPath}`;
+};
+
 export default function QuestionnaireBuilder({ initialTemplate, initialTab }: QuestionnaireBuilderProps) {
     const [viewMode, setViewMode] = useState<'BUILDER' | 'LIBRARY'>(initialTab === 'Create New' ? 'BUILDER' : 'LIBRARY');
     const [templates, setTemplates] = useState<Template[]>([]);
@@ -38,6 +54,11 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Builder State
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editingPdfUrl, setEditingPdfUrl] = useState<string | null>(null);
+    const [editingPdfName, setEditingPdfName] = useState<string | null>(null);
+    const [showSourceText, setShowSourceText] = useState(false);
+    const [sourceLines, setSourceLines] = useState<string[]>([]);
     const [name, setName] = useState('');
     const [questions, setQuestions] = useState<Question[]>([]);
     const [isSaving, setIsSaving] = useState(false);
@@ -58,10 +79,14 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
 
     useEffect(() => {
         if (initialTemplate) {
+            setEditingId(initialTemplate.id || null);
+            setEditingPdfUrl(getFullUrl(initialTemplate.pdf_file));
             setName(initialTemplate.title || initialTemplate.name || '');
             setQuestions(initialTemplate.json_structure?.questions || []);
             setViewMode('BUILDER');
         } else if (initialTab === 'Create New') {
+            setEditingId(null);
+            setEditingPdfUrl(null);
             setName('');
             setQuestions([]);
             setViewMode('BUILDER');
@@ -75,6 +100,7 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
         setIsUploading(true);
         const formData = new FormData();
         formData.append('pdf_file', file);
+        formData.append('name', file.name.split('.')[0] || 'Untitled PDF Protocol');
         formData.append('mode', 'PDF');
 
         try {
@@ -103,12 +129,99 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
         setQuestions([...questions, newQuestion]);
     };
 
+    const runAIExtraction = async () => {
+        if (!editingId) return alert("Upload / Select a PDF first.");
+        setIsSaving(true);
+        try {
+            const res = await authFetch(`${API}/api/questionnaire-templates/${editingId}/extract_text/`);
+            if (res.ok) {
+                const data = await res.json();
+                const rawLines: string[] = data.lines || [];
+                
+                // 1. Group raw lines into logical paragraphs/sentences
+                const paragraphs: string[] = [];
+                let currentPara = "";
+                for (const line of rawLines) {
+                    const trimmed = line.trim();
+                    if (!trimmed) continue;
+                    
+                    // If it starts with a number (1. ) or letter (a. ), start a new block
+                    const isNewControl = /^\d+\.\s/.test(trimmed) || /^[a-e]\.\s/i.test(line);
+                    
+                    if (isNewControl && currentPara) {
+                        paragraphs.push(currentPara.trim());
+                        currentPara = trimmed;
+                    } else {
+                        currentPara += " " + trimmed;
+                    }
+                }
+                if (currentPara) paragraphs.push(currentPara.trim());
+
+                // 2. Parse paragraphs into hierarchical Questions
+                const suggested: Question[] = [];
+                let parentQuestion: Question | null = null;
+
+                for (const para of paragraphs) {
+                    const isOption = /^[a-e]\.\s/i.test(para) || /^\d+\)\s/.test(para);
+
+                    if (isOption && parentQuestion) {
+                        const cleanedOpt = para.replace(/^[a-e]\.\s+/i, '').replace(/^\d+\)\s+/, '').trim();
+                        parentQuestion.type = 'choice';
+                        parentQuestion.options = [...(parentQuestion.options || []), cleanedOpt];
+                    } else {
+                        // Skip if it looks like a header (all caps or very long without a number)
+                        const isNumberStart = /^\d+\.\s/.test(para);
+                        if (!isNumberStart && para.length > 200) continue;
+
+                        parentQuestion = {
+                            id: `ai_${suggested.length}_${Date.now()}`,
+                            type: 'short_text',
+                            label: para.replace(/^\d+\.\s+/, '').trim(),
+                            placeholder: '...',
+                            required: true,
+                            options: []
+                        };
+                        suggested.push(parentQuestion);
+                    }
+                }
+
+                const final = suggested.filter(q => q.label.length > 5);
+                setQuestions(final);
+                alert(`Clinical Structure Restored: Consolidated ${final.length} meaningful instruments.`);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const fetchSourceLines = async () => {
+        if (!editingId) return;
+        try {
+            const res = await authFetch(`${API}/api/questionnaire-templates/${editingId}/extract_text/`);
+            if (res.ok) {
+                const data = await res.json();
+                setSourceLines(data.lines || []);
+                setShowSourceText(true);
+            } else {
+                alert("Could not extract text from this PDF.");
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
     const saveStructured = async () => {
         if (!name) return alert("Enter a name");
         setIsSaving(true);
         try {
-            const res = await authFetch(`${API}/api/questionnaire-templates/`, {
-                method: 'POST',
+            const url = editingId
+                ? `${API}/api/questionnaire-templates/${editingId}/`
+                : `${API}/api/questionnaire-templates/`;
+
+            const res = await authFetch(url, {
+                method: editingId ? 'PATCH' : 'POST',
                 body: JSON.stringify({
                     name,
                     json_structure: { questions }
@@ -117,10 +230,24 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
             if (res.ok) {
                 setViewMode('LIBRARY');
                 fetchTemplates();
+                setEditingId(null);
                 setName('');
                 setQuestions([]);
+            } else if (res.status === 404 && editingId) {
+                // Handle 404 Gracefully: Offer to save as new
+                const retry = window.confirm("This template ID is no longer in the database (it may have been reset). Would you like to save your progress as a NEW template instead?");
+                if (retry) {
+                    setEditingId(null); // Clear ID to trigger POST
+                    setTimeout(saveStructured, 100); // Retry saving as new
+                }
+            } else {
+                const errData = await res.json();
+                console.error("Save failed", errData);
+                alert("Failed to save template. ID might be stale.");
             }
-        } catch (err) { } finally { setIsSaving(false); }
+        } catch (err) {
+            console.error("Save Error:", err);
+        } finally { setIsSaving(false); }
     };
 
     return (
@@ -131,13 +258,21 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                         Clinical Instrument Library
                     </h1>
                     <p className="text-sm text-slate-400 mt-2 font-medium opacity-70">
-                        {viewMode === 'LIBRARY' ? "Manage clinical assesssment templates and PDF protocols." : "Design structured electronic case report forms."}
+                        {viewMode === 'LIBRARY' ? "Manage clinical assessment templates and PDF protocols." : "Design structured electronic case report forms."}
                     </p>
                 </div>
 
                 <div className="flex items-center gap-4">
                     <button
-                        onClick={() => setViewMode(viewMode === 'LIBRARY' ? 'BUILDER' : 'LIBRARY')}
+                        onClick={() => {
+                            if (viewMode === 'BUILDER') {
+                                setEditingId(null);
+                                setEditingPdfUrl(null);
+                                setName('');
+                                setQuestions([]);
+                            }
+                            setViewMode(viewMode === 'LIBRARY' ? 'BUILDER' : 'LIBRARY');
+                        }}
                         className="px-6 py-3 rounded-xl border border-white/10 text-[11px] font-black text-slate-400 uppercase tracking-widest hover:bg-white/5 transition-all"
                     >
                         {viewMode === 'LIBRARY' ? 'Open Form Designer' : 'Back to Library'}
@@ -166,7 +301,10 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                                 <div className="p-3 bg-white/5 rounded-xl">
                                     {t.pdf_file ? <FileText className="w-5 h-5 text-indigo-400" /> : <Layout className="w-5 h-5 text-pink-400" />}
                                 </div>
-                                <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{new Date(t.created_at).toLocaleDateString()}</div>
+                                <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                    <Calendar className="w-3 h-3" />
+                                    {new Date(t.created_at).toLocaleDateString()}
+                                </div>
                             </div>
                             <h3 className="text-lg font-black text-white uppercase italic tracking-tight truncate">{t.name}</h3>
                             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">
@@ -176,13 +314,25 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                             <div className="flex items-center gap-3 mt-6">
                                 {t.pdf_file && (
                                     <button
-                                        onClick={() => window.open(`${API}${t.pdf_file}`, '_blank')}
+                                        onClick={() => setPreviewPdf(getFullUrl(t.pdf_file))}
                                         className="flex-1 flex items-center justify-center gap-2 py-3 bg-white/5 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-white transition-all"
                                     >
                                         <Eye className="w-3 h-3" /> Preview
                                     </button>
                                 )}
-                                <button className="flex-1 py-3 bg-white/5 rounded-xl text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-white transition-all">Details</button>
+                                <button
+                                    onClick={() => {
+                                        setEditingId(t.id);
+                                        setEditingPdfUrl(getFullUrl(t.pdf_file));
+                                        setEditingPdfName(t.pdf_file ? t.pdf_file.split('/').pop() : 'Protocol.pdf');
+                                        setName(t.name);
+                                        setQuestions(Array.isArray(t.json_structure) ? t.json_structure : []);
+                                        setViewMode('BUILDER');
+                                    }}
+                                    className="px-6 py-2 bg-indigo-600 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
+                                >
+                                    Details
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -207,21 +357,140 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                                 className="w-full bg-transparent text-4xl font-black text-white uppercase italic outline-none mb-8 border-b border-white/5 pb-4 focus:border-indigo-500/50"
                             />
 
+                            {editingPdfUrl && (
+                                <div className="mb-8 p-6 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-between">
+                                    <div className="flex items-center gap-5">
+                                        <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 text-indigo-400">
+                                            <FileText className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1 leading-none">Source Protocol: {editingPdfName}</p>
+                                            <p className="text-[12px] font-bold text-white uppercase opacity-80">This template uses a PDF instrument</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            onClick={runAIExtraction}
+                                            disabled={isSaving}
+                                            className="px-4 py-2 bg-pink-500/20 rounded-lg text-[10px] font-black text-pink-400 uppercase tracking-widest hover:bg-pink-500/30 transition-all flex items-center gap-2 border border-pink-500/30"
+                                        >
+                                            <MousePointer2 className="w-4 h-4" /> {isSaving ? 'Analyzing...' : 'Extract Fields with AI'}
+                                        </button>
+                                        <button
+                                            onClick={fetchSourceLines}
+                                            className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-white transition-all flex items-center gap-2"
+                                        >
+                                            <List className="w-4 h-4" /> Choose from PDF Text
+                                        </button>
+                                        <button
+                                            onClick={() => setPreviewPdf(editingPdfUrl)}
+                                            className="px-4 py-2 bg-indigo-500/20 rounded-lg text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:bg-indigo-500/30 transition-all flex items-center gap-2"
+                                        >
+                                            <Eye className="w-4 h-4" /> View Source
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="space-y-4">
                                 {questions.map((q, i) => (
-                                    <div key={q.id} className="p-6 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between group">
-                                        <div className="flex items-center gap-6">
-                                            <span className="text-xl font-black text-slate-700">0{i + 1}</span>
-                                            <input
-                                                value={q.label}
-                                                onChange={e => setQuestions(questions.map(item => item.id === q.id ? { ...item, label: e.target.value } : item))}
-                                                className="bg-transparent text-lg font-bold text-white outline-none"
-                                            />
+                                    <div key={q.id} className="p-6 bg-white/5 border border-white/5 rounded-2xl flex flex-col gap-4 group">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-6 flex-1">
+                                                <span className="text-xl font-black text-slate-700">0{i + 1}</span>
+                                                <input
+                                                    value={q.label}
+                                                    onChange={e => setQuestions(questions.map(item => item.id === q.id ? { ...item, label: e.target.value } : item))}
+                                                    placeholder="Enter Clinical Question Label"
+                                                    className="bg-transparent text-lg font-bold text-white outline-none flex-1 border-b border-transparent focus:border-indigo-500/30 transition-all pb-1"
+                                                />
+                                            </div>
+
+                                            <div className="flex items-center gap-4">
+                                                <select
+                                                    value={q.type}
+                                                    onChange={e => setQuestions(questions.map(item => item.id === q.id ? { ...item, type: e.target.value as any } : item))}
+                                                    className="bg-[#0f172a] border border-white/10 rounded-lg px-3 py-2 text-[10px] font-black text-indigo-400 uppercase tracking-widest outline-none focus:border-indigo-500"
+                                                >
+                                                    <option value="short_text">Short Text</option>
+                                                    <option value="choice">Multiple Choice</option>
+                                                    <option value="dropdown">Dropdown</option>
+                                                    <option value="date">Date Picker</option>
+                                                    <option value="yesno">Yes / No</option>
+                                                </select>
+                                                <button onClick={() => setQuestions(questions.filter(item => item.id !== q.id))} className="p-2 opacity-0 group-hover:opacity-100 text-rose-500 hover:rotate-90 transition-all hover:bg-rose-500/10 rounded-lg">
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </div>
-                                        <button onClick={() => setQuestions(questions.filter(item => item.id !== q.id))} className="p-2 opacity-0 group-hover:opacity-100 text-rose-500"><X /></button>
+
+                                        {(q.type === 'choice' || q.type === 'dropdown') && (
+                                            <div className="pl-14 pr-4">
+                                                <div className="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Options / Choices</h5>
+                                                        <button
+                                                            onClick={() => {
+                                                                const opts = q.options || [];
+                                                                setQuestions(questions.map(item => item.id === q.id ? { ...item, options: [...opts, `Option ${opts.length + 1}`] } : item));
+                                                            }}
+                                                            className="text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:text-white transition-all"
+                                                        >
+                                                            + Add Option
+                                                        </button>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {(q.options || []).map((opt, optIdx) => (
+                                                            <div key={optIdx} className="flex items-center gap-2 bg-white/5 border border-white/5 rounded-lg pl-3 pr-1 py-1">
+                                                                <input
+                                                                    value={opt}
+                                                                    onChange={e => {
+                                                                        const newOpts = [...(q.options || [])];
+                                                                        newOpts[optIdx] = e.target.value;
+                                                                        setQuestions(questions.map(item => item.id === q.id ? { ...item, options: newOpts } : item));
+                                                                    }}
+                                                                    className="bg-transparent text-[11px] font-bold text-slate-300 outline-none w-24"
+                                                                />
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const newOpts = (q.options || []).filter((_, idx) => idx !== optIdx);
+                                                                        setQuestions(questions.map(item => item.id === q.id ? { ...item, options: newOpts } : item));
+                                                                    }}
+                                                                    className="p-1 text-slate-600 hover:text-rose-500 transition-all"
+                                                                >
+                                                                    <X className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
-                                <button onClick={() => addQuestion('short_text')} className="w-full py-6 border-2 border-dashed border-white/5 rounded-2xl text-[11px] font-black text-slate-500 uppercase tracking-widest hover:text-white hover:border-indigo-500/30 transition-all">+ Add New Clinical Field</button>
+
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-8">
+                                    {[
+                                        { type: 'short_text', icon: FileText, label: 'Short Text' },
+                                        { type: 'choice', icon: List, label: 'Multiple Choice' },
+                                        { type: 'dropdown', icon: ChevronDown, label: 'Dropdown' },
+                                        { type: 'date', icon: Calendar, label: 'Date Picker' },
+                                        { type: 'yesno', icon: AlertCircle, label: 'Yes / No' }
+                                    ].map((btn) => (
+                                        <button
+                                            key={btn.type}
+                                            onClick={() => addQuestion(btn.type as any)}
+                                            className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col items-center gap-3 hover:bg-indigo-500/10 hover:border-indigo-500/30 transition-all group active:scale-95"
+                                        >
+                                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-all">
+                                                <btn.icon className="w-5 h-5" />
+                                            </div>
+                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-white transition-all">
+                                                {btn.label}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -239,6 +508,140 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                     </div>
                 </div>
             )}
+
+            {/* PDF Preview Modal */}
+            <AnimatePresence>
+                {previewPdf && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setPreviewPdf(null)}
+                            className="fixed inset-0 bg-black/95 backdrop-blur-2xl z-[200]"
+                        />
+                        <motion.div 
+                            initial={{ opacity: 0, y: 30 }} 
+                            animate={{ opacity: 1, y: 0 }} 
+                            exit={{ opacity: 0, y: 30 }}
+                            className="fixed inset-0 bg-[#0B101B] z-[201] flex flex-col overflow-hidden shadow-2xl"
+                        >
+                            <div className="px-8 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                                <div className="flex items-center gap-6">
+                                    <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                        <Eye className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-lg font-black text-white uppercase italic tracking-tighter leading-none">Protocol Preview</h4>
+                                        <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mt-1">Full-Scale Clinical Instrument Access</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setPreviewPdf(null)} className="p-3 text-slate-500 hover:text-white transition-all hover:bg-white/5 rounded-xl">
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+                            <div className="flex-1 bg-black">
+                                <iframe 
+                                    src={previewPdf} 
+                                    className="w-full h-full border-0"
+                                    title="PDF Preview"
+                                />
+                            </div>
+                             <div className="px-8 py-4 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
+                                <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.3em] flex items-center gap-2">
+                                    SECURED CONTENT VIEWPORT
+                                </p>
+                                <div className="flex items-center gap-4">
+                                    <a 
+                                        href={previewPdf} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="px-5 py-2 bg-white/5 rounded-lg text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-white transition-all flex items-center gap-2 border border-white/10"
+                                    >
+                                        <ExternalLink className="w-4 h-4" /> Open In New Tab
+                                    </a>
+                                    <button onClick={() => setPreviewPdf(null)} className="px-5 py-2 bg-indigo-600 rounded-lg text-[10px] font-black text-white uppercase tracking-widest hover:bg-indigo-500 transition-all">
+                                        Close Preview
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
+            {/* Source Text Selector Sidebar */}
+            <AnimatePresence>
+                {showSourceText && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setShowSourceText(false)}
+                            className="fixed inset-0 bg-black/20 z-[250]"
+                        />
+                        <motion.div
+                            initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            className="fixed right-0 top-0 bottom-0 w-[400px] bg-[#0f172a] border-l border-white/10 z-[251] shadow-2xl flex flex-col"
+                        >
+                            <div className="p-8 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+                                <div>
+                                    <h4 className="text-xl font-black text-white uppercase italic tracking-tighter">Choose Questions</h4>
+                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">Select lines from the protocol text</p>
+                                </div>
+                                <button onClick={() => setShowSourceText(false)} className="p-2 text-slate-500 hover:text-white transition-all"><X /></button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                                {sourceLines.map((line, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => {
+                                            // Smart Line Parsing
+                                            let type: 'short_text' | 'choice' | 'date' = 'short_text';
+                                            let label = line;
+                                            let options: string[] = [];
+
+                                            // Detect Score-based patterns like 0 No problem 1 Slight problem
+                                            const scorePattern = /\s+(\d)[\s\.]([A-Za-z\s\-]+?)(?=\s+\d|\s*$)/g;
+                                            let match;
+                                            while ((match = scorePattern.exec(line)) !== null) {
+                                                options.push(`${match[1]} ${match[2].trim()}`);
+                                            }
+
+                                            if (options.length > 0) {
+                                                type = 'choice';
+                                                // Take the part before the first number as the label
+                                                const firstNumIndex = line.search(/\s\d[\s\.]/);
+                                                if (firstNumIndex > 0) {
+                                                    label = line.substring(0, firstNumIndex).trim();
+                                                }
+                                            } else if (line.toLowerCase().includes('date')) {
+                                                type = 'date';
+                                            }
+
+                                            const newQ: Question = {
+                                                id: `q_src_${Date.now()}`,
+                                                type,
+                                                label,
+                                                placeholder: '...',
+                                                required: true,
+                                                options: options.length > 0 ? options : undefined
+                                            };
+                                            setQuestions([...questions, newQ]);
+                                        }}
+                                        className="w-full text-left p-4 rounded-xl bg-white/5 border border-white/5 hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all group"
+                                    >
+                                        <p className="text-[12px] font-bold text-slate-300 group-hover:text-white transition-colors">{line}</p>
+                                        <div className="mt-2 text-[9px] font-black text-indigo-400 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+                                            <Plus className="w-3 h-3" /> Add as structured field
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

@@ -309,7 +309,7 @@ def admin_resend_credentials(request, user_id):
 def admin_get_audit_logs(request):
     """Retrieves all platform audit logs for Super Admin dashboard."""
     admin_user = request.user
-    if not admin_user or not admin_user.is_authenticated or admin_user.role.upper() not in ['SUPER_ADMIN', 'ADMIN']:
+    if not admin_user or not admin_user.is_authenticated or admin_user.role.upper() not in ['SUPER_ADMIN', 'ADMIN', 'COORDINATOR', 'PI']:
         return Response({'error': 'Unauthorized access.'}, status=status.HTTP_403_FORBIDDEN)
 
     logs = AuditLog.objects.all()[:100] # Limit to 100 for dashboard performance

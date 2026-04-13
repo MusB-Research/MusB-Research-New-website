@@ -247,19 +247,19 @@ export default function CCC_SubjectReviewModule({ participantId, selectedStudyId
 
     if (loading) return (
         <div className="flex flex-col items-center justify-center h-screen bg-[#0F172A]">
-            <Loader2 size={40} className="animate-spin text-indigo-500 mb-6" />
+            <Loader2 size={40} className="animate-spin text-blue-500 mb-6" />
             <h1 className="text-xl font-bold text-slate-500 uppercase tracking-widest">Synchronizing Database...</h1>
         </div>
     );
 
     if (!participantId) return (
         <div className="flex flex-col items-center justify-center h-screen bg-[#0F172A] text-center p-10">
-            <Target size={64} className="text-indigo-500 mb-8 opacity-20" />
+            <Target size={64} className="text-blue-500 mb-8 opacity-20" />
             <h1 className="text-2xl font-bold text-white mb-2">No Subject Selected</h1>
             <p className="text-slate-500 max-w-md mx-auto mb-8">Select a participant from the Oversight dashboard to view their clinical profile and eligibility status.</p>
             <button 
                 onClick={() => window.dispatchEvent(new CustomEvent('nav-to-participants'))}
-                className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all uppercase tracking-widest text-xs"
+                className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all uppercase tracking-widest text-xs"
             >
                 Go to Oversight
             </button>
@@ -273,7 +273,7 @@ export default function CCC_SubjectReviewModule({ participantId, selectedStudyId
             <p className="text-slate-500 max-w-md mx-auto mb-8">The requested clinical profile could not be retrieved from the central repository. Please verify the Subject ID and your network connection.</p>
             <button 
                 onClick={() => window.dispatchEvent(new CustomEvent('nav-to-participants'))}
-                className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all uppercase tracking-widest text-xs"
+                className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all uppercase tracking-widest text-xs"
             >
                 Return to Oversight
             </button>
@@ -294,12 +294,12 @@ export default function CCC_SubjectReviewModule({ participantId, selectedStudyId
                     </button>
                     <div>
                         <div className="text-xl font-black text-white uppercase tracking-tight italic">
-                            {participant.participant_sid || 'AWAITING ID'}
+                            {participant.user_details?.full_name || participant.participant_sid || 'AWAITING ID'}
                             <span className="text-slate-600 font-bold text-[11px] ml-3 uppercase tracking-[0.2em] italic">/ {participant.study_name || 'PROTOCOL UNSPECIFIED'}</span>
                         </div>
                         <div className="flex items-center gap-4 mt-2">
-                            <div className="flex items-center gap-2 px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20">
-                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{processedParticipant.status || 'ACTIVE SUBJECT'}</span>
+                            <div className="flex items-center gap-2 px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20">
+                                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">{processedParticipant.status || 'ACTIVE SUBJECT'}</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Activity size={12} className="text-slate-500" />
@@ -340,11 +340,11 @@ export default function CCC_SubjectReviewModule({ participantId, selectedStudyId
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`px-6 py-4 text-[10px] font-black uppercase tracking-[0.25em] transition-all relative whitespace-nowrap ${activeTab === tab ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-300'}`}
+                        className={`px-6 py-4 text-[10px] font-black uppercase tracking-[0.25em] transition-all relative whitespace-nowrap ${activeTab === tab ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'}`}
                     >
                         {tab}
                         {activeTab === tab && (
-                            <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)]" />
+                            <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
                         )}
                     </button>
                 ))}
@@ -411,14 +411,14 @@ export default function CCC_SubjectReviewModule({ participantId, selectedStudyId
                             initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
                             className="bg-[#0B1221] border border-white/10 w-full max-w-md rounded-2xl p-8 relative z-10 shadow-2xl"
                         >
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 ${confirmModal.type === 'danger' ? 'bg-rose-500/10 text-rose-500' : 'bg-indigo-500/10 text-indigo-500'}`}>
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-6 ${confirmModal.type === 'danger' ? 'bg-rose-500/10 text-rose-500' : 'bg-blue-500/10 text-blue-500'}`}>
                                 <ShieldAlert size={24} />
                             </div>
                             <h3 className="text-lg font-bold text-white mb-2">Confirm Action</h3>
                             <p className="text-sm text-slate-400 leading-relaxed mb-8">{confirmModal.message}</p>
                             <div className="flex gap-3">
                                 <button onClick={() => setConfirmModal(null)} className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl text-xs font-bold transition-all uppercase tracking-widest">Abort</button>
-                                <button onClick={() => { confirmModal.onConfirm(); setConfirmModal(null); }} className={`flex-1 py-3 text-white rounded-xl text-xs font-bold transition-all uppercase tracking-widest ${confirmModal.type === 'danger' ? 'bg-rose-600 hover:bg-rose-500' : 'bg-indigo-600 hover:bg-indigo-500'}`}>Confirm</button>
+                                <button onClick={() => { confirmModal.onConfirm(); setConfirmModal(null); }} className={`flex-1 py-3 text-white rounded-xl text-xs font-bold transition-all uppercase tracking-widest ${confirmModal.type === 'danger' ? 'bg-rose-600 hover:bg-rose-500' : 'bg-blue-600 hover:bg-blue-500'}`}>Confirm</button>
                             </div>
                         </motion.div>
                     </div>

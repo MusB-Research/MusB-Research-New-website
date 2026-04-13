@@ -45,6 +45,7 @@ class Study(BaseMongoModel):
     ]
 
     PHASE_CHOICES = [
+        ('N/A', 'N/A'),
         ('PHASE_0', 'Phase 0'),
         ('PHASE_1', 'Phase 1'),
         ('PHASE_1_2', 'Phase 1/2'),
@@ -151,6 +152,10 @@ class Study(BaseMongoModel):
     end_date = models.DateField(null=True, blank=True)
     launch_date = models.DateField(null=True, blank=True)
     irb_status = models.CharField(max_length=100, blank=True)
+    
+    # Dynamic Screener Configuration
+    screener_config = models.JSONField(default=dict, blank=True, help_text="Config for screener steps: {'steps': [{'id': 'STEP1', 'type': 'auto', 'editable': true}, ...]}")
+
 
     # Reward & Compensation Configuration
     REWARD_TYPE_CHOICES = [
@@ -209,6 +214,9 @@ class Study(BaseMongoModel):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta(BaseMongoModel.Meta):
+        ordering = ['-created_at']
 
     def __hash__(self) -> int:
         # Patch for Django 6.x + MongoDB crash during migration construction
@@ -336,6 +344,7 @@ class Participant(BaseMongoModel):
     is_locked = models.BooleanField(default=False)
     completion_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
         if self.gender and not self.gender.startswith('gAAAA'):
@@ -474,6 +483,9 @@ class Form(BaseMongoModel):
     
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta(BaseMongoModel.Meta):
+        ordering = ['-created_at']
+
     def __str__(self):
         return f"{self.title} v{self.version}"
 
@@ -484,6 +496,9 @@ class QuestionnaireTemplate(BaseMongoModel):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta(BaseMongoModel.Meta):
+        ordering = ['-created_at']
+
     def __str__(self):
         return self.name
 
@@ -493,22 +508,75 @@ class StudyQuestionnaire(BaseMongoModel):
     mode = models.CharField(max_length=20, choices=[('PDF', 'Full PDF'), ('STRUCTURED', 'Structured Questions')], default='STRUCTURED')
     repeat_type = models.CharField(max_length=20, choices=[('DAILY', 'Daily'), ('WEEKLY', 'Weekly'), ('MONTHLY', 'Monthly'), ('CUSTOM', 'Custom')], default='MONTHLY')
     repeat_count = models.IntegerField(default=1)
+    
+    # Advanced Window Logic
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
+    relative_to_enrollment = models.BooleanField(default=False, help_text="Calculate dates relative to participant enrollment date")
+    
+    window_open_time = models.TimeField(null=True, blank=True, help_text="Time of day window opens (e.g. 08:00)")
+    window_close_time = models.TimeField(null=True, blank=True, help_text="Time of day window closes (e.g. 20:00)")
+    allow_late_submission = models.BooleanField(default=True)
+    
     show_answers_to_participant = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def generate_instances_for_participant(self, participant):
+        from datetime import timedelta, datetime
+        base_date = self.start_date or self.study.start_date or participant.created_at.date()
+        if self.relative_to_enrollment:
+            base_date = participant.created_at.date()
+
+        for i in range(self.repeat_count):
+            offset_days = 0
+            if self.repeat_type == 'DAILY': offset_days = i
+            elif self.repeat_type == 'WEEKLY': offset_days = i * 7
+            elif self.repeat_type == 'MONTHLY': offset_days = i * 30
+            
+            target_date = base_date + timedelta(days=offset_days)
+            win_open = datetime.combine(target_date, self.window_open_time) if self.window_open_time else None
+            win_close = datetime.combine(target_date, self.window_close_time) if self.window_close_time else None
+
+            QuestionnaireScheduleInstance.objects.get_or_create(
+                study_questionnaire=self,
+                participant=participant,
+                scheduled_date=target_date,
+                defaults={
+                    'window_open_at': win_open,
+                    'window_close_at': win_close
+                }
+            )
 
     def __str__(self):
         return f"{self.study.protocol_id} - {self.template.name}"
 
 class QuestionnaireScheduleInstance(BaseMongoModel):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('COMPLETED', 'Completed'),
+        ('LATE', 'Late Submission'),
+        ('MISSED', 'Missed Window'),
+        ('EXPIRED', 'Expired'),
+    ]
+
     study_questionnaire = models.ForeignKey(StudyQuestionnaire, on_delete=models.CASCADE, related_name='instances')
     participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='scheduled_questionnaires')
     scheduled_date = models.DateField()
-    status = models.CharField(max_length=20, choices=[('PENDING', 'Pending'), ('COMPLETED', 'Completed'), ('OVERDUE', 'Overdue')], default='PENDING')
+    
+    # Precise timing windows
+    window_open_at = models.DateTimeField(null=True, blank=True)
+    window_close_at = models.DateTimeField(null=True, blank=True)
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     completed_at = models.DateTimeField(null=True, blank=True)
+    lateness_minutes = models.IntegerField(default=0, help_text="Minutes submitted after window_close_at")
+    
     response_data = models.JSONField(default=dict, blank=True)
     response_file = models.FileField(upload_to='questionnaire_responses/', null=True, blank=True)
+    
+    reminder_count = models.IntegerField(default=0)
+    last_reminder_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.participant.participant_sid} - {self.study_questionnaire.template.name} ({self.scheduled_date})"
@@ -553,6 +621,9 @@ class Task(BaseMongoModel):
     
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta(BaseMongoModel.Meta):
+        ordering = ['-created_at']
 
     # UI Configuration for Participant Portal
     show_dosing_log = models.BooleanField(default=True)
@@ -636,6 +707,7 @@ class ConsentTemplate(BaseMongoModel):
     must_answer_quiz = models.BooleanField(default=False)
     
     # Data fields
+    terms_content = models.TextField(blank=True, help_text="Textual terms displayed for participant review if no PDF is used or as a summary.")
     irb_number = models.CharField(max_length=100, blank=True)
     irb_approval_date = models.DateField(null=True, blank=True)
     effective_date = models.DateField(null=True, blank=True)
@@ -660,7 +732,7 @@ class Consent(BaseMongoModel):
     """Immutable record of electronic informed consent (eConsent)"""
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='consent_records')
     template = models.ForeignKey(ConsentTemplate, on_delete=models.PROTECT, related_name='executions', null=True)
-    participant = models.ForeignKey(Participant, on_delete=models.SET_NULL, null=True, blank=True)
+    participant = models.ForeignKey(Participant, on_delete=models.SET_NULL, null=True, blank=True, related_name='consent_records')
     
     full_name = models.CharField(max_length=255, verbose_name="Electronic Signature")
     email = models.EmailField()
@@ -1156,8 +1228,9 @@ class DosingLog(BaseMongoModel):
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
+    class Meta(BaseMongoModel.Meta):
         unique_together = ('participant', 'date')
+        ordering = ['-date', '-created_at']
 
 class DailyMedicationLog(BaseMongoModel):
     FEELING_CHOICES = [
@@ -1223,6 +1296,9 @@ class AEReport(BaseMongoModel):
     ])
     attachment = models.FileField(upload_to='ae_reports/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta(BaseMongoModel.Meta):
+        ordering = ['-created_at']
 
 @receiver(post_save, sender=FacilityInquiry)
 def notify_team_on_facility_inquiry(sender, instance, created, **kwargs):
@@ -1382,44 +1458,60 @@ def notify_sponsor_on_new_report(sender, instance, created, **kwargs):
             type="SUCCESS",
             link="/dashboard/sponsor/reports"
         )
+@receiver(post_save, sender=DosingLog)
+def sync_dosing_log_task(sender, instance, created, **kwargs):
+    """Automatically mark related tasks as COMPLETED when a dosing log is saved"""
+    if instance.participant and instance.date:
+        from datetime import datetime, time
+        from django.utils.timezone import now
+        # Mark related tasks as COMPLETED for the specific date
+        start = datetime.combine(instance.date, time.min)
+        end = datetime.combine(instance.date, time.max)
+        from .models import ParticipantTask # Local import for safety
+        # Use a loop instead of .update() to avoid MongoDB multi-collection limitations
+        tasks_to_update = ParticipantTask.objects.filter(
+            participant=instance.participant,
+            task__task_type__in=['LOG', 'DAILY_LOG'],
+            due_date__range=(start, end),
+            status__in=['PENDING', 'IN_PROGRESS', 'OVERDUE']
+        )
+        for t in tasks_to_update:
+            t.status = 'COMPLETED'
+            t.completed_at = now()
+            t.save()
+
+@receiver(post_save, sender=DailyMedicationLog)
+def sync_daily_med_log_task(sender, instance, created, **kwargs):
+    """Automatically mark related tasks as COMPLETED when a daily medication log is saved"""
+    if instance.participant and instance.date:
+        from datetime import datetime, time
+        from django.utils.timezone import now
+        start = datetime.combine(instance.date, time.min)
+        end = datetime.combine(instance.date, time.max)
+        from .models import ParticipantTask 
+        tasks_to_update = ParticipantTask.objects.filter(
+            participant=instance.participant,
+            task__task_type__in=['LOG', 'DAILY_LOG'],
+            due_date__range=(start, end),
+            status__in=['PENDING', 'IN_PROGRESS', 'OVERDUE']
+        )
+        for t in tasks_to_update:
+            t.status = 'COMPLETED'
+            t.completed_at = now()
+            t.save()
+
 @receiver(post_save, sender=Participant)
 def generate_questionnaire_schedules_for_new_participant(sender, instance, created, **kwargs):
     """When a new participant joins, generate all schedule instances for existing study questionnaires"""
     if created and instance.study:
-        from datetime import timedelta
         study_qs = StudyQuestionnaire.objects.filter(study=instance.study)
         for sq in study_qs:
-            # Simple spread logic: spread over repeat_count occurrences
-            # Start from either sq.start_date or study.start_date
-            base_date = sq.start_date or instance.study.start_date or instance.created_at.date()
-            for i in range(sq.repeat_count):
-                offset_days = 0
-                if sq.repeat_type == 'DAILY': offset_days = i
-                elif sq.repeat_type == 'WEEKLY': offset_days = i * 7
-                elif sq.repeat_type == 'MONTHLY': offset_days = i * 30
-                
-                QuestionnaireScheduleInstance.objects.create(
-                    study_questionnaire=sq,
-                    participant=instance,
-                    scheduled_date=base_date + timedelta(days=offset_days)
-                )
+            sq.generate_instances_for_participant(instance)
 
 @receiver(post_save, sender=StudyQuestionnaire)
 def generate_schedules_for_existing_participants(sender, instance, created, **kwargs):
     """When a new questionnaire is added to a study, generate instances for all enrolled participants"""
     if created:
-        from datetime import timedelta
         participants = Participant.objects.filter(study=instance.study)
-        base_date = instance.start_date or instance.study.start_date or instance.created_at.date()
         for p in participants:
-            for i in range(instance.repeat_count):
-                offset_days = 0
-                if instance.repeat_type == 'DAILY': offset_days = i
-                elif instance.repeat_type == 'WEEKLY': offset_days = i * 7
-                elif instance.repeat_type == 'MONTHLY': offset_days = i * 30
-                
-                QuestionnaireScheduleInstance.objects.create(
-                    study_questionnaire=instance,
-                    participant=p,
-                    scheduled_date=base_date + timedelta(days=offset_days)
-                )
+            instance.generate_instances_for_participant(p)

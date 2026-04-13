@@ -59,7 +59,7 @@ const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: 
             const canvas = canvasRef.current;
             const ctx = canvas.getContext('2d');
             if (ctx) {
-                ctx.strokeStyle = '#06b6d4';
+                ctx.strokeStyle = '#f59e0b';
                 ctx.lineWidth = 4;
                 ctx.lineCap = 'round';
             }
@@ -115,9 +115,9 @@ const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: 
                 className="relative w-full max-w-4xl bg-[#0d1424] border border-white/10 rounded-[2.5rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[90vh]"
             >
                 {/* HEADER */}
-                <div className="p-8 border-b border-white/5 flex justify-between items-center shrink-0 bg-gradient-to-r from-cyan-950/20 to-transparent">
+                <div className="p-8 border-b border-white/5 flex justify-between items-center shrink-0 bg-gradient-to-r from-amber-950/20 to-transparent">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-cyan-500/10 text-cyan-400 rounded-2xl flex items-center justify-center border border-cyan-500/20">
+                        <div className="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-2xl flex items-center justify-center border border-amber-500/20">
                             <FileText className="w-6 h-6" />
                         </div>
                         <div>
@@ -130,13 +130,13 @@ const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: 
 
                 {/* STEPS */}
                 <div className="px-8 py-4 bg-white/[0.02] border-b border-white/5 flex items-center gap-8 shrink-0">
-                    <div className={`flex items-center gap-2 ${step === 1 ? 'text-cyan-400' : 'text-slate-500'}`}>
-                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[12px] font-black italic border ${step === 1 ? 'bg-cyan-500/20 border-cyan-400' : 'border-white/10'}`}>01</div>
+                    <div className={`flex items-center gap-2 ${step === 1 ? 'text-amber-500' : 'text-slate-500'}`}>
+                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[12px] font-black italic border ${step === 1 ? 'bg-amber-500/20 border-amber-400' : 'border-white/10'}`}>01</div>
                         <span className="text-[12px] font-black uppercase tracking-widest italic">Form Entry</span>
                     </div>
                     <div className="h-px w-8 bg-white/5" />
-                    <div className={`flex items-center gap-2 ${step === 2 ? 'text-cyan-400' : 'text-slate-500'}`}>
-                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[12px] font-black italic border ${step === 2 ? 'bg-cyan-500/20 border-cyan-400' : 'border-white/10'}`}>02</div>
+                    <div className={`flex items-center gap-2 ${step === 2 ? 'text-amber-500' : 'text-slate-500'}`}>
+                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[12px] font-black italic border ${step === 2 ? 'bg-amber-500/20 border-amber-400' : 'border-white/10'}`}>02</div>
                         <span className="text-[12px] font-black uppercase tracking-widest italic">Review & Sign</span>
                     </div>
                 </div>
@@ -170,7 +170,7 @@ const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: 
                                                 <div className="space-y-4 p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
                                                     <label className="text-[14px] font-black text-slate-400 uppercase tracking-widest block">{field.label}</label>
                                                     <textarea 
-                                                        className="w-full bg-black/40 border border-white/5 rounded-xl p-4 text-white font-bold outline-none focus:border-cyan-500/30 transition-all no-scrollbar"
+                                                        className="w-full bg-black/40 border border-white/5 rounded-xl p-4 text-white font-bold outline-none focus:border-amber-500/30 transition-all no-scrollbar"
                                                         rows={3}
                                                         value={formData[field.id] || ''}
                                                         onChange={(e) => setFormData({ ...formData, [field.id]: e.target.value })}
@@ -191,7 +191,7 @@ const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: 
                                 <div className="pt-8 border-t border-white/5 flex justify-end">
                                     <button
                                         onClick={() => setStep(2)}
-                                        className="px-10 py-4 bg-cyan-500 text-slate-950 rounded-xl font-black text-[14px] uppercase tracking-widest hover:bg-cyan-400 active:scale-95 shadow-lg shadow-cyan-500/20 flex items-center gap-3 transition-all italic"
+                                        className="px-10 py-4 bg-amber-500 text-slate-950 rounded-xl font-black text-[14px] uppercase tracking-widest hover:bg-amber-400 active:scale-95 shadow-lg shadow-amber-500/20 flex items-center gap-3 transition-all italic"
                                     >
                                         Next: Review & Sign <ArrowRight className="w-5 h-5" />
                                     </button>
@@ -213,13 +213,13 @@ const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: 
                                 <div className="flex justify-center gap-3 mb-10">
                                     <button
                                         onClick={() => { setSignatureType('DRAW'); setTypedSignature(''); setHasSigned(false); }}
-                                        className={`px-8 py-3 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all ${signatureType === 'DRAW' ? 'bg-cyan-500 text-slate-950 shadow-[0_0_30px_rgba(6,182,212,0.3)]' : 'bg-white/5 text-slate-500 hover:text-white'}`}
+                                        className={`px-8 py-3 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all ${signatureType === 'DRAW' ? 'bg-amber-500 text-slate-950 shadow-[0_0_30px_rgba(245,158,11,0.3)]' : 'bg-white/5 text-slate-500 hover:text-white'}`}
                                     >
                                         <PenTool className="w-4 h-4 inline-block mr-2" /> Hand Drawn
                                     </button>
                                     <button
                                         onClick={() => { setSignatureType('TYPE'); setHasSigned(typedSignature.length > 2); }}
-                                        className={`px-8 py-3 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all ${signatureType === 'TYPE' ? 'bg-cyan-500 text-slate-950 shadow-[0_0_30px_rgba(6,182,212,0.3)]' : 'bg-white/5 text-slate-500 hover:text-white'}`}
+                                        className={`px-8 py-3 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all ${signatureType === 'TYPE' ? 'bg-amber-500 text-slate-950 shadow-[0_0_30px_rgba(245,158,11,0.3)]' : 'bg-white/5 text-slate-500 hover:text-white'}`}
                                     >
                                         <X className="w-4 h-4 inline-block mr-2 rotate-45" /> Typed ID
                                     </button>
@@ -228,7 +228,7 @@ const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: 
                                 <div className="w-full max-w-xl mb-10">
                                     {signatureType === 'DRAW' ? (
                                         <div className="space-y-4">
-                                            <div className="relative aspect-[3/1] bg-white border border-cyan-500/30 rounded-[2rem] overflow-hidden cursor-crosshair shadow-2xl">
+                                            <div className="relative aspect-[3/1] bg-white border border-amber-500/30 rounded-[2rem] overflow-hidden cursor-crosshair shadow-2xl">
                                                 <canvas
                                                     ref={canvasRef}
                                                     width={600}
@@ -262,7 +262,7 @@ const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: 
                                                     setHasSigned(e.target.value.length > 2);
                                                 }}
                                                 placeholder={userProfile.userName}
-                                                className="w-full bg-black/40 border border-white/10 rounded-[2rem] p-10 text-4xl font-serif text-cyan-400 outline-none focus:border-cyan-500/50 text-center italic"
+                                                className="w-full bg-black/40 border border-white/10 rounded-[2rem] p-10 text-4xl font-serif text-amber-500 outline-none focus:border-amber-500/50 text-center italic"
                                             />
                                             <p className="text-[12px] font-black text-slate-600 uppercase tracking-widest italic leading-relaxed">
                                                 Your typed name serves as a legally binding digital signature for clinical research documentation.
@@ -273,7 +273,7 @@ const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: 
 
                                 <div className="w-full max-w-xl p-8 bg-white/[0.02] border border-white/5 rounded-[2rem] flex items-center justify-between mb-12">
                                     <div className="flex items-center gap-4">
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${hasSigned ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]' : 'bg-white/5 border-white/10 text-slate-700'}`}>
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${hasSigned ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'bg-white/5 border-white/10 text-slate-700'}`}>
                                             <ShieldCheck className="w-5 h-5" />
                                         </div>
                                         <div>
@@ -283,7 +283,7 @@ const FormSignatureModal = ({ isOpen, onClose, onComplete, task, userProfile }: 
                                     </div>
                                     <div className="text-right">
                                         <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest">Date</p>
-                                        <p className="text-[14px] font-black text-cyan-400 italic">{new Date().toLocaleDateString()}</p>
+                                        <p className="text-[14px] font-black text-amber-500 italic">{new Date().toLocaleDateString()}</p>
                                     </div>
                                 </div>
 

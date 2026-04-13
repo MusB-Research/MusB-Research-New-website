@@ -71,7 +71,7 @@ export default function InstrumentModal({ isOpen, onClose, task, onSuccess }: In
                     <div className="p-8 border-b border-white/5 flex items-center justify-between">
                         <div>
                             <div className="flex items-center gap-3 mb-1">
-                                <Activity className="w-5 h-5 text-indigo-400" />
+                                <Activity className="w-5 h-5 text-amber-500" />
                                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Clinical Instrument</span>
                             </div>
                             <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">
@@ -89,8 +89,8 @@ export default function InstrumentModal({ isOpen, onClose, task, onSuccess }: In
                             <div className="space-y-8">
                                 {mode === 'PDF' ? (
                                     <div className="space-y-6">
-                                        <div className="p-6 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center gap-4">
-                                            <FileText className="w-8 h-8 text-indigo-400" />
+                                        <div className="p-6 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-4">
+                                            <FileText className="w-8 h-8 text-amber-500" />
                                             <div>
                                                 <h4 className="text-white font-black uppercase italic tracking-tighter text-sm">Official PDF Documentation</h4>
                                                 <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest">Please review the master document below and acknowledge.</p>
@@ -118,8 +118,8 @@ export default function InstrumentModal({ isOpen, onClose, task, onSuccess }: In
                                                         checked={responses.acknowledged || false}
                                                         onChange={(e) => setResponses({acknowledged: e.target.checked})}
                                                     />
-                                                    <div className="w-6 h-6 border-2 border-white/10 rounded-lg peer-checked:bg-indigo-500 peer-checked:border-indigo-500 transition-all flex items-center justify-center">
-                                                        <CheckCircle2 className="w-4 h-4 text-white opacity-0 peer-checked:opacity-100 transition-opacity" />
+                                                    <div className="w-6 h-6 border-2 border-white/10 rounded-lg peer-checked:bg-amber-500 peer-checked:border-amber-500 transition-all flex items-center justify-center">
+                                                        <CheckCircle2 className="w-4 h-4 text-slate-950 opacity-0 peer-checked:opacity-100 transition-opacity" />
                                                     </div>
                                                 </div>
                                                 <span className="text-slate-400 text-sm font-black uppercase italic tracking-tight group-hover:text-white transition-colors">
@@ -133,7 +133,7 @@ export default function InstrumentModal({ isOpen, onClose, task, onSuccess }: In
                                         {Array.isArray(structure) && structure.length > 0 ? structure.map((q: any, i: number) => (
                                             <div key={i} className="space-y-4">
                                                 <div className="flex gap-4">
-                                                    <span className="text-indigo-500 font-black italic text-xl">Q{i+1}.</span>
+                                                    <span className="text-amber-500 font-black italic text-xl">Q{i+1}.</span>
                                                     <h3 className="text-lg font-black text-white uppercase italic tracking-tighter leading-tight">
                                                         {q.question_text}
                                                     </h3>
@@ -145,7 +145,7 @@ export default function InstrumentModal({ isOpen, onClose, task, onSuccess }: In
                                                             <button 
                                                                 key={opt}
                                                                 onClick={() => setResponses({...responses, [q.id || i]: opt})}
-                                                                className={`p-4 rounded-xl border text-left text-sm font-black uppercase tracking-widest transition-all ${responses[q.id || i] === opt ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20' : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/20 hover:text-white'}`}
+                                                                className={`p-4 rounded-xl border text-left text-sm font-black uppercase tracking-widest transition-all ${responses[q.id || i] === opt ? 'bg-amber-500 border-amber-500 text-slate-950 shadow-lg shadow-amber-600/20' : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/20 hover:text-white'}`}
                                                             >
                                                                 {opt}
                                                             </button>
@@ -154,7 +154,7 @@ export default function InstrumentModal({ isOpen, onClose, task, onSuccess }: In
                                                 ) : (
                                                     <div className="pl-12">
                                                         <textarea 
-                                                            className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white font-bold placeholder:text-slate-700 min-h-[100px] focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                                                            className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white font-bold placeholder:text-slate-700 min-h-[100px] focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"
                                                             placeholder="Enter your response here..."
                                                             value={responses[q.id || i] || ''}
                                                             onChange={(e) => setResponses({...responses, [q.id || i]: e.target.value})}
@@ -205,7 +205,7 @@ export default function InstrumentModal({ isOpen, onClose, task, onSuccess }: In
                                 <button
                                     disabled={isSubmitting || (mode === 'PDF' && !responses.acknowledged)}
                                     onClick={handleSubmit}
-                                    className="px-10 py-4 rounded-2xl bg-indigo-600 text-white font-black uppercase tracking-widest text-[13px] shadow-xl shadow-indigo-600/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-10 py-4 rounded-2xl bg-amber-500 text-slate-950 font-black uppercase tracking-widest text-[13px] shadow-xl shadow-amber-600/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isSubmitting ? 'Syncing...' : 'Submit Entry'}
                                     <Send className="w-4 h-4" />

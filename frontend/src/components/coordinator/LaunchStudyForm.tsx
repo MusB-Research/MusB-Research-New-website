@@ -798,7 +798,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                             </div>
                                                         </div>
 
-                                                        <div className="grid grid-cols-2 gap-3">
+                                                        <div className="grid grid-cols-2 gap-3 mb-6">
                                                             <div>
                                                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 block">Frequency</label>
                                                                 <select 
@@ -820,6 +820,35 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                                     onChange={e => setFormData({...formData, study_questionnaires: formData.study_questionnaires.map((sq: any) => sq.template === t.id ? {...sq, repetitions: parseInt(e.target.value)} : sq)})}
                                                                     className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-[10px] font-black text-white"
                                                                 />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="pt-4 border-t border-white/5 space-y-4">
+                                                            <div className="flex items-center justify-between">
+                                                                <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest italic flex items-center gap-2">
+                                                                    <Activity className="w-3 h-3" /> Instrumented Content
+                                                                </h4>
+                                                                <span className="text-[9px] text-white/40 font-bold uppercase">Intelligence Preview</span>
+                                                            </div>
+                                                            <div className="max-h-[150px] overflow-y-auto pr-2 custom-scrollbar space-y-2">
+                                                                {t.json_structure?.sections?.map((section: any, si: number) => (
+                                                                    <div key={si} className="space-y-2">
+                                                                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">{section.label || section.title}</p>
+                                                                        {section.fields?.map((field: any, fi: number) => (
+                                                                            <div key={fi} className="flex items-center gap-2 py-2 px-3 bg-white/5 rounded-lg border border-white/5">
+                                                                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/50" />
+                                                                                <span className="text-[11px] text-white/80 font-bold leading-tight">{field.label || field.question}</span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )) || (
+                                                                    <div className="py-4 text-center border border-dashed border-white/10 rounded-xl">
+                                                                        <p className="text-[10px] text-slate-600 font-bold uppercase italic tracking-widest leading-relaxed">
+                                                                            No Structured Questions Detected.<br/>
+                                                                            Configure via <span className="text-indigo-400">Questionnaire Builder</span>
+                                                                        </p>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>

@@ -55,7 +55,7 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
         }
     };
 
-    const colorHex = primaryColor === 'teal' ? '#14b8a6' : '#6366f1';
+    const colorHex = primaryColor === 'blue' ? '#3b82f6' : (primaryColor === 'teal' ? '#14b8a6' : '#6366f1');
 
     const filteredTasks = tasks.filter(t => 
         t.participant_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -108,8 +108,8 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
 
                     <div className="bg-[#0a101f]/80 backdrop-blur-xl border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
                         <div className="p-8 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                            <div className="flex items-center gap-4 bg-white/5 border border-white/10 px-5 py-2.5 rounded-2xl flex-1 max-w-md group focus-within:border-cyan-500/50 transition-all">
-                                <Search className="w-4 h-4 text-slate-500 group-focus-within:text-cyan-400" />
+                            <div className={`flex items-center gap-4 bg-white/5 border border-white/10 px-5 py-2.5 rounded-2xl flex-1 max-w-md group focus-within:border-${primaryColor === 'blue' ? 'blue' : 'cyan'}-500/50 transition-all`}>
+                                <Search className={`w-4 h-4 text-slate-500 group-focus-within:text-${primaryColor === 'blue' ? 'blue' : 'cyan'}-400`} />
                                 <input 
                                     type="text" 
                                     placeholder="SEARCH BY PARTICIPANT OR PROTOCOL ID..." 
@@ -154,7 +154,7 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                                                 </td>
                                                 <td className="px-10 py-8">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                                                        <div className={`w-1.5 h-1.5 rounded-full ${primaryColor === 'blue' ? 'bg-blue-500' : 'bg-cyan-500'} animate-pulse`} />
                                                         <span className="text-[13px] font-black text-white uppercase tracking-tight italic">{task.title}</span>
                                                     </div>
                                                 </td>
@@ -201,7 +201,7 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                                                             onClick={() => {
                                                                 alert(`Operational Override: Granting ${task.participant_name} extension for ${task.title}.`);
                                                             }}
-                                                            className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all shadow-lg shadow-cyan-900/40"
+                                                            className={`px-6 py-3 ${primaryColor === 'blue' ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-900/40' : 'bg-cyan-600 hover:bg-cyan-500 shadow-cyan-900/40'} text-white rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all shadow-lg`}
                                                         >
                                                             Override Rules
                                                         </button>
@@ -283,7 +283,7 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                                         Abort
                                     </button>
                                     <button 
-                                        className="flex-1 bg-cyan-600 text-white py-5 rounded-[2rem] text-[12px] font-black uppercase tracking-[0.25em] italic hover:bg-cyan-500 transition-all shadow-[0_0_50px_rgba(8,145,178,0.3)]"
+                                        className={`flex-1 ${primaryColor === 'blue' ? 'bg-blue-600 hover:bg-blue-500 shadow-[0_0_50px_rgba(37,99,235,0.3)]' : 'bg-cyan-600 hover:bg-cyan-500 shadow-[0_0_50px_rgba(8,145,178,0.3)]'} text-white py-5 rounded-[2rem] text-[12px] font-black uppercase tracking-[0.25em] italic transition-all`}
                                     >
                                         Deploy Mission
                                     </button>

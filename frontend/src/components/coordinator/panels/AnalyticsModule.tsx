@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { authFetch, API } from '../../../utils/auth';
 import { 
     TrendingUp, 
     Users, 
@@ -17,59 +18,133 @@ import {
     ArrowDownRight,
     Beaker,
     ShieldAlert,
-    Database
+    Database,
+    Clock,
+    CheckCircle2,
+    AlertTriangle,
+    XCircle
 } from 'lucide-react';
 
-export default function AnalyticsModule({ selectedStudyId }: { selectedStudyId?: string }) {
-    const [activeView, setActiveView] = useState<'Recruitment' | 'Safety' | 'Data Quality' | 'Global'>('Recruitment');
+export default function AnalyticsModule({ 
+    selectedStudyId, 
+    onViewProfile 
+}: { 
+    selectedStudyId?: string;
+    onViewProfile?: (id: string) => void;
+}) {
+    const [activeView, setActiveView] = useState<'Recruitment' | 'Adherence' | 'Data Quality'>('Recruitment');
+    const [stats, setStats] = useState<any>(null);
+    const [tracking, setTracking] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [isMaximized, setIsMaximized] = useState(false);
 
-    const recruitmentFunnel = [
-        { label: 'Referrals', count: 4200, color: 'indigo' },
-        { label: 'Screened', count: 1250, color: 'blue' },
-        { label: 'Eligible', count: 520, color: 'emerald' },
-        { label: 'Randomized', count: 285, color: 'indigo' },
-    ];
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!selectedStudyId || selectedStudyId === 'all') {
+                setLoading(false);
+                return;
+            }
+            setLoading(true);
+            try {
+                const [sRes, tRes] = await Promise.all([
+                    authFetch(`${API}/api/studies/${selectedStudyId}/stats/`),
+                    authFetch(`${API}/api/studies/${selectedStudyId}/participant_tracking/`)
+                ]);
 
-    const safetyKPIs = [
-        { label: 'SAE Rate', val: '1.2%', trend: 'down', icon: ShieldAlert, color: 'emerald' },
-        { label: 'Total AEs', val: '42', trend: 'up', icon: Activity, color: 'amber' },
-        { label: 'Treatment Adherence', val: '98.5%', trend: 'up', icon: Target, color: 'indigo' },
-        { label: 'Protocol Deviations', val: '04', trend: 'down', icon: Beaker, color: 'emerald' },
+                if (sRes.ok && tRes.ok) {
+                    const sData = await sRes.json();
+                    const tData = await tRes.json();
+                    setStats(sData);
+                    setTracking(tData);
+                } else {
+                    console.error("Analytics fetch returned non-200 status", sRes.status, tRes.status);
+                }
+            } catch (err) {
+                console.error("Analytics fetch failed", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [selectedStudyId]);
+
+    if (!selectedStudyId || selectedStudyId === 'all') {
+        return (
+            <div className="flex flex-col items-center justify-center p-20 bg-[#0B101B]/40 border border-white/5 rounded-[3rem] text-center">
+                <BarChart3 className="w-16 h-16 text-slate-700 mb-6" />
+                <h3 className="text-xl font-black text-white uppercase italic tracking-tighter">Global View Placeholder</h3>
+                <p className="text-[12px] text-slate-500 font-bold uppercase tracking-widest mt-2 max-w-md">Please select a specific study from the top header to view precise clinical intelligence and task adherence metrics.</p>
+            </div>
+        );
+    }
+
+    const complianceKPIs = [
+        { label: 'Overall Compliance', val: `${stats?.completion?.compliance_rate || 0}%`, trend: 'up', icon: Target, color: 'emerald' },
+        { label: 'Late Submissions', val: stats?.completion?.late || 0, trend: 'down', icon: Clock, color: 'amber' },
+        { label: 'Missed Windows', val: stats?.completion?.missed || 0, trend: 'down', icon: AlertTriangle, color: 'red' },
+        { label: 'Total Enrolled', val: stats?.enrolled || 0, trend: 'up', icon: Users, color: 'blue' },
     ];
 
     return (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
+        <motion.div 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            className={`space-y-10 pb-20 transition-all duration-500 ${isMaximized ? 'fixed inset-0 z-[100] bg-[#0F172A] p-10 overflow-y-auto' : ''}`}
+        >
+            {isMaximized && (
+                <button 
+                    onClick={() => setIsMaximized(false)}
+                    className="fixed top-8 right-8 p-3 bg-white/5 border border-white/10 rounded-2xl text-slate-500 hover:text-white transition-all z-[110]"
+                >
+                    <XCircle className="w-6 h-6" />
+                </button>
+            )}
             {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div>
-                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Clinical <span className="text-indigo-400">Intelligence</span></h2>
-                    <p className="text-[13px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">Predictive Analytics & Performance Hub</p>
+                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Study <span className="text-blue-400">Intelligence</span></h2>
+                    <p className="text-[13px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">Real-time Performance & Compliance Tracking</p>
                 </div>
                 <div className="flex items-center gap-4 p-1.5 bg-[#0B101B]/60 border border-white/5 rounded-2xl">
-                    <button onClick={() => setActiveView('Recruitment')} className={`px-6 py-2.5 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${activeView === 'Recruitment' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'}`}>Recruitment</button>
-                    <button onClick={() => setActiveView('Safety')} className={`px-6 py-2.5 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${activeView === 'Safety' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'}`}>Safety</button>
-                    <button onClick={() => setActiveView('Data Quality')} className={`px-6 py-2.5 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${activeView === 'Data Quality' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'}`}>Data Quality</button>
+                    <button 
+                        onClick={() => setActiveView('Recruitment')} 
+                        className={`px-6 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${activeView === 'Recruitment' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-500 hover:text-white'}`}
+                    >
+                        Recruitment
+                    </button>
+                    <button 
+                        onClick={() => setActiveView('Adherence')} 
+                        className={`px-6 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${activeView === 'Adherence' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-500 hover:text-white'}`}
+                    >
+                        Compliance
+                    </button>
+                    <button 
+                        onClick={() => setActiveView('Data Quality')} 
+                        className={`px-6 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${activeView === 'Data Quality' ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-500 hover:text-white'}`}
+                    >
+                        Data Quality
+                    </button>
                 </div>
             </div>
 
             {/* Performance KPI Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {safetyKPIs.map((kpi, i) => (
+                {complianceKPIs.map((kpi, i) => (
                     <motion.div 
                         key={i} 
                         layout 
-                        className="bg-[#0B101B]/40 border border-white/5 rounded-[2.5rem] p-8 space-y-4 hover:border-indigo-500/20 transition-all group relative overflow-hidden"
+                        className="bg-[#0B101B]/40 border border-white/5 rounded-[2.5rem] p-8 space-y-4 hover:border-blue-500/20 transition-all group relative overflow-hidden"
                     >
                         <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-125 transition-transform">
                             <kpi.icon className="w-16 h-16 text-white" />
                         </div>
                         <div className="flex items-center justify-between">
-                            <div className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-600 group-hover:text-indigo-400 transition-colors">
+                            <div className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-600 group-hover:text-blue-400 transition-colors">
                                 <kpi.icon className="w-5 h-5" />
                             </div>
                             <div className={`flex items-center gap-1.5 ${kpi.trend === 'up' ? 'text-emerald-400' : 'text-red-400'}`}>
                                 {kpi.trend === 'up' ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
-                                <span className="text-[12px] font-black uppercase tracking-tighter shadow-[0_0_10px_currentColor]">{kpi.trend === 'up' ? '+12%' : '-4%'}</span>
+                                <span className="text-[12px] font-black uppercase tracking-tighter shadow-[0_0_10px_currentColor]">Live</span>
                             </div>
                         </div>
                         <div>
@@ -80,81 +155,110 @@ export default function AnalyticsModule({ selectedStudyId }: { selectedStudyId?:
                 ))}
             </div>
 
-            {/* Main Visualizations */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Recruitment Funnel */}
-                <div className="lg:col-span-2 bg-[#0B101B]/40 border border-white/5 rounded-[3rem] p-10 space-y-10">
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                            <h4 className="text-xl font-black text-white italic uppercase tracking-tighter">Recruitment <span className="text-indigo-400">Velocity</span></h4>
-                            <p className="text-[13px] text-slate-500 font-black uppercase tracking-widest italic">Live Funnel Data Integration</p>
-                        </div>
-                        <button className="p-3 bg-white/5 border border-white/5 rounded-2xl text-slate-500 hover:text-white transition-all"><Maximize2 className="w-4 h-4" /></button>
+            {/* Participant Tracking Table */}
+            <div className="bg-[#0B101B]/40 border border-white/5 rounded-[3rem] p-10 space-y-10">
+                <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                        <h4 className="text-xl font-black text-white italic uppercase tracking-tighter">Participant <span className="text-blue-400">Adherence</span></h4>
+                        <p className="text-[13px] text-slate-500 font-black uppercase tracking-widest italic">Individual subject task completion tracking</p>
                     </div>
-                    
-                    <div className="flex flex-col gap-6">
-                        {recruitmentFunnel.map((step, i) => (
-                            <div key={i} className="space-y-3">
-                                <div className="flex justify-between items-end">
-                                    <span className="text-[12px] font-black text-slate-400 uppercase italic tracking-widest">{step.label}</span>
-                                    <span className="text-xl font-black text-white italic">{step.count.toLocaleString()}</span>
-                                </div>
-                                <div className="h-4 w-full bg-white/5 border border-white/5 rounded-full overflow-hidden flex relative">
-                                    <motion.div 
-                                        initial={{ width: 0 }} 
-                                        animate={{ width: `${(step.count / recruitmentFunnel[0].count) * 100}%` }} 
-                                        className={`h-full rounded-full bg-${step.color}-600 bg-gradient-to-r from-transparent to-white/20`}
-                                    />
-                                    {i > 0 && (
-                                        <div className="absolute top-1/2 left-[5px] -translate-y-1/2 text-[12px] font-black text-white/40 uppercase tracking-tighter">
-                                            {((step.count / recruitmentFunnel[i-1].count) * 100).toFixed(0)}% Conversion
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="pt-10 border-t border-white/5 flex items-center justify-between">
-                        <div className="flex items-center gap-6">
-                            <div>
-                                <p className="text-[12px] text-slate-700 font-black uppercase">Cohort Alpha Target</p>
-                                <p className="text-sm font-black text-emerald-400 italic">285 / 300 Complete</p>
-                            </div>
-                        </div>
-                        <button className="px-6 py-3 bg-white text-slate-950 rounded-xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.05] transition-all italic">Simulation View</button>
+                     <div className="flex gap-4">
+                         <button 
+                             onClick={() => {
+                                 const headers = ['Subject ID', 'Status', 'Compliance %', 'Last Interaction'];
+                                 const csvData = tracking.map(p => [
+                                     p.id,
+                                     p.status,
+                                     p.progress,
+                                     p.last_interaction ? new Date(p.last_interaction).toLocaleDateString() : 'N/A'
+                                 ]);
+                                 const csvContent = [headers.join(','), ...csvData.map(r => r.join(','))].join('\n');
+                                 const blob = new Blob([csvContent], { type: 'text/csv' });
+                                 const url = URL.createObjectURL(blob);
+                                 const a = document.createElement('a');
+                                 a.href = url;
+                                 a.download = `CLINICAL_ADHERENCE_${selectedStudyId}_${new Date().toISOString().split('T')[0]}.csv`;
+                                 a.click();
+                             }}
+                             className="p-3 bg-white/5 border border-white/5 rounded-2xl text-slate-500 hover:text-blue-400 hover:border-blue-500/30 transition-all"
+                             title="Download Clinical Report"
+                         >
+                             <Download className="w-4 h-4" />
+                         </button>
+                         <button 
+                            onClick={() => setIsMaximized(!isMaximized)}
+                            className={`p-3 border rounded-2xl transition-all ${isMaximized ? 'bg-blue-600 text-white border-blue-500' : 'bg-white/5 border-white/5 text-slate-500 hover:text-blue-400 hover:border-blue-500/30'}`}
+                            title="Expand Field of View"
+                         >
+                            <Maximize2 className="w-4 h-4" />
+                         </button>
                     </div>
                 </div>
 
-                {/* Right Side Cards */}
-                <div className="space-y-8">
-                    {/* Enrollment Predictor */}
-                    <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-[2.5rem] p-10 space-y-6 relative overflow-hidden group">
-                        <div className="absolute -top-10 -right-10 p-20 opacity-5 group-hover:scale-110 transition-transform">
-                            <Target className="w-32 h-32 text-indigo-400" />
-                        </div>
-                        <h5 className="text-[12px] font-black text-indigo-400 uppercase tracking-widest italic underline decoration-indigo-800 underline-offset-4">ML Enrollment Predictor</h5>
-                        <p className="text-4xl font-black text-white italic uppercase tracking-tighter leading-tight">LPO Date: <span className="text-indigo-400">MAY 2026</span></p>
-                        <p className="text-[12px] text-slate-500 font-bold uppercase italic leading-relaxed">System predicts 92% probability of reaching full randomization by Q2 2026 based on current screening velocity.</p>
-                        <button className="w-full py-4 bg-white/5 border border-white/5 text-indigo-400 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all">Generate Full Forecast</button>
-                    </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="border-b border-white/5 text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                                <th className="pb-6 pl-4">Subject ID</th>
+                                <th className="pb-6">Status</th>
+                                <th className="pb-6">Adherence</th>
+                                <th className="pb-6">Last Interaction</th>
+                                <th className="pb-6 text-right pr-4">Oversight</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                            {tracking.map((p, i) => (
+                                <tr key={i} className="group hover:bg-white/[0.02] transition-colors">
+                                    <td className="py-6 pl-4">
+                                        <p className="text-[14px] font-black text-white flex items-center gap-3 italic uppercase">
+                                            <span className="w-2 h-2 rounded-full bg-blue-500" />
+                                            {p.id}
+                                        </p>
+                                    </td>
+                                    <td className="py-6">
+                                        <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                                            p.status === 'ENROLLED' || p.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 
+                                            p.status === 'PENDING_REVIEW' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                                            p.status === 'CONSENTED' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                                            'bg-slate-500/10 text-slate-400 border border-white/10'
+                                        }`}>
+                                            {p.status?.replace('_', ' ')}
+                                        </span>
+                                    </td>
+                                    <td className="py-6 min-w-[200px]">
+                                        <div className="flex items-center gap-4">
+                                            <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+                                                <motion.div initial={{ width: 0 }} animate={{ width: `${p.progress}%` }} className={`h-full ${p.progress > 80 ? 'bg-emerald-500' : p.progress > 50 ? 'bg-amber-500' : 'bg-red-500'}`} />
+                                            </div>
+                                            <span className="text-[12px] font-black text-white italic min-w-[40px]">{p.progress}%</span>
+                                        </div>
+                                    </td>
+                                    <td className="py-6 text-[12px] font-bold text-slate-500">
+                                        {p.last_interaction ? new Date(p.last_interaction).toLocaleDateString() : 'N/A'}
+                                    </td>
+                                    <td className="py-6 text-right pr-4">
+                                        <button 
+                                            onClick={() => onViewProfile?.(p.id)}
+                                            className="px-5 py-2.5 bg-blue-600/10 border border-blue-500/20 rounded-xl text-blue-400 hover:bg-blue-600 hover:text-white transition-all opacity-0 group-hover:opacity-100 italic font-black text-[10px] uppercase tracking-widest"
+                                        >
+                                            View Profile
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
 
-                    {/* Data Quality */}
-                    <div className="bg-[#0B101B]/40 border border-white/5 rounded-[2.5rem] p-10 space-y-8">
-                        <div className="flex items-center gap-4">
-                            <Database className="w-6 h-6 text-emerald-400" />
-                            <h5 className="text-[12px] font-black text-white uppercase tracking-widest italic">Data Quality Score</h5>
-                        </div>
-                        <div className="flex items-end justify-between">
-                            <p className="text-5xl font-black text-emerald-400 italic tracking-tighter shadow-[0_0_20px_rgba(16,185,129,0.1)]">99.2<span className="text-2xl">%</span></p>
-                            <div className="text-right">
-                                <p className="text-[12px] text-slate-500 font-black uppercase">Open Queries</p>
-                                <p className="text-sm font-black text-white uppercase italic">08 Pending</p>
-                            </div>
-                        </div>
-                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                            <motion.div initial={{ width: 0 }} animate={{ width: '99.2%' }} className="h-full bg-emerald-500" />
-                        </div>
+                <div className="pt-10 border-t border-white/5 flex items-center justify-between">
+                    <p className="text-[12px] text-slate-500 font-bold italic uppercase tracking-widest">Tracking {tracking.length} randomized subjects in current cohort</p>
+                    <div className="flex items-center gap-4">
+                        <button 
+                            onClick={() => alert("Compliance Recall Protocol Initialized. System notifications have been dispatched to all non-compliant subjects.")}
+                            className="flex items-center gap-2 px-6 py-3 bg-blue-600/10 border border-blue-500/20 text-blue-400 rounded-xl text-[12px] font-black uppercase tracking-widest italic hover:bg-blue-600 hover:text-white transition-all active:scale-95 shadow-lg shadow-blue-500/10"
+                        >
+                            <ShieldAlert className="w-4 h-4" /> Trigger Compliance Recall
+                        </button>
                     </div>
                 </div>
             </div>

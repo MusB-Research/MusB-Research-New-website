@@ -51,18 +51,18 @@ export const PDFPage: React.FC<PDFPageProps> = ({
             right: isThumbnail ? '0.5rem' : '2.5rem', 
             ...S.badge(COLORS.accent), 
             color: 'white', 
-            backgroundColor: 'rgba(99,102,241,0.2)', 
+            backgroundColor: 'rgba(59, 130, 246, 0.4)', 
             border: 'none', 
             fontSize: '13px' 
         }}>PAGE {pageNumber}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: isThumbnail ? '0.5rem' : '1.5rem' }}>
-            <div style={{ height: isThumbnail ? '4px' : '20px', backgroundColor: 'rgba(99,102,241,0.2)', width: '60%', borderRadius: '4px' }} />
+            <div style={{ height: isThumbnail ? '4px' : '20px', backgroundColor: 'rgba(59, 130, 246, 0.2)', width: '60%', borderRadius: '4px' }} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: isThumbnail ? '2px' : '0.75rem' }}>
                 {[80, 95, 88, 70, 40].map((w, i) => (
                     <div key={i} style={{ height: isThumbnail ? '2px' : '10px', backgroundColor: 'rgba(255,255,255,0.03)', width: `${w}%`, borderRadius: '2px' }} />
                 ))}
             </div>
-            <div style={{ height: isThumbnail ? '4px' : '16px', backgroundColor: 'rgba(99,102,241,0.1)', width: '40%', borderRadius: '4px', marginTop: isThumbnail ? '4px' : '2rem' }} />
+            <div style={{ height: isThumbnail ? '4px' : '16px', backgroundColor: 'rgba(59, 130, 246, 0.1)', width: '40%', borderRadius: '4px', marginTop: isThumbnail ? '4px' : '2rem' }} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: isThumbnail ? '2px' : '0.75rem' }}>
                 {[90, 85, 95, 60].map((w, i) => (
                     <div key={i} style={{ height: isThumbnail ? '2px' : '10px', backgroundColor: 'rgba(255,255,255,0.03)', width: `${w}%`, borderRadius: '2px' }} />

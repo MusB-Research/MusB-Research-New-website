@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, MapPin, Globe, CheckCircle2, ArrowRight, ArrowLeft, ShieldCheck, Heart } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { authFetch, saveToken, saveUser, getUser , API } from '../../utils/auth';
+import { authFetch, saveToken, saveUser, getUser, API } from '../../utils/auth';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export default function ProfileSetup() {
     const [step, setStep] = useState(1);
@@ -27,6 +27,26 @@ export default function ProfileSetup() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // ── Pre-fill from Screener Data ──────────────────────────────────────
+    React.useEffect(() => {
+        const screenerData = (location.state as any)?.screenerData;
+        if (screenerData) {
+            const nameParts = (screenerData.fullName || '').split(' ');
+            const firstName = nameParts[0] || '';
+            const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+            
+            setFormData(prev => ({
+                ...prev,
+                first_name: firstName,
+                last_name: lastName,
+                zip_code: screenerData.zipCode || prev.zip_code,
+                mobile_number: screenerData.phone || prev.mobile_number,
+                full_address: screenerData.location || prev.full_address
+            }));
+        }
+    }, [location.state]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });

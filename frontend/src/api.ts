@@ -1,31 +1,11 @@
 // ============================================================
 // API INTEGRATION LAYER
 // ============================================================
-import { getToken } from './utils/auth';
-
-// @ts-ignore - Vite provides import.meta.env at runtime
-const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) || 
-                 (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' ? 'https://musb-research-new-website.onrender.com' : 'http://localhost:8000');
+import { authFetch, getToken, API as API_BASE } from './utils/auth';
 
 async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    const url = `${API_BASE}${endpoint}`;
-
-    const headers: Record<string, string> = { ...(options?.headers as any) };
-
-    const token = getToken();
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    if (!(options?.body instanceof FormData)) {
-        headers['Content-Type'] = 'application/json';
-    }
-
-    const res = await fetch(url, {
-        headers,
-        credentials: 'include',
-        ...options,
-    });
+    const res = await authFetch(endpoint, options);
+    
     if (!res.ok) {
         const errorBody = await res.text().catch(() => '');
         throw new Error(`API ${res.status}: ${errorBody || res.statusText}`);
@@ -150,6 +130,22 @@ export const submitFacilityInquiry = (data: Record<string, any>) =>
         method: 'POST',
         body: JSON.stringify(data),
     });
+
+export const fetchNotifications = (isRead?: boolean) => {
+    const params = new URLSearchParams();
+    if (isRead !== undefined) params.set('is_read', String(isRead));
+    const qs = params.toString() ? `?${params}` : '';
+    return apiFetch<any[]>(`/api/notifications/${qs}`);
+};
+
+export const markNotificationRead = (id: string) => 
+    apiFetch<any>(`/api/notifications/${id}/read/`, { method: 'POST' });
+
+export const markAllNotificationsRead = () => 
+    apiFetch<any>('/api/notifications/read_all/', { method: 'POST' });
+
+export const deleteNotification = (id: string) => 
+    apiFetch<any>(`/api/notifications/${id}/`, { method: 'DELETE' });
 
 export { apiFetch };
 

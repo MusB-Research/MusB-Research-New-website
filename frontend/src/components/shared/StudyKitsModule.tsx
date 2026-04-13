@@ -57,7 +57,8 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
             const res = await authFetch(url);
             if (res.ok) {
                 const data = await res.json();
-                const mapped: StudyKit[] = data.map((k: any) => ({
+                const kitsArray = Array.isArray(data) ? data : (data.results || []);
+                const mapped: StudyKit[] = kitsArray.map((k: any) => ({
                     id: k.id,
                     kit_number: k.kit_number,
                     participant_name: k.participant_name || 'Anonymous',
@@ -89,9 +90,12 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
             const res = await authFetch(url);
             if (res.ok) {
                 const data = await res.json();
-                setParticipants(data);
+                setParticipants(Array.isArray(data) ? data : (data.results || []));
             }
-        } catch (err) { }
+        } catch (err) {
+            console.error("Failed to fetch participants for kit assignment:", err);
+            setParticipants([]);
+        }
     };
 
     useEffect(() => {
@@ -159,14 +163,14 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
 
     const filteredKits = kits.filter(kit => 
         (selectedStudyId === 'all' || !selectedStudyId || kit.protocol_id === selectedStudyId) &&
-        (kit.participant_name.toLowerCase().includes(searchQuery.toLowerCase()) || kit.kit_number.includes(searchQuery) || kit.participant_id.includes(searchQuery))
+        (kit.participant_name.toLowerCase().includes(searchQuery.toLowerCase()) || (kit.kit_number && kit.kit_number.includes(searchQuery)) || (kit.participant_id && kit.participant_id.includes(searchQuery)))
     );
 
     const getStatusStyle = (status: string) => {
         switch (status) {
             case 'DELIVERED': return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
             case 'SHIPPED': return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
-            case 'RETURN_SHIPPED': return 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20';
+            case 'RETURN_SHIPPED': return 'text-blue-400 bg-blue-500/10 border-blue-500/20';
             case 'RECEIVED': return 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20';
             case 'PREPARING': return 'text-slate-400 bg-white/5 border-white/10';
             case 'PENDING': return 'text-red-400 bg-red-500/5 border-red-500/10';
@@ -187,28 +191,28 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div className="flex items-center gap-6">
-                    <div className="p-4 bg-cyan-500/10 rounded-3xl border border-cyan-500/20">
-                        <Ship className="w-8 h-8 text-cyan-400" />
+                    <div className="p-4 bg-blue-500/10 rounded-3xl border border-blue-500/20">
+                        <Ship className="w-8 h-8 text-blue-400" />
                     </div>
                     <div>
-                        <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Dispatch <span className="text-cyan-400">Management</span></h2>
+                        <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Dispatch <span className="text-blue-400">Management</span></h2>
                         <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">Global Study Kit Logistics & Multi-Carrier Hub</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="relative group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
                         <input 
                             type="text" 
                             placeholder="Find Kit, Subject, or SID..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-4 text-[12px] text-white font-bold outline-none focus:border-cyan-500/50 transition-all w-80 uppercase tracking-widest placeholder:text-slate-700 font-mono shadow-2xl"
+                            className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-4 text-[12px] text-white font-bold outline-none focus:border-blue-500/50 transition-all w-80 uppercase tracking-widest placeholder:text-slate-700 font-mono shadow-2xl"
                         />
                     </div>
                     <button 
                         onClick={() => setIsAssignModalOpen(true)}
-                        className="flex items-center gap-3 px-8 py-4 bg-cyan-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.03] active:scale-95 transition-all shadow-2xl shadow-cyan-600/30"
+                        className="flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.03] active:scale-95 transition-all shadow-2xl shadow-blue-600/30"
                     >
                         Assign New Kit <Plus className="w-4 h-4" />
                     </button>
@@ -217,17 +221,17 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {[
-                    { label: 'Pending Dispatch', val: kits.filter(k => k.status === 'PREPARING' || k.status === 'PENDING').length, icon: Clock, color: 'cyan' },
+                    { label: 'Pending Dispatch', val: kits.filter(k => k.status === 'PREPARING' || k.status === 'PENDING').length, icon: Clock, color: 'blue' },
                     { label: 'Outbound Transit', val: kits.filter(k => k.status === 'SHIPPED').length, icon: Truck, color: 'amber' },
                     { label: 'Arrived at Site', val: kits.filter(k => k.status === 'DELIVERED').length, icon: CheckCircle2, color: 'emerald' },
                     { label: 'Samples Returned', val: kits.filter(k => k.status === 'RECEIVED').length, icon: Package, color: 'indigo' }
                 ].map((kpi, i) => (
-                    <div key={i} className="bg-[#0B101B]/60 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-8 space-y-4 hover:border-cyan-500/30 transition-all group relative overflow-hidden shadow-xl">
+                    <div key={i} className="bg-[#0B101B]/60 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-8 space-y-4 hover:border-blue-500/30 transition-all group relative overflow-hidden shadow-xl">
                         <div className="absolute -top-6 -right-6 p-12 opacity-5 group-hover:scale-110 transition-transform group-hover:rotate-12">
                             <kpi.icon className="w-24 h-24" />
                         </div>
                         <div className="flex items-center gap-3 relative z-10">
-                            <div className={`p-2 bg-cyan-500/10 rounded-xl border border-cyan-500/20 text-cyan-400`}>
+                            <div className={`p-2 bg-blue-500/10 rounded-xl border border-blue-500/20 text-blue-400`}>
                                 <kpi.icon className="w-5 h-5" />
                             </div>
                             <span className="text-[12px] text-slate-500 font-black uppercase tracking-widest">{kpi.label}</span>
@@ -238,7 +242,7 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
             </div>
 
             <div className="bg-[#0B101B]/40 backdrop-blur-2xl border border-white/5 rounded-[3.5rem] overflow-hidden shadow-2xl relative">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500/20 to-transparent" />
                 <table className="w-full text-left">
                     <thead>
                         <tr className="bg-white/5 border-b border-white/5">
@@ -254,7 +258,7 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                             <motion.tr key={kit.id} layout className="hover:bg-white/[0.02] transition-colors group">
                                 <td className="px-10 py-10 border-r border-white/5">
                                     <div className="flex items-center gap-6">
-                                        <div className="w-14 h-14 rounded-3xl bg-[#0B101B] border border-white/10 flex items-center justify-center text-cyan-400 group-hover:border-cyan-500/40 transition-all shadow-inner group-hover:scale-110">
+                                        <div className="w-14 h-14 rounded-3xl bg-[#0B101B] border border-white/10 flex items-center justify-center text-blue-400 group-hover:border-blue-500/40 transition-all shadow-inner group-hover:scale-110">
                                             <Package className="w-6 h-6" />
                                         </div>
                                         <div>
@@ -267,7 +271,7 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                                 </td>
                                 <td className="px-10 py-10 border-r border-white/5">
                                     <p className="text-base font-black text-white italic truncate">{kit.participant_name}</p>
-                                    <p className="text-[11px] font-bold text-cyan-400 uppercase tracking-widest mt-0.5">{kit.participant_id}</p>
+                                    <p className="text-[11px] font-bold text-blue-400 uppercase tracking-widest mt-0.5">{kit.participant_id}</p>
                                     <div className="flex items-start gap-2 mt-3 p-3 bg-white/5 rounded-2xl border border-white/5 group/addr relative">
                                         <MapPin className="w-4 h-4 text-slate-600 mt-1 shrink-0" />
                                         <textarea 
@@ -283,7 +287,7 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                                 </td>
                                 <td className="px-10 py-10 border-r border-white/5">
                                     <div className="space-y-4">
-                                        <div className="bg-white/5 p-1 rounded-2xl border border-white/10 hover:border-cyan-500/30 transition-colors">
+                                        <div className="bg-white/5 p-1 rounded-2xl border border-white/10 hover:border-blue-500/30 transition-colors">
                                             <select 
                                                 value={kit.carrier}
                                                 onChange={(e) => {
@@ -324,7 +328,7 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                                                     }
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="flex items-center gap-1.5 mt-2 text-[10px] font-black text-cyan-400 hover:text-white transition-colors uppercase tracking-widest italic"
+                                                    className="flex items-center gap-1.5 mt-2 text-[10px] font-black text-blue-400 hover:text-white transition-colors uppercase tracking-widest italic"
                                                 >
                                                     <ExternalLink className="w-3 h-3" /> Live Protocol Track
                                                 </a>
@@ -338,12 +342,12 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                                                     }
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="flex items-center gap-1.5 mt-2 text-[10px] font-black text-slate-600 hover:text-cyan-400 transition-colors uppercase tracking-widest italic"
+                                                    className="flex items-center gap-1.5 mt-2 text-[10px] font-black text-slate-600 hover:text-blue-400 transition-colors uppercase tracking-widest italic"
                                                 >
                                                     <ExternalLink className="w-3 h-3" /> Open Carrier Portal
                                                 </a>
                                             )}
-                                            <div className="absolute bottom-0 left-0 h-0.5 bg-cyan-600 w-0 group-focus-within/track:w-full transition-all duration-500" />
+                                            <div className="absolute bottom-0 left-0 h-0.5 bg-blue-600 w-0 group-focus-within/track:w-full transition-all duration-500" />
                                         </div>
                                     </div>
                                 </td>
@@ -380,7 +384,7 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                                         </button>
                                         <button 
                                             onClick={() => downloadLabel(kit, 'SHIPPING')}
-                                            className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white hover:bg-cyan-600 hover:border-cyan-500 transition-all flex items-center justify-between"
+                                            className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white hover:bg-blue-600 hover:border-blue-500 transition-all flex items-center justify-between"
                                         >
                                             Distro Label <ArrowRight className="w-3 h-3 opacity-40" />
                                         </button>
@@ -410,7 +414,7 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                                                 onClick={() => {
                                                     alert(`Synchronizing Kit ${kit.kit_number} telemetry with clinical network...`);
                                                 }}
-                                                className="px-5 py-3 bg-cyan-600 text-white rounded-xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-cyan-900/40 hover:scale-[1.02] active:scale-95 transition-all mt-2"
+                                                className="px-5 py-3 bg-blue-600 text-white rounded-xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-blue-900/40 hover:scale-[1.02] active:scale-95 transition-all mt-2"
                                             >
                                                 Push Updates
                                             </button>
@@ -447,14 +451,14 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
                             className="relative w-full max-w-2xl bg-[#0B101B] border border-white/10 rounded-[3rem] p-10 shadow-2xl overflow-hidden"
                         >
-                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent" />
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent" />
                             
                             <div className="flex items-center gap-6 mb-10">
-                                <div className="p-4 bg-cyan-500/10 rounded-3xl border border-cyan-500/20">
-                                    <Package className="w-8 h-8 text-cyan-400" />
+                                <div className="p-4 bg-blue-500/10 rounded-3xl border border-blue-500/20">
+                                    <Package className="w-8 h-8 text-blue-400" />
                                 </div>
                                 <div>
-                                    <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Assign New <span className="text-cyan-400">Clinical Kit</span></h3>
+                                    <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Assign New <span className="text-blue-400">Clinical Kit</span></h3>
                                     <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest mt-1">Register specimen box with clinical logistics network</p>
                                 </div>
                             </div>
@@ -465,10 +469,10 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                                     <select 
                                         value={newKit.participantId}
                                         onChange={(e) => setNewKit({ ...newKit, participantId: e.target.value })}
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-[12px] font-bold text-white outline-none focus:border-cyan-500/50 transition-all uppercase appearance-none"
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-[12px] font-bold text-white outline-none focus:border-blue-500/50 transition-all uppercase appearance-none"
                                     >
                                         <option value="">Select Subject...</option>
-                                        {participants.map(p => (
+                                        {Array.isArray(participants) && participants.map(p => (
                                             <option key={p.id} value={p.id} className="bg-[#0B101B]">{p.participant_sid} - {p.user_details?.full_name}</option>
                                         ))}
                                     </select>
@@ -480,7 +484,7 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                                         placeholder="EX: SK-2024-XXXX"
                                         value={newKit.kitNumber}
                                         onChange={(e) => setNewKit({ ...newKit, kitNumber: e.target.value })}
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-[12px] font-bold text-white outline-none focus:border-cyan-500/50 transition-all uppercase placeholder:text-slate-700"
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-[12px] font-bold text-white outline-none focus:border-blue-500/50 transition-all uppercase placeholder:text-slate-700"
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -488,7 +492,7 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                                     <select 
                                         value={newKit.kitType}
                                         onChange={(e) => setNewKit({ ...newKit, kitType: e.target.value })}
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-[12px] font-bold text-white outline-none focus:border-cyan-500/50 transition-all uppercase appearance-none"
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-[12px] font-bold text-white outline-none focus:border-blue-500/50 transition-all uppercase appearance-none"
                                     >
                                         <option value="Standard" className="bg-[#0B101B]">Standard Collection</option>
                                         <option value="Genetic" className="bg-[#0B101B]">Genetic Sampling</option>
@@ -501,7 +505,7 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                                     <select 
                                         value={newKit.carrier}
                                         onChange={(e) => setNewKit({ ...newKit, carrier: e.target.value })}
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-[12px] font-bold text-white outline-none focus:border-cyan-500/50 transition-all uppercase appearance-none"
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-[12px] font-bold text-white outline-none focus:border-blue-500/50 transition-all uppercase appearance-none"
                                     >
                                         <option value="FedEx" className="bg-[#0B101B]">FedEx Express</option>
                                         <option value="UPS" className="bg-[#0B101B]">UPS Worldwide</option>
@@ -520,7 +524,7 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                                 </button>
                                 <button 
                                     onClick={handleAssignKit}
-                                    className="flex-[2] px-8 py-4 bg-cyan-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-cyan-900/40"
+                                    className="flex-[2] px-8 py-4 bg-blue-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-blue-900/40"
                                 >
                                     Register Protocol Kit
                                 </button>

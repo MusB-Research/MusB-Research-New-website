@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { 
-    ArrowLeft, 
-    Clock, 
-    Calendar, 
-    ShieldCheck, 
-    Info, 
-    CheckCircle2, 
-    Microscope, 
-    Box, 
+import {
+    ArrowLeft,
+    Clock,
+    Calendar,
+    ShieldCheck,
+    Info,
+    CheckCircle2,
+    Microscope,
+    Box,
     Lock,
     Search,
     Stethoscope
@@ -16,6 +16,7 @@ import {
 import { fetchStudies, Study } from '../data/studies';
 import { motion } from 'framer-motion';
 import { authFetch } from '../utils/auth';
+import { Skeleton } from './Participant/SharedComponents';
 
 const customStudyContent: Record<string, any> = {
     'beat the bloat': {
@@ -119,23 +120,23 @@ export default function StudyDetail() {
     if (loading || !study) {
         return (
             <div className="min-h-screen pt-40 pb-24 px-4 md:px-12">
-                <div className="max-w-7xl mx-auto space-y-10 animate-pulse">
+                <div className="max-w-7xl mx-auto space-y-10">
                     {/* Back link skeleton */}
-                    <div className="h-4 w-36 bg-white/5 rounded-full" />
+                    <Skeleton className="h-4 w-36 rounded-full" />
                     <div className="grid lg:grid-cols-12 gap-12">
                         <div className="lg:col-span-8 space-y-8">
                             <div className="flex gap-3">
-                                <div className="h-7 w-24 bg-white/5 rounded-full" />
-                                <div className="h-7 w-20 bg-white/5 rounded-full" />
+                                <Skeleton className="h-7 w-24 rounded-full" />
+                                <Skeleton className="h-7 w-20 rounded-full" />
                             </div>
                             <div className="space-y-4">
-                                <div className="h-16 w-3/4 bg-white/5 rounded-2xl" />
-                                <div className="h-8 w-1/2 bg-white/5 rounded-xl" />
+                                <Skeleton className="h-16 w-3/4 rounded-2xl" />
+                                <Skeleton className="h-8 w-1/2 rounded-xl" />
                             </div>
-                            <div className="h-64 w-full bg-white/5 rounded-[3rem]" />
+                            <Skeleton className="h-64 w-full rounded-[3rem]" />
                         </div>
                         <div className="lg:col-span-4">
-                            <div className="h-64 w-full bg-white/5 rounded-[2.5rem]" />
+                            <Skeleton className="h-[400px] w-full rounded-[2.5rem]" />
                         </div>
                     </div>
                 </div>
@@ -149,9 +150,9 @@ export default function StudyDetail() {
     return (
         <div className="min-h-screen pt-40 pb-24 px-4 md:px-12 bg-transparent text-slate-200">
             <div className="max-w-7xl mx-auto space-y-16">
-                
+
                 {/* Header Nav */}
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     className="flex items-center gap-4"
@@ -163,13 +164,13 @@ export default function StudyDetail() {
                 </motion.div>
 
                 <div className="grid lg:grid-cols-12 gap-12 items-start">
-                    
+
                     {/* Left Column: Content */}
                     <div className="lg:col-span-8 space-y-12">
-                        
+
                         {/* Title Section */}
                         <div className="space-y-8">
-                            <motion.div 
+                            <motion.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 className="flex flex-wrap gap-3"
@@ -189,7 +190,7 @@ export default function StudyDetail() {
                                     </span>
                                 ))}
                             </motion.div>
-                            
+
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -206,14 +207,14 @@ export default function StudyDetail() {
                         </div>
 
                         {/* Overview Card */}
-                        <motion.section 
+                        <motion.section
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2 }}
                             className="bg-[#0f172a]/40 backdrop-blur-[40px] rounded-[3.5rem] p-10 md:p-14 border border-white/10 shadow-2xl relative overflow-hidden group"
                         >
                             <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 blur-[80px] rounded-full -mr-20 -mt-20"></div>
-                            
+
                             <div className="relative z-10 space-y-8">
                                 <h2 className="text-3xl font-black text-white uppercase italic tracking-tight flex items-center gap-4">
                                     <div className="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
@@ -238,7 +239,7 @@ export default function StudyDetail() {
                         {/* Additional info for custom studies */}
                         {customContent && (
                             <>
-                                <motion.section 
+                                <motion.section
                                     initial={{ opacity: 0, y: 30 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.3 }}
@@ -260,7 +261,7 @@ export default function StudyDetail() {
                                     </div>
                                 </motion.section>
 
-                                <motion.section 
+                                <motion.section
                                     initial={{ opacity: 0, y: 30 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.4 }}
@@ -285,7 +286,7 @@ export default function StudyDetail() {
 
                     {/* Right Column: CTA Sidebar */}
                     <div className="lg:col-span-4 lg:sticky lg:top-40">
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ duration: 0.5 }}
@@ -293,7 +294,7 @@ export default function StudyDetail() {
                         >
                             {/* Decorative background glow */}
                             <div className="absolute -top-10 -right-10 w-32 h-32 bg-cyan-500/10 blur-3xl rounded-full"></div>
-                            
+
                             <div className="space-y-3 relative z-10">
                                 <h3 className="text-sm font-black uppercase tracking-[0.3em] text-slate-500">Ready to participate?</h3>
                                 <div className="text-3xl font-black text-white italic uppercase tracking-tight">
@@ -301,7 +302,7 @@ export default function StudyDetail() {
                                 </div>
                             </div>
 
-                            <Link 
+                            <Link
                                 to={`/studies/${study.id}/screener`}
                                 className="inline-flex items-center justify-center px-10 py-5 bg-cyan-500 text-slate-950 rounded-full font-black text-[16px] uppercase tracking-[0.2em] hover:bg-white hover:shadow-[0_0_30px_rgba(34,211,238,0.4)] hover:-translate-y-0.5 transition-all duration-300 relative z-10"
                             >

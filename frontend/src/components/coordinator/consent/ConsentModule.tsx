@@ -47,7 +47,7 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
     const [piNotes, setPiNotes] = useState('');
     
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
-    const [uploadForm, setUploadForm] = useState<any>({ title: '', study: '', type: 'Main Consent', version: '1.0', irbNumber: '', irbApprovalDate: '', effectiveDate: '', expirationDate: '', language: 'English', notes: '', file: null });
+    const [uploadForm, setUploadForm] = useState<any>({ title: '', study: '', type: 'Main Consent', version: '1.0', irbNumber: '', irbApprovalDate: '', effectiveDate: '', expirationDate: '', language: 'English', terms_content: '', notes: '', file: null });
 
     const [toasts, setToasts] = useState<{ id: string, type: string, message: string }[]>([]);
     const [confirmModal, setConfirmModal] = useState<{ message: string, onConfirm: () => void, type?: string, confirmLabel?: string } | null>(null);
@@ -147,6 +147,7 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
             }
             
             formData.append('effective_date', backendDate);
+            formData.append('terms_content', uploadForm.terms_content || '');
             formData.append('notes', uploadForm.notes || '');
             formData.append('placed_fields', JSON.stringify([]));
 
@@ -168,7 +169,7 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
                 setConsents([processed, ...consents]);
                 setActiveConsentId(processed.id);
                 setUploadModalOpen(false);
-                setUploadForm({ title: '', study: '', type: 'Main Consent', version: '1.0', irbNumber: '', effectiveDate: '', notes: '', file: null });
+                setUploadForm({ title: '', study: '', type: 'Main Consent', version: '1.0', irbNumber: '', effectiveDate: '', terms_content: '', notes: '', file: null });
                 addToast('Protocol record initialized in secure vault', 'success');
             } else {
                 const err = await res.json();
@@ -311,6 +312,7 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
                         thumbnailOpen={thumbnailOpen}
                         setActiveView={setActiveView}
                         setUploadModalOpen={setUploadModalOpen}
+                        handleUpdateTemplate={handleUpdateTemplate}
                         addToast={addToast}
                     />
                 )}

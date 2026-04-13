@@ -41,9 +41,9 @@ const AnimatedBackground = () => {
             for (let i = 0; i < particleCount; i++) {
                 const size = Math.random() * 2.5 + 1;
                 const colors = [
-                    'rgba(0, 229, 255, ', // Cyan
-                    'rgba(37, 99, 235, ', // Blue
-                    'rgba(59, 130, 246, ', // Royal Blue
+                    'rgba(6, 182, 212, ', // Cyan 500
+                    'rgba(45, 212, 191, ', // Teal 400
+                    'rgba(255, 255, 255, ', // White/Glow
                 ];
                 const colorBase = colors[Math.floor(Math.random() * colors.length)];
 
@@ -126,9 +126,9 @@ const AnimatedBackground = () => {
             });
 
             const spots = [
-                { x: 0.2, y: 0.2, c: 'rgba(37, 99, 235, 0.05)', r: 0.6 },
-                { x: 0.8, y: 0.8, c: 'rgba(6, 182, 212, 0.05)', r: 0.6 },
-                { x: 0.5, y: 0.5, c: 'rgba(59, 130, 246, 0.03)', r: 0.4 }
+                { x: 0.2, y: 0.2, c: 'rgba(6, 182, 212, 0.03)', r: 0.6 },
+                { x: 0.8, y: 0.8, c: 'rgba(99, 102, 241, 0.03)', r: 0.6 },
+                { x: 0.5, y: 0.5, c: 'rgba(255, 255, 255, 0.01)', r: 0.4 }
             ];
 
             spots.forEach(spot => {

@@ -62,6 +62,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     # Onboarding Flags
     must_change_password = models.BooleanField(default=False)
     profile_completed = models.BooleanField(default=False)
+    is_screener_completed = models.BooleanField(default=False)
     google_auth = models.BooleanField(default=False)
     temp_password_sent = models.BooleanField(default=False)
     temp_token_expiry = models.DateTimeField(null=True, blank=True)

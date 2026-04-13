@@ -33,7 +33,7 @@ interface Visit {
     measurements?: Record<string, any>;
 }
 
-const VisitsView = ({ visits = [], study, tasks = [] }: { visits: Visit[]; study: any; tasks: any[] }) => {
+const VisitsView = ({ visits = [], study, tasks = [], isLoading = false }: { visits: Visit[]; study: any; tasks: any[]; isLoading?: boolean }) => {
     const [viewMode, setViewMode] = useState<'timeline' | 'calendar'>('timeline');
     const [viewDate, setViewDate] = useState(new Date());
 
@@ -45,8 +45,8 @@ const VisitsView = ({ visits = [], study, tasks = [] }: { visits: Visit[]; study
     const getStatusStyle = (status: string) => {
         switch (status) {
             case 'COMPLETED': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-            case 'SCHEDULED': return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20';
-            case 'IN_PROGRESS': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+            case 'SCHEDULED': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+            case 'IN_PROGRESS': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
             case 'MISSED': return 'bg-red-500/10 text-red-400 border-red-500/20';
             case 'CANCELLED': return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
             default: return 'bg-white/5 text-slate-400 border-white/10';
@@ -94,6 +94,27 @@ const VisitsView = ({ visits = [], study, tasks = [] }: { visits: Visit[]; study
         return { daysInMonth, firstDay, sessionsByDate };
     }, [viewDate, visits, tasks]);
 
+    if (isLoading) {
+        return (
+            <div className="flex flex-col gap-10 max-w-[1500px] animate-pulse">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-white/5 border border-white/5 rounded-2xl" />
+                        <div className="space-y-2">
+                            <div className="h-8 w-64 bg-white/10 rounded-xl" />
+                            <div className="h-3 w-48 bg-white/5 rounded-full" />
+                        </div>
+                    </div>
+                </div>
+                <div className="space-y-8">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="h-64 bg-white/5 border border-white/5 rounded-[3rem]" />
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
     const renderCalendar = () => {
         const { daysInMonth, firstDay, sessionsByDate } = calendarData;
         const monthYear = viewDate.toLocaleString('default', { month: 'long', year: 'numeric' });
@@ -102,7 +123,7 @@ const VisitsView = ({ visits = [], study, tasks = [] }: { visits: Visit[]; study
             <div className="flex-1 flex flex-col space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 <div className="flex items-center justify-between">
                     <div className="space-y-1">
-                        <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Protocol <span className="text-cyan-400">Calendar</span></h2>
+                        <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Protocol <span className="text-amber-500">Calendar</span></h2>
                         <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-1 italic">{monthYear} • All Activities Synchronized</p>
                     </div>
                     <div className="flex items-center gap-4 bg-white/5 p-2 rounded-2xl border border-white/5">
@@ -134,7 +155,7 @@ const VisitsView = ({ visits = [], study, tasks = [] }: { visits: Visit[]; study
                                 className={`min-h-[140px] bg-[#090E1A] p-4 border-r border-b border-white/[0.03] transition-all hover:bg-white/[0.02] ${!isCurrentMonth ? 'opacity-20' : ''}`}
                             >
                                 <div className="flex justify-between items-start mb-3">
-                                    <span className={`text-lg font-black italic ${dayNum === new Date().getDate() && viewDate.getMonth() === new Date().getMonth() ? 'text-cyan-400' : 'text-slate-700'}`}>
+                                    <span className={`text-lg font-black italic ${dayNum === new Date().getDate() && viewDate.getMonth() === new Date().getMonth() ? 'text-amber-500' : 'text-slate-700'}`}>
                                         {isCurrentMonth ? dayNum : ''}
                                     </span>
                                 </div>
@@ -144,7 +165,7 @@ const VisitsView = ({ visits = [], study, tasks = [] }: { visits: Visit[]; study
                                             key={idx} 
                                             className={`p-2 rounded-lg border text-[10px] font-black uppercase tracking-tighter truncate ${
                                                 s.type === 'VISIT' 
-                                                    ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400' 
+                                                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' 
                                                     : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                                             }`}
                                         >
@@ -169,11 +190,11 @@ const VisitsView = ({ visits = [], study, tasks = [] }: { visits: Visit[]; study
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl flex items-center justify-center text-cyan-400">
+                    <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center text-amber-500">
                         <CalendarClock className="w-6 h-6" />
                     </div>
                     <div>
-                        <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Clinical <span className="text-cyan-400">Oversight</span></h2>
+                        <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Clinical <span className="text-amber-500">Oversight</span></h2>
                         <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-1 italic">Protocol Timeline & Site Alignment</p>
                     </div>
                 </div>
@@ -181,13 +202,13 @@ const VisitsView = ({ visits = [], study, tasks = [] }: { visits: Visit[]; study
                 <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5">
                     <button 
                         onClick={() => setViewMode('timeline')}
-                        className={`px-6 py-2 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all italic flex items-center gap-2 ${viewMode === 'timeline' ? 'bg-cyan-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                        className={`px-6 py-2 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all italic flex items-center gap-2 ${viewMode === 'timeline' ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/20' : 'text-slate-500 hover:text-white'}`}
                     >
                         <LayoutGrid className="w-3.5 h-3.5" /> Timeline
                     </button>
                     <button 
                         onClick={() => setViewMode('calendar')}
-                        className={`px-6 py-2 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all italic flex items-center gap-2 ${viewMode === 'calendar' ? 'bg-cyan-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                        className={`px-6 py-2 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all italic flex items-center gap-2 ${viewMode === 'calendar' ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/20' : 'text-slate-500 hover:text-white'}`}
                     >
                         <Calendar className="w-3.5 h-3.5" /> Grid Calendar
                     </button>
@@ -197,7 +218,7 @@ const VisitsView = ({ visits = [], study, tasks = [] }: { visits: Visit[]; study
             {viewMode === 'timeline' ? (
                 <div className="relative">
                     {/* Vertical Line */}
-                    <div className="absolute left-8 top-0 bottom-0 w-[2px] bg-gradient-to-b from-cyan-500/50 via-indigo-500/20 to-transparent hidden md:block" />
+                    <div className="absolute left-8 top-0 bottom-0 w-[2px] bg-gradient-to-b from-amber-500/50 via-indigo-500/20 to-transparent hidden md:block" />
 
                     <div className="space-y-8 relative">
                         {sortedVisits.length > 0 ? (
@@ -210,10 +231,10 @@ const VisitsView = ({ visits = [], study, tasks = [] }: { visits: Visit[]; study
                                     className="relative md:pl-20"
                                 >
                                     {/* Marker Dot */}
-                                    <div className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-4 border-[#0a0e1a] bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.8)] z-10 hidden md:block" />
+                                    <div className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-4 border-[#0a0e1a] bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.8)] z-10 hidden md:block" />
 
-                                    <Card className={`p-8 bg-[#0d1424] border-white/5 hover:border-cyan-500/30 transition-all group overflow-hidden`}>
-                                        <div className={`absolute top-0 right-0 w-64 h-64 opacity-5 pointer-events-none rounded-full blur-[100px] ${visit.status === 'COMPLETED' ? 'bg-emerald-500' : 'bg-cyan-500'}`} />
+                                    <Card className={`p-8 bg-[#0d1424] border-white/5 hover:border-amber-500/30 transition-all group overflow-hidden`}>
+                                        <div className={`absolute top-0 right-0 w-64 h-64 opacity-5 pointer-events-none rounded-full blur-[100px] ${visit.status === 'COMPLETED' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
 
                                         <div className="flex flex-col lg:flex-row gap-8 relative z-10">
                                             <div className="lg:w-1/3 flex flex-col justify-between">
@@ -222,7 +243,7 @@ const VisitsView = ({ visits = [], study, tasks = [] }: { visits: Visit[]; study
                                                         {visit.status.replace(/_/g, ' ')}
                                                     </Badge>
                                                     <div className="space-y-1">
-                                                        <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter group-hover:text-cyan-400 transition-colors">
+                                                        <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter group-hover:text-amber-500 transition-colors">
                                                             {visit.visit_type.replace(/_/g, ' ')}
                                                         </h3>
                                                         <p className="text-slate-500 font-bold text-sm uppercase tracking-widest flex items-center gap-2">
@@ -233,7 +254,7 @@ const VisitsView = ({ visits = [], study, tasks = [] }: { visits: Visit[]; study
                                                 </div>
                                                 <div className="mt-8 pt-6 border-t border-white/5">
                                                     <div className="flex items-center gap-3 text-slate-400">
-                                                        <MapPin className="w-4 h-4 text-cyan-400" />
+                                                        <MapPin className="w-4 h-4 text-amber-500" />
                                                         <span className="text-[12px] font-black uppercase tracking-widest italic">{visit.location || 'Clinical Site Alpha'}</span>
                                                     </div>
                                                 </div>
@@ -253,7 +274,7 @@ const VisitsView = ({ visits = [], study, tasks = [] }: { visits: Visit[]; study
                                                             <ClipboardList className="w-4 h-4" />
                                                             <span className="text-[10px] font-black uppercase tracking-widest">Protocol Phase</span>
                                                         </div>
-                                                        <p className="text-lg font-black text-indigo-400 italic uppercase tracking-tight">Phase {index + 1} Assessment</p>
+                                                        <p className="text-lg font-black text-amber-500 italic uppercase tracking-tight">Phase {index + 1} Assessment</p>
                                                     </div>
                                                 </div>
 
@@ -293,4 +314,4 @@ const VisitsView = ({ visits = [], study, tasks = [] }: { visits: Visit[]; study
     );
 };
 
-export default VisitsView;
+export default React.memo(VisitsView);

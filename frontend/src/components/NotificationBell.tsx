@@ -13,7 +13,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ unreadCount, onClic
             onClick={onClick}
             className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center border transition-all relative group shadow-lg active:scale-90 shrink-0 ${
                 unreadCount > 0 
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 hover:border-amber-500/50' 
+                ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 hover:border-blue-500/50' 
                 : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white'
             } ${className}`}
         >

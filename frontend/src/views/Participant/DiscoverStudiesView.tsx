@@ -1,225 +1,179 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Loader2, Network, ClipboardCheck, AlertCircle, CheckCircle2, ArrowRight, Globe, LayoutGrid, List } from 'lucide-react';
+import { Search, Loader2, ClipboardCheck, ArrowRight, Clock, MapPin, DollarSign } from 'lucide-react';
 import { authFetch, API } from '../../utils/auth';
 import { useNavigate } from 'react-router-dom';
 
-export default function DiscoverStudiesView() {
+export default function DiscoverStudiesView({ loading: externalLoading }: { loading?: boolean }) {
     const navigate = useNavigate();
     const [publicStudies, setPublicStudies] = useState<any[]>([]);
-    const [activeEnrollment, setActiveEnrollment] = useState<any>(null);
-    const [enrolledStudyId, setEnrolledStudyId] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [internalLoading, setInternalLoading] = useState(true);
+    const loading = externalLoading !== undefined ? externalLoading : internalLoading;
+
+    const [participantRecords, setParticipantRecords] = useState<any[]>([]);
+
     useEffect(() => {
         const fetchData = async () => {
+            setInternalLoading(true);
             try {
                 const apiUrl = API || 'http://localhost:8000';
-                // Fetch Participant records and Public Studies in parallel
-                const [pRes, res] = await Promise.all([
-                    authFetch(`${apiUrl}/api/participants/`),
-                    authFetch(`${apiUrl}/api/public-studies/`)
+                
+                // Fetch studies and all participant records in parallel
+                const [studiesRes, recordsRes] = await Promise.all([
+                    authFetch(`${apiUrl}/api/public-studies/`),
+                    authFetch(`${apiUrl}/api/participants/`)
                 ]);
 
-                if (pRes.ok) {
-                    const data = await pRes.json();
-                    const pData = Array.isArray(data) ? data : (data.results || []);
-                    // Senior Developer: Strict Priority Sorting to ensure "Current Study" matches ground-truth enrollment
-                    const priority = ['ENROLLED', 'RANDOMIZED', 'ACTIVE', 'CONSENTED'];
-                    const sortedPData = [...pData].sort((a: any, b: any) => {
-                        const sA = (a.status || '').toUpperCase();
-                        const sB = (b.status || '').toUpperCase();
-                        const idxA = priority.indexOf(sA);
-                        const idxB = priority.indexOf(sB);
-                        
-                        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-                        if (idxA !== -1) return -1;
-                        if (idxB !== -1) return 1;
-                        return 0;
-                    });
-
-                    const active = sortedPData.find(
-                        (p: any) => !['DROPPED', 'INELIGIBLE', 'COMPLETED'].includes((p.status || '').toUpperCase())
-                    );
-                    if (active) {
-                        setActiveEnrollment(active);
-                        setEnrolledStudyId(active.study);
-                    }
+                if (studiesRes.ok) {
+                    const data = await studiesRes.json();
+                    setPublicStudies(Array.isArray(data) ? data : (data.results || []));
                 }
 
-                if (res.ok) {
-                    const data = await res.json();
-                    const results = Array.isArray(data) ? data : (data.results || []);
-                    // Primary Sort: created_at (Oldest First) to match backend standard
-                    const sorted = [...results].sort((a: any, b: any) =>
-                        (a.created_at || '').localeCompare(b.created_at || '')
-                    );
-                    setPublicStudies(sorted);
+                if (recordsRes.ok) {
+                    const data = await recordsRes.json();
+                    setParticipantRecords(Array.isArray(data) ? data : (data.results || []));
                 }
             } catch (error) {
-                console.error('Error fetching studies data:', error);
+                console.error('Error fetching discovery data:', error);
             } finally {
-                setLoading(false);
+                setInternalLoading(false);
             }
         };
         fetchData();
     }, []);
 
-    const isCurrentStudy = (study: any) =>
-        enrolledStudyId &&
-        (study.id === enrolledStudyId || study.protocol_id === enrolledStudyId);
-
-    const hasActiveEnrollment = !!activeEnrollment;
-
-    const getStatusColor = (status: string) => {
+    const getStatusStyles = (status: string) => {
         const s = (status || '').toUpperCase();
-        if (s === 'RECRUITING') return 'text-green-400 bg-green-500/10 border-green-500/20';
-        if (s === 'ACTIVE') return 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20';
-        if (s === 'PAUSED') return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20';
-        return 'text-slate-400 bg-slate-500/10 border-slate-500/20';
+        if (s === 'RECRUITING' || s === 'OPEN') return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+        if (s === 'UPCOMING') return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+        if (s === 'CLOSED') return 'bg-slate-500/10 text-slate-500 border-slate-500/20';
+        return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
     };
 
-    const getEnrollmentLabel = (status: string) => {
-        const s = (status || '').toUpperCase();
-        // Senior Developer: Mapping internal protocol states to user-centric labels
-        if (['SCREENING', 'PENDING_REVIEW', 'APPLICATION'].includes(s)) return 'Under Review';
-        if (['CONSENTED', 'ENROLLED', 'RANDOMIZED', 'ACTIVE'].includes(s)) return 'Enrolled';
-        return s;
+    const getEnrollmentStatus = (studyId: string) => {
+        const records = Array.isArray(participantRecords) ? participantRecords : [];
+        const record = records.find(p => String(p.study) === String(studyId));
+        return record ? (record.status || 'REGISTERED').toUpperCase() : null;
     };
 
     if (loading) {
         return (
-            <div className="flex h-full items-center justify-center pt-20">
-                <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-pulse">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="bg-[#0a1525]/80 border border-white/[0.03] rounded-3xl p-6 h-[420px] relative overflow-hidden">
+                        <div className="shimmer-effect" />
+                        <div className="space-y-6">
+                            <div className="flex justify-between">
+                                <div className="h-8 w-24 bg-white/5 rounded-lg" />
+                                <div className="h-4 w-32 bg-white/5 rounded-full" />
+                            </div>
+                            <div className="space-y-3">
+                                <div className="h-12 w-full bg-white/5 rounded-xl" />
+                                <div className="h-4 w-3/4 bg-white/5 rounded-full" />
+                            </div>
+                            <div className="flex gap-4">
+                                <div className="h-4 w-20 bg-white/5 rounded-full" />
+                                <div className="h-4 w-20 bg-white/5 rounded-full" />
+                            </div>
+                            <div className="mt-auto border-t border-white/5 pt-8">
+                                <div className="h-14 w-full bg-white/5 rounded-xl" />
+                            </div>
+                        </div>
+                    </div>
+                ))}
             </div>
         );
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8 animate-in fade-in duration-500">
             {publicStudies.length === 0 ? (
-                <div className="p-12 border border-white/5 bg-[#0a0f1d] rounded-2xl text-center shadow-lg">
-                    <Search className="w-10 h-10 text-slate-600 mx-auto mb-4" />
-                    <p className="text-slate-500 text-[12px] italic tracking-widest uppercase font-bold">
-                        No active studies currently recruiting.
-                    </p>
+                <div className="p-20 border border-white/5 bg-[#0a0f1d]/50 rounded-3xl text-center">
+                    <Search className="w-12 h-12 text-slate-700 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-slate-400 uppercase tracking-widest">No studies available at the moment</h3>
+                    <p className="text-slate-600 text-sm mt-2 uppercase tracking-tight">Check back later or update your profile</p>
                 </div>
             ) : (
-                <div className="space-y-6">
-                    {/* View Toggle */}
-                    <div className="flex justify-end pt-2 relative z-50">
-                        <div className="flex bg-[#0a0f1d] p-1 rounded-2xl border border-white/5 shadow-2xl relative z-50">
-                            <button
-                                onClick={() => setViewMode('grid')}
-                                className={`p-2.5 rounded-xl transition-all duration-300 ${viewMode === 'grid' ? 'bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20' : 'text-slate-600 hover:text-slate-400'} cursor-pointer`}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {publicStudies.map(study => {
+                        const enrollmentStatus = getEnrollmentStatus(study.id);
+                        const isEnrolled = !!enrollmentStatus;
+
+                        return (
+                            <div
+                                key={study.id}
+                                onClick={() => navigate(`/studies/${study.protocol_id || study.id}`)}
+                                className="bg-[#0a1525]/80 backdrop-blur-xl border border-white/[0.03] rounded-3xl p-6 flex flex-col justify-between transition-all duration-500 hover:bg-[#0c1a33] hover:border-amber-500/30 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4),0_0_30px_rgba(251,191,36,0.03)] group relative overflow-hidden cursor-pointer"
                             >
-                                <LayoutGrid className="w-5 h-5" />
-                            </button>
-                            <button
-                                onClick={() => setViewMode('list')}
-                                className={`p-2.5 rounded-xl transition-all duration-300 ${viewMode === 'list' ? 'bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20' : 'text-slate-600 hover:text-slate-400'} cursor-pointer`}
-                            >
-                                <List className="w-5 h-5" />
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className={viewMode === 'grid' ? "grid grid-cols-1 xl:grid-cols-2 gap-6" : "space-y-4"}>
-                        {publicStudies.map(study => {
-                            const isMine = isCurrentStudy(study);
-                            const studySlug = study.protocol_id || study.id;
-
-                            return (
-                                <div
-                                    key={`${study.protocol_id}-${study.title}`}
-                                    className={`bg-[#0a0e1a] border rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col transition-all ${isMine ? 'border-cyan-500/40' : 'border-white/10 hover:border-cyan-500/30'} ${viewMode === 'list' ? 'md:flex-row md:items-center md:justify-between gap-6' : 'justify-between'}`}
-                                >
-                                    {/* Accent bar */}
-                                    <div className={`absolute ${viewMode === 'grid' ? 'top-0 left-0 w-full h-1' : 'top-0 left-0 w-1 h-full'} bg-gradient-to-r from-cyan-400 to-emerald-500`} />
-
-                                    <div className={`space-y-3 ${viewMode === 'list' ? 'flex-1' : 'mb-5'}`}>
-                                        {/* Status badges */}
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <span className={`text-[12px] px-2 py-1 rounded-sm uppercase tracking-widest font-black inline-block border ${getStatusColor(study.status)}`}>
-                                                {study.status}
+                                <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/0 via-amber-500/0 to-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                                <div className="space-y-4">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex gap-2">
+                                            <span className={`px-3 py-1.5 rounded-md text-[12px] font-black uppercase tracking-[0.1em] border ${getStatusStyles(study.status)}`}>
+                                                {study.status || 'RECRUITING'}
                                             </span>
-                                            {isMine && (
-                                                <span className={`text-[12px] px-2 py-1 rounded-sm uppercase tracking-widest font-black inline-flex items-center gap-1.5 border text-cyan-400 bg-cyan-500/10 border-cyan-500/20`}>
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                                                    {getEnrollmentLabel(activeEnrollment?.status)}
-                                                </span>
-                                            )}
-                                            {study.remote_participation && (
-                                                <span className="flex items-center gap-1 text-[12px] font-black text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded-sm uppercase tracking-widest">
-                                                    <Globe className="w-2.5 h-2.5" /> Remote
+                                            {isEnrolled && (
+                                                <span className="px-3 py-1.5 rounded-md text-[12px] font-black uppercase tracking-[0.1em] bg-amber-500 text-black border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)] animate-pulse">
+                                                    {enrollmentStatus}
                                                 </span>
                                             )}
                                         </div>
-
-                                        {/* Title & Info */}
-                                        <div className={viewMode === 'list' ? 'flex flex-col md:flex-row md:items-baseline gap-4 md:gap-6' : ''}>
-                                            <div>
-                                                <h3 className="text-[16px] font-black text-white italic uppercase leading-tight">{study.title}</h3>
-                                                <p className="text-[12px] font-bold text-slate-600 uppercase tracking-widest mt-0.5">STUDY ID: {study.protocol_id}</p>
-                                            </div>
-
-                                            {viewMode === 'list' && (
-                                                <div className="flex flex-wrap gap-4 text-[12px] font-bold text-slate-500 uppercase tracking-wider">
-                                                    {study.duration && <span>⏱ {study.duration}</span>}
-                                                    {study.location && <span>📍 {study.location}</span>}
-                                                    {study.compensation && <span className="text-green-500 italic">💰 YOU WILL BE COMPENSATED</span>}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Short description - only in grid or responsive list */}
-                                        {viewMode === 'grid' && (
-                                            <p className="text-[13px] text-slate-400 line-clamp-2 leading-relaxed">
-                                                {study.description || study.full_title || 'No description available.'}
-                                            </p>
-                                        )}
-
-                                        {/* Quick meta row - grid only */}
-                                        {viewMode === 'grid' && (
-                                            <div className="flex flex-wrap gap-3 text-[12px] font-bold text-slate-600 uppercase tracking-wider pt-1">
-                                                {study.duration && <span>⏱ {study.duration}</span>}
-                                                {study.location && <span>📍 {study.location}</span>}
-                                                {study.compensation && <span className="text-green-500 font-black italic">💰 YOU WILL BE COMPENSATED</span>}
-                                            </div>
-                                        )}
+                                        <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">
+                                            STUDY ID: {study.protocol_id || study.id}
+                                        </span>
                                     </div>
 
-                                    {/* Action Section */}
-                                    <div className={`${viewMode === 'list' ? 'w-full md:w-64' : 'w-full'}`}>
-                                        {isMine ? (
-                                            <div className="w-full bg-white/5 border border-cyan-500/20 text-cyan-400 px-4 py-3.5 rounded-xl font-black uppercase tracking-widest text-[12px] flex items-center justify-center gap-2 cursor-default">
-                                                <CheckCircle2 className="w-4 h-4" />
-                                                Current Study
+                                    <div className="space-y-1">
+                                        <h3 className="text-xl font-black text-white uppercase group-hover:text-amber-400 transition-colors tracking-tight line-clamp-2 min-h-[3.5rem]">
+                                            {study.title}
+                                        </h3>
+                                        <p className="text-slate-400 text-sm line-clamp-2 font-medium leading-relaxed min-h-[2.5rem]">
+                                            {study.description || 'Join our clinical research to help advance medical science.'}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-x-6 gap-y-3 pt-2">
+                                        {study.duration && (
+                                            <div className="flex items-center gap-2 text-[12px] font-black text-slate-400 uppercase tracking-wider">
+                                                <Clock className="w-3.5 h-3.5 text-amber-500" />
+                                                {study.duration}
                                             </div>
-                                        ) : (
-                                            <div className="space-y-2">
-                                                {hasActiveEnrollment && viewMode === 'grid' && (
-                                                    <p className="text-[11px] text-amber-500/60 uppercase tracking-widest font-bold flex items-center justify-center gap-1.5">
-                                                        <AlertCircle className="w-3 h-3" />
-                                                        Approval required
-                                                    </p>
-                                                )}
-                                                <button
-                                                    onClick={() => navigate(`/studies/${studySlug}`)}
-                                                    className="w-full bg-gradient-to-r from-cyan-500/5 to-blue-500/5 hover:from-cyan-500/15 hover:to-blue-500/15 border border-cyan-500/20 hover:border-cyan-400/50 text-cyan-300 hover:text-cyan-200 px-4 py-3.5 rounded-xl font-black uppercase tracking-widest text-[11px] flex items-center justify-center gap-2 transition-all active:scale-95 shadow-xl"
-                                                >
-                                                    <ClipboardCheck className="w-4 h-4" />
-                                                    {viewMode === 'list' ? 'Enroll' : 'Check Eligibility'}
-                                                    <ArrowRight className="w-3.5 h-3.5" />
-                                                </button>
+                                        )}
+                                        <div className="flex items-center gap-2 text-[12px] font-black text-slate-400 uppercase tracking-wider">
+                                            <MapPin className="w-3.5 h-3.5 text-amber-500" />
+                                            {study.visits || 'Multiple'} Visits
+                                        </div>
+                                        {study.compensation && (
+                                            <div className="flex items-center gap-2 text-[12px] font-black text-amber-500 uppercase tracking-wider">
+                                                <DollarSign className="w-3.5 h-3.5" />
+                                                YOU WILL BE COMPENSATED
                                             </div>
                                         )}
                                     </div>
                                 </div>
-                            );
-                        })}
-                    </div>
+
+                                <div className="mt-8 pt-6 border-t border-white/5 space-y-4">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/studies/${study.protocol_id || study.id}/screener`);
+                                        }}
+                                        className={`w-full flex items-center justify-center gap-3 border font-black uppercase tracking-[0.2em] text-[12px] py-4 rounded-xl transition-all duration-500 active:scale-[0.98] shadow-lg ${
+                                            isEnrolled && enrollmentStatus !== 'PENDING'
+                                            ? 'bg-white/5 border-white/10 text-slate-600'
+                                            : 'bg-amber-400/5 hover:bg-amber-400 border-amber-400/40 hover:border-amber-400 text-amber-500 hover:text-black shadow-amber-500/5'
+                                        }`}
+                                    >
+                                        <ClipboardCheck className="w-4 h-4 transition-transform group-hover:scale-110" />
+                                        {isEnrolled ? (enrollmentStatus === 'PENDING' ? 'Check Again' : 'Already Enrolled') : 'Check Eligibility'}
+                                        <ArrowRight className="w-3 h-3 group-hover:translate-x-1.5 transition-transform" />
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
-            )}
+            )
+}
         </div>
     );
 }

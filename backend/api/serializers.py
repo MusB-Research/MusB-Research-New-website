@@ -92,7 +92,7 @@ class UserSerializer(SanitizedModelSerializer):
             'id', 'email', 'full_name', 'role', 'phone_number', 'mobile_number',
             'profile_picture', 'password', 'last_login_formatted', 'date_joined_formatted',
             'full_address', 'city', 'state', 'zip_code', 'country', 'place_of_origin',
-            'must_change_password', 'profile_completed', 'is_active', 'timezone',
+            'must_change_password', 'profile_completed', 'is_screener_completed', 'is_active', 'timezone',
             'status', 'affiliation', 'assigned_studies', 'created_by'
         ]
 
@@ -214,7 +214,7 @@ class StudySerializer(SanitizedModelSerializer):
             'show_dosing_log', 'show_ae_report', 'show_lab_upload', 'is_archived',
             'reward_type', 'reward_logic', 'reward_config',
             'consent_template_file', 'consent_templates', 'documents',
-            'study_questionnaires',
+            'study_questionnaires', 'screener_config',
             'created_at', 'updated_at'
         ]
 
@@ -257,7 +257,7 @@ class PublicStudySerializer(SanitizedModelSerializer):
         fields = [
             'id', 'title', 'protocol_id', 'description', 'condition', 
             'duration', 'location', 'compensation', 'status', 'stage', 
-            'tags', 'uses_kit', 'created_at'
+            'tags', 'uses_kit', 'created_at', 'screener_config'
         ]
         ordering = ['created_at']
 
@@ -280,11 +280,14 @@ class StudyAssignmentSerializer(SanitizedModelSerializer):
 class VisitSerializer(SanitizedModelSerializer):
     id = serializers.CharField(read_only=True)
     notes = serializers.SerializerMethodField()
+    participant_name = serializers.CharField(source='participant.user.decrypted_name', read_only=True)
+    participant_sid = serializers.CharField(source='participant.participant_sid', read_only=True)
+    
     class Meta:
         model = Visit
         fields = [
-            'id', 'participant', 'visit_type', 'scheduled_date', 'actual_date', 
-            'status', 'notes', 'location', 'location_address', 'checklist', 
+            'id', 'participant', 'participant_name', 'participant_sid', 'visit_type', 'scheduled_date', 
+            'actual_date', 'status', 'notes', 'location', 'location_address', 'checklist', 
             'assessments', 'measurements', 'deviations', 'samples', 'dispensing', 
             'pi_approved', 'locked'
         ]
@@ -367,10 +370,11 @@ class FormResponseSerializer(SanitizedModelSerializer):
 class AssignedFormSerializer(SanitizedModelSerializer):
     form_details = FormSerializer(source='form', read_only=True)
     signed_pdf_url = serializers.SerializerMethodField()
+    participant_name = serializers.CharField(source='participant.user.decrypted_name', read_only=True)
 
     class Meta:
         model = AssignedForm
-        fields = ['id', 'study', 'form', 'form_details', 'participant', 'status', 'participant_signature', 'participant_signed_at', 'coordinator_signature', 'coordinator_signed_at', 'coordinator_user', 'pi_signature', 'pi_signed_at', 'pi_user', 'data', 'signed_pdf', 'signed_pdf_url', 'due_date', 'created_at', 'updated_at']
+        fields = ['id', 'study', 'form', 'form_details', 'participant', 'participant_name', 'status', 'participant_signature', 'participant_signed_at', 'coordinator_signature', 'coordinator_signed_at', 'coordinator_user', 'pi_signature', 'pi_signed_at', 'pi_user', 'data', 'signed_pdf', 'signed_pdf_url', 'due_date', 'created_at', 'updated_at']
         read_only_fields = ['participant_signed_at', 'coordinator_signed_at', 'pi_signed_at']
 
     def get_signed_pdf_url(self, obj):
@@ -427,6 +431,17 @@ class StaffTaskSerializer(SanitizedModelSerializer):
         fields = '__all__'
 
 class ConsentTemplateSerializer(SanitizedModelSerializer):
+    class Meta:
+        model = ConsentTemplate
+        fields = [
+            'id', 'study', 'created_by', 'title', 'version', 'status',
+            'require_participant_sig', 'require_cc_verification', 'require_pi_signoff',
+            'require_witness', 'require_lar', 'require_initials_on_pages', 'require_initial_sections',
+            'must_scroll_full', 'must_answer_quiz', 'terms_content', 'irbNumber', 'irbApprovalDate',
+            'effectiveDate', 'expirationDate', 'file', 'file_url', 'pageCount', 'placedFields', 'shortName',
+            'signatureRequirements', 'completionRules'
+        ]
+
     id = ObjectIdField(read_only=True)
     file_url = serializers.SerializerMethodField()
     
@@ -443,9 +458,6 @@ class ConsentTemplateSerializer(SanitizedModelSerializer):
     pageCount = serializers.IntegerField(source='page_count', default=1)
     shortName = serializers.SerializerMethodField()
 
-    class Meta:
-        model = ConsentTemplate
-        fields = '__all__'
 
     def to_internal_value(self, data):
         """Map frontend snake_case or camelCase keys to the correct internal field names."""
@@ -521,7 +533,7 @@ class ConsentSerializer(SanitizedModelSerializer):
             'pi_verified', 'pi_verified_at', 'pi_user', 'pi_name',
             'agreed_at', 'signed_pdf', 'signed_pdf_url', 'is_valid', 'audit_trail'
         ]
-        read_only_fields = ['agreed_at', 'ip_address', 'signed_pdf']
+        read_only_fields = ['agreed_at', 'ip_address']
 
     def get_signed_pdf_url(self, obj):
         if not obj.signed_pdf: return None
@@ -644,6 +656,7 @@ class ClinicalMessageSerializer(SanitizedModelSerializer):
 class ClinicalConversationBriefSerializer(SanitizedModelSerializer):
     id = ObjectIdField(read_only=True)
     participant_sid = serializers.CharField(source='participant.participant_sid', read_only=True)
+    participant_name = serializers.CharField(source='participant.user.decrypted_name', read_only=True)
     study_protocol = serializers.CharField(source='study.protocol_id', read_only=True)
     assigned_coordinator = serializers.CharField(source='study.coordinator.decrypted_name', read_only=True, allow_null=True)
     participant_status = serializers.CharField(source='participant.status', read_only=True)
@@ -651,7 +664,7 @@ class ClinicalConversationBriefSerializer(SanitizedModelSerializer):
     class Meta:
         model = ClinicalConversation
         fields = [
-            'id', 'participant', 'participant_sid', 'participant_status', 'study', 
+            'id', 'participant', 'participant_name', 'participant_sid', 'participant_status', 'study', 
             'study_protocol', 'status', 'is_flagged', 'last_message_preview', 
             'last_updated', 'created_at', 'assigned_coordinator'
         ]
@@ -664,6 +677,7 @@ class ClinicalConversationSerializer(SanitizedModelSerializer):
     id = ObjectIdField(read_only=True)
     messages = ClinicalMessageSerializer(many=True, read_only=True)
     participant_sid = serializers.CharField(source='participant.participant_sid', read_only=True)
+    participant_name = serializers.CharField(source='participant.user.decrypted_name', read_only=True)
     study_protocol = serializers.CharField(source='study.protocol_id', read_only=True)
     assigned_coordinator = serializers.CharField(source='study.coordinator.decrypted_name', read_only=True, allow_null=True)
     participant_status = serializers.CharField(source='participant.status', read_only=True)
@@ -671,7 +685,7 @@ class ClinicalConversationSerializer(SanitizedModelSerializer):
     class Meta:
         model = ClinicalConversation
         fields = [
-            'id', 'participant', 'participant_sid', 'participant_status', 'study', 
+            'id', 'participant', 'participant_name', 'participant_sid', 'participant_status', 'study', 
             'study_protocol', 'status', 'is_flagged', 'last_message_preview', 
             'last_updated', 'created_at', 'messages', 'assigned_coordinator'
         ]

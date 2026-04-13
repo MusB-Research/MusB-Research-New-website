@@ -602,7 +602,7 @@ export default function PIDashboard() {
                     {activeModule === 'AUDIT_LOG' && <AuditLogModule />}
                     {activeModule === 'TASKS' && <StaffTasksModule primaryColor="indigo" />}
                     {activeModule === 'PARTICIPANT_TASKS' && <ParticipantTaskManagement primaryColor="indigo" />}
-                    {activeModule === 'ANALYTICS' && <AnalyticsModule />}
+                    {activeModule === 'ANALYTICS' && <AnalyticsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'SPONSORS' && (
                         <SponsorsManagement
                             allUsers={users}

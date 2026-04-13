@@ -63,7 +63,6 @@ type CCModule =
     | 'REPORTS'
     | 'STUDY_DOCS'
     | 'MY_DOCS'
-    | 'SUBJECT_REVIEW'
     | 'MESSAGES'
     | 'ALERTS'
     | 'LAUNCH_STUDY'
@@ -88,7 +87,6 @@ export default function CoordinatorDashboard() {
         if (route === 'studies') return 'STUDIES';
         if (route === 'team') return 'TEAM';
         if (route === 'participants') return 'PARTICIPANTS';
-        if (route === 'subject-review') return 'SUBJECT_REVIEW';
         if (route === 'forms') return 'FORMS';
         if (route === 'consent') return 'CONSENT';
         if (route === 'visits') return 'VISITS';
@@ -117,11 +115,7 @@ export default function CoordinatorDashboard() {
 
         if (route === 'coordinator' || !route || route === 'oversight') setActiveModule('OVERSIGHT');
         else if (route === 'studies') setActiveModule('STUDIES');
-        else if (route === 'participants') setActiveModule('PARTICIPANTS');
-        else if (route === 'forms') setActiveModule('FORMS');
-        else if (route === 'consent') setActiveModule('CONSENT');
-        else if (route === 'visits') setActiveModule('VISITS');
-        else if (route === 'subject-review' || route === 'review') setActiveModule('SUBJECT_REVIEW');
+        else if (route === 'participants' || route === 'subject-review' || route === 'review') setActiveModule('PARTICIPANTS');
         else if (route === 'team') setActiveModule('TEAM');
         else if (route === 'messages') setActiveModule('MESSAGES');
         else if (route === 'labs') setActiveModule('LABS');
@@ -150,7 +144,6 @@ export default function CoordinatorDashboard() {
             'STUDIES': 'studies',
             'TEAM': 'team',
             'PARTICIPANTS': 'participants',
-            'SUBJECT_REVIEW': 'subject-review',
             'FORMS': 'forms',
             'CONSENT': 'consent',
             'VISITS': 'visits',
@@ -445,8 +438,7 @@ export default function CoordinatorDashboard() {
             items: [
                 { id: 'STUDIES', label: 'Study Directory', icon: Beaker },
                 { id: 'TEAM', label: 'Medical Team', icon: Users },
-                { id: 'PARTICIPANTS', label: 'Participant Oversight', icon: UsersRound },
-                { id: 'SUBJECT_REVIEW', label: 'Screening Review', icon: Activity },
+                { id: 'PARTICIPANTS', label: 'Participants', icon: UsersRound },
                 { id: 'FORMS', label: 'Study Questionnaires', icon: ClipboardList },
                 { id: 'CONSENT', label: 'Consent Oversight', icon: ShieldCheck },
                 { id: 'VISITS', label: 'Visits & Assessments', icon: Calendar },
@@ -501,16 +493,16 @@ export default function CoordinatorDashboard() {
 
                         <div className="hidden xl:flex items-center gap-3 bg-white/5 p-1 rounded-2xl border border-white/10 h-12">
                             <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/10">Study</div>
-                            <select
-                                value={globalSelectedStudyId}
-                                onChange={(e) => setGlobalSelectedStudyId(e.target.value)}
-                                className="bg-transparent text-[14px] font-black text-[#14b8a6] uppercase tracking-[0.2em] outline-none cursor-pointer px-6"
-                            >
-                                <option value="all" className="bg-[#0B101B]">All Studies</option>
-                                {studies.map(s => (
-                                    <option key={s.id} value={s.id} className="bg-[#0B101B]">{s.protocol_id || s.id}</option>
-                                ))}
-                            </select>
+                             <select
+                                 value={globalSelectedStudyId}
+                                 onChange={(e) => setGlobalSelectedStudyId(e.target.value)}
+                                 className="bg-transparent text-[14px] font-black text-blue-400 uppercase tracking-[0.2em] outline-none cursor-pointer px-6 min-w-[240px]"
+                             >
+                                 <option value="all" className="bg-[#0B101B]">All Operational Units</option>
+                                 {studies.map(s => (
+                                     <option key={s.id} value={s.id} className="bg-[#0B101B]">{s.protocol_id || s.id}</option>
+                                 ))}
+                             </select>
                         </div>
 
                     </div>
@@ -518,10 +510,10 @@ export default function CoordinatorDashboard() {
 
                 <div className="flex items-center gap-8">
                     <div className="flex items-center gap-6 border-r border-white/10 pr-8">
-                        <div className="flex flex-col items-end text-right">
-                            <span className="text-lg md:text-xl font-black text-[#14b8a6] font-mono tracking-tighter tabular-nums leading-none">
-                                {currentTime.toLocaleTimeString('en-US', { hour12: false })}
-                            </span>
+                         <div className="flex flex-col items-end text-right">
+                             <span className="text-lg md:text-xl font-black text-blue-400 font-mono tracking-tighter tabular-nums leading-none">
+                                 {currentTime.toLocaleTimeString('en-US', { hour12: false })}
+                             </span>
                             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
                                 {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()}
                             </span>
@@ -538,7 +530,7 @@ export default function CoordinatorDashboard() {
                                     <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="absolute right-0 mt-6 w-80 md:w-96 bg-[#0F172A]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl z-[100] overflow-hidden">
                                         <div className="p-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
                                             <h3 className="text-[11px] font-black text-white uppercase tracking-widest">System Alerts</h3>
-                                            {unreadCount > 0 && <button onClick={markAllAsRead} className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest">Clear All</button>}
+                                            {unreadCount > 0 && <button onClick={markAllAsRead} className="text-[11px] font-bold text-blue-400 uppercase tracking-widest">Clear All</button>}
                                         </div>
                                         <div className="max-h-[60vh] overflow-y-auto custom-scrollbar p-0">
                                             {notifications.length === 0 ? (
@@ -547,21 +539,21 @@ export default function CoordinatorDashboard() {
                                                     <p className="text-[11px] text-slate-500 uppercase tracking-widest">Monitoring active...</p>
                                                 </div>
                                             ) : (
-                                                <div className="divide-y divide-white/5">
-                                                    {notifications.map((notif) => (
-                                                        <div key={notif.id} className="p-5 hover:bg-white/[0.02] transition-colors border-l-2 border-transparent hover:border-[#14b8a6]">
-                                                            <div className="flex items-start gap-4">
-                                                                <div className="p-2 bg-[#14b8a6]/10 rounded-xl">
-                                                                    <Bell className="w-4 h-4 text-[#14b8a6]" />
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <p className="text-sm font-bold text-white leading-snug">{notif.message}</p>
-                                                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-2">{new Date(notif.created_at).toLocaleTimeString()}</p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                                 <div className="divide-y divide-white/5">
+                                                     {notifications.map((notif) => (
+                                                         <div key={notif.id} className="p-5 hover:bg-white/[0.02] transition-colors border-l-2 border-transparent hover:border-blue-500">
+                                                             <div className="flex items-start gap-4">
+                                                                 <div className="p-2 bg-blue-500/10 rounded-xl">
+                                                                     <Bell className="w-4 h-4 text-blue-400" />
+                                                                 </div>
+                                                                 <div className="flex-1 min-w-0">
+                                                                     <p className="text-sm font-bold text-white leading-snug">{notif.message}</p>
+                                                                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-2">{new Date(notif.created_at).toLocaleTimeString()}</p>
+                                                                 </div>
+                                                             </div>
+                                                         </div>
+                                                     ))}
+                                                 </div>
                                             )}
                                         </div>
                                     </motion.div>
@@ -579,10 +571,10 @@ export default function CoordinatorDashboard() {
                                 {getUser()?.email}
                             </p>
                         </div>
-                        <button
-                            onClick={() => setIsProfileOpen(!isProfileOpen)}
-                            className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#14b8a6] to-[#0d9488] p-0.5 shadow-xl hover:scale-105 active:scale-95 transition-all"
-                        >
+                         <button
+                             onClick={() => setIsProfileOpen(!isProfileOpen)}
+                             className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 p-0.5 shadow-xl hover:scale-105 active:scale-95 transition-all"
+                         >
                             <div className="w-full h-full bg-[#0B101B] rounded-[0.9rem] flex items-center justify-center font-black text-white uppercase italic text-[12px]">
                                 {getDisplayName(getUser())?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                             </div>
@@ -597,12 +589,12 @@ export default function CoordinatorDashboard() {
                                     className="absolute right-0 top-full mt-4 w-64 bg-[#0F172A]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl p-2 z-[100] overflow-hidden"
                                 >
                                     <div className="p-5 border-b border-white/5 mb-2">
-                                        <p className="text-sm font-black text-white uppercase italic truncate tracking-tight">
-                                            {getDisplayName(getUser())}
-                                        </p>
-                                        <p className="text-[11px] text-[#14b8a6] font-black uppercase tracking-widest mt-2 px-2 py-0.5 bg-[#14b8a6]/10 border border-[#14b8a6]/20 rounded-lg inline-block">
-                                            {getRole()?.replace('_', ' ') || 'Coordinator'}
-                                        </p>
+                                         <p className="text-sm font-black text-white uppercase italic truncate tracking-tight">
+                                             {getDisplayName(getUser())}
+                                         </p>
+                                         <p className="text-[11px] text-blue-400 font-black uppercase tracking-widest mt-2 px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-lg inline-block">
+                                             {getRole()?.replace('_', ' ') || 'Coordinator'}
+                                         </p>
                                         <p className="text-[11px] text-slate-500 font-bold lowercase tracking-normal mt-2.5 truncate">
                                             {getUser()?.email}
                                         </p>
@@ -654,14 +646,31 @@ export default function CoordinatorDashboard() {
                         <X className="w-5 h-5" />
                     </button>
                 </div>
-                <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 custom-scrollbar">
-                    {sidebarGroups.flatMap(g => g.items).map((item, j) => (
-                        <button key={j} onClick={() => { if (item.id === 'WEBSITE') window.open('/', '_blank'); else { handleModuleChange(item.id as CCModule); setIsSidebarOpen(false); } }} className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group relative ${activeModule === item.id ? 'bg-[#14b8a6]/10 text-[#14b8a6] border border-[#14b8a6]/20' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'}`}>
-                            <item.icon className={`w-5 h-5 ${activeModule === item.id ? 'text-[#14b8a6]' : 'text-slate-500 group-hover:text-white'}`} />
-                            <span className="text-sm font-bold text-left flex-1">{item.label}</span>
-                        </button>
-                    ))}
+                <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-1 custom-scrollbar">
+                     {sidebarGroups.flatMap(g => g.items).map((item, j) => (
+                         <button 
+                            key={j} 
+                            onClick={() => { 
+                                if (item.id === 'WEBSITE') window.open('/', '_blank'); 
+                                else { handleModuleChange(item.id as CCModule); setIsSidebarOpen(false); } 
+                            }} 
+                            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all group relative ${activeModule === item.id ? 'bg-blue-600/10 text-blue-400 border border-blue-400/20' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'}`}
+                        >
+                             <item.icon className={`w-4 h-4 ${activeModule === item.id ? 'text-blue-400' : 'text-slate-500 group-hover:text-white'}`} />
+                             <span className="text-[13px] font-bold text-left flex-1">{item.label}</span>
+                         </button>
+                     ))}
                 </nav>
+
+                <div className="p-4 border-t border-white/5 shrink-0 bg-black/20">
+                    <button
+                        onClick={handleSignOut}
+                        className="w-full flex items-center gap-3 px-5 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-rose-500/10 hover:border-rose-500/20 border border-transparent transition-all group"
+                    >
+                        <LogOut className="w-4 h-4 text-slate-500 group-hover:text-rose-400" />
+                        <span className="text-[12px] font-black uppercase tracking-widest">Sign Out</span>
+                    </button>
+                </div>
             </aside>
 
             <main className="flex-1 xl:pl-[260px] pt-24 pb-24 overflow-x-hidden bg-[#0F172A] min-h-screen">
@@ -697,9 +706,21 @@ export default function CoordinatorDashboard() {
                         />
                     )}
                     {activeModule === 'MESSAGES' && <CCC_MessagesModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'SUBJECT_REVIEW' && <CCC_SubjectReviewModule selectedStudyId={globalSelectedStudyId} participantId={selectedParticipantId || undefined} />}
                     {activeModule === 'TEAM' && <CCC_TeamModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'PARTICIPANTS' && <ParticipantOversight selectedStudyId={globalSelectedStudyId} onOpenProfile={(id) => { setSelectedParticipantId(id); setActiveModule('SUBJECT_REVIEW'); }} onMessage={() => setActiveModule('MESSAGES')} />}
+                    {activeModule === 'PARTICIPANTS' && (
+                        selectedParticipantId ? (
+                            <CCC_SubjectReviewModule 
+                                selectedStudyId={globalSelectedStudyId} 
+                                participantId={selectedParticipantId} 
+                            />
+                        ) : (
+                            <ParticipantOversight 
+                                selectedStudyId={globalSelectedStudyId} 
+                                onOpenProfile={(id) => setSelectedParticipantId(id)} 
+                                onMessage={() => setActiveModule('MESSAGES')} 
+                            />
+                        )
+                    )}
                     {activeModule === 'FORMS' && <FormsQuestionnairesModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'CONSENT' && <CCConsentModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'VISITS' && <CCC_VisitsAssessmentsModule selectedStudyId={globalSelectedStudyId} />}
@@ -711,10 +732,18 @@ export default function CoordinatorDashboard() {
                     {activeModule === 'ALERTS' && <AlertsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'SUPPORT' && <CCC_HelpSupportModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'AUDIT_LOG' && <AuditLogModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'TASKS' && <StaffTasksModule primaryColor="teal" />}
-                    {activeModule === 'PARTICIPANT_TASKS' && <ParticipantTaskManagement primaryColor="teal" selectedStudyId={globalSelectedStudyId} />}
+                    {activeModule === 'TASKS' && <StaffTasksModule primaryColor="blue" />}
+                    {activeModule === 'PARTICIPANT_TASKS' && <ParticipantTaskManagement primaryColor="blue" selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'COMPENSATION' && <CompensationManagement selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'ANALYTICS' && <AnalyticsModule selectedStudyId={globalSelectedStudyId} />}
+                    {activeModule === 'ANALYTICS' && (
+                        <AnalyticsModule 
+                            selectedStudyId={globalSelectedStudyId} 
+                            onViewProfile={(id) => {
+                                setSelectedParticipantId(id);
+                                setActiveModule('PARTICIPANTS');
+                            }}
+                        />
+                    )}
                     {activeModule === 'SPONSORS' && <SponsorsManagement selectedStudyId={globalSelectedStudyId} allUsers={users} allStudies={studies} onRefresh={fetchCoordinatorContent} />}
                 </AnimatePresence>
                 </div>

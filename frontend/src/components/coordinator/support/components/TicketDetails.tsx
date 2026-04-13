@@ -9,6 +9,18 @@ interface TicketDetailsProps {
 }
 
 export const TicketDetails: React.FC<TicketDetailsProps> = ({ selectedTicket, updateTicketStatus }) => {
+    if (!selectedTicket) {
+        return (
+            <div className="w-[380px] border-l border-white/5 flex flex-col items-center justify-center p-12 text-center bg-white/[0.02]">
+                <div className="p-6 bg-white/5 rounded-[2.5rem] border border-white/10 mb-6">
+                    <FileText className="w-12 h-12 text-slate-700" />
+                </div>
+                <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-[0.3em] italic">No Incident Selected</h3>
+                <p className="text-[12px] text-slate-800 font-bold uppercase mt-4 italic leading-relaxed">Select a terminal log or ticket to view detailed forensics</p>
+            </div>
+        );
+    }
+
     return (
         <div className="w-[380px] border-l border-white/5 flex flex-col overflow-y-auto custom-scrollbar p-10 space-y-12 bg-white/[0.02]">
             <section>

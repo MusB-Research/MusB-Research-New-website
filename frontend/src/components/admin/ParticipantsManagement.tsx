@@ -176,7 +176,10 @@ export default function ParticipantsManagement({ allParticipants = [], allStudie
                         onClick={() => handleToggleStatus(p)}
                         disabled={updatingId === p.internal_id}
                         className={`px-4 py-2 rounded-full text-[12px] font-black uppercase tracking-[0.2em] border transition-all flex items-center gap-2 ${
-                        p.status === 'ACTIVE' || p.status === 'ELIGIBLE' || p.status === 'CONSENTED' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20'
+                        (p.status === 'ACTIVE' || p.status === 'ENROLLED' || p.status === 'RANDOMIZED') ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20' : 
+                        p.status === 'PENDING_REVIEW' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20' :
+                        p.status === 'COMPLETED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20' :
+                        'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20'
                         } disabled:opacity-50`}
                       >
                         {updatingId === p.internal_id ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
