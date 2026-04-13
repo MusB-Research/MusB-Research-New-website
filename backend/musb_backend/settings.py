@@ -121,6 +121,13 @@ DATABASES = {
         'ENGINE': 'django_mongodb_backend',
         'HOST': os.getenv('MONGO_URI'),
         'NAME': 'musb_research',
+        'CLIENT_KWARGS': {
+            'tlsCAFile': certifi.where(),
+            'serverSelectionTimeoutMS': 5000,
+            'connectTimeoutMS': 5000,
+            'socketTimeoutMS': 5000,
+            'retryWrites': True,
+        }
     }
 }
 
