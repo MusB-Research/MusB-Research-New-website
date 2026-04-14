@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Loader2, ClipboardCheck, ArrowRight, Clock, MapPin, DollarSign } from 'lucide-react';
+import { Search, Loader2, ClipboardCheck, ArrowRight, Clock, MapPin, DollarSign, ChevronRight, Activity, Filter, Info, LayoutGrid, List } from 'lucide-react';
 import { authFetch, API } from '../../utils/auth';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Card, Badge, Skeleton } from './SharedComponents';
 
 export default function DiscoverStudiesView({ loading: externalLoading }: { loading?: boolean }) {
     const navigate = useNavigate();
@@ -10,14 +12,13 @@ export default function DiscoverStudiesView({ loading: externalLoading }: { load
     const loading = externalLoading !== undefined ? externalLoading : internalLoading;
 
     const [participantRecords, setParticipantRecords] = useState<any[]>([]);
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
     useEffect(() => {
         const fetchData = async () => {
             setInternalLoading(true);
             try {
                 const apiUrl = API || 'http://localhost:8000';
-                
-                // Fetch studies and all participant records in parallel
                 const [studiesRes, recordsRes] = await Promise.all([
                     authFetch(`${apiUrl}/api/public-studies/`),
                     authFetch(`${apiUrl}/api/participants/`)
@@ -41,12 +42,11 @@ export default function DiscoverStudiesView({ loading: externalLoading }: { load
         fetchData();
     }, []);
 
-    const getStatusStyles = (status: string) => {
+    const getStatusStyle = (status: string) => {
         const s = (status || '').toUpperCase();
-        if (s === 'RECRUITING' || s === 'OPEN') return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
-        if (s === 'UPCOMING') return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-        if (s === 'CLOSED') return 'bg-slate-500/10 text-slate-500 border-slate-500/20';
-        return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+        if (s === 'RECRUITING' || s === 'OPEN') return 'green';
+        if (s === 'UPCOMING') return 'blue';
+        return 'slate';
     };
 
     const getEnrollmentStatus = (studyId: string) => {
@@ -57,26 +57,19 @@ export default function DiscoverStudiesView({ loading: externalLoading }: { load
 
     if (loading) {
         return (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-pulse">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div key={i} className="bg-[#0a1525]/80 border border-white/[0.03] rounded-3xl p-6 h-[420px] relative overflow-hidden">
-                        <div className="shimmer-effect" />
-                        <div className="space-y-6">
-                            <div className="flex justify-between">
-                                <div className="h-8 w-24 bg-white/5 rounded-lg" />
-                                <div className="h-4 w-32 bg-white/5 rounded-full" />
-                            </div>
-                            <div className="space-y-3">
-                                <div className="h-12 w-full bg-white/5 rounded-xl" />
-                                <div className="h-4 w-3/4 bg-white/5 rounded-full" />
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="h-4 w-20 bg-white/5 rounded-full" />
-                                <div className="h-4 w-20 bg-white/5 rounded-full" />
-                            </div>
-                            <div className="mt-auto border-t border-white/5 pt-8">
-                                <div className="h-14 w-full bg-white/5 rounded-xl" />
-                            </div>
+            <div className="grid-system">
+                {[1, 2, 3].map((i) => (
+                    <div key={i} className="bg-white border border-[#E3ECF5] rounded-[32px] p-8 h-[450px] space-y-8 animate-pulse shadow-sm">
+                        <div className="flex justify-between">
+                            <Skeleton className="h-8 w-24 rounded-lg" />
+                            <Skeleton className="h-4 w-32 rounded-full" />
+                        </div>
+                        <div className="space-y-4">
+                            <Skeleton className="h-10 w-full rounded-xl" />
+                            <Skeleton className="h-20 w-full rounded-2xl" />
+                        </div>
+                        <div className="mt-auto pt-8 border-t border-[#F8FBFF]">
+                            <Skeleton className="h-14 w-full rounded-2xl" />
                         </div>
                     </div>
                 ))}
@@ -85,97 +78,203 @@ export default function DiscoverStudiesView({ loading: externalLoading }: { load
     }
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="flex flex-col gap-10 w-full pb-12">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex-1">
+                    <div className="hidden md:flex items-center gap-4 mb-2">
+                        <div className="flex items-center gap-2 text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">
+                            <span>Portal</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                            <span className="text-[#00ADEF]">Opportunities</span>
+                        </div>
+                        <div className="inline-flex items-center px-3 py-1 bg-[#E3F2FD] text-[#00ADEF] rounded-lg font-bold text-[10px] uppercase tracking-[0.15em] border border-[#BBDEFB] shadow-sm">
+                            Active Protocols
+                        </div>
+                    </div>
+                    <p className="text-[14px] font-black text-[#1A2B49] uppercase tracking-tight">Discover protocol opportunities and enrollment pathways</p>
+                </div>
+                <div className="flex bg-white border border-[#E3ECF5] p-1.5 rounded-[20px] shadow-sm shrink-0">
+                    <button
+                        onClick={() => setViewMode('grid')}
+                        className={`p-2.5 rounded-xl transition-all duration-300 ${viewMode === 'grid' ? 'bg-[#00ADEF] text-white shadow-lg shadow-[#00ADEF]/20 active:scale-95' : 'text-[#5F6F89] hover:bg-[#F8FBFF]'}`}
+                    >
+                        <LayoutGrid className="w-5 h-5" />
+                    </button>
+                    <button
+                        onClick={() => setViewMode('list')}
+                        className={`p-2.5 rounded-xl transition-all duration-300 ${viewMode === 'list' ? 'bg-[#00ADEF] text-white shadow-lg shadow-[#00ADEF]/20 active:scale-95' : 'text-[#5F6F89] hover:bg-[#F8FBFF]'}`}
+                    >
+                        <List className="w-5 h-5" />
+                    </button>
+                </div>
+            </div>
+
             {publicStudies.length === 0 ? (
-                <div className="p-20 border border-white/5 bg-[#0a0f1d]/50 rounded-3xl text-center">
-                    <Search className="w-12 h-12 text-slate-700 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-slate-400 uppercase tracking-widest">No studies available at the moment</h3>
-                    <p className="text-slate-600 text-sm mt-2 uppercase tracking-tight">Check back later or update your profile</p>
+                <div className="py-32 text-center bg-white border border-[#E3ECF5] rounded-[48px] shadow-sm flex flex-col items-center">
+                    <div className="w-20 h-20 bg-[#F8FBFF] rounded-[32px] flex items-center justify-center text-[#5F6F89] mb-8 border border-[#E3ECF5]">
+                        <Activity className="w-10 h-10" />
+                    </div>
+                    <h3 className="text-xl font-bold text-[#1A2B49] uppercase tracking-tight">No Active Protocols</h3>
+                    <p className="text-[13px] text-[#5F6F89] font-bold uppercase tracking-[0.2em] mt-2 italic px-8">There are no studies matching your recruitment profile at this time</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className={viewMode === 'grid' ? "grid-system" : "flex flex-col gap-6"}>
                     {publicStudies.map(study => {
                         const enrollmentStatus = getEnrollmentStatus(study.id);
                         const isEnrolled = !!enrollmentStatus;
 
-                        return (
-                            <div
-                                key={study.id}
-                                onClick={() => navigate(`/studies/${study.protocol_id || study.id}`)}
-                                className="bg-[#0a1525]/80 backdrop-blur-xl border border-white/[0.03] rounded-3xl p-6 flex flex-col justify-between transition-all duration-500 hover:bg-[#0c1a33] hover:border-amber-500/30 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4),0_0_30px_rgba(251,191,36,0.03)] group relative overflow-hidden cursor-pointer"
-                            >
-                                <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/0 via-amber-500/0 to-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-                                <div className="space-y-4">
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex gap-2">
-                                            <span className={`px-3 py-1.5 rounded-md text-[12px] font-black uppercase tracking-[0.1em] border ${getStatusStyles(study.status)}`}>
-                                                {study.status || 'RECRUITING'}
-                                            </span>
-                                            {isEnrolled && (
-                                                <span className="px-3 py-1.5 rounded-md text-[12px] font-black uppercase tracking-[0.1em] bg-amber-500 text-black border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)] animate-pulse">
+                        if (viewMode === 'list') {
+                            return (
+                                <motion.div
+                                    key={study.id}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    onClick={() => navigate(`/studies/${study.protocol_id || study.id}`)}
+                                    className="bg-white border border-[#E3ECF5] rounded-[24px] p-6 flex flex-col md:flex-row items-center justify-between transition-all duration-300 hover:shadow-xl hover:border-[#00ADEF]/30 group cursor-pointer"
+                                >
+                                    <div className="flex items-center gap-6 w-full">
+                                        <div className="w-14 h-14 bg-[#F8FBFF] rounded-2xl flex items-center justify-center text-[#00ADEF] group-hover:bg-[#00ADEF] group-hover:text-white transition-all shadow-sm">
+                                            <Activity className="w-6 h-6" />
+                                        </div>
+                                        <div className="flex-1 space-y-1">
+                                            <div className="flex items-center gap-3">
+                                                <h3 className="text-base font-bold text-[#1A2B49] uppercase tracking-tight group-hover:text-[#00ADEF] transition-colors">
+                                                    {study.title}
+                                                </h3>
+                                                <Badge color={getStatusStyle(study.status)}>
+                                                    {study.status || 'RECRUITING'}
+                                                </Badge>
+                                            </div>
+                                            <div className="flex items-center gap-6">
+                                                <div className="flex items-center gap-2 text-[11px] font-bold text-[#5F6F89] uppercase tracking-wide">
+                                                    <Clock className="w-3.5 h-3.5 text-[#00ADEF]" />
+                                                    {study.duration || 'Flexible'}
+                                                </div>
+                                                <div className="flex items-center gap-2 text-[11px] font-bold text-[#5F6F89] uppercase tracking-wide">
+                                                    <MapPin className="w-3.5 h-3.5 text-[#00ADEF]" />
+                                                    {study.visits || 'Hybrid'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-4 mt-6 md:mt-0 w-full md:w-auto">
+                                        {isEnrolled && (
+                                            <Badge color="blue">
+                                                <span className="flex items-center gap-1.5">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-[#00ADEF] animate-pulse" />
                                                     {enrollmentStatus}
                                                 </span>
+                                            </Badge>
+                                        )}
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigate(`/studies/${study.protocol_id || study.id}/screener`);
+                                            }}
+                                            className={`px-8 py-3 rounded-xl font-bold uppercase tracking-widest text-[11px] transition-all flex items-center gap-3 ${isEnrolled && enrollmentStatus !== 'PENDING'
+                                                    ? 'bg-slate-50 text-slate-400'
+                                                    : 'bg-[#00ADEF] text-white hover:bg-[#1565C0] shadow-lg shadow-[#00ADEF]/10'
+                                                }`}
+                                        >
+                                            <ClipboardCheck className="w-4 h-4" />
+                                            Action Required
+                                            <ArrowRight className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            );
+                        }
+
+                        return (
+                            <motion.div
+                                key={study.id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                onClick={() => navigate(`/studies/${study.protocol_id || study.id}`)}
+                                className="bg-white border border-[#E3ECF5] rounded-[32px] p-8 transition-all duration-300 hover:shadow-2xl hover:border-[#00ADEF]/30 group cursor-pointer relative overflow-hidden equal-height-card"
+                            >
+                                <div className="absolute top-0 right-0 p-8 opacity-[0.02] -rotate-12 group-hover:scale-110 transition-transform">
+                                    <Activity className="w-48 h-48 text-[#00ADEF]" />
+                                </div>
+
+                                <div className="space-y-6 relative z-10">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex flex-wrap gap-2">
+                                            <Badge color={getStatusStyle(study.status)}>
+                                                {study.status || 'RECRUITING'}
+                                            </Badge>
+                                            {isEnrolled && (
+                                                <Badge color="blue">
+                                                    <span className="flex items-center gap-1.5">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-[#00ADEF] animate-pulse" />
+                                                        {enrollmentStatus}
+                                                    </span>
+                                                </Badge>
                                             )}
                                         </div>
-                                        <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">
-                                            STUDY ID: {study.protocol_id || study.id}
+                                        <span className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-[0.2em]">
+                                            ID: {study.protocol_id || 'LOCAL-01'}
                                         </span>
                                     </div>
 
-                                    <div className="space-y-1">
-                                        <h3 className="text-xl font-black text-white uppercase group-hover:text-amber-400 transition-colors tracking-tight line-clamp-2 min-h-[3.5rem]">
+                                    <div className="space-y-3">
+                                        <h3 className="text-xl font-bold text-[#1A2B49] uppercase group-hover:text-[#00ADEF] transition-colors tracking-tight line-clamp-2 min-h-[3.5rem] leading-tight">
                                             {study.title}
                                         </h3>
-                                        <p className="text-slate-400 text-sm line-clamp-2 font-medium leading-relaxed min-h-[2.5rem]">
-                                            {study.description || 'Join our clinical research to help advance medical science.'}
+                                        <p className="text-[#5F6F89] text-[13px] font-bold uppercase tracking-widest line-clamp-2 min-h-[2.5rem] hidden md:block">
+                                            {study.description || 'Clinical trial to advance de-identified biometric research paradigms.'}
                                         </p>
                                     </div>
 
-                                    <div className="flex flex-wrap gap-x-6 gap-y-3 pt-2">
+                                    <div className="flex flex-wrap gap-x-6 gap-y-4 pt-2">
                                         {study.duration && (
-                                            <div className="flex items-center gap-2 text-[12px] font-black text-slate-400 uppercase tracking-wider">
-                                                <Clock className="w-3.5 h-3.5 text-amber-500" />
+                                            <div className="flex items-center gap-2.5 text-[11px] font-bold text-[#1A2B49] uppercase tracking-wide">
+                                                <Clock className="w-4 h-4 text-[#00ADEF]" />
                                                 {study.duration}
                                             </div>
                                         )}
-                                        <div className="flex items-center gap-2 text-[12px] font-black text-slate-400 uppercase tracking-wider">
-                                            <MapPin className="w-3.5 h-3.5 text-amber-500" />
-                                            {study.visits || 'Multiple'} Visits
+                                        <div className="flex items-center gap-2.5 text-[11px] font-bold text-[#1A2B49] uppercase tracking-wide">
+                                            <MapPin className="w-4 h-4 text-[#00ADEF]" />
+                                            {study.visits || 'Hybrid'} Protocol
                                         </div>
                                         {study.compensation && (
-                                            <div className="flex items-center gap-2 text-[12px] font-black text-amber-500 uppercase tracking-wider">
-                                                <DollarSign className="w-3.5 h-3.5" />
-                                                YOU WILL BE COMPENSATED
+                                            <div className="flex items-center gap-2.5 text-[11px] font-bold text-[#4CAF50] uppercase tracking-wide">
+                                                <div className="p-1 bg-[#E8F5E9] rounded-md"><DollarSign className="w-3.5 h-3.5" /></div>
+                                                Compensated
                                             </div>
                                         )}
                                     </div>
                                 </div>
 
-                                <div className="mt-8 pt-6 border-t border-white/5 space-y-4">
+                                <div className="card-action-bottom relative z-10">
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             navigate(`/studies/${study.protocol_id || study.id}/screener`);
                                         }}
-                                        className={`w-full flex items-center justify-center gap-3 border font-black uppercase tracking-[0.2em] text-[12px] py-4 rounded-xl transition-all duration-500 active:scale-[0.98] shadow-lg ${
-                                            isEnrolled && enrollmentStatus !== 'PENDING'
-                                            ? 'bg-white/5 border-white/10 text-slate-600'
-                                            : 'bg-amber-400/5 hover:bg-amber-400 border-amber-400/40 hover:border-amber-400 text-amber-500 hover:text-black shadow-amber-500/5'
-                                        }`}
+                                        className={`w-full flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[12px] py-4.5 rounded-2xl transition-all shadow-sm ${isEnrolled && enrollmentStatus !== 'PENDING'
+                                                ? 'bg-slate-100 text-slate-400 border border-slate-200'
+                                                : 'bg-[#00ADEF] text-white hover:bg-[#1565C0] shadow-blue-500/10'
+                                            }`}
                                     >
-                                        <ClipboardCheck className="w-4 h-4 transition-transform group-hover:scale-110" />
-                                        {isEnrolled ? (enrollmentStatus === 'PENDING' ? 'Check Again' : 'Already Enrolled') : 'Check Eligibility'}
-                                        <ArrowRight className="w-3 h-3 group-hover:translate-x-1.5 transition-transform" />
+                                        <ClipboardCheck className="w-4.5 h-4.5" />
+                                        {isEnrolled ? (enrollmentStatus === 'PENDING' ? 'Retry Screening' : 'Enrolled Successfully') : 'Check Eligibility'}
+                                        <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform group-hover:translate-x-1" />
                                     </button>
                                 </div>
-                            </div>
+                            </motion.div>
                         );
                     })}
                 </div>
-            )
-}
+            )}
+
+            {/* Support Note */}
+            <div className="mt-8 flex items-center justify-center gap-3 text-[#5F6F89]">
+                <Info className="w-4 h-4" />
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em]">Privacy Notice: Screening interactions are fully encrypted and de-linked</p>
+            </div>
         </div>
     );
 }
-
-

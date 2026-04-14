@@ -65,12 +65,14 @@ function AppContent() {
     }, []);
 
     useEffect(() => {
-        if (isDashboard) {
+        if (location.pathname.startsWith('/dashboard/participant')) {
+            document.body.style.backgroundColor = '#faf9f6';
+        } else if (isDashboard) {
             document.body.style.backgroundColor = '#0a0e1a';
         } else {
             document.body.style.backgroundColor = '';
         }
-    }, [isDashboard]);
+    }, [isDashboard, location.pathname]);
 
     return (
         <>

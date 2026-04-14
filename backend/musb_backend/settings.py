@@ -54,6 +54,8 @@ if os.getenv('RENDER'):
     DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,musb-backend.onrender.com,musb-research-new-website.onrender.com').split(',') if h.strip()]
+if DEBUG:
+    ALLOWED_HOSTS = ['*']
 
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
@@ -211,8 +213,9 @@ BASE_ORIGINS = [
 ]
 
 if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOWED_ORIGINS = BASE_ORIGINS
-    CSRF_TRUSTED_ORIGINS = BASE_ORIGINS
+    CSRF_TRUSTED_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173", "http://0.0.0.0:5173"] + BASE_ORIGINS
     # Ensure local development uses the correct Vite port
     FRONTEND_URL = os.getenv('FRONTEND_URL', "http://localhost:5173")
 else:

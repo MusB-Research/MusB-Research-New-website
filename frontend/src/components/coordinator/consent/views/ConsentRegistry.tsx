@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, Eye, ShieldCheck, History } from 'lucide-react';
 import { COLORS, ConsentRecord } from '../ConsentConstants';
+import { revealValue } from '../../../../utils/auth';
 
 interface ConsentRegistryProps {
     consentRecords: ConsentRecord[];
@@ -87,7 +88,7 @@ export const ConsentRegistry: React.FC<ConsentRegistryProps> = ({
                     <tbody>
                         {consentRecords.map(r => (
                             <tr key={r.id} className="border-b border-white/5 hover:bg-white/[0.01] transition-colors">
-                                <td className="p-8 font-black text-white text-xl tracking-tighter italic">{r.full_name || r.participantId || 'Unknown'}</td>
+                                <td className="p-8 font-black text-white text-xl tracking-tighter italic">{revealValue(r.full_name, (r as any).decrypted_name) || r.participantId || 'Unknown'}</td>
                                 <td className="p-8 text-lg font-black text-indigo-400 italic">
                                     {typeof r.study_title === 'string' ? r.study_title : (typeof r.study === 'object' ? (r.study as any).title : String(r.study || 'Untethered'))}
                                 </td>

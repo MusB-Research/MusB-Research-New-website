@@ -16,9 +16,11 @@ import {
     LayoutGrid,
     Search,
     Plus,
-    X
+    X,
+    ArrowLeft,
+    ArrowRight
 } from 'lucide-react';
-import { Card, Badge } from './SharedComponents';
+import { Card, Badge, Skeleton } from './SharedComponents';
 
 interface Visit {
     id: string;
@@ -37,26 +39,25 @@ const VisitsView = ({ visits = [], study, tasks = [], isLoading = false }: { vis
     const [viewMode, setViewMode] = useState<'timeline' | 'calendar'>('timeline');
     const [viewDate, setViewDate] = useState(new Date());
 
-    // Sort visits by scheduled date for timeline
     const sortedVisits = useMemo(() => 
         [...visits].sort((a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()),
     [visits]);
 
-    const getStatusStyle = (status: string) => {
+    const getStatusBadge = (status: string) => {
         switch (status) {
-            case 'COMPLETED': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-            case 'SCHEDULED': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-            case 'IN_PROGRESS': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
-            case 'MISSED': return 'bg-red-500/10 text-red-400 border-red-500/20';
-            case 'CANCELLED': return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
-            default: return 'bg-white/5 text-slate-400 border-white/10';
+            case 'COMPLETED': return <Badge color="green">COMPLETED</Badge>;
+            case 'SCHEDULED': return <Badge color="blue">SCHEDULED</Badge>;
+            case 'IN_PROGRESS': return <Badge color="blue">IN PROGRESS</Badge>;
+            case 'MISSED': return <Badge color="red">MISSED</Badge>;
+            case 'CANCELLED': return <Badge color="slate">CANCELLED</Badge>;
+            default: return <Badge color="slate">{status}</Badge>;
         }
     };
 
     const formatDate = (date: string) => {
         return new Date(date).toLocaleDateString('en-US', {
-            weekday: 'long',
-            month: 'long',
+            weekday: 'short',
+            month: 'short',
             day: 'numeric',
             year: 'numeric'
         });
@@ -70,24 +71,23 @@ const VisitsView = ({ visits = [], study, tasks = [], isLoading = false }: { vis
     };
 
     const calendarData = useMemo(() => {
+        const d = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+        const firstDay = d.getDay();
         const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
-        const firstDay = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay();
         
         const sessionsByDate: Record<string, any[]> = {};
         
-        // Map Visits
         visits.forEach(v => {
-            const d = new Date(v.scheduled_date).toISOString().split('T')[0];
-            if (!sessionsByDate[d]) sessionsByDate[d] = [];
-            sessionsByDate[d].push({ type: 'VISIT', label: v.visit_type, status: v.status });
+            const dateStr = new Date(v.scheduled_date).toISOString().split('T')[0];
+            if (!sessionsByDate[dateStr]) sessionsByDate[dateStr] = [];
+            sessionsByDate[dateStr].push({ type: 'VISIT', label: v.visit_type, status: v.status });
         });
 
-        // Map Tasks
         tasks.forEach(t => {
             if (t.due_date) {
-                const d = new Date(t.due_date).toISOString().split('T')[0];
-                if (!sessionsByDate[d]) sessionsByDate[d] = [];
-                sessionsByDate[d].push({ type: 'TASK', label: t.title, status: t.status });
+                const dateStr = new Date(t.due_date).toISOString().split('T')[0];
+                if (!sessionsByDate[dateStr]) sessionsByDate[dateStr] = [];
+                sessionsByDate[dateStr].push({ type: 'TASK', label: t.title, status: t.status });
             }
         });
 
@@ -96,20 +96,15 @@ const VisitsView = ({ visits = [], study, tasks = [], isLoading = false }: { vis
 
     if (isLoading) {
         return (
-            <div className="flex flex-col gap-10 max-w-[1500px] animate-pulse">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-white/5 border border-white/5 rounded-2xl" />
-                        <div className="space-y-2">
-                            <div className="h-8 w-64 bg-white/10 rounded-xl" />
-                            <div className="h-3 w-48 bg-white/5 rounded-full" />
-                        </div>
+            <div className="flex flex-col gap-10 animate-pulse">
+                <div className="flex justify-between items-end">
+                    <div className="space-y-4">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-10 w-64" />
                     </div>
                 </div>
                 <div className="space-y-8">
-                    {[1, 2, 3].map(i => (
-                        <div key={i} className="h-64 bg-white/5 border border-white/5 rounded-[3rem]" />
-                    ))}
+                    {[1, 2].map(i => <Skeleton key={i} className="h-64 rounded-[32px]" />)}
                 </div>
             </div>
         );
@@ -120,62 +115,55 @@ const VisitsView = ({ visits = [], study, tasks = [], isLoading = false }: { vis
         const monthYear = viewDate.toLocaleString('default', { month: 'long', year: 'numeric' });
         
         return (
-            <div className="flex-1 flex flex-col space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <div className="flex items-center justify-between">
+            <div className="flex-1 flex flex-col space-y-8">
+                <div className="flex items-center justify-between bg-white p-6 rounded-2xl shadow-sm border border-[#E3ECF5]">
                     <div className="space-y-1">
-                        <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Protocol <span className="text-amber-500">Calendar</span></h2>
-                        <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-1 italic">{monthYear} • All Activities Synchronized</p>
+                        <h2 className="text-xl font-bold text-[#1A2B49] uppercase tracking-tight">Clinical Availability</h2>
+                        <p className="text-[12px] text-[#5F6F89] font-bold uppercase tracking-widest">{monthYear}</p>
                     </div>
-                    <div className="flex items-center gap-4 bg-white/5 p-2 rounded-2xl border border-white/5">
-                        <button onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() - 1)))} className="p-3 hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-white">
-                            <ChevronDown className="w-5 h-5 rotate-90" />
+                    <div className="flex items-center gap-2 bg-[#F8FBFF] p-1.5 rounded-xl border border-[#E3ECF5]">
+                        <button onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() - 1)))} className="p-2.5 hover:bg-white rounded-lg text-[#5F6F89] transition-all shadow-sm">
+                            <ArrowLeft className="w-4 h-4" />
                         </button>
-                        <span className="text-sm font-black text-white px-6 uppercase italic tracking-widest">{monthYear}</span>
-                        <button onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() + 1)))} className="p-3 hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-white">
-                            <ChevronDown className="w-5 h-5 -rotate-90" />
+                        <span className="text-[13px] font-bold text-[#1A2B49] px-6 uppercase tracking-widest">{monthYear}</span>
+                        <button onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() + 1)))} className="p-2.5 hover:bg-white rounded-lg text-[#5F6F89] transition-all shadow-sm">
+                            <ArrowRight className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-7 gap-px bg-white/5 border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
+                <div className="grid grid-cols-7 gap-px bg-[#E3ECF5] border border-[#E3ECF5] rounded-[32px] overflow-hidden shadow-xl bg-white">
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                        <div key={d} className="bg-[#0B101B] p-6 text-[12px] font-black text-slate-500 uppercase tracking-widest text-center border-b border-white/5 italic">
+                        <div key={d} className="bg-[#F8FBFF] p-5 text-[11px] font-bold text-[#5F6F89] uppercase tracking-[0.2em] text-center border-b border-[#E3ECF5]">
                             {d}
                         </div>
                     ))}
                     {Array.from({ length: 42 }).map((_, i) => {
                         const dayNum = i - firstDay + 1;
                         const isCurrentMonth = dayNum > 0 && dayNum <= daysInMonth;
-                        const dateString = isCurrentMonth ? new Date(viewDate.getFullYear(), viewDate.getMonth(), dayNum).toISOString().split('T')[0] : '';
-                        const daySessions = sessionsByDate[dateString] || [];
+                        const isToday = dayNum === new Date().getDate() && viewDate.getMonth() === new Date().getMonth() && viewDate.getFullYear() === new Date().getFullYear();
+                        
+                        const dateStr = isCurrentMonth ? new Date(viewDate.getFullYear(), viewDate.getMonth(), dayNum).toISOString().split('T')[0] : '';
+                        const daySessions = sessionsByDate[dateStr] || [];
 
                         return (
-                            <div 
-                                key={i} 
-                                className={`min-h-[140px] bg-[#090E1A] p-4 border-r border-b border-white/[0.03] transition-all hover:bg-white/[0.02] ${!isCurrentMonth ? 'opacity-20' : ''}`}
-                            >
-                                <div className="flex justify-between items-start mb-3">
-                                    <span className={`text-lg font-black italic ${dayNum === new Date().getDate() && viewDate.getMonth() === new Date().getMonth() ? 'text-amber-500' : 'text-slate-700'}`}>
-                                        {isCurrentMonth ? dayNum : ''}
-                                    </span>
-                                </div>
-                                <div className="space-y-2">
-                                    {daySessions.slice(0, 3).map((s, idx) => (
-                                        <div 
-                                            key={idx} 
-                                            className={`p-2 rounded-lg border text-[10px] font-black uppercase tracking-tighter truncate ${
-                                                s.type === 'VISIT' 
-                                                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' 
-                                                    : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                            }`}
-                                        >
-                                            <span className="opacity-50 mr-1">{s.type === 'VISIT' ? 'V:' : 'T:'}</span>
+                            <div key={i} className={`min-h-[140px] bg-white p-4 transition-all hover:bg-[#F8FBFF] relative ${!isCurrentMonth ? 'bg-[#FDFDFD]/50' : ''}`}>
+                                {isCurrentMonth && (
+                                    <div className="flex justify-between items-start mb-3">
+                                        <span className={`text-sm font-bold ${isToday ? 'bg-[#1E88E5] text-white w-7 h-7 flex items-center justify-center rounded-full' : 'text-[#5F6F89]'}`}>
+                                            {dayNum}
+                                        </span>
+                                    </div>
+                                )}
+                                <div className="space-y-1.5">
+                                    {isCurrentMonth && daySessions.map((s, idx) => (
+                                        <div key={idx} className={`px-2.5 py-1.5 rounded-lg border text-[9px] font-bold uppercase tracking-tight truncate flex items-center gap-1.5 shadow-sm ${
+                                            s.type === 'VISIT' ? 'bg-[#E3F2FD] border-[#1E88E5]/20 text-[#1E88E5]' : 'bg-[#E8F5E9] border-[#4CAF50]/20 text-[#2E7D32]'
+                                        }`}>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${s.type === 'VISIT' ? 'bg-[#1E88E5]' : 'bg-[#4CAF50]'}`} />
                                             {s.label}
                                         </div>
                                     ))}
-                                    {daySessions.length > 3 && (
-                                        <p className="text-[10px] text-slate-600 font-bold italic text-center pt-1">+{daySessions.length - 3} More</p>
-                                    )}
                                 </div>
                             </div>
                         );
@@ -186,108 +174,109 @@ const VisitsView = ({ visits = [], study, tasks = [], isLoading = false }: { vis
     };
 
     return (
-        <div className="flex flex-col gap-10 max-w-[1500px] animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Header Section */}
+        <div className="flex flex-col gap-10 pb-12">
+            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center text-amber-500">
-                        <CalendarClock className="w-6 h-6" />
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest mb-1">
+                        <span>Portal</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                        <span className="text-[#1E88E5]">Engagement Timeline</span>
                     </div>
-                    <div>
-                        <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Clinical <span className="text-amber-500">Oversight</span></h2>
-                        <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-1 italic">Protocol Timeline & Site Alignment</p>
-                    </div>
+                    <h2 className="text-2xl font-bold text-[#1A2B49] uppercase tracking-tight">Protocol Schedule</h2>
+                    <p className="text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest">Coordinated Clinical Assessment & Event Log</p>
                 </div>
 
-                <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5">
+                <div className="flex bg-white p-1 rounded-xl border border-[#E3ECF5] shadow-sm">
                     <button 
                         onClick={() => setViewMode('timeline')}
-                        className={`px-6 py-2 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all italic flex items-center gap-2 ${viewMode === 'timeline' ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/20' : 'text-slate-500 hover:text-white'}`}
+                        className={`px-6 py-2.5 rounded-lg text-[12px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 ${viewMode === 'timeline' ? 'bg-[#1E88E5] text-white shadow-md' : 'text-[#5F6F89] hover:text-[#1E88E5]'}`}
                     >
-                        <LayoutGrid className="w-3.5 h-3.5" /> Timeline
+                        <LayoutGrid className="w-4 h-4" /> Timeline
                     </button>
                     <button 
                         onClick={() => setViewMode('calendar')}
-                        className={`px-6 py-2 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all italic flex items-center gap-2 ${viewMode === 'calendar' ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/20' : 'text-slate-500 hover:text-white'}`}
+                        className={`px-6 py-2.5 rounded-lg text-[12px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 ${viewMode === 'calendar' ? 'bg-[#1E88E5] text-white shadow-md' : 'text-[#5F6F89] hover:text-[#1E88E5]'}`}
                     >
-                        <Calendar className="w-3.5 h-3.5" /> Grid Calendar
+                        <Calendar className="w-4 h-4" /> Grid Calendar
                     </button>
                 </div>
             </div>
 
             {viewMode === 'timeline' ? (
-                <div className="relative">
-                    {/* Vertical Line */}
-                    <div className="absolute left-8 top-0 bottom-0 w-[2px] bg-gradient-to-b from-amber-500/50 via-indigo-500/20 to-transparent hidden md:block" />
+                <div className="relative pt-4">
+                    {/* Vertical Bridge */}
+                    <div className="absolute left-[34px] top-0 bottom-10 w-0.5 bg-gradient-to-b from-[#1E88E5]/40 via-[#E3ECF5] to-transparent hidden md:block" />
 
-                    <div className="space-y-8 relative">
+                    <div className="space-y-10 relative">
                         {sortedVisits.length > 0 ? (
                             sortedVisits.map((visit, index) => (
                                 <motion.div
                                     key={visit.id}
-                                    initial={{ opacity: 0, x: -20 }}
+                                    initial={{ opacity: 0, x: -10 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: index * 0.1 }}
-                                    className="relative md:pl-20"
+                                    className="relative md:pl-24"
                                 >
-                                    {/* Marker Dot */}
-                                    <div className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-4 border-[#0a0e1a] bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.8)] z-10 hidden md:block" />
+                                    {/* Medical Marker */}
+                                    <div className="absolute left-[26px] top-12 w-4 h-4 rounded-full border-4 border-white bg-[#1E88E5] shadow-lg z-10 hidden md:block" />
 
-                                    <Card className={`p-8 bg-[#0d1424] border-white/5 hover:border-amber-500/30 transition-all group overflow-hidden`}>
-                                        <div className={`absolute top-0 right-0 w-64 h-64 opacity-5 pointer-events-none rounded-full blur-[100px] ${visit.status === 'COMPLETED' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-
-                                        <div className="flex flex-col lg:flex-row gap-8 relative z-10">
-                                            <div className="lg:w-1/3 flex flex-col justify-between">
-                                                <div className="space-y-4">
-                                                    <Badge className={`px-4 py-1.5 rounded-full font-black text-[10px] uppercase tracking-widest border ${getStatusStyle(visit.status)}`}>
-                                                        {visit.status.replace(/_/g, ' ')}
-                                                    </Badge>
-                                                    <div className="space-y-1">
-                                                        <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter group-hover:text-amber-500 transition-colors">
+                                    <Card className="p-8 bg-white border border-[#E3ECF5] shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
+                                        <div className="flex flex-col lg:flex-row gap-10">
+                                            {/* Phase Info */}
+                                            <div className="lg:w-[280px] space-y-6">
+                                                <div className="flex items-start justify-between lg:block lg:space-y-4">
+                                                    {getStatusBadge(visit.status)}
+                                                    <div className="space-y-1.5 px-0.5">
+                                                        <h3 className="text-xl font-bold text-[#1A2B49] uppercase tracking-tight group-hover:text-[#1E88E5] transition-colors">
                                                             {visit.visit_type.replace(/_/g, ' ')}
                                                         </h3>
-                                                        <p className="text-slate-500 font-bold text-sm uppercase tracking-widest flex items-center gap-2">
-                                                            <Clock className="w-3.5 h-3.5" />
-                                                            {formatTime(visit.scheduled_date)}
-                                                        </p>
+                                                        <div className="flex items-center gap-2.5 text-[#5F6F89]">
+                                                            <div className="w-8 h-8 rounded-lg bg-[#F8FBFF] flex items-center justify-center border border-[#E3ECF5]">
+                                                                <Clock className="w-4 h-4" />
+                                                            </div>
+                                                            <span className="text-[13px] font-bold uppercase tracking-widest">{formatTime(visit.scheduled_date)}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div className="mt-8 pt-6 border-t border-white/5">
-                                                    <div className="flex items-center gap-3 text-slate-400">
-                                                        <MapPin className="w-4 h-4 text-amber-500" />
-                                                        <span className="text-[12px] font-black uppercase tracking-widest italic">{visit.location || 'Clinical Site Alpha'}</span>
-                                                    </div>
+                                                <div className="pt-6 border-t border-[#F8FBFF] flex items-center gap-3">
+                                                    <MapPin className="w-4.5 h-4.5 text-[#1E88E5]" />
+                                                    <span className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest">{visit.location || 'Protocol Site Alpha'}</span>
                                                 </div>
                                             </div>
 
+                                            {/* Data Points */}
                                             <div className="flex-1 space-y-8">
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                                    <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 space-y-4">
-                                                        <div className="flex items-center gap-3 text-white/40">
-                                                            <Calendar className="w-4 h-4" />
-                                                            <span className="text-[10px] font-black uppercase tracking-widest">Scheduled Date</span>
+                                                    <div className="bg-[#F8FBFF] border border-[#E3ECF5] rounded-2xl p-6 space-y-3">
+                                                        <div className="flex items-center gap-2 text-[#5F6F89]">
+                                                            <Calendar className="w-3.5 h-3.5" />
+                                                            <span className="text-[10px] font-bold uppercase tracking-widest">Scheduled Event</span>
                                                         </div>
-                                                        <p className="text-lg font-black text-white italic uppercase tracking-tight">{formatDate(visit.scheduled_date)}</p>
+                                                        <p className="text-lg font-bold text-[#1A2B49] uppercase tracking-tight">{formatDate(visit.scheduled_date)}</p>
                                                     </div>
-                                                    <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 space-y-4">
-                                                        <div className="flex items-center gap-3 text-white/40">
-                                                            <ClipboardList className="w-4 h-4" />
-                                                            <span className="text-[10px] font-black uppercase tracking-widest">Protocol Phase</span>
+                                                    <div className="bg-[#F8FBFF] border border-[#E3ECF5] rounded-2xl p-6 space-y-3">
+                                                        <div className="flex items-center gap-2 text-[#5F6F89]">
+                                                            <ClipboardList className="w-3.5 h-3.5" />
+                                                            <span className="text-[10px] font-bold uppercase tracking-widest">Sequence ID</span>
                                                         </div>
-                                                        <p className="text-lg font-black text-amber-500 italic uppercase tracking-tight">Phase {index + 1} Assessment</p>
+                                                        <p className="text-lg font-bold text-[#1E88E5] uppercase tracking-tight">Phase {index + 1} Assessment</p>
                                                     </div>
                                                 </div>
 
                                                 {visit.checklist && visit.checklist.length > 0 && (
                                                     <div className="space-y-4">
-                                                        <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-widest italic">Checklist Progress</h4>
+                                                        <h4 className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest flex items-center gap-2">
+                                                            <Activity className="w-3.5 h-3.5" />
+                                                            Required Protocol Steps
+                                                        </h4>
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                             {visit.checklist.map((item, idx) => (
-                                                                <div key={idx} className="flex items-center gap-3 p-4 bg-white/[0.01] border border-white/5 rounded-2xl">
-                                                                    <div className={`w-5 h-5 rounded-lg flex items-center justify-center border ${item.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-white/10 text-transparent'}`}>
+                                                                <div key={idx} className="flex items-center gap-3 p-4 bg-white border border-[#E3ECF5] rounded-xl shadow-inner-sm">
+                                                                    <div className={`w-5 h-5 rounded-lg flex items-center justify-center border transition-all ${item.done ? 'bg-[#4CAF50] border-[#4CAF50] text-white' : 'bg-[#F8FBFF] border-[#E3ECF5] text-transparent'}`}>
                                                                         <Check className="w-3.5 h-3.5" />
                                                                     </div>
-                                                                    <span className="text-[12px] font-bold text-slate-300 uppercase tracking-tight">{item.item}</span>
+                                                                    <span className={`text-[12px] font-bold uppercase tracking-tight ${item.done ? 'text-[#1A2B49]' : 'text-[#5F6F89]'}`}>{item.item}</span>
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -299,10 +288,10 @@ const VisitsView = ({ visits = [], study, tasks = [], isLoading = false }: { vis
                                 </motion.div>
                             ))
                         ) : (
-                            <div className="text-center py-20 p-8 border border-white/5 rounded-[3rem] bg-white/[0.01]">
-                                <Activity className="w-12 h-12 text-slate-800 mx-auto mb-6" />
-                                <h3 className="text-xl font-black text-white italic uppercase tracking-widest">No Visits Scheduled</h3>
-                                <p className="text-slate-500 mt-4 uppercase text-[10px] font-black tracking-widest">Your clinical timeline is currently clear.</p>
+                            <div className="text-center py-24 bg-white border border-[#E3ECF5] rounded-[40px] shadow-sm">
+                                <CalendarClock className="w-16 h-16 text-[#E3ECF5] mx-auto mb-6" />
+                                <h3 className="text-xl font-bold text-[#1A2B49] uppercase tracking-tight">No Events Synchronized</h3>
+                                <p className="text-[#5F6F89] mt-2 uppercase text-[11px] font-bold tracking-[0.2em]">Contact your coordinator for schedule updates</p>
                             </div>
                         )}
                     </div>

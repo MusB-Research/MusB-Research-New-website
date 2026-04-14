@@ -5,12 +5,11 @@ import {
     ArrowRight, CheckCircle, Clock, History, Download,
     ShieldCheck, Gem, CreditCard, Gift, Info, Building
 } from 'lucide-react';
-import { Card, Badge, ProgressBar } from './SharedComponents';
+import { Card, Badge, ProgressBar, Skeleton } from './SharedComponents';
 
 const CompensationView = ({ study, compensations = [], tasks = [], visits = [], onAction, isLoading = false }: any) => {
     // Rewards registry is populated from backend clinical records.
     const dummyCompensations: any[] = [];
-
     const activeData = compensations.length > 0 ? compensations : dummyCompensations;
 
     const handleDownload = () => {
@@ -29,22 +28,8 @@ const CompensationView = ({ study, compensations = [], tasks = [], visits = [], 
         URL.revokeObjectURL(url);
     };
 
-    // ELIGIBILITY LOGIC
-    // Rewards are ONLY available after Study Completion.
     const isStudyCompleted = (study?.status || '').toUpperCase() === 'COMPLETED';
     
-    // Check if the participant has finished all protocol items
-    const allTasksCompleted = tasks.length > 0 && tasks.every((t: any) => 
-        (t.status || '').toUpperCase() === 'COMPLETED' || 
-        (t.status || '').toUpperCase() === 'VIEW_SUBMISSION'
-    );
-    const allVisitsCompleted = visits.length > 0 && visits.every((v: any) => 
-        (v.status || '').toUpperCase() === 'COMPLETED' || 
-        (v.status || '').toUpperCase() === 'ATTENDED'
-    );
-
-    const isEligible = isStudyCompleted && allTasksCompleted && allVisitsCompleted;
-
     const totalEarned = React.useMemo(() => {
         return activeData
             .filter((c: any) => c.status === 'PAID')
@@ -61,156 +46,149 @@ const CompensationView = ({ study, compensations = [], tasks = [], visits = [], 
         return Array.isArray(activeData) ? activeData.map((c: any) => ({
             id: c.id,
             study: c.study_name || study?.title || 'Clinical Study',
-            desc: c.description || 'Study Completion',
+            desc: c.description || 'Participation Reward',
             method: c.reward_method || 'Gift Card',
             amount: parseFloat(c.amount || 0),
-            date: c.paid_at ? new Date(c.paid_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Pending Completion',
+            date: c.paid_at ? new Date(c.paid_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Processing',
             status: (c.status || 'PENDING').toUpperCase()
         })) : [];
     }, [activeData, study]);
 
-    const mainRewardMethod = React.useMemo(() => {
-        if (!study) return 'Gift Card';
-        const type = (study.reward_type || 'GIFT_CARD').toUpperCase();
-        if (type === 'CASH') return 'Gift Card (Restricted)';
-        return 'Gift Card';
-    }, [study]);
-
     if (isLoading) {
         return (
-            <div className="flex flex-col gap-10 max-w-[1500px] animate-pulse">
-                <div className="h-96 bg-white/5 border border-white/5 rounded-[3rem]" />
-                <div className="h-64 bg-white/5 border border-white/5 rounded-[3rem]" />
+            <div className="flex flex-col gap-10 animate-pulse">
+                <Skeleton className="h-96 rounded-[32px]" />
+                <Skeleton className="h-64 rounded-[32px]" />
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col gap-10 max-w-[1500px] animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* 1. FINANCIAL SUMMARY HERO */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <Card className="lg:col-span-12 p-12 bg-[#0a101f] border-white/5 shadow-2xl relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform">
-                        <Trophy className="w-64 h-64 text-amber-500" />
+        <div className="flex flex-col gap-10 pb-12">
+            {/* HERO SECTION */}
+            <div className="grid grid-cols-1 gap-8">
+                <Card className="p-12 bg-white border-[#E3ECF5] shadow-xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-12 opacity-[0.02] pointer-events-none group-hover:scale-110 transition-transform">
+                        <Trophy className="w-80 h-80 text-[#1E88E5]" />
                     </div>
 
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 mb-16 relative z-10">
-                        <div>
-                            <div className="flex items-center gap-2 text-sm font-black text-slate-500 uppercase tracking-[0.25em] mb-4 italic">
-                                <span>Compensation</span>
-                                <ChevronRight className="w-3 h-3" />
-                                <span className="text-white">Participation Reward</span>
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2 text-[12px] font-bold text-[#8A99B3] uppercase tracking-widest mb-3">
+                                <span>Study Engagement</span>
+                                <ChevronRight className="w-3.5 h-3.5" />
+                                <span className="text-[#1E88E5]">Clinical Rewards</span>
                             </div>
+                            <h2 className="text-2xl font-bold text-[#1A2B49] uppercase tracking-tight">Compensation Summary</h2>
+                            <p className="text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest italic">Acknowledge your contribution to research advancement</p>
                         </div>
                         <div className="flex flex-col items-end">
-                            <span className="text-[12px] font-black text-amber-500 uppercase tracking-[0.3em] mb-1 italic">Total Study Reward</span>
-                            <span className="text-4xl lg:text-5xl font-black italic tracking-tighter text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+                            <span className="text-[11px] font-bold text-[#1E88E5] uppercase tracking-[0.2em] mb-1">Lifetime Disbursement</span>
+                            <span className="text-5xl font-bold tracking-tighter text-[#1A2B49]">
                                 ${totalEarned.toFixed(2)}
                             </span>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10 mb-10">
-                        <div className="p-8 bg-white/[0.03] border border-white/10 rounded-[2rem] hover:bg-white/[0.05] transition-all">
-                            <h4 className="text-[12px] font-black text-slate-500 uppercase tracking-widest mb-4 italic flex items-center gap-2">
-                                <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> Amount Paid
+                        <div className="p-8 bg-[#F8FBFF] border border-[#E3ECF5] rounded-3xl hover:bg-white transition-all shadow-inner-sm">
+                            <h4 className="text-[11px] font-bold text-[#8A99B3] uppercase tracking-widest mb-4 flex items-center gap-3">
+                                <CheckCircle className="w-4 h-4 text-[#4CAF50]" /> Verified Earnings
                             </h4>
                             <div className="flex items-center justify-between">
-                                <span className="text-3xl font-black text-white italic tracking-tighter">${totalEarned.toFixed(2)}</span>
-                                <Badge color={totalEarned > 0 ? 'green' : 'gray'}>{totalEarned > 0 ? 'Paid' : 'Awaiting'}</Badge>
+                                <span className="text-3xl font-bold text-[#1A2B49] tracking-tight">${totalEarned.toFixed(2)}</span>
+                                <Badge color={totalEarned > 0 ? 'green' : 'slate'}>{totalEarned > 0 ? 'Paid' : 'Idle'}</Badge>
                             </div>
                         </div>
-                        <div className="p-8 bg-white/[0.03] border border-white/10 rounded-[2rem] hover:bg-white/[0.05] transition-all">
-                            <h4 className="text-[12px] font-black text-slate-500 uppercase tracking-widest mb-4 italic flex items-center gap-2">
-                                <Clock className="w-3.5 h-3.5 text-amber-500" /> Amount Pending
+                        <div className="p-8 bg-[#F8FBFF] border border-[#E3ECF5] rounded-3xl hover:bg-white transition-all shadow-inner-sm">
+                            <h4 className="text-[11px] font-bold text-[#8A99B3] uppercase tracking-widest mb-4 flex items-center gap-3">
+                                <Clock className="w-4 h-4 text-[#1E88E5]" /> Pending Approval
                             </h4>
                             <div className="flex items-center justify-between">
-                                <span className="text-3xl font-black text-white italic tracking-tighter">${pendingPayment.toFixed(2)}</span>
-                                <Badge color="amber">{pendingPayment > 0 ? 'Earned' : 'Processed'}</Badge>
+                                <span className="text-3xl font-bold text-[#1A2B49] tracking-tight">${pendingPayment.toFixed(2)}</span>
+                                <Badge color="blue">{pendingPayment > 0 ? 'Processing' : 'No Queue'}</Badge>
                             </div>
                         </div>
-                        <div className="p-8 bg-white/[0.03] border border-white/10 rounded-[2rem] hover:bg-white/[0.05] transition-all">
-                            <h4 className="text-[12px] font-black text-slate-500 uppercase tracking-widest mb-4 italic flex items-center gap-2">
-                                <Wallet className="w-3.5 h-3.5 text-amber-500" /> Reward Method
+                        <div className="p-8 bg-[#F8FBFF] border border-[#E3ECF5] rounded-3xl hover:bg-white transition-all shadow-inner-sm">
+                            <h4 className="text-[11px] font-bold text-[#8A99B3] uppercase tracking-widest mb-4 flex items-center gap-3">
+                                <Wallet className="w-4 h-4 text-[#1E88E5]" /> Disbursement Mode
                             </h4>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-white/10 rounded-lg text-white">
-                                        <Gift className="w-4 h-4" />
+                                    <div className="p-2.5 bg-white rounded-xl shadow-sm border border-[#E3ECF5] text-[#1E88E5]">
+                                        <Gift className="w-4.5 h-4.5" />
                                     </div>
-                                    <span className="text-sm font-bold text-white uppercase tracking-widest italic">{mainRewardMethod}</span>
+                                    <span className="text-[13px] font-bold text-[#1A2B49] uppercase tracking-tight">Gift Card</span>
                                 </div>
-                                <Badge color="amber">Gift Card</Badge>
+                                <Badge color="blue">Secure</Badge>
                             </div>
                         </div>
                     </div>
 
-                    <div className="mt-6 pt-10 border-t border-white/[0.03] flex items-center justify-between relative z-10">
-                        {!isStudyCompleted && (
-                            <div className="flex items-center gap-3 text-[11px] font-black text-amber-500 uppercase tracking-widest italic animate-pulse">
-                                <Info className="w-3.5 h-3.5" /> Total reward is disbursed upon full study completion. Current Status: {study?.status || 'ENROLLED'}
-                            </div>
-                        )}
-                        {isStudyCompleted && (
-                            <div className="flex items-center gap-3 text-sm font-black text-emerald-500 uppercase tracking-widest italic">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Study Completed - Reward Processed
-                            </div>
-                        )}
+                    <div className="mt-8 pt-8 border-t border-[#F8FBFF] flex items-center justify-between relative z-10">
+                        <div className={`flex items-center gap-3 text-[11px] font-bold uppercase tracking-widest ${isStudyCompleted ? 'text-[#4CAF50]' : 'text-[#8A99B3]'}`}>
+                            <ShieldCheck className="w-4 h-4" /> 
+                            {isStudyCompleted ? 'Final study disbursement protocol initiated' : 'Rewards are verified and disbursed following protocol milestones'}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                             <span className="text-[10px] text-[#B0BCCF] font-bold uppercase">Study Status:</span>
+                             <Badge color={isStudyCompleted ? 'green' : 'blue'}>{study?.status || 'ACTIVE'}</Badge>
+                        </div>
                     </div>
                 </Card>
             </div>
 
-            {/* 2. TRANSACTION REGISTRY */}
-            <Card className="p-0 bg-[#0a101f] border-white/5 shadow-2xl overflow-hidden mt-6">
-                <div className="p-10 border-b border-white/5 flex items-center justify-between">
+            {/* TRANSACTION REGISTRY */}
+            <Card className="p-0 bg-white border-[#E3ECF5] shadow-xl overflow-hidden">
+                <div className="p-10 border-b border-[#F8FBFF] flex items-center justify-between">
                     <div>
-                        <h3 className="text-2xl font-black text-white uppercase italic tracking-tight flex items-center gap-4">
-                            <History className="w-6 h-6 text-amber-500" /> Reward Registry
+                        <h3 className="text-xl font-bold text-[#1A2B49] uppercase tracking-tight flex items-center gap-4">
+                            <History className="w-6 h-6 text-[#1E88E5]" /> Distribution Registry
                         </h3>
-                        <p className="text-base font-bold text-slate-500 uppercase tracking-widest mt-1">Status of study completion rewards.</p>
+                        <p className="text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest mt-1">Immutable log of clinical compensations disbursed</p>
                     </div>
                     <button 
                         onClick={handleDownload}
-                        className="p-4 bg-white/5 hover:bg-white/10 rounded-xl text-slate-400 hover:text-white transition-all border border-white/5 group active:scale-95"
+                        className="p-4 bg-[#F8FBFF] hover:bg-[#E3F2FD] rounded-xl text-[#8A99B3] hover:text-[#1E88E5] transition-all border border-[#E3ECF5] group active:scale-95"
+                        title="Download CSV"
                     >
-                        <Download className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                        <Download className="w-5 h-5 transition-transform" />
                     </button>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-white/[0.02]">
-                                {['Study Name', 'Description', 'Reward Method', 'Payment Date', 'Amount', 'Status'].map(h => (
-                                    <th key={h} className="p-6 text-[12px] font-black text-slate-500 uppercase tracking-widest italic border-b border-white/5">{h}</th>
+                            <tr className="bg-[#F8FBFF]">
+                                {['Target Study', 'Classification', 'Asset Protocol', 'Processing Date', 'Value', 'Status'].map(h => (
+                                    <th key={h} className="p-6 text-[11px] font-bold text-[#8A99B3] uppercase tracking-[0.15em] border-b border-[#E3ECF5]">{h}</th>
                                 ))}
                             </tr>
                         </thead>
-                        <tbody>
-                            {history.length > 0 ? history.map((row: any, i: number) => (
-                                <tr key={row.id} className="hover:bg-white/[0.01] transition-colors group">
-                                    <td className="p-6 px-10">
+                        <tbody className="divide-y divide-[#F8FBFF]">
+                            {history.length > 0 ? history.map((row: any) => (
+                                <tr key={row.id} className="hover:bg-[#F0F6FF]/30 transition-colors group">
+                                    <td className="p-6">
                                         <div className="flex items-center gap-4">
-                                            <Building className="w-4 h-4 text-amber-500 opacity-40" />
-                                            <span className="text-sm font-black text-white italic uppercase tracking-tight">{row.study}</span>
+                                            <div className="w-2.5 h-2.5 rounded-full bg-[#1E88E5] opacity-20" />
+                                            <span className="text-[13px] font-bold text-[#1A2B49] uppercase tracking-tight line-clamp-1">{row.study}</span>
                                         </div>
                                     </td>
-                                    <td className="p-6 text-sm font-bold text-slate-300 uppercase tracking-widest">{row.desc}</td>
+                                    <td className="p-6 text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest">{row.desc}</td>
                                     <td className="p-6">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                                            <span className="text-sm font-bold text-slate-400 uppercase tracking-tighter italic">{row.method}</span>
+                                            <span className="text-[12px] font-bold text-[#8A99B3] uppercase tracking-tight">{row.method}</span>
                                         </div>
                                     </td>
-                                    <td className="p-6 text-[12px] font-black text-slate-500 italic uppercase">{row.date}</td>
-                                    <td className="p-6 text-base font-black text-white italic tracking-tighter">${row.amount.toFixed(2)}</td>
-                                    <td className="p-6"><Badge color={row.status === 'PAID' ? 'green' : 'amber'}>{row.status}</Badge></td>
+                                    <td className="p-6 text-[12px] font-bold text-[#1A2B49] uppercase">{row.date}</td>
+                                    <td className="p-6 text-[14px] font-bold text-[#1E88E5] tracking-tight">${row.amount.toFixed(2)}</td>
+                                    <td className="p-6"><Badge color={row.status === 'PAID' ? 'green' : 'blue'}>{row.status}</Badge></td>
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={6} className="p-20 text-center">
-                                        <div className="flex flex-col items-center gap-4 opacity-30">
-                                            <History className="w-12 h-12 text-slate-500 mb-2" />
-                                            <p className="text-sm font-black text-slate-500 uppercase tracking-[0.2em] italic">Reward Processing</p>
+                                    <td colSpan={6} className="p-24 text-center">
+                                        <div className="flex flex-col items-center gap-4 opacity-40">
+                                            <History className="w-16 h-16 text-[#B0BCCF] mb-4" />
+                                            <p className="text-[13px] font-bold text-[#1A2B49] uppercase tracking-[0.2em]">Transaction Log Initializing</p>
                                         </div>
                                     </td>
                                 </tr>

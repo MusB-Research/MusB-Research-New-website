@@ -47,7 +47,7 @@ class IsAdminOrCoordinator(permissions.BasePermission):
     def has_permission(self, request, view):
         if not request.user.is_authenticated:
             return False
-        return request.user.role.upper() in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']
+        return (request.user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']
 
 class WorkflowContentMixin:
     """Mixin to handle role-based workflow logic for content creation and status."""
@@ -61,7 +61,7 @@ class WorkflowContentMixin:
         if not user.is_authenticated:
             return self.queryset.filter(**{status_field: 'approved'})
             
-        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']:
+        if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
             qs = self.queryset.all()
             if status_filter:
                 qs = qs.filter(**{status_field: status_filter})
@@ -74,21 +74,21 @@ class WorkflowContentMixin:
         model_class = serializer.Meta.model
         is_study = hasattr(model_class, 'approval_status')
         status_field = 'approval_status' if is_study else 'status'
-        status_val = 'approved' if user.role.upper() in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR'] else 'pending'
+        status_val = 'approved' if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR'] else 'pending'
         serializer.save(created_by=user, **{status_field: status_val})
 
     def perform_update(self, serializer):
         user = self.request.user
         is_study = hasattr(serializer.Meta.model, 'approval_status')
         status_field = 'approval_status' if is_study else 'status'
-        if user.role.upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR']:
+        if (user.role or '').upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR']:
             serializer.save(**{status_field: 'pending'})
         else:
             serializer.save()
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def approve(self, request, pk=None):
-        if request.user.role.upper() not in ['SUPER_ADMIN', 'ADMIN']:
+        if (request.user.role or '').upper() not in ['SUPER_ADMIN', 'ADMIN']:
             return Response({'error': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
         obj = self.get_object()
         if hasattr(obj, 'approval_status'):
@@ -100,7 +100,7 @@ class WorkflowContentMixin:
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def reject(self, request, pk=None):
-        if request.user.role.upper() not in ['SUPER_ADMIN', 'ADMIN']:
+        if (request.user.role or '').upper() not in ['SUPER_ADMIN', 'ADMIN']:
             return Response({'error': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
         obj = self.get_object()
         if hasattr(obj, 'approval_status'):
@@ -121,7 +121,7 @@ class SponsorOrganizationViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         # Allow Super Admin, Admin, and PI to create organizations for now
-        if self.request.user.role.upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI']:
+        if (self.request.user.role or '').upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI']:
             raise serializers.ValidationError({"detail": "Unauthorized to create sponsor organization."})
         serializer.save()
 
@@ -191,7 +191,7 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
-        role = user.role.upper()
+        role = (user.role or '').upper()
         
         # Requirement 1: Sponsors cannot create study directly
         if role == 'SPONSOR':
@@ -232,7 +232,7 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
             
         self._sync_assignments(study, pi_ids, coord_ids, sponsor_ids)
         AuditLog.log('UPDATE_STUDY', user_email=user.email, request=self.request, detail=f"Created study {study.title}")
-        if user.role.upper() in ['PI', 'COORDINATOR']:
+        if (user.role or '').upper() in ['PI', 'COORDINATOR']:
             StudyAssignment.objects.get_or_create(study=study, user=user, role=user.role)
 
     @action(detail=True, methods=['get'], permission_classes=[IsAdminOrCoordinator])
@@ -286,7 +286,7 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         user = self.request.user
-        role = user.role.upper()
+        role = (user.role or '').upper()
         
         # Requirement 2: Sponsors cannot edit study protocol or stage
         if role == 'SPONSOR':
@@ -468,6 +468,24 @@ class ParticipantViewSet(viewsets.ModelViewSet):
     serializer_class = ParticipantSerializer
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = 'participant_sid'
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return Participant.objects.none()
+            
+        role = (user.role or '').upper()
+        
+        # Admins, PIs, and Coordinators can see everyone
+        if role in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']:
+            return Participant.objects.all().order_by('-created_at')
+            
+        # Participants can ONLY see their own records
+        if role == 'PARTICIPANT':
+            return Participant.objects.filter(user=user).order_by('-created_at')
+            
+        # Default to nothing for security
+        return Participant.objects.none()
 
     # Removed _ensure_test_participant logic to allow 'No Active Study' states for testing as per user request.
 
@@ -725,7 +743,7 @@ class ParticipantViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         user = self.request.user
-        if user.role.upper() == 'SPONSOR':
+        if (user.role or '').upper() == 'SPONSOR':
             return DeIdentifiedParticipantSerializer
         # Senior Developer: Use Brief serializer for lists to dramatically boost dashboard speed
         if self.action == 'list':
@@ -738,7 +756,7 @@ class ParticipantViewSet(viewsets.ModelViewSet):
 
         # Removed auto-enrollment logic to allow clean 'Not Enrolled' states.
 
-        role = user.role.upper()
+        role = (user.role or '').upper()
         if role in ['SUPER_ADMIN', 'ADMIN']:
             return Participant.objects.all().order_by('-created_at')
             
@@ -756,9 +774,9 @@ class VisitViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated: return Visit.objects.none()
-        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']:
+        if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
             return Visit.objects.all().order_by('-scheduled_date')
-        if user.role.upper() == 'PARTICIPANT':
+        if (user.role or '').upper() == 'PARTICIPANT':
             return Visit.objects.filter(participant__user=user).order_by('-scheduled_date')
         # PIs, Coordinators, and Sponsors see visits for assigned studies
         return Visit.objects.filter(participant__study__assignments__user=user).distinct().order_by('-scheduled_date')
@@ -782,7 +800,7 @@ class LeadViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated: return Lead.objects.none()
-        if user.role.upper() == 'SUPER_ADMIN': return Lead.objects.all()
+        if (user.role or '').upper() == 'SUPER_ADMIN': return Lead.objects.all()
         return Lead.objects.filter(study__assignments__user=user)
 
 class CommunicationLogViewSet(viewsets.ModelViewSet):
@@ -792,7 +810,7 @@ class CommunicationLogViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated: return CommunicationLog.objects.none()
-        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']: return CommunicationLog.objects.all()
+        if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']: return CommunicationLog.objects.all()
         return CommunicationLog.objects.filter(participant__study__assignments__user=user).distinct()
 
 class CompensationViewSet(viewsets.ModelViewSet):
@@ -803,9 +821,9 @@ class CompensationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated: return Compensation.objects.none()
-        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']:
+        if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
             queryset = Compensation.objects.all().order_by('-paid_at')
-        elif user.role.upper() == 'PARTICIPANT':
+        elif (user.role or '').upper() == 'PARTICIPANT':
             queryset = Compensation.objects.filter(participant__user=user).order_by('-paid_at')
         else:
             queryset = Compensation.objects.filter(participant__study__assignments__user=user).distinct().order_by('-paid_at')
@@ -826,9 +844,9 @@ class LabResultViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated: return LabResult.objects.none()
-        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']:
+        if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
             return LabResult.objects.all().order_by('-lab_date')
-        if user.role.upper() == 'PARTICIPANT':
+        if (user.role or '').upper() == 'PARTICIPANT':
             return LabResult.objects.filter(participant__user=user, is_released=True).order_by('-lab_date')
         queryset = LabResult.objects.filter(participant__study__assignments__user=user).distinct().order_by('-lab_date')
         
@@ -856,7 +874,7 @@ class ProgressReportViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         # Admins see all, others see what they are assigned to
-        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
+        if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN']:
             return ProgressReport.objects.all().order_by('-report_date')
         return ProgressReport.objects.filter(study__assignments__user=user).order_by('-report_date')
 
@@ -886,9 +904,9 @@ class ConsentTemplateViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
             queryset = ConsentTemplate.objects.all().order_by('-created_at')
         # For Staff (Admin, Coordinator, PI): Filter templates by studies the user is assigned to
-        elif user.role.upper() in ['PI', 'COORDINATOR']:
+        elif (user.role or '').upper() in ['PI', 'COORDINATOR']:
             queryset = ConsentTemplate.objects.filter(study__assignments__user=user).distinct().order_by('-created_at')
-        elif user.role.upper() == 'PARTICIPANT':
+        elif (user.role or '').upper() == 'PARTICIPANT':
             # For Participants: Filter templates by studies they are enrolled in
             queryset = ConsentTemplate.objects.filter(study__participants__user=user).distinct().order_by('-created_at')
         else:
@@ -926,7 +944,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(study__protocol_id=study_id)
 
         # Super Admin and Admin see all
-        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']:
+        if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
             return queryset.order_by('-uploaded_at')
 
         # Filter by visibility for other roles
@@ -936,7 +954,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
             'SPONSOR': 'SPONSOR',
             'PARTICIPANT': 'PARTICIPANT'
         }
-        user_role = role_map.get(user.role.upper())
+        user_role = role_map.get((user.role or '').upper())
         
         if user_role:
             from django.db.models import Q
@@ -961,9 +979,9 @@ class ConsentViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated: return Consent.objects.none()
         
-        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']:
+        if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
             queryset = self.queryset.all()
-        elif user.role.upper() == 'PARTICIPANT':
+        elif (user.role or '').upper() == 'PARTICIPANT':
             queryset = self.queryset.filter(participant__user=user)
         else:
             # PIs, Coordinators, and Sponsors see consents for assigned studies
@@ -1033,49 +1051,67 @@ class ConsentViewSet(viewsets.ModelViewSet):
             participant.status = 'CONSENTED'
             participant.save()
 
-        # 2. Alert logic for PI & Coordinator
-        study = Study.objects.get(id=study_id)
-        
-        # Notify Coordinator
-        if study.coordinator:
-            Notification.objects.create(
-                user=study.coordinator,
-                title="New Consent Signed",
-                message=f"Participant {participant.participant_sid if participant else 'Unknown'} signed the consent for {study.protocol_id}. Please review and sign.",
-                type="INFO"
+            # Root Cause Fix: Automatically transition PENDING Consent tasks to COMPLETED
+            from api.models import ParticipantTask
+            tasks_to_update = ParticipantTask.objects.filter(
+                participant=participant,
+                task__task_type='CONSENT',
+                status='PENDING'
             )
-            StaffTask.objects.create(
-                user=study.coordinator,
-                study=study,
-                title="Sign Consent Form",
-                description=f"Participant {participant.participant_sid if participant else 'Unknown'} signed the consent for {study.protocol_id}.",
-                task_type="CONSENT_SIGNATURE",
-                reference_id=str(consent.pk)
-            )
+            for pt in tasks_to_update:
+                pt.status = 'COMPLETED'
+                pt.completed_at = now()
+                pt.save()
             
-        # Notify PI
-        if study.pi:
-            Notification.objects.create(
-                user=study.pi,
-                title="New Consent Signed",
-                message=f"Participant {participant.participant_sid if participant else 'Unknown'} signed the consent for {study.protocol_id}. Required to sign (optional depending on protocol).",
-                type="INFO"
-            )
-            StaffTask.objects.create(
-                user=study.pi,
-                study=study,
-                title="Sign Consent Form",
-                description=f"Participant {participant.participant_sid if participant else 'Unknown'} signed the consent for {study.protocol_id}.",
-                task_type="CONSENT_SIGNATURE",
-                reference_id=str(consent.pk)
-            )
+            # Audit log for transition
+            AuditLog.log('CONSENT_TASK_COMPLETED', user_email=user.email, request=self.request, detail=f"Consent task marked complete for {participant.participant_sid}")
+
+        # 2. Alert logic for PI & Coordinator
+        study = None
+        if actual_study_id:
+            study = Study.objects.filter(id=actual_study_id).first()
+        
+        if study:
+            # Notify Coordinator
+            if study.coordinator:
+                Notification.objects.create(
+                    user=study.coordinator,
+                    title="New Consent Signed",
+                    message=f"Participant {participant.participant_sid if participant else 'Unknown'} signed the consent for {study.protocol_id}. Please review and sign.",
+                    type="INFO"
+                )
+                StaffTask.objects.create(
+                    user=study.coordinator,
+                    study=study,
+                    title="Sign Consent Form",
+                    description=f"Participant {participant.participant_sid if participant else 'Unknown'} signed the consent for {study.protocol_id}.",
+                    task_type="CONSENT_SIGNATURE",
+                    reference_id=str(consent.pk)
+                )
+                
+            # Notify PI
+            if study.pi:
+                Notification.objects.create(
+                    user=study.pi,
+                    title="New Consent Signed",
+                    message=f"Participant {participant.participant_sid if participant else 'Unknown'} signed the consent for {study.protocol_id}. Required to sign (optional depending on protocol).",
+                    type="INFO"
+                )
+                StaffTask.objects.create(
+                    user=study.pi,
+                    study=study,
+                    title="Sign Consent Form",
+                    description=f"Participant {participant.participant_sid if participant else 'Unknown'} signed the consent for {study.protocol_id}.",
+                    task_type="CONSENT_SIGNATURE",
+                    reference_id=str(consent.pk)
+                )
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def verify(self, request, pk=None):
         """Seal & Verify action for PI or CC"""
         consent = self.get_object()
         user = request.user
-        role = user.role.upper()
+        role = (user.role or '').upper()
         
         if role not in ['PI', 'COORDINATOR', 'ADMIN', 'SUPER_ADMIN']:
             return Response({'error': 'Only PI or CC can verify consents.'}, status=status.HTTP_403_FORBIDDEN)
@@ -1134,10 +1170,10 @@ class DosingLogViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
+        if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN']:
             return DosingLog.objects.all()
         # Participants see their own logs
-        if user.role.upper() == 'PARTICIPANT':
+        if (user.role or '').upper() == 'PARTICIPANT':
             return DosingLog.objects.filter(participant__user=user)
         # Coordinators/PIs see logs for their assigned studies
         return DosingLog.objects.filter(participant__study__assignments__user=user)
@@ -1166,16 +1202,16 @@ class AEReportViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
+        if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN']:
             return AEReport.objects.all()
-        if user.role.upper() == 'PARTICIPANT':
+        if (user.role or '').upper() == 'PARTICIPANT':
             return AEReport.objects.filter(participant__user=user)
         return AEReport.objects.filter(participant__study__assignments__user=user)
 
     def perform_create(self, serializer):
         user = self.request.user
         pid = self.request.data.get('participant')
-        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN', 'PI', 'COORDINATOR'] and pid:
+        if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN', 'PI', 'COORDINATOR'] and pid:
             serializer.save(participant_id=pid)
             return
         participant = Participant.objects.filter(user=self.request.user).first()
@@ -1189,9 +1225,9 @@ class DailyMedicationLogViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
+        if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN']:
             return DailyMedicationLog.objects.all()
-        if user.role.upper() == 'PARTICIPANT':
+        if (user.role or '').upper() == 'PARTICIPANT':
             return DailyMedicationLog.objects.filter(participant__user=user)
         return DailyMedicationLog.objects.filter(participant__study__assignments__user=user)
 
@@ -1208,9 +1244,9 @@ class AssignedFormViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
+        if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN']:
             return AssignedForm.objects.all().order_by('-created_at')
-        if user.role.upper() == 'PARTICIPANT':
+        if (user.role or '').upper() == 'PARTICIPANT':
             return AssignedForm.objects.filter(participant__user=user).order_by('-created_at')
         # PIs/Coordinators see forms for their assigned studies
         return AssignedForm.objects.filter(study__assignments__user=user).distinct().order_by('-created_at')
@@ -1269,7 +1305,7 @@ class AssignedFormViewSet(viewsets.ModelViewSet):
     def sign_coordinator(self, request, pk=None):
         """Coordinator signs/countersigns"""
         af = self.get_object()
-        if request.user.role.upper() not in ['COORDINATOR', 'PI', 'ADMIN', 'SUPER_ADMIN']:
+        if (request.user.role or '').upper() not in ['COORDINATOR', 'PI', 'ADMIN', 'SUPER_ADMIN']:
             return Response({'error': 'Unauthorized'}, status=403)
             
         sig_data = request.data.get('signature')
@@ -1294,7 +1330,7 @@ class AssignedFormViewSet(viewsets.ModelViewSet):
     def sign_pi(self, request, pk=None):
         """PI signs off (Optional but completing)"""
         af = self.get_object()
-        if request.user.role.upper() not in ['PI', 'ADMIN', 'SUPER_ADMIN']:
+        if (request.user.role or '').upper() not in ['PI', 'ADMIN', 'SUPER_ADMIN']:
             return Response({'error': 'Unauthorized'}, status=403)
             
         sig_data = request.data.get('signature')
@@ -1332,9 +1368,9 @@ class FormViewSet(viewsets.ModelViewSet):
         # PRIVATE: require authentication for all other queries
         user = self.request.user
         if not user.is_authenticated: return Form.objects.none()
-        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']: return Form.objects.all()
+        if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']: return Form.objects.all()
         study_id = self.request.query_params.get('study_id')
-        if user.role.upper() == 'PARTICIPANT':
+        if (user.role or '').upper() == 'PARTICIPANT':
             qs = Form.objects.filter(study__participants__user=user).distinct()
         else:
             qs = Form.objects.filter(study__assignments__user=user).distinct()
@@ -1389,7 +1425,7 @@ class ParticipantTaskViewSet(viewsets.ModelViewSet):
         queryset = ParticipantTask.objects.all()
         
         # Staff can filter by study or participant
-        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']:
+        if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']:
             study_id = self.request.query_params.get('study')
             participant_id = self.request.query_params.get('participant')
             
@@ -1399,9 +1435,9 @@ class ParticipantTaskViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(participant_id=participant_id)
             return queryset
 
-        # CRITICAL: Only return tasks for participants who are formally ENROLLED or PENDING REVIEW.
-        # This allows candidates to see screening-phase tasks like eConsent.
-        visible_statuses = ['RECRUITING', 'SCREENING', 'PENDING_REVIEW', 'ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE']
+        # CRITICAL: Only return tasks for participants who are formally ENROLLED or in an active clinical state.
+        # Candidates in PENDING_REVIEW or SCREENING should not see general study tasks until approved.
+        visible_statuses = ['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE', 'COMPLETED']
         return queryset.filter(
             participant__user=user,
             participant__status__in=visible_statuses
@@ -1432,10 +1468,10 @@ class UserViewSet(viewsets.ModelViewSet):
             return User.objects.none()
         
         # Super Admins and Admins see everyone
-        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
+        if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN']:
             return User.objects.all().order_by('-date_joined')
         
-        if user.role.upper() in ['PI', 'COORDINATOR']:
+        if (user.role or '').upper() in ['PI', 'COORDINATOR']:
             # PIs and Coordinators need visibility into Sponsors and Medical Personnel 
             # for staffing and launch tasks. Participants should be managed via /api/participants/.
             return User.objects.filter(
@@ -1474,14 +1510,14 @@ class StaffTaskViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return StaffTask.objects.none()
-        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
+        if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN']:
             return StaffTask.objects.all().order_by('-created_at')
         return StaffTask.objects.filter(user=user).order_by('-created_at')
 
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
         task = self.get_object()
-        if task.user != request.user and request.user.role.upper() not in ['ADMIN', 'SUPER_ADMIN']:
+        if task.user != request.user and (request.user.role or '').upper() not in ['ADMIN', 'SUPER_ADMIN']:
             return Response({'error': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
             
         task.is_completed = True
@@ -1574,7 +1610,7 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return StudyInquiry.objects.none()
-        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']:
+        if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
             return StudyInquiry.objects.all().order_by('-created_at')
         return StudyInquiry.objects.filter(sponsor_user=user).order_by('-created_at')
 
@@ -1671,7 +1707,7 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
         import logging
         logger = logging.getLogger(__name__)
         
-        if request.user.role.upper() not in ['SUPER_ADMIN', 'ADMIN']:
+        if (request.user.role or '').upper() not in ['SUPER_ADMIN', 'ADMIN']:
             return Response({'error': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
         
         try:
@@ -1730,7 +1766,7 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def reject(self, request, pk=None):
         """Allows super admin to reject an inquiry lead."""
-        if request.user.role.upper() not in ['SUPER_ADMIN', 'ADMIN']:
+        if (request.user.role or '').upper() not in ['SUPER_ADMIN', 'ADMIN']:
             return Response({'error': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
         
         inquiry = self.get_object()
@@ -1752,7 +1788,7 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def reject_all_delete(self, request):
         """Allows super admin to reject and delete all inquiries."""
-        if request.user.role.upper() not in ['SUPER_ADMIN']:
+        if (request.user.role or '').upper() not in ['SUPER_ADMIN']:
             return Response({'error': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
         
         try:
@@ -1787,9 +1823,9 @@ class KitViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated: return Kit.objects.none()
-        if user.role.upper() in ['ADMIN', 'SUPER_ADMIN']:
+        if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN']:
             return Kit.objects.all().order_by('-assignment_date')
-        if user.role.upper() == 'PARTICIPANT':
+        if (user.role or '').upper() == 'PARTICIPANT':
             return Kit.objects.filter(participant__user=user).order_by('-assignment_date')
         # PIs, Coordinators, and Sponsors: only kits for their assigned studies
         queryset = Kit.objects.filter(participant__study__assignments__user=user).distinct().order_by('-assignment_date')
@@ -1881,9 +1917,9 @@ class ClinicalConversationViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return ClinicalConversation.objects.none()
-        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']:
+        if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
             queryset = ClinicalConversation.objects.all().order_by('-last_updated')
-        elif user.role.upper() == 'PARTICIPANT':
+        elif (user.role or '').upper() == 'PARTICIPANT':
             queryset = ClinicalConversation.objects.filter(participant__user=user).order_by('-last_updated')
         else:
             # PIs and Coordinators see conversations related to their assigned studies
@@ -1905,7 +1941,7 @@ class ClinicalConversationViewSet(viewsets.ModelViewSet):
         participant = None
         
         # If staff is initiating, use the provided participant_id
-        if participant_id and user.role.upper() in ['ADMIN', 'SUPER_ADMIN', 'PI', 'COORDINATOR']:
+        if participant_id and (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN', 'PI', 'COORDINATOR']:
             participant = Participant.objects.filter(id=participant_id).first()
             
         if not participant:
@@ -1937,7 +1973,7 @@ class ClinicalConversationViewSet(viewsets.ModelViewSet):
             text=text,
             tag=tag,
             attachment=attachment,
-            is_from_pi=(request.user.role.upper() == 'PI')
+            is_from_pi=((request.user.role or '').upper() == 'PI')
         )
         
         conv.last_message_preview = text[:100] if text else "Attachment"
@@ -2207,9 +2243,9 @@ class QuestionnaireScheduleInstanceViewSet(viewsets.ModelViewSet):
         study_id = self.request.query_params.get('study_id')
 
         # RBAC and Base Queryset
-        if user.role.upper() in ['SUPER_ADMIN', 'ADMIN']:
+        if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
             qs = self.queryset.all()
-        elif user.role.upper() == 'PARTICIPANT':
+        elif (user.role or '').upper() == 'PARTICIPANT':
             qs = self.queryset.filter(participant__user=user)
         else:
             # PI / Coordinator visibility

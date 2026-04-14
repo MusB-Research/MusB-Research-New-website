@@ -20,13 +20,13 @@ def get_all_ciphers():
     """Returns a list of potential ciphers to try for decryption."""
     ciphers = []
     
-    # 1. Main explicit encryption key
+    # 1. Main explicit encryption key from .env
     explicit_key = os.getenv('DATA_ENCRYPTION_KEY')
     if explicit_key:
         try:
-            # Ensure it is bytes before calling Fernet
-            key_bytes = explicit_key.encode() if isinstance(explicit_key, str) else explicit_key
-            ciphers.append(Fernet(key_bytes))
+            # Robust key cleaning
+            clean_key = str(explicit_key).strip().encode()
+            ciphers.append(Fernet(clean_key))
         except:
             pass
             
@@ -49,7 +49,7 @@ def get_all_ciphers():
 
 
 def encrypt_data(data: str) -> str:
-    if not data or not isinstance(data, str) or data.startswith('gAAAA'):
+    if not data or not isinstance(data, str) or data.lower().startswith('gaaaa'):
         return data
         
     explicit_key = os.getenv('DATA_ENCRYPTION_KEY')
@@ -62,7 +62,7 @@ def encrypt_data(data: str) -> str:
 
 
 def decrypt_data(encrypted_data: str) -> str:
-    if not encrypted_data or not isinstance(encrypted_data, str) or not encrypted_data.startswith('gAAAA'):
+    if not encrypted_data or not isinstance(encrypted_data, str) or not encrypted_data.lower().startswith('gaaaa'):
         return encrypted_data
         
     # Attempt all possible ciphers

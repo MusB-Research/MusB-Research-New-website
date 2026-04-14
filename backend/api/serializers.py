@@ -37,10 +37,20 @@ class ObjectIdField(serializers.Field):
 
 class SanitizedModelSerializer(serializers.ModelSerializer):
     id = ObjectIdField(read_only=True)
-    
+
+    @staticmethod
+    def sanitize_data(data):
+        """Recursively convert ObjectIds and other non-serializable types to strings."""
+        if isinstance(data, dict):
+            return {k: SanitizedModelSerializer.sanitize_data(v) for k, v in data.items()}
+        elif isinstance(data, list):
+            return [SanitizedModelSerializer.sanitize_data(v) for v in data]
+        elif type(data).__name__ == 'ObjectId':
+            return str(data)
+        return data
+
     def to_representation(self, instance):
         """Handle MongoDB ObjectId serialization and authorized decryption (SUPER_ADMIN, etc.)."""
-        from authentication.security import decrypt_data
         ret = super().to_representation(instance)
         request = self.context.get('request')
         user = request.user if request else None
@@ -48,23 +58,39 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
         # Only decrypt for authorized clinical/admin roles
         is_authorized = user and user.is_authenticated and (user.role.upper() in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR'])
         
-        # Ensure we don't leak raw ObjectIds and handle decryption
+        # Step 1: Initial recursive sanitization for MongoDB types
+        ret = self.sanitize_data(ret)
+
+        # Step 2: Decryption handling for PII fields
         for key, value in ret.items():
-            if type(value).__name__ == 'ObjectId':
-                ret[key] = str(value)
-            elif isinstance(value, list):
-                ret[key] = [str(item) if type(item).__name__ == 'ObjectId' else item for item in value]
-            elif isinstance(value, str) and (val_str := str(value)).startswith('gAAAA'):
-                # Automatically decrypt ONLY for authorized roles
-                if is_authorized or (user and (instance == user or (hasattr(instance, 'user') and instance.user == user))):
-                    try:
-                        ret[key] = decrypt_data(val_str)
-                    except Exception:
-                        pass
-        
-        # If created_by is present and is a User instance, show its ID or email
+            # Handle potential Fernet tokens (PII)
+            if isinstance(value, str) and value.startswith('gAAAA'):
+                # ROBUST CHECK: Decrypt if staff OR if instance belongs to user
+                can_decrypt = is_authorized
+                if not can_decrypt and user and user.is_authenticated:
+                    # Use .pk for reliable ID access on both instance and user
+                    # Note: ID strings already sanitized to string by Step 1
+                    iid = str(instance.pk) if hasattr(instance, 'pk') else None
+                    uid = str(user.pk) if hasattr(user, 'pk') else None
+                    
+                    # Direct User match
+                    if iid and uid and iid == uid:
+                        can_decrypt = True
+                    # Related User match (e.g. Participant.user)
+                    elif hasattr(instance, 'user') and instance.user:
+                        instance_user_pk = str(instance.user.pk) if hasattr(instance.user, 'pk') else None
+                        if instance_user_pk and uid and instance_user_pk == uid:
+                            can_decrypt = True
+                
+                if can_decrypt:
+                    from authentication.security import decrypt_data
+                    decrypted = decrypt_data(value)
+                    if decrypted != value:
+                        ret[key] = decrypted
+
+        # Ensure created_by is a string
         if 'created_by' in ret and hasattr(instance, 'created_by') and instance.created_by:
-            ret['created_by'] = str(instance.created_by.id)
+            ret['created_by'] = str(instance.created_by.pk)
             
         return ret
 
@@ -89,11 +115,36 @@ class UserSerializer(SanitizedModelSerializer):
     
     # Aliases for frontend compatibility
     mobile_number = serializers.CharField(source='phone_number', required=False, allow_blank=True)
+    decrypted_name = serializers.SerializerMethodField()
+    decrypted_phone = serializers.SerializerMethodField()
+    decrypted_address = serializers.SerializerMethodField()
+
+    def get_decrypted_name(self, obj):
+        """Always return the decrypted full_name using the model's property."""
+        try:
+            return obj.decrypted_name or ''
+        except Exception:
+            return ''
+
+    def get_decrypted_phone(self, obj):
+        """Always return the decrypted phone_number using the model's property."""
+        try:
+            return obj.decrypted_phone or ''
+        except Exception:
+            return ''
+
+    def get_decrypted_address(self, obj):
+        """Always return the decrypted full_address using the model's property."""
+        try:
+            return obj.decrypted_address or ''
+        except Exception:
+            return ''
     
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'full_name', 'role', 'phone_number', 'mobile_number',
+            'id', 'email', 'full_name', 'decrypted_name', 'decrypted_phone', 'decrypted_address',
+            'role', 'phone_number', 'mobile_number',
             'profile_picture', 'password', 'last_login_formatted', 'date_joined_formatted',
             'full_address', 'city', 'state', 'zip_code', 'country', 'place_of_origin',
             'must_change_password', 'profile_completed', 'is_screener_completed', 'is_active', 'timezone',
@@ -101,10 +152,22 @@ class UserSerializer(SanitizedModelSerializer):
         ]
 
     def to_representation(self, instance):
+        """Ultra-robust decryption enforcement for all User fields."""
+        from authentication.security import decrypt_data
+        
+        # Get raw representation first
         ret = super().to_representation(instance)
-        # Ensure full_name is decrypted
-        if hasattr(instance, 'decrypted_name'):
-            ret['full_name'] = instance.decrypted_name
+        
+        # Scan all fields for Fernet tokens and attempt decryption
+        for field, val in ret.items():
+            if isinstance(val, str) and val.startswith('gAAAA'):
+                try:
+                    decrypted = decrypt_data(val)
+                    if decrypted and decrypted != val:
+                        ret[field] = decrypted
+                except:
+                    pass
+                    
         return ret
 
     def get_last_login_formatted(self, obj):
@@ -537,17 +600,35 @@ class ConsentSerializer(SanitizedModelSerializer):
     study_title = serializers.CharField(source='study.title', read_only=True)
     protocol_id = serializers.CharField(source='study.protocol_id', read_only=True)
     signed_pdf_url = serializers.SerializerMethodField()
+    decrypted_name = serializers.SerializerMethodField()
+
+    def get_decrypted_name(self, obj):
+        """Decrypt the participant's full_name (stored as Fernet ciphertext) for display."""
+        try:
+            return decrypt_data(obj.full_name) or obj.full_name or ''
+        except Exception:
+            return obj.full_name or ''
     
+    def to_internal_value(self, data):
+        """Map frontend protocol ID to study ObjectId if needed."""
+        if 'study' in data and isinstance(data['study'], str):
+            import bson
+            if not bson.ObjectId.is_valid(data['study']):
+                study_obj = Study.objects.filter(protocol_id=data['study']).first()
+                if study_obj:
+                    data['study'] = str(study_obj.id)
+        return super().to_internal_value(data)
+
     class Meta:
         model = Consent
         fields = [
             'id', 'study', 'study_title', 'protocol_id', 'template', 'template_version', 
-            'participant', 'full_name', 'email',
+            'participant', 'full_name', 'decrypted_name', 'email',
             'cc_verified', 'cc_verified_at', 'cc_user', 'cc_name',
             'pi_verified', 'pi_verified_at', 'pi_user', 'pi_name',
             'agreed_at', 'signed_pdf', 'signed_pdf_url', 'is_valid', 'audit_trail'
         ]
-        read_only_fields = ['agreed_at', 'ip_address', 'signed_pdf']
+        read_only_fields = ['agreed_at', 'ip_address']
 
     def get_signed_pdf_url(self, obj):
         if not obj.signed_pdf: return None
@@ -741,6 +822,7 @@ class ParticipantSerializer(SanitizedModelSerializer):
     age = serializers.SerializerMethodField()
     
     reviewer_name = serializers.CharField(source='reviewed_by.decrypted_name', read_only=True, allow_null=True)
+    participant_status = serializers.CharField(source='status', read_only=True)
 
     class Meta:
         model = Participant

@@ -54,13 +54,20 @@ def _clear_auth_cookies(response):
     return response
 
 def get_user_data_dict(user):
-    """Consistent user dictionary helper."""
+    """Consistent user dictionary helper with forced decryption safety."""
+    from ..security import decrypt_data
+    
+    # Force fresh decryption to avoid stale cached_property issues
+    full_name = decrypt_data(user.full_name)
+    first_name = decrypt_data(user.first_name)
+    last_name = decrypt_data(user.last_name)
+    
     return {
         'email':        user.email,
-        'full_name':    user.decrypted_name,
-        'first_name':   user.decrypted_first_name,
-        'last_name':    user.decrypted_last_name,
-        'organization': user.decrypted_organization,
+        'full_name':    full_name,
+        'first_name':   first_name,
+        'last_name':    last_name,
+        'organization': decrypt_data(user.organization),
         'role':         user.role.upper() if user.role else 'PARTICIPANT',
         'affiliation':  getattr(user, 'affiliation', 'musb'),
         'status':       getattr(user, 'status', 'active'),

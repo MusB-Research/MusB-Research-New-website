@@ -190,7 +190,7 @@ const MultiAssignCell = ({
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); setShowCoordDropdown(v => !v); setShowPIDropdown(false); }}
-          className="flex items-center gap-1.5 text-[12px] font-black uppercase tracking-widest text-indigo-400 hover:text-white transition-colors"
+          className="flex items-center gap-1.5 text-[12px] font-black uppercase tracking-widest text-cyan-400 hover:text-white transition-colors"
         >
           <span>{coordinatorIds.length > 0 ? `${coordinatorIds.length} Coord${coordinatorIds.length > 1 ? 's' : ''}` : '-- Select Coord --'}</span>
           <ChevronDown className="w-3 h-3 shrink-0" />
@@ -201,7 +201,7 @@ const MultiAssignCell = ({
               const coord = availableCoords.find(u => u.id === id);
               if (!coord) return null;
               return (
-                <span key={id} className="flex items-center gap-1 px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full text-[11px] font-black uppercase tracking-wide">
+                <span key={id} className="flex items-center gap-1 px-2 py-0.5 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded-full text-[11px] font-black uppercase tracking-wide">
                   {coord.name.split(' ')[0]}
                   <button
                     type="button"
@@ -214,8 +214,8 @@ const MultiAssignCell = ({
           </div>
         )}
         {showCoordDropdown && (
-          <div className="absolute top-full left-0 mt-2 w-64 bg-[#1a1c3d] border border-indigo-500/30 rounded-xl shadow-2xl z-[1001] overflow-hidden py-1 backdrop-blur-md">
-            <div className="px-4 py-2 border-b border-white/5 bg-white/5 text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Select Coordinator</div>
+          <div className="absolute top-full left-0 mt-2 w-64 bg-[#1a1c3d] border border-cyan-500/30 rounded-xl shadow-2xl z-[1001] overflow-hidden py-1 backdrop-blur-md">
+            <div className="px-4 py-2 border-b border-white/5 bg-white/5 text-[10px] font-bold text-cyan-400 uppercase tracking-widest">Select Coordinator</div>
             {availableCoords.length === 0 ? (
               <p className="px-4 py-4 text-[11px] text-slate-500 uppercase tracking-widest italic">No coordinators found</p>
             ) : availableCoords.map(coord => (
@@ -223,10 +223,10 @@ const MultiAssignCell = ({
                 key={coord.id}
                 type="button"
                 onClick={(e) => { e.stopPropagation(); toggleAssign('coordinator', coord.id, coordinatorIds); }}
-                className={`w-full flex items-center justify-between px-4 py-3 text-[12px] font-black uppercase tracking-widest transition-all hover:bg-indigo-500/10 ${coordinatorIds.includes(coord.id) ? 'text-indigo-400 bg-indigo-500/5' : 'text-slate-300 hover:text-white'}`}
+                className={`w-full flex items-center justify-between px-4 py-3 text-[12px] font-black uppercase tracking-widest transition-all hover:bg-cyan-500/10 ${coordinatorIds.includes(coord.id) ? 'text-cyan-400 bg-cyan-500/5' : 'text-slate-300 hover:text-white'}`}
               >
                 <span className="truncate">{coord.name}</span>
-                {coordinatorIds.includes(coord.id) && <CheckCircle2 className="w-3.5 h-3.5 text-indigo-400 shrink-0 ml-2" />}
+                {coordinatorIds.includes(coord.id) && <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0 ml-2" />}
               </button>
             ))}
           </div>
@@ -458,13 +458,13 @@ const StudiesPage = ({
                         }}
                         className={`text-[12px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border outline-none cursor-pointer transition-all ${['ACTIVE', 'RECRUITING'].includes(study.status) ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
                           ['DRAFT', 'PROPOSAL_SUBMITTED', 'PROPOSAL_UNDER_NEGOTIATION'].includes(study.status) ? 'bg-slate-500/10 text-slate-400 border-slate-500/20' :
-                            ['IRB_PROTOCOL_INITIATED', 'UNDER_IRB_SUBMISSION', 'IRB_APPROVED'].includes(study.status) ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
+                            ['IRB_PROTOCOL_INITIATED', 'UNDER_IRB_SUBMISSION', 'IRB_APPROVED'].includes(study.status) ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
                               study.status === 'PREPARING_TO_LAUNCH' ? 'bg-orange-500/10 text-orange-400 border-orange-500/20' :
                                 ['RECRUITMENT_COMPLETED', 'ANALYSIS_UNDERWAY'].includes(study.status) ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
                                   ['PROGRESS_REPORT_DRAFT', 'FINAL_REPORT_SENT', 'COMPLETED'].includes(study.status) ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                                    study.status === 'PAUSED' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                    study.status === 'PAUSED' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' :
                                       study.status === 'CLOSED_ARCHIVED' ? 'bg-slate-500/10 text-slate-400 border-slate-500/20' :
-                                        'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                                        'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
                           }`}
                       >
                         <option value="DRAFT" className="bg-[#0a0b1a]">Draft</option>
@@ -513,7 +513,7 @@ const StudiesPage = ({
                               if (res.ok) fetchData();
                             } catch (err) { }
                           }}
-                          className={`p-2.5 transition-colors hover:bg-white/10 rounded-xl border border-white/5 ${study.status === 'CLOSED_ARCHIVED' ? 'text-emerald-400 hover:border-emerald-500/30' : 'text-amber-500/70 hover:text-amber-500 hover:border-amber-500/30'}`}
+                          className={`p-2.5 transition-colors hover:bg-white/10 rounded-xl border border-white/5 ${study.status === 'CLOSED_ARCHIVED' ? 'text-emerald-400 hover:border-emerald-500/30' : 'text-cyan-500/70 hover:text-cyan-500 hover:border-cyan-500/30'}`}
                           title={study.status === 'CLOSED_ARCHIVED' ? 'Unarchive Study' : 'Archive Study'}
                         >
                           <Archive className="w-4 h-4" />
@@ -691,7 +691,7 @@ export default function SuperAdminDashboard() {
 
   const formatName = useCallback((name: string) => {
     if (!name) return 'Unknown User';
-    if (name.startsWith('gAAAA')) return 'Identity Locked';
+    if (name.toUpperCase().startsWith('GAAAA')) return 'Identity Locked';
     return name;
   }, []);
 
@@ -735,15 +735,24 @@ export default function SuperAdminDashboard() {
       if (uRes.ok) {
         const rawData = await uRes.json();
         const data = Array.isArray(rawData) ? rawData : (rawData.results || []);
-        setUsers(data.map((u: any) => ({
-          ...u,
-          name: revealValue(u.full_name, u.decrypted_name) || (u.email ? u.email.split('@')[0] : 'User'),
-          status: u.is_active === false ? 'Inactive' : 'Active',
-          lastLogin: u.last_login_formatted || 'Never',
-          must_reset: u.must_change_password,
-          profile_incomplete: !u.profile_completed,
-          role: u.role ? u.role.toString().toUpperCase() : 'ADMIN'
-        })));
+        setUsers(data.map((u: any) => {
+          // Use the robust utility to extract the name
+          let name = revealValue(u.full_name, u.decrypted_name);
+          if (!name) {
+             // Fallback to email prefix if decryption is failing for some reason
+             name = u.email ? u.email.split('@')[0] : 'User';
+          }
+          
+          return {
+            ...u,
+            name: name,
+            status: u.is_active === false ? 'Inactive' : 'Active',
+            lastLogin: u.last_login_formatted || 'Never',
+            must_reset: u.must_change_password,
+            profile_incomplete: !u.profile_completed,
+            role: u.role ? u.role.toString().toUpperCase() : 'ADMIN'
+          };
+        }));
       }
       if (sRes.ok) {
         const raw = await sRes.json();
@@ -1078,7 +1087,7 @@ const DashboardPage = ({
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
       <div className="lg:col-span-1 space-y-6">
         <div className="flex items-center gap-3">
-          <Zap className="w-4 h-4 text-amber-500" />
+          <Zap className="w-4 h-4 text-cyan-500" />
           <h3 className="text-sm font-black text-white uppercase italic tracking-widest">Quick Actions</h3>
         </div>
         <div className="grid grid-cols-2 gap-4">
@@ -1139,7 +1148,7 @@ const DashboardPage = ({
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
       <div className="lg:col-span-3 space-y-8">
         <div className="flex items-center gap-4">
-          <Crown className="w-6 h-6 text-amber-500" />
+          <Crown className="w-6 h-6 text-cyan-500" />
           <h3 className="text-2xl lg:text-3xl font-black text-white uppercase italic tracking-[0.2em] leading-none">Role Hierarchy & Permissions</h3>
         </div>
         <div className="space-y-3">
@@ -1166,23 +1175,23 @@ const DashboardPage = ({
 
       <div className="lg:col-span-1 space-y-8">
         <div className="flex items-center gap-3">
-          <AlertTriangle className="w-5 h-5 text-amber-500" />
+          <AlertTriangle className="w-5 h-5 text-cyan-500" />
           <h3 className="text-sm font-black text-white uppercase italic tracking-widest">Important Notice</h3>
         </div>
-        <div className="bg-amber-500/5 border border-amber-500/20 rounded-[2rem] p-10 h-full relative group overflow-hidden">
-          <AlertTriangle className="absolute -bottom-6 -right-6 w-32 h-32 text-amber-500/10 group-hover:scale-110 transition-transform duration-1000" />
+        <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-[2rem] p-10 h-full relative group overflow-hidden">
+          <AlertTriangle className="absolute -bottom-6 -right-6 w-32 h-32 text-cyan-500/10 group-hover:scale-110 transition-transform duration-1000" />
           <div className="relative z-10 space-y-6">
             <div className="space-y-4">
               <p className="text-[12px] text-white font-bold leading-relaxed tracking-tight">
-                You are logged in as <span className="text-amber-500 uppercase italic">Super Administrator</span>. All actions you take are irreversible and logged.
+                You are logged in as <span className="text-cyan-500 uppercase italic">Super Administrator</span>. All actions you take are irreversible and logged.
               </p>
               <p className="text-[12px] text-[#8b8fa8] leading-relaxed">
                 Before deleting users or studies, ensure you have proper authorization and have reviewed compliance requirements.
               </p>
-              <p className="text-[12px] font-black text-amber-500 uppercase tracking-widest pt-4">Never share your Super Admin credentials with anyone.</p>
+              <p className="text-[12px] font-black text-cyan-500 uppercase tracking-widest pt-4">Never share your Super Admin credentials with anyone.</p>
             </div>
-            <div className="pt-10 border-t border-amber-500/10">
-              <p className="text-[12px] font-black text-amber-500/50 uppercase tracking-widest italic">Last refresh: {lastRefresh}</p>
+            <div className="pt-10 border-t border-cyan-500/10">
+              <p className="text-[12px] font-black text-cyan-500/50 uppercase tracking-widest italic">Last refresh: {lastRefresh}</p>
             </div>
           </div>
         </div>
@@ -1239,7 +1248,7 @@ const UsersPage = ({
             <input
               type="text"
               placeholder="Search Personnel Database..."
-              className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl pl-16 pr-6 py-5 text-sm text-white outline-none focus:border-indigo-500/30 font-black uppercase italic tracking-widest"
+              className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl pl-16 pr-6 py-5 text-sm text-white outline-none focus:border-cyan-500/30 font-black uppercase italic tracking-widest"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
@@ -1261,11 +1270,11 @@ const UsersPage = ({
                 <tr key={user.id || i} className="hover:bg-white/[0.01] transition-colors">
                   <td className="px-10 py-6">
                     <div className="flex items-center gap-3 cursor-pointer" onClick={() => viewDetails(user)}>
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[12px] font-black text-white italic border border-white/5 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 hover:scale-110 transition-transform">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[12px] font-black text-white italic border border-white/5 bg-gradient-to-br from-cyan-500/20 to-purple-500/20 hover:scale-110 transition-transform">
                         {user.name?.[0] || 'U'}
                       </div>
                       <div>
-                        <p className="text-sm font-black text-white italic hover:text-indigo-400 transition-colors uppercase tracking-tight">{formatName(user.name)}</p>
+                        <p className="text-sm font-black text-white italic hover:text-cyan-400 transition-colors uppercase tracking-tight">{formatName(user.name)}</p>
                         <p className="text-[12px] text-[#555a7a] font-medium tracking-tight mt-0.5">{user.email}</p>
                       </div>
                     </div>
@@ -1290,7 +1299,7 @@ const UsersPage = ({
                     </select>
                     <div className="mt-2 flex flex-col gap-1">
                       {user.must_reset && (
-                        <span className="px-2 py-0.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-full text-[12px] font-black uppercase tracking-tighter w-fit flex items-center gap-1">
+                        <span className="px-2 py-0.5 bg-cyan-500/10 text-cyan-500 border border-cyan-500/20 rounded-full text-[12px] font-black uppercase tracking-tighter w-fit flex items-center gap-1">
                           <ShieldAlert className="w-2 h-2" /> Reset Required
                         </span>
                       )}
@@ -1443,25 +1452,25 @@ const SponsorLeadsPage = ({ studyInquiries, handlePageChange }: any) => (
   <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
     <div className="flex justify-between items-end">
       <div>
-        <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Sponsor <span className="text-amber-500">Leads & Inquiries</span></h1>
+        <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Sponsor <span className="text-cyan-500">Leads & Inquiries</span></h1>
         <p className="text-[12px] text-slate-500 font-black uppercase tracking-[0.2em] mt-3">Prospecting data filtered from global inquiry endpoints</p>
       </div>
-      <button className="px-6 py-3 bg-white/5 border border-white/10 text-white rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-amber-500/10 hover:text-amber-500 transition-all">Export CRM Data</button>
+      <button className="px-6 py-3 bg-white/5 border border-white/10 text-white rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-cyan-500/10 hover:text-cyan-500 transition-all">Export CRM Data</button>
     </div>
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
       {studyInquiries.length === 0 ? (
         <div className="col-span-full py-12 text-center opacity-30 text-[12px] font-black uppercase tracking-[0.3em]">No Prospecting Data Available</div>
       ) : (
         studyInquiries.map((iq:any, i:number) => (
-          <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-8 space-y-6 hover:border-amber-500/30 transition-all group">
+          <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-8 space-y-6 hover:border-cyan-500/30 transition-all group">
             <div className="flex justify-between items-start">
-              <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500">
+              <div className="w-12 h-12 bg-cyan-500/10 rounded-2xl flex items-center justify-center text-cyan-500">
                 <Building className="w-6 h-6" />
               </div>
-              <span className="px-3 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[12px] font-black uppercase tracking-widest border border-amber-500/10 italic">{(iq.needs || [])[0] || 'Inquiry'}</span>
+              <span className="px-3 py-1 bg-cyan-500/10 text-cyan-500 rounded-lg text-[12px] font-black uppercase tracking-widest border border-cyan-500/10 italic">{(iq.needs || [])[0] || 'Inquiry'}</span>
             </div>
             <div>
-              <h4 className="text-lg font-black text-white uppercase italic group-hover:text-amber-400 transition-colors truncate">{iq.product_name}</h4>
+              <h4 className="text-lg font-black text-white uppercase italic group-hover:text-cyan-400 transition-colors truncate">{iq.product_name}</h4>
               <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest mt-2">{iq.legal_name || 'Anonymous'}</p>
             </div>
             <div className="pt-6 border-t border-white/5 flex flex-col gap-3">
@@ -1471,10 +1480,10 @@ const SponsorLeadsPage = ({ studyInquiries, handlePageChange }: any) => (
               </div>
               <div className="flex justify-between text-[12px] font-black uppercase tracking-widest text-[#555a7a]">
                 <span>Status</span>
-                <span className="text-amber-500/50 italic">{iq.status}</span>
+                <span className="text-cyan-500/50 italic">{iq.status}</span>
               </div>
             </div>
-            <button onClick={() => handlePageChange('INQUIRIES')} className="w-full py-4 bg-white/5 border border-white/5 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] hover:bg-amber-500 hover:text-slate-950 transition-all">View Details</button>
+            <button onClick={() => handlePageChange('INQUIRIES')} className="w-full py-4 bg-white/5 border border-white/5 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] hover:bg-cyan-500 hover:text-slate-950 transition-all">View Details</button>
           </div>
         ))
       )}
@@ -1559,8 +1568,8 @@ const TeamPage = ({ users, viewDetails }: any) => {
           <div className="col-span-4 py-20 text-center opacity-30 italic uppercase tracking-[0.2em] text-[12px]">No internal team members detected</div>
         ) : (
           internalTeam.map((u:any, i:number) => (
-            <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-8 text-center hover:border-indigo-500/30 transition-all group">
-              <div className="w-20 h-20 bg-indigo-500/10 rounded-[2rem] flex items-center justify-center text-indigo-400 mx-auto mb-6 font-black text-2xl group-hover:scale-110 transition-transform">
+            <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-8 text-center hover:border-cyan-500/30 transition-all group">
+              <div className="w-20 h-20 bg-cyan-500/10 rounded-[2rem] flex items-center justify-center text-cyan-400 mx-auto mb-6 font-black text-2xl group-hover:scale-110 transition-transform">
                 {u.name ? u.name[0] : '?'}
               </div>
               <h4 className="text-xl font-black text-white uppercase italic tracking-tighter truncate px-2">{u.name}</h4>
@@ -1704,14 +1713,14 @@ const InquiriesPage = ({ studyInquiries, studies, authFetch, API, fetchData, set
                     <div>
                       <p className="text-[12px] font-black text-[#f472b6] uppercase tracking-widest mb-1 italic">{iq.category} INQUIRY</p>
                       <h4 className="text-xl font-black text-white italic uppercase tracking-tight">{iq.product_name}</h4>
-                      <span className={`inline-block mt-2 px-2 py-0.5 rounded text-[12px] font-black uppercase tracking-widest ${iq.nda_preference === 'YES' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                      <span className={`inline-block mt-2 px-2 py-0.5 rounded text-[12px] font-black uppercase tracking-widest ${iq.nda_preference === 'YES' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
                         {iq.nda_preference === 'YES' ? 'NDA Path' : 'Direct Path'}
                       </span>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest mb-1">{new Date(iq.created_at).toLocaleDateString()}</p>
-                    <span className="px-3 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[12px] font-black uppercase tracking-widest border border-amber-500/10 italic">{iq.status}</span>
+                    <span className="px-3 py-1 bg-cyan-500/10 text-cyan-500 rounded-lg text-[12px] font-black uppercase tracking-widest border border-cyan-500/10 italic">{iq.status}</span>
                   </div>
                 </div>
                 <div className="space-y-4 mb-10 relative z-10">
@@ -1721,7 +1730,7 @@ const InquiriesPage = ({ studyInquiries, studies, authFetch, API, fetchData, set
                   </div>
                   <div className="flex justify-between items-center text-[12px] font-black uppercase tracking-widest">
                     <span className="text-[#555a7a]">Clinical Needs</span>
-                    <span className="text-indigo-400 italic">{(iq.needs || []).join(', ')}</span>
+                    <span className="text-cyan-400 italic">{(iq.needs || []).join(', ')}</span>
                   </div>
                   <div className="flex justify-between items-center text-[12px] font-black uppercase tracking-widest">
                     <span className="text-[#555a7a]">Primary Health Focus</span>
@@ -1815,7 +1824,7 @@ const InquiriesPage = ({ studyInquiries, studies, authFetch, API, fetchData, set
                   <DetailRow label="Dev Stage" value={viewingInquiry.development_stage} />
                   <DetailRow label="Health Focus" value={viewingInquiry.primary_focus} color="text-emerald-400" />
                   <DetailRow label="Timeline" value={viewingInquiry.timeline} />
-                  <DetailRow label="Preferred Email" value={viewingInquiry.contact_email || 'N/A'} color="text-indigo-400" />
+                  <DetailRow label="Preferred Email" value={viewingInquiry.contact_email || 'N/A'} color="text-cyan-400" />
                 </div>
               </div>
               <div className="space-y-8">
@@ -1825,7 +1834,7 @@ const InquiriesPage = ({ studyInquiries, studies, authFetch, API, fetchData, set
                   <DetailRow label="Budget Range" value={viewingInquiry.budget_range || 'Not Defined'} />
                   <DetailRow label="Services" value={(viewingInquiry.services_needed || []).join(', ') || 'N/A'} />
                 </div>
-                <div className="bg-[#0a0b1a] p-8 rounded-3xl border border-white/5 font-mono text-sm text-indigo-200/60 leading-relaxed whitespace-pre-wrap min-h-[120px]">
+                <div className="bg-[#0a0b1a] p-8 rounded-3xl border border-white/5 font-mono text-sm text-cyan-200/60 leading-relaxed whitespace-pre-wrap min-h-[120px]">
                   {viewingInquiry.project_description || 'No detailed scope provided.'}
                 </div>
               </div>
@@ -2134,7 +2143,7 @@ const InquiriesPage = ({ studyInquiries, studies, authFetch, API, fetchData, set
         <div className="p-6 border-t border-white/5 mt-auto bg-[#0a0b1a]/40 backdrop-blur-md">
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-4 bg-white/[0.02] p-4 rounded-3xl border border-white/5 hover:border-purple-500/30 transition-all duration-500">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center font-black text-white shadow-lg shadow-purple-900/40 italic text-sm">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-cyan-600 flex items-center justify-center font-black text-white shadow-lg shadow-purple-900/40 italic text-sm">
                 {currentUserName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
               </div>
               <div className="flex-1 overflow-hidden">
@@ -2407,11 +2416,11 @@ const InquiriesPage = ({ studyInquiries, studies, authFetch, API, fetchData, set
               layout
               className={`pointer-events-auto min-w-[320px] p-6 rounded-3xl border shadow-2xl backdrop-blur-3xl flex items-center gap-5 ${toast.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
                 toast.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
-                  toast.type === 'warn' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
-                    'bg-indigo-500/10 border-white/10 text-indigo-400'
+                  toast.type === 'warn' ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400' :
+                    'bg-cyan-500/10 border-white/10 text-cyan-400'
                 }`}
             >
-              <div className={`w-2 h-2 rounded-full animate-pulse ${toast.type === 'error' ? 'bg-red-500' : toast.type === 'success' ? 'bg-emerald-500' : toast.type === 'warn' ? 'bg-amber-500' : 'bg-indigo-500'}`} />
+              <div className={`w-2 h-2 rounded-full animate-pulse ${toast.type === 'error' ? 'bg-red-500' : toast.type === 'success' ? 'bg-emerald-500' : toast.type === 'warn' ? 'bg-cyan-500' : 'bg-cyan-500'}`} />
               <div className="flex-1">
                 <p className="text-[12px] font-black uppercase tracking-widest opacity-50 mb-1">{toast.type} ALERT</p>
                 <p className="text-sm font-black italic tracking-tight">{toast.msg}</p>
@@ -2430,14 +2439,14 @@ const InquiriesPage = ({ studyInquiries, studies, authFetch, API, fetchData, set
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#0a0b1e]/90 backdrop-blur-xl" onClick={() => setIsUserDetailOpen(false)} />
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 30 }} className="relative w-full max-w-2xl bg-[#0d0e2b] border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden">
-              <div className="h-32 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border-b border-white/5 relative">
+              <div className="h-32 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border-b border-white/5 relative">
                 <button onClick={() => setIsUserDetailOpen(false)} className="absolute top-6 right-6 p-3 bg-black/20 hover:bg-black/40 rounded-full text-white/50 hover:text-white transition-all">
                   <X className="w-5 h-5" />
                 </button>
               </div>
               <div className="px-12 pb-12">
                 <div className="relative -mt-12 mb-8 flex items-end gap-6">
-                  <div className="w-24 h-24 rounded-3xl bg-indigo-600 border-4 border-[#0d0e2b] flex items-center justify-center text-3xl font-black text-white italic shadow-2xl">
+                  <div className="w-24 h-24 rounded-3xl bg-cyan-600 border-4 border-[#0d0e2b] flex items-center justify-center text-3xl font-black text-white italic shadow-2xl">
                     {(selectedUser.name?.[0] || 'U').toUpperCase()}
                   </div>
                   <div className="pb-2">
@@ -2447,7 +2456,7 @@ const InquiriesPage = ({ studyInquiries, studies, authFetch, API, fetchData, set
                       <span className={`px-2 py-0.5 rounded-full text-[12px] font-black uppercase tracking-widest ${selectedUser.status === 'Active' ? 'text-green-500 bg-green-500/10' : 'text-red-500 bg-red-500/10'}`}>
                         {selectedUser.status}
                       </span>
-                      {selectedUser.must_reset && <span className="px-2 py-0.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-full text-[12px] font-black uppercase tracking-widest">Reset Pending</span>}
+                      {selectedUser.must_reset && <span className="px-2 py-0.5 bg-cyan-500/10 text-cyan-500 border border-cyan-500/20 rounded-full text-[12px] font-black uppercase tracking-widest">Reset Pending</span>}
                       {selectedUser.profile_incomplete && <span className="px-2 py-0.5 bg-purple-500/10 text-purple-500 border border-purple-500/20 rounded-full text-[12px] font-black uppercase tracking-widest">Profile Draft</span>}
                     </div>
                   </div>
@@ -2504,11 +2513,11 @@ const InquiriesPage = ({ studyInquiries, studies, authFetch, API, fetchData, set
                                 <ExternalLink className="w-3.5 h-3.5" />
                               </a>
                             ) : (
-                              <div title="Documentation Missing"><AlertTriangle className="w-4 h-4 text-amber-500" /></div>
+                              <div title="Documentation Missing"><AlertTriangle className="w-4 h-4 text-cyan-500" /></div>
                             )}
                           </div>
                           <p className="text-[12px] font-black text-white uppercase tracking-widest leading-none truncate">{doc.label}</p>
-                          {!doc.path && <p className="text-[12px] font-bold text-amber-500/60 uppercase tracking-tighter">Not Uploaded</p>}
+                          {!doc.path && <p className="text-[12px] font-bold text-cyan-500/60 uppercase tracking-tighter">Not Uploaded</p>}
                         </div>
                       ))}
                     </div>
@@ -2517,7 +2526,7 @@ const InquiriesPage = ({ studyInquiries, studies, authFetch, API, fetchData, set
 
                 <div className="mt-12 pt-8 border-t border-white/5 flex gap-4">
                   <button onClick={() => setIsUserDetailOpen(false)} className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[12px] font-black text-white uppercase tracking-[0.2em] transition-all">Close Entry</button>
-                  <button onClick={() => handleStatusToggle(selectedUser)} className="px-8 py-3 bg-indigo-500 text-white rounded-xl text-[12px] font-black uppercase tracking-[0.2em] shadow-xl shadow-indigo-500/20 hover:-translate-y-0.5 transition-all">
+                  <button onClick={() => handleStatusToggle(selectedUser)} className="px-8 py-3 bg-cyan-500 text-white rounded-xl text-[12px] font-black uppercase tracking-[0.2em] shadow-xl shadow-cyan-500/20 hover:-translate-y-0.5 transition-all">
                     {selectedUser.status === 'Active' ? 'Deactivate User' : 'Activate User'}
                   </button>
                 </div>

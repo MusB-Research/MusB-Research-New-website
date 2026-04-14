@@ -6,10 +6,9 @@ import {
     ExternalLink, Play, FileText, ChevronRight,
     Clock, Calendar, Camera, Info, X, Zap, Ship, FileText as FileIcon
 } from 'lucide-react';
-import { Card, Badge, StepIndicator, Checklist, ProgressBar } from './SharedComponents';
+import { Card, Badge, StepIndicator, Checklist, ProgressBar, Skeleton } from './SharedComponents';
 import CollectionGuideView from './CollectionGuideView';
 import ReturnLabelView from './ReturnLabelView';
-
 
 interface Kit {
     id: string;
@@ -55,7 +54,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
     };
  
     const [kits, setKits] = useState<any[]>(initialKits);
-    const [loading, setLoading] = useState(true);
+    const [internalLoading, setInternalLoading] = useState(true);
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
     const dummyKits: any[] = [];
@@ -63,14 +62,14 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
     useEffect(() => {
         if (initialKits && initialKits.length > 0) {
             setKits(initialKits);
-            setLoading(false);
+            setInternalLoading(false);
         } else {
             fetchKits();
         }
     }, [initialKits]);
 
     const fetchKits = async () => {
-        setLoading(true);
+        setInternalLoading(true);
         try {
             const apiUrl = API || 'http://localhost:8000';
             const resp = await authFetch(`${apiUrl}/api/kits/`);
@@ -88,7 +87,7 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
             console.error("Failed to load kit data:", e);
             setKits(dummyKits);
         } finally {
-            setLoading(false);
+            setInternalLoading(false);
         }
     };
 
@@ -145,13 +144,12 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
         "Shipping"
     ];
 
-    const getStatusColor = (status: string) => {
+    const getStatusBadge = (status: string) => {
         const s = status.toUpperCase();
-        if (s.includes('RECEIVED')) return 'green';
-        if (s.includes('SHIPPED')) return 'indigo';
-        if (s === 'IN PREPARATION' || s === 'PREPARING') return 'amber';
-        if (s === 'DAMAGED' || s === 'MISSING') return 'red';
-        return 'amber';
+        if (s.includes('RECEIVED')) return <Badge color="green">{status.replace(/_/g, ' ')}</Badge>;
+        if (s.includes('SHIPPED')) return <Badge color="blue">{status.replace(/_/g, ' ')}</Badge>;
+        if (s === 'DAMAGED' || s === 'MISSING') return <Badge color="red">{status.replace(/_/g, ' ')}</Badge>;
+        return <Badge color="blue">{status.replace(/_/g, ' ')}</Badge>;
     };
 
     const getStatusStep = (status: string) => {
@@ -181,155 +179,139 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
         });
     }, [kits, activeTab]);
 
-    return (
-        <div className="space-y-12 pb-20">
-            {/* ──────────────── HEADER ──────────────── */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pt-2">
-                <div />
+    if (isLoading || internalLoading) {
+        return (
+            <div className="space-y-12">
+                <div className="space-y-4">
+                    <Skeleton className="h-10 w-64" />
+                    <Skeleton className="h-4 w-96" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {[1, 2].map(i => <Skeleton key={i} className="h-96 rounded-[32px]" />)}
+                </div>
             </div>
+        );
+    }
 
-            {/* ──────────────── TABS ──────────────── */}
-            <div className="flex p-2 bg-white/5 rounded-3xl border border-white/5 w-fit">
-                <button
-                    onClick={() => setActiveTab('outbound')}
-                    className={`px-10 py-5 rounded-2xl text-[14px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'outbound' ? 'bg-amber-500 text-slate-950 shadow-xl' : 'text-slate-500 hover:text-white'}`}
-                >
-                    Outbound Shipments
-                </button>
-                <button
-                    onClick={() => setActiveTab('return')}
-                    className={`px-10 py-5 rounded-2xl text-[14px] font-black uppercase tracking-[0.2em] transition-all ${activeTab === 'return' ? 'bg-amber-500 text-slate-950 shadow-xl' : 'text-slate-500 hover:text-white'}`}
-                >
-                    Return Shipments
-                </button>
+    return (
+        <div className="flex flex-col gap-10 pb-12">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                     <div className="flex items-center gap-2 text-[12px] font-bold text-[#8A99B3] uppercase tracking-widest mb-3">
+                        <span>Portal</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                        <span className="text-[#1E88E5]">Asset Logistics</span>
+                    </div>
+                    <h2 className="text-2xl font-bold text-[#1A2B49] uppercase tracking-tight">Kits & Clinical Supply</h2>
+                    <p className="text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest mt-1">Managed distribution and collection of research material</p>
+                </div>
+                <div className="flex bg-white p-1 rounded-xl border border-[#E3ECF5] shadow-sm">
+                    <button
+                        onClick={() => setActiveTab('outbound')}
+                        className={`px-8 py-2.5 rounded-lg text-[12px] font-bold uppercase tracking-widest transition-all ${activeTab === 'outbound' ? 'bg-[#1E88E5] text-white shadow-md' : 'text-[#8A99B3] hover:text-[#5F6F89]'}`}
+                    >
+                        Active Shipments
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('return')}
+                        className={`px-8 py-2.5 rounded-lg text-[12px] font-bold uppercase tracking-widest transition-all ${activeTab === 'return' ? 'bg-[#1E88E5] text-white shadow-md' : 'text-[#8A99B3] hover:text-[#5F6F89]'}`}
+                    >
+                        Return History
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                {isLoading ? (
-                    [1, 2, 3, 4].map(sh => (
-                        <div key={sh} className="bg-[#0a1525] border border-white/[0.03] rounded-[3rem] p-8 h-80 relative overflow-hidden animate-pulse">
-                            <div className="shimmer-effect" />
-                            <div className="space-y-8">
-                                <div className="flex justify-between">
-                                    <div className="flex gap-4 items-center">
-                                        <div className="w-14 h-14 bg-white/5 rounded-2xl" />
-                                        <div className="space-y-2">
-                                            <div className="h-6 w-48 bg-white/5 rounded-lg" />
-                                            <div className="h-3 w-32 bg-white/5 rounded-full" />
-                                        </div>
-                                    </div>
-                                    <div className="h-8 w-24 bg-white/5 rounded-full" />
-                                </div>
-                                <div className="h-24 w-full bg-white/5 rounded-3xl" />
-                                <div className="flex gap-4">
-                                    <div className="h-14 flex-1 bg-white/5 rounded-xl" />
-                                    <div className="h-14 w-32 bg-white/5 rounded-xl" />
-                                </div>
-                            </div>
-                        </div>
-                    ))
-                ) : filteredKits.length === 0 ? (
-                    <div className="col-span-full py-20 text-center bg-white/[0.02] border border-white/5 rounded-[3rem]">
-                        <Package className="w-16 h-16 text-slate-700 mx-auto mb-4" strokeWidth={1} />
-                        <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-[14px] font-bold italic">No kits currently in {activeTab === 'outbound' ? 'outbound' : 'return'} stage.</p>
+                {filteredKits.length === 0 ? (
+                    <div className="col-span-full py-24 text-center bg-white border border-[#E3ECF5] rounded-[40px] shadow-sm flex flex-col items-center">
+                        <Package className="w-16 h-16 text-[#E3ECF5] mb-6" />
+                        <p className="text-[#8A99B3] font-bold uppercase tracking-widest text-[12px]">No kits identified in this stage of the protocol</p>
                     </div>
                 ) : filteredKits.map((kit, idx) => (
-
-                    <motion.div key={kit.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.1 }}>
-                        <Card className="group overflow-hidden border-l-4 border-l-amber-500">
+                    <motion.div key={kit.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }}>
+                        <Card className="group overflow-hidden relative bg-white border border-[#E3ECF5] shadow-lg">
                             <div className="p-8 space-y-8">
-                                {/* Top Row */}
+                                {/* Header Row */}
                                 <div className="flex justify-between items-start">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 group-hover:border-amber-500/50 transition-colors">
-                                            <Package className={`w-8 h-8 ${activeTab === 'outbound' ? 'text-amber-400' : 'text-indigo-400'}`} strokeWidth={1} />
+                                    <div className="flex items-center gap-5">
+                                        <div className="w-16 h-16 bg-[#F8FBFF] rounded-[24px] flex items-center justify-center border border-[#E3ECF5] text-[#1E88E5] transition-all group-hover:bg-[#E3F2FD]">
+                                            <Package className="w-8 h-8" strokeWidth={1.5} />
                                         </div>
                                         <div>
-                                            <h4 className="text-[20px] font-black text-white italic uppercase tracking-tight">{kit.kit_type}</h4>
-                                            <span className="text-[14px] font-black text-slate-600 uppercase tracking-widest mt-1 block">KIT IDENTIFIER: {kit.kit_number}</span>
+                                            <h4 className="text-[20px] font-bold text-[#1A2B49] uppercase tracking-tight">{kit.kit_type}</h4>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-[11px] font-bold text-[#8A99B3] uppercase tracking-widest">SEQ:</span>
+                                                <span className="text-[12px] font-bold text-[#1A2B49] uppercase tracking-tight font-mono">{kit.kit_number}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                    <Badge color={getStatusColor(kit.status)} className="text-[13px] py-1.5 px-4 font-black">{kit.status.replace(/_/g, ' ')}</Badge>
+                                    {getStatusBadge(kit.status)}
                                 </div>
 
                                 {/* Tracking Info */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-white/[0.02] border border-white/[0.05] rounded-3xl relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                        <Truck className="w-20 h-20 -rotate-12" />
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-[#F8FBFF] border border-[#E3ECF5] rounded-3xl relative overflow-hidden shadow-inner-sm">
+                                    <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
+                                        <Truck className="w-24 h-24 -rotate-12" />
                                     </div>
                                     <div className="space-y-1">
-                                        <span className="text-[13px] font-black text-slate-600 uppercase tracking-[0.2em]">CARRIER</span>
-                                        <p className="text-base font-black text-white italic uppercase tracking-tight">{kit.carrier}</p>
+                                        <span className="text-[10px] font-bold text-[#8A99B3] uppercase tracking-widest">Logistics Unit</span>
+                                        <p className="text-[14px] font-bold text-[#1A2B49] uppercase tracking-tight">{kit.carrier || 'Pending'}</p>
                                     </div>
-                                    <div className="space-y-1 md:col-span-2">
-                                        <span className="text-[13px] font-black text-slate-600 uppercase tracking-[0.2em]">TRACKING NUMBER</span>
+                                    <div className="space-y-1.5 md:col-span-2">
+                                        <span className="text-[10px] font-bold text-[#8A99B3] uppercase tracking-widest">Asset Tracking ID</span>
                                         <div className="flex items-center gap-4">
-                                            <p 
-                                                onClick={() => {
-                                                    const carrier = (kit.carrier || '').toUpperCase();
-                                                    let url = 'https://www.fedex.com/en-us/tracking.html';
-                                                    if (carrier.includes('UPS')) url = 'https://www.ups.com/track';
-                                                    if (carrier.includes('DHL')) url = 'https://www.dhl.com/en/express/tracking.html';
-                                                    if (carrier.includes('USPS')) url = 'https://tools.usps.com/go/TrackConfirmAction_input';
-                                                    window.open(url, '_blank');
-                                                }}
-                                                className="text-base font-black text-amber-400 font-mono tracking-tighter cursor-pointer hover:underline underline-offset-4"
-                                            >
-                                                {kit.tracking_number || "NO ID"}
+                                            <p className="text-[15px] font-bold text-[#1E88E5] font-mono tracking-tighter">
+                                                {kit.tracking_number || "AWAITING SYNC"}
                                             </p>
-                                            <button
-                                                onClick={() => {
-                                                    const carrier = (kit.carrier || '').toUpperCase();
-                                                    let url = 'https://www.fedex.com/en-us/tracking.html';
-                                                    if (carrier.includes('UPS')) url = 'https://www.ups.com/track';
-                                                    if (carrier.includes('DHL')) url = 'https://www.dhl.com/en/express/tracking.html';
-                                                    if (carrier.includes('USPS')) url = 'https://tools.usps.com/go/TrackConfirmAction_input';
-                                                    window.open(url, '_blank');
-                                                }}
-                                                className="text-[13px] font-black text-white bg-white/10 px-4 py-1.5 rounded-full border border-white/10 hover:bg-amber-500 hover:text-slate-950 transition-all font-bold italic"
-                                            >
-                                                TRACK SHIPMENT →
-                                            </button>
+                                            {kit.tracking_number && (
+                                                <button
+                                                    onClick={() => window.open('https://www.fedex.com', '_blank')}
+                                                    className="p-1 px-3 bg-white text-[10px] font-bold text-[#1E88E5] border border-[#E3ECF5] rounded-lg hover:bg-blue-50 transition-all uppercase"
+                                                >
+                                                    Track
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Shipping Steps */}
+                                {/* Progress */}
                                 <div className="space-y-4">
-                                    <div className="flex justify-between items-center text-[13px] font-black uppercase tracking-widest text-slate-500">
-                                        <span>Status History</span>
-                                        <span className="text-white italic">Current: {kit.status.replace(/_/g, ' ')}</span>
+                                    <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
+                                        <span className="text-[#8A99B3]">Chain of Custody</span>
+                                        <span className="text-[#1A2B49]">Stage {getStatusStep(kit.status)}/5</span>
                                     </div>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-1.5">
                                         {[1, 2, 3, 4, 5].map(s => (
-                                            <div key={s} className={`h-2 flex-1 rounded-full ${s <= getStatusStep(kit.status) ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]' : 'bg-white/5'}`} />
+                                            <div key={s} className={`h-1.5 flex-1 rounded-full transition-all duration-700 ${s <= getStatusStep(kit.status) ? 'bg-[#1E88E5]' : 'bg-[#E3ECF5]'}`} />
                                         ))}
                                     </div>
-                                    <div className="flex items-center gap-2 text-slate-400">
-                                        <Clock className="w-5 h-5" />
-                                        <span className="text-[13px] font-black uppercase tracking-widest italic">
-                                            {kit.expected_delivery ? `Exp. Arrival: ${new Date(kit.expected_delivery).toLocaleDateString()}` : "ETA: PENDING DISPATCH"}
+                                    <div className="flex items-center gap-2 text-[#5F6F89]">
+                                        <Clock className="w-4 h-4 text-[#8A99B3]" />
+                                        <span className="text-[11px] font-bold uppercase tracking-widest">
+                                            {kit.expected_delivery ? `Est. Completion: ${new Date(kit.expected_delivery).toLocaleDateString()}` : "ETA: ESTIMATING FLOW"}
                                         </span>
                                     </div>
                                 </div>
 
-                                {/* Instructions */}
-                                <div className="space-y-4 pt-4 border-t border-white/[0.05]">
-                                    <h5 className="text-[14px] font-black text-slate-500 uppercase tracking-widest">Protocol Materials</h5>
+                                {/* Materials */}
+                                <div className="space-y-4 pt-4 border-t border-[#F8FBFF]">
+                                    <h5 className="text-[11px] font-bold text-[#8A99B3] uppercase tracking-widest">Clinical Protocol Documentation</h5>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <button
                                             onClick={() => {
                                                 downloadDummyPdf('Clinical Collection Guide');
                                                 setSubView('GUIDE');
                                             }}
-                                            className={`flex items-center gap-3 p-5 bg-white/5 border border-white/5 rounded-2xl hover:border-amber-500/20 transition-all text-left shadow-lg hover:shadow-amber-500/5 group/btn`}
+                                            className="flex items-center gap-4 p-5 bg-[#F8FBFF] border border-[#E3ECF5] rounded-2xl hover:bg-white transition-all text-left shadow-sm group/btn"
                                         >
-                                            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 group-hover/btn:bg-amber-500 group-hover/btn:text-slate-950 transition-all">
-                                                <FileIcon className="w-6 h-6" />
+                                            <div className="w-12 h-12 rounded-xl bg-white border border-[#E3ECF5] flex items-center justify-center text-[#B0BCCF] group-hover/btn:text-[#1E88E5] shadow-sm transition-all">
+                                                <FileIcon className="w-5.5 h-5.5" />
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-[14px] font-black text-white italic uppercase tracking-tighter">Collection Guide</span>
-                                                <span className="text-[12px] font-black text-slate-600 uppercase">DOWNLOAD PDF</span>
+                                                <span className="text-[13px] font-bold text-[#1A2B49] uppercase tracking-tight">Collection Protocol</span>
+                                                <span className="text-[10px] font-bold text-[#1E88E5] uppercase tracking-widest mt-0.5">VIEW GUIDE</span>
                                             </div>
                                         </button>
                                         <button
@@ -337,78 +319,60 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                                 downloadDummyPdf('Digital Return Label');
                                                 setSubView('LABEL');
                                             }}
-                                            className="flex items-center gap-3 p-5 bg-white/5 border border-white/5 rounded-2xl hover:border-indigo-500/20 transition-all text-left shadow-lg hover:shadow-indigo-500/5 group/btn"
+                                            className="flex items-center gap-4 p-5 bg-[#F8FBFF] border border-[#E3ECF5] rounded-2xl hover:bg-white transition-all text-left shadow-sm group/btn"
                                         >
-                                            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover/btn:bg-indigo-500 group-hover/btn:text-white transition-all">
-                                                <Download className="w-6 h-6" />
+                                            <div className="w-12 h-12 rounded-xl bg-white border border-[#E3ECF5] flex items-center justify-center text-[#B0BCCF] group-hover/btn:text-[#1E88E5] shadow-sm transition-all">
+                                                <Download className="w-5.5 h-5.5" />
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-[14px] font-black text-white italic uppercase tracking-tighter">Return Label</span>
-                                                <span className="text-[12px] font-black text-slate-600 uppercase">DOWNLOAD PDF</span>
+                                                <span className="text-[13px] font-bold text-[#1A2B49] uppercase tracking-tight">Return Logistics</span>
+                                                <span className="text-[10px] font-bold text-[#1E88E5] uppercase tracking-widest mt-0.5">TRANSIT LABEL</span>
                                             </div>
                                         </button>
                                     </div>
                                 </div>
 
                                 {/* Actions */}
-                                <div className="flex flex-col md:flex-row gap-3">
+                                <div className="flex flex-col md:flex-row gap-3 pt-6 border-t border-[#F8FBFF]">
                                     {kit.status === 'PREPARING' || kit.status === 'ASSIGNED' ? (
-                                        <button className="flex-1 bg-white/5 text-slate-500 py-5 rounded-2xl border border-white/10 font-black text-[13px] uppercase tracking-[0.2em] cursor-not-allowed">
-                                            AWAITING DISPATCH
+                                        <button className="flex-1 bg-[#F8FBFF] text-[#B0BCCF] py-5 rounded-2xl border border-[#E3ECF5] font-bold text-[12px] uppercase tracking-widest cursor-not-allowed">
+                                            Awaiting Distribution
                                         </button>
-                                    ) : kit.status === 'SHIPPED' || kit.status === 'SHIPPED FROM CENTER' ? (
-                                        <div className="flex-1 flex flex-col gap-2">
-                                            <button 
-                                                onClick={() => window.open(kit.tracking_url || 'https://www.fedex.com', '_blank')}
-                                                className="w-full bg-amber-600 hover:bg-amber-500 text-white py-5 rounded-2xl font-black text-[14px] uppercase tracking-[0.2em] transition-all shadow-[0_0_30px_rgba(245,158,11,0.3)] flex items-center justify-center gap-2"
-                                            >
-                                                <Truck className="w-4 h-4" />
-                                                Track Shipment
-                                            </button>
-                                            <button
-                                                onClick={() => handleKitAction(kit.id, 'confirm_receipt')}
-                                                className="w-full bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 py-5 rounded-2xl border border-emerald-500/20 font-black text-[14px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2"
-                                            >
-                                                <CheckCircle2 className="w-4 h-4" />
-                                                Confirm Receipt
-                                            </button>
+                                    ) : (window.location.protocol === 'kit.status' ? '' : (
+                                        <div className="flex-1 flex flex-col md:flex-row gap-3">
+                                            {(kit.status === 'SHIPPED' || kit.status === 'SHIPPED FROM CENTER') && (
+                                                <button
+                                                    onClick={() => handleKitAction(kit.id, 'confirm_receipt')}
+                                                    className="flex-1 bg-[#1E88E5] hover:bg-[#1565C0] text-white py-5 rounded-2xl font-bold text-[13px] uppercase tracking-widest transition-all shadow-lg shadow-blue-500/10 flex items-center justify-center gap-2"
+                                                >
+                                                    <CheckCircle2 className="w-4 h-4" />
+                                                    Confirm Delivery
+                                                </button>
+                                            )}
+                                            {(kit.status === 'DELIVERED' || kit.status === 'RECEIVED BY PARTICIPANT' || kit.status === 'IN COLLECTION') && (
+                                               <button
+                                                    onClick={() => {
+                                                        setSelectedKit(kit);
+                                                        setIsCollectionModalOpen(true);
+                                                    }}
+                                                    className={`flex-1 ${kit.status === 'IN COLLECTION' ? 'bg-[#4CAF50] hover:bg-[#388E3C]' : 'bg-[#1E88E5] hover:bg-[#1565C0]'} text-white py-5 rounded-2xl font-bold text-[13px] uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2`}
+                                                >
+                                                    {kit.status === 'IN COLLECTION' ? <Zap className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+                                                    {kit.status === 'IN COLLECTION' ? 'Resume Protocol' : 'Execute Collection'}
+                                                </button>
+                                            )}
+                                            {(kit.status === 'SHIPPED FROM PARTICIPANT') && (
+                                                 <button className="flex-1 bg-[#F8FBFF] text-[#1E88E5] py-5 rounded-2xl border border-[#E3ECF5] font-bold text-[12px] uppercase tracking-widest cursor-not-allowed">
+                                                    Asset In Transit
+                                                </button>
+                                            )}
                                         </div>
-                                    ) : kit.status === 'DELIVERED' || kit.status === 'RECEIVED BY PARTICIPANT' ? (
-                                        <button
-                                            onClick={() => {
-                                                setSelectedKit(kit);
-                                                handleKitAction(kit.id, 'initialize_collection');
-                                            }}
-                                            className="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 py-5 rounded-2xl font-black text-[14px] uppercase tracking-[0.2em] transition-all shadow-[0_0_30px_rgba(245,158,11,0.3)] flex items-center justify-center gap-2"
-                                        >
-                                            <Play className="w-4 h-4 fill-current" />
-                                            Start Collection
-                                        </button>
-                                    ) : kit.status === 'COLLECTING' || kit.status === 'AWAITING' || kit.status === 'IN COLLECTION' ? (
-                                        <button
-                                            onClick={() => {
-                                                setSelectedKit(kit);
-                                                setIsCollectionModalOpen(true);
-                                            }}
-                                            className="flex-1 bg-indigo-500 hover:bg-indigo-400 text-white py-5 rounded-2xl font-black text-[14px] uppercase tracking-[0.2em] transition-all shadow-[0_0_300px_rgba(99,102,241,0.3)] flex items-center justify-center gap-2"
-                                        >
-                                            <Zap className="w-4 h-4" />
-                                            Resume Collection
-                                        </button>
-                                    ) : kit.status === 'RETURN_SHIPPED' || kit.status === 'SHIPPED FROM PARTICIPANT' ? (
-                                        <button className="flex-1 bg-white/5 text-slate-500 py-5 rounded-2xl border border-white/10 font-black text-[13px] uppercase tracking-[0.2em] cursor-not-allowed">
-                                            RETURN IN TRANSIT
-                                        </button>
-                                    ) : (
-                                        <button className="flex-1 bg-white/5 text-slate-500 py-5 rounded-2xl border border-white/10 font-black text-[13px] uppercase tracking-[0.2em] cursor-not-allowed">
-                                            {kit.status.replace(/_/g, ' ')}
-                                        </button>
-                                    )}
+                                    ))}
                                     <button
                                         onClick={() => setIsReportModalOpen(true)}
-                                        className="px-8 py-5 bg-white/5 text-slate-400 hover:text-white rounded-2xl border border-white/5 hover:border-white/10 font-black text-[14px] uppercase tracking-widest transition-colors"
+                                        className="px-8 py-5 bg-white text-[#5F6F89] hover:bg-[#FDECEA] hover:text-[#D32F2F] hover:border-[#D32F2F]/20 rounded-2xl border border-[#E3ECF5] font-bold text-[12px] uppercase tracking-widest transition-all"
                                     >
-                                        Report Issue
+                                        Log Issue
                                     </button>
                                 </div>
                             </div>
@@ -417,46 +381,46 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                 ))}
             </div>
 
-            {/* ──────────────── REPORT ISSUE MODAL ──────────────── */}
+            {/* Modal: Report Issue */}
             <AnimatePresence>
                 {isReportModalOpen && (
                     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-950/90 backdrop-blur-xl" onClick={() => setIsReportModalOpen(false)} />
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#1A2B49]/40 backdrop-blur-sm" onClick={() => setIsReportModalOpen(false)} />
                         <motion.div 
-                            initial={{ scale: 0.9, opacity: 0, y: 30 }} 
-                            animate={{ scale: 1, opacity: 1, y: 0 }} 
-                            exit={{ scale: 0.9, opacity: 0, y: 30 }} 
-                            className="relative w-full max-w-lg bg-[#0d1424] border border-white/10 rounded-[3rem] p-12 shadow-2xl"
+                            initial={{ scale: 0.95, opacity: 0 }} 
+                            animate={{ scale: 1, opacity: 1 }} 
+                            exit={{ scale: 0.95, opacity: 0 }} 
+                            className="relative w-full max-w-lg bg-white rounded-[32px] p-10 shadow-2xl overflow-hidden"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <div className="space-y-3 mb-10">
-                                <div className="w-12 h-12 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center text-red-500">
-                                    <AlertCircle className="w-6 h-6" />
+                            <div className="space-y-4 mb-10">
+                                <div className="w-14 h-14 bg-[#FDECEA] rounded-2xl flex items-center justify-center text-[#D32F2F] border border-[#FFCDD2]">
+                                    <AlertCircle className="w-7 h-7" />
                                 </div>
-                                <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Report <span className="text-red-500">Logistics Issue</span></h3>
-                                <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest">Immediate coordination required</p>
+                                <h3 className="text-xl font-bold text-[#1A2B49] uppercase tracking-tight">Report Logistics Anomaly</h3>
+                                <p className="text-[12px] text-[#8A99B3] font-bold uppercase tracking-widest">Immediate clinical coordination required</p>
                             </div>
 
                             <div className="space-y-6">
-                                <div className="space-y-3">
-                                    <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest px-1">Describe the problem</label>
+                                <div className="space-y-2.5">
+                                    <label className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest px-1">Detailed Description of Incident</label>
                                     <textarea 
-                                        className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl p-6 text-white font-bold outline-none focus:border-red-500/50 resize-none italic"
-                                        placeholder="e.g., Box damaged upon arrival, missing swabs, label unreadable..."
+                                        className="w-full h-32 bg-[#F8FBFF] border border-[#E3ECF5] rounded-2xl p-6 text-[#1A2B49] font-bold outline-none focus:border-[#D32F2F]/30 resize-none transition-all"
+                                        placeholder="Identify damaged components, missing protocol items, or carrier issues..."
                                     />
                                 </div>
 
                                 <div className="flex gap-4">
                                     <button 
                                         onClick={() => setIsReportModalOpen(false)}
-                                        className="flex-1 py-5 bg-white/5 text-slate-500 hover:text-white rounded-2xl font-black uppercase tracking-widest transition-all italic"
+                                        className="flex-1 py-4.5 bg-[#F8FBFF] text-[#8A99B3] hover:text-[#5F6F89] rounded-xl font-bold uppercase tracking-widest text-[12px] transition-all"
                                     >Cancel</button>
                                     <button 
                                         onClick={() => {
                                             handleKitAction(kits[0]?.id || '', 'report_issue', { reason: 'Reported via Modal' });
                                             setIsReportModalOpen(false);
                                         }}
-                                        className="flex-1 py-5 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-red-900/40 italic"
+                                        className="flex-1 py-4.5 bg-[#D32F2F] text-white rounded-xl font-bold uppercase tracking-widest text-[12px] transition-all shadow-lg shadow-red-500/20"
                                     >Submit Report</button>
                                 </div>
                             </div>
@@ -465,42 +429,44 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                 )}
             </AnimatePresence>
 
-            {/* ──────────────── COLLECTION MODAL ──────────────── */}
+            {/* Modal: Collection Flow */}
             <AnimatePresence>
                 {isCollectionModalOpen && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#0a0e1a]/98 backdrop-blur-2xl" />
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#1A2B49]/60 backdrop-blur-md" />
                         <motion.div 
-                            initial={{ scale: 0.9, opacity: 0, y: 30 }} 
+                            initial={{ scale: 0.95, opacity: 0, y: 30 }} 
                             animate={{ scale: 1, opacity: 1, y: 0 }} 
-                            exit={{ scale: 0.9, opacity: 0, y: 30 }} 
-                            className="relative w-full max-w-2xl bg-[#0d1424] border border-white/10 rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-y-auto max-h-[85vh] scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent custom-scroll"
+                            exit={{ scale: 0.95, opacity: 0, y: 30 }} 
+                            className="relative w-full max-w-2xl bg-white rounded-[40px] shadow-2xl overflow-y-auto max-h-[90vh] custom-scroll border border-[#E3ECF5]"
                         >
-                            <div className="absolute top-0 right-0 p-8 z-[210]">
-                                <button onClick={() => setIsCollectionModalOpen(false)} className="w-12 h-12 bg-black/40 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10 transition-all">
-                                    <X className="w-6 h-6" />
+                            <div className="absolute top-8 right-8 z-[210]">
+                                <button onClick={() => setIsCollectionModalOpen(false)} className="w-10 h-10 bg-[#F8FBFF] border border-[#E3ECF5] rounded-full flex items-center justify-center text-[#8A99B3] hover:text-[#1A2B49] transition-all">
+                                    <X className="w-5 h-5" />
                                 </button>
                             </div>
 
                             <div className="p-12">
-
-                                <div className="space-y-1.5 mb-12">
-                                    <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Sample Collection</h3>
-                                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[13px]">STUDY ID: MusB-BIO-2030 | Secure Assessment</p>
+                                <div className="space-y-2 mb-10">
+                                    <h3 className="text-2xl font-bold text-[#1A2B49] uppercase tracking-tight">Active Clinical Collection</h3>
+                                    <div className="flex items-center gap-2">
+                                         <Badge color="blue">PROTOCOL ID: BIO-202X</Badge>
+                                         <span className="text-[11px] font-bold text-[#B0BCCF] uppercase tracking-widest">Encrypted Session</span>
+                                    </div>
                                 </div>
 
                                 <StepIndicator steps={collectionSteps} currentStep={collectionStep} />
 
-                                <div className="min-h-[300px] py-8">
+                                <div className="min-h-[350px] py-10">
                                     {collectionStep === 0 && (
-                                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                                             <div className="space-y-8">
-                                                <div className="p-6 bg-amber-500/5 border border-amber-500/20 rounded-3xl space-y-4">
-                                                    <div className="flex items-center gap-3 text-amber-400">
+                                                <div className="p-6 bg-[#F0F6FF] border border-[#E3F2FD] rounded-3xl space-y-3">
+                                                    <div className="flex items-center gap-3 text-[#1E88E5]">
                                                         <Info className="w-5 h-5" />
-                                                        <span className="text-sm font-black uppercase tracking-widest">Requirements</span>
+                                                        <span className="text-[11px] font-bold uppercase tracking-widest">Safety Compliance</span>
                                                     </div>
-                                                    <p className="text-sm font-bold text-slate-300 leading-relaxed italic">"Ensure all materials are sanitized and at baseline temperature. System clock sync required for accurate timestamp logging."</p>
+                                                    <p className="text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest leading-relaxed">System state verification: Hand sanitization and workspace preparation mandatory.</p>
                                                 </div>
                                                 <Checklist
                                                     items={stepItems[0]}
@@ -511,29 +477,28 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                         </motion.div>
                                     )}
                                     {collectionStep === 1 && (
-                                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8 text-center">
-                                            <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto border border-white/10 text-amber-400 animate-pulse">
-                                                <Zap className="w-10 h-10" />
+                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10 text-center py-6">
+                                            <div className="w-24 h-24 bg-[#F0F6FF] rounded-[32px] flex items-center justify-center mx-auto border border-[#E3F2FD] text-[#1E88E5] shadow-sm">
+                                                <Play className="w-10 h-10 fill-current ml-1" />
                                             </div>
                                             <div className="space-y-4">
-                                                <h4 className="text-2xl font-black text-white italic uppercase tracking-tight">Active Collection</h4>
-                                                <p className="text-slate-500 text-sm font-bold uppercase tracking-widest leading-relaxed">Follow the video instructions carefully. Real-time logging will begin once marked as active.</p>
+                                                <h4 className="text-xl font-bold text-[#1A2B49] uppercase tracking-tight">Audio-Visual Protocol</h4>
+                                                <p className="text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest leading-relaxed max-w-sm mx-auto">Follow the clinical directive. Timestamps are logged on execution.</p>
                                             </div>
-                                            <button className="flex items-center gap-3 mx-auto px-10 py-5 bg-white/5 border border-white/10 rounded-2xl text-white hover:bg-white/10 transition-all font-black uppercase tracking-widest text-[14px]">
-                                                <Play className="w-4 h-4 fill-current" />
-                                                WATCH PROTOCOL VIDEO
+                                            <button className="flex items-center gap-3 mx-auto px-10 py-5 bg-[#1E88E5] text-white rounded-2xl transition-all font-bold uppercase tracking-widest text-[12px] shadow-lg shadow-blue-500/10 hover:bg-[#1565C0]">
+                                                Launch Protocol Video
                                             </button>
                                         </motion.div>
                                     )}
 
                                     {collectionStep === 2 && (
-                                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
-                                            <div className="p-6 bg-indigo-500/5 border border-indigo-500/20 rounded-3xl space-y-4">
-                                                <div className="flex items-center gap-3 text-indigo-400">
+                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+                                            <div className="p-6 bg-[#F0F6FF] border border-[#E3F2FD] rounded-3xl space-y-3">
+                                                <div className="flex items-center gap-3 text-[#1E88E5]">
                                                     <Package className="w-5 h-5" />
-                                                    <span className="text-sm font-black uppercase tracking-widest">Packaging Requirements</span>
+                                                    <span className="text-[11px] font-bold uppercase tracking-widest">Containment Directive</span>
                                                 </div>
-                                                <p className="text-sm font-bold text-slate-300 leading-relaxed italic">"Ensure all samples are securely sealed in the provided biohazard bags before placing them in the kit box."</p>
+                                                <p className="text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest leading-relaxed">Seal all specimens in secondary containment biohazard assets.</p>
                                             </div>
                                             <Checklist
                                                 items={stepItems[2]}
@@ -544,13 +509,13 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                     )}
 
                                     {collectionStep === 3 && (
-                                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
-                                            <div className="p-6 bg-green-500/5 border border-green-500/20 rounded-3xl space-y-4">
-                                                <div className="flex items-center gap-3 text-green-400">
+                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+                                            <div className="p-6 bg-[#E8F5E9] border border-[#C8E6C9] rounded-3xl space-y-3">
+                                                <div className="flex items-center gap-3 text-[#2E7D32]">
                                                     <Ship className="w-5 h-5" />
-                                                    <span className="text-sm font-black uppercase tracking-widest">Shipping Instructions</span>
+                                                    <span className="text-[11px] font-bold uppercase tracking-widest">Return Logistics</span>
                                                 </div>
-                                                <p className="text-sm font-bold text-slate-300 leading-relaxed italic">"Affix the digital return label to the exterior of the box and drop it off at any authorized carrier location."</p>
+                                                <p className="text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest leading-relaxed">Affix encrypted return label and transfer to logistics provider.</p>
                                             </div>
                                             <Checklist
                                                 items={stepItems[3]}
@@ -561,13 +526,13 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                     )}
                                 </div>
 
-                                <div className="flex gap-4 pt-12 border-t border-white/[0.05]">
+                                <div className="flex gap-4 pt-10 border-t border-[#F8FBFF]">
                                     <button
                                         disabled={collectionStep === 0}
                                         onClick={() => setCollectionStep(s => Math.max(0, s - 1))}
-                                        className="flex-1 py-6 bg-white/5 text-slate-500 rounded-2xl font-black uppercase tracking-widest text-[14px] hover:text-white transition-colors disabled:opacity-30"
+                                        className="flex-1 py-5 bg-[#F8FBFF] text-[#8A99B3] rounded-2xl font-bold uppercase tracking-widest text-[12px] hover:text-[#1A2B49] transition-all disabled:opacity-30 border border-[#E3ECF5]"
                                     >
-                                        GO BACK
+                                        Go Back
                                     </button>
                                     <button
                                         disabled={!isStepValid}
@@ -579,9 +544,9 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
                                                 setCollectionStep(s => s + 1);
                                             }
                                         }}
-                                        className={`flex-1 py-6 rounded-2xl font-black uppercase tracking-widest text-[14px] transition-all shadow-[0_0_30px_rgba(245,158,11,0.2)] ${!isStepValid ? 'bg-slate-800 text-slate-600 cursor-not-allowed opacity-50' : 'bg-amber-500 text-slate-950 hover:bg-amber-400'}`}
+                                        className={`flex-1 py-5 rounded-2xl font-bold uppercase tracking-widest text-[12px] transition-all shadow-lg ${!isStepValid ? 'bg-[#E3ECF5] text-[#B0BCCF] cursor-not-allowed' : 'bg-[#1E88E5] text-white hover:bg-[#1565C0]'}`}
                                     >
-                                        {collectionStep === collectionSteps.length - 1 ? 'SUBMIT COLLECTION' : 'NEXT'}
+                                        {collectionStep === collectionSteps.length - 1 ? 'Submit Submission' : 'Next Step'}
                                     </button>
                                 </div>
                             </div>
@@ -594,5 +559,3 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
 };
 
 export default StudyKitView;
-
-

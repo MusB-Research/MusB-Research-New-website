@@ -39,6 +39,7 @@ class OnboardingEnforcementMiddleware:
     # These paths are allowed for authenticated users even if they haven't completed their profile.
     DASHBOARD_WHITELIST = [
         re.compile(r'^/api/auth/list-team-members/?'),
+        re.compile(r'^/api/users/me/?'),
         re.compile(r'^/api/participants/?'),
         re.compile(r'^/api/studies/?'),
         re.compile(r'^/api/study-inquiries/?'),
@@ -87,6 +88,10 @@ class OnboardingEnforcementMiddleware:
         try:
             payload = decode_access_token(token)
             
+            # ALLOW essential dashboard data (GET) regardless of onboarding state for all authenticated users
+            if request.method == 'GET' and any(pattern.match(path) for pattern in self.DASHBOARD_WHITELIST):
+                return self.get_response(request)
+
             # Check for must_change_password
             must_change_password = payload.get('must_change_password', False)
             if must_change_password:
@@ -100,10 +105,6 @@ class OnboardingEnforcementMiddleware:
             role = payload.get('role', '').upper()
             profile_completed = payload.get('profile_completed', True)
             
-            # Allow essential dashboard data even if profile is not completed
-            if request.method == 'GET' and any(pattern.match(path) for pattern in self.DASHBOARD_WHITELIST):
-                return self.get_response(request)
-
             if not profile_completed and role not in ['SUPER_ADMIN', 'PARTICIPANT']:
                 if not any(pattern.match(path) for pattern in self.PROFILE_WHITELIST):
                     # For older tokens or newly-linked ones, double-check essential fields

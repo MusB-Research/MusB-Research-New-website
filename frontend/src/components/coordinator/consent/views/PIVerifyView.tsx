@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowLeft, Clock, ShieldCheck, CheckSquare, MousePointer2 } from 'lucide-react';
 import { COLORS } from '../ConsentConstants';
 import { PDFPage } from '../components/PDFPage';
+import { revealValue } from '../../../../utils/auth';
 
 interface VerifyProps {
     activeRecord: any;
@@ -49,7 +50,7 @@ export const PIVerifyView: React.FC<VerifyProps> = (props) => {
                     <h2 style={{ ...S.title, fontSize: '26px' }}>Protocol Verification</h2>
                     <div className="mt-4 flex gap-4">
                         <span style={S.label}>Participant:</span>
-                        <span className="text-[12px] font-black text-indigo-400 italic bg-indigo-400/5 px-2 rounded-md tracking-tighter">{activeRecord?.full_name || activeRecord?.participantId}</span>
+                        <span className="text-[12px] font-black text-indigo-400 italic bg-indigo-400/5 px-2 rounded-md tracking-tighter">{revealValue(activeRecord?.full_name, activeRecord?.decrypted_name) || activeRecord?.participantId}</span>
                     </div>
                 </div>
 

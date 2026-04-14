@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, Eye, History, ShieldCheck, RefreshCw } from 'lucide-react';
 import { COLORS } from '../ConsentConstants';
+import { revealValue } from '../../../../utils/auth';
 
 interface RecordsProps {
     consentRecords: any[];
@@ -76,7 +77,7 @@ export const ConsentRecordsView: React.FC<RecordsProps> = (props) => {
                     <tbody className="divide-y divide-white/5">
                         {consentRecords.map((r: any) => (
                             <tr key={r.id} className="border-b border-white/5 hover:bg-white/[0.01] transition-colors">
-                                <td className="p-8 font-black text-white text-xl tracking-tighter italic">{r.full_name}</td>
+                                <td className="p-8 font-black text-white text-xl tracking-tighter italic">{revealValue(r.full_name, r.decrypted_name) || r.participantId || 'Unknown'}</td>
                                 <td className="p-8 text-lg font-black text-indigo-400 italic">{r.study_title || r.protocol_id}</td>
                                 <td className="p-8"><span style={S.badge(COLORS.accent)}>{r.template_version}</span></td>
                                 <td className="p-8 text-sm text-slate-400 font-bold">{r.agreed_at ? new Date(r.agreed_at).toLocaleString() : '—'}</td>

@@ -450,7 +450,7 @@ const ToxicologyIcon = (props: React.SVGProps<SVGSVGElement>) => (
         </g>
 
         {/* Flask (Right) */}
-        <g className="text-indigo-400">
+        <g className="text-cyan-400">
             <path 
                 d="M17 12c-2.5 0-4.5 1.8-4.5 4s2 4 4.5 4 4.5-1.8 4.5-4-2-4-4.5-4z" 
                 fill="currentColor" 
@@ -555,7 +555,7 @@ const EXPERTISE_DATA = [
     {
         label: 'Inflammation',
         icon: InflammationIcon,
-        color: 'text-indigo-400',
+        color: 'text-cyan-400',
         glow: 'shadow-[0_0_15px_rgba(129,140,248,0.4)]',
         description: 'Studying acute and chronic inflammatory responses through advanced biomarker analysis and cytokine profiling.',
         content: [
@@ -659,7 +659,7 @@ const EXPERTISE_DATA = [
     {
         label: 'Aging',
         icon: AgingIcon,
-        color: 'text-indigo-400',
+        color: 'text-cyan-400',
         glow: 'shadow-[0_0_15px_rgba(129,140,248,0.4)]',
         description: 'Researching cellular senescence and longevity markers to promote healthy biological aging and cellular rejuvenation.',
         content: [
@@ -782,7 +782,7 @@ const EXPERTISE_DATA = [
     {
         label: 'Muscle Health',
         icon: MuscleHealthIcon,
-        color: 'text-indigo-400',
+        color: 'text-cyan-400',
         glow: 'shadow-[0_0_15px_rgba(129,140,248,0.4)]',
         description: 'Evaluating protein synthesis, muscle mass maintenance, and musculoskeletal integrity across life stages.',
         content: [
@@ -1207,7 +1207,7 @@ const EXPERTISE_DATA = [
     {
         label: 'Toxicology',
         icon: ToxicologyIcon,
-        color: 'text-indigo-400',
+        color: 'text-cyan-400',
         glow: 'shadow-[0_0_15px_rgba(129,140,248,0.4)]',
         description: 'Rigorous safety assessments and toxicity profiling of ingredients and final formulations.',
         content: [
@@ -1289,7 +1289,7 @@ const FACILITIES_DATA = [
     { id: 3, name: 'Central Laboratory & Biorepository', description: 'Secure on-site storage and advanced sample processing capabilities.', features: ['-80°C Freezers', 'Centrifuges', 'Cryogenic Storage'] },
     { id: 4, name: 'Sample Processing & Secure IT Systems', description: 'HIPAA-compliant, high-security infrastructure for data management.', features: ['Encrypted Servers', '24/7 Monitoring', 'Redundant Backups'] },
     { id: 5, name: 'Mobile Clinic & Phlebotomy Services', description: 'Bringing research to the community with mobile phlebotomy units.', features: ['On-site Collection', 'Remote Monitoring', 'Outreach Kits'] },
-    { id: 6, name: 'Anaerobic Chambers', description: 'Precision measurement of energy expenditure and metabolic rates.', features: ['Gas Analysis', 'Controlled Environment', 'Real-time Tracking'] }
+    { id: 6, name: 'Anaerobic Chcyans', description: 'Precision measurement of energy expenditure and metabolic rates.', features: ['Gas Analysis', 'Controlled Environment', 'Real-time Tracking'] }
 ];
 
 const CERTIFICATIONS_DATA = [
@@ -1564,7 +1564,7 @@ export default function Home() {
                                     footerText="Our central lab services ensure accuracy, reproducibility, and data integrity across preclinical and clinical programs."
                                     linkTo="/contact?type=lab"
                                     linkText="Request Laboratory Services"
-                                    accentColor="indigo"
+                                    accentColor="cyan"
                                 />
 
                                 {/* 3. Biorepository */}
@@ -1595,7 +1595,7 @@ export default function Home() {
                         {/* Background Glows */}
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full pointer-events-none">
                             <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-cyan-500/10 blur-[150px] rounded-full"></div>
-                            <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-indigo-500/10 blur-[150px] rounded-full" style={{ animationDelay: '-2s' }}></div>
+                            <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-cyan-500/10 blur-[150px] rounded-full" style={{ animationDelay: '-2s' }}></div>
                         </div>
 
                         <div className="max-w-[1700px] mx-auto px-6 md:px-12 relative z-10">
@@ -1640,7 +1640,7 @@ export default function Home() {
                                     </div>
                                 </div>
                                 <div className="relative animate-fade-in-up stagger-1 h-[500px] rounded-[4rem] overflow-hidden group">
-                                    <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/30 to-indigo-500/30 blur-[80px] z-0"></div>
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/30 to-cyan-500/30 blur-[80px] z-0"></div>
                                     <div className="relative w-full h-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-[4rem] p-4 overflow-hidden shadow-2xl z-10 transition-all duration-700">
                                         <div className="w-full h-full rounded-[3.5rem] overflow-hidden relative">
                                             <img
@@ -1763,8 +1763,8 @@ export default function Home() {
                             </div>
 
                             <div className="relative group h-full">
-                                <div className="absolute -inset-4 bg-gradient-to-tr from-cyan-500/20 to-indigo-500/20 blur-3xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                                <div className="relative aspect-square rounded-[4rem] bg-indigo-500/5 border border-white/10 overflow-hidden flex items-center justify-center">
+                                <div className="absolute -inset-4 bg-gradient-to-tr from-cyan-500/20 to-cyan-500/20 blur-3xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
+                                <div className="relative aspect-square rounded-[4rem] bg-cyan-500/5 border border-white/10 overflow-hidden flex items-center justify-center">
                                     <img
                                         src="/facilities-infrastructure.webp"
                                         alt="MUSB Research Facilities"
@@ -1831,7 +1831,7 @@ export default function Home() {
                     <div className="max-w-[1700px] mx-auto px-6 md:px-12 mb-20">
                         <div className="text-center space-y-4 animate-fade-in-up">
                             <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-tight uppercase">Collaborations & Partners</h2>
-                            <div className="h-1 w-32 bg-indigo-500 mx-auto rounded-full"></div>
+                            <div className="h-1 w-32 bg-cyan-500 mx-auto rounded-full"></div>
                         </div>
                     </div>
 
@@ -1893,9 +1893,9 @@ export default function Home() {
                                 </div>
                             </div>
 
-                            <div className="p-8 md:p-14 rounded-[3rem] bg-gradient-to-br from-indigo-500/10 via-slate-900/50 to-transparent border border-white/5 backdrop-blur-3xl space-y-8 group hover:border-indigo-500/30 transition-all duration-700 relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/5 blur-[80px] rounded-full group-hover:bg-indigo-500/10 transition-colors"></div>
-                                <span className="text-indigo-400 font-black text-sm uppercase tracking-[0.6em] block animate-fade-in-up">Sponsors</span>
+                            <div className="p-8 md:p-14 rounded-[3rem] bg-gradient-to-br from-cyan-500/10 via-slate-900/50 to-transparent border border-white/5 backdrop-blur-3xl space-y-8 group hover:border-cyan-500/30 transition-all duration-700 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-500/5 blur-[80px] rounded-full group-hover:bg-cyan-500/10 transition-colors"></div>
+                                <span className="text-cyan-400 font-black text-sm uppercase tracking-[0.6em] block animate-fade-in-up">Sponsors</span>
                                 <div className="space-y-4 animate-fade-in-up stagger-1">
                                     <h3 className="text-3xl md:text-4xl font-black text-white leading-[1.1] tracking-tighter">Need high-quality research, <br />testing, or biorepository support?</h3>
                                 </div>

@@ -123,23 +123,23 @@ export default function Layout({ children }: LayoutProps) {
 
             {/* Sticky Header */}
             <header className="fixed top-0 left-0 right-0 z-50 glass-nav h-20 md:h-24 transition-all duration-500">
-                <div className="max-w-[1800px] mx-auto px-4 md:px-6 2xl:px-12 h-full flex items-center justify-between gap-4 xl:gap-8">
+                <div className="max-w-[1800px] mx-auto px-4 md:px-6 2xl:px-12 h-full flex items-center justify-between gap-2 xl:gap-6">
                     {/* Logo - Acts as Home button opening in new tab */}
                     <a
                         href="/"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-shrink-0 flex items-center gap-4 group"
+                        className="flex-shrink-0 flex items-center gap-3 group"
                     >
-                        <div className="h-16 md:h-[4.5rem] bg-black backdrop-blur-md rounded-2xl shadow-xl border border-black group-hover:scale-105 transition-all duration-300 flex items-center justify-center overflow-hidden">
+                        <div className="h-14 md:h-[4.2rem] bg-black backdrop-blur-md rounded-2xl shadow-xl border border-black group-hover:scale-105 transition-all duration-300 flex items-center justify-center overflow-hidden">
                             <img src="/logo.jpg" alt="MusB™ Research" className="h-full w-auto object-contain brightness-100" />
                         </div>
                     </a>
 
                     {/* Right-aligned Navigation Group */}
-                    <div className="hidden xl:flex items-center gap-4 2xl:gap-12 ml-auto">
+                    <div className="hidden xl:flex items-center gap-2 2xl:gap-8 ml-auto">
                         {/* Desktop Navigation */}
-                        <nav className={`flex items-center ${isTrialsPage ? 'gap-8 2xl:gap-16' : 'gap-3 2xl:gap-8'}`}>
+                        <nav className={`flex items-center ${isTrialsPage ? 'gap-4 2xl:gap-12' : 'gap-2 2xl:gap-6'}`}>
                             {navItems.map((item) => (
                                 <div
                                     key={item.label}
@@ -158,7 +158,7 @@ export default function Layout({ children }: LayoutProps) {
                                     ) : (
                                         <Link
                                             to={item.path}
-                                            className={`text-[12px] font-black tracking-[0.12em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 whitespace-nowrap ${location.pathname === item.path ? 'text-cyan-600' : 'text-slate-900'
+                                            className={`text-[11px] font-black tracking-[0.1em] lg:tracking-[0.12em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 whitespace-nowrap ${location.pathname === item.path ? 'text-cyan-600' : 'text-slate-900'
                                                 }`}
                                         >
                                             {item.label}
@@ -190,7 +190,7 @@ export default function Layout({ children }: LayoutProps) {
                         </nav>
 
                         {/* CTA Buttons */}
-                        <div className="flex items-center gap-2 2xl:gap-4">
+                        <div className="flex items-center gap-1.5 2xl:gap-4">
                             {isTrialsPage ? (
                                 <>
                                     <Link

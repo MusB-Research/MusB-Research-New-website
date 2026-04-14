@@ -12,6 +12,9 @@ class CookieJWTAuthentication(authentication.BaseAuthentication):
     Custom authentication class for Django REST Framework that reads
     the 'access_token' from HttpOnly cookies.
     """
+    def authenticate_header(self, request):
+        return 'Bearer'
+
     def authenticate(self, request):
         # 1. Check Authorization header first (prefer explicit client state)
         auth_header = request.headers.get('Authorization')

@@ -136,8 +136,8 @@ export default function ParticipantDashboard() {
             userEmail: u?.email || '',
             userPicture: u?.picture || u?.avatar || u?.profile_picture || '',
             firstName: getDisplayName(u),
-            userPhone: u?.mobile_number || u?.phone_number || '',
-            userLocation: u?.full_address || '',
+            userPhone: u?.decrypted_phone || u?.mobile_number || u?.phone_number || '',
+            userLocation: u?.decrypted_address || u?.full_address || '',
             userTimezone: u?.timezone || 'UTC'
         };
     });
@@ -215,12 +215,12 @@ export default function ParticipantDashboard() {
                         const localU = getUser();
                         saveUser({ ...localU, ...freshUser });
                         setUserProfile({
-                            userName: freshUser.full_name || getDisplayName(freshUser),
+                            userName: freshUser.decrypted_name || freshUser.full_name || getDisplayName(freshUser),
                             userEmail: freshUser.email || '',
                             userPicture: freshUser.profile_picture || freshUser.picture || '',
-                            firstName: freshUser.full_name?.split(' ')[0] || getDisplayName(freshUser),
-                            userPhone: freshUser.phone_number || freshUser.mobile_number || '',
-                            userLocation: freshUser.full_address || '',
+                            firstName: (freshUser.decrypted_name || freshUser.full_name)?.split(' ')[0] || getDisplayName(freshUser),
+                            userPhone: freshUser.decrypted_phone || freshUser.phone_number || freshUser.mobile_number || '',
+                            userLocation: freshUser.decrypted_address || freshUser.full_address || '',
                             userTimezone: freshUser.timezone || 'UTC'
                         });
                     } else {
@@ -231,8 +231,8 @@ export default function ParticipantDashboard() {
                                 userEmail: u.email || '',
                                 userPicture: u.picture || u.avatar || u.profile_picture || '',
                                 firstName: getDisplayName(u),
-                                userPhone: u.mobile_number || u.phone_number || '',
-                                userLocation: u.full_address || '',
+                                userPhone: u.decrypted_phone || u.mobile_number || u.phone_number || '',
+                                userLocation: u.decrypted_address || u.full_address || '',
                                 userTimezone: u.timezone || 'UTC'
                             });
                         }
@@ -268,11 +268,11 @@ export default function ParticipantDashboard() {
 
                     if (filteredData.length > 0) {
                         setAllParticipants(filteredData);
-                        
+
                         // Smart Preservation: Try to find previous active study
                         let targetIndex = 0;
                         const prevActiveId = activeParticipant ? getId(activeParticipant) : null;
-                        
+
                         if (prevActiveId) {
                             const foundIdx = filteredData.findIndex((p: any) => getId(p) === prevActiveId);
                             if (foundIdx !== -1) targetIndex = foundIdx;
@@ -1105,234 +1105,244 @@ export default function ParticipantDashboard() {
 
     const initials = userProfile.userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
+    const activeParticipantStatus = (activeParticipant?.status || '').toUpperCase().trim();
+    const isEnrolled = ['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE', 'COMPLETED'].some(s => activeParticipantStatus.includes(s));
+
     const navItems = [
         { label: 'Main Website', icon: Globe },
         { label: 'Discover Studies', icon: Search },
         { label: 'Dashboard', icon: LayoutDashboard },
-        { label: 'Tasks', icon: ClipboardList },
-        { label: 'Study Kit', icon: Box, hidden: activeStudy?.uses_kit === false },
-        { label: 'Logs', icon: Activity },
+        { label: 'Tasks', icon: ClipboardList, hidden: !isEnrolled },
+        { label: 'Study Kit', icon: Box, hidden: !isEnrolled || activeStudy?.uses_kit === false },
+        { label: 'Logs', icon: Activity, hidden: !isEnrolled },
         { label: 'Messages', icon: MessageSquare },
-        { label: 'Documents', icon: FileText },
-        { label: 'Reports', icon: TrendingUp },
-        { label: 'Visits', icon: Calendar },
-        { label: 'Compensation', icon: Trophy },
+        { label: 'Documents', icon: FileText, hidden: !isEnrolled },
+        { label: 'Reports', icon: TrendingUp, hidden: !isEnrolled },
+        { label: 'Visits', icon: Calendar, hidden: !isEnrolled },
+        { label: 'Compensation', icon: Trophy, hidden: !isEnrolled },
 
         { label: 'Profile', icon: User },
         { label: 'Privacy & Data', icon: ShieldCheck },
     ].filter(item => !item.hidden);
 
     return (
-        <div className="h-screen flex overflow-hidden font-sans relative" style={{ background: 'transparent' }}>
+        <div className="h-screen flex overflow-hidden font-sans relative participant-portal-root">
             <ParticipantBackground />
             {/* Sidebar Overlay */}
-            {isMobileMenuOpen && <div className="fixed inset-0 bg-black/60 z-30 lg:hidden backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />}
+            {isMobileMenuOpen && <div className="fixed inset-0 bg-slate-900/10 z-30 lg:hidden backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />}
 
-            <aside className={`h-full flex-shrink-0 flex-col border-r border-white/[0.05] z-40 transition-transform duration-300 ${isMobileMenuOpen ? 'fixed flex w-[260px] left-0 translate-x-0 bg-[#050b18]/95 shadow-[0_0_50px_rgba(0,0,0,0.5)]' : 'hidden lg:flex lg:relative lg:w-[260px] lg:translate-x-0 transition-none'}`} style={{ background: 'rgba(5, 11, 24, 0.9)', backdropFilter: 'blur(16px)' }}>
-                <div className="h-20 px-8 flex justify-between items-center border-b border-white/[0.05]">
+            <aside className={`h-full flex-shrink-0 flex-col border-r border-[#E3ECF5] z-40 transition-transform duration-300 ${isMobileMenuOpen ? 'fixed flex w-[240px] left-0 translate-x-0 bg-white shadow-xl' : 'hidden lg:flex lg:relative lg:w-[240px] lg:translate-x-0 transition-none'}`} style={{ background: '#FFFFFF' }}>
+                <div className="h-20 px-6 flex justify-between items-center border-b border-[#E3ECF5]">
                     <Link to="/" className="group transition-all">
-                        <div className="bg-white p-2 rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-                            <img src="/logo.jpg" alt="MusB" className="h-12 w-auto object-contain rounded-xl" />
+                        <div className="bg-white p-2 rounded-2xl transition-transform hover:scale-105">
+                            <img src="/logo.jpg" alt="MusB" className="h-10 w-auto object-contain" />
                         </div>
                     </Link>
-                    <button className="lg:hidden text-slate-400 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}><X className="w-6 h-6" /></button>
+                    <button className="lg:hidden text-[#8A99B3] hover:text-[#1E88E5]" onClick={() => setIsMobileMenuOpen(false)}><X className="w-5 h-5" /></button>
                 </div>
 
 
-                <nav className="flex-1 px-6 space-y-1 overflow-y-auto mt-6 no-scrollbar">
+                <nav className="flex-1 px-4 space-y-1 overflow-y-auto mt-6 no-scrollbar">
                     {navItems.map((item) => {
                         const isActive = activeNav === item.label;
                         return (
                             <button
                                 key={item.label}
                                 onClick={() => { handleNavClick(item.label); setIsMobileMenuOpen(false); }}
-                                className={`w-full flex items-center gap-5 px-5 py-2.5 rounded-3xl transition-all duration-300 group relative overflow-hidden ${isActive ? 'bg-amber-500/10 text-amber-400 border border-amber-500/40 shadow-[0_10px_30px_rgba(245,158,11,0.12)]' : 'text-slate-500 hover:text-white hover:bg-white/5 hover:translate-x-1'}`}
+                                className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200 group relative overflow-hidden ${isActive
+                                        ? 'bg-[#E3F2FD] text-[#1E88E5] shadow-sm'
+                                        : 'text-[#5F6F89] hover:text-[#1E88E5] hover:bg-[#F0F6FF]'
+                                    }`}
                             >
-                                <item.icon className={`w-6 h-6 transition-all duration-300 ${isActive ? 'text-amber-400 scale-110' : 'text-slate-600 group-hover:text-amber-400 group-hover:scale-110 group-hover:drop-shadow-[0_0_12px_rgba(245,158,11,0.4)]'}`} />
-                                <span className={`text-[17px] font-bold tracking-tight transition-colors ${isActive ? 'text-amber-400' : 'group-hover:text-white'}`}>{item.label}</span>
+                                <item.icon className={`w-5 h-5 transition-colors ${isActive ? 'text-[#1E88E5]' : 'text-[#7A8CA5] group-hover:text-[#1E88E5]'}`} />
+                                <span className="text-[14px] font-bold tracking-tight">{item.label}</span>
                             </button>
                         );
                     })}
                 </nav>
 
-                <div className="px-6 pb-10 pt-4 border-t border-white/[0.04] mt-auto">
-                    <button onClick={() => setIsLogoutModalOpen(true)} className="w-full flex items-center gap-5 px-5 py-5 rounded-3xl text-slate-500 hover:text-red-400 hover:bg-red-500/5 transition-all group">
-                        <LogOut className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                        <span className="text-[17px] font-bold">Sign Out</span>
+                <div className="px-4 pb-10 pt-4 border-t border-[#E3ECF5] mt-auto">
+                    <button onClick={() => setIsLogoutModalOpen(true)} className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-[#8A99B3] hover:text-[#D32F2F] hover:bg-[#FDECEA] transition-all group">
+                        <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        <span className="text-[14px] font-bold">Sign Out</span>
                     </button>
                 </div>
             </aside>
 
             <div className="flex-1 flex flex-col overflow-hidden relative z-20 w-full">
-                <header className="h-20 flex items-center justify-between px-6 lg:px-12 border-b border-white/[0.04] shrink-0 relative bg-[#050b18]/80 backdrop-blur-2xl z-[100] transition-all">
-                    <div className="flex items-center gap-3 sm:gap-6">
-                        <button className="lg:hidden text-slate-300 hover:text-amber-400 transition-colors mr-1" onClick={() => setIsMobileMenuOpen(true)}>
-                            <Menu className="w-6 h-6" />
-                        </button>
+                <header className="h-20 border-b border-[#E3ECF5] shrink-0 relative bg-white/80 backdrop-blur-xl z-[100] transition-all">
+                    <div className="participant-portal h-full flex items-center justify-between">
+                        <div className="flex items-center gap-2 sm:gap-4">
+                            <button className="lg:hidden text-[#5F6F89] hover:text-[#1E88E5] transition-colors mr-1" onClick={() => setIsMobileMenuOpen(true)}>
+                                <Menu className="w-5 h-5" />
+                            </button>
 
-                        <div className="flex flex-col">
-                            <span className="text-xs font-black text-amber-500/70 uppercase tracking-[0.3em] mb-0.5 italic hidden sm:block">Participant Suite</span>
-                            <div className="flex items-center gap-2">
-                                <h1 className="text-xl font-bold text-white tracking-tight leading-none">{activeNav}</h1>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-4 relative" ref={dropdownRef}>
-                        <div className="hidden md:flex flex-col items-end text-right border-r border-white/5 pr-6">
-                            <span className="text-xl font-black text-amber-400 font-mono tracking-tighter tabular-nums leading-none">
-                                {formatToParticipantTime(currentTime, { weekday: 'long', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
-                            </span>
-                            <div className="flex items-center gap-2 mt-1.5 grayscale opacity-60">
-                                <Globe className="w-3 h-3 text-amber-500" />
-                                <span className="text-xs font-bold text-white uppercase tracking-widest leading-none">
-                                    {userProfile.userTimezone || 'UTC'}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Manual Refresh Button */}
-                        <button
-                            onClick={() => refreshData()}
-                            className="p-2.5 rounded-2xl bg-white/5 border border-white/5 text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 hover:border-amber-500/20 transition-all flex items-center justify-center group"
-                            title="Sync Clinical Data"
-                        >
-                            <RefreshCcw className={`w-5 h-5 transition-transform duration-700 ${isDataLoading ? 'animate-spin text-amber-500' : 'group-active:rotate-180'}`} />
-                        </button>
-
-                        <div className="relative">
-                            <NotificationBell
-                                unreadCount={safeArray(notifications).filter(n => !n.read).length}
-                                onClick={() => {
-                                    setIsNotificationOpen(!isNotificationOpen);
-                                    setIsDropdownOpen(false);
-                                }}
-                            />
-
-                            <AnimatePresence>
-                                {isNotificationOpen && (
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                        className="absolute right-0 top-full mt-6 w-[420px] bg-[#0d1424] border border-white/10 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] backdrop-blur-2xl z-[150] overflow-hidden"
-                                    >
-                                        <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.03]">
-                                            <div className="flex flex-col gap-1">
-                                                <h3 className="text-xs font-black text-white uppercase tracking-[0.2em] italic">Notifications Hub</h3>
-                                                <span className="text-xs text-slate-400 font-bold uppercase tracking-widest leading-none">Updates & Alerts</span>
-                                            </div>
-                                            <button
-                                                onClick={() => setNotifications(notifications.map(n => ({ ...n, read: true })))}
-                                                className="px-4 py-2 bg-amber-400/10 border border-amber-400/20 text-xs font-black text-amber-400 uppercase tracking-tighter hover:bg-amber-400 hover:text-black rounded-xl transition-all"
-                                            >
-                                                Mark all read
-                                            </button>
-                                        </div>
-                                        <div className="max-h-[450px] overflow-y-auto no-scrollbar">
-                                            {notifications.length > 0 ? notifications.map(n => (
-                                                <div
-                                                    key={n.id}
-                                                    className={`p-6 border-b border-white/[0.03] last:border-0 hover:bg-white/[0.03] transition-all cursor-pointer relative group/notif ${!n.read ? 'bg-amber-500/[0.03]' : ''}`}
-                                                    onClick={() => {
-                                                        if (n.type === 'protocol') setActiveNav('Tasks');
-                                                        setNotifications(notifications.map(notif => notif.id === n.id ? { ...notif, read: true } : notif));
-                                                        setIsNotificationOpen(false);
-                                                    }}
-                                                >
-                                                    {!n.read && <div className="absolute top-0 bottom-0 left-0 w-1 bg-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.5)]" />}
-                                                    <div className="flex flex-col gap-2">
-                                                        <div className="flex justify-between items-baseline gap-4">
-                                                            <span className={`text-[13px] font-black uppercase italic tracking-tight leading-none ${n.type === 'protocol' ? 'text-amber-400' : 'text-white group-hover/notif:text-amber-400'} transition-colors truncate`}>{n.title}</span>
-                                                            <span className="text-[12px] font-black text-slate-700 uppercase tracking-tighter flex-shrink-0">{n.time}</span>
-                                                        </div>
-                                                        <p className="text-[13px] text-slate-400 font-medium leading-relaxed">{n.desc}</p>
-                                                    </div>
-                                                </div>
-                                            )) : (
-                                                <div className="p-16 text-center text-slate-600 italic text-sm">No active alerts...</div>
-                                            )}
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-
-                        <div className="relative">
-                            <div
-                                className="flex items-center gap-3 cursor-pointer hover:bg-white/[0.03] p-1 rounded-2xl transition-all"
-                                onClick={() => {
-                                    setIsDropdownOpen(!isDropdownOpen);
-                                    setIsNotificationOpen(false);
-                                }}
-                            >
-                                <div className="hidden sm:flex flex-col items-end mr-1">
-                                    <span className="text-sm font-black text-white italic uppercase tracking-tighter leading-none mb-1.5">{userProfile.userName}</span>
-                                    <span className="text-xs text-amber-500/70 font-black uppercase tracking-widest bg-amber-500/[0.03] px-2 py-0.5 rounded border border-amber-500/10 truncate max-w-[120px]">{userProfile.userEmail}</span>
+                            <div className="flex flex-col hidden lg:flex">
+                                <span className="text-[10px] font-black text-[#00ADEF] uppercase tracking-[0.2em] mb-0.5">Participant Suite</span>
+                                <div className="flex items-center gap-2">
+                                    <h1 className="text-xl font-bold text-[#1A2B49] tracking-tight leading-none">{activeNav}</h1>
                                 </div>
-                                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center border border-white/10 overflow-hidden shadow-2xl hover:border-amber-500/40 transition-all ring-1 ring-white/5 relative">
-                                    {userProfile.userPicture ? (
-                                        <img
-                                            src={userProfile.userPicture}
-                                            alt=""
-                                            className="w-full h-full object-cover"
-                                            onError={(e) => {
-                                                (e.target as HTMLImageElement).style.display = 'none';
-                                                const fallback = (e.target as HTMLImageElement).nextElementSibling;
-                                                if (fallback) fallback.classList.remove('hidden');
-                                            }}
-                                        />
-                                    ) : null}
-                                    <span className={`text-sm font-black italic avatar-initials absolute inset-0 flex items-center justify-center z-0 ${userProfile.userPicture ? 'hidden' : ''}`}>
-                                        {initials}
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 sm:gap-4 relative" ref={dropdownRef}>
+                            <div className="hidden md:flex flex-col items-end text-right border-r border-[#E3ECF5] pr-4">
+                                <span className="text-base lg:text-lg font-bold text-[#00ADEF] tracking-tighter tabular-nums leading-none">
+                                    {formatToParticipantTime(currentTime, { weekday: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+                                </span>
+                                <div className="flex items-center gap-1.5 mt-1 opacity-60">
+                                    <Globe className="w-3 h-3 text-[#5F6F89]" />
+                                    <span className="text-[9px] font-bold text-[#5F6F89] uppercase tracking-widest leading-none">
+                                        {userProfile.userTimezone || 'UTC'}
                                     </span>
                                 </div>
                             </div>
 
-                            {/* User Dropdown Menu */}
-                            <AnimatePresence>
-                                {isDropdownOpen && (
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                        className="absolute right-0 top-full mt-6 w-60 bg-[#0d1424] border border-white/10 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl z-[150] overflow-hidden"
-                                    >
-                                        <div className="p-5 border-b border-white/5 bg-white/[0.02]">
-                                            <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] italic mb-1.5">Current Session</p>
-                                            <p className="text-sm font-black text-white uppercase italic truncate tracking-tight">{userProfile.userName}</p>
-                                        </div>
-                                        <div className="p-2">
-                                            <button
-                                                onClick={() => { setActiveNav('Profile'); setIsDropdownOpen(false); }}
-                                                className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-2xl transition-all group"
-                                            >
-                                                <User className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
-                                                <span className="text-xs font-bold uppercase tracking-widest italic">View Profile</span>
-                                            </button>
-                                            <button
-                                                onClick={() => { setIsLogoutModalOpen(true); setIsDropdownOpen(false); }}
-                                                className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-2xl transition-all group"
-                                            >
-                                                <LogOut className="w-4 h-4 text-red-500 group-hover:scale-110 transition-transform" />
-                                                <span className="text-xs font-bold uppercase tracking-widest italic">Sign Out</span>
-                                            </button>
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
+                            {/* Manual Refresh Button */}
+                            <button
+                                onClick={() => refreshData()}
+                                className="p-2.5 rounded-xl bg-[#F8FBFF] border border-[#E3ECF5] text-[#8A99B3] hover:text-[#1E88E5] hover:bg-[#E3F2FD] hover:border-[#BBDEFB] transition-all flex items-center justify-center group"
+                                title="Sync Clinical Data"
+                            >
+                                <RefreshCcw className={`w-5 h-5 transition-transform duration-700 ${isDataLoading ? 'animate-spin text-[#1E88E5]' : 'group-active:rotate-180'}`} />
+                            </button>
+
+                            <div className="relative">
+                                <NotificationBell
+                                    unreadCount={safeArray(notifications).filter(n => !n.read).length}
+                                    onClick={() => {
+                                        setIsNotificationOpen(!isNotificationOpen);
+                                        setIsDropdownOpen(false);
+                                    }}
+                                />
+
+                                <AnimatePresence>
+                                    {isNotificationOpen && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.98, y: 10 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.98, y: 10 }}
+                                            className="absolute right-0 top-full mt-6 w-[400px] bg-white border border-[#E3ECF5] rounded-24px shadow-[0_20px_60px_rgba(0,0,0,0.1)] z-[150] overflow-hidden"
+                                            style={{ borderRadius: '24px' }}
+                                        >
+                                            <div className="p-6 border-b border-[#E3ECF5] flex justify-between items-center bg-[#F8FBFF]">
+                                                <div className="flex flex-col gap-1">
+                                                    <h3 className="text-[12px] font-bold text-[#1A2B49] uppercase tracking-widest">Notifications Hub</h3>
+                                                    <span className="text-[10px] text-[#5F6F89] font-bold uppercase tracking-widest leading-none">Updates & Alerts</span>
+                                                </div>
+                                                <button
+                                                    onClick={() => setNotifications(notifications.map(n => ({ ...n, read: true })))}
+                                                    className="px-4 py-2 bg-[#E3F2FD] border border-[#BBDEFB] text-[11px] font-bold text-[#1E88E5] uppercase tracking-tight hover:bg-[#1E88E5] hover:text-white rounded-xl transition-all"
+                                                >
+                                                    Mark all read
+                                                </button>
+                                            </div>
+                                            <div className="max-h-[450px] overflow-y-auto no-scrollbar bg-white">
+                                                {notifications.length > 0 ? notifications.map(n => (
+                                                    <div
+                                                        key={n.id}
+                                                        className={`p-6 border-b border-[#F0F6FF] last:border-0 hover:bg-[#F8FBFF] transition-all cursor-pointer relative group/notif ${!n.read ? 'bg-[#E3F2FD]/5' : ''}`}
+                                                        onClick={() => {
+                                                            if (n.type === 'protocol') setActiveNav('Tasks');
+                                                            setNotifications(notifications.map(notif => notif.id === n.id ? { ...notif, read: true } : notif));
+                                                            setIsNotificationOpen(false);
+                                                        }}
+                                                    >
+                                                        {!n.read && <div className="absolute top-0 bottom-0 left-0 w-1 bg-[#1E88E5]" />}
+                                                        <div className="flex flex-col gap-1.5">
+                                                            <div className="flex justify-between items-baseline gap-4">
+                                                                <span className={`text-[13px] font-bold uppercase tracking-tight leading-none ${n.type === 'protocol' ? 'text-[#1E88E5]' : 'text-[#1A2B49] group-hover/notif:text-[#1E88E5]'} transition-colors truncate`}>{n.title}</span>
+                                                                <span className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-tighter flex-shrink-0">{n.time}</span>
+                                                            </div>
+                                                            <p className="text-[13px] text-[#5F6F89] font-medium leading-relaxed">{n.desc}</p>
+                                                        </div>
+                                                    </div>
+                                                )) : (
+                                                    <div className="p-16 text-center text-[#5F6F89] font-medium text-sm">No active alerts...</div>
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
+                            <div className="relative">
+                                <div
+                                    className="flex items-center gap-3 cursor-pointer hover:bg-[#F8FBFF] p-1.5 rounded-2xl transition-all border border-transparent hover:border-[#E3ECF5]"
+                                    onClick={() => {
+                                        setIsDropdownOpen(!isDropdownOpen);
+                                        setIsNotificationOpen(false);
+                                    }}
+                                >
+                                    <div className="hidden lg:flex flex-col items-end mr-1">
+                                        <span className="text-[13px] font-bold text-[#1A2B49] uppercase tracking-tight leading-none mb-1.5">{userProfile.userName}</span>
+                                        <span className="text-[10px] text-[#00ADEF] font-bold uppercase tracking-widest bg-[#E3F2FD] px-2 py-0.5 rounded border border-[#BBDEFB] truncate max-w-[120px]">{userProfile.userEmail}</span>
+                                    </div>
+                                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-[#E3F2FD] text-[#1E88E5] flex items-center justify-center border border-[#E3ECF5] overflow-hidden shadow-sm hover:border-[#1E88E5] transition-all relative">
+                                        {userProfile.userPicture ? (
+                                            <img
+                                                src={userProfile.userPicture}
+                                                alt=""
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).style.display = 'none';
+                                                    const fallback = (e.target as HTMLImageElement).nextElementSibling;
+                                                    if (fallback) fallback.classList.remove('hidden');
+                                                }}
+                                            />
+                                        ) : null}
+                                        <span className={`text-[15px] font-bold avatar-initials absolute inset-0 flex items-center justify-center z-0 ${userProfile.userPicture ? 'hidden' : ''}`}>
+                                            {initials}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* User Dropdown Menu */}
+                                <AnimatePresence>
+                                    {isDropdownOpen && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.98, y: 10 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.98, y: 10 }}
+                                            className="absolute right-0 top-full mt-6 w-56 bg-white border border-[#E3ECF5] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] z-[150] overflow-hidden"
+                                        >
+                                            <div className="p-5 border-b border-[#E3ECF5] bg-[#F8FBFF]">
+                                                <p className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest mb-1.5">Current Session</p>
+                                                <p className="text-sm font-bold text-[#1A2B49] uppercase tracking-tight truncate">{userProfile.userName}</p>
+                                            </div>
+                                            <div className="p-2">
+                                                <button
+                                                    onClick={() => { setActiveNav('Profile'); setIsDropdownOpen(false); }}
+                                                    className="w-full flex items-center gap-3 px-4 py-3 text-[#5F6F89] hover:text-[#1E88E5] hover:bg-[#F0F6FF] rounded-xl transition-all group"
+                                                >
+                                                    <User className="w-4 h-4 text-[#1E88E5] group-hover:scale-110 transition-transform" />
+                                                    <span className="text-[12px] font-bold uppercase tracking-widest">View Profile</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => { setIsLogoutModalOpen(true); setIsDropdownOpen(false); }}
+                                                    className="w-full flex items-center gap-3 px-4 py-3 text-[#8A99B3] hover:text-[#D32F2F] hover:bg-[#FDECEA] rounded-xl transition-all group"
+                                                >
+                                                    <LogOut className="w-4 h-4 text-[#D32F2F] group-hover:scale-110 transition-transform" />
+                                                    <span className="text-[12px] font-bold uppercase tracking-widest">Sign Out</span>
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         </div>
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-12 py-6 sm:py-8 scroll-smooth no-scrollbar">
-                    <AnimatePresence initial={false}>
-                        <motion.div
-                            key={activeNav}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.15 }}
-                        >
-                            {activeNav === 'Discover Studies' && <DiscoverStudiesView loading={isDataLoading} />}
+                <main className="flex-1 overflow-y-auto scroll-smooth no-scrollbar">
+                    <div className="participant-portal pt-6 sm:pt-10 pb-20">
+                        <AnimatePresence initial={false}>
+                            <motion.div
+                                key={activeNav}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.15 }}
+                            >
+                                {activeNav === 'Discover Studies' && <DiscoverStudiesView loading={isDataLoading} />}
                             {activeNav === 'Dashboard' && (
                                 <DashboardView
                                     isLoading={isDataLoading}
@@ -1393,12 +1403,15 @@ export default function ParticipantDashboard() {
                                     toggleNotification={toggleNotification}
                                     onAction={openActionModal}
                                     isLoading={isDataLoading}
+                                    participantSid={activeParticipant?.participant_sid}
+                                    studyId={activeStudy?.protocol_id || activeStudy?.id}
                                 />
                             )}
                             {activeNav === 'Privacy & Data' && <PrivacyDataView onAction={openActionModal} isLoading={isDataLoading} />}
                         </motion.div>
                     </AnimatePresence>
-                </main>
+                </div>
+            </main>
             </div>
 
             {/* MODALS */}

@@ -35,7 +35,61 @@ class InquiryTypeListView(generics.ListAPIView):
 class SubmissionCreateView(generics.CreateAPIView):
     serializer_class = SubmissionSerializer
     permission_classes = [permissions.AllowAny]
-    
+
+    def create(self, request, *args, **kwargs):
+        """Override to return clean JSON errors instead of Django HTML 500 pages."""
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        except Exception as e:
+            import traceback
+            error_trace = traceback.format_exc()
+            print(f"[Contact Submit] DB error, falling back to email-only mode: {e}\n{error_trace}")
+
+            # DB failed — try email-only fallback so the submission isn't lost
+            try:
+                data = request.data
+                name = data.get('name', 'Unknown')
+                email = data.get('email', '')
+                phone = data.get('phone', '')
+                message = data.get('message', '')
+                metadata = data.get('metadata', {})
+
+                fallback_html = f"""
+                <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 32px;">
+                    <h2 style="color:#e53e3e;">⚠ Contact Form — DB Fallback Submission</h2>
+                    <p><strong>Name:</strong> {name}</p>
+                    <p><strong>Email:</strong> {email}</p>
+                    <p><strong>Phone:</strong> {phone}</p>
+                    <p><strong>Message:</strong> {message}</p>
+                    <pre style="background:#f7fafc;padding:16px;border-radius:8px;font-size:12px;">{str(metadata)}</pre>
+                    <hr/>
+                    <p style="color:#e53e3e;font-size:12px;">DB Error: {str(e)[:500]}</p>
+                </div>
+                """
+                from api.utils.resend_utils import safe_resend_send
+                safe_resend_send({
+                    "from": "MusB Research <info@musbresearch.com>",
+                    "to": ["info@musbresearch.com"],
+                    "subject": f"[FALLBACK] Contact Form: {name}",
+                    "html": fallback_html
+                })
+
+                # Confirm to the user — they submitted successfully even if DB failed
+                return Response(
+                    {"detail": "Your message has been received. Our team will contact you shortly."},
+                    status=status.HTTP_201_CREATED
+                )
+            except Exception as email_err:
+                print(f"[Contact Submit] Email fallback also failed: {email_err}")
+                return Response(
+                    {"detail": "We encountered a technical issue. Please email us directly at info@musbresearch.com."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
     def perform_create(self, serializer):
         submission = serializer.save()
         metadata = submission.metadata or {}
@@ -251,6 +305,14 @@ class SubmissionCreateView(generics.CreateAPIView):
                     participant.status = 'PENDING_REVIEW'
                     participant.submitted_at = submission.submitted_at
                     participant.save()
+
+                    # Root Cause Fix: Automatically transition SCREENER tasks if they exist for this study
+                    from api.models import ParticipantTask
+                    ParticipantTask.objects.filter(
+                        participant=participant,
+                        task__task_type='SCREENER',
+                        status='PENDING'
+                    ).update(status='COMPLETED', completed_at=submission.submitted_at)
                     
                     print(f"Lead and Participant created successfully for study: {study.protocol_id}")
             except Exception as e:

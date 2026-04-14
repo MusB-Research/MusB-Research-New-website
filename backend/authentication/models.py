@@ -157,6 +157,26 @@ class User(AbstractBaseUser, PermissionsMixin):
     def decrypted_phone(self):
         return decrypt_data(self.phone_number)
 
+    @cached_property
+    def decrypted_address(self):
+        return decrypt_data(self.full_address)
+
+    @cached_property
+    def decrypted_city(self):
+        return decrypt_data(self.city)
+
+    @cached_property
+    def decrypted_state(self):
+        return decrypt_data(self.state)
+
+    @cached_property
+    def decrypted_zip(self):
+        return decrypt_data(self.zip_code)
+
+    @cached_property
+    def decrypted_origin(self):
+        return decrypt_data(self.place_of_origin)
+
     def __str__(self):
         return self.email
 

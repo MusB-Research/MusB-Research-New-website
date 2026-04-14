@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, History, User, CheckCircle2, FileText, AlertCircle, Clock } from 'lucide-react';
 import { COLORS, ConsentRecord, AuditEntry } from '../ConsentConstants';
+import { revealValue } from '../../../../utils/auth';
 
 interface AuditDrawerProps {
     isOpen: boolean;
@@ -23,7 +24,7 @@ export const AuditDrawer: React.FC<AuditDrawerProps> = ({ isOpen, onClose, recor
         if (r.agreed_at || r.participantSignedDate) {
             events.push({ 
                 time: r.agreed_at || r.participantSignedDate || new Date().toISOString(), 
-                user: r.full_name || r.participantId || 'Participant', 
+                user: revealValue(r.full_name, (r as any).decrypted_name) || r.participantId || 'Participant', 
                 role: 'Participant', 
                 action: 'eSignature applied and verified via secure portal.' 
             });
@@ -73,7 +74,7 @@ export const AuditDrawer: React.FC<AuditDrawerProps> = ({ isOpen, onClose, recor
                         
                         <div className="p-6 bg-white/[0.02] border-b border-white/10">
                             <h3 className="text-[12px] text-slate-500 font-black uppercase tracking-[0.2em] mb-2">Target Entity</h3>
-                            <div className="text-white font-bold text-lg">{record?.full_name || record?.participantId || 'Unknown Record'}</div>
+                            <div className="text-white font-bold text-lg">{revealValue(record?.full_name, (record as any)?.decrypted_name) || record?.participantId || 'Unknown Record'}</div>
                             <div className="flex gap-2 mt-3">
                                 <span className="px-3 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[12px] font-black uppercase tracking-widest rounded">
                                     {(record?.study_title || record?.protocol_id || 'Global Protocol')}

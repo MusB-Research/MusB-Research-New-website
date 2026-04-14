@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { fetchStudies, Study } from '../data/studies';
 import { authFetch, API } from '../utils/auth';
-import { Skeleton } from './Participant/SharedComponents';
+import { Skeleton } from './Participant/SharedComponents'; // Standard highlight: #00ADEF
 
 // ──────────────── BIRTH DATE INPUT COMPONENT ────────────────
 const BirthDateField = ({ value, onChange, isMissing }: { value: string; onChange: (val: string) => void; isMissing: boolean }) => {
@@ -117,12 +117,12 @@ const BirthDateField = ({ value, onChange, isMissing }: { value: string; onChang
                     value={displayValue}
                     onChange={handleInputChange}
                     placeholder="MM / DD / YYYY"
-                    className={`w-full bg-[#0d1424] border rounded-2xl py-5 text-white outline-none transition-all px-16 text-center text-xl font-bold ${isMissing ? 'border-red-500/50' : 'border-white/5 focus:border-amber-500/50'}`}
+                    className={`w-full bg-[#0d1424] border rounded-2xl py-5 text-white outline-none transition-all px-16 text-center text-xl font-bold ${isMissing ? 'border-red-500/50' : 'border-white/5 focus:border-[#00ADEF]/50'}`}
                 />
                 <button 
                     type="button"
                     onClick={() => setShowCalendar(!showCalendar)}
-                    className="absolute right-6 top-1/2 -translate-y-1/2 p-2 hover:bg-white/5 rounded-xl transition-all text-slate-500 hover:text-amber-400"
+                    className="absolute right-6 top-1/2 -translate-y-1/2 p-2 hover:bg-white/5 rounded-xl transition-all text-slate-500 hover:text-[#00ADEF]"
                 >
                     <CalendarDays className="w-5 h-5" />
                 </button>
@@ -141,10 +141,10 @@ const BirthDateField = ({ value, onChange, isMissing }: { value: string; onChang
                             <button onClick={prevMonth} className="p-2 hover:bg-white/5 rounded-lg text-slate-400"><ChevronLeft className="w-4 h-4" /></button>
                             
                             <div className="flex gap-2">
-                                <button onClick={() => setViewMode('months')} className="text-sm font-black uppercase italic text-white hover:text-amber-400 transition-colors">
+                                <button onClick={() => setViewMode('months')} className="text-sm font-black uppercase italic text-white hover:text-[#00ADEF] transition-colors">
                                     {months[viewDate.getMonth()]}
                                 </button>
-                                <button onClick={() => setViewMode('years')} className="text-sm font-black uppercase italic text-white hover:text-amber-400 transition-colors">
+                                <button onClick={() => setViewMode('years')} className="text-sm font-black uppercase italic text-white hover:text-[#00ADEF] transition-colors">
                                     {viewDate.getFullYear()}
                                 </button>
                             </div>
@@ -167,9 +167,9 @@ const BirthDateField = ({ value, onChange, isMissing }: { value: string; onChang
                                             <button
                                                 key={i}
                                                 onClick={() => handleDateSelect(i + 1)}
-                                                className={`aspect-square rounded-lg flex items-center justify-center text-xs font-bold transition-all hover:bg-amber-400 hover:text-black ${
+                                                className={`aspect-square rounded-lg flex items-center justify-center text-xs font-bold transition-all hover:bg-[#00ADEF] hover:text-white ${
                                                     new Date(viewDate.getFullYear(), viewDate.getMonth(), i + 1).toDateString() === new Date().toDateString() 
-                                                    ? 'border border-amber-500/50 text-amber-400' : 'text-slate-300'
+                                                    ? 'border border-[#00ADEF]/50 text-[#00ADEF]' : 'text-slate-300'
                                                 }`}
                                             >
                                                 {i + 1}
@@ -185,7 +185,7 @@ const BirthDateField = ({ value, onChange, isMissing }: { value: string; onChang
                                         <button 
                                             key={y} 
                                             onClick={() => { setViewDate(new Date(y, viewDate.getMonth())); setViewMode('days'); }}
-                                            className="py-2 text-sm font-black italic text-slate-300 hover:text-amber-400 hover:bg-white/5 rounded-lg"
+                                            className="py-2 text-sm font-black italic text-slate-300 hover:text-[#00ADEF] hover:bg-white/5 rounded-lg"
                                         >
                                             {y}
                                         </button>
@@ -199,7 +199,7 @@ const BirthDateField = ({ value, onChange, isMissing }: { value: string; onChang
                                         <button 
                                             key={m} 
                                             onClick={() => { setViewDate(new Date(viewDate.getFullYear(), i)); setViewMode('days'); }}
-                                            className="py-2 text-sm font-black italic text-slate-300 hover:text-amber-400 hover:bg-white/5 rounded-lg"
+                                            className="py-2 text-sm font-black italic text-slate-300 hover:text-[#00ADEF] hover:bg-white/5 rounded-lg"
                                         >
                                             {m}
                                         </button>
@@ -562,7 +562,7 @@ export default function StudyScreener() {
                 <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${progress}%` }}
-                    className="h-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.8)]"
+                    className="h-full bg-[#00ADEF] shadow-[0_0_10px_rgba(0,173,239,0.8)]"
                 />
             </div>
         );
@@ -596,7 +596,7 @@ export default function StudyScreener() {
 
                 {/* Status Bar */}
                 {isEnrolled && (
-                    <div className="mb-6 bg-amber-500/10 border border-amber-500/20 py-4 px-6 rounded-2xl flex items-center gap-3 text-amber-400 text-xs font-black uppercase tracking-widest">
+                    <div className="mb-6 bg-[#00ADEF]/10 border border-[#00ADEF]/20 py-4 px-6 rounded-2xl flex items-center gap-3 text-[#00ADEF] text-xs font-black uppercase tracking-widest">
                         <ShieldCheck className="w-5 h-5" />
                         Authenticated: Some fields are locked based on your profile
                     </div>
@@ -605,12 +605,12 @@ export default function StudyScreener() {
                 {/* Progress Indicator */}
                 <div className="mb-12 space-y-4">
                     <div className="flex justify-between items-center px-1">
-                        <span className="text-[12px] font-black uppercase tracking-[0.2em] text-amber-500/50">Progress</span>
-                        <span className="text-[12px] font-black uppercase tracking-[0.2em] text-amber-500">{Math.round(((currentStepIndex + 1) / steps.length) * 100)}%</span>
+                        <span className="text-[12px] font-black uppercase tracking-[0.2em] text-[#00ADEF]/50">Progress</span>
+                        <span className="text-[12px] font-black uppercase tracking-[0.2em] text-[#00ADEF]">{Math.round(((currentStepIndex + 1) / steps.length) * 100)}%</span>
                     </div>
                     <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                         <motion.div
-                            className="h-full bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.5)]"
+                            className="h-full bg-[#00ADEF] shadow-[0_0_20px_rgba(0,173,239,0.5)]"
                             initial={{ width: 0 }}
                             animate={{ width: `${((currentStepIndex + 1) / steps.length) * 100}%` }}
                         />
@@ -637,7 +637,7 @@ export default function StudyScreener() {
                                     {currentStep.id === 'STEP1' && (
                                         <div className="space-y-6">
                                             <div className="space-y-4">
-                                                <label className={`text-base font-bold ${isFieldInvalid('age') ? 'text-red-500' : 'text-slate-300'}`}>
+                                                <label className={`text-base font-black italic tracking-tight ${isFieldInvalid('age') ? 'text-red-500' : 'text-white'}`}>
                                                 What is your age?
                                             </label>
                                             <div className="relative">
@@ -646,13 +646,13 @@ export default function StudyScreener() {
                                                     readOnly={isStepReadOnly}
                                                     value={formData.age}
                                                     onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                                                    className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-slate-200 text-lg outline-none transition-all ${isFieldInvalid('age') ? 'border-red-500/50' : 'border-white/5 focus:border-amber-500/50'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    className={`w-full bg-[#161f35] border rounded-2xl px-8 py-5 text-white text-lg outline-none transition-all ${isFieldInvalid('age') ? 'border-red-500/50' : 'border-white/10 focus:border-[#00ADEF]/80'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                     placeholder="Enter your age"
                                                 />
                                             </div>
                                         </div>
                                         <div className="space-y-4">
-                                            <label className="text-base font-bold text-slate-300">
+                                            <label className="text-base font-black italic tracking-tight text-white">
                                                 Zip / Postal code
                                             </label>
                                             <div className="relative">
@@ -661,14 +661,14 @@ export default function StudyScreener() {
                                                     readOnly={isStepReadOnly}
                                                     value={formData.zipCode}
                                                     onChange={(e) => handleZipChange(e.target.value)}
-                                                    className={`w-full bg-[#0d1424] border border-white/5 rounded-2xl px-8 py-5 text-slate-200 text-lg outline-none focus:border-amber-500/50 ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    className={`w-full bg-[#161f35] border border-white/10 rounded-2xl px-8 py-5 text-white text-lg outline-none focus:border-[#00ADEF]/80 ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                     placeholder="e.g. 90210"
                                                 />
-                                                {isLocating && <Loader2 className="absolute right-6 top-6 w-5 h-5 text-amber-500 animate-spin" />}
+                                                {isLocating && <Loader2 className="absolute right-6 top-6 w-5 h-5 text-[#00ADEF] animate-spin" />}
                                             </div>
                                         </div>
                                         <div className="space-y-4">
-                                            <label className={`text-base font-bold ${isFieldInvalid('location') ? 'text-red-500' : 'text-slate-300'}`}>
+                                            <label className={`text-base font-black italic tracking-tight ${isFieldInvalid('location') ? 'text-red-500' : 'text-white'}`}>
                                                 Current city, state, country
                                             </label>
                                             <input
@@ -676,7 +676,7 @@ export default function StudyScreener() {
                                                 readOnly={isStepReadOnly}
                                                 value={formData.location}
                                                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                                className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-slate-200 text-lg outline-none transition-all ${isFieldInvalid('location') ? 'border-red-500/50' : 'border-white/5 focus:border-amber-500/50'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                className={`w-full bg-[#161f35] border rounded-2xl px-8 py-5 text-white text-lg outline-none transition-all ${isFieldInvalid('location') ? 'border-red-500/50' : 'border-white/10 focus:border-[#00ADEF]/80'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                 placeholder="Auto-filled from zip code or enter manually"
                                             />
                                         </div>
@@ -697,7 +697,7 @@ export default function StudyScreener() {
                                                         key={opt}
                                                         type="button"
                                                         onClick={() => setFormData({ ...formData, trialsInLast30Days: opt })}
-                                                        className={`flex-1 py-5 rounded-2xl border text-sm font-bold transition-all ${formData.trialsInLast30Days === opt ? 'bg-amber-500/10 border-cyan-500/50 text-amber-400' : 'bg-white/5 border-white/5 text-slate-500 hover:bg-white/10'}`}
+                                                        className={`flex-1 py-5 rounded-2xl border text-sm font-bold transition-all ${formData.trialsInLast30Days === opt ? 'bg-[#00ADEF] border-[#00ADEF] text-white shadow-[0_0_20px_rgba(0,173,239,0.3)]' : 'bg-white/10 border-white/10 text-slate-200 hover:bg-white/20'}`}
                                                     >
                                                         {opt}
                                                     </button>
@@ -714,8 +714,8 @@ export default function StudyScreener() {
                                                     return (
                                                         <div key={fid} className="space-y-4">
                                                             <div className="flex items-baseline gap-3">
-                                                                <h4 className={`text-base font-bold transition-colors leading-relaxed ${isMissing ? 'text-red-500' : 'text-slate-300'}`}>
-                                                                    {q.label} {q.required && <span className="text-amber-500 ml-0.5">*</span>}
+                                                                <h4 className={`text-base font-black italic tracking-tight transition-colors leading-relaxed ${isMissing ? 'text-red-500' : 'text-white'}`}>
+                                                                    {q.label} {q.required && <span className="text-[#00ADEF] ml-0.5">*</span>}
                                                                 </h4>
                                                                 {q.type === 'date' && (
                                                                     <span className="text-[13px] font-black uppercase tracking-widest text-slate-500 italic opacity-50">
@@ -726,7 +726,7 @@ export default function StudyScreener() {
                                                             {q.type?.toLowerCase().includes('text') || q.type === 'number' ? (
                                                                 <input
                                                                     type="text"
-                                                                    className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-white outline-none transition-all ${isMissing ? 'border-red-500/50' : 'border-white/5 focus:border-amber-500/50'}`}
+                                                                    className={`w-full bg-[#161f35] border rounded-2xl px-8 py-5 text-white outline-none transition-all ${isMissing ? 'border-red-500/50' : 'border-white/10 focus:border-[#00ADEF]/80'}`}
                                                                     value={formData[fid] || ''}
                                                                     onChange={(e) => setFormData({ ...formData, [fid]: e.target.value })}
                                                                     placeholder={q.placeholder || "Enter response..."}
@@ -740,7 +740,7 @@ export default function StudyScreener() {
                                                             ) : q.type === 'dropdown' ? (
                                                                 <div className="relative group/select">
                                                                     <select
-                                                                        className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-white outline-none appearance-none transition-all ${isMissing ? 'border-red-500/50' : 'border-white/5 focus:border-amber-500/50 hover:border-white/20'}`}
+                                                                        className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-white outline-none appearance-none transition-all ${isMissing ? 'border-red-500/50' : 'border-white/5 focus:border-[#00ADEF]/50 hover:border-white/20'}`}
                                                                         value={formData[fid] || ''}
                                                                         onChange={(e) => setFormData({ ...formData, [fid]: e.target.value })}
                                                                     >
@@ -749,7 +749,7 @@ export default function StudyScreener() {
                                                                             <option key={opt} value={opt} className="bg-[#0d1424] text-white">{opt}</option>
                                                                         ))}
                                                                     </select>
-                                                                    <ChevronDown className="absolute right-8 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 pointer-events-none group-hover/select:text-amber-500 transition-colors" />
+                                                                    <ChevronDown className="absolute right-8 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 pointer-events-none group-hover/select:text-[#00ADEF] transition-colors" />
                                                                 </div>
                                                             ) : q.type === 'choice' ? (
                                                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -760,7 +760,7 @@ export default function StudyScreener() {
                                                                                 key={opt}
                                                                                 onClick={() => setFormData({ ...formData, [fid]: opt })}
                                                                                 type="button"
-                                                                                className={`px-6 py-4 border text-sm font-bold transition-all text-center ${isBinary ? 'rounded-2xl' : 'rounded-full'} ${formData[fid] === opt ? 'bg-amber-500/10 border-cyan-500/50 text-amber-400' : 'bg-white/5 border-white/5 text-slate-500 hover:bg-white/10'}`}
+                                                                                className={`px-6 py-4 border text-sm font-bold transition-all text-center ${isBinary ? 'rounded-2xl' : 'rounded-full'} ${formData[fid] === opt ? 'bg-[#00ADEF] border-[#00ADEF] text-white shadow-[0_0_20px_rgba(0,173,239,0.3)]' : 'bg-white/10 border-white/10 text-slate-200 hover:bg-white/20'}`}
                                                                             >
                                                                                 {opt}
                                                                             </button>
@@ -774,7 +774,7 @@ export default function StudyScreener() {
                                                                             key={opt}
                                                                             onClick={() => setFormData({ ...formData, [fid]: opt })}
                                                                             type="button"
-                                                                            className={`flex-1 py-5 rounded-2xl border text-sm font-bold transition-all ${formData[fid] === opt ? 'bg-white/10 border-white/20 text-white' : 'bg-white/5 border-white/5 text-slate-500 hover:bg-white/10'}`}
+                                                                            className={`flex-1 py-5 rounded-2xl border text-sm font-bold transition-all ${formData[fid] === opt ? 'bg-[#00ADEF] border-[#00ADEF] text-white shadow-[0_0_20px_rgba(0,173,239,0.3)]' : 'bg-white/10 border-white/10 text-slate-200 hover:bg-white/20'}`}
                                                                         >
                                                                             {opt}
                                                                         </button>
@@ -798,7 +798,7 @@ export default function StudyScreener() {
                                                 readOnly={isStepReadOnly}
                                                 value={formData.fullName}
                                                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                                                className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-slate-200 text-lg outline-none transition-all ${isFieldInvalid('fullName') ? 'border-red-500/50' : 'border-white/5 focus:border-amber-500/50'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-slate-200 text-lg outline-none transition-all ${isFieldInvalid('fullName') ? 'border-red-500/50' : 'border-white/5 focus:border-[#00ADEF]/50'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                 placeholder="John Doe"
                                             />
                                         </div>
@@ -809,7 +809,7 @@ export default function StudyScreener() {
                                                 readOnly={isStepReadOnly}
                                                 value={formData.email}
                                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                                className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-slate-200 text-lg outline-none transition-all ${isFieldInvalid('email') ? 'border-red-500/50' : 'border-white/5 focus:border-amber-500/50'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-slate-200 text-lg outline-none transition-all ${isFieldInvalid('email') ? 'border-red-500/50' : 'border-white/5 focus:border-[#00ADEF]/50'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                 placeholder="you@example.com"
                                             />
                                         </div>
@@ -820,7 +820,7 @@ export default function StudyScreener() {
                                                 readOnly={isStepReadOnly}
                                                 value={formData.phone}
                                                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                                className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-slate-200 text-lg outline-none transition-all ${isFieldInvalid('phone') ? 'border-red-500/50' : 'border-white/5 focus:border-amber-500/50'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-slate-200 text-lg outline-none transition-all ${isFieldInvalid('phone') ? 'border-red-500/50' : 'border-white/5 focus:border-[#00ADEF]/50'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                 placeholder="(555) 123-4567"
                                             />
                                         </div>
@@ -832,7 +832,7 @@ export default function StudyScreener() {
                                                         key={opt}
                                                         type="button"
                                                         onClick={() => setFormData({ ...formData, availability: opt })}
-                                                        className={`py-5 rounded-full border text-sm font-bold transition-all ${formData.availability === opt ? 'bg-amber-500/10 border-cyan-500/50 text-amber-400' : 'bg-white/5 border-white/5 text-slate-500 hover:bg-white/10'}`}
+                                                        className={`py-5 rounded-full border text-sm font-bold transition-all ${formData.availability === opt ? 'bg-[#00ADEF] border-[#00ADEF] text-white shadow-[0_0_20px_rgba(0,173,239,0.3)]' : 'bg-white/5 border-white/5 text-slate-500 hover:bg-white/10'}`}
                                                     >
                                                         {opt}
                                                     </button>
@@ -871,7 +871,7 @@ export default function StudyScreener() {
                                 <button
                                     onClick={handleNext}
                                     disabled={isLoading}
-                                    className="px-10 py-4 bg-[#0d1424] border border-white/10 hover:border-amber-500/50 text-white rounded-2xl text-sm font-black tracking-widest transition-all flex items-center gap-3 group shadow-2xl shadow-amber-500/5"
+                                    className="px-10 py-4 bg-[#00ADEF] border border-[#00ADEF] hover:bg-white hover:text-[#00ADEF] text-white rounded-2xl text-sm font-black tracking-widest transition-all flex items-center gap-3 group shadow-2xl shadow-[#00ADEF]/20"
                                 >
                                     {isLoading ? 'Syncing...' : (currentStepIndex === steps.length - 1 ? 'Check result' : 'Next')}
                                     {!isLoading && <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
@@ -925,7 +925,7 @@ export default function StudyScreener() {
                                                 });
                                             }
                                         }}
-                                        className="w-full py-6 bg-amber-500 text-slate-950 rounded-3xl font-bold text-sm tracking-wide hover:bg-white transition-all shadow-2xl shadow-amber-500/20 active:scale-[0.98]"
+                                        className="w-full py-6 bg-[#00ADEF] text-white rounded-3xl font-bold text-sm tracking-wide hover:bg-white hover:text-[#00ADEF] transition-all shadow-2xl shadow-[#00ADEF]/20 active:scale-[0.98]"
                                     >
                                         {isExistingParticipant ? 'Go to dashboard' : 'Proceed to consent'}
                                     </button>

@@ -2,80 +2,73 @@ import React from 'react';
 import { 
     Clock, CheckCircle, AlertCircle, 
     ArrowRight, LifeBuoy, History, 
-    FileText, MessageSquare 
+    FileText, MessageSquare, ChevronRight,
+    ShieldCheck, Activity
 } from 'lucide-react';
 import { Card, Badge } from './SharedComponents';
 
 const SupportView = ({ requests = [], onAction }: any) => {
-    const getStatusColor = (status: string) => {
-        switch (status?.toUpperCase()) {
-            case 'COMPLETED': return 'green';
-            case 'APPROVED': return 'cyan';
-            case 'IN_PROGRESS': return 'blue';
-            case 'REJECTED': return 'red';
-            default: return 'amber';
-        }
-    };
-
-    const getStatusIcon = (status: string) => {
-        switch (status?.toUpperCase()) {
-            case 'COMPLETED': return <CheckCircle className="w-4 h-4" />;
-            case 'REJECTED': return <AlertCircle className="w-4 h-4" />;
-            default: return <Clock className="w-4 h-4" />;
+    const getStatusBadge = (status: string) => {
+        const s = status?.toUpperCase();
+        switch (s) {
+            case 'COMPLETED': return <Badge color="green">RESOLVED</Badge>;
+            case 'APPROVED': return <Badge color="blue">APPROVED</Badge>;
+            case 'IN_PROGRESS': return <Badge color="blue">IN PROGRESS</Badge>;
+            case 'REJECTED': return <Badge color="red">REJECTED</Badge>;
+            default: return <Badge color="blue">{status?.replace('_', ' ')}</Badge>;
         }
     };
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex flex-col gap-10 max-w-[1400px] pb-12">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
-                    <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter mb-2">
-                        Help & <span className="text-cyan-400">Request History</span>
-                    </h1>
-                    <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[12px] italic">
-                        Track your clinical interactions and site requests in real-time.
-                    </p>
+                    <div className="flex items-center gap-2 text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest mb-3">
+                        <span>Portal</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                        <span className="text-[#1E88E5]">Technical Coordination</span>
+                    </div>
+                    <h2 className="text-2xl font-bold text-[#1A2B49] uppercase tracking-tight">Assistance & Requests</h2>
+                    <p className="text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest mt-1">Track protocol interactions and investigator queries</p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <button 
-                        onClick={() => onAction('General Help Request')}
-                        className="px-6 py-3 bg-cyan-500 text-slate-950 rounded-xl font-black text-[12px] uppercase tracking-widest hover:bg-white transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)] flex items-center gap-2"
-                    >
-                        <LifeBuoy className="w-4 h-4" /> New Help Request
-                    </button>
-                </div>
+                <button 
+                    onClick={() => onAction('General Help Request')}
+                    className="px-8 py-4 bg-[#1E88E5] text-white rounded-2xl font-bold text-[13px] uppercase tracking-widest hover:bg-[#1565C0] transition-all shadow-lg shadow-blue-500/10 flex items-center gap-3 active:scale-95"
+                >
+                    <LifeBuoy className="w-5 h-5" /> Initiate Help Protocol
+                </button>
             </div>
 
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
-                    { label: 'Active Requests', value: requests.filter((r: any) => r.status !== 'COMPLETED').length, icon: Clock, color: 'text-amber-400' },
-                    { label: 'Resolved Requests', value: requests.filter((r: any) => r.status === 'COMPLETED').length, icon: CheckCircle, color: 'text-green-400' },
-                    { label: 'System Uptime', value: '100%', icon: ShieldCheck, color: 'text-cyan-400' }
+                    { label: 'Active Logs', value: requests.filter((r: any) => r.status !== 'COMPLETED').length, icon: Clock, color: 'text-[#1E88E5]', bg: 'bg-[#F0F6FF]' },
+                    { label: 'Resolved Tickets', value: requests.filter((r: any) => r.status === 'COMPLETED').length, icon: CheckCircle, color: 'text-[#4CAF50]', bg: 'bg-[#E8F5E9]' },
+                    { label: 'Cloud Resilience', value: '100%', icon: ShieldCheck, color: 'text-[#1E88E5]', bg: 'bg-[#F0F6FF]' }
                 ].map((stat, i) => (
-                    <Card key={i} className="p-6 bg-[#141e35]/40 border-white/5 flex items-center gap-5 group hover:border-white/10 transition-all">
-                        <div className={`w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center ${stat.color} group-hover:scale-110 transition-transform`}>
-                            <stat.icon className="w-6 h-6" />
+                    <Card key={i} className="p-8 bg-white border-[#E3ECF5] flex items-center gap-6 group hover:shadow-md transition-all shadow-sm">
+                        <div className={`w-14 h-14 rounded-2xl ${stat.bg} flex items-center justify-center ${stat.color} group-hover:scale-110 transition-transform border border-inherit`}>
+                            <stat.icon className="w-7 h-7" />
                         </div>
                         <div>
-                            <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic">{stat.label}</p>
-                            <p className="text-2xl font-black text-white italic tracking-tighter">{stat.value}</p>
+                            <p className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-[0.15em]">{stat.label}</p>
+                            <p className="text-3xl font-bold text-[#1A2B49] tracking-tight">{stat.value}</p>
                         </div>
                     </Card>
                 ))}
             </div>
 
             {/* Request Registry */}
-            <Card className="bg-[#141e35]/40 border-white/5 overflow-hidden">
-                <div className="p-8 border-b border-white/[0.05] flex items-center justify-between bg-white/[0.02]">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20 shadow-inner">
-                            <History className="w-5 h-5" />
+            <Card className="bg-white border-[#E3ECF5] shadow-xl overflow-hidden">
+                <div className="p-10 border-b border-[#F8FBFF] flex items-center justify-between">
+                    <div className="flex items-center gap-5">
+                        <div className="w-12 h-12 rounded-[20px] bg-[#F8FBFF] flex items-center justify-center text-[#1E88E5] border border-[#E3ECF5] shadow-inner-sm">
+                            <Activity className="w-6 h-6" />
                         </div>
                         <div>
-                            <h3 className="text-sm font-black text-white italic uppercase tracking-widest">Activity History</h3>
-                            <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Formal history of all coordination requests.</p>
+                            <h3 className="text-lg font-bold text-[#1A2B49] uppercase tracking-tight">Coordination Ledger</h3>
+                            <p className="text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest mt-1">Audit of formal site communication requests.</p>
                         </div>
                     </div>
                 </div>
@@ -83,58 +76,49 @@ const SupportView = ({ requests = [], onAction }: any) => {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="border-b border-white/[0.05] bg-white/[0.01]">
-                                <th className="p-6 px-10 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Request Type</th>
-                                <th className="p-6 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Study Context</th>
-                                <th className="p-6 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Timestamp</th>
-                                <th className="p-6 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Status</th>
-                                <th className="p-6 text-[12px] font-black text-slate-500 uppercase tracking-[0.2em] italic"></th>
+                            <tr className="bg-[#F8FBFF]">
+                                {['Transaction Type', 'Protocol Context', 'Registration Date', 'System Status', ''].map(h => (
+                                    <th key={h} className="p-6 text-[11px] font-bold text-[#1A2B49] uppercase tracking-[0.18em] border-b border-[#E3ECF5] opacity-60">{h}</th>
+                                ))}
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-[#F8FBFF]">
                             {requests.length > 0 ? requests.map((row: any, i: number) => (
-                                <tr key={row.id || i} className="hover:bg-white/[0.01] transition-colors group">
-                                    <td className="p-6 px-10">
+                                <tr key={row.id || i} className="hover:bg-[#F0F6FF]/30 transition-colors group">
+                                    <td className="p-6">
                                         <div className="flex items-center gap-4">
-                                            <div className="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-cyan-500/20 transition-all group-hover:scale-110">
-                                                <FileText className="w-4 h-4" />
+                                            <div className="w-9 h-9 rounded-xl bg-white border border-[#E3ECF5] text-[#1E88E5] group-hover:text-[#1E88E5] flex items-center justify-center transition-all shadow-sm">
+                                                <FileText className="w-4.5 h-4.5" />
                                             </div>
-                                            <span className="text-sm font-black text-white italic uppercase tracking-tight">{row.request_type}</span>
+                                            <span className="text-[14px] font-bold text-[#1A2B49] uppercase tracking-tight">{row.request_type}</span>
                                         </div>
                                     </td>
-                                    <td className="p-6 text-sm font-bold text-slate-300 uppercase tracking-widest italic opacity-70">
-                                        {row.study_title || 'Clinical Research Center'}
+                                    <td className="p-6 text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest">
+                                        {row.study_title || 'Distributed Research Hub'}
                                     </td>
-                                    <td className="p-6 text-[12px] font-black text-slate-500 italic uppercase">
-                                        {row.created_at_formatted || new Date(row.created_at).toLocaleString()}
+                                    <td className="p-6 text-[12px] font-bold text-[#1A2B49] uppercase tracking-widest opacity-60">
+                                        {row.created_at_formatted || new Date(row.created_at).toLocaleDateString()}
                                     </td>
                                     <td className="p-6">
-                                        <div className="flex items-center gap-2">
-                                            <Badge color={getStatusColor(row.status)}>
-                                                <div className="flex items-center gap-1.5 uppercase italic">
-                                                    {getStatusIcon(row.status)}
-                                                    {row.status?.replace('_', ' ')}
-                                                </div>
-                                            </Badge>
-                                        </div>
+                                        {getStatusBadge(row.status)}
                                     </td>
                                     <td className="p-6 text-right">
                                         <button 
                                             onClick={() => onAction('Request Status Update')}
-                                            className="p-2 text-slate-500 hover:text-cyan-400 transition-all opacity-0 group-hover:opacity-100"
+                                            className="p-3 bg-white hover:bg-[#F0F6FF] rounded-xl text-[#1A2B49] hover:text-[#1E88E5] border border-[#E3ECF5] transition-all opacity-0 group-hover:opacity-100 shadow-sm"
                                         >
-                                            <MessageSquare className="w-4 h-4" />
+                                            <MessageSquare className="w-4.5 h-4.5" />
                                         </button>
                                     </td>
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={5} className="p-24 text-center">
-                                        <div className="flex flex-col items-center gap-4 opacity-30">
-                                            <LifeBuoy className="w-16 h-16 text-slate-500 mb-2 animate-pulse" />
-                                            <p className="text-sm font-black text-slate-500 uppercase tracking-[0.3em] italic">No Activity History Found</p>
-                                            <p className="text-[12px] font-bold text-slate-600 uppercase tracking-widest max-w-[320px] leading-relaxed">
-                                                Your request history is empty. Site requests will appear here once you initiate a clinical workflow.
+                                    <td colSpan={5} className="p-28 text-center">
+                                        <div className="flex flex-col items-center gap-4 opacity-70">
+                                            <LifeBuoy className="w-16 h-16 text-[#1E88E5] mb-4" />
+                                            <p className="text-[14px] font-bold text-[#1A2B49] uppercase tracking-[0.25em]">No Logged Interactions</p>
+                                            <p className="text-[11px] font-bold text-[#1A2B49] uppercase tracking-widest max-w-sm leading-relaxed opacity-60">
+                                                Active requests will be recorded here following clinical initiation.
                                             </p>
                                         </div>
                                     </td>
@@ -145,31 +129,26 @@ const SupportView = ({ requests = [], onAction }: any) => {
                 </div>
             </Card>
 
-            {/* Support Footer */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6 p-8 bg-indigo-500/5 border border-indigo-500/10 rounded-3xl">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-                        <AlertCircle className="w-6 h-6" />
+            {/* Emergency Footer */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-8 p-10 bg-[#E3F2FD] border border-[#1E88E5]/10 rounded-[32px] shadow-lg">
+                <div className="flex items-center gap-5">
+                    <div className="w-14 h-14 rounded-2xl bg-[#1E88E5] flex items-center justify-center text-white shadow-lg">
+                        <AlertCircle className="w-7 h-7" />
                     </div>
                     <div>
-                        <h4 className="text-base font-black text-white italic uppercase tracking-widest">Urgent Clinical Escalation?</h4>
-                        <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Direct communication is available for critical protocol issues.</p>
+                        <h4 className="text-[16px] font-bold text-[#1A2B49] uppercase tracking-tight">Critical Outcome Mitigation?</h4>
+                        <p className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest mt-1">Direct investigator sync is available for urgent safety deviations.</p>
                     </div>
                 </div>
                 <button 
                     onClick={() => onAction('Emergency Clinical Support')}
-                    className="px-8 py-4 bg-indigo-500 text-white rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] hover:bg-white hover:text-slate-950 transition-all shadow-xl active:scale-95"
+                    className="px-10 py-5 bg-white text-[#1E88E5] border-2 border-[#1E88E5]/20 rounded-2xl font-bold text-[12px] uppercase tracking-widest hover:bg-[#1E88E5] hover:text-white transition-all shadow-md active:scale-95"
                 >
-                    Contact Coordinator
+                    Contact Safety Sync
                 </button>
             </div>
         </div>
     );
 };
 
-// Mock icon for internal grid
-const ShieldCheck = ({ className }: any) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>;
-
 export default SupportView;
-
-

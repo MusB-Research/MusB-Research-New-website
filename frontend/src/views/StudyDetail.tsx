@@ -157,7 +157,7 @@ export default function StudyDetail() {
                     animate={{ opacity: 1, x: 0 }}
                     className="flex items-center gap-4"
                 >
-                    <Link to="/trials" className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.4em] text-slate-500 hover:text-amber-400 transition-all group">
+                    <Link to="/trials" className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.4em] text-slate-500 hover:text-[#00ADEF] transition-all group">
                         <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                         BACK TO ALL STUDIES
                     </Link>
@@ -175,7 +175,7 @@ export default function StudyDetail() {
                                 animate={{ opacity: 1, y: 0 }}
                                 className="flex flex-wrap gap-3"
                             >
-                                <span className="px-4 py-1.5 bg-amber-500/10 text-amber-400 rounded-full text-sm font-black uppercase tracking-[0.2em] border border-amber-500/30 backdrop-blur-md">
+                                <span className="px-4 py-1.5 bg-[#00ADEF]/10 text-[#00ADEF] rounded-full text-sm font-black uppercase tracking-[0.2em] border border-[#00ADEF]/30 backdrop-blur-md">
                                     {study.status || 'RECRUITING'}
                                 </span>
                                 <span className="px-4 py-1.5 bg-slate-900/50 text-slate-400 rounded-full text-sm font-black uppercase tracking-[0.2em] border border-white/5 backdrop-blur-md">
@@ -213,12 +213,12 @@ export default function StudyDetail() {
                             transition={{ delay: 0.2 }}
                             className="bg-[#0f172a]/40 backdrop-blur-[40px] rounded-[3.5rem] p-10 md:p-14 border border-white/10 shadow-2xl relative overflow-hidden group"
                         >
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 blur-[80px] rounded-full -mr-20 -mt-20"></div>
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-[#00ADEF]/5 blur-[80px] rounded-full -mr-20 -mt-20"></div>
 
                             <div className="relative z-10 space-y-8">
                                 <h2 className="text-3xl font-black text-white uppercase italic tracking-tight flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-                                        <Info className="w-5 h-5 text-amber-400" />
+                                    <div className="w-10 h-10 rounded-full bg-[#00ADEF]/10 flex items-center justify-center border border-[#00ADEF]/20">
+                                        <Info className="w-5 h-5 text-[#00ADEF]" />
                                     </div>
                                     Overview
                                 </h2>
@@ -245,11 +245,11 @@ export default function StudyDetail() {
                                     transition={{ delay: 0.3 }}
                                     className="bg-[#0f172a]/40 backdrop-blur-[40px] rounded-[3.5rem] p-10 md:p-14 border border-white/10 shadow-2xl relative overflow-hidden group"
                                 >
-                                    <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 blur-[80px] rounded-full -mr-20 -mt-20"></div>
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#00ADEF]/5 blur-[80px] rounded-full -mr-20 -mt-20"></div>
                                     <div className="relative z-10 space-y-8">
                                         <h2 className="text-3xl font-black text-white uppercase italic tracking-tight flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-                                                <CheckCircle2 className="w-5 h-5 text-amber-400" />
+                                            <div className="w-10 h-10 rounded-full bg-[#00ADEF]/10 flex items-center justify-center border border-[#00ADEF]/20">
+                                                <CheckCircle2 className="w-5 h-5 text-[#00ADEF]" />
                                             </div>
                                             Benefits for Participants
                                         </h2>
@@ -267,11 +267,11 @@ export default function StudyDetail() {
                                     transition={{ delay: 0.4 }}
                                     className="bg-[#0f172a]/40 backdrop-blur-[40px] rounded-[3.5rem] p-10 md:p-14 border border-white/10 shadow-2xl relative overflow-hidden group"
                                 >
-                                    <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 blur-[80px] rounded-full -mr-20 -mt-20"></div>
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#00ADEF]/5 blur-[80px] rounded-full -mr-20 -mt-20"></div>
                                     <div className="relative z-10 space-y-8">
                                         <h2 className="text-2xl font-black text-white uppercase italic tracking-tight flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-                                                <Microscope className="w-5 h-5 text-amber-400" />
+                                            <div className="w-10 h-10 rounded-full bg-[#00ADEF]/10 flex items-center justify-center border border-[#00ADEF]/20">
+                                                <Microscope className="w-5 h-5 text-[#00ADEF]" />
                                             </div>
                                             Join a MusB Research Study Today
                                         </h2>
@@ -293,7 +293,7 @@ export default function StudyDetail() {
                             className="bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] p-8 space-y-8 flex flex-col items-center text-center shadow-2xl overflow-hidden relative"
                         >
                             {/* Decorative background glow */}
-                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 blur-3xl rounded-full"></div>
+                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#00ADEF]/10 blur-3xl rounded-full"></div>
 
                             <div className="space-y-3 relative z-10">
                                 <h3 className="text-sm font-black uppercase tracking-[0.3em] text-slate-500">Ready to participate?</h3>
@@ -304,14 +304,14 @@ export default function StudyDetail() {
 
                             <Link
                                 to={`/studies/${study.id}/screener`}
-                                className="inline-flex items-center justify-center px-10 py-5 bg-amber-500 text-slate-950 rounded-full font-black text-[16px] uppercase tracking-[0.2em] hover:bg-white hover:shadow-[0_0_30px_rgba(34,211,238,0.4)] hover:-translate-y-0.5 transition-all duration-300 relative z-10"
+                                className="inline-flex items-center justify-center px-10 py-5 bg-[#00ADEF] text-white rounded-full font-black text-[16px] uppercase tracking-[0.2em] hover:bg-white hover:text-[#00ADEF] hover:shadow-[0_0_30px_rgba(0,173,239,0.4)] hover:-translate-y-0.5 transition-all duration-300 relative z-10"
                             >
                                 See If You Qualify
                             </Link>
 
                             <div className="flex items-center justify-center gap-6 pt-6 border-t border-white/5 w-full relative z-10">
                                 <div className="flex flex-col items-center gap-1">
-                                    <Clock className="w-4 h-4 text-amber-400/60" />
+                                    <Clock className="w-4 h-4 text-[#00ADEF]/60" />
                                     <span className="text-[13px] font-black uppercase tracking-[0.1em] text-slate-500">{study.duration.split('(')[0].trim()}</span>
                                 </div>
                                 <div className="w-[1px] h-6 bg-white/5"></div>

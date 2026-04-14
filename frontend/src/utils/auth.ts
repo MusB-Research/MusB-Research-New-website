@@ -1,288 +1,182 @@
-// ─────────────────────────────────────────────────────────────────────────────
-//  Auth Utilities
-//  Tokens are stored in localStorage/sessionStorage.
-//  HttpOnly access_token cookie is sent automatically by the browser.
-//  Key Fix: Global refresh mutex — only ONE refresh call can run at a time,
-//           preventing 429 "Too Many Requests" when multiple concurrent API
-//           calls all fail with 403 at the same time.
-// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Authentication & Security Utilities
+ * Handles JWT storage, encryption fallbacks, and role-based pathing.
+ */
 
-const getApiUrl = () => {
-    const envUrl = import.meta.env.VITE_API_URL;
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+export const API = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://musb-research-new-website.onrender.com' : 'http://localhost:8000');
 
-    if (!isLocal && (!envUrl || envUrl.includes('localhost'))) {
-        return 'https://musb-research-new-website.onrender.com';
-    }
-
-    return envUrl || 'http://localhost:8000';
-};
-
-const API = getApiUrl();
-export { API };
-
-// ─── GLOBAL REFRESH MUTEX ────────────────────────────────────────────────────
-// This prevents multiple simultaneous refresh calls.
-// All concurrent requests that need a refresh will queue behind this single promise.
-let _refreshPromise: Promise<boolean> | null = null;
-let _isRedirecting = false;
-
-function getRefreshLock(): Promise<boolean> {
-    if (_refreshPromise) {
-        // Already refreshing — return the same promise so all callers wait on the same result
-        return _refreshPromise;
-    }
-    _refreshPromise = attemptTokenRefresh().finally(() => {
-        _refreshPromise = null; // Release lock when done
-    });
-    return _refreshPromise;
+interface User {
+    id: string;
+    email: string;
+    full_name?: string;
+    decrypted_name?: string;
+    first_name?: string;
+    last_name?: string;
+    role: string;
+    [key: string]: any;
 }
-// ─────────────────────────────────────────────────────────────────────────────
 
-export const getToken = () => {
-    const t = localStorage.getItem('access') || sessionStorage.getItem('access');
-    return (t === 'null' || t === 'undefined') ? null : t;
+// TOKEN MANAGEMENT
+
+export const saveTokens = (access: string, refresh: string) => {
+    localStorage.setItem('access_token', access);
+    localStorage.setItem('refresh_token', refresh);
 };
-export const getRole = () => (localStorage.getItem('role') || sessionStorage.getItem('role') || '').toUpperCase();
 
-export const getUser = () => {
+// Compatibility Alias for legacy components
+export const saveToken = (access: string, role?: string, ignored?: any, refresh?: string) => {
+    saveTokens(access, refresh || '');
+};
+
+export const saveUser = (user: User) => {
+    localStorage.setItem('user', JSON.stringify(user));
+};
+
+export const clearAuth = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    document.cookie = "refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+};
+
+export const getToken = () => localStorage.getItem('access_token');
+export const getAccessToken = () => localStorage.getItem('access_token');
+export const getRefreshToken = () => localStorage.getItem('refresh_token');
+
+export const getUser = (): User | null => {
+    const u = localStorage.getItem('user');
     try {
-        const raw = localStorage.getItem('user') || sessionStorage.getItem('user');
-        return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
-};
-
-export const saveToken = (token: string, role: string, modules?: string, refresh?: string) => {
-    if (token) {
-        localStorage.setItem('access', token);
-        sessionStorage.setItem('access', token);
-    }
-    if (refresh) {
-        localStorage.setItem('refresh', refresh);
-    }
-    localStorage.setItem('role', role);
-    sessionStorage.setItem('role', role);
-    if (modules) {
-        localStorage.setItem('modules', modules);
-        sessionStorage.setItem('modules', modules);
-    }
-};
-
-export const saveUser = (user: any) => {
-    const userStr = JSON.stringify(user);
-    localStorage.setItem('user', userStr);
-    sessionStorage.setItem('user', userStr);
-    window.dispatchEvent(new Event('storage'));
-};
-
-export const clearToken = async () => {
-    try {
-        await fetch(`${API}/api/auth/logout/`, {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: getToken() })
-        });
+        return u ? JSON.parse(u) : null;
     } catch (e) {
-        console.warn('Logout ping failed', e);
-    }
-
-    // Always clear storage even if the API logout fails
-    sessionStorage.clear();
-    localStorage.clear();
-    document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
-    document.cookie = 'refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
-};
-
-export const performLogout = async () => {
-    if (_isRedirecting) return;
-    _isRedirecting = true;
-    
-    const role = getRole();
-    await clearToken();
-    
-    // Crucial: Dispatch storage event so other components know the state wiped
-    window.dispatchEvent(new Event('storage'));
-
-    if (role === 'SUPER_ADMIN') {
-        window.location.href = '/mainframe/restricted-auth';
-    } else {
-        window.location.href = '/signin';
+        return null;
     }
 };
 
-export const isLoggedIn = () => !!getRole();
+export const isLoggedIn = () => !!getAccessToken();
+export const getRole = () => getUser()?.role || '';
+
+export const performLogout = () => {
+    clearAuth();
+    redirectToLogin();
+};
 
 export const redirectToLogin = () => {
-    if (_isRedirecting) return;
-    _isRedirecting = true;
-    if (window.location.pathname.startsWith('/mainframe') || window.location.pathname.includes('/super-admin')) {
-        window.location.href = '/mainframe/restricted-auth';
-    } else {
-        window.location.href = '/signin';
-    }
+    window.location.href = '/signin';
 };
 
-export const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
-    const token = getToken();
-    const authHeaders: Record<string, string> = {
-        ...options.headers as Record<string, string>,
+// API HELPERS (WITH AUTH)
+
+export async function authFetch(url: string, options: any = {}) {
+    let accessToken = getAccessToken();
+    
+    // Ensure URL is absolute if it starts with /
+    const fullUrl = url.startsWith('/') ? `${API}${url}` : url;
+
+    const headers: Record<string, string> = {
+        ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+        ...options.headers
     };
 
-    if (!(options.body instanceof FormData) && !authHeaders['Content-Type']) {
-        authHeaders['Content-Type'] = 'application/json';
+    // Only set Content-Type to application/json if not FormData and not already set
+    if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json';
     }
 
-    if (token && !authHeaders['Authorization']) {
-        authHeaders['Authorization'] = `Bearer ${token}`;
-    }
+    let response = await fetch(fullUrl, { ...options, headers });
 
-    const response = await fetch(url.startsWith('http') ? url : `${API}${url}`, {
-        ...options,
-        credentials: 'include',
-        headers: authHeaders,
-    });
-
-    // On 401/403, attempt ONE refresh (using the global mutex)
-    if (response.status === 401 || response.status === 403) {
-        const refreshed = await getRefreshLock();
-
+    if (response.status === 401 && getRefreshToken()) {
+        const refreshed = await tryRefresh();
         if (refreshed) {
-            // Refresh succeeded — rebuild headers with new token and retry ONCE
-            const newToken = getToken();
-            const retryHeaders = { ...authHeaders };
-            if (newToken) retryHeaders['Authorization'] = `Bearer ${newToken}`;
-
-            const retryResponse = await fetch(url.startsWith('http') ? url : `${API}${url}`, {
-                ...options,
-                credentials: 'include',
-                headers: retryHeaders,
-            });
-
-            // If retry still fails with 401/403, the session is genuinely dead — redirect
-            if (retryResponse.status === 401 || retryResponse.status === 403) {
-                await clearToken();
-                redirectToLogin();
-            }
-
-            return retryResponse;
+            accessToken = getAccessToken();
+            const retryHeaders = {
+                ...headers,
+                'Authorization': `Bearer ${accessToken}`
+            };
+            response = await fetch(fullUrl, { ...options, headers: retryHeaders });
+        } else {
+            performLogout();
         }
-
-        // Refresh failed — session is expired and refresh token is gone too
-        await clearToken();
-        redirectToLogin();
     }
 
     return response;
-};
+}
 
-export const attemptTokenRefresh = async (): Promise<boolean> => {
+async function tryRefresh() {
+    const refresh = getRefreshToken();
+    if (!refresh) return false;
+
     try {
-        const storedRefresh = localStorage.getItem('refresh');
-        
-        const reqBody = storedRefresh ? JSON.stringify({ refresh: storedRefresh }) : undefined;
-        
         const res = await fetch(`${API}/api/auth/refresh/`, {
             method: 'POST',
-            credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
-            body: reqBody
+            body: JSON.stringify({ refresh })
         });
 
         if (res.ok) {
             const data = await res.json();
-            if (data.access) {
-                localStorage.setItem('access', data.access);
-                sessionStorage.setItem('access', data.access);
-            }
-            if (data.refresh) {
-                localStorage.setItem('refresh', data.refresh);
-            }
-            if (data.user?.role) {
-                sessionStorage.setItem('role', data.user.role);
-                localStorage.setItem('role', data.user.role);
-            }
+            saveTokens(data.access, data.refresh);
+            if (data.user) saveUser(data.user);
             return true;
         }
-
-        return false;
-    } catch {
-        return false;
+    } catch (e) {
+        console.error("Refresh failed:", e);
     }
-};
+    return false;
+}
 
-/**
- * Returns a human-friendly "First Name" or "Display Name" for any user object.
- * Logic:
- * - Sponsors: Use first word of Organization name if available.
- * - Others: Use first_name if available.
- * - Fallback: Use first word of full_name or name.
- * - Last Fallback: Email prefix or 'User'.
- */
-export const getDisplayName = (u: any): string => {
+// IDENTITY & DECRYPTION
+
+export const getDisplayName = (u: User | null): string => {
     if (!u) return 'User';
     
-    // Normalize role and check for encryption markers
-    const role = (u.role || '').toUpperCase();
-    const isEncrypted = (s: any) => typeof s === 'string' && s.startsWith('gAAAA') && s.length > 40;
+    const isEncrypted = (s: any) => typeof s === 'string' && s.toUpperCase().startsWith('GAAAA') && s.length > 40;
 
-    // helper to clean and return first word
-    const firstWord = (s: any) => {
-        if (!s || typeof s !== 'string' || isEncrypted(s)) return null;
-        const trimmed = s.trim();
-        if (!trimmed || trimmed.includes('@')) return null; // Skip if it's an email
-        return trimmed.split(/\s+/)[0];
-    };
-
-    // 1. Resolve for Sponsors (Organization/Company priority)
-    if (role === 'SPONSOR') {
-        const org = firstWord(u.organization || u.company);
-        if (org) return org;
+    if (u.decrypted_name && !isEncrypted(u.decrypted_name)) {
+        return u.decrypted_name.split(' ')[0];
     }
 
-    // 2. Comprehensive check for First Name across various possible keys
-    const first = firstWord(u.first_name) || 
-                  firstWord(u.decrypted_first_name) || 
-                  firstWord(u.given_name) || 
-                  firstWord(u.firstName) || 
-                  firstWord(u.displayName);
-    if (first) return first;
+    const fullName = u.full_name || '';
+    if (fullName && !isEncrypted(fullName)) {
+        return fullName.split(' ')[0];
+    }
 
-    // 3. Fallback to Full Name parsing
-    const full = firstWord(u.full_name) || 
-                 firstWord(u.name) || 
-                 firstWord(u.decrypted_name) || 
-                 firstWord(u.fullName);
-    if (full) return full;
-
-    // 4. Final fallback: Email prefix
     const email = u.email || '';
     if (email) {
-        // Return the clean prefix (before @)
         return email.split('@')[0];
     }
 
     return 'User';
 };
 
-/**
- * Reveals a potentially encrypted value, favoring the decrypted_ prefix version
- * if the primary value is encrypted. Returns empty string if no valid value is found.
- */
-export const revealValue = (val: any, decryptedVal?: any): string => {
-    const isEncrypted = (s: any) => typeof s === 'string' && s.startsWith('gAAAA') && s.length > 40;
+export function revealValue(val: any, decryptedVal?: any): string {
+    const isEncrypted = (s: any) => typeof s === 'string' && s.toUpperCase().startsWith('GAAAA');
     
-    // If the base value is valid and not encrypted, use it
-    if (val && typeof val === 'string' && !isEncrypted(val)) {
-        return val.trim();
-    }
-    
-    // If encrypted or missing, try the decrypted version if provided
     if (decryptedVal && typeof decryptedVal === 'string' && !isEncrypted(decryptedVal)) {
         return decryptedVal.trim();
     }
     
+    if (val && typeof val === 'string' && !isEncrypted(val)) {
+        return val.trim();
+    }
+    
     return '';
+}
+
+// NAVIGATION
+
+export const getDashboardPath = (role: string) => {
+    const r = (role || '').toUpperCase();
+    switch (r) {
+        case 'SUPER_ADMIN': return '/mainframe/terminal';
+        case 'ADMIN':       return '/admin/dashboard';
+        case 'COORDINATOR': return '/coordinator/dashboard';
+        case 'PI':          return '/pi/dashboard';
+        case 'PARTICIPANT': return '/portal/dashboard';
+        case 'SPONSOR':     return '/sponsor/dashboard';
+        default:            return '/signin';
+    }
 };
 
-
+// COMPATIBILITY ALIASES
+export const clearToken = clearAuth;
