@@ -212,6 +212,16 @@ BASE_ORIGINS = [
     "http://127.0.0.1:3000"
 ]
 
+# ── Production origins that are ALWAYS allowed (hardcoded guarantee) ──────────
+# These CANNOT be overridden by a misconfigured Render environment variable.
+GUARANTEED_PROD_ORIGINS = [
+    "https://musbhealth.com",
+    "https://www.musbhealth.com",
+    "https://musbresearchnewwebsite.vercel.app",
+    "https://musb-research-new-website.onrender.com",
+    "https://musb-backend.onrender.com",
+]
+
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOWED_ORIGINS = BASE_ORIGINS
@@ -219,14 +229,17 @@ if DEBUG:
     # Ensure local development uses the correct Vite port
     FRONTEND_URL = os.getenv('FRONTEND_URL', "http://localhost:5173")
 else:
-    # PRODUCTION: Strictly pull from environment or default to primary domain
-    raw_origins = os.getenv(
-        'CORS_ALLOWED_ORIGINS',
-        'https://musbhealth.com,https://www.musbhealth.com,https://musbresearchnewwebsite.vercel.app,https://musb-research-new-website.onrender.com,https://musb-backend.onrender.com'
-    ).split(',')
-    CORS_ALLOWED_ORIGINS = [o.strip() for o in raw_origins if o.strip()]
-    CSRF_TRUSTED_ORIGINS = [o for o in CORS_ALLOWED_ORIGINS]
-    
+    # PRODUCTION: Merge env-var origins with hardcoded guaranteed list.
+    # This means even if Render's CORS_ALLOWED_ORIGINS env var is empty or
+    # outdated, musbhealth.com will ALWAYS be allowed.
+    env_origins = [
+        o.strip()
+        for o in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
+        if o.strip()
+    ]
+    CORS_ALLOWED_ORIGINS = list(set(GUARANTEED_PROD_ORIGINS + env_origins))
+    CSRF_TRUSTED_ORIGINS = list(CORS_ALLOWED_ORIGINS)
+
     # Use the primary website domain for emails/links if FRONTEND_URL environment variable is missing
     FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://musbhealth.com').strip()
 
