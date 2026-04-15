@@ -226,6 +226,31 @@ export default function ParticipantDashboard() {
     useEffect(() => {
         const initDashboard = async () => {
             const apiUrl = API || 'http://localhost:8000';
+
+            // ── Render Cold-Start Wake-Up ──────────────────────────────────
+            // Render free-tier sleeps after 15 min inactivity. The first fetch
+            // gets a hard NetworkError while the server is spinning up.
+            // We ping a lightweight endpoint first and retry so the dashboard
+            // never shows empty just because the server was asleep.
+            const pingBackend = async (retries = 3, delayMs = 3000): Promise<void> => {
+                for (let i = 0; i < retries; i++) {
+                    try {
+                        const ctrl = new AbortController();
+                        const timer = setTimeout(() => ctrl.abort(), 8000);
+                        const res = await fetch(`${apiUrl}/api/studies/?page_size=1`, {
+                            signal: ctrl.signal,
+                            headers: { 'Accept': 'application/json' }
+                        });
+                        clearTimeout(timer);
+                        if (res.ok || res.status === 401 || res.status === 403) return;
+                    } catch {
+                        console.warn(`[MusB] Backend wake-up attempt ${i + 1}/${retries}...`);
+                        if (i < retries - 1) await new Promise(r => setTimeout(r, delayMs));
+                    }
+                }
+            };
+            await pingBackend();
+
             try {
                 // 1. Refresh user data from server to ensure decryption for PII fields
                 try {
