@@ -39,9 +39,9 @@ const BooleanChoice = ({ value, onChange, label, inverse = false }: any) => {
     };
 
     return (
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-1">
-            {label && <label className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest block flex-1">{label}</label>}
-            <div className="flex gap-1.5 p-1 bg-[#F8FBFF] border border-[#E3ECF5] rounded-[1.25rem] w-fit shadow-inner relative overflow-hidden">
+        <div className="flex items-center justify-between gap-4 py-1">
+            {label && <label className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest flex-1">{label}</label>}
+            <div className="flex gap-1.5 p-1 bg-[#F8FBFF] border border-[#E3ECF5] rounded-[1.25rem] w-fit shadow-inner relative overflow-hidden shrink-0">
                 <button
                     onClick={() => onChange(true)}
                     className={`px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${getYesStyle()}`}
@@ -58,6 +58,7 @@ const BooleanChoice = ({ value, onChange, label, inverse = false }: any) => {
         </div>
     );
 };
+
 
 const LogDetailModal = ({ log, onClose }: { log: any; onClose: () => void }) => {
     const DetailRow = ({ label, value, icon: Icon, color = "text-[#5F6F89]" }: any) => (
@@ -250,6 +251,9 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
     const [selectedLog, setSelectedLog] = useState<any | null>(preselectedLog || null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(!!preselectedLog);
+    const [todayLog, setTodayLog] = useState<any | null>(null);   // today's existing log
+    const [submitSuccess, setSubmitSuccess] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
     React.useEffect(() => {
         if (preselectedLog) {
@@ -366,7 +370,41 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
 
     React.useEffect(() => {
         fetchHistory();
+        fetchTodayLog();
     }, []);
+
+    const fetchTodayLog = async () => {
+        try {
+            const today = getLocalISODate(new Date());
+            const resp = await authFetch(`${apiUrl}/api/daily-medication-logs/?date=${today}`);
+            if (resp.ok) {
+                const data = await resp.json();
+                const logs = Array.isArray(data) ? data : (data.results || []);
+                const existing = logs.find((l: any) => l.date === today);
+                if (existing) {
+                    setTodayLog(existing);
+                    // Pre-populate form with existing data
+                    if (existing.took_medicine !== undefined) setTookMedicine(existing.took_medicine);
+                    if (existing.time_taken) setTimeTaken(existing.time_taken.substring(0, 5));
+                    if (existing.full_dose !== undefined) setFullDose(existing.full_dose);
+                    if (existing.dose_amount) setDoseAmount(existing.dose_amount);
+                    if (existing.reason_missed) setReasonMissed(existing.reason_missed);
+                    if (existing.noticed_side_effects !== undefined) setNoticedAE(existing.noticed_side_effects);
+                    if (existing.side_effect_description) setAeDescription(existing.side_effect_description);
+                    if (existing.side_effect_start_time) setAeStartTime(existing.side_effect_start_time);
+                    if (existing.side_effect_ongoing !== undefined) setAeOngoing(existing.side_effect_ongoing);
+                    if (existing.severity) setAeSeverity(existing.severity);
+                    if (existing.interfered_daily_activities !== undefined) setAeInterfered(existing.interfered_daily_activities);
+                    if (existing.sought_medical_care !== undefined) setAeMedicalCare(existing.sought_medical_care);
+                    if (existing.ae_additional_comments) setAeComments(existing.ae_additional_comments);
+                    if (existing.overall_feeling) setOverallFeeling(existing.overall_feeling);
+                    if (existing.health_updates) setHealthUpdates(existing.health_updates);
+                }
+            }
+        } catch (e) {
+            console.warn('Could not fetch today log', e);
+        }
+    };
 
     const fetchHistory = async () => {
         try {
@@ -401,6 +439,8 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
         }
 
         setIsSubmitting(true);
+        setSubmitError(null);
+        setSubmitSuccess(false);
         try {
             const formData = new FormData();
             formData.append('took_medicine', tookMedicine === true ? 'true' : 'false');
@@ -428,44 +468,79 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
             });
 
             if (resp.ok) {
-                alert(isDraft ? "Draft saved successfully." : "Daily log submitted successfully.");
+                setSubmitSuccess(true);
                 if (!isDraft) {
                     resetForm();
                     fetchHistory();
+                    fetchTodayLog();
                     if (onAction) { onAction('NAVIGATE_TO_COMPLETED_TASKS'); }
                     else { setViewMode('HISTORY'); }
                 }
-            } else { throw new Error("Failed to submit"); }
-        } catch (e) {
-            alert("Connection error. Your entry has been saved locally.");
+            } else {
+                const errData = await resp.json().catch(() => ({}));
+                throw new Error(errData?.detail || errData?.date?.[0] || 'Failed to submit');
+            }
+        } catch (e: any) {
+            setSubmitError(e.message || 'Connection error. Your entry has been saved locally.');
         } finally {
             setIsSubmitting(false);
         }
     };
 
     return (
-        <div className="space-y-8 pb-32">
+        <div className="space-y-4 pb-32">
             {/* Navigation Strip */}
             <div className="flex justify-between items-center bg-white border border-[#E3ECF5] p-2 rounded-2xl shadow-sm">
                 <div className="flex gap-2">
                     <button
                         onClick={() => setViewMode('FORM')}
-                        className={`px-8 py-3 rounded-xl text-[13px] font-bold uppercase tracking-widest transition-all ${viewMode === 'FORM' ? 'bg-[#E3F2FD] text-[#1E88E5]' : 'text-[#5F6F89] hover:text-[#5F6F89]'}`}
+                        className={`px-6 py-2.5 rounded-xl text-[12px] font-bold uppercase tracking-widest transition-all ${viewMode === 'FORM' ? 'bg-[#E3F2FD] text-[#1E88E5]' : 'text-[#5F6F89] hover:text-[#1A2B49]'}`}
                     >
                         Daily Log
                     </button>
                     <button
                         onClick={() => setViewMode('HISTORY')}
-                        className={`px-8 py-3 rounded-xl text-[13px] font-bold uppercase tracking-widest transition-all ${viewMode === 'HISTORY' ? 'bg-[#E3F2FD] text-[#1E88E5]' : 'text-[#5F6F89] hover:text-[#5F6F89]'}`}
+                        className={`px-6 py-2.5 rounded-xl text-[12px] font-bold uppercase tracking-widest transition-all ${viewMode === 'HISTORY' ? 'bg-[#E3F2FD] text-[#1E88E5]' : 'text-[#5F6F89] hover:text-[#1A2B49]'}`}
                     >
                         History
                     </button>
                 </div>
-                <div className="px-6 text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest flex items-center gap-2">
+                <div className="px-4 text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-[#00C853]" />
-                    SECURE CLINICAL LOG
+                    Secure Clinical Log
                 </div>
             </div>
+
+            {/* Today's log banner */}
+            {todayLog && viewMode === 'FORM' && (
+                <div className="flex items-start gap-3 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-2xl">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-widest leading-none">
+                            Today's log already submitted{todayLog.is_draft ? ' (Draft)' : ''}
+                        </p>
+                        <p className="text-[10px] font-bold text-emerald-600 mt-0.5">
+                            Medicine: {todayLog.took_medicine ? 'Taken' : 'Missed'} · Wellness: {todayLog.overall_feeling?.replace('_', ' ') || 'N/A'} · {todayLog.noticed_side_effects ? '⚠️ AE reported' : 'No AE'}
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Success / Error banners */}
+            {submitSuccess && (
+                <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-2xl">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-widest">Log submitted successfully. Coordinator & PI notified.</p>
+                    <button onClick={() => setSubmitSuccess(false)} className="ml-auto text-emerald-400 hover:text-emerald-600"><X className="w-4 h-4" /></button>
+                </div>
+            )}
+            {submitError && (
+                <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-2xl">
+                    <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                    <p className="text-[11px] font-bold text-red-700 uppercase tracking-widest">{submitError}</p>
+                    <button onClick={() => setSubmitError(null)} className="ml-auto text-red-400 hover:text-red-600"><X className="w-4 h-4" /></button>
+                </div>
+            )}
 
             {viewMode === 'FORM' ? (
                 <div className="space-y-8 animate-in fade-in duration-500 pb-20">
@@ -700,7 +775,7 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                             <p className="text-[14px] font-bold text-[#5F6F89] uppercase tracking-widest">No protocol logs detected in registry.</p>
                         </Card>
                     ) : (
-                        <div className="grid-system">
+                        <div className="grid grid-cols-1 gap-3">
                             {history.map((log: any) => (
                             <Card key={log.id} onClick={() => setSelectedLog(log)} className="p-5 hover:border-[#1E88E5]/30 transition-all cursor-pointer group shadow-sm bg-white">
                                 <div className="flex items-center justify-between">
@@ -710,13 +785,14 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                                         </div>
                                         <div>
                                             <h5 className="text-[14px] font-bold text-[#1A2B49] uppercase tracking-tight">ENTRY DATE: {new Date(log.date).toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' })}</h5>
-                                            <div className="flex items-center gap-3 mt-1.5">
+                                            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                                                 <Badge color={log.took_medicine ? 'green' : 'red'}>{log.took_medicine ? 'MEDICINE TAKEN' : 'DOSE MISSED'}</Badge>
-                                                <span className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">{log.overall_feeling?.replace('_', ' ')}</span>
+                                                {log.overall_feeling && <span className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">{log.overall_feeling.replace('_', ' ')}</span>}
+                                                {log.noticed_side_effects && <Badge color="red">AE REPORTED</Badge>}
                                                 {log.supporting_file && (
                                                     <div className="flex items-center gap-1.5 ml-2 border-l border-[#E3ECF5] pl-3">
                                                         <FileText className="w-3.5 h-3.5 text-[#1E88E5]" />
-                                                        <button 
+                                                        <button
                                                             onClick={(e) => { e.stopPropagation(); window.open(log.supporting_file, '_blank'); }}
                                                             className="text-[10px] font-bold text-[#1E88E5] hover:underline uppercase"
                                                         >
@@ -727,11 +803,12 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="w-10 h-10 bg-[#F8FBFF] rounded-xl flex items-center justify-center text-[#B0BCCF] group-hover:text-[#1E88E5] group-hover:bg-[#E3F2FD] transition-all"><ChevronRight className="w-6 h-6" /></div>
+                                    <div className="w-10 h-10 bg-[#F8FBFF] rounded-xl flex items-center justify-center text-[#B0BCCF] group-hover:text-[#1E88E5] group-hover:bg-[#E3F2FD] transition-all shrink-0"><ChevronRight className="w-6 h-6" /></div>
                                 </div>
                             </Card>
                             ))}
                         </div>
+
                     )}
                 </div>
             )}

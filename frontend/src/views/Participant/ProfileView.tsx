@@ -11,6 +11,7 @@ const ProfileView = ({
     userLocation, userTimezone, notificationSettings = {}, 
     toggleNotification, onAction,
     participantSid, studyId,
+    userAge, userDob, userRole,
     isLoading = false
 }: any) => {
     if (isLoading) {
@@ -76,7 +77,7 @@ const ProfileView = ({
                             <div>
                                 <h3 className="text-2xl font-bold text-[#1A2B49] tracking-tight uppercase mb-1">{userName}</h3>
                                 <div className="flex items-center gap-2">
-                                     <Badge color="blue">VERIFIED PARTICIPANT</Badge>
+                                     <Badge color="blue">{userRole?.replace('_', ' ') || 'PARTICIPANT'}</Badge>
                                 </div>
                             </div>
                             <button onClick={() => onAction('Edit Profile')} className="p-3 bg-[#F8FBFF] hover:bg-[#E3F2FD] rounded-xl text-[#5F6F89] hover:text-[#1E88E5] border border-[#E3ECF5] transition-all"><Edit2 className="w-4.5 h-4.5" /></button>
@@ -101,8 +102,24 @@ const ProfileView = ({
                                 <div className="flex items-center gap-4">
                                     <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-[#E3ECF5] flex items-center justify-center text-[#5F6F89]"><MapPin className="w-4.5 h-4.5" /></div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest mb-0.5">Assigned Facility</p>
-                                        <p className="text-[13px] font-bold text-[#1A2B49] truncate">{userLocation || 'Distributed Site'}</p>
+                                        <p className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest mb-0.5">Residential Address</p>
+                                        <p className="text-[13px] font-bold text-[#1A2B49] truncate">{userLocation || 'NOT PROVIDED'}</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-[#E3ECF5] flex items-center justify-center text-[#5F6F89] font-bold text-[10px]">AGE</div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest mb-0.5">Current Age</p>
+                                            <p className="text-[13px] font-bold text-[#1A2B49] truncate">{userAge || '??'} YRS</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-[#E3ECF5] flex items-center justify-center text-[#5F6F89]"><Clock className="w-4.5 h-4.5" /></div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest mb-0.5">Birth Date</p>
+                                            <p className="text-[13px] font-bold text-[#1A2B49] truncate">{userDob || 'N/A'}</p>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="h-px bg-gradient-to-r from-transparent via-[#E3ECF5] to-transparent my-2" />

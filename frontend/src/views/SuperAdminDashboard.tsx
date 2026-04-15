@@ -26,6 +26,7 @@ import WorkflowModerationPanel from '../components/admin/WorkflowModerationPanel
 import SubmitContentForms from '../components/coordinator/SubmitContentForms';
 import ApprovalModule from '../components/admin/ApprovalModule';
 import CareerManagement from '../components/admin/CareerManagement';
+import SupportModule from '../components/coordinator/support/SupportEntry';
 
 // ═══════════════════════════════════════════
 // TYPES & MOCK DATA
@@ -36,7 +37,7 @@ type Page =
   | 'SPONSOR_LEADS' | 'METRICS' | 'TEAM' | 'INQUIRIES'
   | 'ANNOUNCEMENTS' | 'AUDIT_LOGS' | 'SETTINGS'
   | 'LAUNCH_STUDY' | 'SCREENER_BUILDER' | 'PIS'
-  | 'COORDINATORS' | 'PARTICIPANTS' | 'LIVE_USERS' | 'WORKFLOW' | 'SUBMIT_CONTENT' | 'TEAM_APPROVALS' | 'CAREERS';
+  | 'COORDINATORS' | 'PARTICIPANTS' | 'LIVE_USERS' | 'WORKFLOW' | 'SUBMIT_CONTENT' | 'TEAM_APPROVALS' | 'CAREERS' | 'SUPPORT';
 
 interface User {
   id: string;
@@ -574,6 +575,7 @@ export default function SuperAdminDashboard() {
     if (route === 'content') return 'SUBMIT_CONTENT';
     if (route === 'approvals') return 'TEAM_APPROVALS';
     if (route === 'careers') return 'CAREERS';
+    if (route === 'support') return 'SUPPORT';
     return 'DASHBOARD';
   });
 
@@ -600,6 +602,7 @@ export default function SuperAdminDashboard() {
     else if (route === 'content') setCurrentPage('SUBMIT_CONTENT');
     else if (route === 'approvals') setCurrentPage('TEAM_APPROVALS');
     else if (route === 'careers') setCurrentPage('CAREERS');
+    else if (route === 'support') setCurrentPage('SUPPORT');
     else if (location.pathname.endsWith('/super-admin') || !route || route === 'super-admin') setCurrentPage('DASHBOARD');
   }, [location.pathname]);
 
@@ -626,7 +629,8 @@ export default function SuperAdminDashboard() {
       'WORKFLOW': 'workflow',
       'SUBMIT_CONTENT': 'content',
       'TEAM_APPROVALS': 'approvals',
-      'CAREERS': 'careers'
+      'CAREERS': 'careers',
+      'SUPPORT': 'support'
     };
     const slug = slugs[page];
     setCurrentPage(page);
@@ -1896,6 +1900,7 @@ const InquiriesPage = ({ studyInquiries, studies, authFetch, API, fetchData, set
       group: 'SYSTEM CONTROL', items: [
         { id: 'ANNOUNCEMENTS', label: 'Announcements', icon: Megaphone },
         { id: 'AUDIT_LOGS', label: 'Login Audit Logs', icon: FileText },
+        { id: 'SUPPORT', label: 'Help Desk', icon: Bell },
         { id: 'SETTINGS', label: 'System Settings', icon: Settings },
       ]
     },
@@ -2098,7 +2103,7 @@ const InquiriesPage = ({ studyInquiries, studies, authFetch, API, fetchData, set
       </AnimatePresence>
 
       {/* ── Sidebar ── */}
-      <aside className={`fixed inset-y-0 left-0 w-80 h-screen bg-[#0a0b1b] border-r border-white/5 z-[70] flex flex-col transition-transform duration-500 lg:static lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed inset-y-0 left-0 w-60 h-screen bg-[#0a0b1b] border-r border-white/5 z-[70] flex flex-col transition-transform duration-500 lg:static lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="h-24 flex items-center justify-center border-b border-white/5 bg-[#0a0b1a]/40 shrink-0">
           <Link to="/" target="_blank" rel="noopener noreferrer" className="group">
             <div className="bg-white p-1 rounded-xl group-hover:scale-105 transition-transform overflow-hidden shadow-xl shadow-white/5">
@@ -2164,29 +2169,29 @@ const InquiriesPage = ({ studyInquiries, studies, authFetch, API, fetchData, set
 
       {/* ── Main Body ── */}
       <div className="flex-1 flex flex-col relative overflow-hidden">
-        <header className="sticky top-0 h-24 bg-[#0a0b1a]/80 backdrop-blur-2xl border-b border-white/5 z-40 px-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4 lg:hidden">
-            <button onClick={() => setIsSidebarOpen(true)} className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white">
+        <header className="sticky top-0 h-[64px] lg:h-[80px] bg-[#0a0b1a]/80 backdrop-blur-2xl border-b border-white/5 z-40 px-3 flex items-center justify-between gap-2 lg:gap-4 transition-all">
+          <div className="flex items-center gap-3 lg:hidden">
+            <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white shrink-0">
               <Terminal className="w-5 h-5" />
             </button>
           </div>
 
           <div className="flex-1 flex justify-end">
-            <div className="flex flex-col items-end text-right border-r border-white/5 pr-4 md:pr-6">
-              <span className="text-sm md:text-xl font-black text-[#7c3aed] font-mono tracking-tighter tabular-nums leading-none">
+            <div className="flex flex-col items-end text-right border-r border-white/5 pr-2 md:pr-4">
+              <span className="text-[14px] md:text-lg font-black text-[#7c3aed] font-mono tracking-tighter tabular-nums leading-none">
                 {currentTime.toLocaleTimeString('en-US', { hour12: false })}
               </span>
-              <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
                 {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 sm:gap-8">
-            <div className="relative hidden md:block">
-              <div className="px-5 py-2.5 bg-[#7c3aed]/10 border border-[#7c3aed]/30 rounded-full flex items-center gap-3 relative">
-                <div className="w-2.5 h-2.5 bg-[#7c3aed] rounded-full animate-pulse shadow-[0_0_10px_#7c3aed]" />
-                <span className="text-[12px] font-black text-[#7c3aed] uppercase tracking-[0.2em] italic">Master Access</span>
+          <div className="flex items-center gap-2 sm:gap-6 lg:gap-8">
+            <div className="relative hidden lg:block">
+              <div className="px-4 py-2 bg-[#7c3aed]/10 border border-[#7c3aed]/30 rounded-full flex items-center gap-2 relative">
+                <div className="w-2 h-2 bg-[#7c3aed] rounded-full animate-pulse shadow-[0_0_10px_#7c3aed]" />
+                <span className="text-[11px] font-black text-[#7c3aed] uppercase tracking-[0.2em] italic">Master Access</span>
               </div>
             </div>
 
@@ -2215,14 +2220,14 @@ const InquiriesPage = ({ studyInquiries, studies, authFetch, API, fetchData, set
               </AnimatePresence>
             </div>
 
-            <div className="flex items-center gap-4 border-l border-white/5 pl-8 relative" ref={profileRef}>
-              <div className="text-right hidden sm:block">
-                <p className="text-[12px] font-black text-white uppercase italic tracking-tighter">{currentUserName}</p>
-                <p className="text-[10px] text-[#555a7a] font-bold uppercase tracking-widest mt-1">{currentUserEmail}</p>
+            <div className="flex items-center gap-2 lg:gap-4 border-l border-white/5 pl-2 md:pl-6 relative" ref={profileRef}>
+              <div className="text-right hidden sm:flex flex-col max-w-[70px] md:max-w-[110px]">
+                <p className="text-[10px] md:text-[11px] font-black text-white uppercase italic tracking-tighter truncate w-full">{currentUserName}</p>
+                <p className="text-[9px] text-[#555a7a] font-bold uppercase tracking-widest mt-0.5 truncate w-full">{currentUserEmail}</p>
               </div>
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#5b21b6] border border-white/10 flex items-center justify-center text-white font-black shadow-lg shadow-purple-900/30 italic hover:scale-105 transition-all active:scale-95"
+                className="w-9 h-9 lg:w-11 lg:h-11 rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#5b21b6] border border-white/10 flex items-center justify-center text-white font-black shadow-lg shadow-purple-900/30 italic hover:scale-105 transition-all active:scale-95 shrink-0"
               >
                 {currentUserName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
               </button>
@@ -2359,6 +2364,14 @@ const InquiriesPage = ({ studyInquiries, studies, authFetch, API, fetchData, set
           {currentPage === 'TEAM_APPROVALS' && <ApprovalModule />}
           {currentPage === 'SUBMIT_CONTENT' && <SubmitContentForms userRole="SUPER_ADMIN" />}
           {currentPage === 'CAREERS' && <CareerManagement />}
+          {currentPage === 'SUPPORT' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="flex justify-between items-center mb-8">
+                <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Global <span className="text-indigo-400">Help Desk</span></h1>
+              </div>
+              <SupportModule />
+            </div>
+          )}
           {currentPage === 'SETTINGS' && <SettingsPage />}
           {currentPage === 'ANNOUNCEMENTS' && (
             <AnnouncementsPage

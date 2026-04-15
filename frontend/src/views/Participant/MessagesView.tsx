@@ -110,7 +110,7 @@ const MessagesView = ({ study, conversations = [], onAction, isLoading = false }
 
     if (isLoading) {
         return (
-            <div className="h-[calc(100vh-200px)] min-h-[600px] flex gap-6 pb-4 animate-pulse">
+            <div className="h-[calc(100vh-120px)] flex gap-6 pb-2 animate-pulse">
                 <div className="w-80 flex flex-col gap-6 shrink-0">
                     <Skeleton className="h-8 w-48 rounded-lg" />
                     <Skeleton className="h-14 w-full rounded-2xl" />
@@ -177,7 +177,7 @@ const MessagesView = ({ study, conversations = [], onAction, isLoading = false }
     };
 
     return (
-        <div className="h-[calc(100vh-200px)] min-h-[600px] flex gap-8 pb-4">
+        <div className="h-[calc(100vh-120px)] flex gap-6 pb-2">
             {/* THREAD LIST */}
             <div className="w-full lg:w-80 flex flex-col gap-6 shrink-0">
                 <div className="space-y-4">
@@ -249,14 +249,14 @@ const MessagesView = ({ study, conversations = [], onAction, isLoading = false }
             {/* CHAT PANEL */}
             <Card className="flex-1 flex flex-col overflow-hidden relative border-[#E3ECF5] shadow-xl bg-white">
                 {/* Header */}
-                <div className="p-6 border-b border-[#E3ECF5] flex items-center justify-between bg-[#F8FBFF]">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-[#1E88E5] border border-[#E3ECF5] shadow-sm">
-                            <ShieldCheck className="w-6 h-6" />
+                <div className="px-4 py-2.5 border-b border-[#E3ECF5] flex items-center justify-between bg-[#F8FBFF]">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center text-[#1E88E5] border border-[#E3ECF5] shadow-sm shrink-0">
+                            <ShieldCheck className="w-4 h-4" />
                         </div>
                         <div>
-                            <h4 className="text-[15px] font-bold text-[#1A2B49] uppercase tracking-tight">{activeThread?.title || 'Connect with Study Team'}</h4>
-                            <p className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest flex items-center gap-2">
+                            <h4 className="text-[13px] font-bold text-[#1A2B49] uppercase tracking-tight leading-none">{activeThread?.title || 'Connect with Study Team'}</h4>
+                            <p className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest flex items-center gap-1.5 mt-0.5">
                                 Clinical Support • <span className="text-[#1E88E5]">Study Coordinator</span>
                             </p>
                         </div>
@@ -264,7 +264,7 @@ const MessagesView = ({ study, conversations = [], onAction, isLoading = false }
                 </div>
 
                 {/* Feed */}
-                <div className="flex-1 overflow-y-auto p-10 space-y-12 no-scrollbar bg-[#F5F9FF]/20">
+                <div className="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar bg-[#F5F9FF]/20">
                     {messages.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-center opacity-70">
                             <MessageSquare className="w-16 h-16 text-[#B0BCCF] mb-6" />
@@ -273,15 +273,15 @@ const MessagesView = ({ study, conversations = [], onAction, isLoading = false }
                     ) : (
                         messages.map((msg) => (
                             <motion.div key={msg.id} className={`flex flex-col ${msg.is_from_me ? 'items-end' : 'items-start'}`}>
-                                <div className="flex items-center gap-3 mb-3 px-2">
-                                    {!msg.is_from_me && <span className="text-[11px] font-bold text-[#1E88E5] uppercase tracking-widest">{msg.sender_name}</span>}
-                                    <span className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">{msg.timestamp}</span>
+                                <div className="flex items-center gap-2 mb-1 px-1">
+                                    {!msg.is_from_me && <span className="text-[10px] font-bold text-[#1E88E5] uppercase tracking-widest">{msg.sender_name}</span>}
+                                    <span className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest">{msg.timestamp}</span>
                                 </div>
-                                <div className={`p-6 rounded-[24px] text-[15px] font-bold shadow-md max-w-[85%] ${msg.is_from_me ? 'bg-[#1E88E5] text-white rounded-tr-none' : 'bg-white border border-[#E3ECF5] text-[#1A2B49] rounded-tl-none'}`}>
+                                <div className={`px-4 py-3 rounded-2xl text-[13px] font-bold shadow-sm max-w-[85%] ${msg.is_from_me ? 'bg-[#1E88E5] text-white rounded-tr-none' : 'bg-white border border-[#E3ECF5] text-[#1A2B49] rounded-tl-none'}`}>
                                     {msg.text}
                                     {msg.is_from_me && (
-                                        <div className="flex items-center gap-1.5 mt-4 ml-auto opacity-70">
-                                            <CheckCheck className="w-3.5 h-3.5" />
+                                        <div className="flex items-center gap-1 mt-1.5 ml-auto opacity-70">
+                                            <CheckCheck className="w-3 h-3" />
                                             <span className="text-[9px] font-bold uppercase tracking-widest">Delivered</span>
                                         </div>
                                     )}
@@ -293,24 +293,21 @@ const MessagesView = ({ study, conversations = [], onAction, isLoading = false }
                 </div>
 
                 {/* Input */}
-                <div className="p-8 border-t border-[#E3ECF5] bg-white">
+                <div className="px-4 py-3 border-t border-[#E3ECF5] bg-white flex items-end gap-3">
                     <textarea
                         value={messageInput}
                         onChange={(e) => setMessageInput(e.target.value)}
                         placeholder="Type clinical inquiry here..."
-                        className="w-full bg-[#F8FBFF] border border-[#E3ECF5] rounded-2xl p-6 text-[#1A2B49] font-bold text-[16px] placeholder:text-[#5F6F89] outline-none resize-none mb-6 h-28 focus:border-[#1E88E5] transition-all"
+                        className="flex-1 bg-[#F8FBFF] border border-[#E3ECF5] rounded-xl px-4 py-2.5 text-[#1A2B49] font-bold text-[13px] placeholder:text-[#5F6F89] outline-none resize-none h-16 focus:border-[#1E88E5] transition-all"
                     />
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 text-[#B0BCCF]">
-                            <Paperclip className="w-5 h-5 cursor-not-allowed" />
-                            <span className="text-[11px] font-bold uppercase tracking-widest">Encrypted Communication</span>
-                        </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <Paperclip className="w-4 h-4 text-[#B0BCCF] cursor-not-allowed" />
                         <button
                             onClick={handleSendMessage}
-                            className="flex items-center gap-4 px-10 py-4 bg-[#1E88E5] rounded-xl text-[13px] font-bold text-white uppercase tracking-widest hover:bg-[#1565C0] shadow-lg shadow-blue-500/20 transition-all active:scale-95"
+                            className="flex items-center gap-2 px-5 py-2.5 bg-[#1E88E5] rounded-xl text-[12px] font-bold text-white uppercase tracking-widest hover:bg-[#1565C0] shadow-md transition-all active:scale-95"
                         >
-                            <Send className="w-4 h-4" />
-                            Send Message
+                            <Send className="w-3.5 h-3.5" />
+                            Send
                         </button>
                     </div>
                 </div>

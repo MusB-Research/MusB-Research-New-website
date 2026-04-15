@@ -126,13 +126,14 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
 
             if (pRes.ok) {
                 const data = await pRes.json();
-                const mapped: Participant[] = data.map((p: any) => ({
+                const participants_list: any[] = Array.isArray(data) ? data : (data.results || []);
+                const mapped: Participant[] = participants_list.map((p: any) => ({
                     id: p.participant_sid || p.id,
                     db_id: p.id,
                     status: p.status === 'ACTIVE' ? 'Active' : p.status === 'SCREENING' ? 'Screening' : 'Completed',
                     coordinator: p.coordinator_name || 'Coordinator Unassigned',
                     nextVisitDue: p.next_visit_date || 'N/A',
-                    study: p.study_name || 'General Protocol',
+                    study: p.study_name || 'General Study',
                     study_id: p.study,
                     visits: (p.visits || []).map((v: any) => ({
                         id: v.id,
@@ -292,7 +293,7 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                 setIsScheduleOpen(false);
                 loadInitialData();
             } else {
-                alert("Protocol Sync Error: Failed to persist visit data.");
+                alert("Study Sync Error: Failed to persist visit data.");
             }
         } catch (err) {
             console.error("Clinical Scheduling Failure:", err);
@@ -420,8 +421,8 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
             <div className="flex-1 flex flex-col p-12 space-y-8 overflow-y-auto custom-scrollbar">
                 <div className="flex items-center justify-between mb-8">
                     <div className="space-y-1">
-                        <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Site <span className="text-indigo-500">Calendar</span></h2>
-                        <p className="text-[12px] text-slate-500 font-black uppercase tracking-[0.3em] italic">{monthYear} • Protocol Sync: ACTIVE</p>
+                        <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Site <span className="text-teal-500">Calendar</span></h2>
+                        <p className="text-sm text-slate-500 font-black uppercase tracking-[0.3em] italic">{monthYear} • Study Sync: ACTIVE</p>
                     </div>
                     <div className="flex items-center gap-4 bg-white/5 p-2 rounded-2xl border border-white/5">
                         <button onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() - 1)))} className="p-3 hover:bg-white/10 rounded-xl transition-all text-slate-400 hover:text-white">
@@ -436,7 +437,7 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
 
                 <div className="grid grid-cols-7 gap-px bg-white/5 border border-white/5 rounded-[3rem] overflow-hidden shadow-2xl">
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                        <div key={d} className="bg-[#0D1424] p-6 text-[12px] font-black text-slate-500 uppercase tracking-widest text-center border-b border-white/5 italic">
+                        <div key={d} className="bg-[#0D1424] p-6 text-sm font-black text-slate-500 uppercase tracking-widest text-center border-b border-white/5 italic">
                             {d}
                         </div>
                     ))}
@@ -449,11 +450,11 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                         return (
                             <div 
                                 key={i} 
-                                className={`min-h-[160px] bg-[#0B101B] p-4 border-r border-b border-white/[0.03] transition-all hover:bg-white/[0.02] ${!isCurrentMonth ? 'opacity-20' : ''}`}
+                                className={`h-[120px] bg-[#0B101B] p-2 border-r border-b border-white/[0.03] transition-all hover:bg-white/[0.02] overflow-hidden flex flex-col ${!isCurrentMonth ? 'opacity-20' : ''}`}
                             >
-                                <div className="flex justify-between items-start mb-3">
-                                    <span className={`text-lg font-black italic ${dayNum === new Date().getDate() && viewDate.getMonth() === new Date().getMonth() ? 'text-indigo-500' : 'text-slate-600'}`}>
-                                        {isCurrentMonth ? dayNum : ''}
+                                <div className="flex justify-between items-center mb-1 shrink-0">
+                                    <span className={`text-[11px] font-black italic leading-none ${dayNum === new Date().getDate() && viewDate.getMonth() === new Date().getMonth() ? 'text-teal-400' : 'text-slate-600'}`}>
+                                        {isCurrentMonth ? dayNum.toString().padStart(2, '0') : ''}
                                     </span>
                                     {isCurrentMonth && (
                                         <button 
@@ -461,27 +462,28 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                                 setScheduleData(prev => ({ ...prev, date: dateString }));
                                                 setIsScheduleOpen(true);
                                             }}
-                                            className="opacity-0 group-hover:opacity-100 p-1.5 bg-white/5 rounded-lg hover:text-indigo-400"
+                                            className="p-0.5 rounded hover:text-teal-400 text-slate-700 transition-colors"
                                         >
-                                            <Plus className="w-4 h-4" />
+                                            <Plus className="w-3 h-3" />
                                         </button>
                                     )}
                                 </div>
-                                <div className="space-y-2">
-                                    {daySessions.slice(0, 4).map((s, idx) => (
+                                <div className="flex flex-col gap-[3px] overflow-hidden flex-1">
+                                    {daySessions.slice(0, 3).map((s, idx) => (
                                         <div 
                                             key={idx} 
-                                            className={`p-2 rounded-lg border text-[10px] font-black uppercase tracking-tighter truncate ${
+                                            className={`px-1.5 py-[2px] rounded text-[9px] font-black uppercase tracking-tighter truncate leading-tight ${
                                                 s.type === 'VISIT' 
-                                                    ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' 
-                                                    : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                                    ? 'bg-teal-500/10 border border-teal-500/20 text-teal-400' 
+                                                    : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
                                             }`}
+                                            title={s.label}
                                         >
                                             {s.label}
                                         </div>
                                     ))}
-                                    {daySessions.length > 4 && (
-                                        <p className="text-[10px] text-slate-600 font-black italic text-center pt-1">+{daySessions.length - 4} MORE</p>
+                                    {daySessions.length > 3 && (
+                                        <p className="text-[9px] text-slate-600 font-black italic text-center leading-tight">+{daySessions.length - 3} more</p>
                                     )}
                                 </div>
                             </div>
@@ -497,9 +499,9 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
             
             {isLoading && (
                 <div className="absolute inset-0 z-[100] bg-[#0B101B]/90 backdrop-blur-md flex flex-col items-center justify-center">
-                    <Activity className="w-12 h-12 text-indigo-500 animate-pulse mb-6" />
+                    <Activity className="w-12 h-12 text-teal-500 animate-pulse mb-6" />
                     <h3 className="text-xl font-black text-white italic uppercase tracking-[0.2em]">Synchronizing Clinical Records</h3>
-                    <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest mt-3">Fetching real-time investigator data...</p>
+                    <p className="text-sm text-slate-500 font-black uppercase tracking-widest mt-3">Fetching real-time investigator data...</p>
                 </div>
             )}
 
@@ -514,18 +516,18 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
             )}
 
             {/* Toolbar */}
-            <div className="h-28 px-10 border-b border-white/5 flex items-center justify-between shrink-0 bg-white/[0.02]">
+            <div className="h-20 px-6 border-b border-white/5 flex items-center justify-between shrink-0 bg-white/[0.02]">
                 <div className="flex items-center gap-12">
                     <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/5">
                         <button 
                             onClick={() => setViewMode('Timeline')}
-                            className={`px-6 py-3 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all italic flex items-center gap-2 ${viewMode === 'Timeline' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                            className={`px-6 py-3 rounded-xl text-sm font-black uppercase tracking-widest transition-all italic flex items-center gap-2 ${viewMode === 'Timeline' ? 'bg-teal-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
                         >
                             <LayoutGrid className="w-3.5 h-3.5" /> Clinical Timeline
                         </button>
                         <button 
                             onClick={() => setViewMode('Calendar')}
-                            className={`px-6 py-3 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all italic flex items-center gap-2 ${viewMode === 'Calendar' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                            className={`px-6 py-3 rounded-xl text-sm font-black uppercase tracking-widest transition-all italic flex items-center gap-2 ${viewMode === 'Calendar' ? 'bg-teal-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
                         >
                             <Calendar className="w-3.5 h-3.5" /> Site Calendar
                         </button>
@@ -534,13 +536,13 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                     <div className="h-10 w-px bg-white/5" />
 
                     <div className="relative group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-hover:text-indigo-400 transition-colors" />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-hover:text-teal-400 transition-colors" />
                         <input 
                             type="text" 
                             placeholder="Search clinical subjects..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-white/5 border border-white/5 rounded-2xl pl-12 pr-6 py-3.5 text-sm font-black italic uppercase text-white outline-none focus:border-indigo-500/30 transition-all w-80 placeholder:text-slate-700"
+                            className="bg-white/5 border border-white/5 rounded-2xl pl-12 pr-6 py-3.5 text-sm font-black italic uppercase text-white outline-none focus:border-teal-500/30 transition-all w-80 placeholder:text-slate-700"
                         />
                     </div>
                 </div>
@@ -548,21 +550,21 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                 <div className="flex items-center gap-6">
                     <button 
                         onClick={() => loadInitialData()}
-                        className="p-4 bg-white/5 border border-white/5 text-slate-500 rounded-2xl hover:text-indigo-400 hover:bg-white/10 transition-all"
+                        className="p-4 bg-white/5 border border-white/5 text-slate-500 rounded-2xl hover:text-teal-400 hover:bg-white/10 transition-all"
                     >
                         <RefreshCw className="w-5 h-5" />
                     </button>
                     <button 
                         onClick={() => setIsProblemModalOpen(true)}
-                        className="px-8 py-4 bg-red-600/10 text-red-500 border border-red-500/30 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-red-600/20 transition-all italic flex items-center gap-3"
+                        className="px-8 py-4 bg-red-600/10 text-red-500 border border-red-500/30 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-red-600/20 transition-all italic flex items-center gap-3"
                     >
                         <ShieldAlert className="w-4 h-4" /> Report Medical Finding
                     </button>
                     <button 
                         onClick={() => setIsScheduleOpen(true)}
-                        className="px-8 py-4 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest shadow-xl shadow-indigo-900/40 hover:scale-105 active:scale-95 transition-all italic flex items-center gap-3"
+                        className="px-8 py-4 bg-teal-600 text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-teal-900/40 hover:scale-105 active:scale-95 transition-all italic flex items-center gap-3"
                     >
-                        <Plus className="w-4 h-4" /> Schedule Protocol Visit
+                        <Plus className="w-4 h-4" /> Schedule Study Visit
                     </button>
                 </div>
             </div>
@@ -571,23 +573,23 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                 {viewMode === 'Timeline' ? (
                     <>
                         {/* Adaptive Participant Switcher */}
-                <div className="w-[450px] border-r border-white/5 overflow-y-auto custom-scrollbar bg-white/[0.01]">
+                <div className="w-[350px] border-r border-white/5 overflow-y-auto custom-scrollbar bg-white/[0.01]">
                     <div className="p-8 space-y-4">
                         {filteredParticipants.map(participant => (
                             <motion.button
                                 key={participant.id}
                                 whileHover={{ x: 4 }}
                                 onClick={() => setSelectedParticipantId(participant.id)}
-                                className={`w-full p-6 rounded-[2rem] border transition-all text-left relative group overflow-hidden ${
+                                className={`w-full p-4 rounded-2xl border transition-all text-left relative group overflow-hidden ${
                                     selectedParticipantId === participant.id 
-                                        ? 'bg-indigo-600/10 border-indigo-500/30' 
+                                        ? 'bg-teal-600/10 border-teal-500/30' 
                                         : 'bg-white/5 border-white/5 hover:border-white/10'
                                 }`}
                             >
                                 {selectedParticipantId === participant.id && (
                                     <motion.div 
                                         layoutId="activeGlow"
-                                        className="absolute inset-0 bg-indigo-600/5 blur-xl" 
+                                        className="absolute inset-0 bg-teal-600/5 blur-xl" 
                                     />
                                 )}
                                 
@@ -595,22 +597,22 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                     <div className="space-y-3">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10">
-                                                <User className="w-5 h-5 text-indigo-400" />
+                                                <User className="w-5 h-5 text-teal-400" />
                                             </div>
                                             <div>
                                                 <h4 className="text-lg font-black text-white italic tracking-tight">{participant.id}</h4>
-                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{participant.study}</p>
+                                                <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">{participant.study}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-4 pt-2">
                                             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 rounded-lg border border-white/10">
-                                                <Activity className="w-3 h-3 text-indigo-400" />
-                                                <span className="text-[10px] font-black uppercase text-slate-300">{participant.status}</span>
+                                                <Activity className="w-3 h-3 text-teal-400" />
+                                                <span className="text-xs font-black uppercase text-slate-300">{participant.status}</span>
                                             </div>
-                                            <span className="text-[10px] text-slate-600 font-bold uppercase italic tracking-tighter">Next: {participant.nextVisitDue}</span>
+                                            <span className="text-xs text-slate-600 font-bold uppercase italic tracking-tighter">Next: {participant.nextVisitDue}</span>
                                         </div>
                                     </div>
-                                    <ChevronRight className={`w-5 h-5 transition-all ${selectedParticipantId === participant.id ? 'text-indigo-400' : 'text-slate-700'}`} />
+                                    <ChevronRight className={`w-5 h-5 transition-all ${selectedParticipantId === participant.id ? 'text-teal-400' : 'text-slate-700'}`} />
                                 </div>
                             </motion.button>
                         ))}
@@ -618,15 +620,15 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                 </div>
 
                 {/* Content Area */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-12 bg-[#0F172A]/30">
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-[#0F172A]/30">
                     {selectedParticipant && (
                         <>
                             <div className="flex items-end justify-between mb-12">
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-3">
-                                        <span className="px-3 py-1 bg-indigo-600/20 text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-full italic">INVESTIGATOR PORTAL</span>
+                                        <span className="px-3 py-1 bg-teal-600/20 text-teal-400 text-xs font-black uppercase tracking-[0.2em] rounded-full italic">INVESTIGATOR PORTAL</span>
                                         <span className="text-slate-700">•</span>
-                                        <span className="text-slate-500 text-[10px] font-black uppercase tracking-widest italic">{selectedParticipant?.coordinator}</span>
+                                        <span className="text-slate-500 text-xs font-black uppercase tracking-widest italic">{selectedParticipant?.coordinator}</span>
                                     </div>
                                     <h2 className="text-6xl font-black text-white italic tracking-tighter uppercase leading-none">Clinical <br/>Segment Review</h2>
                                 </div>
@@ -642,7 +644,7 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                                     : 'bg-white/5 border-white/5 text-slate-500 hover:text-white'
                                             }`}
                                         >
-                                            <p className="text-[10px] font-black uppercase tracking-widest group-hover:text-indigo-400 transition-colors mb-1">{visit.scheduledDate}</p>
+                                            <p className="text-xs font-black uppercase tracking-widest group-hover:text-teal-400 transition-colors mb-1">{visit.scheduledDate}</p>
                                             <p className="text-sm font-black italic uppercase tracking-tight leading-none">{visit.name}</p>
                                         </button>
                                     ))}
@@ -655,32 +657,32 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                     <div className="space-y-8">
                                         <div className="p-10 bg-white/[0.02] border border-white/5 rounded-[3rem] space-y-10 relative overflow-hidden group">
                                             <div className="absolute top-0 right-0 p-8">
-                                                <div className={`px-4 py-1.5 bg-${getStatusColor(selectedVisit.status)}-500/10 text-${getStatusColor(selectedVisit.status)}-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-${getStatusColor(selectedVisit.status)}-500/20`}>
+                                                <div className={`px-4 py-1.5 bg-${getStatusColor(selectedVisit.status)}-500/10 text-${getStatusColor(selectedVisit.status)}-400 rounded-full text-xs font-black uppercase tracking-widest border border-${getStatusColor(selectedVisit.status)}-500/20`}>
                                                     {selectedVisit.status}
                                                 </div>
                                             </div>
 
                                             <div className="flex items-end gap-6 pt-4">
-                                                <div className="w-20 h-20 bg-indigo-600 rounded-[2.5rem] flex items-center justify-center shadow-2xl shadow-indigo-900/40">
+                                                <div className="w-20 h-20 bg-teal-600 rounded-[2.5rem] flex items-center justify-center shadow-2xl shadow-teal-900/40">
                                                     <Calendar className="w-10 h-10 text-white" />
                                                 </div>
                                                 <div>
                                                     <h3 className="text-4xl font-black text-white italic tracking-tighter uppercase">{selectedVisit.name}</h3>
-                                                    <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-1">{selectedVisit.scheduledDate} • SITE VISIT MODEL</p>
+                                                    <p className="text-sm text-slate-500 font-bold uppercase tracking-[0.3em] mt-1">{selectedVisit.scheduledDate} • SITE VISIT MODEL</p>
                                                 </div>
                                             </div>
 
                                             <div className="grid grid-cols-3 gap-6 pt-4">
                                                 <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
-                                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-3 italic">Visit Stability</p>
+                                                    <p className="text-xs text-slate-500 font-black uppercase tracking-widest mb-3 italic">Visit Stability</p>
                                                     <p className="text-2xl font-black text-white italic">±3 Days</p>
                                                 </div>
                                                 <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
-                                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-3 italic">Segment Target</p>
+                                                    <p className="text-xs text-slate-500 font-black uppercase tracking-widest mb-3 italic">Segment Target</p>
                                                     <p className="text-2xl font-black text-white italic">V{selectedVisit.id.slice(1)}</p>
                                                 </div>
                                                 <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
-                                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-3 italic">Site Hub</p>
+                                                    <p className="text-xs text-slate-500 font-black uppercase tracking-widest mb-3 italic">Site Hub</p>
                                                     <p className="text-2xl font-black text-white italic">NYC-01</p>
                                                 </div>
                                             </div>
@@ -689,10 +691,10 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                         {/* Status Progress */}
                                         <div className="p-8 border border-white/5 rounded-[3rem] bg-white/[0.01] space-y-6">
                                             <div className="flex items-center justify-between px-2">
-                                                <h4 className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic flex items-center gap-2">
-                                                    <History className="w-4 h-4 text-indigo-400" /> Operational Lifecycle
+                                                <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest italic flex items-center gap-2">
+                                                    <History className="w-4 h-4 text-teal-400" /> Operational Lifecycle
                                                 </h4>
-                                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">In Sync</span>
+                                                <span className="text-xs font-black text-teal-400 uppercase tracking-widest">In Sync</span>
                                             </div>
                                             <div className="flex items-center">
                                                 {[
@@ -704,15 +706,15 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                                     <React.Fragment key={i}>
                                                         <div className="relative flex flex-col items-center flex-1">
                                                             <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
-                                                                step.done ? 'bg-indigo-600 border-indigo-500' : 
-                                                                step.active ? 'bg-[#0B101B] border-indigo-500 ring-4 ring-indigo-500/20' : 
+                                                                step.done ? 'bg-teal-600 border-teal-500' : 
+                                                                step.active ? 'bg-[#0B101B] border-teal-500 ring-4 ring-teal-500/20' : 
                                                                 'bg-[#0B101B] border-white/10'
                                                             }`}>
-                                                                {step.done ? <Check className="w-4 h-4 text-white" /> : <div className={`w-2 h-2 rounded-full ${step.active ? 'bg-indigo-500' : 'bg-white/5'}`} />}
+                                                                {step.done ? <Check className="w-4 h-4 text-white" /> : <div className={`w-2 h-2 rounded-full ${step.active ? 'bg-teal-500' : 'bg-white/5'}`} />}
                                                             </div>
-                                                            <span className={`text-[10px] font-black uppercase tracking-widest mt-3 ${step.active ? 'text-white italic' : 'text-slate-600'}`}>{step.label}</span>
+                                                            <span className={`text-xs font-black uppercase tracking-widest mt-3 ${step.active ? 'text-white italic' : 'text-slate-600'}`}>{step.label}</span>
                                                         </div>
-                                                        {i < 3 && <div className={`h-px flex-1 mb-6 ${step.done ? 'bg-indigo-600' : 'bg-white/5'}`} />}
+                                                        {i < 3 && <div className={`h-px flex-1 mb-6 ${step.done ? 'bg-teal-600' : 'bg-white/5'}`} />}
                                                     </React.Fragment>
                                                 ))}
                                             </div>
@@ -728,8 +730,8 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                                 className="w-full flex items-center justify-between p-8 hover:bg-white/5 transition-colors"
                                             >
                                                 <div className="flex items-center gap-4">
-                                                    <Clipboard className="w-5 h-5 text-indigo-400" />
-                                                    <span className="text-[14px] font-black text-white uppercase italic tracking-widest">Protocol Checklist</span>
+                                                    <Clipboard className="w-5 h-5 text-teal-400" />
+                                                    <span className="text-[14px] font-black text-white uppercase italic tracking-widest">Study Checklist</span>
                                                 </div>
                                                 {openAccordion === 'Checklist' ? <ChevronUp className="w-5 h-5 text-slate-600" /> : <ChevronDown className="w-5 h-5 text-slate-600" />}
                                             </button>
@@ -753,7 +755,7 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                                                     </div>
                                                                     <span className={`text-sm font-black uppercase italic tracking-tight ${item.done ? 'text-slate-300' : 'text-slate-500'}`}>{item.item}</span>
                                                                 </div>
-                                                                {item.done && <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] opacity-40 group-hover:opacity-100 transition-opacity">{item.time} • {item.user}</span>}
+                                                                {item.done && <span className="text-xs font-black text-teal-400 uppercase tracking-[0.2em] opacity-40 group-hover:opacity-100 transition-opacity">{item.time} • {item.user}</span>}
                                                             </div>
                                                         ))}
                                                     </motion.div>
@@ -768,7 +770,7 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                                 className="w-full flex items-center justify-between p-8 hover:bg-white/5 transition-colors"
                                             >
                                                 <div className="flex items-center gap-4">
-                                                    <Activity className="w-5 h-5 text-indigo-400" />
+                                                    <Activity className="w-5 h-5 text-teal-400" />
                                                     <span className="text-[14px] font-black text-white uppercase italic tracking-widest">Anthropometry & Vitals</span>
                                                 </div>
                                                 {openAccordion === 'Vitals' ? <ChevronUp className="w-5 h-5 text-slate-600" /> : <ChevronDown className="w-5 h-5 text-slate-600" />}
@@ -783,31 +785,31 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                                     >
                                                         <div className="grid grid-cols-2 gap-6">
                                                             <div className="p-6 bg-white/5 rounded-3xl border border-white/5 space-y-3">
-                                                                <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest italic">Weight (kg)</p>
+                                                                <p className="text-xs text-slate-600 font-black uppercase tracking-widest italic">Weight (kg)</p>
                                                                 <input 
                                                                     type="text" 
                                                                     value={tempVitals.weight}
                                                                                                                                                                                                             onChange={(e) => setTempVitals(v => ({ ...v, weight: e.target.value }))}
-                                                                    className="w-full bg-transparent text-3xl font-black text-white italic outline-none border-b-2 border-white/5 focus:border-indigo-500/50 transition-all pb-2" 
+                                                                    className="w-full bg-transparent text-3xl font-black text-white italic outline-none border-b-2 border-white/5 focus:border-teal-500/50 transition-all pb-2" 
                                                                 />
                                                             </div>
                                                             <div className="p-6 bg-white/5 rounded-3xl border border-white/5 space-y-3">
-                                                                <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest italic">Height (m)</p>
+                                                                <p className="text-xs text-slate-600 font-black uppercase tracking-widest italic">Height (m)</p>
                                                                 <input 
                                                                     type="text" 
                                                                     value={tempVitals.height}
                                                                                                                                                                                                             onChange={(e) => setTempVitals(v => ({ ...v, height: e.target.value }))}
-                                                                    className="w-full bg-transparent text-3xl font-black text-white italic outline-none border-b-2 border-white/5 focus:border-indigo-500/50 transition-all pb-2" 
+                                                                    className="w-full bg-transparent text-3xl font-black text-white italic outline-none border-b-2 border-white/5 focus:border-teal-500/50 transition-all pb-2" 
                                                                 />
                                                             </div>
                                                         </div>
                                                         
-                                                        <div className="p-8 bg-indigo-500/5 border border-indigo-500/10 rounded-[2rem] flex items-center justify-between">
+                                                        <div className="p-8 bg-teal-500/5 border border-teal-500/10 rounded-[2rem] flex items-center justify-between">
                                                             <div>
-                                                                <p className="text-[10px] text-indigo-400 font-black uppercase tracking-widest italic">Computed BMI</p>
+                                                                <p className="text-xs text-teal-400 font-black uppercase tracking-widest italic">Computed BMI</p>
                                                                 <p className="text-4xl font-black text-white italic mt-1">{bmi || 'N/A'}</p>
                                                             </div>
-                                                            <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                                            <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest ${
                                                                 bmi < 18.5 || bmi > 25 ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-400'
                                                             }`}>
                                                                 {bmi < 18.5 ? 'UNDERWEIGHT' : bmi > 25 ? 'OVERWEIGHT' : 'NORMAL RANGE'}
@@ -840,22 +842,22 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                                     >
                                                         {(selectedParticipant?.aeReports || []).length === 0 ? (
                                                             <div className="p-10 border border-white/5 bg-white/5 rounded-3xl text-center">
-                                                                <p className="text-[10px] text-slate-600 italic uppercase font-black tracking-widest">No active clinical findings reported for this subject</p>
+                                                                <p className="text-xs text-slate-600 italic uppercase font-black tracking-widest">No active clinical findings reported for this subject</p>
                                                             </div>
                                                         ) : (
                                                             selectedParticipant.aeReports.map((ae, idx) => (
                                                                 <div key={idx} className="p-6 bg-white/5 border border-white/5 rounded-3xl space-y-4">
                                                                     <div className="flex items-center justify-between">
-                                                                        <span className={`px-3 py-1 rounded text-[9px] font-black uppercase tracking-widest ${
+                                                                        <span className={`px-3 py-1 rounded text-xs font-black uppercase tracking-widest ${
                                                                             ae.severity === 'SEVERE' ? 'bg-red-500/20 text-red-400' : 
-                                                                            ae.severity === 'MODERATE' ? 'bg-orange-500/20 text-orange-400' : 'bg-blue-500/20 text-blue-400'
+                                                                            ae.severity === 'MODERATE' ? 'bg-orange-500/20 text-orange-400' : 'bg-teal-500/20 text-teal-400'
                                                                         }`}>{ae.severity}</span>
-                                                                        <span className="text-[10px] text-slate-600 font-bold uppercase italic tracking-widest">{new Date(ae.start_date).toLocaleDateString()}</span>
+                                                                        <span className="text-xs text-slate-600 font-bold uppercase italic tracking-widest">{new Date(ae.start_date).toLocaleDateString()}</span>
                                                                     </div>
                                                                     <p className="text-sm font-black text-white uppercase italic leading-none">{ae.description}</p>
-                                                                    <div className="flex items-center gap-3 pt-2 text-[10px] uppercase font-black italic">
+                                                                    <div className="flex items-center gap-3 pt-2 text-xs uppercase font-black italic">
                                                                         <span className="text-slate-600">Investigator Action:</span>
-                                                                        <span className="text-indigo-400">{ae.action_taken || 'Active Observation'}</span>
+                                                                        <span className="text-teal-400">{ae.action_taken || 'Active Observation'}</span>
                                                                     </div>
                                                                 </div>
                                                             ))
@@ -872,7 +874,7 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                             <div className="sticky bottom-0 mt-20 -mx-12 -mb-12 p-10 bg-[#0B101B]/95 border-t border-white/10 space-y-8 backdrop-blur-3xl z-20">
                                 <div className="flex items-center gap-4">
                                     <Lock className="w-5 h-5 text-amber-500 shrink-0" />
-                                    <p className="text-[12px] text-slate-500 font-black uppercase tracking-[0.3em] italic leading-tight">Secondary Review: Investigator Sign-off Required for Database Lock</p>
+                                    <p className="text-sm text-slate-500 font-black uppercase tracking-[0.3em] italic leading-tight">Secondary Review: Investigator Sign-off Required for Database Lock</p>
                                 </div>
                                 <div className="flex flex-col md:flex-row gap-6">
                                     <button 
@@ -919,7 +921,7 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                 <div className="flex items-center justify-between border-b border-white/5 pb-10">
                                     <div>
                                         <h3 className="text-4xl font-black text-white italic uppercase tracking-tighter leading-none">Investigator <br/>Scheduling Lead</h3>
-                                        <p className="text-[12px] text-indigo-400 font-black uppercase tracking-[0.4em] mt-4 italic">Override Protocol Window for Safety or Pk Alignment</p>
+                                        <p className="text-sm text-teal-400 font-black uppercase tracking-[0.4em] mt-4 italic">Override Protocol Window for Safety or Pk Alignment</p>
                                     </div>
                                     <button onClick={() => setIsScheduleOpen(false)} className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors">
                                         <X className="w-8 h-8 text-slate-500" />
@@ -928,13 +930,13 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
 
                                 <div className="grid grid-cols-2 gap-12">
                                     <div className="space-y-4">
-                                        <label className="text-[12px] text-slate-600 font-black uppercase tracking-widest italic">Research Protocol (Study)</label>
+                                        <label className="text-sm text-slate-600 font-black uppercase tracking-widest italic">Research Protocol (Study)</label>
                                         <div className="relative">
-                                            <Filter className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400" />
+                                            <Filter className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-teal-400" />
                                             <select 
                                                 value={scheduleData.studyId}
                                                 onChange={(e) => setScheduleData(prev => ({ ...prev, studyId: e.target.value, participantId: '', taskId: '' }))}
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-8 py-5 text-sm font-black italic uppercase text-white outline-none appearance-none focus:border-indigo-500/50 transition-all"
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-8 py-5 text-sm font-black italic uppercase text-white outline-none appearance-none focus:border-teal-500/50 transition-all"
                                             >
                                                 <option value="">Select Study Portfolio</option>
                                                 {allStudies.map(s => (
@@ -944,14 +946,14 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                         </div>
                                     </div>
                                     <div className="space-y-4">
-                                        <label className="text-[12px] text-slate-600 font-black uppercase tracking-widest italic">Target Participant (Subject)</label>
+                                        <label className="text-sm text-slate-600 font-black uppercase tracking-widest italic">Target Participant (Subject)</label>
                                         <div className="relative">
-                                            <User className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400" />
+                                            <User className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-teal-400" />
                                             <select 
                                                 value={scheduleData.participantId}
                                                 onChange={(e) => setScheduleData(prev => ({ ...prev, participantId: e.target.value }))}
                                                 disabled={!scheduleData.studyId}
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-8 py-5 text-sm font-black italic uppercase text-white outline-none appearance-none focus:border-indigo-500/50 transition-all disabled:opacity-30"
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-8 py-5 text-sm font-black italic uppercase text-white outline-none appearance-none focus:border-teal-500/50 transition-all disabled:opacity-30"
                                             >
                                                 <option value="">{scheduleData.studyId ? 'Select Clinical Subject' : 'Select Study First'}</option>
                                                 {participants.filter(p => !scheduleData.studyId || p.study_id === scheduleData.studyId || p.study === scheduleData.studyId).map(p => (
@@ -961,13 +963,13 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                         </div>
                                     </div>
                                     <div className="space-y-4">
-                                        <label className="text-[12px] text-slate-600 font-black uppercase tracking-widest italic">Protocol Visit Segment</label>
+                                        <label className="text-sm text-slate-600 font-black uppercase tracking-widest italic">Protocol Visit Segment</label>
                                         <div className="relative">
-                                            <Calendar className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400" />
+                                            <Calendar className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-teal-400" />
                                             <select 
                                                 value={scheduleData.visitType}
                                                 onChange={(e) => setScheduleData(prev => ({ ...prev, visitType: e.target.value }))}
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-8 py-5 text-sm font-black italic uppercase text-white outline-none appearance-none focus:border-indigo-500/50 transition-all"
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-8 py-5 text-sm font-black italic uppercase text-white outline-none appearance-none focus:border-teal-500/50 transition-all"
                                             >
                                                 <option>Screening Visit</option>
                                                 <option>Baseline / Dosing</option>
@@ -979,14 +981,14 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                         </div>
                                     </div>
                                     <div className="space-y-4">
-                                        <label className="text-[12px] text-slate-600 font-black uppercase tracking-widest italic">Assign Automated Task</label>
+                                        <label className="text-sm text-slate-600 font-black uppercase tracking-widest italic">Assign Automated Task</label>
                                         <div className="relative">
-                                            <Clipboard className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400" />
+                                            <Clipboard className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-teal-400" />
                                             <select 
                                                 value={scheduleData.taskId}
                                                 onChange={(e) => setScheduleData(prev => ({ ...prev, taskId: e.target.value }))}
                                                 disabled={!scheduleData.studyId}
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-8 py-5 text-sm font-black italic uppercase text-white outline-none appearance-none focus:border-indigo-500/50 transition-all disabled:opacity-30"
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-8 py-5 text-sm font-black italic uppercase text-white outline-none appearance-none focus:border-teal-500/50 transition-all disabled:opacity-30"
                                             >
                                                 <option value="">Push Optional Protocol Task</option>
                                                 {studyTasks.map(t => (
@@ -996,7 +998,7 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                         </div>
                                     </div>
                                     <div className="space-y-4">
-                                        <label className="text-[12px] text-slate-600 font-black uppercase tracking-widest italic">Scheduled Alignment (Epoch)</label>
+                                        <label className="text-sm text-slate-600 font-black uppercase tracking-widest italic">Scheduled Alignment (Epoch)</label>
                                         <div className="flex gap-4">
                                             <div className="relative flex-1">
                                                 <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
@@ -1004,7 +1006,7 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                                     type="date" 
                                                     value={scheduleData.date}
                                                     onChange={(e) => setScheduleData(prev => ({ ...prev, date: e.target.value }))}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-[12px] font-mono font-black text-white outline-none focus:border-indigo-500/50 transition-all" 
+                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-sm font-mono font-black text-white outline-none focus:border-teal-500/50 transition-all" 
                                                 />
                                             </div>
                                             <div className="relative flex-1">
@@ -1012,16 +1014,16 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                                     type="time" 
                                                     value={scheduleData.time}
                                                     onChange={(e) => setScheduleData(prev => ({ ...prev, time: e.target.value }))}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-[12px] font-mono font-black text-white outline-none focus:border-indigo-500/50 transition-all" 
+                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm font-mono font-black text-white outline-none focus:border-teal-500/50 transition-all" 
                                                 />
                                             </div>
                                         </div>
                                     </div>
                                     <div className="space-y-4">
-                                        <label className="text-[12px] text-slate-600 font-black uppercase tracking-widest italic">Site Interaction Model</label>
+                                        <label className="text-sm text-slate-600 font-black uppercase tracking-widest italic">Site Interaction Model</label>
                                         <div className="grid grid-cols-2 gap-3">
                                             {['Clinic Visit', 'Home Visit', 'Virtual Hub'].map(m => (
-                                                <button key={m} className="px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-[12px] font-black uppercase tracking-widest italic text-slate-500 hover:text-white hover:border-indigo-500/50 transition-all active:scale-95">
+                                                <button key={m} className="px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-sm font-black uppercase tracking-widest italic text-slate-500 hover:text-white hover:border-teal-500/50 transition-all active:scale-95">
                                                     {m}
                                                 </button>
                                             ))}
@@ -1032,13 +1034,13 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                 <div className="flex items-center gap-6 pt-12 border-t border-white/5">
                                     <button 
                                         onClick={() => setIsScheduleOpen(false)}
-                                        className="px-12 py-6 bg-white/5 text-slate-500 rounded-[2rem] text-[12px] font-black uppercase tracking-widest hover:text-white transition-all italic"
+                                        className="px-12 py-6 bg-white/5 text-slate-500 rounded-[2rem] text-sm font-black uppercase tracking-widest hover:text-white transition-all italic"
                                     >
                                         Discard
                                     </button>
                                     <button 
                                         onClick={handleScheduleConfirm}
-                                        className="flex-1 py-6 bg-indigo-600 text-white rounded-[2rem] text-[12px] font-black uppercase tracking-widest shadow-2xl shadow-indigo-900/40 hover:scale-[1.02] active:scale-95 transition-all italic"
+                                        className="flex-1 py-6 bg-teal-600 text-white rounded-[2rem] text-sm font-black uppercase tracking-widest shadow-2xl shadow-teal-900/40 hover:scale-[1.02] active:scale-95 transition-all italic"
                                     >
                                         Protocol Deployment
                                     </button>
@@ -1054,14 +1056,14 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                              <div className="flex items-center justify-between border-b border-white/5 pb-10">
                                 <div>
                                     <h3 className="text-4xl font-black text-white italic uppercase tracking-tighter leading-none">Clinical Finding <br/><span className="text-red-500">Notice</span></h3>
-                                    <p className="text-[12px] text-red-400/60 font-black uppercase tracking-[0.4em] mt-4 italic">Expedited Adverse Event Recording</p>
+                                    <p className="text-sm text-red-400/60 font-black uppercase tracking-[0.4em] mt-4 italic">Expedited Adverse Event Recording</p>
                                 </div>
                                 <ShieldAlert className="w-12 h-12 text-red-500" />
                              </div>
                              
                              <div className="space-y-10">
                                  <div className="space-y-4">
-                                     <label className="text-[12px] text-slate-500 uppercase font-black tracking-widest italic">Segment Finding Description</label>
+                                     <label className="text-sm text-slate-500 uppercase font-black tracking-widest italic">Segment Finding Description</label>
                                      <textarea 
                                         value={problemData.description} 
                                         onChange={e => setProblemData(prev => ({ ...prev, description: e.target.value }))} 
@@ -1072,11 +1074,11 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
 
                                  <div className="grid grid-cols-2 gap-10">
                                      <div className="space-y-4">
-                                         <label className="text-[12px] text-slate-500 uppercase font-black tracking-widest italic">Investigator Severity Rating</label>
+                                         <label className="text-sm text-slate-500 uppercase font-black tracking-widest italic">Investigator Severity Rating</label>
                                          <select 
                                             value={problemData.severity} 
                                             onChange={e => setProblemData(prev => ({ ...prev, severity: e.target.value as any }))} 
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 text-white uppercase text-[12px] font-black italic outline-none appearance-none"
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 text-white uppercase text-sm font-black italic outline-none appearance-none"
                                          >
                                              <option value="MILD">Grade 1: Mild</option>
                                              <option value="MODERATE">Grade 2: Moderate</option>
@@ -1084,11 +1086,11 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                          </select>
                                      </div>
                                      <div className="space-y-4">
-                                         <label className="text-[12px] text-slate-500 uppercase font-black tracking-widest italic">Protocol Product Relation</label>
+                                         <label className="text-sm text-slate-500 uppercase font-black tracking-widest italic">Protocol Product Relation</label>
                                          <select 
                                             value={problemData.related_to_product} 
                                             onChange={e => setProblemData(prev => ({ ...prev, related_to_product: e.target.value as any }))} 
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 text-white uppercase text-[12px] font-black italic outline-none appearance-none"
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 text-white uppercase text-sm font-black italic outline-none appearance-none"
                                          >
                                              <option value="YES">Related to Mission</option>
                                              <option value="NO">Not Related</option>
@@ -1098,21 +1100,21 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                  </div>
 
                                  <div className="space-y-4">
-                                     <label className="text-[12px] text-slate-500 uppercase font-black tracking-widest italic">Clinical Intervention / Action</label>
+                                     <label className="text-sm text-slate-500 uppercase font-black tracking-widest italic">Clinical Intervention / Action</label>
                                      <input 
                                         type="text"
                                         value={problemData.action_taken} 
                                         onChange={e => setProblemData(prev => ({ ...prev, action_taken: e.target.value }))} 
                                         placeholder="e.g., Hospitalization, Study Drug Withheld, Monitoring Only..."
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 text-white text-[12px] font-black italic uppercase outline-none focus:border-indigo-500/40 transition-all"
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 text-white text-sm font-black italic uppercase outline-none focus:border-teal-500/40 transition-all"
                                      />
                                  </div>
 
                                  <div className="flex gap-6 pt-4">
-                                     <button onClick={() => setIsProblemModalOpen(false)} className="px-12 py-6 bg-white/5 text-slate-500 rounded-[2rem] text-[12px] font-black uppercase tracking-widest hover:text-white transition-all italic">
+                                     <button onClick={() => setIsProblemModalOpen(false)} className="px-12 py-6 bg-white/5 text-slate-500 rounded-[2rem] text-sm font-black uppercase tracking-widest hover:text-white transition-all italic">
                                          Cancel
                                      </button>
-                                     <button onClick={handleProblemConfirm} className="flex-1 py-6 bg-red-600 text-white rounded-[2rem] text-[12px] font-black uppercase tracking-widest shadow-2xl shadow-red-900/40 hover:scale-[1.02] active:scale-95 transition-all italic">
+                                     <button onClick={handleProblemConfirm} className="flex-1 py-6 bg-red-600 text-white rounded-[2rem] text-sm font-black uppercase tracking-widest shadow-2xl shadow-red-900/40 hover:scale-[1.02] active:scale-95 transition-all italic">
                                          Submit Site Finding
                                      </button>
                                  </div>

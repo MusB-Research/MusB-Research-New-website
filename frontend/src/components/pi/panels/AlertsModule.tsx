@@ -72,9 +72,6 @@ export default function AlertsModule() {
 
     React.useEffect(() => {
         fetchAlerts();
-        // Polling for real-time tactical signals every 30 seconds
-        const interval = setInterval(fetchAlerts, 30000);
-        return () => clearInterval(interval);
     }, []);
 
     const handleMarkRead = async (id: string) => {
@@ -120,7 +117,7 @@ export default function AlertsModule() {
         switch (severity) {
             case 'Critical': return 'text-red-400 bg-red-500/10 border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.15)]';
             case 'Warning': return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
-            case 'Info': return 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20';
+            case 'Info': return 'text-teal-400 bg-teal-500/10 border-teal-500/20';
             default: return 'text-slate-400 bg-white/5 border-white/10';
         }
     };
@@ -130,19 +127,19 @@ export default function AlertsModule() {
             {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div>
-                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Alert <span className="text-indigo-400">Intelligence</span></h2>
-                    <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">Priority Notifications & Clinical Triggers</p>
+                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Alert <span className="text-teal-400">Intelligence</span></h2>
+                    <p className="text-sm text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">Priority Notifications & Clinical Triggers</p>
                 </div>
                 <div className="flex items-center gap-4">
                     <button 
                         onClick={handleMarkAllRead}
-                        className="px-8 py-3.5 bg-white/5 border border-white/10 text-slate-400 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-xl"
+                        className="px-8 py-3.5 bg-white/5 border border-white/10 text-slate-400 rounded-2xl text-sm font-black uppercase tracking-widest hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-xl"
                     >
                         Mark All as Read
                     </button>
                     <button 
                         onClick={handleArchive}
-                        className="px-8 py-3.5 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all active:scale-95 shadow-xl"
+                        className="px-8 py-3.5 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all active:scale-95 shadow-xl"
                     >
                         Archive Historical
                     </button>
@@ -153,7 +150,7 @@ export default function AlertsModule() {
             <div className="bg-[#0B101B]/40 border border-white/5 rounded-[3rem] p-4 lg:p-10 space-y-10 relative overflow-hidden">
                 {/* Background Decor */}
                 <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none">
-                    <Bell className="w-64 h-64 text-indigo-400" />
+                    <Bell className="w-64 h-64 text-teal-400" />
                 </div>
 
                 {/* Filter Controls */}
@@ -163,8 +160,8 @@ export default function AlertsModule() {
                             <button
                                 key={s}
                                 onClick={() => setActiveSeverity(s)}
-                                className={`px-6 py-2.5 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${
-                                    activeSeverity === s ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'
+                                className={`px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${
+                                    activeSeverity === s ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/20' : 'text-slate-500 hover:text-white'
                                 }`}
                             >
                                 {s}
@@ -178,7 +175,7 @@ export default function AlertsModule() {
                             placeholder="Search Alerts..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3 text-sm text-white font-bold outline-none focus:border-indigo-500/50 transition-all w-64 uppercase tracking-widest font-mono"
+                            className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3 text-sm text-white font-bold outline-none focus:border-teal-500/50 transition-all w-64 uppercase tracking-widest font-mono"
                         />
                     </div>
                 </div>
@@ -187,8 +184,8 @@ export default function AlertsModule() {
                 <div className="space-y-4">
                     {loading ? (
                         <div className="py-20 text-center animate-pulse">
-                            <Activity className="w-12 h-12 text-indigo-500/20 mx-auto mb-4" />
-                            <p className="text-slate-500 font-black uppercase tracking-widest text-[12px]">Scanning Tactical Signals...</p>
+                            <Activity className="w-12 h-12 text-teal-500/20 mx-auto mb-4" />
+                            <p className="text-slate-500 font-black uppercase tracking-widest text-sm">Scanning Tactical Signals...</p>
                         </div>
                     ) : (
                         <AnimatePresence mode="popLayout">
@@ -209,10 +206,10 @@ export default function AlertsModule() {
                                     </div>
                                     <div className="space-y-1.5">
                                         <div className="flex items-center gap-3">
-                                            <span className={`w-2.5 h-2.5 rounded-full ${!alert.read ? 'bg-indigo-500 animate-ping shadow-[0_0_8px_rgba(99,102,241,1)]' : 'bg-transparent'}`} />
-                                            <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest italic leading-none">{alert.timestamp}</p>
+                                            <span className={`w-2.5 h-2.5 rounded-full ${!alert.read ? 'bg-teal-500 animate-ping shadow-[0_0_8px_rgba(99,102,241,1)]' : 'bg-transparent'}`} />
+                                            <p className="text-sm text-slate-500 font-black uppercase tracking-widest italic leading-none">{alert.timestamp}</p>
                                         </div>
-                                        <p className="text-[12px] font-black uppercase tracking-[0.2em] text-indigo-400/80 italic">{alert.category}</p>
+                                        <p className="text-sm font-black uppercase tracking-[0.2em] text-teal-400/80 italic">{alert.category}</p>
                                     </div>
                                 </div>
 
@@ -225,14 +222,14 @@ export default function AlertsModule() {
                                     {!alert.read && (
                                         <button 
                                             onClick={() => handleMarkRead(alert.id)}
-                                            className="px-5 py-3 bg-white/5 border border-white/5 rounded-xl text-slate-500 hover:text-white hover:bg-white/10 transition-all font-black text-[12px] uppercase tracking-widest active:scale-95 shadow-lg"
+                                            className="px-5 py-3 bg-white/5 border border-white/5 rounded-xl text-slate-500 hover:text-white hover:bg-white/10 transition-all font-black text-sm uppercase tracking-widest active:scale-95 shadow-lg"
                                         >
                                             Mark as Read
                                         </button>
                                     )}
                                     <button 
                                         onClick={() => handleResolve(alert.id)}
-                                        className="px-6 py-3.5 bg-white text-slate-950 rounded-xl font-black text-[12px] uppercase tracking-[0.15em] hover:scale-[1.05] active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,255,255,0.1)] flex items-center gap-3"
+                                        className="px-6 py-3.5 bg-white text-slate-950 rounded-xl font-black text-sm uppercase tracking-[0.15em] hover:scale-[1.05] active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,255,255,0.1)] flex items-center gap-3"
                                     >
                                         Resolve <ChevronRight className="w-4 h-4" />
                                     </button>
@@ -244,8 +241,8 @@ export default function AlertsModule() {
                                 animate={{ opacity: 1 }} 
                                 className="p-20 text-center space-y-4"
                             >
-                                <CheckCircle2 className="w-16 h-16 text-indigo-500/20 mx-auto" />
-                                <p className="text-slate-500 font-black uppercase tracking-widest text-[12px] italic">All Tactical Signals Resolved • Research Environment Clear</p>
+                                <CheckCircle2 className="w-16 h-16 text-teal-500/20 mx-auto" />
+                                <p className="text-slate-500 font-black uppercase tracking-widest text-sm italic">All Tactical Signals Resolved • Research Environment Clear</p>
                             </motion.div>
                         )}
                         </AnimatePresence>

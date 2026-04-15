@@ -37,7 +37,7 @@ import {
     RefreshCw,
     Stethoscope
 } from 'lucide-react';
-import { API, authFetch } from '../../utils/auth';
+import { API, authFetch, getUser } from '../../utils/auth';
 
 interface Assessment {
     id: string;
@@ -102,7 +102,9 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
         studyId: '',
         participantId: '',
         visitType: 'BASELINE',
+        customVisitType: '',
         location: 'Clinic',
+        customLocation: '',
         locationAddress: '',
         taskId: '',
         date: new Date().toISOString().split('T')[0],
@@ -208,7 +210,14 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
     // Initial load
     useEffect(() => {
         loadData();
-    }, [loadData]);
+        // Check for missed visits on load to trigger alerts/notifications
+        const checkMissed = async () => {
+            try {
+                await authFetch(`${apiUrl}/api/visits/check_missed/`, { method: 'POST' });
+            } catch (e) { /* silent check */ }
+        };
+        checkMissed();
+    }, [loadData, apiUrl]);
 
     // Handle initial selection & filtering
     const filteredParticipants = useMemo(() => {
@@ -308,15 +317,19 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
             const localDateTime = new Date(`${scheduleData.date}T${scheduleData.time || '09:00'}:00`);
             const isoDateTime = localDateTime.toISOString();
 
+            const finalVisitType = scheduleData.visitType === 'OTHER' ? scheduleData.customVisitType : scheduleData.visitType;
+            const finalLocation = scheduleData.location === 'OTHER' ? scheduleData.customLocation : scheduleData.location;
+
             const visitResp = await authFetch(`${apiUrl}/api/visits/`, {
                 method: 'POST',
                 body: JSON.stringify({
                     participant: targetParticipant.db_id,
-                    visit_type: scheduleData.visitType,
+                    visit_type: finalVisitType || 'Unspecified Visit',
                     scheduled_date: isoDateTime,
                     status: 'SCHEDULED',
-                    location: scheduleData.location,
-                    location_address: scheduleData.locationAddress
+                    location: finalLocation || 'Clinic',
+                    location_address: scheduleData.locationAddress,
+                    scheduled_by: getUser()?.id // Attribute the scheduling to the current coordinator
                 })
             });
 
@@ -434,8 +447,8 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
 
         return (
             <div className="flex-1 flex flex-col p-6 lg:p-10 bg-[#0B101B]">
-                <div className="flex items-center justify-between mb-8">
-                    <h2 className="text-xl font-bold text-white tracking-wide">SITE CALENDAR</h2>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8">
+                    <h2 className="text-lg md:text-xl font-bold text-white tracking-wide uppercase">Site Calendar</h2>
                     <div className="flex items-center gap-4">
                         <button onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() - 1)))} className="p-2 text-slate-400 hover:text-white transition-colors">
                             <ChevronDown className="w-5 h-5 rotate-90" />
@@ -450,7 +463,7 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                 <div className="flex-1 border border-white/10 rounded-xl overflow-hidden bg-[#0D1424]">
                     <div className="grid grid-cols-7 border-b border-white/10">
                         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                            <div key={d} className="p-4 text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center">
+                            <div key={d} className="p-2 md:p-4 text-[10px] md:text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center">
                                 {d}
                             </div>
                         ))}
@@ -558,7 +571,7 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                         </div>
 
                         {/* Center Panel */}
-                        <div className="flex-1 overflow-y-auto p-8 lg:p-12 bg-[#0B101B]">
+                        <div className="flex-1 overflow-y-auto p-5 lg:p-8 bg-[#0B101B]">
                             {!selectedParticipant ? (
                                 <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
                                     <p className="text-sm font-medium text-slate-400">Select a subject to view timeline</p>
@@ -566,7 +579,7 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                             ) : (
                                 <div className="max-w-4xl mx-auto">
                                     {/* Subject Header */}
-                                    <div className="mb-12">
+                                    <div className="mb-5">
                                         <h3 className="text-2xl font-bold text-white mb-2 uppercase">{selectedParticipant.name}</h3>
                                         <p className="text-xs text-slate-400 tracking-wide">
                                             SID: {selectedParticipant.participant_sid} &bull; [{selectedParticipant.protocol_id}] {selectedParticipant.study}
@@ -574,7 +587,7 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                     </div>
 
                                     {/* Stats Grid */}
-                                    <div className="grid grid-cols-2 gap-6 mb-12">
+                                    <div className="grid grid-cols-2 gap-4 mb-6">
                                         <div className="p-6 bg-[#0f172a] border border-white/10 rounded-2xl flex items-center gap-5">
                                             <Activity className="w-8 h-8 text-indigo-400" />
                                             <div>
@@ -818,7 +831,17 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                             <option value="FINAL">Final Visit</option>
                                             <option value="UNSCHEDULED">Unscheduled Visit</option>
                                             <option value="ONBOARDING">Onboarding Call</option>
+                                            <option value="OTHER">Other / Custom Type...</option>
                                         </select>
+                                        {scheduleData.visitType === 'OTHER' && (
+                                            <input 
+                                                type="text" 
+                                                placeholder="Enter custom visit name..."
+                                                value={scheduleData.customVisitType}
+                                                onChange={e => setScheduleData(prev => ({ ...prev, customVisitType: e.target.value }))}
+                                                className="w-full bg-[#0f172a] border border-white/10 rounded-lg p-3 mt-2 text-white text-sm outline-none focus:border-indigo-500"
+                                            />
+                                        )}
                                     </div>
                                     <div className="space-y-1.5">
                                         <label className="text-xs text-slate-400 font-semibold tracking-wide">Visit Mode</label>
@@ -826,7 +849,17 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                             <option value="Clinic">In-Clinic Visit</option>
                                             <option value="Virtual">Telehealth / Virtual</option>
                                             <option value="Home Visit">At-Home Visit</option>
+                                            <option value="OTHER">Other / Custom Mode...</option>
                                         </select>
+                                        {scheduleData.location === 'OTHER' && (
+                                            <input 
+                                                type="text" 
+                                                placeholder="Enter custom mode..."
+                                                value={scheduleData.customLocation}
+                                                onChange={e => setScheduleData(prev => ({ ...prev, customLocation: e.target.value }))}
+                                                className="w-full bg-[#0f172a] border border-white/10 rounded-lg p-3 mt-2 text-white text-sm outline-none focus:border-indigo-500"
+                                            />
+                                        )}
                                     </div>
                                 </div>
                                 <div className="space-y-1.5">

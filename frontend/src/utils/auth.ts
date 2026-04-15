@@ -46,8 +46,21 @@ export const getRefreshToken = () => localStorage.getItem('refresh_token');
 
 export const getUser = (): User | null => {
     const u = localStorage.getItem('user');
+    const token = localStorage.getItem('access_token');
     try {
-        return u ? JSON.parse(u) : null;
+        const parsedNode = u ? JSON.parse(u) : null;
+        if (parsedNode && token) {
+            // Reconstruct ID from token payload without needing a full logout cycle
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                if (payload && payload.sub) {
+                    parsedNode.id = payload.sub;
+                }
+            } catch (e) {
+                // Ignore silent parsing failures
+            }
+        }
+        return parsedNode;
     } catch (e) {
         return null;
     }

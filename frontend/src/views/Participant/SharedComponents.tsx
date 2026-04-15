@@ -40,7 +40,7 @@ export const Badge = ({ children, color = 'blue', className = '', ...props }: an
 
     return (
         <span 
-            className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-tight border leading-none ${selectedColor} ${className}`} 
+            className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-tight border leading-none ${selectedColor} ${className}`} 
             {...props}
         >
             {children}
@@ -104,13 +104,13 @@ export const Legend = ({ items }: { items: { label: string; color: string }[] })
 export const FilterChip = ({ label, active, onClick, count }: any) => (
     <button
         onClick={onClick}
-        className={`px-6 py-3 rounded-xl text-[14px] font-bold tracking-tight transition-all whitespace-nowrap border ${
+        className={`px-4 py-2 rounded-xl text-[11px] font-bold tracking-widest uppercase transition-all whitespace-nowrap border ${
             active
                 ? 'bg-[#E3F2FD] text-[#1E88E5] border-[#1E88E5] shadow-sm'
                 : 'bg-[#FFFFFF] text-[#5F6F89] border-[#E3ECF5] hover:border-[#1E88E5]/40 hover:bg-[#F0F6FF]'
         }`}
     >
-        {label} {count !== undefined && <span className={`ml-2 ${active ? 'text-[#1E88E5]/70' : 'text-[#5F6F89]'}`}>({count})</span>}
+        {label}{count !== undefined && <span className={`ml-1.5 text-[10px] ${active ? 'text-[#1E88E5]/70' : 'text-[#8A99B3]'}`}>({count})</span>}
     </button>
 );
 

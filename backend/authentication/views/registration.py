@@ -180,7 +180,7 @@ def complete_profile(request):
     required_fields = [
         'first_name', 'last_name', 'gender', 'full_address', 
         'city', 'state', 'zip_code', 'country', 
-        'place_of_origin', 'mobile_number'
+        'place_of_origin', 'mobile_number', 'date_of_birth', 'age'
     ]
     
     missing: List[str] = []
@@ -231,6 +231,8 @@ def complete_profile(request):
     user.country = data.get('country', user.country)
     user.place_of_origin = data.get('place_of_origin', user.place_of_origin)
     user.phone_number = data.get('mobile_number', user.phone_number)
+    user.date_of_birth = data.get('date_of_birth', user.date_of_birth)
+    user.age = data.get('age', user.age)
     
     # Make sure we explicitly set profile_completed to True
     user.profile_completed = True
@@ -281,6 +283,8 @@ def complete_profile(request):
             'country': user.country or '',
             'place_of_origin': decrypt_data(user.place_of_origin) if user.place_of_origin else '',
             'timezone': user.timezone or 'UTC',
+            'date_of_birth': user.date_of_birth,
+            'age': user.age,
             'medical_licence': user.medical_licence,
             'insurance_certificate': user.insurance_certificate,
             'cv_document': user.cv_document,

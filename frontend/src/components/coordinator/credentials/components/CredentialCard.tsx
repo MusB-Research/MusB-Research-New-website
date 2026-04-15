@@ -19,7 +19,7 @@ export const CredentialCard: React.FC<CredentialCardProps> = ({ doc, onSelect })
     };
 
     return (
-        <motion.div className="bg-[#0B101B]/40 border border-white/5 rounded-[2.5rem] p-10 space-y-8 group hover:border-indigo-500/20 transition-all relative overflow-hidden">
+        <motion.div className="bg-[#0B101B]/40 border border-white/5 rounded-[2.5rem] p-6 space-y-6 group hover:border-indigo-500/20 transition-all relative overflow-hidden">
             <div className="flex items-start justify-between">
                 <div className="flex items-center gap-6">
                     <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-600 group-hover:text-indigo-400 transition-colors">
@@ -35,15 +35,14 @@ export const CredentialCard: React.FC<CredentialCardProps> = ({ doc, onSelect })
                 </div>
             </div>
 
-            <div className="flex items-center justify-between pt-8 border-t border-white/5">
-                <div className="flex items-center gap-10">
+            <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                <div className="flex items-center gap-4">
                     <div>
                         <p className="text-[12px] text-slate-600 font-black uppercase tracking-widest">Expiration</p>
                         <p className={`text-[12px] font-black uppercase tracking-widest mt-1 ${doc.status === 'Expiring Soon' ? 'text-amber-400 animate-pulse' : 'text-slate-300'}`}>{doc.expiryDate}</p>
                     </div>
                     <div>
-                        <p className="text-[12px] text-slate-600 font-black uppercase tracking-widest">Audit Track</p>
-                        <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest mt-1">Verified 2026-01-01</p>
+                        <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest mt-1">Verified</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">

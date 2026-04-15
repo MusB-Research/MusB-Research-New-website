@@ -18,7 +18,10 @@ import {
     Plus,
     X,
     ArrowLeft,
-    ArrowRight
+    ArrowRight,
+    User,
+    Mail,
+    Phone
 } from 'lucide-react';
 import { Card, Badge, Skeleton } from './SharedComponents';
 
@@ -30,9 +33,17 @@ interface Visit {
     status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'MISSED' | 'CANCELLED';
     notes?: string;
     location: string;
+    location_address?: string;
     checklist?: any[];
     assessments?: any[];
     measurements?: Record<string, any>;
+    scheduled_by_details?: {
+        full_name?: string;
+        email?: string;
+        phone?: string;
+        decrypted_name?: string;
+        decrypted_phone?: string;
+    }
 }
 
 const VisitsView = ({ visits = [], study, tasks = [], isLoading = false }: { visits: Visit[]; study: any; tasks: any[]; isLoading?: boolean }) => {
@@ -239,9 +250,51 @@ const VisitsView = ({ visits = [], study, tasks = [], isLoading = false }: { vis
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="pt-6 border-t border-[#F8FBFF] flex items-center gap-3">
-                                                    <MapPin className="w-4.5 h-4.5 text-[#1E88E5]" />
-                                                    <span className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest">{visit.location || 'Protocol Site Alpha'}</span>
+                                                <div className="pt-6 border-t border-[#F8FBFF] flex flex-col gap-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <MapPin className="w-4.5 h-4.5 text-[#1E88E5]" />
+                                                        <div className="space-y-0.5">
+                                                            <span className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest">{visit.location || 'Protocol Site Alpha'}</span>
+                                                            {visit.location_address && (
+                                                                <p className="text-[11px] text-[#5F6F89] font-medium">{visit.location_address}</p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {(() => {
+                                                        const contact = visit.scheduled_by_details || study?.assigned_coordinators?.[0] || study?.assigned_pis?.[0];
+                                                        if (!contact) return null;
+                                                        
+                                                        const contactName = contact.decrypted_name || contact.full_name || 'Protocol Staff';
+                                                        const displayChar = contactName.charAt(0).toUpperCase();
+
+                                                        return (
+                                                            <div className="pt-4 border-t border-[#F8FBFF] space-y-3">
+                                                                <h4 className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest flex items-center gap-2">
+                                                                    <User className="w-3.5 h-3.5" />
+                                                                    Point of Contact
+                                                                </h4>
+                                                                <div className="flex flex-wrap items-center gap-6">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="w-9 h-9 rounded-full bg-[#E3F2FD] flex items-center justify-center text-[#1E88E5] font-extrabold text-[12px] shadow-sm ring-2 ring-white uppercase">
+                                                                            {displayChar}
+                                                                        </div>
+                                                                        <p className="text-[13px] font-bold text-[#1A2B49] uppercase tracking-tight">
+                                                                            {contactName}
+                                                                        </p>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-4 text-[11px] font-bold text-[#5F6F89]">
+                                                                        {contact.email && (
+                                                                            <div className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-[#1E88E5]" /> {contact.email}</div>
+                                                                        )}
+                                                                        {(contact.decrypted_phone || contact.phone) && (
+                                                                            <div className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-[#1E88E5]" /> {contact.decrypted_phone || contact.phone}</div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </div>
 

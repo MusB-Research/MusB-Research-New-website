@@ -50,7 +50,7 @@ interface FAQ {
 // --- CONSTANTS ---
 const COLORS = {
     bg: '#0B101B',
-    accent: '#6366f1',
+    accent: '#14b8a6',
     success: '#10b981',
     warning: '#f59e0b',
     danger: '#ef4444',
@@ -238,7 +238,7 @@ export default function PIHelpSupportModule() {
                     id: t.id,
                     ticketId: t.ticket_id,
                     title: t.title,
-                    study: t.study_protocol || 'Global',
+                    study: t.study_assignment || 'Global',
                     category: t.category,
                     priority: t.priority,
                     status: t.status,
@@ -389,17 +389,17 @@ export default function PIHelpSupportModule() {
         label: { fontSize: '14px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.15em', color: COLORS.label },
         title: { fontSize: '22px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' as const, color: 'white' },
         btnIndigo: { backgroundColor: COLORS.accent, color: 'white', border: 'none', padding: '0.7rem 1.5rem', borderRadius: '4px', fontSize: '14px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' },
-        btnGhost: { backgroundColor: 'transparent', color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: '0.7rem 1.5rem', borderRadius: '4px', fontSize: '14px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' }
+        btnGhost: { backgroundColor: 'transparent', color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: '0.5rem 1rem', borderRadius: '4px', fontSize: '13px', fontWeight: 900, textTransform: 'uppercase' as const, cursor: 'pointer' }
     };
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', backgroundColor: COLORS.bg, color: 'white', overflow: 'hidden' }}>
             
             {/* SUB-HEADER TOOLBAR (Adjusted for Dashboard Overlay) */}
-            <header style={{ ...G.glass, padding: '1.5rem 3rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10, marginTop: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <HelpCircle size={24} color={COLORS.accent} />
-                    <h1 style={G.title}>Help & Support</h1>
+            <header style={{ ...G.glass, padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10, marginTop: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <HelpCircle size={20} color={COLORS.accent} />
+                    <h1 style={{ ...G.title, fontSize: '18px' }}>Help & Support</h1>
                 </div>
 
                 <div style={{ flex: 1, maxWidth: '500px', margin: '0 2rem', position: 'relative' }}>
@@ -451,10 +451,10 @@ export default function PIHelpSupportModule() {
                                 key={t.id}
                                 onClick={() => handleSelectTicket(t.id)}
                                 style={{
-                                    padding: '1.25rem', borderBottom: `1px solid ${COLORS.border}`, cursor: 'pointer',
+                                    padding: '0.75rem 1rem', borderBottom: `1px solid ${COLORS.border}`, cursor: 'pointer',
                                     backgroundColor: activeTicketId === t.id ? 'rgba(99,102,241,0.08)' : 'transparent',
                                     borderLeft: `3px solid ${t.unread ? COLORS.accent : (activeTicketId === t.id ? COLORS.accent : 'transparent')}`,
-                                    transition: 'all 0.2s'
+                                    transition: 'all 0.1s'
                                 }}
                             >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
@@ -507,7 +507,7 @@ export default function PIHelpSupportModule() {
                     ) : activeTicket ? (
                         <>
                             {/* THREAD HEADER */}
-                            <div style={{ padding: '1.5rem 3rem', borderBottom: `1px solid ${COLORS.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.01)' }}>
+                            <div style={{ padding: '0.75rem 1.5rem', borderBottom: `1px solid ${COLORS.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.01)' }}>
                                 <div>
                                     <div style={{ fontSize: '18px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' }}>{activeTicket.id} • {activeTicket.title}</div>
                                     <div style={{ fontSize: '13px', color: COLORS.label, marginTop: '0.4rem' }}>{activeTicket.study} {activeTicket.participantId ? `| PID: ${activeTicket.participantId}` : ''}</div>
@@ -520,7 +520,7 @@ export default function PIHelpSupportModule() {
                             </div>
 
                             {/* CHAT THREAD */}
-                            <div style={{ flex: 1, overflowY: 'auto', padding: '2rem 3rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }} className="custom-scrollbar">
+                            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }} className="custom-scrollbar">
                                 {activeTicket.messages.map(m => (
                                     <div key={m.id} style={{ alignSelf: m.isSystem ? 'center' : (m.fromPI ? 'flex-end' : 'flex-start'), maxWidth: m.isSystem ? '100%' : '75%' }}>
                                         {m.isSystem ? (
@@ -559,7 +559,7 @@ export default function PIHelpSupportModule() {
                             </div>
 
                             {/* INPUT BOX */}
-                            <div style={{ padding: '2rem 3rem', borderTop: `1px solid ${COLORS.border}`, backgroundColor: 'rgba(7, 10, 19, 0.4)' }}>
+                            <div style={{ padding: '1rem 1.5rem', borderTop: `1px solid ${COLORS.border}`, backgroundColor: 'rgba(7, 10, 19, 0.4)' }}>
                                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', alignItems: 'center' }}>
                                     <div style={{ display: 'flex', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '4px', padding: '2px' }}>
                                         {['General', 'Technical', 'Clinical', 'Urgent'].map(t => (
@@ -726,7 +726,7 @@ export default function PIHelpSupportModule() {
                                     >
                                         <option>Technical Support</option>
                                         <option>Study Operations</option>
-                                        <option>Clinical Protocol</option>
+                                        <option>Clinical Study</option>
                                         <option>Data & Reports</option>
                                         <option>Access & Permissions</option>
                                     </select>
@@ -792,7 +792,7 @@ export default function PIHelpSupportModule() {
                 @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
                 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.2); border-radius: 2px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(20, 184, 166, 0.2); border-radius: 2px; }
             `}</style>
         </div>
     );

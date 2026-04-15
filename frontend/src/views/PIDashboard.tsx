@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import NotificationBell from '../components/NotificationBell';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,16 +9,16 @@ import SubmitContentForms from '../components/coordinator/SubmitContentForms';
 import LaunchStudyForm from '../components/coordinator/LaunchStudyForm';
 import SponsorsManagement from '../components/coordinator/SponsorsManagement';
 import PIMessagesModule from '../components/pi/PIMessagesModule';
-import PISubjectReviewModule from '../components/pi/PISubjectReviewModule';
+import SubjectReviewModule from '../components/coordinator/subject-review/SubjectReviewModule';
 import PITeamModule from '../components/pi/PITeamModule';
-import PIVisitsAssessmentsModule from '../components/pi/VisitsModule';
+import VisitsModule from '../components/coordinator/VisitsModule';
 import PIHelpSupportModule from '../components/pi/PIHelpSupportModule';
 
 
 // New PI Panel Modules
 import ParticipantOversight from '../components/pi/panels/ParticipantOversight';
 import FormsQuestionnairesModule from '../components/pi/panels/FormsQuestionnairesModule';
-import PIConsentModule from '../components/pi/PIConsentModule';
+import ConsentModule from '../components/coordinator/consent/ConsentModule';
 import LabsResultsModule from '../components/pi/panels/LabsResultsModule';
 import ReportsSignOffModule from '../components/pi/panels/ReportsSignOffModule';
 import StudyDocumentsModule from '../components/pi/panels/StudyDocumentsModule';
@@ -33,7 +33,7 @@ import ParticipantTaskManagement from '../components/shared/ParticipantTaskManag
 
 
 import {
-    Calendar, Clock, ArrowRight, ChevronRight, Sparkles, Trophy,
+    Calendar, Clock, ArrowRight, ChevronRight, ChevronLeft, Sparkles, Trophy,
     Activity, FileText, CheckCircle2, Box, Zap, PlusCircle,
     AlertCircle, MessageSquare, Ship, Microscope, History,
     TrendingUp, Award, LayoutDashboard, Bell, Info, ExternalLink,
@@ -47,6 +47,7 @@ import {
 
 type PIModule =
     | 'WEBSITE'
+    | 'OVERVIEW'
     | 'OVERSIGHT'
     | 'STUDIES'
     | 'TEAM'
@@ -56,14 +57,11 @@ type PIModule =
     | 'VISITS'
     | 'LABS'
     | 'REPORTS'
-    | 'STUDY_DOCS'
-    | 'MY_DOCS'
     | 'SUBJECT_REVIEW'
     | 'MESSAGES'
     | 'ALERTS'
     | 'LAUNCH_STUDY'
     | 'SPONSORS'
-    | 'SUPPORT'
     | 'AUDIT_LOG'
     | 'TASKS'
     | 'ANALYTICS'
@@ -82,12 +80,23 @@ interface SidebarGroup {
     items: SidebarItem[];
 }
 
+function PISkeleton({ className = '' }: { className?: string }) {
+    return (
+        <div className={`relative overflow-hidden bg-white/5 border border-white/10 rounded-2xl animate-pulse ${className}`}>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white-[0.03] to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+        </div>
+    );
+}
+
 export default function PIDashboard() {
     const navigate = useNavigate();
     const location = useLocation();
 
     const [activeModule, setActiveModule] = useState<PIModule>(() => {
-        const route = location.pathname.split('/').pop();
+        const path = location.pathname.toLowerCase().replace(/\/$/, "");
+        const parts = path.split('/');
+        const route = parts[parts.length - 1];
+        
         if (route === 'studies') return 'STUDIES';
         if (route === 'team') return 'TEAM';
         if (route === 'participants') return 'PARTICIPANTS';
@@ -96,19 +105,19 @@ export default function PIDashboard() {
         if (route === 'consent') return 'CONSENT';
         if (route === 'visits') return 'VISITS';
         if (route === 'labs') return 'LABS';
-        if (route === 'reports') return 'REPORTS';
+        if (route === 'reports' || route === 'docs') return 'REPORTS';
         if (route === 'study-docs') return 'STUDY_DOCS';
         if (route === 'my-docs') return 'MY_DOCS';
         if (route === 'messages') return 'MESSAGES';
         if (route === 'alerts') return 'ALERTS';
         if (route === 'launch-study') return 'LAUNCH_STUDY';
-        if (route === 'support') return 'SUPPORT';
-        if (route === 'audit-log') return 'AUDIT_LOG';
+        if (route === 'support' || route === 'help') return 'SUPPORT';
+        if (route === 'audit-log' || route === 'audit') return 'AUDIT_LOG';
         if (route === 'analytics') return 'ANALYTICS';
-        if (route === 'sponsors') return 'SPONSORS';
         if (route === 'tasks') return 'TASKS';
         if (route === 'kits') return 'KITS';
-        return 'OVERSIGHT';
+        if (route === 'participant-tasks') return 'PARTICIPANT_TASKS';
+        return 'OVERVIEW';
     });
 
     // Sync activeModule when URL changes (for browser back button support)
@@ -119,7 +128,7 @@ export default function PIDashboard() {
 
         console.log("[PIDashboard] Route sync:", { path, route });
 
-        if (route === 'pi' || !route || route === 'oversight') setActiveModule('OVERSIGHT');
+        if (route === 'pi' || !route || route === 'oversight' || route === 'overview') setActiveModule('OVERVIEW');
         else if (route === 'studies') setActiveModule('STUDIES');
         else if (route === 'participants') setActiveModule('PARTICIPANTS');
         else if (route === 'forms') setActiveModule('FORMS');
@@ -138,15 +147,15 @@ export default function PIDashboard() {
         else if (route === 'audit-log' || route === 'audit') setActiveModule('AUDIT_LOG');
         else if (route === 'analytics') setActiveModule('ANALYTICS');
         else if (route === 'tasks') setActiveModule('TASKS');
-        else if (route === 'participant-tasks') setActiveModule('PARTICIPANT_TASKS');
         else if (route === 'sponsors') setActiveModule('SPONSORS');
         else if (route === 'kits') setActiveModule('KITS');
-        else setActiveModule('OVERSIGHT');
+        else if (route === 'participant-tasks') setActiveModule('PARTICIPANT_TASKS');
+        else setActiveModule('OVERVIEW');
     }, [location.pathname]);
 
     const handleModuleChange = (mod: PIModule) => {
         const slugs: Record<string, string> = {
-            'OVERSIGHT': '',
+            'OVERVIEW': '',
             'STUDIES': 'studies',
             'TEAM': 'team',
             'PARTICIPANTS': 'participants',
@@ -220,6 +229,13 @@ export default function PIDashboard() {
         };
     }, [isProfileOpen]);
 
+    // Bridge: coordinator SubjectReviewModule dispatches this event when ← back is clicked
+    useEffect(() => {
+        const handler = () => setActiveModule('PARTICIPANTS');
+        window.addEventListener('nav-to-participants', handler);
+        return () => window.removeEventListener('nav-to-participants', handler);
+    }, []);
+
     const handleSignOut = () => {
         setIsLogoutModalOpen(true);
     };
@@ -227,48 +243,99 @@ export default function PIDashboard() {
     const confirmSignOut = async () => {
         await performLogout();
     };
-    const [studies, setStudies] = useState<any[]>([]);
+     const [studies, setStudies] = useState<any[]>([]);
+    const [participants, setParticipants] = useState<any[]>([]);
+    const [visits, setVisits] = useState<any[]>([]);
+    const [tasks, setTasks] = useState<any[]>([]);
+    const [notifications, setNotifications] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [viewDate, setViewDate] = useState(new Date());
     const [selectedStudy, setSelectedStudy] = useState<any>(null);
     const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
-    const [globalSelectedStudyId, setGlobalSelectedStudyId] = useState<string | 'all'>('all');
-
-    // Dynamic state for Operational Widgets
-    // IMPORTANT: upcomingVisits should fetch data for a 2-month rolling window (60 days)
     const [oversightStats, setOversightStats] = useState({
-        upcomingVisits: 12,
-        overdueFollowUps: 5,
-        awaitingCallback: 8,
-        pendingForms: 14,
-        hasCriticalAlert: true
+        upcomingVisits: 0,
+        overdueFollowUps: 0,
+        awaitingCallback: 0,
+        pendingForms: 0,
+        unreadAlerts: 0,
+        hasCriticalAlert: false
     });
+    const [participantsByStudy, setParticipantsByStudy] = useState<Record<string, number>>({});
+    const [globalSelectedStudyId, setGlobalSelectedStudyId] = useState<string>('all');
+
+    const fetchAllData = useCallback(async () => {
+        setLoading(true);
+        try {
+            // Updated endpoints to match backend reality
+            const [studiesRaw, participantsRaw, notificationsRaw, visitsRaw, staffTasksRaw, usersRaw] = await Promise.all([
+                authFetch(`${API}/api/studies/`).then(r => r.json()),
+                authFetch(`${API}/api/participants/?pi=true`).then(r => r.json()), 
+                authFetch(`${API}/api/notifications/`).then(r => r.json()),
+                authFetch(`${API}/api/visits/`).then(r => r.json()),
+                authFetch(`${API}/api/staff-tasks/`).then(r => r.json()),
+                authFetch(`${API}/api/auth/list-team-members/`).then(r => r.json()).catch(() => [])
+            ]);
+
+            // Senior Dev: Normalize DRF Paginated results to Standard Arrays
+            const normalize = (data: any) => {
+                if (Array.isArray(data)) return data;
+                if (data && Array.isArray(data.results)) return data.results;
+                return [];
+            };
+
+            const studiesData = normalize(studiesRaw);
+            const participantsData = normalize(participantsRaw);
+            const notificationsData = normalize(notificationsRaw);
+            const visitsData = normalize(visitsRaw);
+            const staffTasksData = normalize(staffTasksRaw);
+            const usersData = normalize(usersRaw);
+
+            setStudies(studiesData);
+            setParticipants(participantsData);
+            setNotifications(notificationsData);
+            setVisits(visitsData);
+            setTasks(staffTasksData);
+            setUsers(usersData);
+
+            // Calculate Oversite Stats locally to prevent 404s
+            const now = new Date();
+            const upcoming = visitsData.filter((v: any) => v.status === 'SCHEDULED' && new Date(v.scheduled_date) > now).length;
+            const overdue = visitsData.filter((v: any) => v.status === 'SCHEDULED' && new Date(v.scheduled_date) < now).length;
+            const pendingForms = staffTasksData.filter((t: any) => !t.is_completed).length;
+            const unreadAlerts = notificationsData.filter((n: any) => !n.is_read).length;
+
+            setOversightStats({
+                upcomingVisits: upcoming,
+                overdueFollowUps: overdue,
+                awaitingCallback: 0,
+                pendingForms: pendingForms,
+                unreadAlerts: unreadAlerts,
+                hasCriticalAlert: overdue > 0 || notificationsData.some((n: any) => n.priority === 'CRITICAL' && !n.is_read)
+            });
+
+            const grouped: Record<string, number> = {};
+            participantsData.forEach((p: any) => {
+                const sId = p.study_id || (p.study?.id || p.study);
+                grouped[sId] = (grouped[sId] || 0) + 1;
+            });
+            setParticipantsByStudy(grouped);
+        } catch (err) {
+            console.error("Dashboard fetch error:", err);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchAllData();
+        // Removed aggressive 30-second polling interval to prevent infinite fetching loop
+    }, [fetchAllData]);
 
     useEffect(() => {
         const handleNav = () => handleModuleChange('PARTICIPANTS');
         window.addEventListener('nav-to-participants', handleNav);
         return () => window.removeEventListener('nav-to-participants', handleNav);
-    }, []);
-
-    const fetchPIContent = async () => {
-        setLoading(true);
-        try {
-            const studiesData = await apiFetch<any[]>('/api/studies/');
-            const usersData = await apiFetch<any[]>('/api/users/');
-
-            setStudies((studiesData || []).sort((a: any, b: any) =>
-                (a.id || "").localeCompare(b.id || "")
-            ));
-            setUsers(usersData || []);
-        } catch (e) {
-            console.error("PI Data Fetch Failed", e);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchPIContent();
     }, []);
 
     const handleCreateStudy = async (formData: any) => {
@@ -302,7 +369,6 @@ export default function PIDashboard() {
             if (res.ok) {
                 handleModuleChange('STUDIES');
                 setSelectedStudy(null);
-                fetchPIContent();
             } else {
                 const err = await res.json();
                 console.error("Study Save Failed:", err);
@@ -317,43 +383,35 @@ export default function PIDashboard() {
 
     const sidebarGroups: SidebarGroup[] = [
         {
-            group: 'GENERAL',
+            group: 'Main',
             items: [
                 { id: 'WEBSITE', label: 'Main Website', icon: Globe },
-                { id: 'OVERSIGHT', label: 'Dashboard', icon: LayoutDashboard },
+                { id: 'OVERVIEW', label: 'Overview', icon: LayoutDashboard },
                 { id: 'TASKS', label: 'My Tasks', icon: CheckSquare, hasNotify: true },
             ]
         },
         {
-            group: 'RESEARCH MANAGEMENT',
+            group: 'Research',
             items: [
                 { id: 'STUDIES', label: 'My Studies', icon: Beaker },
                 { id: 'TEAM', label: 'My Team', icon: Users },
-                { id: 'PARTICIPANTS', label: 'Participant Oversight', icon: UsersRound },
-                { id: 'SUBJECT_REVIEW', label: 'Subject Review', icon: Activity },
-                { id: 'FORMS', label: 'Eligibility Questionnaires', icon: ClipboardList },
-                { id: 'CONSENT', label: 'Consent Oversight', icon: ShieldCheck },
-                { id: 'VISITS', label: 'Visits & Assessments', icon: Calendar },
+                { id: 'PARTICIPANTS', label: 'Participants', icon: UsersRound },
+                { id: 'SUBJECT_REVIEW', label: 'Review', icon: Activity },
+                { id: 'FORMS', label: 'Screening Forms', icon: ClipboardList },
+                { id: 'CONSENT', label: 'Consent Forms', icon: ShieldCheck },
+                { id: 'VISITS', label: 'Visits & Appointments', icon: Calendar },
                 { id: 'SPONSORS', label: 'My Sponsors', icon: Building2 },
-                { id: 'LABS', label: 'Health Check Reports', icon: Beaker },
-                { id: 'KITS', label: 'Study Kits', icon: Box },
-                { id: 'PARTICIPANT_TASKS', label: 'Participant Tasks', icon: ListFilter },
+                { id: 'LABS', label: 'Lab Results', icon: Beaker },
+                { id: 'KITS', label: 'Kits & Logistics', icon: Box },
+                { id: 'PARTICIPANT_TASKS', label: 'Subject Tasks', icon: ListFilter },
+                { id: 'LAUNCH_STUDY', label: 'Start Study', icon: Rocket },
             ]
         },
         {
-            group: 'DOCUMENTS & COMMS',
+            group: 'Files & Messages',
             items: [
-                { id: 'STUDY_DOCS', label: 'Study Documents', icon: FileText },
-                { id: 'MY_DOCS', label: 'My Documents', icon: Settings2 },
                 { id: 'MESSAGES', label: 'Messages', icon: MessageSquare },
                 { id: 'ALERTS', label: 'Alerts', icon: Bell, hasNotify: true },
-            ]
-        },
-        {
-            group: 'RESOURCES',
-            items: [
-                { id: 'LAUNCH_STUDY', label: 'Launch a Study', icon: Rocket },
-                { id: 'SUPPORT', label: 'Help / Support', icon: HelpCircle },
             ]
         }
     ];
@@ -370,7 +428,7 @@ export default function PIDashboard() {
         } catch (e) { }
 
         return (
-            <header className="fixed top-0 left-0 lg:left-80 right-0 h-24 z-[60] bg-[#0B101B]/95 backdrop-blur-3xl border-b border-white/5 flex items-center justify-between px-6 md:px-8">
+            <header className="fixed top-0 left-0 lg:left-64 right-0 h-20 z-[60] bg-[#0B101B]/95 backdrop-blur-3xl border-b border-white/5 flex items-center justify-between px-4 md:px-6 lg:px-8">
 
                 <div className="flex items-center lg:hidden">
                     <button
@@ -382,24 +440,26 @@ export default function PIDashboard() {
                 </div>
 
                 <div className="hidden lg:flex flex-col">
-                    <h1 className="text-xl font-black text-white uppercase italic tracking-tighter leading-none">PI DASHBOARD</h1>
-                    <div className="flex items-center gap-2 mt-2">
-                        <span className="text-[12px] font-black uppercase tracking-[0.4em] text-indigo-400 font-mono">RESEARCH TERMINAL</span>
-                    </div>
+                    <h1 className="text-xl font-bold text-white uppercase tracking-tight leading-none">PI Dashboard</h1>
                 </div>
 
                 <div className="flex items-center gap-6">
-                    <div className="hidden xl:flex items-center gap-3 bg-white/5 p-1.5 rounded-2xl border border-white/10">
-                        <div className="px-4 text-[12px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/10">PROTOCOL</div>
+                    <div className="hidden xl:flex items-center gap-3 bg-white/5 p-1 rounded-xl border border-white/10">
+                        <div className="px-4 text-xs font-bold text-slate-500 uppercase tracking-widest border-r border-white/10 shrink-0">STUDY</div>
                         <select
                             value={globalSelectedStudyId}
                             onChange={(e) => setGlobalSelectedStudyId(e.target.value)}
-                            className="bg-transparent text-[12px] font-black text-indigo-400 uppercase tracking-widest outline-none cursor-pointer px-4"
+                            className="bg-transparent text-[13px] font-bold text-teal-400 uppercase tracking-widest outline-none cursor-pointer px-4"
                         >
-                            <option value="all" className="bg-[#0B101B]">ALL STUDIES</option>
-                            {studies.map(s => (
-                                <option key={s.id} value={s.id} className="bg-[#0B101B]">{s.protocol_id || s.id}</option>
-                            ))}
+                            <option value="all" className="bg-[#0B101B]">ALL ACTIVE STUDIES ({Object.values(participantsByStudy).reduce((a,b)=>a+b,0)} total)</option>
+                            {studies.map(s => {
+                                const cnt = participantsByStudy[s.id] ?? 0;
+                                return (
+                                    <option key={s.id} value={s.id} className="bg-[#0B101B]">
+                                        {s.protocol_id || s.id} ({cnt} participant{cnt !== 1 ? 's' : ''})
+                                    </option>
+                                );
+                            })}
                         </select>
                     </div>
                 </div>
@@ -408,10 +468,10 @@ export default function PIDashboard() {
 
                 <div className="flex items-center gap-4 h-10 md:h-14">
                     <div className="flex flex-col items-end text-right border-r border-white/5 pr-4 md:pr-6">
-                        <span className="text-sm md:text-xl font-black text-cyan-400 font-mono tracking-tighter tabular-nums leading-none">
+                        <span className="text-sm md:text-xl font-bold text-cyan-400 font-mono tracking-tighter tabular-nums leading-none">
                             {currentTime.toLocaleTimeString('en-US', { hour12: false })}
                         </span>
-                        <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mt-1 md:mt-1.5">
+                        <span className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1 md:mt-1.5">
                             {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()}
                         </span>
                     </div>
@@ -428,18 +488,18 @@ export default function PIDashboard() {
 
                     <div className="flex items-center gap-4 relative" ref={profileRef}>
                         <div className="text-right hidden lg:block">
-                            <p className="text-[14px] font-black text-white uppercase italic leading-none tracking-tight">{userName}</p>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1.5">{getUser()?.email}</p>
+                            <p className="text-[14px] font-bold text-white uppercase  leading-none tracking-tight">{userName}</p>
+                            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1.5">{getUser()?.email}</p>
                         </div>
                         <button
                             onClick={() => setIsProfileOpen(!isProfileOpen)}
-                            className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white/5 border border-white/10 p-0.5 hover:border-indigo-600 transition-all active:scale-95 group overflow-hidden shadow-2xl"
+                            className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-white/5 border border-white/10 p-0.5 hover:border-teal-600 transition-all active:scale-95 group overflow-hidden shadow-2xl"
                         >
-                            <div className="w-full h-full rounded-[0.9rem] flex items-center justify-center bg-white/10 group-hover:bg-indigo-600/20 transition-colors">
+                            <div className="w-full h-full rounded-[0.6rem] flex items-center justify-center bg-white/10 group-hover:bg-teal-600/20 transition-colors">
                                 {userPicture ? (
                                     <img src={userPicture} alt={userName} className="w-full h-full object-cover rounded-[0.9rem]" />
                                 ) : (
-                                    <span className="text-sm font-black text-white uppercase italic">
+                                    <span className="text-sm font-bold text-white uppercase ">
                                         {userName.split(' ').map((n: string) => n?.[0]).join('').toUpperCase().slice(0, 2) || 'PI'}
                                     </span>
                                 )}
@@ -456,10 +516,10 @@ export default function PIDashboard() {
                                     className="absolute right-0 top-full mt-4 w-56 bg-[#0B101B] border border-white/10 rounded-2xl shadow-2xl p-2 z-50 overflow-hidden"
                                 >
                                     <div className="p-3 border-b border-white/5 mb-2">
-                                        <p className="text-[12px] font-bold text-white truncate">{userName}</p>
-                                        <p className="text-[12px] text-slate-500 truncate">{getUser()?.email}</p>
+                                        <p className="text-sm font-bold text-white truncate">{userName}</p>
+                                        <p className="text-sm text-slate-500 truncate">{getUser()?.email}</p>
                                     </div>
-                                    <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-100 hover:text-white hover:bg-red-500/20 transition-all text-[12px] font-black uppercase tracking-widest">
+                                    <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-100 hover:text-white hover:bg-red-500/20 transition-all text-sm font-bold uppercase tracking-widest">
                                         <LogOut className="w-4 h-4" /> Sign Out
                                     </button>
                                 </motion.div>
@@ -488,8 +548,8 @@ export default function PIDashboard() {
                 )}
             </AnimatePresence>
 
-            <aside className={`fixed left-0 top-0 bottom-0 w-80 bg-[#0B101B] border-r border-white/5 z-[70] transition-transform duration-300 lg:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-                <div className="h-24 px-8 flex justify-between items-center border-b border-white/[0.05]">
+            <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-[#0B101B] border-r border-white/5 z-[70] transition-transform duration-300 lg:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+                <div className="h-20 px-6 flex justify-between items-center border-b border-white/[0.05]">
                     <Link to="/" target="_blank" rel="noopener noreferrer" className="group transition-all">
                         <div className="bg-white p-2 rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
                             <img src="/logo.jpg" alt="Logo" className="h-12 w-auto object-contain rounded-xl" />
@@ -497,10 +557,10 @@ export default function PIDashboard() {
                     </Link>
                 </div>
 
-                <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-6 custom-scrollbar">
+                <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-3 custom-scrollbar">
                     {sidebarGroups.map((group, i) => (
-                        <div key={i} className="space-y-2">
-                            <p className="px-4 text-[12px] font-bold text-white/40 uppercase tracking-widest">{group.group}</p>
+                        <div key={i} className="space-y-1">
+                            <p className="px-4 text-[13px] font-bold text-white/30 uppercase tracking-widest mb-1">{group.group}</p>
                             <div className="space-y-1.5">
                                 {group.items.map((item, j) => (
                                     <button
@@ -512,13 +572,13 @@ export default function PIDashboard() {
                                                 setIsSidebarOpen(false);
                                             }
                                         }}
-                                        className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all group relative ${activeModule === item.id
-                                            ? 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 shadow-lg shadow-indigo-500/5'
+                                        className={`w-full flex items-center gap-3 px-4 py-2 rounded-xl transition-all group relative ${activeModule === item.id
+                                            ? 'bg-teal-500/10 text-teal-300 border border-teal-500/20 shadow-lg shadow-teal-500/5'
                                             : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'
                                             }`}
                                     >
-                                        <item.icon className={`w-4 h-4 ${activeModule === item.id ? 'text-indigo-400' : 'text-slate-500'}`} />
-                                        <span className="text-sm font-black text-left flex-1 tracking-tight">{item.label}</span>
+                                        <item.icon className={`w-4 h-4 ${activeModule === item.id ? 'text-teal-400' : 'text-slate-500'}`} />
+                                        <span className="text-sm font-bold text-left flex-1 tracking-tight">{item.label}</span>
                                         {item.hasNotify && (
                                             <div className="w-2 h-2 rounded-full bg-pink-500 shadow-[0_0_10px_rgba(236,72,153,0.6)]" />
                                         )}
@@ -538,14 +598,19 @@ export default function PIDashboard() {
             </aside>
 
 
-            <main className="flex-1 lg:pl-80 pt-24 lg:pt-32 pb-12 md:pb-24 px-4 md:px-8 overflow-x-hidden bg-[#0F172A] min-h-screen">
+            <main className={`flex-1 lg:pl-64 pt-20 lg:pt-24 pb-8 md:pb-12 px-4 md:px-6 lg:px-8 overflow-x-hidden bg-[#0F172A] min-h-screen transition-all duration-500 ease-in-out ${loading ? 'opacity-50 blur-sm pointer-events-none' : 'opacity-100'}`}>
                 <AnimatePresence mode="wait">
-                    {activeModule === 'OVERSIGHT' && (
-                        <OversightModule
+                    {activeModule === 'OVERVIEW' && (
+                        <OverviewModule
+                            loading={loading}
                             studyCount={studies.length}
+                            participantCount={participants.length}
                             stats={oversightStats}
+                            visits={visits}
+                            viewDate={viewDate}
+                            setViewDate={setViewDate}
                             onLaunch={() => setActiveModule('LAUNCH_STUDY')}
-                            onNavigate={(id) => setActiveModule(id as PIModule)}
+                            onNavigate={(id) => handleModuleChange(id as PIModule)}
                         />
                     )}
                     {activeModule === 'STUDIES' && (
@@ -566,48 +631,40 @@ export default function PIDashboard() {
                             }}
                             initialData={selectedStudy}
                             onSave={handleCreateStudy}
-                            availablePIs={users.filter(u => u.role === 'PI')}
-                            availableCoordinators={users.filter(u => u.role === 'COORDINATOR')}
-                            availableSponsors={users.filter(u => u.role === 'SPONSOR')}
                         />
                     )}
                     {activeModule === 'MESSAGES' && <PIMessagesModule />}
-                    {activeModule === 'SUBJECT_REVIEW' && <PISubjectReviewModule participantId={selectedParticipantId || 'BTB-023'} />}
+                    {activeModule === 'SUBJECT_REVIEW' && <SubjectReviewModule participantId={selectedParticipantId || ''} selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined} />}
                     {activeModule === 'TEAM' && (
-                        <PITeamModule
-                            allUsers={users}
-                            allStudies={studies}
-                            onRefresh={fetchPIContent}
+                        <PITeamModule 
+                            allUsers={users} 
+                            allStudies={studies} 
+                            onRefresh={fetchAllData} 
+                            selectedStudyId={globalSelectedStudyId}
                         />
                     )}
                     {activeModule === 'PARTICIPANTS' && <ParticipantOversight
+                        selectedStudyId={globalSelectedStudyId}
                         onOpenProfile={(id) => {
                             setSelectedParticipantId(id);
                             setActiveModule('SUBJECT_REVIEW');
                         }}
-                        onMessage={() => {
-                            setActiveModule('MESSAGES');
-                        }}
                     />}
                     {activeModule === 'FORMS' && <FormsQuestionnairesModule />}
-                    {activeModule === 'CONSENT' && <PIConsentModule />}
-                    {activeModule === 'VISITS' && <PIVisitsAssessmentsModule />}
+                    {activeModule === 'CONSENT' && <ConsentModule selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined} />}
+                    {activeModule === 'VISITS' && <VisitsModule selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined} />}
                     {activeModule === 'LABS' && <LabsResultsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'KITS' && <StudyKitsModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'REPORTS' && <ReportsSignOffModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'STUDY_DOCS' && <StudyDocumentsModule />}
-                    {activeModule === 'MY_DOCS' && <MyDocumentsModule />}
                     {activeModule === 'ALERTS' && <AlertsModule />}
                     {activeModule === 'SUPPORT' && <PIHelpSupportModule />}
                     {activeModule === 'AUDIT_LOG' && <AuditLogModule />}
-                    {activeModule === 'TASKS' && <StaffTasksModule primaryColor="indigo" />}
-                    {activeModule === 'PARTICIPANT_TASKS' && <ParticipantTaskManagement primaryColor="indigo" />}
+                    {activeModule === 'TASKS' && <StaffTasksModule primaryColor="teal" onRefresh={fetchAllData} />}
+                    {activeModule === 'PARTICIPANT_TASKS' && <ParticipantTaskManagement primaryColor="teal" />}
                     {activeModule === 'ANALYTICS' && <AnalyticsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'SPONSORS' && (
-                        <SponsorsManagement
-                            allUsers={users}
-                            allStudies={studies}
-                            onRefresh={fetchPIContent}
+                        <SponsorsManagement 
+                            onRefresh={fetchAllData}
+                            selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined}
                         />
                     )}
                 </AnimatePresence>
@@ -624,124 +681,212 @@ export default function PIDashboard() {
     );
 }
 
-function OversightModule({ studyCount, stats, onLaunch, onNavigate }: { studyCount: number, stats: any, onLaunch: () => void, onNavigate: (id: string) => void }) {
+function OverviewModule({ loading, studyCount, participantCount, stats, visits, viewDate, setViewDate, onLaunch, onNavigate }: { loading: boolean, studyCount: number, participantCount: number, stats: any, visits: any[], viewDate: Date, setViewDate: (d: Date) => void, onLaunch: () => void, onNavigate: (id: string) => void }) {
+    
+    const calendarData = useMemo(() => {
+        if (loading) return { daysInMonth: 30, firstDay: 0, sessionsByDate: {} };
+        const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
+        const firstDay = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay();
+        const sessionsByDate: Record<string, any[]> = {};
+
+        visits.forEach(v => {
+            if (!v.scheduled_date) return;
+            try {
+                const dateObj = new Date(v.scheduled_date);
+                if (isNaN(dateObj.getTime())) return;
+                const d = dateObj.toISOString().split('T')[0];
+                if (!sessionsByDate[d]) sessionsByDate[d] = [];
+                sessionsByDate[d].push({ 
+                    label: `${v.participant_sid || 'SUB'}: ${(v.visit_type || '').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())}`, 
+                    status: v.status 
+                });
+            } catch (e) {}
+        });
+
+        return { daysInMonth, firstDay, sessionsByDate };
+    }, [viewDate, visits]);
+
+    const monthYear = viewDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+
     return (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-2 md:space-y-3">
-                    <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tight line-clamp-2 leading-none">
-                        Scientific <span className="text-indigo-400">Oversight</span>
-                    </h2>
-                    <p className="text-[11px] text-white/50 font-bold uppercase tracking-[0.4em] mt-3 md:mt-4 italic">
-                        Portfolio Performance & clinical research velocity
-                    </p>
-                </div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <h2 className="text-lg md:text-xl font-bold text-white uppercase tracking-tight leading-none">
+                    Research <span className="text-teal-400">Overview</span>
+                </h2>
                 <button
                     onClick={onLaunch}
-                    className="w-full md:w-auto px-6 md:px-10 py-4 md:py-5 bg-gradient-to-r from-indigo-600 to-indigo-800 text-white rounded-2xl md:rounded-[2rem] text-[12px] font-black uppercase tracking-widest italic flex items-center justify-center gap-3 shadow-[0_20px_50px_-10px_rgba(99,102,241,0.4)] hover:shadow-[0_25px_60px_-12px_rgba(99,102,241,0.5)] hover:scale-[1.02] active:scale-95 transition-all font-mono"
+                    className="w-full md:w-auto px-6 py-3 bg-teal-600 text-white rounded-lg text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-teal-900/20 hover:scale-[1.02] active:scale-95 transition-all"
                 >
-                    <Rocket className="w-5 h-5" /> LAUNCH A STUDY
+                    <Plus className="w-4 h-4" /> START NEW STUDY
                 </button>
             </div>
 
-            {/* Row 1 - KPI Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-20 border-t border-white/5 pt-10">
-                {[
-                    { label: 'Active Protocols', val: studyCount.toString().padStart(2, '0'), icon: Beaker, color: 'indigo' },
-                    { label: 'Total Subjects', val: '1,240', icon: UsersRound, color: 'emerald' },
-                    { label: 'Critical Alerts', val: '02', icon: Activity, color: 'red' },
-                ].map((stat, i) => (
-                    <div
-                        key={i}
-                        onClick={() => {
-                            if (stat.label.includes('Protocols')) onNavigate('STUDIES');
-                            if (stat.label.includes('Alerts')) onNavigate('ALERTS');
-                            if (stat.label.includes('Subjects')) onNavigate('PARTICIPANTS');
-                        }}
-                        className="flex flex-col gap-6 group cursor-pointer"
-                    >
-                        <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-xl bg-${stat.color}-500/10 border border-${stat.color}-500/20 flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                                <stat.icon className={`w-5 h-5 text-${stat.color}-400`} />
-                            </div>
-                            <h4 className="text-[11px] font-black text-white/40 uppercase tracking-[0.3em] italic group-hover:text-white transition-colors">{stat.label}</h4>
-                        </div>
-                        <p className="text-3xl md:text-4xl font-black text-white italic tracking-tighter leading-none group-hover:text-indigo-400 transition-colors uppercase">{stat.val}</p>
-                    </div>
-                ))}
-            </div>
-
-            {/* Row 2 - Operational Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 border-t border-white/5 pt-10">
-                {[
-                    { label: 'Upcoming visits', val: stats.upcomingVisits.toString().padStart(2, '0'), sub: 'this 60 days', color: 'indigo', action: () => onNavigate('VISITS') },
-                    { label: 'Overdue follow-ups', val: stats.overdueFollowUps.toString().padStart(2, '0'), sub: 'Urgent Action', color: 'red', alert: stats.hasCriticalAlert },
-                    { label: 'Awaiting callback', val: stats.awaitingCallback.toString().padStart(2, '0'), sub: 'Participant leads', color: 'emerald' },
-                    { label: 'Pending forms', val: stats.pendingForms.toString().padStart(2, '0'), sub: 'Completion required', color: 'amber' }
-                ].map((widget, i) => (
-                    <div key={i} onClick={widget.action} className="group cursor-pointer relative">
-                        {widget.alert && <div className="absolute -top-2 -right-2 w-2 h-2 bg-red-500 rounded-full animate-ping" />}
-                        <h4 className="text-[11px] font-black text-white/30 uppercase tracking-[0.3em] italic group-hover:text-white transition-colors mb-4">{widget.label}</h4>
-                        <div className="flex items-end gap-3">
-                            <p className={`text-2xl font-black text-${widget.color}-400 italic tracking-tighter leading-none group-hover:scale-105 transition-transform origin-left uppercase`}>{widget.val}</p>
-                            <p className="text-[10px] text-white/40 font-black uppercase tracking-widest mb-1 italic whitespace-nowrap">{widget.sub}</p>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* Row 3 — Calendar Grid */}
-            <div className="border-t border-white/5 pt-10 space-y-8">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                    <h3 className="text-[12px] font-black text-white italic uppercase tracking-[0.3em]">Active Schedule <span className="text-indigo-400">Calendar</span></h3>
-                    <div className="flex flex-wrap gap-4">
-                        {['Confirmed', 'Pending', 'Overdue'].map((label, idx) => (
-                            <div key={idx} className="flex items-center gap-2">
-                                <div className={`w-1.5 h-1.5 rounded-full ${idx === 0 ? 'bg-emerald-500' : idx === 1 ? 'bg-amber-500' : 'bg-red-500'}`} />
-                                <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{label}</span>
+            {/* Metrics Boxes Section */}
+            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2.5 border-t border-white/10 pt-6">
+                {loading ? (
+                    Array.from({ length: 7 }).map((_, i) => (
+                        <PISkeleton key={i} className="h-24" />
+                    ))
+                ) : (
+                    <>
+                        {[
+                            { label: 'Active Studies', val: studyCount.toString().padStart(2, '0'), icon: Beaker, color: 'teal', action: () => onNavigate('STUDIES') },
+                            { label: 'Participants', val: participantCount.toLocaleString(), icon: UsersRound, color: 'emerald', action: () => onNavigate('PARTICIPANTS') },
+                            { label: 'Alerts', val: stats.unreadAlerts.toString().padStart(2, '0'), icon: Activity, color: 'red', action: () => onNavigate('ALERTS') },
+                        ].map((stat, i) => (
+                            <div
+                                key={i}
+                                onClick={stat.action}
+                                className="bg-white/5 border border-white/5 rounded-lg p-2 flex flex-col justify-between gap-1.5 group cursor-pointer hover:bg-white/10 hover:border-teal-500/30 transition-all shadow-md"
+                            >
+                                <div className="flex items-center justify-between">
+                                     <div className={`w-6 h-6 rounded bg-${stat.color}-500/10 border border-${stat.color}-500/20 flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                                        <stat.icon className={`w-3.5 h-3.5 text-${stat.color}-400`} />
+                                    </div>
+                                    <span className="text-lg font-bold text-white tracking-tight group-hover:text-teal-400 transition-colors">{stat.val}</span>
+                                </div>
+                                <h4 className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-none truncate">{stat.label}</h4>
                             </div>
                         ))}
+        
+                        {[
+                            { label: 'Upcoming', val: stats.upcomingVisits.toString().padStart(2, '0'), sub: 'Next 60d', color: 'teal', action: () => onNavigate('VISITS') },
+                            { label: 'Overdue', val: stats.overdueFollowUps.toString().padStart(2, '0'), sub: 'Critical', color: 'red', alert: stats.hasCriticalAlert },
+                            { label: 'Callbacks', val: stats.awaitingCallback.toString().padStart(2, '0'), sub: 'Leads', color: 'emerald' },
+                            { label: 'Forms', val: stats.pendingForms.toString().padStart(2, '0'), sub: 'Pending', color: 'amber' }
+                        ].map((widget, i) => (
+                            <div key={i} onClick={widget.action} className="bg-white/5 border border-white/5 rounded-lg p-2 flex flex-col justify-between gap-1.5 group cursor-pointer hover:bg-white/10 hover:border-teal-500/30 transition-all relative shadow-md">
+                                {widget.alert && <div className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full animate-ping" />}
+                                <div className="flex items-center justify-between">
+                                    <span className={`text-lg font-bold text-${widget.color}-400`}>{widget.val}</span>
+                                    <span className="text-[10px] text-white/20 font-bold uppercase tracking-widest leading-none truncate ml-2">{widget.sub}</span>
+                                </div>
+                                <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest leading-none group-hover:text-white transition-colors">{widget.label}</p>
+                            </div>
+                        ))}
+                    </>
+                )}
+            </div>
+
+            {/* Row 3 — Enhanced Full Month Calendar */}
+            <div className="bg-[#0B101B]/50 border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
+                <div className="p-6 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                        <h3 className="text-xs font-bold text-white uppercase tracking-widest leading-none">
+                            Study Schedule <span className="text-teal-400">Calendar</span>
+                        </h3>
+                        <p className="text-xs text-white/20 font-bold uppercase tracking-widest">Global Study Activity</p>
+                    </div>
+                    
+                    <div className="flex items-center gap-6">
+                        <div className="hidden lg:flex gap-4 mr-4">
+                            {[
+                                { label: 'Completed', color: 'bg-emerald-500' },
+                                { label: 'Scheduled', color: 'bg-teal-500' },
+                                { label: 'Overdue', color: 'bg-red-500' }
+                            ].map((l, idx) => (
+                                <div key={idx} className="flex items-center gap-2">
+                                    <div className={`w-1.5 h-1.5 rounded-full ${l.color}`} />
+                                    <span className="text-xs font-bold text-white/40 uppercase tracking-widest">{l.label}</span>
+                                </div>
+                            ))}
+                        </div>
+                        
+                        <div className="flex items-center gap-3 bg-white/5 rounded-lg p-1 border border-white/5">
+                            <button 
+                                onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() - 1)))} 
+                                className="p-1.5 text-white/40 hover:text-white hover:bg-white/5 rounded-md transition-all"
+                            >
+                                <ChevronLeft className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="text-xs font-bold text-white min-w-[100px] text-center uppercase tracking-widest">{monthYear}</span>
+                            <button 
+                                onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() + 1)))} 
+                                className="p-1.5 text-white/40 hover:text-white hover:bg-white/5 rounded-md transition-all"
+                            >
+                                <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div className="overflow-x-auto pb-6 custom-scrollbar-horizontal -mx-2 px-2 snap-x">
-                    <div className="grid grid-cols-7 gap-px bg-white/5 border border-white/5 rounded-2xl overflow-hidden min-w-[700px] lg:min-w-0">
-                        {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day, i) => (
-                            <div key={i} className="flex flex-col min-h-[160px] bg-[#0B101B]">
-                                <div className="text-center py-4 border-b border-white/5 text-[11px] font-black text-white/30 uppercase tracking-widest">{day}</div>
-                                <div className="flex-1 p-3">
-                                    {i === 1 && (
-                                        <div className="p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl space-y-1">
-                                            <p className="text-[11px] font-black text-emerald-400 uppercase leading-tight">BTB-021</p>
-                                            <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">V3 @ 10:00</p>
-                                        </div>
-                                    )}
-                                    {i === 3 && (
-                                        <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl space-y-1">
-                                            <p className="text-[11px] font-black text-amber-400 uppercase leading-tight">MHC-104</p>
-                                            <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">SCR @ 14:00</p>
-                                        </div>
+
+                <div className="grid grid-cols-7 bg-white/[0.02] border-b border-white/5">
+                    {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map(d => (
+                        <div key={d} className="py-3 text-center text-xs font-bold text-white/30 tracking-[0.2em]">
+                            {d}
+                        </div>
+                    ))}
+                </div>
+
+                <div className="grid grid-cols-7 h-[350px]">
+                    {Array.from({ length: 35 }).map((_, i) => {
+                        const { daysInMonth, firstDay, sessionsByDate } = calendarData;
+                        const adjFirstDay = (firstDay === 0 ? 6 : firstDay - 1);
+                        const dayNum = i - adjFirstDay + 1;
+                        const isCurrentMonth = dayNum > 0 && dayNum <= daysInMonth;
+                        
+                        const currentDayDate = isCurrentMonth ? new Date(viewDate.getFullYear(), viewDate.getMonth(), dayNum) : null;
+                        const dateString = currentDayDate ? currentDayDate.toISOString().split('T')[0] : '';
+                        const daySessions = sessionsByDate[dateString] || [];
+                        const isToday = currentDayDate?.toDateString() === new Date().toDateString();
+
+                        return (
+                            <div 
+                                key={i} 
+                                className={`p-2 border-r border-b border-white/5 min-h-[70px] group transition-all min-w-0 overflow-hidden
+                                    ${!isCurrentMonth ? 'bg-black/20 opacity-10' : 'hover:bg-white/[0.03]'}
+                                    ${isToday ? 'bg-teal-500/5' : ''}
+                                `}
+                            >
+                                <div className="flex justify-between items-start mb-1">
+                                    <span className={`text-xs font-bold tracking-tight ${isToday ? 'text-teal-400' : isCurrentMonth ? 'text-white/40 group-hover:text-white/80' : 'text-white/10'}`}>
+                                        {isCurrentMonth ? dayNum.toString().padStart(2, '0') : ''}
+                                    </span>
+                                </div>
+                                <div className="space-y-1">
+                                    {daySessions.slice(0, 2).map((s, idx) => (
+                                        <button 
+                                            key={idx} 
+                                            title={`Click to open Visits manager. Event details: ${s.label}`}
+                                            onClick={(e) => { e.stopPropagation(); onNavigate('VISITS'); }}
+                                            className={`px-2 py-1 rounded text-xs leading-tight font-bold uppercase tracking-tighter truncate w-full text-left transition-all active:scale-95 block
+                                                ${s.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20' : 
+                                                  s.status === 'SCHEDULED' ? 'bg-teal-500/10 text-teal-300 border border-teal-500/20 hover:bg-teal-500/20' : 
+                                                  'bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20'}
+                                            `}
+                                        >
+                                            {s.label}
+                                        </button>
+                                    ))}
+                                    {daySessions.length > 2 && (
+                                        <p className="text-[6px] text-white/20 font-bold uppercase tracking-wider pl-1">+{daySessions.length - 2} more</p>
                                     )}
                                 </div>
                             </div>
-                        ))}
-                    </div>
+                        );
+                    })}
                 </div>
             </div>
 
-            {/* Row 4 — Quick Access Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 border-t border-white/5 pt-10">
+            {/* Row 4 — Quick Access Bottom Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-6">
                 {[
-                    { label: 'Alert Center', sub: '02 New Notifications', icon: Bell, id: 'ALERTS' },
-                    { label: 'Message Center', sub: '05 Unread Messages', icon: MessageSquare, id: 'MESSAGES' },
-                    { label: 'Study Archive', sub: '12 Recent Uploads', icon: FileText, id: 'STUDY_DOCS' },
-                    { label: 'Verified Docs', sub: '01 Expiry Warning', icon: ShieldCheck, id: 'MY_DOCS' }
+                    { label: 'Alert Center', sub: `${stats.unreadAlerts.toString().padStart(2, '0')} New Findings`, icon: Bell, id: 'ALERTS' },
+                    { label: 'Message Center', sub: '05 Real-time Channels', icon: MessageSquare, id: 'MESSAGES' },
+                    { label: 'Study Archive', sub: '12 Study Records', icon: FileText, id: 'STUDY_DOCS' },
+                    { label: 'Verified Docs', sub: '01 Compliance Flag', icon: ShieldCheck, id: 'MY_DOCS' }
                 ].map((card, i) => (
-                    <button key={i} onClick={() => onNavigate(card.id)} className="group text-left flex flex-col gap-6 relative">
-                        <card.icon className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform" />
-                        <div>
-                            <h4 className="text-sm font-black text-white italic uppercase tracking-tighter leading-none group-hover:text-indigo-400 transition-colors">{card.label}</h4>
-                            <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest mt-2">{card.sub}</p>
+                    <button 
+                        key={i} 
+                        onClick={() => onNavigate(card.id)} 
+                        className="group bg-white/[0.02] border border-white/5 rounded-2xl p-6 text-left hover:bg-white/[0.04] hover:border-teal-500/30 transition-all shadow-lg"
+                    >
+                        <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <card.icon className="w-5 h-5 text-teal-400" />
                         </div>
+                        <h4 className="text-sm font-bold text-white uppercase tracking-tight leading-none group-hover:text-teal-400 transition-colors uppercase">{card.label}</h4>
+                        <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-2 whitespace-nowrap">{card.sub}</p>
                     </button>
                 ))}
             </div>
@@ -753,12 +898,12 @@ function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd
     const [filter, setFilter] = useState('ALL');
 
     const categories = [
-        { id: 'ALL', label: 'Total Assigned Studies', subtext: '(Include all)', count: studies.length, icon: Layers },
-        { id: 'ACTIVE', label: 'Active Studies', subtext: '(include only active)', count: studies.filter(s => s.status?.toUpperCase() === 'ACTIVE').length, icon: Activity },
-        { id: 'RECRUITING', label: 'Recruiting Studies', subtext: '(include only that are recruiting)', count: studies.filter(s => s.status?.toUpperCase() === 'RECRUITING').length, icon: UsersRound },
-        { id: 'ANALYSIS', label: 'Studies in Analysis', subtext: '(include that completed recruitment)', count: studies.filter(s => s.status?.toUpperCase() === 'ANALYSIS').length, icon: TrendingUp },
-        { id: 'COMPLETED', label: 'Studies Completed', subtext: '(Include that are completed)', count: studies.filter(s => s.status?.toUpperCase() === 'COMPLETED').length, icon: CheckSquare },
-        { id: 'PAUSED', label: 'Studies Paused', subtext: '(include that are paused)', count: studies.filter(s => s.status?.toUpperCase() === 'PAUSED').length, icon: Settings2 },
+        { id: 'ALL', label: 'Total Studies', count: studies.length, icon: Layers },
+        { id: 'ACTIVE', label: 'Active Studies', count: studies.filter(s => s.status?.toUpperCase() === 'ACTIVE').length, icon: Activity },
+        { id: 'RECRUITING', label: 'Recruiting Studies', count: studies.filter(s => s.status?.toUpperCase() === 'RECRUITING').length, icon: UsersRound },
+        { id: 'ANALYSIS', label: 'In Analysis', count: studies.filter(s => s.status?.toUpperCase() === 'ANALYSIS').length, icon: TrendingUp },
+        { id: 'COMPLETED', label: 'Completed Studies', count: studies.filter(s => s.status?.toUpperCase() === 'COMPLETED').length, icon: CheckSquare },
+        { id: 'PAUSED', label: 'Paused Studies', count: studies.filter(s => s.status?.toUpperCase() === 'PAUSED').length, icon: Settings2 },
     ];
 
     const filteredStudies = filter === 'ALL' ? studies : studies.filter(s => s.status?.toUpperCase() === filter);
@@ -766,78 +911,104 @@ function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10">
             <div className="flex justify-between items-center">
-                <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tight leading-none">Research <span className="text-indigo-400">Portfolio</span></h2>
-                <button onClick={onAdd} className="px-8 py-4 bg-indigo-700 text-white rounded-[2rem] text-[12px] font-black uppercase tracking-widest italic flex items-center gap-3 shadow-xl shadow-indigo-900/40 hover:scale-[1.02] transition-all">
-                    <Rocket className="w-4 h-4" /> LAUNCH A STUDY
+                <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-tight leading-none">Research <span className="text-teal-400">Studies</span></h2>
+                <button onClick={onAdd} className="px-8 py-3.5 bg-teal-600 text-white rounded-xl text-[13px] font-bold uppercase tracking-widest flex items-center gap-3 shadow-xl shadow-teal-900/40 hover:scale-[1.02] transition-all">
+                    <Plus className="w-4 h-4" /> START NEW STUDY
                 </button>
             </div>
 
             {/* Filter Hub */}
-            <div className="flex flex-wrap gap-x-12 gap-y-10 border-t border-white/5 pt-10">
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 border-t border-white/10 pt-10">
                 {categories.map((cat) => (
                     <button
                         key={cat.id}
                         onClick={() => setFilter(cat.id)}
-                        className={`flex flex-col gap-4 text-left group transition-all ${filter === cat.id ? 'opacity-100' : 'opacity-40 hover:opacity-100'}`}
+                        className={`flex flex-col gap-3 p-5 rounded-2xl border transition-all text-left relative group overflow-hidden ${
+                            filter === cat.id 
+                            ? 'bg-teal-500/10 border-teal-500/30 shadow-lg shadow-teal-500/5' 
+                            : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.06] hover:border-white/10'
+                        }`}
                     >
-                        <div className="flex items-center gap-4">
-                            <cat.icon className={`w-4 h-4 ${filter === cat.id ? 'text-indigo-400' : 'text-slate-500 group-hover:text-indigo-400'}`} />
-                            <span className={`text-[11px] font-black uppercase tracking-[0.3em] italic ${filter === cat.id ? 'text-white' : 'text-slate-500 group-hover:text-white'}`}>{cat.label}</span>
+                        {filter === cat.id && (
+                            <div className="absolute top-0 right-0 w-16 h-16 bg-teal-500/10 blur-2xl rounded-full -mr-8 -mt-8" />
+                        )}
+                        <div className="flex items-center gap-3 relative z-10">
+                            <cat.icon className={`w-3.5 h-3.5 ${filter === cat.id ? 'text-teal-400' : 'text-slate-500'}`} />
+                            <span className={`text-xs font-black uppercase tracking-widest ${filter === cat.id ? 'text-teal-400' : 'text-slate-500'}`}>
+                                {cat.label}
+                            </span>
                         </div>
-                        <p className={`text-4xl font-black italic tracking-tighter leading-none ${filter === cat.id ? 'text-white' : 'text-white'}`}>{cat.count.toString().padStart(2, '0')}</p>
-                        <p className="text-[10px] font-bold uppercase tracking-widest italic text-slate-600 mt-1">{cat.subtext}</p>
+                        <p className={`text-4xl font-black tracking-tighter leading-none relative z-10 ${filter === cat.id ? 'text-white' : 'text-white/60'}`}>
+                            {cat.count.toString().padStart(2, '0')}
+                        </p>
                     </button>
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-white/5">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 pt-8 border-t border-white/5">
                 {filteredStudies.length === 0 ? (
-                    <div className="col-span-2 py-20 bg-white/5 border border-dashed border-white/10 rounded-[3rem] text-center">
-                        <p className="text-slate-500 font-bold uppercase tracking-widest italic text-[12px]">No matching protocols in this matrix</p>
+                    <div className="col-span-full py-20 bg-white/5 border border-dashed border-white/10 rounded-3xl text-center">
+                        <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">No active studies found in this section</p>
                     </div>
                 ) : filteredStudies.map((study, i) => (
-                    <div key={i} className="group border-b border-white/5 last:border-none pb-8 space-y-8 relative hover:bg-white/[0.01] transition-all duration-300">
+                    <div key={i} className="group bg-white/[0.02] border border-white/5 rounded-2xl p-6 space-y-6 relative hover:bg-white/[0.04] hover:border-teal-500/30 transition-all duration-300 shadow-xl shadow-black/20">
+                        {/* Card Header: Study ID & Status */}
                         <div className="flex justify-between items-start">
-                            <div className="flex items-center gap-8">
-                                <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 group-hover:text-indigo-400 group-hover:border-indigo-500/40 transition-all shadow-lg shadow-black/20">
-                                    <Beaker className="w-8 h-8" />
+                            <div className="flex items-center gap-5">
+                                <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 group-hover:text-teal-400 group-hover:border-teal-500/40 transition-all shadow-lg">
+                                    <Beaker className="w-7 h-7" />
                                 </div>
-                                <div>
-                                    <p className="text-base font-black text-[#818cf8] italic leading-none">{study.protocol_id}</p>
-                                    <p className="text-xl font-black text-white italic uppercase tracking-tight mt-1.5">{study.title}</p>
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-black text-teal-400/60 tracking-widest font-mono">Study</span>
+                                        <p className="text-sm font-black text-[#2dd4bf] tracking-widest leading-none">{study.protocol_id}</p>
+                                    </div>
+                                    <h3 className="text-xl font-black text-white uppercase tracking-tight leading-tight group-hover:text-teal-400 transition-colors">
+                                        {study.title}
+                                    </h3>
                                 </div>
                             </div>
-                            <div className="flex flex-col items-end gap-2">
-                                <span className={`px-5 py-2 rounded-full text-[12px] font-black uppercase tracking-widest border ${study.status === 'Active' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
-                                    study.status === 'Recruiting' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                                        'bg-white/5 text-slate-500 border-white/10'
-                                    }`}>{study.status}</span>
+                            <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border shrink-0 ${
+                                study.status?.toUpperCase() === 'ACTIVE' ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' :
+                                study.status?.toUpperCase() === 'RECRUITING' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                'bg-white/5 text-slate-500 border-white/10'
+                            }`}>
+                                {(study.status || '').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                            </span>
+                        </div>
+
+                        {/* Metrics Grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {[
+                                { label: 'Enrollment', val: study.actual_screened || '0', target: study.target_screened || '100', color: 'text-white' },
+                                { label: 'Completion', val: study.completed_count || '0', target: study.total_required || '90', color: 'text-white' },
+                                { label: 'Phase', val: (study.phase || 'Phase II/III').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase()), color: 'text-teal-400' },
+                                { label: 'Diversity', val: study.diversity_score || '94%', color: 'text-emerald-400' }
+                            ].map((met, idx) => (
+                                <div key={idx} className="p-4 rounded-xl bg-white/[0.03] border border-white/5 group-hover:bg-white/[0.05] transition-colors">
+                                    <p className="text-xs font-black text-slate-500 uppercase tracking-widest">{met.label}</p>
+                                    <p className={`text-lg font-black mt-1 ${met.color}`}>
+                                        {met.val}
+                                        {met.target && <span className="text-xs text-slate-600 ml-1 font-bold">/{met.target}</span>}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="flex flex-col md:flex-row gap-3">
+                            <div className="flex-1 p-4 rounded-xl bg-teal-500/5 border border-teal-500/10">
+                                <p className="text-xs font-black text-teal-400 uppercase tracking-widest">Study Lifecycle Stage</p>
+                                <p className="text-sm font-black text-white mt-1.5 uppercase tracking-tight">
+                                    {(study.stage || study.status || "In Evaluation").replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                                </p>
                             </div>
+                            <button
+                                onClick={() => onEdit(study)}
+                                className="px-6 py-4 bg-white/5 border border-white/10 text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] hover:bg-white hover:text-slate-950 transition-all shadow-lg active:scale-95 shrink-0"
+                            >
+                                STUDY DETAILS
+                            </button>
                         </div>
-                        <div>
-                            <h3 className="text-xl font-black text-white uppercase italic tracking-tighter truncate leading-tight group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{study.title}</h3>
-                            <p className="text-sm text-white/40 font-black uppercase tracking-widest mt-2 italic">Protocol #{study.protocol_id || '---'}</p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/5">
-                                <p className="text-[12px] font-black text-slate-400 uppercase tracking-widest">Enrollment</p>
-                                <p className="text-2xl font-black text-white italic mt-1.5">{study.actual_screened || '0'}<span className="text-[12px] text-slate-500 ml-1">/{study.target_screened || '100'}</span></p>
-                            </div>
-                            <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/5">
-                                <p className="text-[12px] font-black text-slate-400 uppercase tracking-widest">Completion</p>
-                                <p className="text-2xl font-black text-white italic mt-1.5">{study.completed_count || '0'}<span className="text-[12px] text-slate-500 ml-1">/{study.total_required || '90'}</span></p>
-                            </div>
-                        </div>
-                        <div className="p-6 rounded-2xl bg-indigo-500/5 border border-indigo-500/10">
-                            <p className="text-[12px] font-black text-indigo-400 uppercase tracking-widest">Clinical Lifecycle Stage</p>
-                            <p className="text-sm font-black text-white italic mt-2 uppercase tracking-tight">{study.stage?.replace(/_/g, ' ') || study.status || "Unknown"}</p>
-                        </div>
-                        <button
-                            onClick={() => onEdit(study)}
-                            className="w-full py-4 bg-white/5 border border-white/10 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] hover:bg-white hover:text-slate-950 transition-all shadow-lg"
-                        >
-                            Configure Protocol Matrix
-                        </button>
                     </div>
                 ))}
             </div>
@@ -851,16 +1022,16 @@ function ComplianceModule() {
     return (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
             <div>
-                <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none">
-                    Compliance <span className="text-indigo-400">& Credentials</span>
+                <h2 className="text-2xl font-bold text-white  uppercase tracking-tighter leading-none">
+                    Compliance <span className="text-teal-400">& Credentials</span>
                 </h2>
-                <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-3 italic">
+                <p className="text-sm text-slate-500 font-bold uppercase tracking-[0.3em] mt-3 ">
                     Verified professional documentation and node synchronization
                 </p>
             </div>
 
             <div className="bg-white/5 border border-white/10 rounded-[3rem] p-12 relative overflow-hidden group">
-                <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/5 blur-[100px] rounded-full group-hover:bg-indigo-500/10 transition-colors duration-1000" />
+                <div className="absolute -top-24 -right-24 w-96 h-96 bg-teal-500/5 blur-[100px] rounded-full group-hover:bg-teal-500/10 transition-colors duration-1000" />
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
                     {[
@@ -868,26 +1039,26 @@ function ComplianceModule() {
                         { id: 'insurance_certificate', label: 'Professional Insurance', path: user.insurance_certificate, desc: 'Coverage for clinical trial liability and oversight' },
                         { id: 'cv_document', label: 'Curriculum Vitae', path: user.cv_document, desc: 'Up-to-date professional history and research experience' }
                     ].map((doc, i) => (
-                        <div key={i} className="bg-[#0B101B]/60 border border-white/5 rounded-[2.5rem] p-8 space-y-6 hover:border-indigo-500/30 transition-all flex flex-col">
+                        <div key={i} className="bg-[#0B101B]/60 border border-white/5 rounded-[2.5rem] p-8 space-y-6 hover:border-teal-500/30 transition-all flex flex-col">
                             <div className="flex justify-between items-center">
-                                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                <div className="w-12 h-12 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400">
                                     <FileText className="w-6 h-6" />
                                 </div>
                                 {doc.path ? (
                                     <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center gap-2">
                                         <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_5px_rgba(16,185,129,1)]" />
-                                        <span className="text-[12px] font-black text-emerald-400 uppercase tracking-widest">Verified</span>
+                                        <span className="text-sm font-bold text-emerald-400 uppercase tracking-widest">Verified</span>
                                     </div>
                                 ) : (
                                     <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center gap-2">
                                         <div className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
-                                        <span className="text-[12px] font-black text-amber-500 uppercase tracking-widest">Pending</span>
+                                        <span className="text-sm font-bold text-amber-500 uppercase tracking-widest">Pending</span>
                                     </div>
                                 )}
                             </div>
                             <div>
-                                <h4 className="text-sm font-black text-white italic uppercase tracking-widest">{doc.label}</h4>
-                                <p className="text-[12px] text-slate-500 font-bold mt-2 leading-relaxed italic">{doc.desc}</p>
+                                <h4 className="text-sm font-bold text-white  uppercase tracking-widest">{doc.label}</h4>
+                                <p className="text-sm text-slate-500 font-bold mt-2 leading-relaxed ">{doc.desc}</p>
                             </div>
                             <div className="mt-4 pt-6 border-t border-white/5">
                                 {doc.path ? (
@@ -895,13 +1066,13 @@ function ComplianceModule() {
                                         href={`${API}/media/${doc.path}`}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="w-full py-4 bg-white/5 hover:bg-white text-white hover:text-slate-950 border border-white/10 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 group/link"
+                                        className="w-full py-4 bg-white/5 hover:bg-white text-white hover:text-slate-950 border border-white/10 rounded-2xl text-sm font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 group/link"
                                     >
-                                        <Globe className="w-4 h-4 group-hover/link:rotate-12 transition-transform" /> VIEW DOCUMENT
+                                        <Globe className="w-4 h-4 group-hover/link:rotate-12 transition-transform" /> View Document
                                     </a>
                                 ) : (
-                                    <button className="w-full py-4 bg-amber-500/5 text-amber-500 border border-amber-500/20 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] opacity-50 cursor-not-allowed">
-                                        UPLOAD REQUIRED
+                                    <button className="w-full py-4 bg-amber-500/5 text-amber-500 border border-amber-500/20 rounded-2xl text-sm font-bold uppercase tracking-[0.2em] opacity-50 cursor-not-allowed">
+                                        Upload Required
                                     </button>
                                 )}
                             </div>
@@ -910,19 +1081,19 @@ function ComplianceModule() {
                 </div>
             </div>
 
-            <div className="mt-12 p-8 bg-indigo-500/10 border border-indigo-500/20 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+            <div className="mt-12 p-8 bg-teal-500/10 border border-teal-500/20 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
                 <div className="flex items-center gap-6">
-                    <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <div className="w-12 h-12 rounded-full bg-teal-500 flex items-center justify-center shadow-lg shadow-teal-500/20">
                         <ShieldCheck className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                        <p className="text-[12px] font-black text-white uppercase italic tracking-widest">Authorization Status</p>
-                        <p className="text-[12px] text-indigo-300/60 font-black uppercase tracking-widest mt-1">Global Scientific Network Verification</p>
+                        <p className="text-sm font-bold text-white uppercase  tracking-widest">Authorization Status</p>
+                        <p className="text-sm text-teal-300/60 font-bold uppercase tracking-widest mt-1">Global Scientific Network Verification</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,1)]" />
-                    <span className="text-[12px] font-black text-emerald-400 uppercase tracking-widest line-clamp-1 italic">Synchronization Complete</span>
+                    <span className="text-sm font-bold text-emerald-400 uppercase tracking-widest line-clamp-1 ">Synchronization Complete</span>
                 </div>
             </div>
         </motion.div>

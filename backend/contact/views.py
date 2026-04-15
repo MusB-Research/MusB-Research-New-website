@@ -306,14 +306,43 @@ class SubmissionCreateView(generics.CreateAPIView):
                     participant.submitted_at = submission.submitted_at
                     participant.save()
 
-                    # Root Cause Fix: Automatically transition SCREENER tasks if they exist for this study
+                    # 3. SYNC WITH USER MASTER PROFILE (Requirement 11)
+                    if user_obj:
+                        needs_save = False
+                        
+                        # Use screener data to fill profile gaps
+                        if not user_obj.age and form_data.get('age'):
+                            user_obj.age = form_data.get('age')
+                            needs_save = True
+                        if not user_obj.date_of_birth and form_data.get('date_of_birth'):
+                            user_obj.date_of_birth = form_data.get('date_of_birth')
+                            needs_save = True
+                        if not user_obj.zip_code and form_data.get('zipCode'):
+                            user_obj.zip_code = form_data.get('zipCode')
+                            needs_save = True
+                        if not user_obj.phone_number and form_data.get('phone'):
+                            user_obj.phone_number = form_data.get('phone')
+                            needs_save = True
+                        if not user_obj.full_address and form_data.get('location'):
+                            user_obj.full_address = form_data.get('location')
+                            needs_save = True
+                            
+                        # Update name if empty
+                        if not decrypt_data(user_obj.full_name) and submission.name:
+                            user_obj.full_name = submission.name
+                            needs_save = True
+
+                        if needs_save:
+                            user_obj.save()
+                    
+                    # 4. Root Cause Fix: Automatically transition SCREENER tasks if they exist for this study
                     from api.models import ParticipantTask
                     ParticipantTask.objects.filter(
                         participant=participant,
                         task__task_type='SCREENER',
                         status='PENDING'
                     ).update(status='COMPLETED', completed_at=submission.submitted_at)
-                    
-                    print(f"Lead and Participant created successfully for study: {study.protocol_id}")
+
+                    print(f"Lead, Participant and Profile Synchronized for study: {study.protocol_id}")
             except Exception as e:
                 print(f"Failed to create Clinical records: {e}")

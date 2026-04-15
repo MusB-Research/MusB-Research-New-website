@@ -79,6 +79,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     timezone = models.CharField(max_length=50, default='UTC')
     country = models.CharField(max_length=100, blank=True, null=True)
     
+    # Mandatory Profile Data (Cont.)
+    date_of_birth = models.DateField(null=True, blank=True)
+    age = models.IntegerField(null=True, blank=True)
+    
+    # Enrollment State for Multiple Applications
+    has_active_enrollment = models.BooleanField(default=False) # True if currently active in a study
+    
     # Credentials (PI, Coordinator, Sponsor)
     medical_licence = models.CharField(max_length=1024, blank=True, null=True)
     insurance_certificate = models.CharField(max_length=1024, blank=True, null=True)

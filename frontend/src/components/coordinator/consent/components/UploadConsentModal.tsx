@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { X, Plus, Save, CheckCircle2, Calendar, Globe, Tag } from 'lucide-react';
 import { COLORS } from '../ConsentConstants';
 
@@ -64,81 +65,51 @@ export const UploadConsentModal: React.FC<UploadConsentModalProps> = ({
                 <div style={{ padding: '3rem', flex: 1, overflowY: 'auto' }} className="custom-scrollbar">
                     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(400px, 1fr) 350px', gap: '3rem' }}>
 
-                        {/* LEFT COLUMN */}
+                        {/* LEFT COLUMN: IDENTIFICATION (SIMPLIFIED) */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                             <div>
-                                <label style={S.label}>Form Name</label>
-                                <input style={S.input} placeholder="e.g. Main Consent" value={uploadForm.title} onChange={e => setUploadForm({ ...uploadForm, title: e.target.value })} />
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                                <div>
-                                    <label style={S.label}>Assign to Study</label>
-                                    <select style={S.input} value={uploadForm.study} onChange={e => setUploadForm({ ...uploadForm, study: e.target.value })}>
-                                        <option value="">Select a study...</option>
-                                        {Array.isArray(studies) && studies.map(s => (
-                                            <option key={s?.id} value={s?.id || s?.protocol_id} className="bg-[#0f172a]">
-                                                {s?.protocol_id ? `${s.protocol_id} - ` : ''}{s?.title || 'Untitled Study'}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style={S.label}>Form Type</label>
-                                    <select style={S.input} value={uploadForm.type} onChange={e => setUploadForm({ ...uploadForm, type: e.target.value })}>
-                                        <option value="Main Consent">Main Consent</option>
-                                        <option value="Amendment">Amendment</option>
-                                        <option value="Assent Form">Assent Form</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '1.5rem' }}>
-                                <div>
-                                    <label style={S.label}>Version</label>
-                                    <input style={{ ...S.input, textAlign: 'center' }} value={uploadForm.version} onChange={e => setUploadForm({ ...uploadForm, version: e.target.value })} />
-                                </div>
-                                <div>
-                                    <label style={S.label}>IRB ID Number</label>
-                                    <input style={S.input} placeholder="e.g. 25-028" value={uploadForm.irbNumber} onChange={e => setUploadForm({ ...uploadForm, irbNumber: e.target.value })} />
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                                <div style={S.iconInputOuter} onClick={() => {
-                                    if (hiddenDateRef.current && typeof (hiddenDateRef.current as any).showPicker === 'function') {
-                                        (hiddenDateRef.current as any).showPicker();
-                                    } else {
-                                        hiddenDateRef.current?.click();
-                                    }
-                                }}>
-                                    <Calendar size={16} style={{ position: 'absolute', left: '1rem', color: '#6366f1' }} />
-                                    <input
-                                        type="text"
-                                        placeholder="MM/DD/YYYY"
-                                        style={{ ...S.input, paddingLeft: '2.75rem' }}
-                                        value={uploadForm.effectiveDate}
-                                        onChange={e => setUploadForm({ ...uploadForm, effectiveDate: e.target.value })}
-                                        readOnly
-                                    />
-                                    <input
-                                        type="date"
-                                        ref={hiddenDateRef}
-                                        style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
-                                        onChange={handlePickerChange}
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label style={S.label}>Language</label>
-                                <select style={S.input} value={uploadForm.language} onChange={e => setUploadForm({ ...uploadForm, language: e.target.value })}>
-                                    <option value="English">English</option>
-                                    <option value="Spanish">Spanish</option>
+                                <label style={S.label}>Assign to Study</label>
+                                <select 
+                                    style={S.input} 
+                                    value={uploadForm.study} 
+                                    onChange={e => {
+                                        const selectedStudy = studies.find(s => String(s.id) === String(e.target.value));
+                                        setUploadForm({ 
+                                            ...uploadForm, 
+                                            study: e.target.value,
+                                            title: selectedStudy ? `CONSENT - ${selectedStudy.protocol_id || selectedStudy.title}` : uploadForm.title
+                                        });
+                                    }}
+                                >
+                                    <option value="">Select a study...</option>
+                                    {Array.isArray(studies) && studies.map(s => (
+                                        <option key={s?.id} value={s?.id || s?.protocol_id} className="bg-[#0f172a]">
+                                            {s?.protocol_id ? `${s.protocol_id} - ` : ''}{s?.title || 'Untitled Study'}
+                                        </option>
+                                    ))}
                                 </select>
+                            </div>
+
+                            <div style={{ padding: '2rem', backgroundColor: '#1E293B', borderRadius: '16px', border: '1px solid #334155' }}>
+                                <p style={{ fontSize: '11px', fontWeight: 900, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: '1.5rem', fontStyle: 'italic' }}>Automated Clinical Registry</p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.75rem', borderBottom: '1px solid #ffffff05' }}>
+                                        <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>Registry Identity:</span>
+                                        <span style={{ fontSize: '13px', color: 'white', fontWeight: 800, fontStyle: 'italic' }}>{uploadForm.title || '(PENDING STUDY SELECTION)'}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.75rem', borderBottom: '1px solid #ffffff05' }}>
+                                        <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>Protocol Map:</span>
+                                        <span style={{ fontSize: '12px', color: '#6366f1', fontWeight: 800 }}>ACTIVE PROTOCOL v1.0</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>Access Tier:</span>
+                                        <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 800 }}>SECURED ACCESS</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        {/* RIGHT COLUMN */}
+                        {/* RIGHT COLUMN: REPOSITORY & EXTRACTION */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                             <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept="application/pdf" />
                             <div
@@ -147,36 +118,39 @@ export const UploadConsentModal: React.FC<UploadConsentModalProps> = ({
                                     backgroundColor: uploadForm.file ? 'rgba(34, 197, 94, 0.05)' : 'rgba(30, 41, 59, 0.5)',
                                     border: `2px dashed ${uploadForm.file ? '#22c55e' : '#334155'}`,
                                     borderRadius: '20px',
-                                    padding: '3rem 1.5rem',
+                                    padding: '4rem 2rem',
                                     textAlign: 'center',
-                                    cursor: 'pointer'
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s ease'
                                 }}
+                                className="group hover:bg-white/[0.02]"
                             >
-                                <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: uploadForm.file ? 'rgba(34, 197, 94, 0.1)' : 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: uploadForm.file ? '#22c55e' : '#6366f1' }}>
+                                <div style={{ width: '64px', height: '64px', borderRadius: '22px', backgroundColor: uploadForm.file ? 'rgba(34, 197, 94, 0.1)' : 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: uploadForm.file ? '#22c55e' : '#6366f1' }}>
                                     {uploadForm.file ? <CheckCircle2 size={32} /> : <Plus size={32} />}
                                 </div>
-                                <div style={{ fontSize: '15px', fontWeight: 600, color: 'white', marginBottom: '0.5rem' }}>
-                                    {uploadForm.file ? uploadForm.file.name : 'Upload PDF File'}
+                                <div style={{ fontSize: '16px', fontWeight: 900, color: 'white', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    {uploadForm.file ? uploadForm.file.name : 'Upload Consent PDF'}
                                 </div>
-                                <div style={{ fontSize: '12px', color: '#64748b' }}>
-                                    Max file size: 50MB
+                                <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>
+                                    {uploadForm.file ? 'PDF Secured & Ready for Parsing' : 'High-fidelity text extraction will occur automatically'}
                                 </div>
                             </div>
 
-                            <div>
-                                <label style={S.label}>Protocol Terms Content</label>
-                                <textarea
-                                    style={{ ...S.input, height: '180px', resize: 'none', marginBottom: '1.5rem' }}
-                                    placeholder="Paste the actual clinical consent terms here... participants will review this text before signing."
-                                    value={uploadForm.terms_content || ''}
-                                    onChange={e => setUploadForm({ ...uploadForm, terms_content: e.target.value })}
-                                />
-                            </div>
-
-                            <div>
-                                <label style={S.label}>Short Notes (Internal Only)</label>
-                                <textarea style={{ ...S.input, height: '100px', resize: 'none' }} placeholder="Additional internal details..." value={uploadForm.notes} onChange={e => setUploadForm({ ...uploadForm, notes: e.target.value })} />
-                            </div>
+                            {uploadForm.file && (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    style={{ padding: '1.5rem', backgroundColor: '#0f172a', border: '1px solid #22c55e/30', borderRadius: '16px' }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                                        <Tag size={14} className="text-emerald-400" />
+                                        <span style={{ fontSize: '11px', fontWeight: 900, color: '#22c55e', textTransform: 'uppercase' }}>Protocol Terms Extraction</span>
+                                    </div>
+                                    <p style={{ fontSize: '13px', color: '#94a3b8', lineHeight: '1.6' }}>
+                                        System is extracting exact text packets... Participant will review the high-fidelity render of this document during the eConsent sequence.
+                                    </p>
+                                </motion.div>
+                            )}
                         </div>
                     </div>
                 </div>

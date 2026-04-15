@@ -58,18 +58,18 @@ export default function DiscoverStudiesView({ loading: externalLoading }: { load
     if (loading) {
         return (
             <div className="grid-system">
-                {[1, 2, 3].map((i) => (
-                    <div key={i} className="bg-white border border-[#E3ECF5] rounded-[32px] p-8 h-[450px] space-y-8 animate-pulse shadow-sm">
+                {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="bg-white border border-[#E3ECF5] rounded-[24px] p-5 h-[380px] space-y-6 animate-pulse shadow-sm">
                         <div className="flex justify-between">
-                            <Skeleton className="h-8 w-24 rounded-lg" />
-                            <Skeleton className="h-4 w-32 rounded-full" />
+                            <Skeleton className="h-6 w-20 rounded-lg" />
+                            <Skeleton className="h-3 w-24 rounded-full" />
                         </div>
-                        <div className="space-y-4">
-                            <Skeleton className="h-10 w-full rounded-xl" />
-                            <Skeleton className="h-20 w-full rounded-2xl" />
+                        <div className="space-y-3">
+                            <Skeleton className="h-8 w-full rounded-xl" />
+                            <Skeleton className="h-16 w-full rounded-2xl" />
                         </div>
-                        <div className="mt-auto pt-8 border-t border-[#F8FBFF]">
-                            <Skeleton className="h-14 w-full rounded-2xl" />
+                        <div className="mt-auto pt-6 border-t border-[#F8FBFF]">
+                            <Skeleton className="h-12 w-full rounded-2xl" />
                         </div>
                     </div>
                 ))}
@@ -78,7 +78,7 @@ export default function DiscoverStudiesView({ loading: externalLoading }: { load
     }
 
     return (
-        <div className="flex flex-col gap-10 w-full pb-12">
+        <div className="flex flex-col gap-6 w-full pb-6">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex-1">
@@ -193,13 +193,13 @@ export default function DiscoverStudiesView({ loading: externalLoading }: { load
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 onClick={() => navigate(`/studies/${study.protocol_id || study.id}`)}
-                                className="bg-white border border-[#E3ECF5] rounded-[32px] p-8 transition-all duration-300 hover:shadow-2xl hover:border-[#00ADEF]/30 group cursor-pointer relative overflow-hidden equal-height-card"
+                                className="bg-white border border-[#E3ECF5] rounded-[24px] p-5 transition-all duration-300 hover:shadow-2xl hover:border-[#00ADEF]/30 group cursor-pointer relative overflow-hidden equal-height-card"
                             >
-                                <div className="absolute top-0 right-0 p-8 opacity-[0.02] -rotate-12 group-hover:scale-110 transition-transform">
-                                    <Activity className="w-48 h-48 text-[#00ADEF]" />
+                                <div className="absolute top-0 right-0 p-5 opacity-[0.02] -rotate-12 group-hover:scale-110 transition-transform">
+                                    <Activity className="w-32 h-32 text-[#00ADEF]" />
                                 </div>
 
-                                <div className="space-y-6 relative z-10">
+                                <div className="space-y-4 relative z-10">
                                     <div className="flex items-start justify-between">
                                         <div className="flex flex-wrap gap-2">
                                             <Badge color={getStatusStyle(study.status)}>
@@ -219,49 +219,49 @@ export default function DiscoverStudiesView({ loading: externalLoading }: { load
                                         </span>
                                     </div>
 
-                                    <div className="space-y-3">
-                                        <h3 className="text-xl font-bold text-[#1A2B49] uppercase group-hover:text-[#00ADEF] transition-colors tracking-tight line-clamp-2 min-h-[3.5rem] leading-tight">
+                                    <div className="space-y-1.5">
+                                        <h3 className="text-base font-bold text-[#1A2B49] uppercase group-hover:text-[#00ADEF] transition-colors tracking-tight line-clamp-1 min-h-[1.2rem] leading-snug">
                                             {study.title}
                                         </h3>
-                                        <p className="text-[#5F6F89] text-[13px] font-bold uppercase tracking-widest line-clamp-2 min-h-[2.5rem] hidden md:block">
+                                        <p className="text-[#5F6F89] text-[11px] font-bold uppercase tracking-widest line-clamp-2 min-h-[1.8rem] hidden md:block">
                                             {study.description || 'Clinical trial to advance de-identified biometric research paradigms.'}
                                         </p>
                                     </div>
 
-                                    <div className="flex flex-wrap gap-x-6 gap-y-4 pt-2">
+                                    <div className="flex flex-wrap gap-x-5 gap-y-3 pt-1">
                                         {study.duration && (
-                                            <div className="flex items-center gap-2.5 text-[11px] font-bold text-[#1A2B49] uppercase tracking-wide">
-                                                <Clock className="w-4 h-4 text-[#00ADEF]" />
+                                            <div className="flex items-center gap-2 text-[10px] font-bold text-[#1A2B49] uppercase tracking-wide">
+                                                <Clock className="w-3.5 h-3.5 text-[#00ADEF]" />
                                                 {study.duration}
                                             </div>
                                         )}
-                                        <div className="flex items-center gap-2.5 text-[11px] font-bold text-[#1A2B49] uppercase tracking-wide">
-                                            <MapPin className="w-4 h-4 text-[#00ADEF]" />
+                                        <div className="flex items-center gap-2 text-[10px] font-bold text-[#1A2B49] uppercase tracking-wide">
+                                            <MapPin className="w-3.5 h-3.5 text-[#00ADEF]" />
                                             {study.visits || 'Hybrid'} Protocol
                                         </div>
                                         {study.compensation && (
-                                            <div className="flex items-center gap-2.5 text-[11px] font-bold text-[#4CAF50] uppercase tracking-wide">
-                                                <div className="p-1 bg-[#E8F5E9] rounded-md"><DollarSign className="w-3.5 h-3.5" /></div>
+                                            <div className="flex items-center gap-2 text-[10px] font-bold text-[#4CAF50] uppercase tracking-wide">
+                                                <div className="p-0.5 bg-[#E8F5E9] rounded-md"><DollarSign className="w-3 h-3" /></div>
                                                 Compensated
                                             </div>
                                         )}
                                     </div>
                                 </div>
 
-                                <div className="card-action-bottom relative z-10">
+                                <div className="card-action-bottom relative z-10 pt-3">
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             navigate(`/studies/${study.protocol_id || study.id}/screener`);
                                         }}
-                                        className={`w-full flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[12px] py-4.5 rounded-2xl transition-all shadow-sm ${isEnrolled && enrollmentStatus !== 'PENDING'
+                                        className={`w-full flex items-center justify-center gap-2 font-bold uppercase tracking-widest text-[10px] py-3 rounded-xl transition-all shadow-sm ${isEnrolled && enrollmentStatus !== 'PENDING'
                                                 ? 'bg-slate-100 text-slate-400 border border-slate-200'
                                                 : 'bg-[#00ADEF] text-white hover:bg-[#1565C0] shadow-blue-500/10'
                                             }`}
                                     >
-                                        <ClipboardCheck className="w-4.5 h-4.5" />
-                                        {isEnrolled ? (enrollmentStatus === 'PENDING' ? 'Retry Screening' : 'Enrolled Successfully') : 'Check Eligibility'}
-                                        <ArrowRight className="w-3.5 h-3.5 ml-1 transition-transform group-hover:translate-x-1" />
+                                        <ClipboardCheck className="w-3.5 h-3.5" />
+                                        {isEnrolled ? (enrollmentStatus === 'PENDING' ? 'Retry Screening' : 'Enrolled') : 'Eligibility'}
+                                        <ArrowRight className="w-2.5 h-2.5 ml-1 transition-transform group-hover:translate-x-1" />
                                     </button>
                                 </div>
                             </motion.div>

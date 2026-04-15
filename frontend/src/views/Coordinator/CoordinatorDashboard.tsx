@@ -12,7 +12,6 @@ import CCC_MessagesModule from '../../components/coordinator/CCMessagesModule';
 import CCC_SubjectReviewModule from '../../components/coordinator/subject-review/SubjectReviewModule';
 import CCC_TeamModule from '../../components/coordinator/team/TeamModule';
 import CCC_VisitsAssessmentsModule from '../../components/coordinator/VisitsModule';
-import CCC_HelpSupportModule from '../../components/coordinator/support/SupportEntry';
 
 
 // New Coordinator Panel Modules (Mirrored from PI)
@@ -24,7 +23,6 @@ import ReportsSignOffModule from '../../components/coordinator/panels/ReportsSig
 import StudyDocumentsModule from '../../components/coordinator/panels/StudyDocumentsModule';
 import MyDocumentsModule from '../../components/coordinator/credentials/CredentialsEntry';
 import AlertsModule from '../../components/coordinator/panels/AlertsModule';
-import AuditLogModule from '../../components/coordinator/panels/AuditLogModule';
 import AnalyticsModule from '../../components/coordinator/panels/AnalyticsModule';
 import AnimatedBackground from '../../components/AnimatedBackground';
 import StaffTasksModule from '../../components/shared/StaffTasksModule';
@@ -67,8 +65,6 @@ type CCModule =
     | 'ALERTS'
     | 'LAUNCH_STUDY'
     | 'SPONSORS'
-    | 'SUPPORT'
-    | 'AUDIT_LOG'
     | 'TASKS'
     | 'ANALYTICS'
     | 'KITS'
@@ -97,8 +93,6 @@ export default function CoordinatorDashboard() {
         if (route === 'messages') return 'MESSAGES';
         if (route === 'alerts') return 'ALERTS';
         if (route === 'launch-study') return 'LAUNCH_STUDY';
-        if (route === 'support') return 'SUPPORT';
-        if (route === 'audit-log') return 'AUDIT_LOG';
         if (route === 'analytics') return 'ANALYTICS';
         if (route === 'sponsors') return 'SPONSORS';
         if (route === 'tasks') return 'TASKS';
@@ -124,8 +118,6 @@ export default function CoordinatorDashboard() {
         else if (route === 'my-docs') setActiveModule('MY_DOCS');
         else if (route === 'alerts') setActiveModule('ALERTS');
         else if (route === 'launch-study') setActiveModule('LAUNCH_STUDY');
-        else if (route === 'support' || route === 'help') setActiveModule('SUPPORT');
-        else if (route === 'audit-log' || route === 'audit') setActiveModule('AUDIT_LOG');
         else if (route === 'analytics') setActiveModule('ANALYTICS');
         else if (route === 'tasks') setActiveModule('TASKS');
         else if (route === 'participant-tasks') setActiveModule('PARTICIPANT_TASKS');
@@ -136,6 +128,20 @@ export default function CoordinatorDashboard() {
             // Stay consistent with dashboard root
             if (location.pathname.endsWith('/coordinator')) setActiveModule('OVERSIGHT');
         }
+
+        // Senior Developer Add: Check for missed visits on load to trigger alerts/notifications
+        const checkMissed = async () => {
+            try {
+                const res = await authFetch(`${API}/api/visits/check_missed/`, { method: 'POST' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.missed_marked > 0) {
+                        addToast(`DEVIATION ALERT: ${data.missed_marked} participants missed scheduled visits. Marking as MISSED.`, 'danger');
+                    }
+                }
+            } catch (e) { /* silent check */ }
+        };
+        checkMissed();
     }, [location.pathname]);
 
     const handleModuleChange = (mod: CCModule) => {
@@ -154,8 +160,6 @@ export default function CoordinatorDashboard() {
             'MESSAGES': 'messages',
             'ALERTS': 'alerts',
             'LAUNCH_STUDY': 'launch-study',
-            'SUPPORT': 'support',
-            'AUDIT_LOG': 'audit-log',
             'TASKS': 'tasks',
             'ANALYTICS': 'analytics',
             'SPONSORS': 'sponsors',
@@ -177,10 +181,23 @@ export default function CoordinatorDashboard() {
     const notificationRef = useRef<HTMLDivElement>(null);
     const profileRef = useRef<HTMLDivElement>(null);
 
+    const [toasts, setToasts] = useState<any[]>([]);
+
+    const addToast = (msg: string, type: 'info' | 'success' | 'warning' | 'danger' = 'info') => {
+        const id = Math.random().toString(36).substr(2, 9);
+        setToasts(prev => [...prev, { id, msg, type }]);
+        setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000);
+    };
+
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        
+        // Initial Notification Sync
         fetchNotifications();
-        return () => clearInterval(timer);
+        
+        return () => {
+            clearInterval(timer);
+        };
     }, []);
 
     useEffect(() => {
@@ -209,7 +226,16 @@ export default function CoordinatorDashboard() {
     const fetchNotifications = async () => {
         try {
             const data = await apiFetch<any[]>('/api/notifications/');
-            setNotifications(Array.isArray(data) ? data : []);
+            const newNotifications = Array.isArray(data) ? data : [];
+            
+            // Trigger toast for any NEW unread DANGER notifications
+            newNotifications.forEach(n => {
+                if (!n.is_read && n.type === 'DANGER' && !notifications.find(prev => prev.id === n.id)) {
+                    addToast(n.message, 'danger');
+                }
+            });
+            
+            setNotifications(newNotifications);
         } catch (err) {
             console.error("Failed to fetch notifications:", err);
         }
@@ -272,6 +298,8 @@ export default function CoordinatorDashboard() {
     const [selectedStudy, setSelectedStudy] = useState<any>(null);
     const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
     const [globalSelectedStudyId, setGlobalSelectedStudyId] = useState<string | 'all'>('all');
+    // Participant count per study for the dropdown
+    const [participantsByStudy, setParticipantsByStudy] = useState<Record<string, number>>({});
 
     const [visits, setVisits] = useState<any[]>([]);
     const [oversightStats, setOversightStats] = useState({
@@ -287,12 +315,13 @@ export default function CoordinatorDashboard() {
     const fetchCoordinatorContent = async () => {
         setLoading(true);
         try {
-            const [studiesData, usersData, sponsorsData, visitsData, participantsData] = await Promise.all([
+            const [studiesData, usersData, sponsorsData, visitsData, participantsData, questionnairesData] = await Promise.all([
                 apiFetch<any[]>('/api/studies/'),
                 apiFetch<any[]>('/api/users/'),
                 apiFetch<any[]>('/api/sponsor-organizations/'),
                 apiFetch<any[]>('/api/visits/'),
-                apiFetch<any[]>('/api/participants/')
+                apiFetch<any[]>('/api/participants/'),
+                apiFetch<any[]>('/api/questionnaire-schedules/')
             ]);
 
             setStudies((studiesData || []).sort((a: any, b: any) =>
@@ -309,15 +338,25 @@ export default function CoordinatorDashboard() {
 
             const activeParticipants = participantsData || [];
 
+            // Build participant count map per study
+            const pCountMap: Record<string, number> = {};
+            activeParticipants.forEach((p: any) => {
+                const sid = String(p.study?.id || p.study || '');
+                if (sid) pCountMap[sid] = (pCountMap[sid] || 0) + 1;
+            });
+            setParticipantsByStudy(pCountMap);
+
             const now = new Date();
             const upcoming = (visitsData || []).filter((v: any) => v.status === 'SCHEDULED' && new Date(v.scheduled_date) > now).length;
             const overdue = (visitsData || []).filter((v: any) => v.status === 'SCHEDULED' && new Date(v.scheduled_date) < now).length;
+
+            const pendingFormsCount = (questionnairesData || []).filter((q: any) => q.status === 'PENDING').length;
 
             setOversightStats({
                 upcomingVisits: upcoming,
                 overdueFollowUps: overdue,
                 awaitingCallback: 0,
-                pendingForms: 0,
+                pendingForms: pendingFormsCount,
                 activeSubjects: activeParticipants.length,
                 hasCriticalAlert: overdue > 0
             });
@@ -424,49 +463,50 @@ export default function CoordinatorDashboard() {
         }
     };
 
+    const role = getRole();
+    const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
+
     const sidebarGroups = [
         {
             group: 'GENERAL',
             items: [
-                { id: 'WEBSITE', label: 'Main Website', icon: Globe },
-                { id: 'OVERSIGHT', label: 'Operations Overview', icon: LayoutDashboard },
-                { id: 'TASKS', label: 'My Tasks', icon: CheckSquare, hasNotify: true },
+                { id: 'WEBSITE', label: 'Website', icon: Globe },
+                { id: 'OVERSIGHT', label: 'Overview', icon: LayoutDashboard },
+                { id: 'TASKS', label: 'Tasks', icon: CheckSquare, hasNotify: true },
             ]
         },
         {
             group: 'COORDINATION',
             items: [
-                { id: 'STUDIES', label: 'Study Directory', icon: Beaker },
-                { id: 'TEAM', label: 'Medical Team', icon: Users },
+                { id: 'STUDIES', label: 'Studies', icon: Beaker },
+                { id: 'TEAM', label: 'Team', icon: Users },
                 { id: 'PARTICIPANTS', label: 'Participants', icon: UsersRound },
-                { id: 'FORMS', label: 'Study Questionnaires', icon: ClipboardList },
-                { id: 'CONSENT', label: 'Consent Oversight', icon: ShieldCheck },
-                { id: 'VISITS', label: 'Visits & Assessments', icon: Calendar },
-                { id: 'LABS', label: 'Health Check Reports', icon: Beaker },
-                { id: 'KITS', label: 'Study Kits', icon: Box },
-                { id: 'COMPENSATION', label: 'Clinical Rewards Hub', icon: DollarSign },
-                { id: 'PARTICIPANT_TASKS', label: 'Participant Tasks', icon: ListFilter },
+                { id: 'FORMS', label: 'Forms', icon: ClipboardList },
+                { id: 'CONSENT', label: 'Consent', icon: ShieldCheck },
+                { id: 'VISITS', label: 'Visits', icon: Calendar },
+                { id: 'LABS', label: 'Labs', icon: Beaker },
+                { id: 'KITS', label: 'Kits', icon: Box },
+                { id: 'COMPENSATION', label: 'Payments', icon: DollarSign },
+                { id: 'PARTICIPANT_TASKS', label: 'Tasks', icon: ListFilter },
             ]
         },
         {
             group: 'DOCUMENTS & COMMS',
             items: [
-                { id: 'STUDY_DOCS', label: 'Protocol Docs', icon: FileText },
+                { id: 'STUDY_DOCS', label: 'Documents', icon: FileText },
                 { id: 'MY_DOCS', label: 'Credentials', icon: Briefcase },
-                { id: 'MESSAGES', label: 'Communications', icon: MessageSquare },
-                { id: 'ALERTS', label: 'Notifications', icon: Bell, hasNotify: true },
+                { id: 'MESSAGES', label: 'Messages', icon: MessageSquare },
+                { id: 'ALERTS', label: 'Alerts', icon: Bell, hasNotify: true },
             ]
         },
-        {
+        ...(isAdmin ? [{
             group: 'ADMINISTRATION',
             items: [
-                { id: 'LAUNCH_STUDY', label: 'Setup Study', icon: Rocket },
-                { id: 'SPONSORS', label: 'Sponsor Leads', icon: Database },
-                { id: 'ANALYTICS', label: 'Metrics', icon: TrendingUp },
-                { id: 'AUDIT_LOG', label: 'Audit Log', icon: ShieldCheck },
-                { id: 'SUPPORT', label: 'Help Desk', icon: HelpCircle },
+                { id: 'LAUNCH_STUDY', label: 'Setup', icon: Rocket },
+                { id: 'SPONSORS', label: 'Sponsors', icon: Database },
+                { id: 'ANALYTICS', label: 'Analytics', icon: TrendingUp },
             ]
-        }
+        }] : [])
     ];
 
     const renderHeader = () => {
@@ -481,40 +521,43 @@ export default function CoordinatorDashboard() {
         } catch (e) { }
 
         return (
-            <header className="fixed top-0 left-0 xl:left-[260px] right-0 h-20 z-[60] bg-[#0B101B] border-b border-white/5 flex items-center justify-between px-8 md:px-12 transition-all">
-                <div className="flex items-center gap-4 xl:hidden">
-                    <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:text-white transition-all h-10 w-10 shrink-0 flex items-center justify-center">
-                        {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            <header className="fixed top-0 left-0 xl:left-[240px] right-0 h-16 md:h-20 z-[60] bg-[#0B101B] border-b border-white/5 flex items-center justify-between px-3 md:px-6 transition-all">
+                <div className="flex items-center gap-2 xl:hidden">
+                    <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1.5 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:text-white transition-all h-9 w-9 shrink-0 flex items-center justify-center">
+                        {isSidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
                     </button>
                 </div>
 
                 <div className="flex-1 flex items-center justify-start xl:pl-4">
-                    <div className="flex items-center gap-8">
-
-                        <div className="hidden xl:flex items-center gap-3 bg-white/5 p-1 rounded-2xl border border-white/10 h-12">
-                            <div className="px-4 text-[11px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/10">Study</div>
+                    <div className="flex items-center gap-4">
+                        <div className="hidden xl:flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/10 h-10">
+                            <div className="px-2 text-[9px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/10 shrink-0">Study</div>
                              <select
                                  value={globalSelectedStudyId}
                                  onChange={(e) => setGlobalSelectedStudyId(e.target.value)}
-                                 className="bg-transparent text-[14px] font-black text-blue-400 uppercase tracking-[0.2em] outline-none cursor-pointer px-6 min-w-[240px]"
+                                 className="bg-transparent text-[12px] font-black text-blue-400 uppercase tracking-[0.15em] outline-none cursor-pointer px-3 min-w-[140px] max-w-[240px] truncate"
                              >
-                                 <option value="all" className="bg-[#0B101B]">All Operational Units</option>
-                                 {studies.map(s => (
-                                     <option key={s.id} value={s.id} className="bg-[#0B101B]">{s.protocol_id || s.id}</option>
-                                 ))}
+                                 <option value="all" className="bg-[#0B101B]">All Studies ({Object.values(participantsByStudy).reduce((a,b)=>a+b,0)} participants)</option>
+                                 {studies.map(s => {
+                                     const cnt = participantsByStudy[s.id] ?? 0;
+                                     return (
+                                         <option key={s.id} value={s.id} className="bg-[#0B101B]">
+                                             {s.protocol_id || s.id} ({cnt} participant{cnt !== 1 ? 's' : ''})
+                                         </option>
+                                     );
+                                 })}
                              </select>
                         </div>
-
                     </div>
                 </div>
 
-                <div className="flex items-center gap-8">
-                    <div className="flex items-center gap-6 border-r border-white/10 pr-8">
-                         <div className="flex flex-col items-end text-right">
-                             <span className="text-lg md:text-xl font-black text-blue-400 font-mono tracking-tighter tabular-nums leading-none">
+                <div className="flex items-center gap-2 md:gap-4">
+                    <div className="flex items-center gap-3 md:gap-5 border-r border-white/10 pr-3 md:pr-6">
+                         <div className="flex flex-col items-end text-right shrink-0">
+                             <span className="text-[14px] md:text-lg font-black text-blue-400 font-mono tracking-tighter tabular-nums leading-none">
                                  {currentTime.toLocaleTimeString('en-US', { hour12: false })}
                              </span>
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">
                                 {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()}
                             </span>
                         </div>
@@ -562,23 +605,24 @@ export default function CoordinatorDashboard() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-6 relative" ref={profileRef}>
-                        <div className="hidden sm:flex flex-col items-end text-right">
-                            <p className="text-[12px] font-black text-white uppercase italic tracking-tighter">
-                                {getDisplayName(getUser())}
+                    <div className="flex items-center gap-2 md:gap-4 relative" ref={profileRef}>
+                        <div className="hidden md:flex flex-col items-end text-right max-w-[80px] lg:max-w-[140px]">
+                            <p className="text-[10px] lg:text-[11px] font-black text-white uppercase italic tracking-tighter truncate w-full">
+                                {userName}
                             </p>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">
-                                {getUser()?.email}
+                            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-0.5 truncate w-full">
+                                {u?.email}
                             </p>
                         </div>
                          <button
                              onClick={() => setIsProfileOpen(!isProfileOpen)}
-                             className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 p-0.5 shadow-xl hover:scale-105 active:scale-95 transition-all"
+                             className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 p-0.5 shadow-xl hover:scale-105 active:scale-95 transition-all shrink-0"
                          >
-                            <div className="w-full h-full bg-[#0B101B] rounded-[0.9rem] flex items-center justify-center font-black text-white uppercase italic text-[12px]">
-                                {getDisplayName(getUser())?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                            <div className="w-full h-full bg-[#0B101B] rounded-[0.6rem] flex items-center justify-center font-black text-white uppercase italic text-[10px] md:text-[11px]">
+                                {userName?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                             </div>
                         </button>
+
 
                         <AnimatePresence>
                             {isProfileOpen && (
@@ -632,7 +676,7 @@ export default function CoordinatorDashboard() {
                 )}
             </AnimatePresence>
 
-            <aside className={`fixed left-0 top-0 bottom-0 w-[260px] bg-[#0B101B] border-r border-white/5 z-[70] transition-transform duration-300 xl:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'}`}>
+            <aside className={`fixed left-0 top-0 bottom-0 w-[240px] bg-[#0B101B] border-r border-white/5 z-[70] transition-transform duration-300 xl:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'}`}>
                 <div className="h-20 px-8 flex justify-between items-center border-b border-white/[0.05] shrink-0">
                     <Link to="/" target="_blank" rel="noopener noreferrer" className="group transition-all">
                         <div className="bg-white p-2 rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
@@ -673,7 +717,7 @@ export default function CoordinatorDashboard() {
                 </div>
             </aside>
 
-            <main className="flex-1 xl:pl-[260px] pt-24 pb-24 overflow-x-hidden bg-[#0F172A] min-h-screen">
+            <main className="flex-1 xl:pl-[240px] pt-20 md:pt-24 pb-20 overflow-x-hidden bg-[#0F172A] min-h-screen">
                 <div className="px-8 flex-1">
                     <AnimatePresence mode="wait">
                     {activeModule === 'OVERSIGHT' && (
@@ -684,6 +728,7 @@ export default function CoordinatorDashboard() {
                             visits={visits}
                             onLaunch={() => handleModuleChange('LAUNCH_STUDY')}
                             onNavigate={(id) => handleModuleChange(id as CCModule)}
+                            isAdmin={isAdmin}
                         />
                     )}
                     {activeModule === 'STUDIES' && (
@@ -730,8 +775,6 @@ export default function CoordinatorDashboard() {
                     {activeModule === 'STUDY_DOCS' && <StudyDocumentsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'MY_DOCS' && <MyDocumentsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'ALERTS' && <AlertsModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'SUPPORT' && <CCC_HelpSupportModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'AUDIT_LOG' && <AuditLogModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'TASKS' && <StaffTasksModule primaryColor="blue" />}
                     {activeModule === 'PARTICIPANT_TASKS' && <ParticipantTaskManagement primaryColor="blue" selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'COMPENSATION' && <CompensationManagement selectedStudyId={globalSelectedStudyId} />}
@@ -748,6 +791,39 @@ export default function CoordinatorDashboard() {
                 </AnimatePresence>
                 </div>
             </main>
+
+            {/* TOAST SYSTEM (Sleek, Command Center Style) */}
+            <div className="fixed bottom-8 right-8 z-[200] flex flex-col gap-3">
+                <AnimatePresence>
+                    {toasts.map(t => (
+                        <motion.div
+                            key={t.id}
+                            initial={{ opacity: 0, x: 50, scale: 0.9 }}
+                            animate={{ opacity: 1, x: 0, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9, x: 50 }}
+                            className={`px-8 py-5 rounded-[22px] shadow-2xl backdrop-blur-3xl border flex items-center gap-5 min-w-[320px] max-w-md ${
+                                t.type === 'danger' ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' :
+                                t.type === 'warning' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
+                                t.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                                'bg-blue-500/10 border-blue-500/20 text-blue-400'
+                            }`}
+                        >
+                            <div className={`p-2 rounded-xl bg-white/5`}>
+                                {t.type === 'danger' ? <AlertTriangle size={20} /> :
+                                 t.type === 'warning' ? <AlertCircle size={20} /> :
+                                 t.type === 'success' ? <CheckCircle2 size={20} /> :
+                                 <Bell size={20} />}
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-[12px] font-black uppercase tracking-tighter italic leading-tight">{t.msg}</p>
+                            </div>
+                            <button onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))} className="p-1 hover:bg-white/10 rounded-lg outline-none">
+                                <X size={14} className="opacity-50" />
+                            </button>
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
+            </div>
 
             <LogoutConfirmationModal isOpen={isLogoutModalOpen} onClose={() => setIsLogoutModalOpen(false)} onConfirm={confirmSignOut} />
         </div>

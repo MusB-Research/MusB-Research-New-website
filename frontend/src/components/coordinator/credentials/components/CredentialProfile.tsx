@@ -3,8 +3,8 @@ import { User, ShieldCheck, FileText, Bell, CheckCircle2 } from 'lucide-react';
 
 export const CredentialProfile: React.FC = () => {
     return (
-        <div className="bg-[#0B101B]/40 border border-white/5 rounded-[3rem] p-10 grid grid-cols-1 lg:grid-cols-3 gap-10">
-            <div className="flex items-center gap-8">
+        <div className="bg-[#0B101B]/40 border border-white/5 rounded-[3rem] p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="flex items-center gap-4">
                 <div className="relative">
                     <div className="w-24 h-24 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
                         <User className="w-12 h-12" />
@@ -23,9 +23,9 @@ export const CredentialProfile: React.FC = () => {
             </div>
             <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
-                    { label: 'Active Credentials', val: '12', icon: FileText, color: 'indigo' },
-                    { label: 'Expiring Soon', val: '01', icon: Bell, color: 'amber' },
-                    { label: 'Verified Exports', val: '24', icon: CheckCircle2, color: 'emerald' }
+                    { label: 'Active', val: '12', icon: FileText, color: 'indigo' },
+                    { label: 'Expiring', val: '01', icon: Bell, color: 'amber' },
+                    { label: 'Exports', val: '24', icon: CheckCircle2, color: 'emerald' }
                 ].map((s, i) => (
                     <div key={i} className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 space-y-2">
                         <p className="text-[12px] text-slate-600 font-black uppercase tracking-widest">{s.label}</p>

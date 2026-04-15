@@ -197,16 +197,16 @@ export default function SupportModule() {
                     <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5">
                         <button 
                             onClick={() => setView('Requests')}
-                            className={`px-4 py-2 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${
-                                view === 'Requests' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'
+                            className={`px-4 py-2 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${
+                                view === 'Requests' ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/20' : 'text-slate-500 hover:text-white'
                             }`}
                         >
                             Requests Hub
                         </button>
                         <button 
                             onClick={() => setView('KB')}
-                            className={`px-4 py-2 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${
-                                view === 'KB' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'
+                            className={`px-4 py-2 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${
+                                view === 'KB' ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/20' : 'text-slate-500 hover:text-white'
                             }`}
                         >
                             Knowledge Base
@@ -221,12 +221,12 @@ export default function SupportModule() {
                             placeholder="Find tickets..." 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-2.5 text-[12px] text-white placeholder-slate-700 outline-none focus:border-indigo-500/50 uppercase tracking-widest"
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-2.5 text-sm text-white placeholder-slate-700 outline-none focus:border-teal-500/50 uppercase tracking-widest"
                         />
                     </div>
                     <button 
                         onClick={() => setIsNewRequestOpen(true)}
-                        className="px-6 py-4 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-indigo-900/40"
+                        className="px-6 py-4 bg-teal-600 text-white rounded-2xl text-sm font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-teal-900/40"
                     >
                         + New Request
                     </button>
@@ -238,7 +238,7 @@ export default function SupportModule() {
                     {/* Left Panel: Ticket List */}
                     <div className="w-[380px] border-r border-white/5 flex flex-col overflow-hidden bg-white/[0.01]">
                         <div className="p-4 border-b border-white/5 flex items-center justify-between">
-                            <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic">{filteredTickets.length} ACTIVE INCIDENTS</span>
+                            <span className="text-sm font-black text-slate-500 uppercase tracking-widest italic">{filteredTickets.length} ACTIVE INCIDENTS</span>
                             <button className="p-2 text-slate-500 hover:text-white transition-colors"><Filter className="w-3.5 h-3.5" /></button>
                         </div>
                         <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
@@ -248,28 +248,28 @@ export default function SupportModule() {
                                     onClick={() => setSelectedId(t.id)}
                                     className={`w-full text-left p-6 rounded-[2rem] border transition-all relative group overflow-hidden ${
                                         selectedId === t.id 
-                                            ? 'bg-indigo-600/10 border-indigo-500 shadow-xl shadow-indigo-500/5' 
+                                            ? 'bg-teal-600/10 border-teal-500 shadow-xl shadow-teal-500/5' 
                                             : 'bg-white/5 border-white/5 hover:border-white/10'
                                     }`}
                                 >
                                     <div className="flex items-center justify-between mb-3">
-                                        <span className="text-[12px] font-black text-slate-500 font-mono tracking-widest">{t.id}</span>
-                                        <span className={`px-2 py-0.5 rounded-lg text-[12px] font-black uppercase tracking-tighter ${
+                                        <span className="text-sm font-black text-slate-500 font-mono tracking-widest">{t.id}</span>
+                                        <span className={`px-2 py-0.5 rounded-lg text-sm font-black uppercase tracking-tighter ${
                                             t.priority === 'Urgent' ? 'bg-red-500 text-white' : 
                                             t.priority === 'High' ? 'bg-amber-500 text-white' : 
                                             'bg-slate-700 text-slate-400'
                                         }`}>{t.priority}</span>
                                     </div>
-                                    <h4 className={`text-[12px] font-black uppercase italic tracking-wider transition-all ${selectedId === t.id ? 'text-white' : 'text-slate-400'}`}>{t.title}</h4>
+                                    <h4 className={`text-sm font-black uppercase italic tracking-wider transition-all ${selectedId === t.id ? 'text-white' : 'text-slate-400'}`}>{t.title}</h4>
                                     <div className="mt-4 flex items-center justify-between">
-                                        <p className="text-[12px] text-slate-600 font-bold italic line-clamp-1">{t.study}</p>
+                                        <p className="text-sm text-slate-600 font-bold italic line-clamp-1">{t.study}</p>
                                         <div className="flex items-center gap-1.5">
-                                            <div className={`w-1.5 h-1.5 rounded-full ${t.status === 'Open' ? 'bg-indigo-500 shadow-[0_0_5px_rgba(99,102,241,0.5)]' : 'bg-slate-700'}`} />
-                                            <span className="text-[12px] font-black text-slate-500 uppercase italic">{t.status}</span>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${t.status === 'Open' ? 'bg-teal-500 shadow-[0_0_5px_rgba(99,102,241,0.5)]' : 'bg-slate-700'}`} />
+                                            <span className="text-sm font-black text-slate-500 uppercase italic">{t.status}</span>
                                         </div>
                                     </div>
                                     {selectedId === t.id && (
-                                        <motion.div layoutId="active-ind" className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-indigo-500 rounded-r-full" />
+                                        <motion.div layoutId="active-ind" className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-teal-500 rounded-r-full" />
                                     )}
                                 </button>
                             ))}
@@ -280,17 +280,17 @@ export default function SupportModule() {
                     <div className="flex-1 flex flex-col overflow-hidden bg-[#0B101B] relative">
                         <div className="p-8 border-b border-white/5 bg-white/[0.01] flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                                <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 text-indigo-400">
+                                <div className="p-3 bg-teal-500/10 rounded-2xl border border-teal-500/20 text-teal-400">
                                     <MessageCircle className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <h3 className="text-sm font-black text-white italic uppercase tracking-wider">{selectedTicket.title}</h3>
-                                    <p className="text-[12px] text-indigo-400 font-black uppercase tracking-widest mt-1">
+                                    <p className="text-sm text-teal-400 font-black uppercase tracking-widest mt-1">
                                         {selectedTicket.category} Incident Hub • Participant #{selectedTicket.participantId || 'N/A'}
                                     </p>
                                 </div>
                             </div>
-                            <button className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[12px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center gap-2">
+                            <button className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center gap-2">
                                 <History className="w-4 h-4" /> Audit Log
                             </button>
                         </div>
@@ -299,13 +299,13 @@ export default function SupportModule() {
                             {selectedTicket.messages.map((m, i) => (
                                 <div key={m.id} className={`flex flex-col ${m.role === 'Principal Investigator' ? 'items-end' : 'items-start'}`}>
                                     <div className="flex items-center gap-3 mb-2 px-1">
-                                        <span className="text-[12px] font-black text-slate-600 uppercase tracking-widest italic">{m.sender}</span>
-                                        <span className="text-[12px] font-black text-slate-800 uppercase italic">{m.role}</span>
-                                        <span className="text-[12px] text-slate-900 font-mono tracking-tighter">{m.timestamp}</span>
+                                        <span className="text-sm font-black text-slate-600 uppercase tracking-widest italic">{m.sender}</span>
+                                        <span className="text-sm font-black text-slate-800 uppercase italic">{m.role}</span>
+                                        <span className="text-sm text-slate-900 font-mono tracking-tighter">{m.timestamp}</span>
                                     </div>
                                     <div className={`p-6 rounded-[2rem] max-w-[80%] border ${
                                         m.role === 'Principal Investigator' 
-                                            ? 'bg-indigo-600 text-white border-indigo-500 shadow-xl shadow-indigo-600/10 rounded-tr-none' 
+                                            ? 'bg-teal-600 text-white border-teal-500 shadow-xl shadow-teal-600/10 rounded-tr-none' 
                                             : 'bg-white/5 text-slate-300 border-white/10 rounded-tl-none'
                                     }`}>
                                         <p className="text-sm font-black leading-relaxed uppercase tracking-tight italic">{m.content}</p>
@@ -315,7 +315,7 @@ export default function SupportModule() {
                         </div>
 
                         <div className="p-8 bg-white/[0.01] border-t border-white/5">
-                            <div className="bg-[#0B101B] border border-white/10 rounded-[2.5rem] p-4 flex flex-col gap-4 focus-within:border-indigo-500/50 transition-all">
+                            <div className="bg-[#0B101B] border border-white/10 rounded-[2.5rem] p-4 flex flex-col gap-4 focus-within:border-teal-500/50 transition-all">
                                 <textarea 
                                     placeholder="Type your strategic response..." 
                                     value={messageInput}
@@ -332,10 +332,10 @@ export default function SupportModule() {
                                         />
                                         <button 
                                             onClick={() => fileInputRef.current?.click()}
-                                            className={`p-3 border rounded-2xl transition-all active:scale-90 relative ${hasAttachment ? 'bg-indigo-600/20 border-indigo-500 text-indigo-400' : 'bg-white/5 border-white/10 text-slate-600 hover:text-white'}`}
+                                            className={`p-3 border rounded-2xl transition-all active:scale-90 relative ${hasAttachment ? 'bg-teal-600/20 border-teal-500 text-teal-400' : 'bg-white/5 border-white/10 text-slate-600 hover:text-white'}`}
                                         >
                                             <Paperclip className="w-5 h-5" />
-                                            {hasAttachment && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-1 -right-1 w-3 h-3 bg-indigo-500 rounded-full border-2 border-[#0B101B]" />}
+                                            {hasAttachment && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-1 -right-1 w-3 h-3 bg-teal-500 rounded-full border-2 border-[#0B101B]" />}
                                         </button>
                                         <button 
                                             onClick={() => setIsFlagged(!isFlagged)}
@@ -346,10 +346,10 @@ export default function SupportModule() {
                                     </div>
 
                                     <div className="flex gap-4">
-                                        <button className="px-6 py-3 text-[12px] font-black text-slate-700 uppercase tracking-widest hover:text-white transition-colors">Clear</button>
+                                        <button className="px-6 py-3 text-sm font-black text-slate-700 uppercase tracking-widest hover:text-white transition-colors">Clear</button>
                                         <button 
                                             onClick={handleSendMessage}
-                                            className="px-8 py-3 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest shadow-xl shadow-indigo-900/40 hover:scale-105 transition-all flex items-center gap-2"
+                                            className="px-8 py-3 bg-teal-600 text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-teal-900/40 hover:scale-105 transition-all flex items-center gap-2"
                                         >
                                             Send Response <Send className="w-4 h-4" />
                                         </button>
@@ -362,7 +362,7 @@ export default function SupportModule() {
                     {/* Right Panel: Details & Governance */}
                     <div className="w-[380px] border-l border-white/5 flex flex-col overflow-y-auto custom-scrollbar p-10 space-y-12 bg-white/[0.02]">
                         <section>
-                            <h4 className="text-[12px] font-black text-slate-600 uppercase tracking-[0.3em] mb-8 border-b border-white/5 pb-3 italic">Incident DNA</h4>
+                            <h4 className="text-sm font-black text-slate-600 uppercase tracking-[0.3em] mb-8 border-b border-white/5 pb-3 italic">Incident DNA</h4>
                             <div className="space-y-6">
                                 {[
                                     { label: 'Incident ID', val: selectedTicket.id, icon: Lock },
@@ -373,27 +373,27 @@ export default function SupportModule() {
                                     { label: 'Creation Epoch', val: selectedTicket.createdAt, icon: Clock }
                                 ].map((item, i) => (
                                     <div key={i} className="flex flex-col gap-2 p-4 bg-white/5 border border-white/5 rounded-2xl">
-                                        <span className="text-[12px] font-black text-slate-600 uppercase tracking-[0.2em] flex items-center gap-2 italic">
+                                        <span className="text-sm font-black text-slate-600 uppercase tracking-[0.2em] flex items-center gap-2 italic">
                                             <item.icon className="w-3 h-3" /> {item.label}
                                         </span>
-                                        <span className="text-[12px] font-black text-white uppercase italic tracking-widest">{item.val}</span>
+                                        <span className="text-sm font-black text-white uppercase italic tracking-widest">{item.val}</span>
                                     </div>
                                 ))}
                             </div>
                         </section>
 
                         <section>
-                            <h4 className="text-[12px] font-black text-slate-600 uppercase tracking-[0.3em] mb-8 border-b border-white/5 pb-3 italic">Operational Controls</h4>
+                            <h4 className="text-sm font-black text-slate-600 uppercase tracking-[0.3em] mb-8 border-b border-white/5 pb-3 italic">Operational Controls</h4>
                             <div className="grid gap-3">
-                                <label className="text-[12px] text-slate-700 font-bold uppercase tracking-widest mb-1 block">Governance State</label>
+                                <label className="text-sm text-slate-700 font-bold uppercase tracking-widest mb-1 block">Governance State</label>
                                 <div className="grid grid-cols-2 gap-2">
                                     {['In Progress', 'Waiting', 'Resolved', 'Escalated'].map(s => (
                                         <button 
                                             key={s}
                                             onClick={() => updateTicketStatus(s as any)}
-                                            className={`px-4 py-3 rounded-xl border text-[12px] font-black uppercase tracking-widest transition-all ${
+                                            className={`px-4 py-3 rounded-xl border text-sm font-black uppercase tracking-widest transition-all ${
                                                 selectedTicket.status === s 
-                                                    ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg' 
+                                                    ? 'bg-teal-600 text-white border-teal-500 shadow-lg' 
                                                     : 'bg-white/5 text-slate-500 border-transparent hover:border-white/10'
                                             }`}
                                         >
@@ -401,25 +401,25 @@ export default function SupportModule() {
                                         </button>
                                     ))}
                                 </div>
-                                <button className="mt-4 px-6 py-4 bg-red-600/10 border border-red-500/20 text-red-500 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-xl shadow-red-900/10">
+                                <button className="mt-4 px-6 py-4 bg-red-600/10 border border-red-500/20 text-red-500 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-xl shadow-red-900/10">
                                     CRITICAL ESCALATE
                                 </button>
                             </div>
                         </section>
 
-                        <section className="p-8 bg-indigo-500/5 border border-indigo-500/10 rounded-[2.5rem]">
-                            <h5 className="text-[12px] font-black text-indigo-400 uppercase tracking-widest mb-4 italic">SLA Surveillance</h5>
+                        <section className="p-8 bg-teal-500/5 border border-teal-500/10 rounded-[2.5rem]">
+                            <h5 className="text-sm font-black text-teal-400 uppercase tracking-widest mb-4 italic">SLA Surveillance</h5>
                             <div className="space-y-6">
-                                <div className="relative pl-6 border-l border-indigo-500/20 space-y-6">
+                                <div className="relative pl-6 border-l border-teal-500/20 space-y-6">
                                     <div className="relative">
                                         <div className="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-emerald-500 border-4 border-[#0B101B]" />
-                                        <p className="text-[12px] font-black text-white uppercase italic">Created</p>
-                                        <p className="text-[12px] text-slate-700 mt-1 uppercase italic">{selectedTicket.createdAt}</p>
+                                        <p className="text-sm font-black text-white uppercase italic">Created</p>
+                                        <p className="text-sm text-slate-700 mt-1 uppercase italic">{selectedTicket.createdAt}</p>
                                     </div>
                                     <div className="relative">
-                                        <div className="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-indigo-500 border-4 border-[#0B101B]" />
-                                        <p className="text-[12px] font-black text-white uppercase italic">First Response</p>
-                                        <p className="text-[12px] text-slate-700 mt-1 uppercase italic">Within 2 Hours</p>
+                                        <div className="absolute -left-[29px] top-1 w-3 h-3 rounded-full bg-teal-500 border-4 border-[#0B101B]" />
+                                        <p className="text-sm font-black text-white uppercase italic">First Response</p>
+                                        <p className="text-sm text-slate-700 mt-1 uppercase italic">Within 2 Hours</p>
                                     </div>
                                 </div>
                             </div>
@@ -438,12 +438,12 @@ export default function SupportModule() {
                                 exit={{ opacity: 0, scale: 0.95 }}
                                 className="w-full flex flex-col items-center text-center space-y-12"
                            >
-                               <div className="w-24 h-24 lg:w-32 lg:h-32 bg-indigo-600/10 rounded-[2.5rem] lg:rounded-[3rem] border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                               <div className="w-24 h-24 lg:w-32 lg:h-32 bg-teal-600/10 rounded-[2.5rem] lg:rounded-[3rem] border border-teal-500/20 flex items-center justify-center text-teal-400">
                                     <Book className="w-10 h-10 lg:w-16 lg:h-16" />
                                </div>
                                <div className="max-w-2xl space-y-6">
                                     <h2 className="text-2xl lg:text-4xl font-black text-white italic uppercase tracking-tighter leading-tight">MusB Intelligence Hub & Knowledge Repository</h2>
-                                    <p className="text-[12px] lg:text-[12px] text-slate-500 font-black uppercase tracking-widest leading-relaxed italic">
+                                    <p className="text-sm lg:text-sm text-slate-500 font-black uppercase tracking-widest leading-relaxed italic">
                                         Access training manuals, standard operating procedures, and platform video tutorials. 
                                         Our repository is cryptographically synced across global research nodes for unified protocol alignment.
                                     </p>
@@ -457,13 +457,13 @@ export default function SupportModule() {
                                         <button 
                                             key={i} 
                                             onClick={() => setKbCategory(kb.label)}
-                                            className="p-6 lg:p-8 bg-white/5 border border-white/5 rounded-[2.5rem] lg:rounded-[3rem] text-left space-y-4 hover:border-indigo-500/50 hover:bg-white/[0.08] transition-all group active:scale-95"
+                                            className="p-6 lg:p-8 bg-white/5 border border-white/5 rounded-[2.5rem] lg:rounded-[3rem] text-left space-y-4 hover:border-teal-500/50 hover:bg-white/[0.08] transition-all group active:scale-95"
                                         >
-                                            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-white/5 rounded-2xl flex items-center justify-center text-slate-500 group-hover:text-indigo-400 group-hover:bg-indigo-500/10 transition-all">
+                                            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-white/5 rounded-2xl flex items-center justify-center text-slate-500 group-hover:text-teal-400 group-hover:bg-teal-500/10 transition-all">
                                                 <kb.icon className="w-5 h-5 lg:w-6 lg:h-6" />
                                             </div>
-                                            <h4 className="text-[12px] lg:text-[12px] font-black text-white uppercase tracking-widest italic">{kb.label}</h4>
-                                            <p className="text-[12px] lg:text-[12px] text-slate-600 font-bold uppercase tracking-widest leading-relaxed italic line-clamp-2">{kb.desc}</p>
+                                            <h4 className="text-sm lg:text-sm font-black text-white uppercase tracking-widest italic">{kb.label}</h4>
+                                            <p className="text-sm lg:text-sm text-slate-600 font-bold uppercase tracking-widest leading-relaxed italic line-clamp-2">{kb.desc}</p>
                                         </button>
                                     ))}
                                </div>
@@ -480,13 +480,13 @@ export default function SupportModule() {
                                    <div className="flex items-center gap-6">
                                        <button 
                                             onClick={() => setKbCategory(null)}
-                                            className="p-3 bg-white/5 rounded-2xl text-slate-400 hover:text-white transition-all hover:bg-white/10 italic text-[12px] font-black uppercase flex items-center gap-2"
+                                            className="p-3 bg-white/5 rounded-2xl text-slate-400 hover:text-white transition-all hover:bg-white/10 italic text-sm font-black uppercase flex items-center gap-2"
                                        >
                                            <X className="w-4 h-4" /> Back to Hub
                                        </button>
                                        <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">{kbCategory}</h2>
                                    </div>
-                                   <p className="text-[12px] text-slate-500 font-black italic uppercase">Repository Synced Oct 2024</p>
+                                   <p className="text-sm text-slate-500 font-black italic uppercase">Repository Synced Oct 2024</p>
                                </div>
 
                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
@@ -494,11 +494,11 @@ export default function SupportModule() {
                                        <div 
                                             key={i} 
                                             onClick={() => !downloadingIdx && handleDownload(i)}
-                                            className="p-6 bg-white/[0.03] border border-white/5 rounded-[2rem] flex items-center justify-between group hover:border-indigo-500/30 transition-all cursor-pointer active:scale-[0.98]"
+                                            className="p-6 bg-white/[0.03] border border-white/5 rounded-[2rem] flex items-center justify-between group hover:border-teal-500/30 transition-all cursor-pointer active:scale-[0.98]"
                                        >
                                            <div className="flex items-center gap-4">
                                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
-                                                    downloadingIdx === i ? 'bg-indigo-600 text-white animate-pulse' :
+                                                    downloadingIdx === i ? 'bg-teal-600 text-white animate-pulse' :
                                                     downloadSuccessIdx === i ? 'bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]' :
                                                     'bg-white/5 text-slate-500'
                                                }`}>
@@ -508,19 +508,19 @@ export default function SupportModule() {
                                                     <Settings className="w-5 h-5" />}
                                                </div>
                                                <div>
-                                                   <h5 className="text-[12px] font-black text-white uppercase italic tracking-wider">{doc.title || doc.desc}</h5>
+                                                   <h5 className="text-sm font-black text-white uppercase italic tracking-wider">{doc.title || doc.desc}</h5>
                                                    <div className="flex items-center gap-3 mt-1.5 font-mono">
-                                                       <span className="text-[12px] text-indigo-400 font-black uppercase">
+                                                       <span className="text-sm text-teal-400 font-black uppercase">
                                                            {downloadingIdx === i ? 'TRANSMITTING...' : doc.type}
                                                        </span>
-                                                       <span className="text-[12px] text-slate-700 uppercase italic">Last Updated: {doc.date}</span>
-                                                       <span className="text-[12px] text-slate-800 font-black">{doc.size}</span>
+                                                       <span className="text-sm text-slate-700 uppercase italic">Last Updated: {doc.date}</span>
+                                                       <span className="text-sm text-slate-800 font-black">{doc.size}</span>
                                                    </div>
                                                </div>
                                            </div>
                                            <div className="flex items-center gap-3">
                                                {downloadingIdx === i ? (
-                                                   <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="p-3 text-indigo-400">
+                                                   <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="p-3 text-teal-400">
                                                        <History className="w-5 h-5" />
                                                    </motion.div>
                                                ) : downloadSuccessIdx === i ? (
@@ -528,7 +528,7 @@ export default function SupportModule() {
                                                        <CheckCircle2 className="w-5 h-5" />
                                                    </div>
                                                ) : (
-                                                   <button className="p-3 bg-indigo-600/10 text-indigo-400 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-indigo-600 hover:text-white">
+                                                   <button className="p-3 bg-teal-600/10 text-teal-400 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-teal-600 hover:text-white">
                                                        <ExternalLink className="w-4 h-4" />
                                                    </button>
                                                )}
@@ -564,7 +564,7 @@ export default function SupportModule() {
                             <div className="flex-shrink-0 px-12 py-10 border-b border-white/5 flex items-center justify-between">
                                 <div>
                                     <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">Initiate New Incident Report</h3>
-                                    <p className="text-[12px] text-indigo-400 font-black uppercase tracking-[0.3em] mt-3 italic">Structured Routing and Protocol Synchronization</p>
+                                    <p className="text-sm text-teal-400 font-black uppercase tracking-[0.3em] mt-3 italic">Structured Routing and Protocol Synchronization</p>
                                 </div>
                                 <button onClick={() => setIsNewRequestOpen(false)} className="p-4 bg-white/5 border border-white/10 rounded-2xl text-slate-500 hover:text-white transition-all">
                                     <X className="w-6 h-6" />
@@ -574,12 +574,12 @@ export default function SupportModule() {
                             <div className="flex-1 overflow-y-auto custom-scrollbar p-16 space-y-16">
                                 <section className="grid grid-cols-2 gap-10">
                                     <div className="space-y-4">
-                                        <label className="text-[12px] text-slate-500 font-black uppercase tracking-widest italic">Incident Title</label>
-                                        <input type="text" placeholder="Summary of the incident..." className="w-full bg-white/5 border border-white/10 rounded-2xl px-8 py-5 text-sm font-black italic uppercase text-white placeholder-slate-800 outline-none focus:border-indigo-500/50" />
+                                        <label className="text-sm text-slate-500 font-black uppercase tracking-widest italic">Incident Title</label>
+                                        <input type="text" placeholder="Summary of the incident..." className="w-full bg-white/5 border border-white/10 rounded-2xl px-8 py-5 text-sm font-black italic uppercase text-white placeholder-slate-800 outline-none focus:border-teal-500/50" />
                                     </div>
                                     <div className="space-y-4">
-                                        <label className="text-[12px] text-slate-500 font-black uppercase tracking-widest italic">Incident Category</label>
-                                        <select className="w-full bg-white/5 border border-white/10 rounded-2xl px-8 py-5 text-sm font-black italic uppercase text-white outline-none focus:border-indigo-500/50 appearance-none">
+                                        <label className="text-sm text-slate-500 font-black uppercase tracking-widest italic">Incident Category</label>
+                                        <select className="w-full bg-white/5 border border-white/10 rounded-2xl px-8 py-5 text-sm font-black italic uppercase text-white outline-none focus:border-teal-500/50 appearance-none">
                                             <option>Technical Support</option>
                                             <option>Clinical / Protocol</option>
                                             <option>Study Operations</option>
@@ -588,23 +588,23 @@ export default function SupportModule() {
                                         </select>
                                     </div>
                                     <div className="col-span-2 space-y-4">
-                                        <label className="text-[12px] text-slate-500 font-black uppercase tracking-widest italic">Incident Description & Observation Logs</label>
-                                        <textarea placeholder="Describe the behavior or required clarification in detail..." className="w-full bg-white/5 border border-white/10 rounded-[2rem] px-8 py-6 text-sm font-black italic uppercase text-white placeholder-slate-800 outline-none focus:border-indigo-500/50 h-32 resize-none" />
+                                        <label className="text-sm text-slate-500 font-black uppercase tracking-widest italic">Incident Description & Observation Logs</label>
+                                        <textarea placeholder="Describe the behavior or required clarification in detail..." className="w-full bg-white/5 border border-white/10 rounded-[2rem] px-8 py-6 text-sm font-black italic uppercase text-white placeholder-slate-800 outline-none focus:border-teal-500/50 h-32 resize-none" />
                                     </div>
                                 </section>
 
                                 <section className="grid grid-cols-3 gap-8">
                                     <div className="space-y-4">
-                                        <label className="text-[12px] text-slate-500 font-black uppercase tracking-widest italic">Target Study</label>
-                                        <select className="w-full bg-white/5 border border-white/10 rounded-xl px-6 py-4 text-[12px] font-black uppercase text-white outline-none appearance-none">
+                                        <label className="text-sm text-slate-500 font-black uppercase tracking-widest italic">Target Study</label>
+                                        <select className="w-full bg-white/5 border border-white/10 rounded-xl px-6 py-4 text-sm font-black uppercase text-white outline-none appearance-none">
                                             <option>HI-202B</option>
                                             <option>MS-801</option>
                                             <option>NR-009</option>
                                         </select>
                                     </div>
                                     <div className="space-y-4">
-                                        <label className="text-[12px] text-slate-500 font-black uppercase tracking-widest italic">Priority Coefficient</label>
-                                        <select className="w-full bg-white/5 border border-white/10 rounded-xl px-6 py-4 text-[12px] font-black uppercase text-white outline-none appearance-none">
+                                        <label className="text-sm text-slate-500 font-black uppercase tracking-widest italic">Priority Coefficient</label>
+                                        <select className="w-full bg-white/5 border border-white/10 rounded-xl px-6 py-4 text-sm font-black uppercase text-white outline-none appearance-none">
                                             <option>Low</option>
                                             <option>Medium</option>
                                             <option>High</option>
@@ -612,30 +612,30 @@ export default function SupportModule() {
                                         </select>
                                     </div>
                                     <div className="space-y-4">
-                                        <label className="text-[12px] text-slate-500 font-black uppercase tracking-widest italic">Participant Tracking ID</label>
-                                        <input type="text" placeholder="BTB-XXX" className="w-full bg-white/5 border border-white/10 rounded-xl px-6 py-4 text-[12px] font-black uppercase text-white placeholder-slate-800 outline-none" />
+                                        <label className="text-sm text-slate-500 font-black uppercase tracking-widest italic">Participant Tracking ID</label>
+                                        <input type="text" placeholder="BTB-XXX" className="w-full bg-white/5 border border-white/10 rounded-xl px-6 py-4 text-sm font-black uppercase text-white placeholder-slate-800 outline-none" />
                                     </div>
                                 </section>
 
-                                <div className="p-12 bg-indigo-500/5 border border-indigo-500/10 rounded-[3rem] flex flex-col items-center justify-center text-center gap-6 group hover:border-indigo-500/30 transition-all border-dashed">
-                                    <div className="w-16 h-16 bg-white/5 rounded-3xl flex items-center justify-center text-slate-600 group-hover:text-indigo-400 transition-all">
+                                <div className="p-12 bg-teal-500/5 border border-teal-500/10 rounded-[3rem] flex flex-col items-center justify-center text-center gap-6 group hover:border-teal-500/30 transition-all border-dashed">
+                                    <div className="w-16 h-16 bg-white/5 rounded-3xl flex items-center justify-center text-slate-600 group-hover:text-teal-400 transition-all">
                                         <Paperclip className="w-8 h-8" />
                                     </div>
                                     <div>
-                                        <p className="text-[12px] font-black text-white uppercase italic">Append Scientific Evidence</p>
-                                        <p className="text-[12px] text-slate-600 font-bold uppercase tracking-widest mt-2 italic">Drag and drop screenshots, PDFs, or Lab reports (MAX 50MB)</p>
+                                        <p className="text-sm font-black text-white uppercase italic">Append Scientific Evidence</p>
+                                        <p className="text-sm text-slate-600 font-bold uppercase tracking-widest mt-2 italic">Drag and drop screenshots, PDFs, or Lab reports (MAX 50MB)</p>
                                     </div>
-                                    <button className="px-8 py-3 bg-white/5 border border-white/10 text-slate-400 rounded-xl text-[12px] font-black uppercase tracking-widest hover:text-white transition-all">Browse Cryptographic Files</button>
+                                    <button className="px-8 py-3 bg-white/5 border border-white/10 text-slate-400 rounded-xl text-sm font-black uppercase tracking-widest hover:text-white transition-all">Browse Cryptographic Files</button>
                                 </div>
                             </div>
 
                             <div className="flex-shrink-0 px-12 py-10 bg-[#0B101B]/95 backdrop-blur-xl border-t border-white/5 flex items-center justify-between">
-                                <button onClick={() => setIsNewRequestOpen(false)} className="px-10 py-4 text-[12px] font-black text-slate-600 uppercase tracking-widest hover:text-white transition-colors">Abort Submission</button>
+                                <button onClick={() => setIsNewRequestOpen(false)} className="px-10 py-4 text-sm font-black text-slate-600 uppercase tracking-widest hover:text-white transition-colors">Abort Submission</button>
                                 <div className="flex gap-4">
-                                    <button className="px-10 py-4 bg-white/5 border border-white/10 text-slate-400 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:text-white">Save Temporary Draft</button>
+                                    <button className="px-10 py-4 bg-white/5 border border-white/10 text-slate-400 rounded-2xl text-sm font-black uppercase tracking-widest hover:text-white">Save Temporary Draft</button>
                                     <button 
                                         onClick={() => setIsNewRequestOpen(false)}
-                                        className="px-12 py-4 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest shadow-2xl shadow-indigo-900/40 hover:scale-105 transition-all italic"
+                                        className="px-12 py-4 bg-teal-600 text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-2xl shadow-teal-900/40 hover:scale-105 transition-all italic"
                                     >
                                         Transmit Incident Report
                                     </button>

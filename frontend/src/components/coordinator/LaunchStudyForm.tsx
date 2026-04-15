@@ -264,6 +264,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
             start_date: startDate || null,
             end_date: endDate || null,
             is_double_blind: masking === 'DOUBLE_BLIND' || masking === 'TRIPLE_BLIND' || masking === 'QUADRUPLE_BLIND',
+            masking_strategy: masking,
             has_placebo_control: formData.trial_model === 'RCT',
             pi_ids: Array.isArray(pi_id) ? pi_id : [],
             coordinator_ids: Array.isArray(coordinator_id) ? coordinator_id : [],
@@ -286,32 +287,32 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
     }, [formData, isSubmitting, onSave, validation?.isValid]);
 
     return (
-        <div className="flex flex-col min-h-full pb-32 w-full px-6 lg:px-12 2xl:px-20 max-w-[2800px] mx-auto">
+        <div className="flex flex-col min-h-full pb-32 w-full px-4 lg:px-8 2xl:px-12 max-w-[2800px] mx-auto">
             {/* Header */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-12 border-b border-white/5 pb-10">
-                <div className="flex items-center gap-5">
-                    <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shadow-[0_0_20px_rgba(79,70,229,0.1)]">
-                        <Rocket className="w-6 h-6 text-indigo-400" />
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8 border-b border-white/5 pb-6">
+                <div className="flex items-center gap-4">
+                    <div className="p-2.5 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shadow-[0_0_20px_rgba(79,70,229,0.1)]">
+                        <Rocket className="w-5 h-5 text-indigo-400" />
                     </div>
                     <div>
-                        <h1 className="text-xl lg:text-3xl font-black text-white italic uppercase tracking-tighter leading-tight">Launch <span className="text-indigo-400">New Study</span></h1>
-                        <p className="text-[10px] text-white/40 font-bold uppercase tracking-[0.4em] mt-1.5 flex items-center gap-2">
-                            <Activity className="w-3 h-3 text-indigo-500/40" />
+                        <h1 className="text-lg lg:text-2xl font-black text-white italic uppercase tracking-tighter leading-tight">Launch <span className="text-indigo-400">New Study</span></h1>
+                        <p className="text-[9px] text-white/40 font-bold uppercase tracking-[0.3em] mt-1 flex items-center gap-2">
+                            <Activity className="w-2.5 h-2.5 text-indigo-500/40" />
                             Secure Operational Protocol Entry
                         </p>
                     </div>
                 </div>
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-4">
                     <div className="text-right">
-                        <p className="text-[12px] font-black text-indigo-400 uppercase tracking-widest leading-none">Status: Drafting</p>
-                        <p className="text-[12px] text-white/40 font-bold mt-1 uppercase">Last saved: {lastSaved}</p>
+                        <p className="text-[11px] font-black text-indigo-400 uppercase tracking-widest leading-none">Status: Drafting</p>
+                        <p className="text-[10px] text-white/40 font-bold mt-1 uppercase">Last saved: {lastSaved}</p>
                     </div>
                 </div>
             </div>
 
             {/* Stepper Progress Node */}
-            <div className="sticky top-0 z-40 bg-[#0B1120]/80 backdrop-blur-xl border border-white/10 rounded-[2rem] py-8 px-12 mb-16 shadow-2xl overflow-x-auto scrollbar-hide">
-                <div className="flex items-center justify-between min-w-[800px] lg:min-w-0">
+            <div className="sticky top-0 z-40 bg-[#0B1120]/80 backdrop-blur-xl border border-white/10 rounded-3xl py-4 px-6 mb-12 shadow-2xl overflow-x-auto scrollbar-hide">
+                <div className="flex items-center justify-between min-w-[700px] lg:min-w-0">
                     {steps.map((step, idx) => (
                         <React.Fragment key={step.id}>
                             <button
@@ -326,7 +327,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                     <p className={`text-[10px] uppercase tracking-tighter mt-1.5 ${currentStep === step.id ? 'text-indigo-400 font-bold' : 'text-slate-600'}`}>{step.sub}</p>
                                 </div>
                             </button>
-                            {idx < steps.length - 1 && <div className="h-px flex-1 bg-white/10 mx-6" />}
+                            {idx < steps.length - 1 && <div className="h-px flex-1 bg-white/10 mx-4" />}
                         </React.Fragment>
                     ))}
                 </div>
@@ -336,14 +337,14 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
             <div className="flex-1">
                 <AnimatePresence mode="wait">
                     {currentStep === 1 && (
-                        <motion.div key="step1" initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="space-y-8">
-                            <div className="bg-[#0B101B] border border-white/5 rounded-[2rem] p-8 space-y-8 shadow-2xl relative overflow-visible">
+                        <motion.div key="step1" initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="space-y-6">
+                            <div className="bg-[#0B101B] border border-white/5 rounded-3xl p-6 space-y-6 shadow-2xl relative overflow-visible">
                                 <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none"><Beaker className="w-40 h-40 text-white" /></div>
-                                <div className="flex items-center justify-between border-l-4 border-indigo-500 pl-8">
-                                    <h2 className="text-xl font-black text-white uppercase tracking-tighter italic">Protocol Fundamentals</h2>
-                                    <div className="flex items-center gap-4 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-                                        <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                                        <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none">Active Discovery</span>
+                                <div className="flex items-center justify-between border-l-4 border-indigo-500 pl-6">
+                                    <h2 className="text-lg font-black text-white uppercase tracking-tighter italic">Protocol Fundamentals</h2>
+                                    <div className="flex items-center gap-3 px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                                        <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest leading-none">Active Discovery</span>
                                     </div>
                                 </div>
 
@@ -363,11 +364,11 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                 onClick={() => setShowSponsorDropdown(true)}
                                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-base text-white/50 font-bold flex items-center justify-between cursor-pointer hover:border-indigo-500/30 hover:bg-indigo-500/5 transition-all group shadow-lg"
                                             >
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-indigo-500/20 group-hover:border-indigo-500/30 transition-all">
-                                                        <Search className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition-colors" />
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-indigo-500/20 group-hover:border-indigo-500/30 transition-all shrink-0">
+                                                        <Search className="w-3.5 h-3.5 text-slate-500 group-hover:text-indigo-400 transition-colors" />
                                                     </div>
-                                                    <span className="italic font-mono uppercase tracking-tight text-[13px]">Select Connected Sponsor Agency...</span>
+                                                    <span className="italic font-mono uppercase tracking-tight text-[12px] truncate">Select Connected Sponsor Agency...</span>
                                                 </div>
                                                 <div className="flex items-center gap-3">
                                                     <ChevronDown className="w-4 h-4 opacity-20 group-hover:opacity-100 transition-all" />
@@ -769,7 +770,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                             if (isSelected) {
                                                                 setFormData({...formData, study_questionnaires: formData.study_questionnaires.filter((sq: any) => sq.template !== t.id)});
                                                             } else {
-                                                                setFormData({...formData, study_questionnaires: [...formData.study_questionnaires, { template: t.id, mode: 'STRUCTURED', frequency: 'ONCE', repetitions: 1, schedule_name: t.name }]});
+                                                                setFormData({...formData, study_questionnaires: [...formData.study_questionnaires, { template: t.id, mode: 'STRUCTURED', frequency_interval: 1, frequency_unit: 'WEEKS', repetitions: 1, schedule_name: t.name }]});
                                                             }
                                                         }}
                                                         className={`p-2 rounded-lg transition-all ${isSelected ? 'bg-rose-500 text-white' : 'bg-indigo-600 text-white'}`}
@@ -798,28 +799,46 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                             </div>
                                                         </div>
 
-                                                        <div className="grid grid-cols-2 gap-3 mb-6">
+                                                        <div className="grid grid-cols-1 gap-4 mb-6">
                                                             <div>
-                                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 block">Frequency</label>
-                                                                <select 
-                                                                    value={config.frequency}
-                                                                    onChange={e => setFormData({...formData, study_questionnaires: formData.study_questionnaires.map((sq: any) => sq.template === t.id ? {...sq, frequency: e.target.value} : sq)})}
-                                                                    className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-[10px] font-black uppercase text-indigo-400"
-                                                                >
-                                                                    <option value="ONCE">Once</option>
-                                                                    <option value="DAILY">Daily</option>
-                                                                    <option value="WEEKLY">Weekly</option>
-                                                                    <option value="MONTHLY">Monthly</option>
-                                                                </select>
+                                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Recurrence Pattern</label>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-[10px] font-bold text-white/40 uppercase">Repeat every</span>
+                                                                    <input 
+                                                                        type="number" 
+                                                                        min="1"
+                                                                        value={config.frequency_interval || 1}
+                                                                        onChange={e => setFormData({...formData, study_questionnaires: formData.study_questionnaires.map((sq: any) => sq.template === t.id ? {...sq, frequency_interval: parseInt(e.target.value) || 1} : sq)})}
+                                                                        className="w-16 bg-white/5 border border-white/10 rounded-lg p-2 text-[11px] font-black text-indigo-400 text-center"
+                                                                    />
+                                                                    <select 
+                                                                        value={config.frequency_unit || 'WEEKS'}
+                                                                        onChange={e => setFormData({...formData, study_questionnaires: formData.study_questionnaires.map((sq: any) => sq.template === t.id ? {...sq, frequency_unit: e.target.value} : sq)})}
+                                                                        className="flex-1 bg-white/5 border border-white/10 rounded-lg p-2 text-[10px] font-black uppercase text-indigo-400"
+                                                                    >
+                                                                        <option value="DAYS">Days</option>
+                                                                        <option value="WEEKS">Weeks</option>
+                                                                        <option value="MONTHS">Months</option>
+                                                                    </select>
+                                                                </div>
                                                             </div>
-                                                            <div>
-                                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 block">Reps</label>
-                                                                <input 
-                                                                    type="number" 
-                                                                    value={config.repetitions}
-                                                                    onChange={e => setFormData({...formData, study_questionnaires: formData.study_questionnaires.map((sq: any) => sq.template === t.id ? {...sq, repetitions: parseInt(e.target.value)} : sq)})}
-                                                                    className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-[10px] font-black text-white"
-                                                                />
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="flex-1">
+                                                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 block">Total Repetitions</label>
+                                                                    <input 
+                                                                        type="number" 
+                                                                        min="1"
+                                                                        value={config.repetitions}
+                                                                        onChange={e => setFormData({...formData, study_questionnaires: formData.study_questionnaires.map((sq: any) => sq.template === t.id ? {...sq, repetitions: parseInt(e.target.value)} : sq)})}
+                                                                        className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-[10px] font-black text-white"
+                                                                    />
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 block">Baseline Week</label>
+                                                                    <div className="bg-white/5 border border-white/10 rounded-lg p-2 text-[10px] font-black text-indigo-300 text-center">
+                                                                        Week 0
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
 
@@ -830,22 +849,53 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                                 </h4>
                                                                 <span className="text-[9px] text-white/40 font-bold uppercase">Intelligence Preview</span>
                                                             </div>
-                                                            <div className="max-h-[150px] overflow-y-auto pr-2 custom-scrollbar space-y-2">
+                                                            <div className="max-h-[300px] overflow-y-auto pr-2 custom-scrollbar space-y-4">
                                                                 {t.json_structure?.sections?.map((section: any, si: number) => (
-                                                                    <div key={si} className="space-y-2">
-                                                                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">{section.label || section.title}</p>
+                                                                    <div key={si} className="space-y-4">
+                                                                        <div className="flex items-center gap-3 mb-2">
+                                                                            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                                                                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] font-mono italic">{section.label || section.title}</p>
+                                                                            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                                                                        </div>
+                                                                        
                                                                         {section.fields?.map((field: any, fi: number) => (
-                                                                            <div key={fi} className="flex items-center gap-2 py-2 px-3 bg-white/5 rounded-lg border border-white/5">
-                                                                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/50" />
-                                                                                <span className="text-[11px] text-white/80 font-bold leading-tight">{field.label || field.question}</span>
+                                                                            <div key={fi} className="group bg-white/[0.03] border border-white/5 rounded-2xl p-5 transition-all hover:bg-white/[0.05] hover:border-indigo-500/30">
+                                                                                <div className="flex gap-4 mb-4">
+                                                                                    <span className="text-indigo-500 font-black italic text-xs tracking-tighter opacity-70 group-hover:opacity-100">
+                                                                                        {fi + 1 < 10 ? `0${fi + 1}` : fi + 1}
+                                                                                    </span>
+                                                                                    <h5 className="text-[11px] font-bold text-white/90 leading-relaxed uppercase tracking-tight">
+                                                                                        {field.label || field.question}
+                                                                                    </h5>
+                                                                                </div>
+                                                                                
+                                                                                {field.type === 'multiple_choice' && field.options && (
+                                                                                    <div className="grid grid-cols-1 gap-2 pl-8">
+                                                                                        {field.options.map((opt: string, oi: number) => (
+                                                                                            <div key={oi} className="flex items-center gap-3 py-1.5 px-3 rounded-lg bg-black/20 border border-white/5">
+                                                                                                <div className="w-2 h-2 rounded-full border border-indigo-500/50" />
+                                                                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{opt}</span>
+                                                                                            </div>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                )}
+
+                                                                                {field.type === 'text' && (
+                                                                                    <div className="pl-8">
+                                                                                        <div className="w-full h-8 bg-black/20 border border-dashed border-white/10 rounded-lg flex items-center px-3">
+                                                                                            <span className="text-[8px] text-slate-600 font-black uppercase tracking-widest">Text Response Area</span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
                                                                         ))}
                                                                     </div>
                                                                 )) || (
-                                                                    <div className="py-4 text-center border border-dashed border-white/10 rounded-xl">
-                                                                        <p className="text-[10px] text-slate-600 font-bold uppercase italic tracking-widest leading-relaxed">
-                                                                            No Structured Questions Detected.<br/>
-                                                                            Configure via <span className="text-indigo-400">Questionnaire Builder</span>
+                                                                    <div className="py-8 text-center border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
+                                                                        <AlertCircle className="w-6 h-6 text-slate-700 mx-auto mb-3 opacity-50" />
+                                                                        <p className="text-[10px] text-slate-600 font-black uppercase italic tracking-[0.2em] leading-relaxed">
+                                                                            Intelligence Protocol Empty<br/>
+                                                                            <span className="text-[8px] opacity-50 mt-1 block">Deploy logic via Questionnaire Builder</span>
                                                                         </p>
                                                                     </div>
                                                                 )}
@@ -935,36 +985,36 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
             </div>
 
             {/* Footer Action Bar Hub */}
-            <div className="fixed bottom-0 right-0 left-0 lg:left-[320px] h-24 border-t border-white/5 bg-[#0B101B]/90 backdrop-blur-xl flex items-center justify-between px-10 z-[60]">
+            <div className="fixed bottom-0 right-0 left-0 xl:left-[240px] h-20 border-t border-white/5 bg-[#0B101B]/90 backdrop-blur-xl flex items-center justify-between px-6 z-[60]">
                 <div className="flex items-center gap-4">
                     <button
                         onClick={handlePrev}
                         disabled={currentStep === 1}
-                        className={`px-10 py-5 rounded-2xl border flex items-center gap-4 transition-all ${currentStep === 1 ? 'opacity-20 cursor-not-allowed border-white/5 text-slate-600' : 'bg-white/5 border-white/10 text-white hover:bg-white/10 shadow-xl'}`}
+                        className={`px-6 md:px-10 py-4 h-12 rounded-2xl border flex items-center gap-3 transition-all ${currentStep === 1 ? 'opacity-20 cursor-not-allowed border-white/5 text-slate-600' : 'bg-white/5 border-white/10 text-white hover:bg-white/10 shadow-xl'}`}
                     >
-                        <ChevronLeft className="w-5 h-5 text-indigo-400" />
-                        <span className="text-[12px] font-black uppercase tracking-[0.2em]">Previous Phase</span>
+                        <ChevronLeft className="w-4 h-4 text-indigo-400" />
+                        <span className="text-[11px] font-black uppercase tracking-[0.2em]">Previous Phase</span>
                     </button>
                 </div>
 
                 <div className="flex items-center gap-6">
-                    <button onClick={onClose} className="px-8 py-5 text-slate-500 hover:text-white transition-all text-[12px] font-black uppercase tracking-widest italic group">
-                        Discard <span className="opacity-0 group-hover:opacity-100 transition-opacity">Study</span>
+                    <button onClick={onClose} className="px-6 py-4 text-slate-500 hover:text-white transition-all text-[11px] font-black uppercase tracking-widest italic group h-12 flex items-center">
+                        Discard <span className="opacity-0 group-hover:opacity-100 transition-opacity ml-1">Study</span>
                     </button>
 
                     {currentStep < 5 ? (
-                        <button onClick={handleNext} className="px-12 py-5 bg-indigo-600 text-white rounded-2xl flex items-center gap-4 shadow-2xl shadow-indigo-600/30 hover:scale-[1.02] active:scale-95 transition-all group">
-                            <span className="text-[12px] font-black uppercase tracking-[0.2em]">Next Step</span>
-                            <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        <button onClick={handleNext} className="px-8 md:px-12 py-4 h-12 bg-indigo-600 text-white rounded-2xl flex items-center gap-3 shadow-2xl shadow-indigo-600/30 hover:scale-[1.02] active:scale-95 transition-all group">
+                            <span className="text-[11px] font-black uppercase tracking-[0.2em]">Next Step</span>
+                            <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                         </button>
                     ) : (
                         <button
                             onClick={handleSubmit}
                             disabled={!validation?.isValid || isSubmitting}
-                            className={`px-14 py-5 rounded-2xl flex items-center gap-4 transition-all ${validation?.isValid && !isSubmitting ? 'bg-indigo-600 text-white shadow-xl hover:scale-[1.05] active:scale-95' : 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed border border-white/5'}`}
+                            className={`px-10 md:px-14 py-4 h-12 rounded-2xl flex items-center gap-3 transition-all ${validation?.isValid && !isSubmitting ? 'bg-indigo-600 text-white shadow-xl hover:scale-[1.05] active:scale-95' : 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed border border-white/5'}`}
                         >
-                            <span className="text-[12px] font-black uppercase tracking-[0.2em]">{isSubmitting ? 'Syncing Protocol' : 'Sync & Deploy Protocol'}</span>
-                            {isSubmitting ? <Activity className="w-5 h-5 animate-spin" /> : <Rocket className="w-5 h-5" />}
+                            <span className="text-[11px] font-black uppercase tracking-[0.2em]">{isSubmitting ? 'Syncing Protocol' : 'Sync & Deploy Protocol'}</span>
+                            {isSubmitting ? <Activity className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />}
                         </button>
                     )}
                 </div>

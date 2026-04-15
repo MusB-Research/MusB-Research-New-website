@@ -287,7 +287,7 @@ export default function LabsResultsModule({ selectedStudyId }: { selectedStudyId
             </div>
 
             {/* KPI Cards Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
                 {[
                     { 
                         label: 'Total Samples', 
@@ -338,27 +338,27 @@ export default function LabsResultsModule({ selectedStudyId }: { selectedStudyId
                     </colgroup>
                     <thead>
                         <tr className="bg-white/[0.02] border-b border-white/5">
-                            <th className="px-10 py-8 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">Sample Track</th>
-                            <th className="px-10 py-8 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">Clinical Subject</th>
-                            <th className="px-10 py-8 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">Specimen Status</th>
-                            <th className="px-10 py-8 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">Analysis Result</th>
-                            <th className="px-10 py-8 text-[12px] font-black text-white/80 uppercase tracking-widest italic text-right">Actions</th>
+                            <th className="px-6 py-4 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">Sample Track</th>
+                            <th className="px-6 py-4 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">Clinical Subject</th>
+                            <th className="px-6 py-4 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">Specimen Status</th>
+                            <th className="px-6 py-4 text-[12px] font-black text-white/80 uppercase tracking-widest italic border-r border-white/5">Analysis Result</th>
+                            <th className="px-6 py-4 text-[12px] font-black text-white/80 uppercase tracking-widest italic text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
                         {isLoading ? (
                             Array.from({ length: 5 }).map((_, i) => (
                                 <tr key={i}>
-                                    <td className="px-10 py-10 border-r border-white/5"><div className="h-4 bg-white/5 rounded w-3/4 animate-pulse" /></td>
-                                    <td className="px-10 py-10 border-r border-white/5"><div className="h-4 bg-white/5 rounded w-1/2 animate-pulse" /></td>
-                                    <td className="px-10 py-10 border-r border-white/5"><div className="h-10 bg-white/5 rounded w-32 animate-pulse" /></td>
-                                    <td className="px-10 py-10 border-r border-white/5"><div className="h-4 bg-white/5 rounded w-1/4 animate-pulse" /></td>
-                                    <td className="px-10 py-10 text-right"><div className="h-10 bg-white/5 rounded w-24 ml-auto animate-pulse" /></td>
+                                    <td className="px-6 py-4 border-r border-white/5"><div className="h-4 bg-white/5 rounded w-3/4 animate-pulse" /></td>
+                                    <td className="px-6 py-4 border-r border-white/5"><div className="h-4 bg-white/5 rounded w-1/2 animate-pulse" /></td>
+                                    <td className="px-6 py-4 border-r border-white/5"><div className="h-10 bg-white/5 rounded w-32 animate-pulse" /></td>
+                                    <td className="px-6 py-4 border-r border-white/5"><div className="h-4 bg-white/5 rounded w-1/4 animate-pulse" /></td>
+                                    <td className="px-6 py-4 text-right"><div className="h-10 bg-white/5 rounded w-24 ml-auto animate-pulse" /></td>
                                 </tr>
                             ))
                         ) : filteredSamples.map((s) => (
                             <motion.tr key={s.id} layout className="hover:bg-white/[0.02] transition-colors group">
-                                <td className="px-10 py-10 border-r border-white/5">
+                                <td className="px-6 py-4 border-r border-white/5">
                                     <div className="flex items-center gap-6">
                                         <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 group-hover:text-blue-400 group-hover:border-blue-500/40 transition-all shadow-lg shadow-black/20">
                                             <Droplet className="w-5 h-5" />
@@ -369,25 +369,25 @@ export default function LabsResultsModule({ selectedStudyId }: { selectedStudyId
                                         </div>
                                     </div>
                                 </td>
-                                <td className="px-10 py-10 border-r border-white/5">
+                                <td className="px-6 py-4 border-r border-white/5">
                                     <p className="text-base font-black text-white italic uppercase tracking-tighter leading-none">{s.subjectName}</p>
                                     <p className="text-[12px] text-slate-500 font-black tracking-widest mt-1.5 uppercase leading-none">{s.subjectId}</p>
                                 </td>
-                                <td className="px-10 py-10 border-r border-white/5">
+                                <td className="px-6 py-4 border-r border-white/5">
                                     <div className={`inline-flex items-center gap-3 px-5 py-2 rounded-xl border text-[12px] font-black uppercase tracking-widest shadow-lg ${getStatusStyle(s.status)}`}>
                                         <div className="w-1.5 h-1.5 rounded-full bg-current shadow-[0_0_10px_currentColor] animate-pulse" />
                                         {s.status}
                                     </div>
                                     <p className="text-[11px] text-slate-500 font-black uppercase font-mono mt-3">DUE: {s.date}</p>
                                 </td>
-                                <td className="px-10 py-10 border-r border-white/5">
+                                <td className="px-6 py-4 border-r border-white/5">
                                     <div className="flex items-end gap-2">
                                         <p className={`text-2xl font-black italic tracking-tighter leading-none ${s.critical ? 'text-red-400 animate-pulse' : 'text-slate-200'}`}>{s.value}</p>
                                         <p className="text-[11px] text-slate-500 font-black uppercase mb-0.5">{s.unit}</p>
                                     </div>
                                     {s.critical && <p className="text-[11px] font-black text-red-500 uppercase tracking-widest mt-1.5 shrink-0">CRITICAL HIGH</p>}
                                 </td>
-                                <td className="px-10 py-10 text-right">
+                                <td className="px-6 py-4 text-right">
                                     <div className="flex items-center justify-end gap-3 transition-opacity">
                                         {s.status === 'Resulted' && !s.isReleased && (
                                             <button 

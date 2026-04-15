@@ -212,21 +212,40 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
         }
     };
 
-    const handleVerify = async () => {
+    const handleVerify = async (mode: 'COORDINATOR' | 'PI' = 'PI', signature?: string, name?: string) => {
         if (!activeRecord) return;
         try {
-            const res = await authFetch(`${API}/api/consent/${activeRecord.id}/`, {
-                method: 'PATCH',
-                body: JSON.stringify({ pi_verified: true, notes: piNotes })
+            const action = mode === 'COORDINATOR' ? 'coordinator_sign' : 'pi_verify';
+            const payload: any = { 
+                notes: piNotes,
+                signature_data: signature,
+                signer_name: name
+            };
+
+            const res = await authFetch(`${API}/api/consent/${activeRecord.id}/${action}/`, {
+                method: 'POST',
+                body: JSON.stringify(payload)
             });
+
             if (res.ok) {
                 const updated = await res.json();
-                setConsentRecords(consentRecords.map(r => r.id === updated.id ? { ...updated, piVerified: updated.pi_verified } : r));
-                setActiveView('records');
-                addToast('Protocol verified and locked for clinical entry', 'success');
+                setConsentRecords(consentRecords.map(r => r.id === updated.id ? { 
+                    ...updated, 
+                    piVerified: updated.pi_verified,
+                    cc_signature: updated.cc_signature,
+                    cc_name: updated.cc_name,
+                    pi_name: updated.pi_name
+                } : r));
+                
+                if (mode === 'COORDINATOR') {
+                    addToast('Coordinator Signature captured and archived in PDF.', 'success');
+                } else {
+                    setActiveView('records');
+                    addToast('PI Oversight verified. Protocol transition to FULLY_SIGNED.', 'success');
+                }
             } else {
-                const errData = await res.json();
-                addToast(errData.detail || 'Verification sync failed', 'error');
+                const err = await res.json();
+                addToast(err.detail || 'Verification sync failed', 'error');
             }
         } catch (err) {
             console.error("Verification failed:", err);
@@ -269,17 +288,17 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
     return (
         <div className="flex flex-col h-full bg-[#0B101B]">
             {/* MODULE TAB NAV */}
-            <div className="py-6 lg:py-8 border-b border-white/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-[#0B101B] sticky top-0 z-40">
+            <div className="py-4 lg:py-6 px-4 md:px-6 lg:px-10 2xl:px-14 border-b border-white/10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-[#0B101B] sticky top-0 z-40">
                 <div className="flex items-center gap-6">
-                    <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-                        <FileText size={28} />
+                    <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                        <FileText size={24} className="lg:w-7 lg:h-7" />
                     </div>
                     <div>
-                        <h1 style={S.title}>Informed <span className="text-indigo-400">Consent</span></h1>
-                        <p className="text-[12px] text-slate-500 font-black uppercase tracking-[0.3em] mt-1 italic">Protocol Regulatory & E-Signature Command</p>
+                        <h1 style={{ ...S.title, fontSize: '18px' }} className="lg:text-[22px]">Informed <span className="text-indigo-400">Consent</span></h1>
+                        <p className="text-[10px] lg:text-[12px] text-slate-500 font-black uppercase tracking-[0.3em] mt-1 italic leading-none">Protocol Regulatory & E-Signature Command</p>
                     </div>
                 </div>
-                <div className="flex items-center bg-white/5 p-2 rounded-2xl border border-white/10 w-full md:w-auto">
+                <div className="flex items-center bg-white/5 p-1.5 md:p-2 rounded-2xl border border-white/10 w-full lg:w-auto">
                     {[
                         { id: 'builder', label: 'Protocol Builder', icon: Columns },
                         { id: 'records', label: 'Registry Logs', icon: ClipboardList }
@@ -287,9 +306,9 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
                         <button 
                             key={tab.id}
                             onClick={() => setActiveView(tab.id)}
-                            className={`flex-1 md:flex-none flex items-center justify-center gap-3 px-8 py-3 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${activeView === tab.id || (activeView === 'signature-setup' && tab.id === 'builder') ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/20' : 'text-slate-400 hover:text-white'}`}
+                            className={`flex-1 lg:flex-none flex items-center justify-center gap-2 md:gap-3 px-4 md:px-6 lg:px-8 py-2.5 md:py-3 rounded-xl text-[11px] md:text-[12px] font-black uppercase tracking-widest transition-all ${activeView === tab.id || (activeView === 'signature-setup' && tab.id === 'builder') ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/20' : 'text-slate-400 hover:text-white'}`}
                         >
-                            <tab.icon size={16} /> {tab.label}
+                            <tab.icon size={14} className="md:w-4 md:h-4" /> <span className="whitespace-nowrap">{tab.label}</span>
                         </button>
                     ))}
                 </div>

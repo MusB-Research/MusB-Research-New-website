@@ -5,7 +5,8 @@ import AnimatedBackground from './components/AnimatedBackground';
 import MeshBackground from './components/MeshBackground';
 import PageLoader from './components/PageLoader';
 import ScrollToTop from './components/ScrollToTop';
-import { performLogout, isLoggedIn } from './utils/auth';
+import { performLogout, isLoggedIn, getUser } from './utils/auth';
+import { useNavigate } from 'react-router-dom';
 
 // LAZY LOAD VIEWS (Dynamic Code Splitting)
 const Home = lazy(() => import('./views/Home'));
@@ -40,7 +41,20 @@ const ProfileSetup = lazy(() => import('./views/auth/ProfileSetup'));
 
 function AppContent() {
     const location = useLocation();
+    const navigate = useNavigate();
     const isDashboard = location.pathname.startsWith('/dashboard');
+
+    // Profile Completion Guard (Requirement 3 & 4)
+    useEffect(() => {
+        const user = getUser();
+        const isAuthPage = location.pathname.includes('/auth/profile-setup') || 
+                          location.pathname.includes('/signin') || 
+                          location.pathname.includes('/auth/reset-forced');
+        
+        if (user && user.profile_incomplete && !isAuthPage && isDashboard) {
+            navigate('/auth/profile-setup', { replace: true });
+        }
+    }, [location.pathname, isDashboard, navigate]);
 
     // KEEP-ALIVE FOR RENDER LIVE INSTANCE
     useEffect(() => {

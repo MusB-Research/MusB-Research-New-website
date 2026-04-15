@@ -81,9 +81,6 @@ export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: st
 
     React.useEffect(() => {
         fetchAlertData();
-        // Polling for real-time vibe
-        const timer = setInterval(fetchAlertData, 30000);
-        return () => clearInterval(timer);
     }, []);
 
     const handleMarkRead = async (id: string) => {
@@ -139,12 +136,11 @@ export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: st
     };
 
     return (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div>
-                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Alert <span className="text-blue-400">Intelligence</span></h2>
-                    <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">Priority Notifications & Clinical Triggers</p>
+                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Alerts</h2>
                 </div>
                 <div className="flex items-center gap-4">
                     <button 
@@ -157,13 +153,13 @@ export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: st
                         onClick={handleArchive}
                         className="px-8 py-3.5 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all active:scale-95 shadow-xl"
                     >
-                        Archive Historical
+                        Archive
                     </button>
                 </div>
             </div>
 
             {/* Tactical Grid Overlay */}
-            <div className="bg-[#0B101B]/40 border border-white/5 rounded-[3rem] p-4 lg:p-10 space-y-10 relative overflow-hidden">
+            <div className="bg-[#0B101B]/40 border border-white/5 rounded-[3rem] p-4 lg:p-6 space-y-6 relative overflow-hidden">
                 {/* Background Decor */}
                 <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none">
                     <Bell className="w-64 h-64 text-blue-400" />
@@ -202,7 +198,7 @@ export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: st
                         {isLoading ? (
                             <div className="py-24 text-center">
                                 <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                                <p className="text-[12px] font-black uppercase tracking-[0.3em] text-blue-500 animate-pulse italic">Scanning Signals...</p>
+                                <p className="text-[12px] font-black uppercase tracking-[0.3em] text-blue-500 animate-pulse italic">Loading...</p>
                             </div>
                         ) : filteredAlerts.length > 0 ? filteredAlerts.map((alert) => (
                             <motion.div 
@@ -211,7 +207,7 @@ export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: st
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: 20 }}
-                                className={`p-8 rounded-[2rem] border transition-all hover:bg-white/[0.02] grid grid-cols-1 lg:grid-cols-4 gap-8 group ${
+                                className={`p-4 rounded-[2rem] border transition-all hover:bg-white/[0.02] grid grid-cols-1 lg:grid-cols-4 gap-8 group ${
                                     !alert.read ? 'bg-white/5 border-white/10' : 'bg-transparent border-white/5 opacity-60'
                                 }`}
                             >
@@ -257,7 +253,7 @@ export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: st
                                 className="p-20 text-center space-y-4"
                             >
                                 <CheckCircle2 className="w-16 h-16 text-blue-500/20 mx-auto" />
-                                <p className="text-slate-500 font-black uppercase tracking-widest text-[12px] italic">All Tactical Signals Resolved • Research Environment Clear</p>
+                                <p className="text-slate-500 font-black uppercase tracking-widest text-[12px] italic">No alerts</p>
                             </motion.div>
                         )}
                     </AnimatePresence>

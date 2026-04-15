@@ -42,6 +42,7 @@ class OnboardingEnforcementMiddleware:
         re.compile(r'^/api/users/me/?'),
         re.compile(r'^/api/participants/?'),
         re.compile(r'^/api/studies/?'),
+        re.compile(r'^/api/sponsors/?'),
         re.compile(r'^/api/study-inquiries/?'),
         re.compile(r'^/api/visits/?'),
         re.compile(r'^/api/compensations/?'),

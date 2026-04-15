@@ -147,6 +147,8 @@ class UserSerializer(SanitizedModelSerializer):
             'role', 'phone_number', 'mobile_number',
             'profile_picture', 'password', 'last_login_formatted', 'date_joined_formatted',
             'full_address', 'city', 'state', 'zip_code', 'country', 'place_of_origin',
+            'date_of_birth', 'age', 'has_active_enrollment',
+            'medical_licence', 'insurance_certificate', 'cv_document',
             'must_change_password', 'profile_completed', 'is_screener_completed', 'is_active', 'timezone',
             'status', 'affiliation', 'assigned_studies', 'created_by'
         ]
@@ -245,8 +247,21 @@ class StudySerializer(SanitizedModelSerializer):
     study_type = serializers.CharField(required=False, default='IN_PERSON')
     status = serializers.CharField(required=False, default='DRAFT')
     stage = serializers.CharField(required=False, default='DRAFT')
-    reward_type = serializers.CharField(required=False, default='CASH')
-    reward_logic = serializers.CharField(required=False, default='PER_TASK')
+    
+    REWARD_TYPE_CHOICES = [
+        ('CASH', 'Cash'), ('COUPONS', 'Coupons'), ('MASTER_CARD', 'Master Card'),
+        ('VISA_CARD', 'Visa Card'), ('WALMART_CARDS', 'Walmart Cards'),
+        ('TARGET_CARD', 'Target Card'), ('CVS_CARD', 'CVS Card'),
+        ('PUBLIX_CARDS', 'Publix Cards'), ('MIXED', 'Mixed (Both)')
+    ]
+    REWARD_LOGIC_CHOICES = [
+        ('PER_TASK', 'Per Task Completion'),
+        ('PER_VISIT', 'Per Visit Completion'),
+        ('FULL_STUDY', 'Full Study Completion')
+    ]
+    
+    reward_type = serializers.ChoiceField(choices=REWARD_TYPE_CHOICES, required=False, default='CASH')
+    reward_logic = serializers.ChoiceField(choices=REWARD_LOGIC_CHOICES, required=False, default='PER_TASK')
     reward_config = serializers.JSONField(required=False, default=dict)
     compensation = serializers.CharField(required=False, allow_blank=True, default='')
     tags = serializers.JSONField(required=False, default=list)
@@ -266,10 +281,15 @@ class StudySerializer(SanitizedModelSerializer):
 
     PHASE_CHOICES = [
         ('N/A', 'N/A'),
-        ('Phase 1', 'Phase 1'),
-        ('Phase 2', 'Phase 2'),
-        ('Phase 3', 'Phase 3'),
-        ('Phase 4', 'Phase 4'),
+        ('PHASE_0', 'Phase 0'),
+        ('PHASE_1', 'Phase 1'),
+        ('PHASE_1_2', 'Phase 1/2'),
+        ('PHASE_2', 'Phase 2'),
+        ('PHASE_2_3', 'Phase 2/3'),
+        ('PHASE_3', 'Phase 3'),
+        ('PHASE_4', 'Phase 4'),
+        ('PILOT', 'Pilot Study'),
+        ('BIOEQUIVALENCE', 'Bioequivalence'),
     ]
     phase = serializers.ChoiceField(choices=PHASE_CHOICES, required=False, allow_blank=True, default='N/A')
 
@@ -279,7 +299,7 @@ class StudySerializer(SanitizedModelSerializer):
             'id', 'title', 'full_title', 'description', 'protocol_id', 'sponsor_name', 'study_type', 'status', 'stage',
             'pi_id', 'coordinator_id', 'sponsor_id', 'sponsor_org_id', 'pi_ids', 'coordinator_ids', 'sponsor_ids',
             'assigned_pis', 'assigned_coordinators', 'assigned_sponsors', 'approval_status', 'created_by', 'created_by_role',
-            'primary_indication', 'trial_model', 'phase', 'is_double_blind', 'has_placebo_control',
+            'primary_indication', 'trial_model', 'phase', 'masking_strategy', 'is_double_blind', 'has_placebo_control',
             'has_screening_log', 'shipment_mode', 'consent_mode', 'condition',
             'trial_format', 'benefit', 'duration', 'tags', 'compensation', 'location', 'uses_kit',
             'time_commitment', 'overview', 'timeline', 'kits_info', 'safety_info',
@@ -357,13 +377,19 @@ class VisitSerializer(SanitizedModelSerializer):
     participant_name = serializers.CharField(source='participant.user.decrypted_name', read_only=True)
     participant_sid = serializers.CharField(source='participant.participant_sid', read_only=True)
     
+    # Coordinator info for the participant portal
+    scheduled_by_details = UserSerializer(source='scheduled_by', read_only=True)
+    scheduled_by = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), required=False, allow_null=True
+    )
+    
     class Meta:
         model = Visit
         fields = [
             'id', 'participant', 'participant_name', 'participant_sid', 'visit_type', 'scheduled_date', 
             'actual_date', 'status', 'notes', 'location', 'location_address', 'checklist', 
             'assessments', 'measurements', 'deviations', 'samples', 'dispensing', 
-            'pi_approved', 'locked'
+            'pi_approved', 'locked', 'scheduled_by', 'scheduled_by_details'
         ]
 
     def get_notes(self, obj):
@@ -538,6 +564,12 @@ class ConsentTemplateSerializer(SanitizedModelSerializer):
 
     def to_internal_value(self, data):
         """Map frontend snake_case or camelCase keys to the correct internal field names."""
+        # Create a mutable copy if it's a QueryDict or dict
+        if hasattr(data, 'dict'):
+            data = data.dict()
+        else:
+            data = data.copy() if isinstance(data, dict) else dict(data)
+
         # Support both styles from frontend
         mappings = {
             'placed_fields': 'placedFields',
@@ -548,9 +580,23 @@ class ConsentTemplateSerializer(SanitizedModelSerializer):
             'page_count': 'pageCount'
         }
         for snake, camel in mappings.items():
-            if snake in data and camel not in data:
+            if snake in data and (camel not in data or not data[camel]):
                 data[camel] = data[snake]
         
+        # Robust handling for empty strings on Date/Int fields that allow null
+        date_fields = ['irbApprovalDate', 'effectiveDate', 'expirationDate']
+        for field in date_fields:
+            if field in data and data[field] == '':
+                data[field] = None
+
+        # Special handling for JSON fields coming from FormData (passed as strings)
+        if 'placedFields' in data and isinstance(data['placedFields'], str):
+            import json
+            try:
+                data['placedFields'] = json.loads(data['placedFields'])
+            except:
+                data['placedFields'] = []
+
         # Handle study lookup if protocol_id string is passed
         if 'study' in data and isinstance(data['study'], str):
             import bson
@@ -594,13 +640,29 @@ class ConsentTemplateSerializer(SanitizedModelSerializer):
 
 class ConsentSerializer(SanitizedModelSerializer):
     id = ObjectIdField(read_only=True)
-    pi_name = serializers.CharField(source='pi_user.decrypted_name', read_only=True)
-    cc_name = serializers.CharField(source='cc_user.decrypted_name', read_only=True)
+    pi_user_name = serializers.CharField(source='pi_user.decrypted_name', read_only=True)
+    cc_user_name = serializers.CharField(source='cc_user.decrypted_name', read_only=True)
     template_version = serializers.CharField(source='template.version', read_only=True)
     study_title = serializers.CharField(source='study.title', read_only=True)
     protocol_id = serializers.CharField(source='study.protocol_id', read_only=True)
     signed_pdf_url = serializers.SerializerMethodField()
     decrypted_name = serializers.SerializerMethodField()
+    
+    # Auto-filled by the backend view — not required from the frontend
+    email = serializers.EmailField(required=False, allow_blank=True, default='')
+    full_name = serializers.CharField(required=False, allow_blank=True, default='')
+
+    class Meta:
+        model = Consent
+        fields = [
+            'id', 'study', 'template', 'participant', 'full_name', 'email', 
+            'agreed_at', 'participant_signed_at', 'participant_signature',
+            'cc_name', 'cc_signature', 'cc_verified', 'cc_verified_at', 'cc_user', 'cc_user_name',
+            'pi_name', 'pi_signature', 'pi_verified', 'pi_verified_at', 'pi_user', 'pi_user_name',
+            'signing_status', 'audit_trail', 'signed_pdf', 'signed_pdf_url',
+            'protocol_id', 'study_title', 'template_version', 'decrypted_name', 'is_valid'
+        ]
+        read_only_fields = ['agreed_at', 'ip_address']
 
     def get_decrypted_name(self, obj):
         """Decrypt the participant's full_name (stored as Fernet ciphertext) for display."""
@@ -618,17 +680,6 @@ class ConsentSerializer(SanitizedModelSerializer):
                 if study_obj:
                     data['study'] = str(study_obj.id)
         return super().to_internal_value(data)
-
-    class Meta:
-        model = Consent
-        fields = [
-            'id', 'study', 'study_title', 'protocol_id', 'template', 'template_version', 
-            'participant', 'full_name', 'decrypted_name', 'email',
-            'cc_verified', 'cc_verified_at', 'cc_user', 'cc_name',
-            'pi_verified', 'pi_verified_at', 'pi_user', 'pi_name',
-            'agreed_at', 'signed_pdf', 'signed_pdf_url', 'is_valid', 'audit_trail'
-        ]
-        read_only_fields = ['agreed_at', 'ip_address']
 
     def get_signed_pdf_url(self, obj):
         if not obj.signed_pdf: return None
@@ -829,7 +880,7 @@ class ParticipantSerializer(SanitizedModelSerializer):
         fields = [
             'id', 'participant_sid', 'participant_status', 'user', 'user_details', 'study', 'study_name', 'protocol_id',
             'coordinator_name', 'gender', 'dob', 'age', 'status', 'assigned_arm', 'completion_date',
-            'is_archived', 'created_at', 'updated_at', 'reviewed_at', 'reviewed_by', 'reviewer_name',
+            'created_at', 'updated_at', 'reviewed_at', 'reviewed_by', 'reviewer_name',
             'visits', 'ae_reports', 'daily_logs', 'lab_results', 'consent_records'
         ]
 

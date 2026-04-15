@@ -88,8 +88,11 @@ export interface ConsentRecord {
     participantSignedDate: string | null;
     ccReviewed: boolean;
     ccReviewedDate: string | null;
+    cc_signature?: boolean;
+    cc_name?: string;
     piVerified: boolean;
     pi_verified?: boolean;
+    pi_name?: string;
     piVerifiedDate: string | null;
     status: string;
     locked: boolean;

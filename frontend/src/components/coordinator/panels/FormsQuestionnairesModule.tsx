@@ -35,13 +35,13 @@ interface AssignedForm {
 
 export default function FormsQuestionnairesModule({ selectedStudyId }: { selectedStudyId?: string }) {
     const [view, setView] = useState<'Tracking' | 'Splash' | 'Architect' | 'Screener'>('Tracking');
+    const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
     const [builderTab, setBuilderTab] = useState('Create New');
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
     
-    const [forms, setForms] = useState<AssignedForm[]>([]);
-    const [templates, setTemplates] = useState<any[]>([]); // To store saved form definitions
-    const [selectedTemplate, setSelectedTemplate] = useState<any | null>(null);
+    const [forms, setForms] = useState<any[]>([]);
+    const [templates, setTemplates] = useState<any[]>([]); 
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -51,22 +51,42 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
         setIsLoading(true);
         setError(null);
         try {
-            const url = selectedStudyId && selectedStudyId !== 'all' 
-                ? `${apiUrl}/api/assigned-forms/?study_id=${selectedStudyId}`
-                : `${apiUrl}/api/assigned-forms/`;
+            const baseUrl = selectedStudyId && selectedStudyId !== 'all' 
+                ? `study_id=${selectedStudyId}`
+                : '';
             
-            const res = await authFetch(url);
-            if (res.ok) {
-                const data = await res.json();
-                setForms(Array.isArray(data) ? data : (data.results || []));
+            const [afRes, qsRes, templateRes] = await Promise.all([
+                authFetch(`${apiUrl}/api/assigned-forms/${baseUrl ? '?' + baseUrl : ''}`),
+                authFetch(`${apiUrl}/api/questionnaire-schedules/${baseUrl ? '?' + baseUrl : ''}`),
+                authFetch(`${apiUrl}/api/questionnaire-templates/`)
+            ]);
+
+            let mergedForms: any[] = [];
+
+            if (afRes.ok) {
+                const data = await afRes.json();
+                const afs = (Array.isArray(data) ? data : (data.results || [])).map((f: any) => ({
+                    ...f,
+                    type: 'ASSIGNED_FORM',
+                    title: f.form_details?.title || 'Form Submission'
+                }));
+                mergedForms = [...mergedForms, ...afs];
             }
 
-            // Also fetch templates (form definitions)
-            const templateRes = await authFetch(
-                selectedStudyId && selectedStudyId !== 'all'
-                    ? `${apiUrl}/api/forms/?study_id=${selectedStudyId}`
-                    : `${apiUrl}/api/forms/`
-            );
+            if (qsRes.ok) {
+                const data = await qsRes.json();
+                const qss = (Array.isArray(data) ? data : (data.results || [])).map((f: any) => ({
+                    ...f,
+                    type: 'SCHEDULED_INSTRUMENT',
+                    title: f.schedule_name || f.template_details?.name || 'Instrument',
+                    participant_name: f.participant_details?.full_name || f.participant_name,
+                    updated_at: f.completed_at || f.updated_at || f.created_at
+                }));
+                mergedForms = [...mergedForms, ...qss];
+            }
+
+            setForms(mergedForms);
+
             if (templateRes.ok) {
                 const templateData = await templateRes.json();
                 setTemplates(Array.isArray(templateData) ? templateData : (templateData.results || []));
@@ -99,7 +119,7 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
 
     const filteredForms = useMemo(() => {
         return (forms || []).filter(f => {
-            const title = f.form_details?.title || '';
+            const title = f.title || f.form_details?.title || '';
             const participant = f.participant || '';
             const participantName = f.participant_name || '';
             const matchesSearch = title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -156,7 +176,10 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                         Form Tracking
                     </button>
                     <button
-                        onClick={() => { setSelectedTemplate(null); setView('Splash'); }}
+                        onClick={() => {
+                            setSelectedTemplate(null);
+                            setView('Splash');
+                        }}
                         className={`px-5 py-2.5 text-xs font-bold uppercase tracking-widest rounded-md transition-all ${view === 'Splash' || view === 'Architect' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
                     >
                         Form Builder
@@ -179,11 +202,11 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                             { label: 'Active Queries', val: stats.queries, icon: AlertCircle, color: 'rose' },
                             { label: 'Synced to EDC', val: stats.synced, icon: Database, color: 'blue' }
                         ].map((stat, i) => (
-                            <div key={i} className="bg-slate-900/40 border border-slate-800/50 p-6 rounded-xl flex items-center gap-4">
-                                <stat.icon className={`w-6 h-6 text-${stat.color}-500`} />
+                            <div key={i} className="bg-slate-900/40 border border-slate-800/50 p-4 md:p-5 rounded-xl flex items-center gap-3 md:gap-4 group hover:bg-slate-900/60 transition-all">
+                                <stat.icon className={`w-5 h-5 md:w-6 md:h-6 text-${stat.color}-500`} />
                                 <div>
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
-                                    <p className="text-2xl font-black text-white mt-1">{stat.val}</p>
+                                    <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">{stat.label}</p>
+                                    <p className="text-xl md:text-2xl font-black text-white mt-1 leading-none">{stat.val}</p>
                                 </div>
                             </div>
                         ))}
@@ -226,8 +249,13 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                                     <tr key={f.id} className="hover:bg-slate-800/10 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <FileText className="w-4 h-4 text-slate-400" />
-                                                <span className="text-xs font-bold text-slate-100">{f.form_details?.title || 'Unknown Form'}</span>
+                                                <div className={`p-2 rounded-lg ${f.type === 'SCHEDULED_INSTRUMENT' ? 'bg-indigo-500/10' : 'bg-blue-500/10'}`}>
+                                                    <FileText className={`w-3.5 h-3.5 ${f.type === 'SCHEDULED_INSTRUMENT' ? 'text-indigo-400' : 'text-blue-400'}`} />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="text-xs font-bold text-slate-100">{f.title || 'Unknown Form'}</span>
+                                                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{f.type?.replace(/_/g, ' ')}</span>
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -283,12 +311,15 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                                             <Trash2 className="w-3.5 h-3.5" />
                                         </button>
                                     </div>
-                                    <h5 className="text-base font-black text-white mb-2 group-hover:text-indigo-400 transition-colors uppercase truncate">{t.title}</h5>
-                                    <p className="text-xs text-slate-500 font-medium line-clamp-2 mb-4 italic">"{t.description}"</p>
+                                    <h5 className="text-base font-black text-white mb-2 group-hover:text-indigo-400 transition-colors uppercase truncate">{t.name}</h5>
+                                    <p className="text-xs text-slate-500 font-medium line-clamp-2 mb-4 italic">"{t.name} protocol template"</p>
                                     <div className="flex items-center justify-between pt-4 border-t border-slate-800/50">
-                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">v{t.version || 1.0}</span>
+                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">v1.0</span>
                                         <button 
-                                            onClick={() => { setSelectedTemplate(t); setView('Architect'); }}
+                                            onClick={() => {
+                                                setSelectedTemplate(t);
+                                                setView('Architect');
+                                            }}
                                             className="text-xs font-black text-indigo-400 uppercase tracking-widest hover:text-white transition-colors"
                                         >
                                             Modify Template →
@@ -322,7 +353,7 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
             {view === 'Architect' && (
                 <div className="">
                     <button onClick={() => { setView('Tracking'); fetchForms(); }} className="mb-6 text-[10px] font-bold text-slate-600 uppercase tracking-widest hover:text-white transition-all">← Back to Dashboard</button>
-                    <QuestionnaireBuilder initialTemplate={selectedTemplate} />
+                    <QuestionnaireBuilder initialTemplate={selectedTemplate} initialTab={builderTab} />
                 </div>
             )}
 

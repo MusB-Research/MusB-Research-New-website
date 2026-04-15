@@ -51,13 +51,13 @@ export default function StudyDocumentsModule() {
             {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div>
-                    <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tight">Study <span className="text-indigo-400">Documents</span></h2>
-                    <p className="text-[11px] text-white/50 font-bold uppercase tracking-[0.4em] mt-3 md:mt-4 italic">Central Regulatory & Protocol Repository</p>
+                    <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tight">Study <span className="text-teal-400">Documents</span></h2>
+                    <p className="text-[13px] text-white/50 font-bold uppercase tracking-[0.4em] mt-3 md:mt-4 italic">Central Regulatory & Protocol Repository</p>
                 </div>
                 <div className="flex items-center gap-4">
                     <button 
                         onClick={() => window.open('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', '_blank')}
-                        className="px-6 py-3.5 bg-white/5 border border-white/10 text-slate-400 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-xl"
+                        className="px-6 py-3.5 bg-white/5 border border-white/10 text-slate-400 rounded-2xl text-sm font-black uppercase tracking-widest hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-xl"
                     >
                         Bulk Download (.zip)
                     </button>
@@ -67,7 +67,7 @@ export default function StudyDocumentsModule() {
                         }} />
                         <button 
                             onClick={() => document.getElementById('protocol-upload')?.click()}
-                            className="px-8 py-3.5 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.03] hover:shadow-indigo-500/40 transition-all shadow-xl shadow-indigo-600/30 flex items-center gap-3 active:scale-95"
+                            className="px-8 py-3.5 bg-teal-600 text-white rounded-2xl text-sm font-black uppercase tracking-widest hover:scale-[1.03] hover:shadow-teal-500/40 transition-all shadow-xl shadow-teal-600/30 flex items-center gap-3 active:scale-95"
                         >
                             Upload Document <Folder className="w-4 h-4" />
                         </button>
@@ -94,7 +94,7 @@ export default function StudyDocumentsModule() {
                             <q.icon className="w-8 h-8" />
                         </div>
                         <div>
-                            <span className="text-[11px] text-white/40 font-black uppercase tracking-widest italic block mb-1">{q.label}</span>
+                            <span className="text-[13px] text-white/40 font-black uppercase tracking-widest italic block mb-1">{q.label}</span>
                             <p className="text-xl font-black text-white italic tracking-tight leading-none truncate">{q.count}</p>
                         </div>
                     </div>
@@ -108,8 +108,8 @@ export default function StudyDocumentsModule() {
                         <button
                             key={cat}
                             onClick={() => setActiveCategory(cat)}
-                            className={`px-6 py-2.5 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${
-                                activeCategory === cat ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-500 hover:text-white'
+                            className={`px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${
+                                activeCategory === cat ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/20' : 'text-slate-500 hover:text-white'
                             }`}
                         >
                             {cat}
@@ -123,7 +123,7 @@ export default function StudyDocumentsModule() {
                         placeholder="Search Library..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3.5 text-[12px] text-white font-bold outline-none focus:border-indigo-500/50 transition-all w-72 uppercase tracking-widest font-mono shadow-2xl shadow-black/20"
+                        className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-3.5 text-sm text-white font-bold outline-none focus:border-teal-500/50 transition-all w-72 uppercase tracking-widest font-mono shadow-2xl shadow-black/20"
                     />
                 </div>
             </div>
@@ -133,20 +133,20 @@ export default function StudyDocumentsModule() {
                 {filteredDocs.map((doc) => (
                     <motion.div key={doc.id} className="group flex items-center justify-between py-10 px-4 transition-colors">
                         <div className="flex items-center gap-10">
-                            <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 group-hover:text-indigo-400 group-hover:border-indigo-500/40 transition-all shadow-lg shadow-black/20">
+                            <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 group-hover:text-teal-400 group-hover:border-teal-500/40 transition-all shadow-lg shadow-black/20">
                                 <FileText className="w-6 h-6" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-4">
                                     <h4 className="text-xl font-black text-white italic uppercase tracking-tight leading-none">{doc.name}</h4>
-                                    <span className={`px-4 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest border shadow-lg ${
+                                    <span className={`px-4 py-1.5 rounded-xl text-[13px] font-black uppercase tracking-widest border shadow-lg ${
                                         doc.status === 'Active' ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5' : 
                                         'text-slate-500 border-white/5 bg-white/5'
                                     }`}>
                                         {doc.status}
                                     </span>
                                 </div>
-                                <p className="text-[12px] text-slate-500 font-black tracking-widest uppercase mt-3 italic opacity-60">Version {doc.version} • Effective {doc.effectiveDate} • {doc.category}</p>
+                                <p className="text-sm text-slate-500 font-black tracking-widest uppercase mt-3 italic opacity-60">Version {doc.version} • Effective {doc.effectiveDate} • {doc.category}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-3 transition-all">
@@ -155,7 +155,7 @@ export default function StudyDocumentsModule() {
                             </button>
                             <button 
                                 onClick={() => window.open('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', '_blank')}
-                                className="px-8 py-4 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-white hover:text-indigo-900 shadow-xl shadow-indigo-600/30 active:scale-95 transition-all flex items-center gap-3"
+                                className="px-8 py-4 bg-teal-600 text-white rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-white hover:text-teal-900 shadow-xl shadow-teal-600/30 active:scale-95 transition-all flex items-center gap-3"
                             >
                                 DOWNLOAD <Download className="w-4 h-4" />
                             </button>

@@ -18,7 +18,7 @@ import { authFetch } from '../../utils/auth';
 const COLORS = {
     bg: '#0B101B',
     bgDark: '#060a14',
-    accent: '#4f46e5', // Muted Indigo
+    accent: '#0d9488', // Muted Indigo
     success: '#059669', // Muted Emerald
     warning: '#d97706', // Muted Amber
     danger: '#dc2626', // Deeper Red
@@ -144,7 +144,7 @@ export default function PIConsentModule() {
     // Sync to LocalStorage for Demo/Preview persistence
     useEffect(() => {
         if (consents.length > 0) {
-            localStorage.setItem('musb_consent_protocols', JSON.stringify(consents));
+            localStorage.setItem('musb_consent_studies', JSON.stringify(consents));
         }
     }, [consents]);
     const [thumbnailOpen, setThumbnailOpen] = useState(false);
@@ -326,7 +326,7 @@ export default function PIConsentModule() {
                     ))}
                 </div>
                 <div className="p-6 lg:p-10 border-t border-white/10 bg-[#0B101B]/50 mt-auto">
-                    <button style={{ ...S.btnIndigo, width: '100%', padding: '1.25rem' }} onClick={() => setUploadModalOpen(true)} className="hover:scale-[1.02] transition-transform shadow-xl shadow-indigo-500/10">
+                    <button style={{ ...S.btnIndigo, width: '100%', padding: '1.25rem' }} onClick={() => setUploadModalOpen(true)} className="hover:scale-[1.02] transition-transform shadow-xl shadow-teal-500/10">
                         <Plus size={20} className="mr-3" /> NEW STUDY PDF
                     </button>
                 </div>
@@ -338,13 +338,13 @@ export default function PIConsentModule() {
                     <div className="flex flex-col md:flex-row items-start md:items-center gap-6 lg:gap-10 w-full xl:w-auto">
                         <div className="flex items-center gap-4 bg-white/5 p-2 rounded-xl border border-white/10 w-full md:w-auto justify-center md:justify-start">
                             <button style={{ ...S.btnGhost, padding: '0.6rem' }} onClick={() => setCurrentViewerPage(p => Math.max(1, p-1))}><ChevronLeft size={16} /></button>
-                            <span className="text-[13px] font-black uppercase tracking-widest text-white italic min-w-[120px] text-center">PAGE {currentViewerPage} / {activeConsent?.pageCount || 0}</span>
+                            <span className="text-base font-black uppercase tracking-widest text-white italic min-w-[120px] text-center">PAGE {currentViewerPage} / {activeConsent?.pageCount || 0}</span>
                             <button style={{ ...S.btnGhost, padding: '0.6rem' }} onClick={() => setCurrentViewerPage(p => Math.min(activeConsent?.pageCount || 1, p+1))}><ChevronRight size={16} /></button>
                         </div>
                         <div className="hidden md:block h-8 w-px bg-white/10" />
                         <div className="flex items-center gap-4 bg-white/5 p-2 rounded-xl border border-white/10 w-full md:w-auto justify-center md:justify-start">
                             <button style={{ ...S.btnGhost, padding: '0.6rem' }} onClick={() => setViewerZoom(z => Math.max(60, z-5))}><ZoomOut size={16} /></button>
-                            <span className="text-[13px] font-black text-indigo-400 min-w-[50px] text-center font-mono">{viewerZoom}%</span>
+                            <span className="text-base font-black text-teal-400 min-w-[50px] text-center font-mono">{viewerZoom}%</span>
                             <button style={{ ...S.btnGhost, padding: '0.6rem' }} onClick={() => setViewerZoom(z => Math.min(100, z+5))}><ZoomIn size={16} /></button>
                         </div>
                     </div>
@@ -356,7 +356,7 @@ export default function PIConsentModule() {
                             <User size={18} /> <span className="hidden md:inline">Preview Signing</span><span className="md:hidden">Preview</span>
                         </button>
                         {activeConsent?.status === 'Active' && (
-                            <div className="md:col-span-1 border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 px-6 py-4 rounded-xl flex items-center justify-center gap-3 text-[13px] font-black uppercase tracking-widest italic animate-pulse">
+                            <div className="md:col-span-1 border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 px-6 py-4 rounded-xl flex items-center justify-center gap-3 text-base font-black uppercase tracking-widest italic animate-pulse">
                                 <ShieldCheck size={18} /> READ ONLY
                             </div>
                         )}
@@ -415,7 +415,7 @@ export default function PIConsentModule() {
                                 }
                             }}
                         >
-                            <Edit3 size={14} className="group-hover:text-indigo-400" />
+                            <Edit3 size={14} className="group-hover:text-teal-400" />
                         </button>
                     </div>
                     <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -475,7 +475,7 @@ export default function PIConsentModule() {
                                     }
                                 }}
                             >
-                                <span style={{ fontSize: '14px', color: 'white', fontWeight: 'bold' }} className="group-hover:text-indigo-300 transition-colors">{row.l}</span>
+                                <span style={{ fontSize: '14px', color: 'white', fontWeight: 'bold' }} className="group-hover:text-teal-300 transition-colors">{row.l}</span>
                                 {row.v ? <CheckCircle2 size={20} color={COLORS.success} /> : <X size={20} color={COLORS.danger} />}
                             </div>
                         ))}
@@ -495,7 +495,7 @@ export default function PIConsentModule() {
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         <button 
-                            className="w-full py-4 px-6 rounded-xl font-black text-[13px] uppercase tracking-widest transition-all flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-500/20"
+                            className="w-full py-4 px-6 rounded-xl font-black text-base uppercase tracking-widest transition-all flex items-center justify-center gap-3 bg-teal-600 hover:bg-teal-500 text-white shadow-xl shadow-teal-500/20"
                             onClick={() => {
                                 addToast('Configuration synchronized to blockchain node', 'info');
                             }}
@@ -504,7 +504,7 @@ export default function PIConsentModule() {
                         </button>
 
                         <button 
-                            className="w-full py-4 px-6 rounded-xl font-black text-[13px] uppercase tracking-widest transition-all flex items-center justify-center gap-3 border-2 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500 hover:text-white"
+                            className="w-full py-4 px-6 rounded-xl font-black text-base uppercase tracking-widest transition-all flex items-center justify-center gap-3 border-2 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500 hover:text-white"
                             onClick={() => {
                                 if (!activeConsent) return;
                                 setConfirmModal({ 
@@ -580,30 +580,30 @@ export default function PIConsentModule() {
 
     if (loading) return (
         <div className="flex-1 flex flex-col items-center justify-center bg-[#060a14] min-h-[800px]">
-            <RefreshCw size={40} className="text-indigo-500 animate-spin mb-6" />
+            <RefreshCw size={40} className="text-teal-500 animate-spin mb-6" />
             <h1 style={S.title}>Synchronizing Repository...</h1>
         </div>
     );
 
     const renderRecords = () => (
-        <div className="flex-1 p-6 lg:p-12 2xl:p-20 bg-[#060a14] overflow-y-auto custom-scrollbar">
+        <div className="flex-1 p-4 lg:p-6 2xl:p-10 bg-[#060a14] overflow-y-auto custom-scrollbar">
             {/* STATS STRIP */}
-            <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/5 rounded-[2rem] p-8 2xl:p-10 grid grid-cols-2 lg:grid-cols-4 gap-8 mb-12 2xl:mb-16">
+            <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/5 rounded-[2rem] p-4 2xl:p-6 grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 2xl:mb-10">
                 <div className="text-center group">
                     <div className="text-xl lg:text-2xl font-black text-white group-hover:scale-110 transition-transform">{recordStats.total}</div>
-                    <div className="text-[13px] font-black uppercase tracking-[0.2em] text-slate-500 mt-3 italic">Total Records</div>
+                    <div className="text-base font-black uppercase tracking-[0.2em] text-slate-500 mt-3 italic">Total Records</div>
                 </div>
                 <div className="text-center group border-l border-white/5">
                     <div className="text-xl lg:text-2xl font-black text-amber-500 group-hover:scale-110 transition-transform">{recordStats.pending}</div>
-                    <div className="text-[13px] font-black uppercase tracking-[0.2em] text-slate-500 mt-3 italic">Pending PI</div>
+                    <div className="text-base font-black uppercase tracking-[0.2em] text-slate-500 mt-3 italic">Pending PI</div>
                 </div>
                 <div className="text-center group border-l border-white/5">
                     <div className="text-xl lg:text-2xl font-black text-emerald-500 group-hover:scale-110 transition-transform">{recordStats.verified}</div>
-                    <div className="text-[13px] font-black uppercase tracking-[0.2em] text-slate-500 mt-3 italic">Verified</div>
+                    <div className="text-base font-black uppercase tracking-[0.2em] text-slate-500 mt-3 italic">Verified</div>
                 </div>
                 <div className="text-center group border-l border-white/5">
                     <div className="text-xl lg:text-2xl font-black text-rose-500 group-hover:scale-110 transition-transform">{recordStats.rejected}</div>
-                    <div className="text-[13px] font-black uppercase tracking-[0.2em] text-slate-500 mt-3 italic">Rejected</div>
+                    <div className="text-base font-black uppercase tracking-[0.2em] text-slate-500 mt-3 italic">Rejected</div>
                 </div>
             </div>
 
@@ -627,7 +627,7 @@ export default function PIConsentModule() {
                     <thead>
                         <tr className="bg-white/[0.03] border-b border-white/5">
                             {['Participant ID', 'Study Assignment', 'Version', 'Signed Date', 'Status', 'Actions'].map(h => (
-                                <th key={h} className="p-8 text-left uppercase tracking-[0.2em] text-[13px] font-black text-slate-500 italic">{h}</th>
+                                <th key={h} className="p-4 text-left uppercase tracking-[0.2em] text-sm font-black text-slate-500 italic">{h}</th>
                             ))}
                         </tr>
                     </thead>
@@ -635,7 +635,7 @@ export default function PIConsentModule() {
                         {consentRecords.map(r => (
                             <tr key={r.id || Math.random().toString()} className="border-b border-white/5 hover:bg-white/[0.01] transition-colors">
                                 <td className="p-8 font-black text-white text-xl tracking-tighter italic">{r.full_name || r.participantId || 'Unknown'}</td>
-                                <td className="p-8 text-lg font-black text-indigo-400 italic">{r.study_title || r.study || r.protocol_id}</td>
+                                <td className="p-8 text-lg font-black text-teal-400 italic">{r.study_title || r.study || r.protocol_id}</td>
                                 <td className="p-8"><span style={S.badge(COLORS.accent)}>{r.template_version}</span></td>
                                 <td className="p-8 text-sm text-slate-400 font-bold">{r.agreed_at ? new Date(r.agreed_at).toLocaleString() : '—'}</td>
                                 <td className="p-8">
@@ -645,7 +645,7 @@ export default function PIConsentModule() {
                                     <div className="flex gap-4">
                                         <button className="p-4 bg-white/5 border border-white/10 text-slate-400 rounded-xl hover:text-white transition-all"><Eye size={18} /></button>
                                         {!r.pi_verified && (
-                                            <button className="px-6 py-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl font-black uppercase tracking-widest text-[13px] italic hover:bg-indigo-500 hover:text-white transition-all flex items-center gap-3" onClick={() => { setActiveRecordId(r.id); setActiveView('pi-verify'); }}><ShieldCheck size={18} /> Verify</button>
+                                            <button className="px-6 py-4 bg-teal-500/10 border border-teal-500/20 text-teal-400 rounded-xl font-black uppercase tracking-widest text-base italic hover:bg-teal-500 hover:text-white transition-all flex items-center gap-3" onClick={() => { setActiveRecordId(r.id); setActiveView('pi-verify'); }}><ShieldCheck size={18} /> Verify</button>
                                         )}
                                         <button className="p-4 bg-white/5 border border-white/10 text-slate-400 rounded-xl hover:text-white transition-all" onClick={() => { setAuditDrawerRecordId(r.id); setAuditDrawerOpen(true); }}><History size={18} /></button>
                                     </div>
@@ -667,7 +667,7 @@ export default function PIConsentModule() {
                     <span style={S.title}>Signature Setup</span>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button style={{ ...S.btnGhost, color: COLORS.danger, borderColor: COLORS.danger }} onClick={() => setConfirmModal({ message: 'Wipe all signature fields from this protocol?', onConfirm: () => addToast('Field registry cleared', 'warning') })}><Trash2 size={14} /> Clear All</button>
+                    <button style={{ ...S.btnGhost, color: COLORS.danger, borderColor: COLORS.danger }} onClick={() => setConfirmModal({ message: 'Wipe all signature fields from this study?', onConfirm: () => addToast('Field registry cleared', 'warning') })}><Trash2 size={14} /> Clear All</button>
                     <button style={S.btnIndigo} onClick={() => { setActiveView('builder'); addToast('Signature mappings committed'); }}><Save size={14} /> Commit Changes</button>
                 </div>
             </div>
@@ -779,7 +779,7 @@ export default function PIConsentModule() {
 
             <div style={{ width: '440px', borderLeft: COLORS.border, padding: '3rem 2.5rem', display: 'flex', flexDirection: 'column', gap: '3rem', backgroundColor: COLORS.bg, overflowY: 'auto' }} className="custom-scrollbar">
                 <div>
-                    <h2 style={{ ...S.title, fontSize: '20px' }}>Protocol Verification</h2>
+                    <h2 style={{ ...S.title, fontSize: '20px' }}>Study Verification</h2>
                     <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
                         <span style={S.label}>Participant:</span>
                         <span style={{ fontSize: '13px', fontWeight: 900, color: 'white' }}>{activeRecord?.participantId}</span>
@@ -790,7 +790,7 @@ export default function PIConsentModule() {
                     <label style={S.label}>Validation Checklist</label>
                     <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         {[
-                            { l: 'Correct Protocol Version (v1.0)', v: true },
+                            { l: 'Correct Study Version (v1.0)', v: true },
                             { l: 'Participant Identity Verification', v: true },
                             { l: 'All Signature Nodes Captured', v: true },
                             { l: 'Clinical Coordinator Sign-off', v: true },
@@ -872,7 +872,7 @@ export default function PIConsentModule() {
                 <div className="w-full max-w-[900px] flex flex-col gap-12 lg:gap-16">
                     <div className="flex gap-2 lg:gap-3 mb-8 lg:mb-12">
                         {[1, 2, 3, 4, 5].map(s => (
-                            <div key={s} className={`flex-1 h-2 rounded-full transition-all duration-500 ${s < participantSignStep ? 'bg-emerald-500' : s === participantSignStep ? 'bg-indigo-500' : 'bg-white/10'}`} />
+                            <div key={s} className={`flex-1 h-2 rounded-full transition-all duration-500 ${s < participantSignStep ? 'bg-emerald-500' : s === participantSignStep ? 'bg-teal-500' : 'bg-white/10'}`} />
                         ))}
                     </div>
 
@@ -929,10 +929,10 @@ export default function PIConsentModule() {
                                     </section>
 
                                     <div className="h-[200px] bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-10 text-center gap-4">
-                                        <ShieldCheck size={40} className="text-indigo-200 shadow-xl shadow-indigo-500/10" />
+                                        <ShieldCheck size={40} className="text-teal-200 shadow-xl shadow-teal-500/10" />
                                         <div>
                                             <p className="text-slate-400 font-bold uppercase tracking-widest text-[14px] mb-1">Authenticated Regulatory Node</p>
-                                            <p className="text-indigo-600 font-black italic text-lg mb-1">{activeConsent?.study || 'STUDY-001'}</p>
+                                            <p className="text-teal-600 font-black italic text-lg mb-1">{activeConsent?.study || 'STUDY-001'}</p>
                                             <p className="text-slate-400 text-[14px] italic">Verified IRB Approval Stamp: MAR-2026-X88</p>
                                         </div>
                                     </div>
@@ -945,7 +945,7 @@ export default function PIConsentModule() {
                                     style={{ ...S.btnIndigo, padding: '1.5rem 4rem' }} 
                                     disabled={!hasScrolledFull && activeConsent?.completionRules.mustScrollFull}
                                     onClick={() => setParticipantSignStep(2)}
-                                    className="hover:scale-[1.02] transition-transform shadow-2xl shadow-indigo-500/20"
+                                    className="hover:scale-[1.02] transition-transform shadow-2xl shadow-teal-500/20"
                                 >
                                     {hasScrolledFull ? 'I HAVE READ THE FULL STUDY' : 'SCROLL TO BOTTOM TO CONTINUE'}
                                 </button>
@@ -966,10 +966,10 @@ export default function PIConsentModule() {
                                     <div 
                                         key={item.k} 
                                         onClick={() => setParticipantAgreements({ ...participantAgreements, [item.k]: !participantAgreements[item.k as keyof typeof participantAgreements] })} 
-                                        className={`p-6 lg:p-8 bg-white/[0.02] rounded-3xl border transition-all cursor-pointer flex items-center gap-6 lg:gap-8 ${participantAgreements[item.k as keyof typeof participantAgreements] ? 'border-indigo-500 bg-indigo-500/10 shadow-lg shadow-indigo-500/5' : 'border-white/10'}`}
+                                        className={`p-6 lg:p-8 bg-white/[0.02] rounded-3xl border transition-all cursor-pointer flex items-center gap-6 lg:gap-8 ${participantAgreements[item.k as keyof typeof participantAgreements] ? 'border-teal-500 bg-teal-500/10 shadow-lg shadow-teal-500/5' : 'border-white/10'}`}
                                     >
                                         {participantAgreements[item.k as keyof typeof participantAgreements] ? (
-                                            <CheckCircle size={32} className="text-indigo-400 shrink-0" />
+                                            <CheckCircle size={32} className="text-teal-400 shrink-0" />
                                         ) : (
                                             <div className="w-8 h-8 rounded-xl border-2 border-slate-600 shrink-0" />
                                         )}
@@ -983,7 +983,7 @@ export default function PIConsentModule() {
                                     style={{ ...S.btnIndigo, flex: 2, padding: '1.5rem' }} 
                                     disabled={!participantAgreements.read || !participantAgreements.questions || !participantAgreements.voluntary} 
                                     onClick={() => setParticipantSignStep(activeConsent?.completionRules.mustAnswerComprehension ? 3 : 4)}
-                                    className="shadow-2xl shadow-indigo-500/20"
+                                    className="shadow-2xl shadow-teal-500/20"
                                 >
                                     CONTINUE TO {activeConsent?.completionRules.mustAnswerComprehension ? 'QUIZ' : 'SIGNING'}
                                 </button>
@@ -1004,7 +1004,7 @@ export default function PIConsentModule() {
                                                 <div 
                                                     key={opt} 
                                                     onClick={() => setComprehensionAnswers({ ...comprehensionAnswers, [q.id]: opt })} 
-                                                    className={`p-6 bg-white/[0.01] border rounded-2xl cursor-pointer text-lg font-bold transition-all ${comprehensionAnswers[q.id] === opt ? 'border-indigo-500 bg-indigo-500/10 text-white' : 'border-white/5 text-slate-400 hover:border-white/20'}`}
+                                                    className={`p-6 bg-white/[0.01] border rounded-2xl cursor-pointer text-lg font-bold transition-all ${comprehensionAnswers[q.id] === opt ? 'border-teal-500 bg-teal-500/10 text-white' : 'border-white/5 text-slate-400 hover:border-white/20'}`}
                                                 >
                                                     {opt}
                                                 </div>
@@ -1021,7 +1021,7 @@ export default function PIConsentModule() {
                                         if(Object.keys(comprehensionAnswers).length === 3) setParticipantSignStep(4); 
                                         else addToast('Please answer all questions', 'warning'); 
                                     }}
-                                    className="shadow-2xl shadow-indigo-500/20"
+                                    className="shadow-2xl shadow-teal-500/20"
                                 >
                                     CHECK ANSWERS & CONTINUE
                                 </button>
@@ -1034,12 +1034,12 @@ export default function PIConsentModule() {
                             <h2 style={{ ...S.title, fontSize: '32px', marginBottom: '1.5rem' }}>Electronic Authorization</h2>
                             <p className="text-slate-400 text-lg lg:text-xl mb-12 lg:mb-20">Applying your signature constitutes a legally binding agreement to participate in clinical research.</p>
                             <div 
-                                className={`h-[400px] bg-white rounded-[2rem] flex flex-col items-center justify-center border-4 border-dashed transition-all cursor-pointer shadow-inner ${participantSigned ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-indigo-400 bg-slate-50'}`} 
+                                className={`h-[400px] bg-white rounded-[2rem] flex flex-col items-center justify-center border-4 border-dashed transition-all cursor-pointer shadow-inner ${participantSigned ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-teal-400 bg-slate-50'}`} 
                                 onClick={() => setParticipantSigned(true)}
                             >
                                 {participantSigned ? (
                                     <div className="flex flex-col items-center gap-6">
-                                        <div className="font-['Yellowtail'] text-7xl lg:text-8xl text-indigo-900 drop-shadow-lg">{activeRecord?.participantId || 'Signed User'}</div>
+                                        <div className="font-['Yellowtail'] text-7xl lg:text-8xl text-teal-900 drop-shadow-lg">{activeRecord?.participantId || 'Signed User'}</div>
                                         <span style={S.badge(COLORS.success)} className="scale-125"><CheckCircle size={18} /> SIGNATURE APPLIED</span>
                                     </div>
                                 ) : (
@@ -1055,7 +1055,7 @@ export default function PIConsentModule() {
                                     style={{ ...S.btnIndigo, flex: 2, padding: '1.5rem' }} 
                                     disabled={!participantSigned} 
                                     onClick={() => setParticipantSignStep(5)}
-                                    className="shadow-2xl shadow-indigo-500/20"
+                                    className="shadow-2xl shadow-teal-500/20"
                                 >
                                     REVIEW FOR SUBMISSION
                                 </button>
@@ -1142,7 +1142,7 @@ export default function PIConsentModule() {
                         <ShieldCheck size={36} color={COLORS.success} />
                         <div>
                             <h1 style={{ ...S.title, fontSize: '18px' }}>Consent Management</h1>
-                            <div className="text-[13px] font-black uppercase tracking-[0.3em] text-indigo-400 mt-2 italic">
+                            <div className="text-base font-black uppercase tracking-[0.3em] text-teal-400 mt-2 italic">
                                 GOVERNANCE OVERLAY {' > '} <span className="text-white">{activeView.toUpperCase()} MODE</span>
                             </div>
                         </div>

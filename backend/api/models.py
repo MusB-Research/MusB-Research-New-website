@@ -57,6 +57,14 @@ class Study(BaseMongoModel):
         ('BIOEQUIVALENCE', 'Bioequivalence'),
     ]
 
+    MASKING_CHOICES = [
+        ('NONE', 'None'),
+        ('SINGLE_BLIND', 'Single Blind'),
+        ('DOUBLE_BLIND', 'Double Blind'),
+        ('TRIPLE_BLIND', 'Triple Blind'),
+        ('QUADRUPLE_BLIND', 'Quadruple Blind'),
+    ]
+
     STATUS_CHOICES = [
         ('DRAFT', 'Draft'),
         ('PROPOSAL_SUBMITTED', 'Proposal Submitted'),
@@ -115,6 +123,7 @@ class Study(BaseMongoModel):
     
     trial_model = models.CharField(max_length=30, choices=TRIAL_MODEL_CHOICES, default='RCT')
     phase = models.CharField(max_length=30, choices=PHASE_CHOICES, default='PHASE_1')
+    masking_strategy = models.CharField(max_length=30, choices=MASKING_CHOICES, default='NONE')
     is_double_blind = models.BooleanField(default=False)
     has_placebo_control = models.BooleanField(default=False)
     has_screening_log = models.BooleanField(default=True)
@@ -378,7 +387,8 @@ class Visit(BaseMongoModel):
     ]
 
     participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='visits')
-    visit_type = models.CharField(max_length=50, choices=VISIT_TYPES)
+    scheduled_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='scheduled_visits')
+    visit_type = models.CharField(max_length=100) # relaxed choices
     scheduled_date = models.DateTimeField()
     actual_date = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, default='SCHEDULED', choices=[
@@ -392,11 +402,7 @@ class Visit(BaseMongoModel):
     
     # Clinical Measures & Protocol State
     notes = models.TextField(blank=True)
-    location = models.CharField(max_length=100, default='Clinic', choices=[
-        ('Clinic', 'In-Clinic Visit'),
-        ('Virtual', 'Telehealth / Virtual'),
-        ('Home Visit', 'At-Home Visit'),
-    ])
+    location = models.CharField(max_length=100, default='Clinic') # relaxed choices
     
     # High-Density Data Blobs (JSON for flexibility in clinical assessments)
     checklist = models.JSONField(default=list, blank=True)
@@ -506,8 +512,11 @@ class StudyQuestionnaire(BaseMongoModel):
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='study_questionnaires')
     template = models.ForeignKey(QuestionnaireTemplate, on_delete=models.CASCADE)
     mode = models.CharField(max_length=20, choices=[('PDF', 'Full PDF'), ('STRUCTURED', 'Structured Questions')], default='STRUCTURED')
-    repeat_type = models.CharField(max_length=20, choices=[('DAILY', 'Daily'), ('WEEKLY', 'Weekly'), ('MONTHLY', 'Monthly'), ('CUSTOM', 'Custom')], default='MONTHLY')
-    repeat_count = models.IntegerField(default=1)
+    repeat_type = models.CharField(max_length=20, choices=[('DAILY', 'Daily'), ('WEEKLY', 'Weekly'), ('MONTHLY', 'Monthly'), ('CUSTOM', 'Custom')], default='MONTHLY', help_text="Deprecated: Use frequency_interval and frequency_unit instead.")
+    frequency_interval = models.IntegerField(default=1, help_text="Number of units between occurrences")
+    frequency_unit = models.CharField(max_length=10, choices=[('DAYS', 'Days'), ('WEEKS', 'Weeks'), ('MONTHS', 'Months')], default='WEEKS')
+    repeat_count = models.IntegerField(default=1, help_text="Total number of times to repeat")
+    schedule_name = models.CharField(max_length=255, blank=True, null=True, help_text="Custom name for the schedule")
     
     # Advanced Window Logic
     start_date = models.DateField(null=True, blank=True)
@@ -529,9 +538,20 @@ class StudyQuestionnaire(BaseMongoModel):
 
         for i in range(self.repeat_count):
             offset_days = 0
-            if self.repeat_type == 'DAILY': offset_days = i
-            elif self.repeat_type == 'WEEKLY': offset_days = i * 7
-            elif self.repeat_type == 'MONTHLY': offset_days = i * 30
+            
+            # Use new flexible logic if interval is set, otherwise fallback to old repeat_type
+            if self.frequency_interval and self.frequency_unit:
+                if self.frequency_unit == 'DAYS':
+                    offset_days = i * self.frequency_interval
+                elif self.frequency_unit == 'WEEKS':
+                    offset_days = i * 7 * self.frequency_interval
+                elif self.frequency_unit == 'MONTHS':
+                    offset_days = i * 30 * self.frequency_interval
+            else:
+                # Fallback for legacy data
+                if self.repeat_type == 'DAILY': offset_days = i
+                elif self.repeat_type == 'WEEKLY': offset_days = i * 7
+                elif self.repeat_type == 'MONTHLY': offset_days = i * 30
             
             target_date = base_date + timedelta(days=offset_days)
             win_open = datetime.combine(target_date, self.window_open_time) if self.window_open_time else None
@@ -663,6 +683,28 @@ class ParticipantTask(BaseMongoModel):
     def __str__(self):
         return f"{self.participant.participant_sid} - {self.task.title}"
 
+    @property
+    def is_overdue(self):
+        from django.utils.timezone import now
+        return self.status != 'COMPLETED' and self.due_date < now()
+
+    def check_and_lock(self):
+        if self.is_overdue and not self.is_locked:
+            self.is_locked = True
+            self.save(update_fields=['is_locked'])
+            # Create a StaffTask for PI/Coordinator to alert them
+            from .models import StaffTask
+            StaffTask.objects.create(
+                user=self.participant.study.coordinator or self.participant.study.pi,
+                study=self.participant.study,
+                title=f"ALERT: Task Overdue for {self.participant.participant_sid}",
+                description=f"Task '{self.task.title}' reached its deadline and has been locked for security.",
+                task_type='OVERDUE_ALERT',
+                reference_id=str(self.id)
+            )
+            return True
+        return False
+
 class StaffTask(BaseMongoModel):
     """Tasks assigned to Staff members (PIs, Coordinators)"""
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='staff_tasks')
@@ -765,33 +807,115 @@ class Consent(BaseMongoModel):
     # Metadata for the signed event
     audit_trail = models.JSONField(default=list, blank=True) # [{"action": "SIGNED", "time": "...", "user": "..."}]
 
+    IS_VALID_CHOICES = [
+        ('PENDING', 'Pending Participant Signature'),
+        ('PARTIALLY_SIGNED', 'Signed by Participant (Awaiting Coordinator)'),
+        ('FULLY_SIGNED', 'Fully Executed (Signed by All)'),
+        ('REJECTED', 'Rejected'),
+        ('EXPIRED', 'Expired / Superseded')
+    ]
+    signing_status = models.CharField(max_length=30, choices=IS_VALID_CHOICES, default='PENDING')
+
     def __str__(self):
-        return f"Consent: {self.full_name} ({self.study.protocol_id}) - v{self.template.version if self.template else '?'}"
+        status_label = dict(self.IS_VALID_CHOICES).get(self.signing_status, 'Unknown')
+        return f"Consent: {self.full_name} ({self.study.protocol_id}) - {status_label}"
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
         old_pi_verified = False
-        
+
         if not is_new:
             try:
                 old_pi_verified = Consent.objects.get(pk=self.pk).pi_verified
             except Consent.DoesNotExist:
                 pass
-                
+
+        # ── NEW RECORD: mutate fields BEFORE the single super().save() ──
+        if is_new and self.participant:
+            from django.utils.timezone import now as _now
+            self.signing_status = 'PARTIALLY_SIGNED'
+            if not self.participant_signed_at:
+                self.participant_signed_at = _now()
+            # Append to audit trail (avoid duplicates already set by view)
+            if not any(e.get('action') == 'PARTICIPANT_SIGNED' and e.get('role') == 'PARTICIPANT' for e in self.audit_trail):
+                self.audit_trail.append({
+                    "action": "PARTICIPANT_SIGNED",
+                    "time": _now().isoformat(),
+                    "actor": self.full_name,
+                    "role": "PARTICIPANT"
+                })
+
+        # ── SINGLE authoritative save ──
         super().save(*args, **kwargs)
-        
-        # Trigger task completion on participant signature (initial creation) OR PI verification
-        if (is_new or (self.pi_verified and not old_pi_verified)) and self.participant:
-            from django.utils.timezone import now
-            tasks_to_finalize = ParticipantTask.objects.filter(
+
+        # ── POST-SAVE side effects for new records ──
+        if is_new and self.participant:
+            from django.utils.timezone import now as _now
+            # Mark consent tasks complete
+            tasks = ParticipantTask.objects.filter(
                 participant=self.participant,
                 task__task_type='CONSENT',
                 status__in=['PENDING', 'IN_PROGRESS']
             )
-            for pt in tasks_to_finalize:
+            for pt in tasks:
                 pt.status = 'COMPLETED'
-                pt.completed_at = now()
+                pt.completed_at = _now()
                 pt.save()
+
+            # StaffTask notification for Coordinator
+            try:
+                from .models import StaffTask
+                if self.study and self.study.coordinator:
+                    StaffTask.objects.create(
+                        user=self.study.coordinator,
+                        study=self.study,
+                        title="Review Required: Consent Signed by Participant",
+                        description=f"Participant {self.participant.participant_sid} has signed the consent form. Coordinator signature required.",
+                        task_type='CONSENT_COORDINATOR_SIGN',
+                        reference_id=str(self.id)
+                    )
+            except Exception as e:
+                print(f"StaffTask creation error: {e}")
+
+            # Generate initial signed PDF
+            try:
+                from .utils.pdf_utils import generate_signed_consent_pdf
+                generate_signed_consent_pdf(self)
+            except Exception as e:
+                print(f"PDF Generation Error (Initial): {e}")
+
+        # ── POST-SAVE side effects for CC sign transition ──
+        if not is_new and self.cc_verified and self.signing_status == 'PARTIALLY_SIGNED':
+            from django.utils.timezone import now as _now
+            self.signing_status = 'FULLY_SIGNED'
+            if not self.cc_verified_at:
+                self.cc_verified_at = _now()
+            self.audit_trail.append({
+                "action": "COORDINATOR_SIGNED",
+                "time": self.cc_verified_at.isoformat(),
+                "actor": self.cc_name or "Coordinator",
+                "role": "COORDINATOR"
+            })
+            # Use update_fields to avoid a full re-insert
+            super().save(update_fields=['signing_status', 'cc_verified_at', 'audit_trail'])
+
+            try:
+                from .utils.pdf_utils import generate_signed_consent_pdf
+                generate_signed_consent_pdf(self)
+                if self.signed_pdf:
+                    from .models import Document
+                    doc_title = f"Executed Consent - {self.study.protocol_id}"
+                    Document.objects.update_or_create(
+                        study=self.study,
+                        title=doc_title,
+                        defaults={
+                            'file': self.signed_pdf,
+                            'visibility': ['PARTICIPANT', 'COORDINATOR', 'PI'],
+                            'version': '1.0 (Signed)'
+                        }
+                    )
+            except Exception as e:
+                print(f"Archival Error: {e}")
 
 # ─────────────────────────────────────────────────────────
 # NEW MODELS FOR FULL BUILD PROMPT
@@ -1482,13 +1606,13 @@ def sync_dosing_log_task(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=DailyMedicationLog)
 def sync_daily_med_log_task(sender, instance, created, **kwargs):
-    """Automatically mark related tasks as COMPLETED when a daily medication log is saved"""
+    """Mark related tasks COMPLETED and notify team on AE reports"""
     if instance.participant and instance.date:
         from datetime import datetime, time
         from django.utils.timezone import now
         start = datetime.combine(instance.date, time.min)
         end = datetime.combine(instance.date, time.max)
-        from .models import ParticipantTask 
+        from .models import ParticipantTask
         tasks_to_update = ParticipantTask.objects.filter(
             participant=instance.participant,
             task__task_type__in=['LOG', 'DAILY_LOG'],
@@ -1499,6 +1623,41 @@ def sync_daily_med_log_task(sender, instance, created, **kwargs):
             t.status = 'COMPLETED'
             t.completed_at = now()
             t.save()
+
+        # AE-specific signal notification (backup / additional)
+        if created and instance.noticed_side_effects and not instance.is_draft:
+            try:
+                study = instance.participant.study
+                if not study:
+                    return
+                sid = instance.participant.participant_sid or ''
+                severity = getattr(instance, 'severity', '') or ''
+                date_str = instance.date.strftime('%d %b %Y')
+                is_urgent = severity.upper() in ['MODERATE', 'SEVERE']
+                ae_title = f"{'🚨 URGENT: ' if is_urgent else '⚠️ '}AE Reported — {sid} ({date_str})"
+                ae_msg = (
+                    f"Adverse event reported by participant {sid} on {date_str}.\n"
+                    f"Severity: {severity or 'Not specified'}.\n"
+                    f"Description: {instance.side_effect_description[:300] if instance.side_effect_description else 'N/A'}"
+                )
+                for staff_user in [getattr(study, 'coordinator', None), getattr(study, 'pi', None)]:
+                    if staff_user:
+                        # Check if perform_create already sent this (avoid duplicates within 60s)
+                        from django.utils.timezone import now as tz_now
+                        already_sent = Notification.objects.filter(
+                            user=staff_user,
+                            title__contains=ae_title[:40]
+                        ).exists()
+                        if not already_sent:
+                            Notification.objects.create(
+                                user=staff_user,
+                                title=ae_title,
+                                message=ae_msg,
+                                link=f"/coordinator/participants/{instance.participant.id}/logs"
+                            )
+            except Exception as e:
+                print(f"AE signal notification error: {e}")
+
 
 @receiver(post_save, sender=Participant)
 def generate_questionnaire_schedules_for_new_participant(sender, instance, created, **kwargs):

@@ -42,8 +42,6 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
 
     useEffect(() => {
         fetchTasks();
-        const timer = setInterval(fetchTasks, 30000);
-        return () => clearInterval(timer);
     }, [selectedStudyId]);
 
     const getStatusStyle = (status: string) => {
@@ -64,36 +62,33 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
     );
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-5">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div>
-                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">
-                        Participant <span style={{ color: colorHex }}>Task Monitor</span>
+                    <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">
+                        Participant <span style={{ color: colorHex }}>Tasks</span>
                     </h2>
-                    <p className="text-xs text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">
-                        Control research protocols, deadlines, and compliance rules.
-                    </p>
                 </div>
                 <button 
                     onClick={() => setShowNewTaskModal(true)}
                     className="flex items-center gap-2 px-6 py-3 bg-white text-slate-900 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.02] transition-all shadow-xl"
                 >
-                    <Plus className="w-4 h-4" /> Create Study Mission
+                    <Plus className="w-4 h-4" /> New Task
                 </button>
             </div>
 
             {isLoading ? (
                 <div className="py-20 text-center animate-pulse">
                     <Activity className="w-12 h-12 text-slate-800 mx-auto mb-4" />
-                    <p className="text-slate-500 font-black uppercase tracking-widest text-[12px]">Fetching Clinical Missions...</p>
+                    <p className="text-slate-500 font-black uppercase tracking-widest text-[12px]">Loading tasks...</p>
                 </div>
             ) : (
                 <>
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                          {[
-                            { label: 'Active Missions', count: tasks.filter(t => t.status !== 'COMPLETED').length, icon: List, color: 'cyan' },
-                            { label: 'Overdue Syncs', count: tasks.filter(t => t.status === 'OVERDUE').length, icon: AlertCircle, color: 'red' },
-                            { label: 'Locked Protocols', count: tasks.filter(t => t.status === 'LOCKED' && !t.title?.toUpperCase().includes('DAILY MEDICINE LOG')).length, icon: Lock, color: 'amber' },
+                            { label: 'Active', count: tasks.filter(t => t.status !== 'COMPLETED').length, icon: List, color: 'cyan' },
+                            { label: 'Overdue', count: tasks.filter(t => t.status === 'OVERDUE').length, icon: AlertCircle, color: 'red' },
+                            { label: 'Locked', count: tasks.filter(t => t.status === 'LOCKED' && !t.title?.toUpperCase().includes('DAILY MEDICINE LOG')).length, icon: Lock, color: 'amber' },
                             { label: 'Completion Rate', count: `${Math.round((tasks.filter(t => t.status === 'COMPLETED').length / (tasks.length || 1)) * 100)}%`, icon: CheckCircle2, color: 'emerald' }
                          ].map((stat, i) => (
                             <div key={i} className="bg-[#0B1222] border border-white/5 p-6 rounded-3xl hover:border-white/10 transition-all">
@@ -107,7 +102,7 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                     </div>
 
                     <div className="bg-[#0a101f]/80 backdrop-blur-xl border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl">
-                        <div className="p-8 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div className="p-4 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div className={`flex items-center gap-4 bg-white/5 border border-white/10 px-5 py-2.5 rounded-2xl flex-1 max-w-md group focus-within:border-${primaryColor === 'blue' ? 'blue' : 'cyan'}-500/50 transition-all`}>
                                 <Search className={`w-4 h-4 text-slate-500 group-focus-within:text-${primaryColor === 'blue' ? 'blue' : 'cyan'}-400`} />
                                 <input 
@@ -124,24 +119,24 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-white/[0.02]">
-                                        <th className="px-10 py-6 text-xs font-black text-slate-500 uppercase tracking-widest">Participant / Study</th>
-                                        <th className="px-10 py-6 text-xs font-black text-slate-500 uppercase tracking-widest">Mission Title</th>
-                                        <th className="px-10 py-6 text-xs font-black text-slate-500 uppercase tracking-widest">Deadline</th>
-                                        <th className="px-10 py-6 text-xs font-black text-slate-500 uppercase tracking-widest">Status / Intelligence</th>
-                                        <th className="px-10 py-6 text-xs font-black text-slate-500 uppercase tracking-widest text-right">Operational Actions</th>
+                                        <th className="px-6 py-3 text-xs font-black text-slate-500 uppercase tracking-widest">Participant / Study</th>
+                                        <th className="px-6 py-3 text-xs font-black text-slate-500 uppercase tracking-widest">Task</th>
+                                        <th className="px-6 py-3 text-xs font-black text-slate-500 uppercase tracking-widest">Due Date</th>
+                                        <th className="px-6 py-3 text-xs font-black text-slate-500 uppercase tracking-widest">Status</th>
+                                        <th className="px-6 py-3 text-xs font-black text-slate-500 uppercase tracking-widest text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {filteredTasks.length === 0 ? (
                                         <tr>
                                             <td colSpan={5} className="px-10 py-20 text-center">
-                                                <p className="text-slate-500 font-black uppercase tracking-widest">No active missions found in current search scope.</p>
+                                                <p className="text-slate-500 font-black uppercase tracking-widest">No tasks found.</p>
                                             </td>
                                         </tr>
                                     ) : (
                                         filteredTasks.map((task) => (
                                             <tr key={task.id} className="border-b border-white/5 group hover:bg-white/[0.01] transition-all">
-                                                <td className="px-10 py-8">
+                                                <td className="px-6 py-4">
                                                     <div className="flex items-center gap-4">
                                                         <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-white/10 italic font-black text-white text-[12px]">
                                                             {task.participant_name?.charAt(0) || 'S'}
@@ -152,19 +147,19 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-10 py-8">
+                                                <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
                                                         <div className={`w-1.5 h-1.5 rounded-full ${primaryColor === 'blue' ? 'bg-blue-500' : 'bg-cyan-500'} animate-pulse`} />
                                                         <span className="text-[13px] font-black text-white uppercase tracking-tight italic">{task.title}</span>
                                                     </div>
                                                 </td>
-                                                <td className="px-10 py-8">
+                                                <td className="px-6 py-4">
                                                     <div className="flex items-center gap-2">
                                                         <Calendar className="w-4 h-4 text-slate-600" />
                                                         <span className="text-[12px] font-bold text-slate-300 uppercase">{task.due_date ? new Date(task.due_date).toLocaleDateString() : 'NO DEADLINE'}</span>
                                                     </div>
                                                 </td>
-                                                <td className="px-10 py-8">
+                                                <td className="px-6 py-4">
                                                     <div className="flex flex-col gap-2">
                                                         <div className={`px-4 py-1.5 rounded-full border text-xs font-black uppercase tracking-widest w-fit ${
                                                             (task.status === 'LOCKED' && task.title?.toUpperCase().includes('DAILY MEDICINE LOG'))
@@ -178,7 +173,7 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td className="px-10 py-8 text-right">
+                                                <td className="px-6 py-4 text-right">
                                                      <div className="flex items-center justify-end gap-3 transition-opacity">
                                                         {task.title?.toUpperCase().includes('DAILY MEDICINE LOG') && (
                                                             <button 
@@ -203,7 +198,7 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                                                             }}
                                                             className={`px-6 py-3 ${primaryColor === 'blue' ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-900/40' : 'bg-cyan-600 hover:bg-cyan-500 shadow-cyan-900/40'} text-white rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all shadow-lg`}
                                                         >
-                                                            Override Rules
+                                                            Extend
                                                         </button>
                                                     </div>
                                                 </td>
@@ -236,13 +231,13 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                         >
                             <div className="p-10 space-y-10">
                                 <div>
-                                    <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Initialize <span className="text-cyan-400">Study Mission</span></h3>
-                                    <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2 italic">Configure protocol timing and compliance thresholds.</p>
+                                    <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">New <span className="text-cyan-400">Task</span></h3>
+                                    <p className="text-[12px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-1">Set task title, due date and participant.</p>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-8">
                                     <div className="col-span-2 space-y-4">
-                                        <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Mission Title</label>
+                                        <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Task Title</label>
                                         <input type="text" placeholder="E.G. FASTING GLUCOSE LOG" className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-black text-sm uppercase tracking-widest focus:border-cyan-500/50 outline-none transition-all placeholder:text-slate-700" />
                                     </div>
                                     <div className="space-y-4">
@@ -280,12 +275,12 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                                         onClick={() => setShowNewTaskModal(false)}
                                         className="flex-1 bg-white/5 border border-white/10 text-slate-400 py-5 rounded-[2rem] text-[12px] font-black uppercase tracking-[0.25em] italic hover:bg-white/10 transition-all"
                                     >
-                                        Abort
+                                        Cancel
                                     </button>
                                     <button 
                                         className={`flex-1 ${primaryColor === 'blue' ? 'bg-blue-600 hover:bg-blue-500 shadow-[0_0_50px_rgba(37,99,235,0.3)]' : 'bg-cyan-600 hover:bg-cyan-500 shadow-[0_0_50px_rgba(8,145,178,0.3)]'} text-white py-5 rounded-[2rem] text-[12px] font-black uppercase tracking-[0.25em] italic transition-all`}
                                     >
-                                        Deploy Mission
+                                        Save Task
                                     </button>
                                 </div>
                             </div>

@@ -21,6 +21,34 @@ export default function InstrumentModal({ isOpen, onClose, task, onSuccess }: In
     const mode = qData?.mode; // 'PDF' or 'STRUCTURED'
     const structure = template?.json_structure || [];
 
+    // Initialize responses from task if available
+    React.useEffect(() => {
+        if (qData?.response_data) {
+            setResponses(qData.response_data);
+        }
+    }, [qData]);
+
+    const handleSaveDraft = async (currentResponses: any) => {
+        try {
+            await authFetch(`${API}/api/questionnaire-schedules/${qData.id}/save_draft/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ responses: currentResponses })
+            });
+        } catch (err) {
+            console.error("Auto-save failed:", err);
+        }
+    };
+
+    // Debounced Auto-save
+    React.useEffect(() => {
+        if (Object.keys(responses).length === 0) return;
+        const timer = setTimeout(() => {
+            handleSaveDraft(responses);
+        }, 2000);
+        return () => clearTimeout(timer);
+    }, [responses]);
+
     const handleSubmit = async () => {
         setIsSubmitting(true);
         setError(null);
@@ -129,43 +157,67 @@ export default function InstrumentModal({ isOpen, onClose, task, onSuccess }: In
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="space-y-10">
-                                        {Array.isArray(structure) && structure.length > 0 ? structure.map((q: any, i: number) => (
-                                            <div key={i} className="space-y-4">
-                                                <div className="flex gap-4">
-                                                    <span className="text-[#1E88E5] font-bold italic text-xl">Q{i+1}.</span>
-                                                    <h3 className="text-lg font-bold text-[#1A2B49] uppercase tracking-tight leading-tight">
-                                                        {q.question_text}
+                                    <div className="space-y-12 pb-10">
+                                        {Array.isArray(template?.json_structure?.sections) && template.json_structure.sections.length > 0 ? template.json_structure.sections.map((section: any, si: number) => (
+                                            <div key={si} className="space-y-8">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#E3ECF5]" />
+                                                    <h3 className="text-[12px] font-black text-[#1E88E5] uppercase tracking-[0.3em] font-mono italic">
+                                                        {section.label || section.title || `Section ${si + 1}`}
                                                     </h3>
+                                                    <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[#E3ECF5]" />
                                                 </div>
-                                                
-                                                {q.type === 'multiple_choice' ? (
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-12">
-                                                        {q.options?.map((opt: string) => (
-                                                            <button 
-                                                                key={opt}
-                                                                onClick={() => setResponses({...responses, [q.id || i]: opt})}
-                                                                className={`p-4 rounded-xl border text-left text-[11px] font-bold uppercase tracking-widest transition-all ${responses[q.id || i] === opt ? 'bg-[#E3F2FD] border-[#1E88E5] text-[#1E88E5] shadow-md' : 'bg-white border-[#E3ECF5] text-[#5F6F89] hover:border-[#1E88E5]/40 hover:bg-[#F8FBFF]'}`}
-                                                            >
-                                                                {opt}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <div className="pl-12">
-                                                        <textarea 
-                                                            className="w-full bg-[#F8FBFF] border border-[#E3ECF5] rounded-xl p-4 text-[#1A2B49] font-bold placeholder:text-[#B0BCCF] min-h-[100px] focus:border-[#1E88E5] transition-all outline-none"
-                                                            placeholder="Enter your response here..."
-                                                            value={responses[q.id || i] || ''}
-                                                            onChange={(e) => setResponses({...responses, [q.id || i]: e.target.value})}
-                                                        />
-                                                    </div>
-                                                )}
+
+                                                <div className="space-y-6">
+                                                    {section.fields?.map((q: any, i: number) => (
+                                                        <div key={i} className="bg-[#F8FBFF]/50 border border-[#E3ECF5] rounded-[24px] p-6 sm:p-8 transition-all hover:border-[#1E88E5]/30 group">
+                                                            <div className="flex gap-6 mb-6">
+                                                                <span className="text-[#1E88E5] font-black italic text-xl tracking-tighter opacity-40 group-hover:opacity-100 transition-opacity">
+                                                                    {i + 1 < 10 ? `0${i + 1}` : i + 1}
+                                                                </span>
+                                                                <h4 className="text-lg font-bold text-[#1A2B49] uppercase tracking-tight leading-snug">
+                                                                    {q.label || q.question || q.question_text}
+                                                                </h4>
+                                                            </div>
+                                                            
+                                                            {q.type === 'multiple_choice' ? (
+                                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-0 sm:pl-12">
+                                                                    {q.options?.map((opt: string) => (
+                                                                        <button 
+                                                                            key={opt}
+                                                                            onClick={() => setResponses({...responses, [q.id || `${si}-${i}`]: opt})}
+                                                                            className={`p-5 rounded-2xl border text-left text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${responses[q.id || `${si}-${i}`] === opt ? 'bg-[#1E88E5] border-[#1E88E5] text-white shadow-xl shadow-blue-500/20 scale-[1.02]' : 'bg-white border-[#E3ECF5] text-[#5F6F89] hover:border-[#1E88E5]/40 hover:bg-white/80'}`}
+                                                                        >
+                                                                            <div className="flex items-center gap-3">
+                                                                                <div className={`w-3 h-3 rounded-full border-2 transition-all ${responses[q.id || `${si}-${i}`] === opt ? 'border-white bg-white' : 'border-[#E3ECF5]'}`} />
+                                                                                {opt}
+                                                                            </div>
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="pl-0 sm:pl-12">
+                                                                    <textarea 
+                                                                        className="w-full bg-white border border-[#E3ECF5] rounded-2xl p-5 text-[#1A2B49] font-bold placeholder:text-[#B0BCCF] min-h-[120px] focus:border-[#1E88E5] focus:ring-4 focus:ring-blue-500/5 transition-all outline-none"
+                                                                        placeholder="Type your response here..."
+                                                                        value={responses[q.id || `${si}-${i}`] || ''}
+                                                                        onChange={(e) => setResponses({...responses, [q.id || `${si}-${i}`]: e.target.value})}
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
                                         )) : (
-                                            <div className="text-center py-20 bg-[#F8FBFF] rounded-[2rem] border border-dashed border-[#E3ECF5]">
-                                                <AlertCircle className="w-12 h-12 text-[#B0BCCF] mx-auto mb-4" />
-                                                <p className="text-[#8A99B3] font-bold uppercase tracking-widest text-xs italic">No structured questions found in this template.</p>
+                                            <div className="text-center py-20 bg-[#F8FBFF] rounded-[2.5rem] border border-dashed border-[#E3ECF5]">
+                                                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-[#E3ECF5]">
+                                                    <AlertCircle className="w-8 h-8 text-[#B0BCCF]" />
+                                                </div>
+                                                <p className="text-[#1A2B49] font-black uppercase tracking-widest text-[10px] italic">
+                                                    Structured Protocol Missing<br/>
+                                                    <span className="text-[#8A99B3] font-bold opacity-60">Please contact your trial coordinator</span>
+                                                </p>
                                             </div>
                                         )}
                                     </div>
@@ -197,10 +249,10 @@ export default function InstrumentModal({ isOpen, onClose, task, onSuccess }: In
                             )}
                             <div className="ml-auto flex gap-4">
                                 <button
-                                    onClick={onClose}
+                                    onClick={() => handleSaveDraft(responses)}
                                     className="px-8 py-4 rounded-2xl bg-white border border-[#E3ECF5] text-[#8A99B3] font-bold uppercase tracking-widest text-[11px] hover:text-[#5F6F89] hover:bg-[#F8FBFF] transition-all shadow-sm"
                                 >
-                                    Save Draft
+                                    Force Save
                                 </button>
                                 <button
                                     disabled={isSubmitting || (mode === 'PDF' && !responses.acknowledged)}

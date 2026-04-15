@@ -115,6 +115,7 @@ export default function ParticipantDashboard() {
     const [signatures, setSignatures] = useState<any[]>([]);
     const [assignedForms, setAssignedForms] = useState<any[]>([]);
     const [logs, setLogs] = useState<any[]>([]);
+    const [availableConsentTemplates, setAvailableConsentTemplates] = useState<any[]>([]);
     const [selectedLog, setSelectedLog] = useState<any | null>(null);
     const [logsDefaultViewMode, setLogsDefaultViewMode] = useState<'FORM' | 'HISTORY'>('FORM');
 
@@ -128,8 +129,24 @@ export default function ParticipantDashboard() {
     const [activeSignatureTask, setActiveSignatureTask] = useState<any>(null);
     const [isInstrumentModalOpen, setIsInstrumentModalOpen] = useState(false);
     const [activeInstrumentTask, setActiveInstrumentTask] = useState<any>(null);
+    const [consentSuccessToast, setConsentSuccessToast] = useState(false);
+    // Tracks template IDs signed in this session to prevent re-injection before refresh
+    const justSignedTemplateIds = useRef<Set<string>>(new Set());
 
-    const [userProfile, setUserProfile] = useState(() => {
+    interface UserProfile {
+        userName: string;
+        userEmail: string;
+        userPicture: string;
+        firstName: string;
+        userPhone: string;
+        userLocation: string;
+        userTimezone: string;
+        userAge: string | number;
+        userDob: string;
+        userRole: string;
+    }
+
+    const [userProfile, setUserProfile] = useState<UserProfile>(() => {
         const u = getUser();
         return {
             userName: getDisplayName(u),
@@ -138,7 +155,10 @@ export default function ParticipantDashboard() {
             firstName: getDisplayName(u),
             userPhone: u?.decrypted_phone || u?.mobile_number || u?.phone_number || '',
             userLocation: u?.decrypted_address || u?.full_address || '',
-            userTimezone: u?.timezone || 'UTC'
+            userTimezone: u?.timezone || 'UTC',
+            userAge: u?.age || '',
+            userDob: u?.date_of_birth || '',
+            userRole: u?.role || 'PARTICIPANT'
         };
     });
 
@@ -221,7 +241,10 @@ export default function ParticipantDashboard() {
                             firstName: (freshUser.decrypted_name || freshUser.full_name)?.split(' ')[0] || getDisplayName(freshUser),
                             userPhone: freshUser.decrypted_phone || freshUser.phone_number || freshUser.mobile_number || '',
                             userLocation: freshUser.decrypted_address || freshUser.full_address || '',
-                            userTimezone: freshUser.timezone || 'UTC'
+                            userTimezone: freshUser.timezone || 'UTC',
+                            userAge: freshUser.age || '',
+                            userDob: freshUser.date_of_birth || '',
+                            userRole: freshUser.role || 'PARTICIPANT'
                         });
                     } else {
                         const u = getUser();
@@ -233,13 +256,21 @@ export default function ParticipantDashboard() {
                                 firstName: getDisplayName(u),
                                 userPhone: u.decrypted_phone || u.mobile_number || u.phone_number || '',
                                 userLocation: u.decrypted_address || u.full_address || '',
-                                userTimezone: u.timezone || 'UTC'
+                                userTimezone: u.timezone || 'UTC',
+                                userAge: u.age || '',
+                                userDob: u.date_of_birth || '',
+                                userRole: u.role || 'PARTICIPANT'
                             });
                         }
                     }
                 } catch (uErr) {
                     console.error("Failed to sync user profile:", uErr);
                 }
+
+                // Senior Developer Add: Check for missed visits to trigger notifications/alerts
+                try {
+                    await authFetch(`${apiUrl}/api/visits/check_missed/`, { method: 'POST' });
+                } catch (e) { /* silent check */ }
 
 
                 const pData = await apiFetch<any[]>('/api/participants/');
@@ -401,6 +432,7 @@ export default function ParticipantDashboard() {
                     if (protocolRes.ok) {
                         const protocolRaw = await protocolRes.json();
                         const dbProtocols = safeArray(protocolRaw?.results || protocolRaw);
+                        setAvailableConsentTemplates(dbProtocols);
 
                         const sigRaw = sigRes.ok ? await sigRes.json() : [];
                         const mySignatures = safeArray(sigRaw?.results || sigRaw);
@@ -418,7 +450,14 @@ export default function ParticipantDashboard() {
                                 return pStudyId === myStudyId && isEnrolled;
                             });
 
-                            const alreadySigned = mySignatures.some((s: any) => getId(s.template) === getId(p.id));
+                            // RC-2 FIX: match by template ID OR by study ID
+                            // If Consent.template was saved as null but Consent.study matches,
+                            // we still correctly identify the participant as already signed.
+                            const alreadySigned = mySignatures.some((s: any) => {
+                                const templateMatch = s.template && getId(s.template) === getId(p.id);
+                                const studyMatch = s.study && getId(s.study) === pStudyId;
+                                return templateMatch || studyMatch;
+                            }) || justSignedTemplateIds.current.has(getId(p.id));
                             return isActive && isMyEnrolledStudy && !alreadySigned;
                         }).forEach((p: any) => {
                             const pInstanceId = getId(p.id);
@@ -769,6 +808,23 @@ export default function ParticipantDashboard() {
         }
 
         if (taskType === 'CONSENT') {
+            // Priority: Resolve clinical protocol data if missing from the task object (common for DB-sourced tasks)
+            if (!task.p_data) {
+                const tIdFromTask = getId(task.template || task.task_details?.template || task.task?.template);
+                const resolvedTemplate = availableConsentTemplates.find(ct => getId(ct.id) === tIdFromTask || getId(ct._id) === tIdFromTask);
+                
+                if (resolvedTemplate) {
+                    console.log("[Consent Resolve] Bound missing template data to task:", resolvedTemplate.title);
+                    task.p_data = resolvedTemplate;
+                } else if (availableConsentTemplates.length > 0) {
+                    // Fallback: If only one active template exists for the study, auto-bind it
+                    const latestActive = availableConsentTemplates.find(ct => ct.status?.toUpperCase() === 'ACTIVE');
+                    if (latestActive) {
+                        console.log("[Consent Resolve] Auto-resolved latest active template:", latestActive.title);
+                        task.p_data = latestActive;
+                    }
+                }
+            }
             setActiveConsentTask(task);
             setIsConsentModalOpen(true);
             return;
@@ -842,6 +898,7 @@ export default function ParticipantDashboard() {
 
         // 2. eConsent Trigger
         if (lowerTitle.includes('consent')) {
+            if (task) setActiveConsentTask(task);
             setIsConsentModalOpen(true);
             return;
         }
@@ -1013,55 +1070,43 @@ export default function ParticipantDashboard() {
         }, 1500);
     };
 
-    const handleConsentComplete = async (signedPdf: File) => {
+    const handleConsentComplete = async (consentData: any) => {
         setIsConsentModalOpen(false);
-        setIsActionProcessing(true);
+        setIsActionProcessing(false);
 
-        try {
-            const formData = new FormData();
-            // Resolve study ID from the active consent task or the active study
-            const studyId = activeConsentTask?.p_data?.study || activeStudy?.id || activeStudy?._id;
-            formData.append('study', studyId || '');
-            formData.append('full_name', userProfile.userName);
-            formData.append('email', userProfile.userEmail);
-            formData.append('signed_pdf', signedPdf);
-
-            // Pass the template ID if we have it
-            if (activeConsentTask?.p_data?.id) {
-                formData.append('template', activeConsentTask.p_data.id);
-            }
-
-            const apiUrl = API || 'http://localhost:8000';
-            // Router registers as 'consent' → URL is /api/consent/
-            const response = await authFetch(`${apiUrl}/api/consent/`, {
-                method: 'POST',
-                body: formData
-            });
-
-            if (response.ok) {
-                alert("🔒 eConsent Finalized. Signed document has been securely uploaded to the study site.");
-                // Mark the specific consent task that was clicked as COMPLETED
-                const consentTaskId = activeConsentTask?.id;
-                setTasks((prev: any[]) =>
-                    prev.map(t =>
-                        t.id === consentTaskId || t.title?.toLowerCase().includes('consent')
-                            ? { ...t, status: 'COMPLETED' }
-                            : t
-                    )
-                );
-                setActiveConsentTask(null);
-            } else {
-                let errMsg = 'Unknown error';
-                try { errMsg = JSON.stringify(await response.json()); } catch { }
-                console.error("Consent upload failed:", errMsg);
-                alert("Security sync failed. Please try again or contact your coordinator.");
-            }
-        } catch (err) {
-            console.error("Consent process failed:", err);
-            alert("Internal protocol error. Please retry.");
-        } finally {
-            setIsActionProcessing(false);
+        // Track this template as signed so it won't re-inject before the server refresh
+        const signedTemplateId = activeConsentTask?.p_data?.id
+            || activeConsentTask?.p_data?._id
+            || activeConsentTask?.template
+            || activeConsentTask?.task_details?.template;
+        if (signedTemplateId) {
+            justSignedTemplateIds.current.add(String(signedTemplateId));
         }
+
+        // Immediately remove the consent task from local state + mark COMPLETED
+        const consentTaskId = activeConsentTask?.id;
+        setTasks((prev: any[]) =>
+            prev.map(t =>
+                t.id === consentTaskId || (t.task_type === 'CONSENT' && t.status === 'PENDING')
+                    ? { ...t, status: 'COMPLETED', completed_at: new Date().toISOString() }
+                    : t
+            ).filter(t =>
+                // Remove the synthetic consent task entirely — it will be gone after server refresh
+                !(t.id === consentTaskId && t.id?.startsWith('db-consent-'))
+            )
+        );
+
+        setActiveConsentTask(null);
+
+        // Show in-app success toast (no more browser alert)
+        setConsentSuccessToast(true);
+        setTimeout(() => setConsentSuccessToast(false), 6000);
+
+        // Navigate to Documents tab so the user can see the signed PDF
+        handleNavClick('Documents');
+
+        // Full background refresh (tasks, signatures, documents)
+        refreshData(true);
     };
 
     const handleFormSignatureComplete = async (data: any, signature: string) => {
@@ -1178,7 +1223,7 @@ export default function ParticipantDashboard() {
                             </button>
 
                             <div className="flex flex-col hidden lg:flex">
-                                <span className="text-[10px] font-black text-[#00ADEF] uppercase tracking-[0.2em] mb-0.5">Participant Suite</span>
+                                <span className="text-[10px] font-black text-[#00ADEF] uppercase tracking-[0.2em] mb-0.5">Clinical Portal</span>
                                 <div className="flex items-center gap-2">
                                     <h1 className="text-xl font-bold text-[#1A2B49] tracking-tight leading-none">{activeNav}</h1>
                                 </div>
@@ -1370,7 +1415,25 @@ export default function ParticipantDashboard() {
                             {activeNav === 'Study Kit' && <StudyKitView isLoading={isDataLoading} onAction={openActionModal} study={activeStudy} kits={filteredKits} />}
                             {activeNav === 'Logs' && <LogsView study={activeStudy} onAction={openActionModal} preselectedDate={logsPreselectedDate} preselectedLog={selectedLog} defaultViewMode={logsDefaultViewMode} />}
                             {activeNav === 'Messages' && <MessagesView isLoading={isDataLoading} study={activeStudy} conversations={filteredConversations} onAction={refreshData} />}
-                            {activeNav === 'Documents' && <DocumentsView study={activeStudy} signatures={signatures} assignedForms={assignedForms} isLoading={isDataLoading} />}
+                            {activeNav === 'Documents' && (
+                                <div className="space-y-3">
+                                    {consentSuccessToast && (
+                                        <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-2xl shadow-sm animate-in fade-in duration-300">
+                                            <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                                                <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[12px] font-bold text-emerald-700 uppercase tracking-widest leading-none">eConsent Finalized</p>
+                                                <p className="text-[11px] text-emerald-600 mt-0.5">Your signed document has been securely synchronized with the clinical site.</p>
+                                            </div>
+                                            <button onClick={() => setConsentSuccessToast(false)} className="text-emerald-400 hover:text-emerald-600 shrink-0">
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                            </button>
+                                        </div>
+                                    )}
+                                    <DocumentsView study={activeStudy} signatures={signatures} assignedForms={assignedForms} isLoading={isDataLoading} />
+                                </div>
+                            )}
                             {activeNav === 'Reports' && (
                                 <ReportsView
                                     userName={userProfile.userName}
@@ -1420,8 +1483,24 @@ export default function ParticipantDashboard() {
                 onClose={() => setIsConsentModalOpen(false)}
                 onComplete={handleConsentComplete}
                 study={activeStudy}
-                template={activeConsentTask?.p_data}
+                template={
+                    // Priority 1: synthetic task has p_data (consent template object)
+                    activeConsentTask?.p_data ||
+                    // Priority 2: task has a template field that is an object
+                    (typeof activeConsentTask?.template === 'object' && activeConsentTask?.template) ||
+                    // Priority 3: resolve by ID from available templates
+                    availableConsentTemplates.find(ct =>
+                        ct.id === activeConsentTask?.template ||
+                        ct._id === activeConsentTask?.template ||
+                        ct.id === activeConsentTask?.task_details?.template
+                    ) ||
+                    // Priority 4: latest active template from the study
+                    availableConsentTemplates.find(ct => ct.status?.toUpperCase() === 'ACTIVE') ||
+                    // Priority 5: any template available
+                    availableConsentTemplates[0]
+                }
                 userProfile={userProfile}
+                participantId={getId(activeParticipant)}
             />
 
             <InstrumentModal

@@ -48,19 +48,18 @@ export default function StudyDocumentsModule({ selectedStudyId }: { selectedStud
     });
 
     return (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div>
-                    <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tight">Study <span className="text-indigo-400">Documents</span></h2>
-                    <p className="text-[11px] text-white/50 font-bold uppercase tracking-[0.4em] mt-3 md:mt-4 italic">Central Regulatory & Protocol Repository</p>
+                    <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tight">Documents</h2>
                 </div>
                 <div className="flex items-center gap-4">
                     <button 
                         onClick={() => window.open('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', '_blank')}
                         className="px-6 py-3.5 bg-white/5 border border-white/10 text-slate-400 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-xl"
                     >
-                        Bulk Download (.zip)
+                        Download All
                     </button>
                     <div className="relative">
                         <input type="file" id="protocol-upload" className="hidden" onChange={(e) => {
@@ -70,14 +69,14 @@ export default function StudyDocumentsModule({ selectedStudyId }: { selectedStud
                             onClick={() => document.getElementById('protocol-upload')?.click()}
                             className="px-8 py-3.5 bg-indigo-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:scale-[1.03] hover:shadow-indigo-500/40 transition-all shadow-xl shadow-indigo-600/30 flex items-center gap-3 active:scale-95"
                         >
-                            Upload Document <Folder className="w-4 h-4" />
+                            Upload <Folder className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
             </div>
 
             {/* Quick Access Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-8">
                 {[
                     { label: 'Core Protocol', count: 'v3.2 Final', icon: BookOpen, color: 'indigo', cat: 'Protocol' },
                     { label: 'IB Edits', count: 'v12 Active', icon: FileCheck, color: 'emerald', cat: 'IB' },
@@ -103,7 +102,7 @@ export default function StudyDocumentsModule({ selectedStudyId }: { selectedStud
             </div>
 
             {/* Controls */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-t border-b border-white/5 py-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-t border-b border-white/5 py-4">
                 <div className="flex flex-wrap gap-2">
                     {['All', 'Protocol', 'IB', 'Pharmacy', 'Regulatory'].map((cat: any) => (
                          <button
@@ -132,7 +131,7 @@ export default function StudyDocumentsModule({ selectedStudyId }: { selectedStud
             {/* Repository List */}
             <div className="divide-y divide-white/5">
                 {filteredDocs.map((doc) => (
-                    <motion.div key={doc.id} className="group flex items-center justify-between py-10 px-4 transition-colors">
+                    <motion.div key={doc.id} className="group flex items-center justify-between py-4 px-4 transition-colors">
                         <div className="flex items-center gap-10">
                             <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 group-hover:text-indigo-400 group-hover:border-indigo-500/40 transition-all shadow-lg shadow-black/20">
                                 <FileText className="w-6 h-6" />

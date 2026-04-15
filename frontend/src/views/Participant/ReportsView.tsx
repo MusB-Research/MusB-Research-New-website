@@ -48,22 +48,23 @@ const ReportsView = ({
 
     const currentStreak = React.useMemo(() => {
         if (safeTasks.length === 0) return 0;
+        // Use completed_at → updated_at → created_at as fallback timestamp
+        const getTs = (t: any) => t.completed_at || t.updated_at || t.created_at;
         const sorted = [...safeTasks]
-            .filter((t: any) => (t?.status || '').toUpperCase() === 'COMPLETED')
-            .sort((a: any, b: any) => new Date(b.completed_at || 0).getTime() - new Date(a.completed_at || 0).getTime());
+            .filter((t: any) => t?.is_completed || (t?.status || '').toUpperCase() === 'COMPLETED')
+            .filter((t: any) => !!getTs(t))
+            .sort((a: any, b: any) => new Date(getTs(b)).getTime() - new Date(getTs(a)).getTime());
         
         if (sorted.length === 0) return 0;
         
         let streak = 0;
         let lastDate = new Date();
-        lastDate.setHours(0,0,0,0);
+        lastDate.setHours(0, 0, 0, 0);
 
         for (const t of sorted) {
-            if (!t.completed_at) continue;
-            const tDate = new Date(t.completed_at);
-            tDate.setHours(0,0,0,0);
+            const tDate = new Date(getTs(t));
+            tDate.setHours(0, 0, 0, 0);
             const diff = Math.floor((lastDate.getTime() - tDate.getTime()) / (1000 * 3600 * 24));
-            
             if (diff === 0 || diff === 1) {
                 streak++;
                 lastDate = tDate;
@@ -72,6 +73,22 @@ const ReportsView = ({
             }
         }
         return streak;
+    }, [safeTasks]);
+
+    // Weekly activity: count completed tasks per day-of-week (Mon=0 … Sun=6)
+    const weeklyActivity = React.useMemo(() => {
+        const counts = [0, 0, 0, 0, 0, 0, 0]; // Mon–Sun
+        const getTs = (t: any) => t.completed_at || t.updated_at || t.created_at;
+        safeTasks
+            .filter((t: any) => t?.is_completed || (t?.status || '').toUpperCase() === 'COMPLETED')
+            .forEach((t: any) => {
+                const ts = getTs(t);
+                if (!ts) return;
+                const day = new Date(ts).getDay(); // 0=Sun…6=Sat
+                const idx = day === 0 ? 6 : day - 1; // remap to Mon=0…Sun=6
+                counts[idx]++;
+            });
+        return counts;
     }, [safeTasks]);
 
     if (isLoading) {
@@ -274,7 +291,7 @@ const ReportsView = ({
                                     <TrendingUp className="w-5 h-5" />
                                 </div>
                             </div>
-                            <BarChart data={[0, 0, 0, 0, 0, 0, 0]} labels={['M', 'T', 'W', 'T', 'F', 'S', 'S']} />
+                            <BarChart data={weeklyActivity} labels={['M', 'T', 'W', 'T', 'F', 'S', 'S']} />
                         </div>
                     </div>
                 </Card>

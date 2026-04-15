@@ -63,6 +63,7 @@ def get_user_data_dict(user):
     last_name = decrypt_data(user.last_name)
     
     return {
+        'id':           str(user.pk),
         'email':        user.email,
         'full_name':    full_name,
         'first_name':   first_name,

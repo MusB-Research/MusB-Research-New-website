@@ -8,6 +8,7 @@ import {
     Search, Layers, ListFilter, Bookmark, Send, Save, Trash2, Eye, ArrowLeft, Target, Shield
 } from 'lucide-react';
 import { authFetch, API } from '../../utils/auth';
+import ParticipantOversight from './panels/ParticipantOversight';
 
 // --- TYPES ---
 interface AE {
@@ -44,7 +45,7 @@ interface AuditEntry {
 // --- STYLES CONST ---
 const COLORS = {
     bg: '#0B101B',
-    accent: '#6366f1',
+    accent: '#14b8a6',
     success: '#10b981',
     warning: '#f59e0b',
     danger: '#ef4444',
@@ -61,30 +62,30 @@ const S = {
         backgroundColor: COLORS.bg, color: 'white', overflow: 'hidden', position: 'relative' as const
     },
     header: {
-        padding: '1.5rem 3rem', backgroundColor: 'rgba(7, 10, 19, 0.8)',
+        padding: '0.45rem 1.5rem', backgroundColor: 'rgba(7, 10, 19, 0.8)',
         backdropFilter: 'blur(40px)', borderBottom: `1px solid ${COLORS.accent}30`,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 40
     },
     tabBar: {
-        display: 'flex', gap: '0.5rem', padding: '0.75rem 3rem',
+        display: 'flex', gap: '0.5rem', padding: '0.5rem 2rem',
         backgroundColor: 'rgba(255,255,255,0.01)', borderBottom: `1px solid ${COLORS.border}`,
         overflowX: 'auto' as const, scrollbarWidth: 'none' as const
     },
     tab: (active: boolean) => ({
-        padding: '0.6rem 1.25rem', borderRadius: '100px', fontSize: '13px', fontWeight: 900,
-        textTransform: 'uppercase' as const, letterSpacing: '0.15em', cursor: 'pointer',
+        padding: '0.45rem 1rem', borderRadius: '100px', fontSize: '11px', fontWeight: 900,
+        textTransform: 'uppercase' as const, letterSpacing: '0.12em', cursor: 'pointer',
         transition: 'all 0.2s', backgroundColor: active ? COLORS.accent : 'transparent',
         color: active ? 'white' : COLORS.text, border: `1px solid ${active ? COLORS.accent : 'transparent'}`
     }),
     card: {
         backgroundColor: 'rgba(255,255,255,0.025)', backdropFilter: 'blur(12px)',
-        border: `1px solid ${COLORS.border}`, borderRadius: '1rem', padding: '1.5rem'
+        border: `1px solid ${COLORS.border}`, borderRadius: '0.75rem', padding: '0.6rem'
     },
     label: {
-        fontSize: '13px', fontWeight: 900, textTransform: 'uppercase' as const,
-        letterSpacing: '0.15em', color: COLORS.label, marginBottom: '0.5rem', display: 'block'
+        fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' as const,
+        letterSpacing: '0.12em', color: COLORS.label, marginBottom: '0.25rem', display: 'block'
     },
-    name: { fontSize: '18px', fontStyle: 'italic', fontWeight: 900, textTransform: 'uppercase' as const, color: 'white' },
+    name: { fontSize: '15px', fontStyle: 'italic', fontWeight: 900, textTransform: 'uppercase' as const, color: 'white' },
     body: { fontSize: '13px', color: COLORS.text, lineHeight: '1.6' },
     btnPrimary: {
         backgroundColor: COLORS.accent, color: 'white', border: 'none',
@@ -103,12 +104,12 @@ const S = {
         display: 'flex', gap: '1rem', zIndex: 10
     },
     rightSummary: {
-        width: '240px', borderLeft: `1px solid ${COLORS.border}`,
-        padding: '2rem 1.5rem', backgroundColor: 'rgba(255,255,255,0.01)',
-        display: 'flex', flexDirection: 'column' as const, gap: '2rem', flexShrink: 0,
+        width: '210px', borderLeft: `1px solid ${COLORS.border}`,
+        padding: '1.25rem 1rem', backgroundColor: 'rgba(255,255,255,0.01)',
+        display: 'flex', flexDirection: 'column' as const, gap: '1.25rem', flexShrink: 0,
         overflowY: 'auto' as const
     },
-    title: { fontSize: '14px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: '1rem' },
+    title: { fontSize: '12px', fontWeight: 900, textTransform: 'uppercase' as const, letterSpacing: '0.08em', marginBottom: '0.75rem' },
     badge: (color: string) => ({
         padding: '0.4rem 0.8rem', borderRadius: '4px', fontSize: '13px', fontWeight: 900 as const,
         backgroundColor: `${color}20`, color: color, border: `1px solid ${color}40`, textTransform: 'uppercase' as const
@@ -172,9 +173,16 @@ const MOCK_PARTICIPANT = {
 };
 
 // --- COMPONENT ---
-export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { participantId?: string }) {
+export default function PISubjectReviewModule({ participantId = '' }: { participantId?: string }) {
+    // internalId: set when user picks from the ParticipantOversight list inside this module
+    const [internalId, setInternalId] = useState<string>(participantId);
+    // Keep in sync when parent passes a new participantId prop
+    useEffect(() => { setInternalId(participantId); }, [participantId]);
+    // The effective id we use for all queries
+    const effectiveId = internalId || participantId;
+
     // State
-    const [participant, setParticipant] = useState<any>(MOCK_PARTICIPANT);
+    const [participant, setParticipant] = useState<any>(null);
     const [activeTab, setActiveTab] = useState('Overview');
     const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
     const [toasts, setToasts] = useState<{ id: string, type: string, message: string }[]>([]);
@@ -186,8 +194,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
     const [remoteAuditLog, setRemoteAuditLog] = useState<any[]>([]);
 
     const fetchSubjectData = useCallback(async () => {
-        if (!participantId || participantId === 'BTB-023') {
-            setParticipant(MOCK_PARTICIPANT);
+        if (!effectiveId) {
             setIsLoading(false);
             return;
         }
@@ -195,7 +202,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
         setIsLoading(true);
         setError(null);
         try {
-            const res = await authFetch(`${API}/api/participants/${participantId}/`);
+            const res = await authFetch(`${API}/api/participants/${effectiveId}/`);
             if (!res.ok) throw new Error('Subject profile not found.');
             
             const data = await res.json();
@@ -277,12 +284,10 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
         } catch (err: any) {
             console.error(err);
             setError(err.message);
-            // Fallback to mock for better demo experience if explicit ID fails
-            if (participantId === 'BTB-023') setParticipant(MOCK_PARTICIPANT);
         } finally {
             setIsLoading(false);
         }
-    }, [participantId]);
+    }, [effectiveId]);
 
     useEffect(() => {
         fetchSubjectData();
@@ -290,11 +295,12 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
 
     // Dynamic Data
     const alerts = useMemo(() => {
+        if (!participant) return [];
         const list = [];
-        if (participant.compliance < 75) list.push({ id: 'a1', text: `Compliance low: ${participant.compliance}%`, color: COLORS.danger });
-        if (participant.adverseEvents.some((ae: any) => ae.severity === 'Severe')) list.push({ id: 'a2', text: 'Severe AE Reported', color: COLORS.danger });
-        if (participant.exclusions.some((e: any) => e.present)) list.push({ id: 'a3', text: 'Exclusion Criterion Present', color: COLORS.warning });
-        if (participant.labs.some((l: any) => l.status === 'High')) list.push({ id: 'a4', text: 'Abnormal Lab Results', color: COLORS.danger });
+        if ((participant.compliance || 0) < 75) list.push({ id: 'a1', text: `Compliance low: ${participant.compliance}%`, color: COLORS.danger });
+        if ((participant.adverseEvents || []).some((ae: any) => ae.severity === 'Severe')) list.push({ id: 'a2', text: 'Severe AE Reported', color: COLORS.danger });
+        if ((participant.exclusions || []).some((e: any) => e.present)) list.push({ id: 'a3', text: 'Exclusion Criterion Present', color: COLORS.warning });
+        if ((participant.labs || []).some((l: any) => l.status === 'High')) list.push({ id: 'a4', text: 'Abnormal Lab Results', color: COLORS.danger });
         return list;
     }, [participant]);
 
@@ -330,38 +336,61 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
 
     // --- RENDERERS ---
 
+    if (isLoading) return (
+        <div style={{ padding: '3rem', textAlign: 'center', color: COLORS.label }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+                <div style={{ width: 16, height: 16, border: `2px solid ${COLORS.accent}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                <span style={{ fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em' }}>Acquiring Clinical Data Stream...</span>
+            </div>
+        </div>
+    );
+
+    // ── Participant Picker UI — uses the same ParticipantOversight as the coordinator ──
+    if (!effectiveId || !participant) {
+        return (
+            <ParticipantOversight
+                onOpenProfile={(id) => {
+                    setInternalId(id);
+                    setParticipant(null);
+                    setError(null);
+                    setIsLoading(true);
+                }}
+            />
+        );
+    }
+
     const renderOverview = () => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', overflowX: 'hidden' }}>
             {alerts.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                     {alerts.map(a => (
-                        <div key={a.id} style={{ padding: '0.6rem 1rem', borderRadius: '4px', backgroundColor: `${a.color}15`, border: `1px solid ${a.color}30`, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <AlertCircle size={14} color={a.color} />
-                            <span style={{ fontSize: '13px', fontWeight: 900, textTransform: 'uppercase', color: a.color }}>{a.text}</span>
-                            <X size={12} color={a.color} style={{ cursor: 'pointer' }} />
+                        <div key={a.id} style={{ padding: '0.35rem 0.6rem', borderRadius: '4px', backgroundColor: `${a.color}15`, border: `1px solid ${a.color}25`, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <AlertCircle size={11} color={a.color} />
+                            <span style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', color: a.color }}>{a.text}</span>
+                            <X size={10} color={a.color} style={{ cursor: 'pointer' }} onClick={() => {}} />
                         </div>
                     ))}
                 </div>
             )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem' }}>
                 {[
-                    { l: 'Participant Age', v: participant.age },
-                    { l: 'Biological Sex', v: participant.sex },
-                    { l: 'Assigned Study Arm', v: participant.arm },
-                    { l: 'Enrollment Date', v: participant.enrollmentDate },
-                    { l: 'Study Site', v: participant.site },
-                    { l: 'Assigned Coordinator', v: participant.coordinator }
+                    { l: 'Current Age', v: (participant.age || 'N/A') },
+                    { l: 'Biological Sex', v: (participant.sex || 'N/A') },
+                    { l: 'Study Assignment', v: (participant.arm || 'Not Randomized') },
+                    { l: 'Enrolled On', v: (participant.enrollmentDate || 'Pending') },
+                    { l: 'Clinical Site', v: (participant.site || 'Main Site') },
+                    { l: 'Coordinator', v: (participant.coordinator || 'N/A') }
                 ].map((item, i) => (
                     <div key={i} style={S.card}>
                         <label style={S.label}>{item.l}</label>
-                        <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{item.v}</div>
+                        <div style={{ fontSize: '13px', fontWeight: 800, wordBreak: 'break-word', color: 'white' }}>{item.v}</div>
                     </div>
                 ))}
             </div>
             {/* ACTIONS SECTION */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 2fr', gap: '1.5rem', marginTop: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', marginTop: '0.25rem' }}>
                 <button 
-                    style={{ ...S.card, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', cursor: 'pointer', border: `1px solid ${participant.flagged ? COLORS.warning : COLORS.border}`, backgroundColor: participant.flagged ? `${COLORS.warning}10` : 'transparent' }}
+                    style={{ ...S.card, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer', border: `1px solid ${participant.flagged ? COLORS.warning : COLORS.border}`, backgroundColor: participant.flagged ? `${COLORS.warning}08` : 'transparent', padding: '0.5rem' }}
                     onClick={async () => {
                         if (!participant.pk) return;
                         try {
@@ -374,12 +403,12 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                         } catch (e) { addToast('Flag sync failed', 'error'); }
                     }}
                 >
-                    <Bookmark size={24} color={participant.flagged ? COLORS.warning : COLORS.label} fill={participant.flagged ? COLORS.warning : 'none'} />
-                    <span style={{ fontSize: '13px', fontWeight: 900, color: participant.flagged ? COLORS.warning : COLORS.label }}>{participant.flagged ? 'UNFLAG' : 'FLAG'}</span>
+                    <Bookmark size={14} color={participant.flagged ? COLORS.warning : COLORS.label} fill={participant.flagged ? COLORS.warning : 'none'} />
+                    <span style={{ fontSize: '11px', fontWeight: 900, color: participant.flagged ? COLORS.warning : COLORS.label }}>{participant.flagged ? 'UNFLAG' : 'FLAG'}</span>
                 </button>
 
                 <button 
-                    style={{ ...S.card, backgroundColor: COLORS.success, border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer', opacity: (participant.status === 'ENROLLED' || participant.status === 'RANDOMIZED') ? 0.5 : 1 }}
+                    style={{ ...S.card, backgroundColor: COLORS.success, border: 'none', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer', opacity: (participant.status === 'ENROLLED' || participant.status === 'RANDOMIZED') ? 0.5 : 1, padding: '0.5rem', minHeight: '34px' }}
                     disabled={participant.status === 'ENROLLED' || participant.status === 'RANDOMIZED'}
                     onClick={() => handleAction('Approve', async () => {
                         if (!participant.pk) return;
@@ -396,12 +425,12 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                         } catch (e) { addToast('Approval sync failed', 'error'); }
                     }, { message: 'Are you sure you want to officially APPROVE this participant for study enrollment?', type: 'info' })}
                 >
-                    <CheckCircle2 size={24} color="white" />
-                    <span style={{ fontSize: '14px', fontWeight: 900, color: 'white', textTransform: 'uppercase' }}>Approve Enrollment</span>
+                    <CheckCircle2 size={14} color="white" />
+                    <span style={{ fontSize: '11px', fontWeight: 900, color: 'white', textTransform: 'uppercase' }}>Approve Entry</span>
                 </button>
 
                 <button 
-                    style={{ ...S.card, backgroundColor: COLORS.danger, border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer', opacity: participant.status === 'DROPPED' ? 0.5 : 1 }}
+                    style={{ ...S.card, backgroundColor: COLORS.danger, border: 'none', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer', opacity: participant.status === 'DROPPED' ? 0.5 : 1, padding: '0.5rem', minHeight: '34px' }}
                     disabled={participant.status === 'DROPPED'}
                     onClick={() => handleAction('Withdraw', async () => {
                         if (!participant.pk) return;
@@ -413,13 +442,13 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                             if (res.ok) {
                                 setParticipant((p: any) => ({ ...p, status: 'DROPPED', eligibility: 'Terminated' }));
                                 addToast('Subject Withdrawn from Study', 'error');
-                                logAction('Subject Withdrawal', 'PI triggered emergency withdrawal protocol. Case terminated.');
+                                logAction('Subject Withdrawal', 'PI triggered emergency withdrawal study procedure. Case terminated.');
                             }
                         } catch (e) { addToast('Withdrawal sync failed', 'error'); }
                     }, { message: 'EMERGENCY: Are you sure you want to WITHDRAW this subject? This will terminate all active study plans for this record.', type: 'danger' })}
                 >
-                    <X size={24} color="white" />
-                    <span style={{ fontSize: '14px', fontWeight: 900, color: 'white', textTransform: 'uppercase' }}>Withdraw Subject</span>
+                    <X size={14} color="white" />
+                    <span style={{ fontSize: '11px', fontWeight: 900, color: 'white', textTransform: 'uppercase' }}>Withdraw</span>
                 </button>
             </div>
         </div>
@@ -757,14 +786,24 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
             <header style={S.header}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
                     <button 
-                        onClick={() => window.dispatchEvent(new CustomEvent('nav-to-participants'))}
+                        onClick={() => {
+                            if (participantId) {
+                                // Came from parent navigation — go back to oversight panel
+                                window.dispatchEvent(new CustomEvent('nav-to-participants'));
+                            } else {
+                                // Came from internal picker — return to picker
+                                setInternalId('');
+                                setParticipant(null);
+                                setError(null);
+                            }
+                        }}
                         style={{ ...S.btnGhost, padding: '0.6rem', borderRadius: '12px' }}
-                        title="Back to Participant Oversight"
+                        title="Back to Subject Registry"
                     >
                         <ArrowLeft size={20} />
                     </button>
                     <div>
-                        <div style={{ ...S.name, fontSize: '24px' }}>{participantId} <span style={{ color: COLORS.text, fontWeight: 'normal', fontSize: '16px' }}>| {participant.study}</span></div>
+                        <div style={{ ...S.name, fontSize: '24px' }}>{effectiveId} <span style={{ color: COLORS.text, fontWeight: 'normal', fontSize: '16px' }}>| {participant.study}</span></div>
                         <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.6rem', alignItems: 'center' }}>
                              <span style={{ fontSize: '13px', fontWeight: 900, color: COLORS.success, backgroundColor: `${COLORS.success}15`, padding: '0.25rem 0.6rem', borderRadius: '4px', border: `1px solid ${COLORS.success}30` }}>
                                  {participant.status.toUpperCase()} SUBJECT
@@ -832,7 +871,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
 
             {/* MAIN CONTENT AREA */}
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-                <main style={{ flex: 1, overflowY: 'auto', padding: '3rem', paddingBottom: '8rem' }}>
+                <main style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', paddingBottom: '6rem' }}>
                     {activeTab === 'Overview' && renderOverview()}
                     {activeTab === 'Eligibility' && renderEligibility()}
                     {activeTab === 'Outcomes' && renderOutcomes()}
@@ -919,6 +958,25 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                                 value={screeningNotes}
                                 onChange={e => setScreeningNotes(e.target.value)}
                             />
+                            <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem' }}>
+                                <button style={S.btnPrimary} onClick={async () => {
+                                    if (!participant.pk) return;
+                                    try {
+                                        const res = await authFetch(`${API}/api/participants/${participant.pk}/update_clinical_notes/`, {
+                                            method: 'PATCH',
+                                            body: JSON.stringify({ notes: screeningNotes })
+                                        });
+                                        if (res.ok) {
+                                            addToast('Clinical session synchronized', 'success'); 
+                                            logAction('Data Save', 'PI saved session notes via Notes tab.'); 
+                                        }
+                                    } catch (e) { addToast('Sync failed', 'error'); }
+                                }}>Save Notes</button>
+                                <button style={S.btnGhost} onClick={() => {
+                                    addToast('Deviation recorded', 'warning');
+                                    logAction('Deviation Observed', 'PI marked a protocol deviation.'); 
+                                }}>Mark Protocol Deviation</button>
+                            </div>
                         </div>
                     )}
                     
@@ -977,30 +1035,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                 </aside>
             </div>
 
-            {/* STICKY BOTTOM ACTION BAR */}
-            <footer style={S.stickyBottom}>
-                <button style={S.btnPrimary} onClick={async () => { 
-                    if (!participant.pk) return;
-                    try {
-                        const res = await authFetch(`${API}/api/participants/${participant.pk}/update_clinical_notes/`, {
-                            method: 'PATCH',
-                            body: JSON.stringify({ notes: screeningNotes })
-                        });
-                        if (res.ok) {
-                            addToast('Clinical session synchronized'); 
-                            logAction('Data Save', 'PI globally saved all session notes via API.'); 
-                        }
-                    } catch (e) { addToast('Sync failed', 'error'); }
-                }}>Save Session Notes</button>
-                <button style={S.btnGhost} onClick={() => {
-                    addToast('Deviation recorded', 'warning');
-                    logAction('Deviation Observed', 'PI marked a protocol deviation in the clinical log.'); 
-                }}>Mark Protocol Deviation</button>
-                <div style={{ flex: 1 }} />
-                <div style={{ fontSize: '13px', color: COLORS.label, fontWeight: 900, textTransform: 'uppercase', display: 'flex', alignItems: 'center' }}>
-                    Study Site: Miller Clinic Alpha • Status: Synchronized
-                </div>
-            </footer>
+            {/* REMOVED STICKY BOTTOM ACTION BAR TO PREVENT OVERLAP */}
 
             {/* TOAST SYSTEM */}
             <div style={{ position: 'fixed', bottom: '6rem', right: '2rem', zIndex: 1000, display: 'flex', flexDirection: 'column-reverse', gap: '0.75rem' }}>
@@ -1035,7 +1070,7 @@ export default function PISubjectReviewModule({ participantId = 'BTB-023' }: { p
                 @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
                 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.2); border-radius: 2px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(20, 184, 166, 0.2); border-radius: 2px; }
             `}</style>
         </div>
     );

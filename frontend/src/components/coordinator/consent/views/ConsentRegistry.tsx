@@ -40,7 +40,7 @@ export const ConsentRegistry: React.FC<ConsentRegistryProps> = ({
     };
 
     return (
-        <div className="flex-1 p-6 lg:p-12 2xl:p-20 bg-[#060a14] overflow-y-auto custom-scrollbar">
+        <div className="flex-1 p-6 lg:p-10 2xl:p-14 bg-[#060a14] overflow-y-auto custom-scrollbar">
             {/* STATS STRIP */}
             <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/5 rounded-[2rem] p-8 2xl:p-10 grid grid-cols-2 lg:grid-cols-4 gap-8 mb-12 2xl:mb-16">
                 <div className="text-center group">
@@ -61,16 +61,16 @@ export const ConsentRegistry: React.FC<ConsentRegistryProps> = ({
                 </div>
             </div>
 
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 mb-10">
-                <div className="flex flex-col lg:flex-row gap-8 items-start lg:items-center">
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8 mb-10">
+                <div className="flex flex-col xl:flex-row gap-8 items-start xl:items-center w-full xl:w-auto">
                     <h2 style={{ ...S.title, fontSize: '28px' }}>Transaction Registry</h2>
-                    <div className="flex gap-3 overflow-x-auto pb-4 lg:pb-0 custom-scrollbar-horizontal w-full lg:w-auto">
+                    <div className="flex gap-3 overflow-x-auto pb-4 xl:pb-0 custom-scrollbar-horizontal w-full xl:w-auto">
                         {['All', 'Pending', 'Verified', 'Rejected'].map(f => (
                             <button key={f} onClick={() => setRecordsFilter(f)} style={{ ...S.badge(recordsFilter === f ? COLORS.accent : COLORS.label), padding: '0.6rem 1.5rem', cursor: 'pointer', whiteSpace: 'nowrap' }}>{f}</button>
                         ))}
                     </div>
                 </div>
-                <div className="relative w-full lg:w-[400px]">
+                <div className="relative w-full xl:w-[400px]">
                     <Search size={18} className="text-slate-500 absolute left-5 top-1/2 -translate-y-1/2" />
                     <input style={{ ...S.input, width: '100%', paddingLeft: '3.5rem', borderRadius: '100px' }} placeholder="Search Participant IDs..." value={recordsSearch} onChange={e => setRecordsSearch(e.target.value)} />
                 </div>
@@ -81,23 +81,23 @@ export const ConsentRegistry: React.FC<ConsentRegistryProps> = ({
                     <thead>
                         <tr className="bg-white/[0.03] border-b border-white/5">
                             {['Participant ID', 'Study Assignment', 'Version', 'Signed Date', 'Status', 'Actions'].map(h => (
-                                <th key={h} className="p-8 text-left uppercase tracking-[0.2em] text-[12px] font-black text-slate-500 italic">{h}</th>
+                                <th key={h} className="p-5 2xl:p-8 text-left uppercase tracking-[0.2em] text-[12px] font-black text-slate-500 italic">{h}</th>
                             ))}
                         </tr>
                     </thead>
                     <tbody>
                         {consentRecords.map(r => (
                             <tr key={r.id} className="border-b border-white/5 hover:bg-white/[0.01] transition-colors">
-                                <td className="p-8 font-black text-white text-xl tracking-tighter italic">{revealValue(r.full_name, (r as any).decrypted_name) || r.participantId || 'Unknown'}</td>
-                                <td className="p-8 text-lg font-black text-indigo-400 italic">
+                                <td className="p-5 2xl:p-8 font-black text-white text-xl tracking-tighter italic">{revealValue(r.full_name, (r as any).decrypted_name) || r.participantId || 'Unknown'}</td>
+                                <td className="p-5 2xl:p-8 text-lg font-black text-indigo-400 italic">
                                     {typeof r.study_title === 'string' ? r.study_title : (typeof r.study === 'object' ? (r.study as any).title : String(r.study || 'Untethered'))}
                                 </td>
-                                <td className="p-8"><span style={S.badge(COLORS.accent)}>{r.template_version || r.version}</span></td>
-                                <td className="p-8 text-sm text-slate-400 font-bold">{r.agreed_at ? new Date(r.agreed_at).toLocaleString() : '—'}</td>
-                                <td className="p-8">
+                                <td className="p-5 2xl:p-8"><span style={S.badge(COLORS.accent)}>{r.template_version || r.version}</span></td>
+                                <td className="p-5 2xl:p-8 text-sm text-slate-400 font-bold">{r.agreed_at ? new Date(r.agreed_at).toLocaleString() : '—'}</td>
+                                <td className="p-5 2xl:p-8">
                                     <span style={{ ...S.badge((r.pi_verified || r.piVerified) ? COLORS.success : COLORS.warning), fontSize: '14px', padding: '0.6rem 1.5rem' }}>{(r.pi_verified || r.piVerified) ? 'VERIFIED' : 'PENDING PI'}</span>
                                 </td>
-                                <td className="p-8">
+                                <td className="p-5 2xl:p-8">
                                     <div className="flex gap-4">
                                         <button className="p-4 bg-white/5 border border-white/10 text-slate-400 rounded-xl hover:text-white transition-all" onClick={() => { setActiveRecordId(r.id); setActiveView('pi-verify'); }}><Eye size={18} /></button>
                                         {!(r.pi_verified || r.piVerified) && (

@@ -233,7 +233,7 @@ export default function SponsorDashboard() {
     } catch (e) { console.error('Mark all read failed', e); }
   };
 
-  const SIDEBAR_W = 260;
+  const SIDEBAR_W = 240;
 
   return (
     <div style={{ width: '100vw', height: '100vh', backgroundColor: 'transparent', color: 'white', fontFamily: 'Inter, system-ui, sans-serif', overflow: 'hidden', position: 'relative' }}>
@@ -368,7 +368,7 @@ export default function SponsorDashboard() {
             top: 0,
             right: 0,
             left: isMobile ? 0 : SIDEBAR_W,
-            height: '96px',
+            height: isMobile ? '64px' : '72px',
             background: 'rgba(11, 16, 27, 0.85)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
@@ -376,12 +376,12 @@ export default function SponsorDashboard() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '0 32px',
+            padding: isMobile ? '0 16px' : '0 32px',
             zIndex: 50,
-            transition: 'left 0.3s'
+            transition: 'all 0.3s'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '16px' }}>
             {isMobile ? (
               <button
                 onClick={() => setIsSidebarOpen(true)}
@@ -393,18 +393,18 @@ export default function SponsorDashboard() {
             ) : null}
 
             {/* Real-time Clock */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'right', paddingRight: '16px', borderRight: '1px solid rgba(255,255,255,0.05)', marginLeft: '20px' }}>
-              <span style={{ fontSize: isMobile ? '14px' : '20px', fontWeight: 900, color: '#22d3ee', fontFamily: 'monospace', letterSpacing: '-0.02em', lineHeight: 1 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMobile ? 'flex-start' : 'flex-end', textAlign: isMobile ? 'left' : 'right', paddingRight: '12px', borderRight: '1px solid rgba(255,255,255,0.05)', marginLeft: isMobile ? '8px' : '10px' }}>
+              <span style={{ fontSize: isMobile ? '13px' : '16px', fontWeight: 900, color: '#22d3ee', fontFamily: 'monospace', letterSpacing: '-0.02em', lineHeight: 1 }}>
                 {currentTime.toLocaleTimeString('en-US', { hour12: false })}
               </span>
-              <span style={{ fontSize: '12px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '4px' }}>
+              <span style={{ fontSize: '9px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '4px' }}>
                 {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()}
               </span>
             </div>
           </div>
 
           {/* Right side: Notifications + Profile */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '20px' }}>
             <div style={{ position: 'relative' }} data-dropdown="true">
               <NotificationBell
                 unreadCount={notifications.filter(n => !n.read).length}
@@ -444,17 +444,17 @@ export default function SponsorDashboard() {
 
             <div className="relative" data-dropdown="true">
               <div
-                className="flex items-center gap-3 cursor-pointer hover:bg-white/[0.03] p-1.5 rounded-2xl transition-all"
+                className="flex items-center gap-2 md:gap-3 cursor-pointer hover:bg-white/[0.03] p-1 rounded-2xl transition-all"
                 onClick={() => { setProfileDropdownOpen(!profileDropdownOpen); setNotifDropdownOpen(false); }}
               >
-                <div className="hidden sm:flex flex-col items-end">
-                  <span className="text-sm font-black text-white italic uppercase tracking-tight leading-none mb-1">{displayName.toUpperCase()}</span>
-                  <span className="text-[12px] text-slate-500 font-bold uppercase tracking-widest bg-white/5 px-2 py-1 rounded border border-white/5">
+                <div className="hidden sm:flex flex-col items-end max-w-[80px] md:max-w-[120px]">
+                  <span className="text-[10px] md:text-[12px] font-black text-white italic uppercase tracking-tight leading-none mb-1 truncate w-full text-right">{displayName.toUpperCase()}</span>
+                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest bg-white/5 px-1.5 py-0.5 rounded border border-white/5 truncate w-full text-right">
                     {currentUser?.email || 'SPONSOR'}
                   </span>
                 </div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-white/10 overflow-hidden shadow-2xl hover:border-cyan-500/40 transition-all ring-1 ring-white/5">
-                  <span className="text-sm font-black italic">{initials}</span>
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-white/10 overflow-hidden shadow-2xl hover:border-cyan-500/40 transition-all ring-1 ring-white/5 shrink-0">
+                  <span className="text-[11px] font-black italic">{initials}</span>
                 </div>
               </div>
 
@@ -469,7 +469,7 @@ export default function SponsorDashboard() {
         </header>
 
         {/* MODULE PANELS */}
-        <div style={{ flex: 1, padding: isMobile ? '120px 20px 60px 20px' : '128px 40px 80px 40px', overflowY: 'auto' }}>
+        <div style={{ flex: 1, padding: isMobile ? '96px 20px 60px 20px' : '100px 40px 80px 40px', overflowY: 'auto' }}>
           {activeModule === 'DASHBOARD' && (
             <DashboardPanel
               protocols={protocols}

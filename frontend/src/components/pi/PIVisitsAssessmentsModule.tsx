@@ -58,7 +58,7 @@ interface Participant {
 // --- CONSTANTS ---
 const COLORS = {
     bg: '#0B101B',
-    accent: '#6366f1',
+    accent: '#14b8a6',
     success: '#10b981',
     warning: '#f59e0b',
     danger: '#ef4444',
@@ -650,7 +650,7 @@ export default function PIVisitsAssessmentsModule() {
                 @keyframes slideRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
                 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.2); border-radius: 2px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(20, 184, 166, 0.2); border-radius: 2px; }
             `}</style>
         </div>
     );

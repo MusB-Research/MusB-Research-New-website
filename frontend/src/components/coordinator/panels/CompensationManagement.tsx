@@ -121,7 +121,7 @@ export default function CompensationManagement({ selectedStudyId }: { selectedSt
     };
 
     return (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-10">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             {/* Header Section */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <div className="space-y-2">
@@ -152,7 +152,7 @@ export default function CompensationManagement({ selectedStudyId }: { selectedSt
                     { label: 'Pending Payment', val: `$${statusMetrics.pendingPayment.toLocaleString()}`, icon: CreditCard, color: 'blue' },
                     { label: 'Awaiting Review', val: `$${statusMetrics.pendingApproval.toLocaleString()}`, icon: Clock, color: 'indigo' },
                 ].map((stat, i) => (
-                    <div key={i} className="bg-[#0B101B] border border-white/5 rounded-[2.5rem] p-8 flex items-center justify-between group hover:border-blue-500/30 transition-all shadow-2xl">
+                    <div key={i} className="bg-[#0B101B] border border-white/5 rounded-[2rem] p-5 flex items-center justify-between group hover:border-blue-500/30 transition-all shadow-2xl">
                         <div className="space-y-3">
                             <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest italic">{stat.label}</p>
                             <p className="text-3xl font-black text-white italic tracking-tighter leading-none group-hover:text-blue-400 transition-colors uppercase">{stat.val}</p>
@@ -196,11 +196,11 @@ export default function CompensationManagement({ selectedStudyId }: { selectedSt
                 <table className="w-full text-left border-collapse min-w-[1200px]">
                     <thead>
                         <tr className="bg-white/[0.02] border-b border-white/5">
-                            <th className="px-10 py-8 text-[12px] font-black text-white/50 uppercase tracking-widest italic border-r border-white/5">Transaction Details</th>
-                            <th className="px-10 py-8 text-[12px] font-black text-white/50 uppercase tracking-widest italic border-r border-white/5">Participant Ref</th>
-                            <th className="px-10 py-8 text-[12px] font-black text-white/50 uppercase tracking-widest italic border-r border-white/5">Amount</th>
-                            <th className="px-10 py-8 text-[12px] font-black text-white/50 uppercase tracking-widest italic border-r border-white/5">Status Hub</th>
-                            <th className="px-10 py-8 text-[12px] font-black text-white/50 uppercase tracking-widest italic text-right">Actions</th>
+                            <th className="px-6 py-4 text-[12px] font-black text-white/50 uppercase tracking-widest italic border-r border-white/5">Transaction Details</th>
+                            <th className="px-6 py-4 text-[12px] font-black text-white/50 uppercase tracking-widest italic border-r border-white/5">Participant Ref</th>
+                            <th className="px-6 py-4 text-[12px] font-black text-white/50 uppercase tracking-widest italic border-r border-white/5">Amount</th>
+                            <th className="px-6 py-4 text-[12px] font-black text-white/50 uppercase tracking-widest italic border-r border-white/5">Status Hub</th>
+                            <th className="px-6 py-4 text-[12px] font-black text-white/50 uppercase tracking-widest italic text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -223,7 +223,7 @@ export default function CompensationManagement({ selectedStudyId }: { selectedSt
                                     exit={{ opacity: 0 }}
                                     className="hover:bg-white/[0.02] transition-colors group"
                                 >
-                                    <td className="px-10 py-10 border-r border-white/5">
+                                    <td className="px-6 py-4 border-r border-white/5">
                                         <div className="flex items-center gap-6">
                                             <div className="w-12 h-12 flex items-center justify-center bg-white/5 border border-white/10 rounded-2xl text-slate-500 group-hover:text-blue-400 group-hover:border-blue-400/40 transition-all shadow-lg">
                                                 <ArrowUpRight className="w-5 h-5" />
@@ -234,15 +234,15 @@ export default function CompensationManagement({ selectedStudyId }: { selectedSt
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-10 py-10 border-r border-white/5">
+                                    <td className="px-6 py-4 border-r border-white/5">
                                         <p className="text-sm font-black text-white uppercase tracking-widest leading-none">{c.participant_name}</p>
                                         <p className="text-[11px] text-blue-400 font-bold tracking-widest mt-2 uppercase font-mono">{c.participant_sid} <span className="mx-2 opacity-20">/</span> {c.study_protocol}</p>
                                     </td>
-                                    <td className="px-10 py-10 border-r border-white/5">
+                                    <td className="px-6 py-4 border-r border-white/5">
                                         <p className="text-2xl font-black text-white italic tracking-tighter leading-none">${c.amount.toFixed(2)}</p>
                                         <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.2em] mt-2 italic">{c.payment_method.replace('_', ' ')}</p>
                                     </td>
-                                    <td className="px-10 py-10 border-r border-white/5">
+                                    <td className="px-6 py-4 border-r border-white/5">
                                         <div className={`inline-flex items-center gap-3 px-5 py-2 rounded-xl border text-[11px] font-black uppercase tracking-widest shadow-lg ${getStatusStyles(c.status)}`}>
                                             <div className="w-1.5 h-1.5 rounded-full bg-current shadow-[0_0_10px_currentColor] animate-pulse" />
                                             {c.status}
@@ -251,7 +251,7 @@ export default function CompensationManagement({ selectedStudyId }: { selectedSt
                                             <p className="text-[10px] text-emerald-500/50 font-bold uppercase tracking-widest mt-2 italic">Paid {new Date(c.paid_at).toLocaleDateString()}</p>
                                         )}
                                     </td>
-                                    <td className="px-10 py-10 text-right">
+                                    <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-3">
                                             {c.status === 'PENDING' && (
                                                 <button onClick={() => handleUpdateStatus(c.id, 'APPROVED')} className="px-6 py-3 bg-blue-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-blue-600/20">

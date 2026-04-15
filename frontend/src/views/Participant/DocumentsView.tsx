@@ -69,26 +69,106 @@ const DocumentsView = ({ study, signatures = [], assignedForms = [], isLoading =
         return pdf.output('datauristring');
     };
 
-    // --- Mock Data ---
-    const documents: Document[] = [
-        { id: '1', name: 'Signed Consent Form – Version 2.1', category: 'Signed Consent', uploadedBy: 'Study Team', date: '03/01/2026', status: 'Signed', size: '1.2 MB', type: 'pdf' },
-        { id: '2', name: 'Study Participation Instructions', category: 'Instructions', uploadedBy: 'Study Team', date: '03/01/2026', status: 'Important', size: '0.8 MB', type: 'pdf' },
-        { id: '3', name: 'Data Privacy Policy 2026', category: 'Privacy Policy', uploadedBy: 'Study Team', date: '03/01/2026', status: 'Verified', size: '0.5 MB', type: 'pdf' },
-        { id: '4', name: 'Travel Reimbursement - March', category: 'Receipts', uploadedBy: 'Participant', date: '03/15/2026', status: 'Uploaded', size: '2.1 MB', type: 'image' },
-        { id: '5', name: 'Lab Report - Blood Panel', category: 'Lab Reports', uploadedBy: 'Study Team', date: '03/20/2026', status: 'Verified', size: '3.4 MB', type: 'pdf' },
-        { id: '6', name: 'Microbiome Analysis Summary', category: 'Lab Reports', uploadedBy: 'Study Team', date: '03/22/2026', status: 'Verified', size: '4.2 MB', type: 'pdf' },
-        { id: '7', name: 'Study Recruitment Flyer', category: 'Study Flyers', uploadedBy: 'Study Team', date: '02/15/2026', status: 'Verified', size: '1.5 MB', type: 'pdf' },
-    ];
+    // --- Real Data: Build documents from signatures (real consent records) + study docs ---
+    const documents: Document[] = useMemo(() => {
+        const docs: Document[] = [];
 
-    const categories = [
-        { name: 'Signed Consent', count: 1, icon: <Lock className="w-4 h-4" /> },
-        { name: 'Instructions', count: 1, icon: <Info className="w-4 h-4" /> },
-        { name: 'Privacy Policy', count: 1, icon: <ShieldCheck className="w-4 h-4" /> },
-        { name: 'Receipts', count: 1, icon: <FileStack className="w-4 h-4" /> },
-        { name: 'Uploaded Files', count: 1, icon: <Upload className="w-4 h-4" /> },
-        { name: 'Lab Reports', count: 2, icon: <FileText className="w-4 h-4" /> },
-        { name: 'Study Flyers', count: 1, icon: <FileImage className="w-4 h-4" /> },
-    ];
+        // 1. Signed Consent records from the backend (signatures prop = /api/consent/ results)
+        if (signatures && signatures.length > 0) {
+            signatures.forEach((sig: any, idx: number) => {
+                const signingStatus = sig.signing_status || 'PARTIALLY_SIGNED';
+                const statusLabel: Document['status'] =
+                    signingStatus === 'FULLY_SIGNED' ? 'Verified' : 'Signed';
+                const templateTitle = sig.study_title || sig.protocol_id || study?.title || 'Consent Form';
+                const version = sig.template_version || '1.0';
+                const signedAt = sig.participant_signed_at || sig.agreed_at || sig.created_at || '';
+                const dateStr = signedAt ? new Date(signedAt).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : '';
+                docs.push({
+                    id: sig.id || sig._id || `sig-${idx}`,
+                    name: `Signed Consent Form – ${templateTitle} (v${version})`,
+                    category: 'Signed Consent',
+                    uploadedBy: 'Study Team',
+                    date: dateStr,
+                    status: statusLabel,
+                    size: sig.signed_pdf ? '—' : 'Pending PDF',
+                    type: 'pdf',
+                    _raw: sig,  // keep reference for download link
+                } as any);
+            });
+        }
+
+        // 2. Assigned forms (signed questionnaires)
+        if (assignedForms && assignedForms.length > 0) {
+            assignedForms
+                .filter((af: any) => af.status === 'SIGNED' || af.participant_signed_at)
+                .forEach((af: any, idx: number) => {
+                    docs.push({
+                        id: af.id || `af-${idx}`,
+                        name: af.form_title || af.title || 'Signed Form',
+                        category: 'Signed Consent',
+                        uploadedBy: 'Study Team',
+                        date: af.participant_signed_at ? new Date(af.participant_signed_at).toLocaleDateString('en-US') : '',
+                        status: 'Signed',
+                        size: '—',
+                        type: 'pdf',
+                    });
+                });
+        }
+
+        // 3. Study-level documents provided by the study team
+        if (study?.documents && Array.isArray(study.documents)) {
+            study.documents.forEach((d: any, idx: number) => {
+                docs.push({
+                    id: d.id || `studydoc-${idx}`,
+                    name: d.title || d.name || 'Study Document',
+                    category: d.doc_type || d.category || 'Instructions',
+                    uploadedBy: 'Study Team',
+                    date: d.uploaded_at ? new Date(d.uploaded_at).toLocaleDateString('en-US') : '',
+                    status: 'Important',
+                    size: d.file_size || '—',
+                    type: 'pdf',
+                });
+            });
+        }
+
+        // 4. Fallback: keep at least a placeholder row if nothing exists yet
+        if (docs.length === 0) {
+            docs.push({
+                id: 'placeholder',
+                name: 'No documents on file yet. Signed consent will appear here after submission.',
+                category: 'Signed Consent',
+                uploadedBy: 'Study Team',
+                date: '',
+                status: 'Pending',
+                size: '—',
+                type: 'pdf',
+            });
+        }
+
+        return docs;
+    }, [signatures, assignedForms, study]);
+
+    // --- Dynamic Categories computed from real data ---
+    const categories = useMemo(() => {
+        const counts: Record<string, number> = {};
+        documents.forEach(d => {
+            counts[d.category] = (counts[d.category] || 0) + 1;
+        });
+        const catIcons: Record<string, React.ReactNode> = {
+            'Signed Consent': <Lock className="w-4 h-4" />,
+            'Instructions': <Info className="w-4 h-4" />,
+            'Privacy Policy': <ShieldCheck className="w-4 h-4" />,
+            'Receipts': <FileStack className="w-4 h-4" />,
+            'Uploaded Files': <Upload className="w-4 h-4" />,
+            'Lab Reports': <FileText className="w-4 h-4" />,
+            'Study Flyers': <FileImage className="w-4 h-4" />,
+        };
+        return Object.entries(counts).map(([name, count]) => ({
+            name,
+            count,
+            icon: catIcons[name] || <FileText className="w-4 h-4" />,
+        }));
+    }, [documents]);
 
     const filteredDocs = useMemo(() => {
         return documents.filter(doc => {
@@ -96,7 +176,8 @@ const DocumentsView = ({ study, signatures = [], assignedForms = [], isLoading =
             const matchesSearch = doc.name.toLowerCase().includes(searchQuery.toLowerCase());
             return matchesCategory && matchesSearch;
         });
-    }, [activeCategory, searchQuery]);
+    }, [documents, activeCategory, searchQuery]);
+
 
     const getFileIcon = (type: string) => {
         switch (type) {
@@ -117,19 +198,32 @@ const DocumentsView = ({ study, signatures = [], assignedForms = [], isLoading =
         }
     };
 
-    const handleAction = async (doc: Document, action: 'VIEW' | 'DOWNLOAD') => {
+    const handleAction = async (doc: Document & { _raw?: any }, action: 'VIEW' | 'DOWNLOAD') => {
+        // If this is a real signed consent with a PDF, open it directly
+        const realPdfUrl = (doc as any)._raw?.signed_pdf_url || (doc as any)._raw?.signed_pdf;
+        if (realPdfUrl) {
+            window.open(realPdfUrl, '_blank');
+            return;
+        }
+
+        if (action === 'VIEW') {
+            setSelectedDoc(doc);
+            return;
+        }
+        // DOWNLOAD fallback (jsPDF for mock docs)
         const pdf = new jsPDF();
         pdf.setFont('helvetica', 'bold');
         pdf.setFontSize(22);
         pdf.setTextColor(30, 136, 229);
         pdf.text('MusB RESEARCH PORTAL', 45, 25);
-        if (action === 'DOWNLOAD') {
-            pdf.save(`${doc.name.replace(/\s+/g, '_')}.pdf`);
-        } else {
-            const string = pdf.output('datauristring');
-            window.open(string);
-        }
+        pdf.setFontSize(12);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text(`Document: ${doc.name}`, 15, 50);
+        pdf.text(`Status: ${doc.status}`, 15, 62);
+        pdf.text(`Date: ${doc.date}`, 15, 74);
+        pdf.save(`${doc.name.replace(/\s+/g, '_')}.pdf`);
     };
+
 
     if (isLoading) {
         return (

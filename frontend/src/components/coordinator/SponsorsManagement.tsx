@@ -1,7 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, UserPlus, Eye, Edit2, Shield, MoreVertical, Building2, Loader2, X, ShieldAlert, Mail, History } from 'lucide-react';
-import { authFetch , API, revealValue } from '../../utils/auth';
+import {
+  Search, UserPlus, Eye, Building2, Loader2, X,
+  ShieldAlert, Mail, RefreshCw, CheckCircle2, Copy
+} from 'lucide-react';
+import { authFetch, API } from '../../utils/auth';
 
 interface Sponsor {
   id: string;
@@ -16,242 +19,279 @@ interface Sponsor {
 }
 
 interface SponsorsManagementProps {
-  allUsers: any[];
-  allStudies: any[];
-  onRefresh: () => void;
+  allUsers?: any[];
+  allStudies?: any[];
+  onRefresh?: () => void;
   selectedStudyId?: string;
 }
 
-export default function SponsorsManagement({ allUsers = [], allStudies = [], onRefresh, selectedStudyId }: SponsorsManagementProps) {
+export default function SponsorsManagement({ onRefresh, selectedStudyId }: SponsorsManagementProps) {
+  const [rawSponsors, setRawSponsors] = useState<any[]>([]);
+  const [allStudies, setAllStudies] = useState<any[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  const fetchSponsorData = useCallback(async () => {
+    setDataLoading(true);
+    try {
+      const [spRes, stRes] = await Promise.all([
+        authFetch(`${API}/api/sponsors/`).then(r => r.json()).catch(() => []),
+        authFetch(`${API}/api/studies/`).then(r => r.json()).catch(() => [])
+      ]);
+      setRawSponsors(Array.isArray(spRes) ? spRes : (spRes.results || []));
+      setAllStudies(Array.isArray(stRes) ? stRes : (stRes.results || []));
+    } catch (e) {
+      console.error('Sponsor data fetch failed:', e);
+    } finally {
+      setDataLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchSponsorData(); }, [fetchSponsorData]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCredentialCard, setShowCredentialCard] = useState<{ username: string; email: string } | null>(null);
   const [selectedSponsor, setSelectedSponsor] = useState<Sponsor | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  
-  const [newSponsor, setNewSponsor] = useState({
-    firstName: '',
-    middleName: '',
-    lastName: '',
-    email: '',
-    role: 'SPONSOR'
-  });
+  const [copied, setCopied] = useState(false);
 
-  const sponsors: Sponsor[] = useMemo(() => {
-    return allUsers
-      .filter(u => u.role === 'SPONSOR')
-      .map(u => ({
-        id: u.id,
-        raw: u,
-        name: revealValue(u.full_name, u.decrypted_name) || revealValue(u.name, u.decrypted_name) || (u.email ? u.email.split('@')[0] : 'Unnamed Sponsor'),
-        email: revealValue(u.email) || u.email || 'unknown@domain',
-        company: revealValue((u as any).company) || (u as any).company || 'PharmaCorp / CRO',
-        status: (u as any).status === 'Suspended' ? 'Inactive' : 'Active',
-        studies: allStudies
-          .filter(s => s.sponsor === u.id || s.sponsor_id === u.id)
-          .map(s => s.title),
-        registeredDate: u.date_joined ? new Date(u.date_joined).toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Never',
-        mustChangePassword: u.must_change_password
-      }));
-  }, [allUsers, allStudies]);
+  const [newSponsor, setNewSponsor] = useState({ firstName: '', lastName: '', email: '', company: '' });
 
-  const handleToggleStatus = async (sponsor: any) => {
-    const isCurrentlyActive = sponsor.status === 'Active';
-    const newStatus = isCurrentlyActive ? 'Suspended' : 'Verified';
+  const sponsors: Sponsor[] = useMemo(() => rawSponsors.map(u => ({
+    id: u.id,
+    raw: u,
+    name: u.decrypted_name || u.full_name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email?.split('@')[0] || 'Unnamed',
+    email: u.email || '',
+    company: u.company || u.organization || 'Independent / CRO',
+    status: (u.status === 'suspended' || u.status === 'Suspended') ? 'Inactive' : 'Active',
+    studies: allStudies
+      .filter(s => String(s.sponsor) === String(u.id) || String(s.sponsor_id) === String(u.id))
+      .map(s => s.title || s.name || 'Untitled Study'),
+    registeredDate: u.date_joined ? new Date(u.date_joined).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'N/A',
+    mustChangePassword: !!u.must_change_password,
+  })), [rawSponsors, allStudies]);
+
+  const filteredSponsors = sponsors.filter(s =>
+    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.company.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleToggleStatus = async (sponsor: Sponsor) => {
+    const newStatus = sponsor.status === 'Active' ? 'Suspended' : 'Verified';
     setUpdatingId(sponsor.id);
-    const apiUrl = API || 'http://localhost:8000';
-    
     try {
-      const res = await authFetch(`${apiUrl}/api/users/${sponsor.id}/`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
+      const res = await authFetch(`${API}/api/users/${sponsor.id}/`, {
+        method: 'PATCH', body: JSON.stringify({ status: newStatus })
       });
-      
-      if (res.ok) {
-        onRefresh();
-      } else {
-        alert('Failed to update Sponsor status');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Network error during status update');
-    } finally {
-      setUpdatingId(null);
-    }
+      if (res.ok) { fetchSponsorData(); onRefresh?.(); }
+      else alert('Failed to update status');
+    } catch { alert('Network error'); }
+    finally { setUpdatingId(null); }
   };
 
   const handleCreateSponsor = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsCreating(true);
     try {
-      const apiUrl = API || 'http://localhost:8000';
-      const res = await authFetch(`${apiUrl}/api/auth/admin/create-user/`, {
+      const res = await authFetch(`${API}/api/auth/admin/create-user/`, {
         method: 'POST',
         body: JSON.stringify({
           email: newSponsor.email,
           first_name: newSponsor.firstName,
-          middle_name: newSponsor.middleName,
           last_name: newSponsor.lastName,
-          role: 'SPONSOR'
+          role: 'SPONSOR',
+          company: newSponsor.company || undefined
         })
       });
-
-      if (res.ok) {
-        const data = await res.json();
-        alert(`✅ SPONSOR PROVISIONED\n\nUsername: ${data.username}\nCredentials dispatched to ${newSponsor.email}`);
+      const data = await res.json();
+      if (res.ok || res.status === 201 || res.status === 200) {
         setShowCreateModal(false);
-        setNewSponsor({ firstName: '', middleName: '', lastName: '', email: '', role: 'SPONSOR' });
-        onRefresh();
+        setNewSponsor({ firstName: '', lastName: '', email: '', company: '' });
+        fetchSponsorData(); onRefresh?.();
+        if (data.username) setShowCredentialCard({ username: data.username, email: newSponsor.email });
       } else {
-        const err = await res.json();
-        if (res.status === 409) {
-          alert(`❌ PROVISIONING FAILED: ${err.error || 'An account with this email already exists.'}\n\nYou can use the "Resend Credentials" button in the table if they haven't logged in yet.`);
-        } else {
-          alert(`❌ PROVISIONING FAILED: ${err.error || err.detail || 'Access Denied'}`);
-        }
+        alert(`Failed: ${data.error || data.detail || JSON.stringify(data)}`);
       }
-    } catch (err) {
-      alert('❌ SYSTEM ERROR: Secure stack trace logged in core analytics.');
-    } finally {
-      setIsCreating(false);
-    }
+    } catch { alert('Network error.'); }
+    finally { setIsCreating(false); }
   };
 
   const handleResendCredentials = async (userId: string, email: string) => {
-    if (!window.confirm(`Are you sure you want to regenerate and resend credentials to ${email}?`)) return;
-    
+    if (!window.confirm(`Resend credentials to ${email}?`)) return;
     setUpdatingId(userId);
     try {
-      const apiUrl = API || 'http://localhost:8000';
-      const res = await authFetch(`${apiUrl}/api/auth/admin/resend-credentials/${userId}/`, {
-        method: 'POST'
-      });
-      
-      if (res.ok) {
-        alert('✅ CREDENTIALS REISSUED\n\nAn updated temporary password has been dispatched.');
-      } else {
-        const err = await res.json();
-        alert(`❌ FAILED: ${err.error || 'Operation failed'}`);
-      }
-    } catch (err) {
-      alert('❌ NETWORK ERROR: Terminal link failed.');
-    } finally {
-      setUpdatingId(null);
-    }
+      const res = await authFetch(`${API}/api/auth/admin/resend-credentials/${userId}/`, { method: 'POST' });
+      if (res.ok) alert('✅ Credentials resent successfully.');
+      else { const err = await res.json(); alert(`Failed: ${err.error}`); }
+    } catch { alert('Network error.'); }
+    finally { setUpdatingId(null); }
   };
 
-  const filteredSponsors = sponsors.filter(s => 
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    s.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.company.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  };
+
+  const totalActive = sponsors.filter(s => s.status === 'Active').length;
 
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+    <div className="space-y-4">
+      {/* ── Header Row ─────────────────────────────────────── */}
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl sm:text-5xl font-black text-white italic uppercase tracking-tighter">Research <span className="text-cyan-400">Sponsors</span></h1>
-          <p className="text-[12px] sm:text-sm text-[#8b8fa8] uppercase tracking-[0.2em] font-black mt-3">Delegate platform access & study funding credentials</p>
+          <h1 className="text-xl font-black text-white italic uppercase tracking-tighter">
+            Research <span className="text-cyan-400">Sponsors</span>
+          </h1>
+          <p className="text-[10px] text-slate-500 uppercase tracking-[0.15em] font-bold mt-0.5">
+            Delegate platform access & study funding credentials
+          </p>
         </div>
-        <button 
-          onClick={() => setShowCreateModal(true)}
-          className="px-8 py-4 bg-cyan-600 text-white rounded-xl font-black text-[12px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl shadow-cyan-500/20 hover:bg-cyan-500 transition-all font-mono"
-        >
-          <UserPlus className="w-5 h-5" /> Generate Sponsor Account
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={fetchSponsorData}
+            className="p-2 bg-white/5 border border-white/10 rounded-lg text-slate-500 hover:text-white transition-all"
+            title="Refresh"
+          >
+            <RefreshCw className={`w-4 h-4 ${dataLoading ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg font-black text-[11px] uppercase tracking-wider shadow-lg shadow-cyan-500/20 hover:bg-cyan-500 transition-all"
+          >
+            <UserPlus className="w-3.5 h-3.5" /> Generate Sponsor Account
+          </button>
+        </div>
       </div>
 
-      <div className="bg-[#0f1133]/60 backdrop-blur-3xl border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
-        <div className="p-8 border-b border-white/5 bg-white/[0.01]">
-          <div className="relative max-w-xl">
-            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600" />
-            <input
-              type="text"
-              placeholder="Filter by name, company, or email..."
-              className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl pl-16 pr-6 py-5 text-sm text-white outline-none focus:border-cyan-500/30 font-bold uppercase italic tracking-widest placeholder:text-slate-800"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
+      {/* ── Stats Strip ────────────────────────────────────── */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: 'Total Sponsors', val: sponsors.length },
+          { label: 'Active', val: totalActive },
+          { label: 'Pending Reset', val: sponsors.filter(s => s.mustChangePassword).length },
+        ].map((stat, i) => (
+          <div key={i} className="bg-white/[0.03] border border-white/5 rounded-xl px-4 py-2.5 flex items-center justify-between">
+            <span className="text-[10px] text-slate-500 font-black uppercase tracking-wider">{stat.label}</span>
+            <span className="text-base font-black text-white italic">{stat.val}</span>
           </div>
-        </div>
-        
+        ))}
+      </div>
+
+      {/* ── Search ─────────────────────────────────────────── */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-600" />
+        <input
+          type="text"
+          placeholder="Filter by name, company, or email..."
+          className="w-full bg-[#0a0b1a] border border-white/5 rounded-xl pl-9 pr-4 py-2.5 text-[12px] text-white outline-none focus:border-cyan-500/30 font-bold uppercase tracking-wider placeholder:text-slate-700"
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+        />
+      </div>
+
+      {/* ── Table ──────────────────────────────────────────── */}
+      <div className="bg-[#0f1133]/60 border border-white/5 rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left">
             <thead>
-              <tr className="bg-white/[0.02] text-[12px] font-black text-[#555a7a] uppercase tracking-[0.3em] italic border-b border-white/5">
-                <th className="px-10 py-8">Sponsor Personnel</th>
-                <th className="px-10 py-8">Affiliation / Company</th>
-                <th className="px-10 py-8">Portfolio</th>
-                <th className="px-10 py-8">Registration</th>
-                <th className="px-10 py-8">System Access</th>
-                <th className="px-10 py-8 text-right">Actions</th>
+              <tr className="border-b border-white/5 bg-white/[0.02]">
+                {['Sponsor Personnel', 'Company', 'Portfolio', 'Registered', 'Access', 'Actions'].map((h, i) => (
+                  <th key={i} className="px-4 py-3 text-[10px] font-black text-slate-600 uppercase tracking-wider whitespace-nowrap">
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
-              {filteredSponsors.length === 0 ? (
+            <tbody className="divide-y divide-white/[0.04]">
+              {dataLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-10 py-20 text-center opacity-30 italic uppercase tracking-[0.2em] text-[12px] font-black">No sponsor records in cross-project sync</td>
+                  <td colSpan={6} className="px-4 py-12 text-center">
+                    <div className="flex items-center justify-center gap-2 text-slate-500">
+                      <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                      <span className="text-[11px] font-black uppercase tracking-wider">Syncing sponsors...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredSponsors.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-12 text-center">
+                    <Building2 className="w-8 h-8 text-slate-700 mx-auto mb-3" />
+                    <p className="text-[11px] text-slate-600 font-black uppercase tracking-wider">
+                      {searchTerm ? 'No sponsors match your search' : 'No sponsor records found'}
+                    </p>
+                  </td>
                 </tr>
               ) : (
-                filteredSponsors.map((s) => (
-                  <tr key={s.id} className="hover:bg-white/[0.01] transition-colors group">
-                    <td className="px-10 py-8">
-                      <div className="flex items-center gap-6">
-                        <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
-                          <Building2 className="w-7 h-7" />
+                filteredSponsors.map(s => (
+                  <tr key={s.id} className="hover:bg-white/[0.02] transition-colors group">
+                    {/* Sponsor Info */}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0">
+                          <Building2 className="w-4 h-4" />
                         </div>
-                        <div>
-                          <p className="text-base font-black text-white italic group-hover:text-cyan-400 transition-colors uppercase tracking-tight">{s.name}</p>
-                          <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-widest mt-1.5">{s.email}</p>
+                        <div className="min-w-0">
+                          <p className="text-[12px] font-black text-white italic truncate uppercase tracking-tight leading-none">{s.name}</p>
+                          <p className="text-[10px] text-slate-500 font-bold tracking-wider mt-0.5 truncate">{s.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-10 py-8">
-                       <span className="text-[12px] font-black text-slate-400 uppercase tracking-widest italic">{s.company}</span>
+                    {/* Company */}
+                    <td className="px-4 py-3">
+                      <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">{s.company}</span>
                     </td>
-                    <td className="px-10 py-8">
-                      <div className="flex flex-wrap gap-2">
-                        {s.studies.length > 0 ? (
-                          s.studies.map((st, i) => (
-                            <span key={i} className="px-3 py-1 bg-white/5 border border-white/10 rounded-md text-[12px] font-black text-slate-500 uppercase tracking-widest">{st}</span>
-                          ))
-                        ) : (
-                          <span className="text-[12px] text-slate-700 italic font-black uppercase tracking-widest">No Projects Linked</span>
-                        )}
-                      </div>
+                    {/* Portfolio */}
+                    <td className="px-4 py-3">
+                      {s.studies.length === 0 ? (
+                        <span className="text-[10px] text-slate-700 italic font-bold uppercase">None</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1 max-w-[160px]">
+                          {s.studies.slice(0, 2).map((st, i) => (
+                            <span key={i} className="px-2 py-0.5 bg-white/5 border border-white/10 rounded text-[9px] font-black text-slate-500 uppercase tracking-wider truncate max-w-[140px]">{st}</span>
+                          ))}
+                          {s.studies.length > 2 && (
+                            <span className="px-2 py-0.5 bg-cyan-500/10 border border-cyan-500/20 rounded text-[9px] font-black text-cyan-500 uppercase tracking-wider">+{s.studies.length - 2}</span>
+                          )}
+                        </div>
+                      )}
                     </td>
-                    <td className="px-10 py-8 text-[12px] font-black text-slate-400 uppercase tracking-widest italic">{s.registeredDate}</td>
-                    <td className="px-10 py-8">
-                      <div className="flex items-center gap-4">
-                        <button 
+                    {/* Registered */}
+                    <td className="px-4 py-3">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider whitespace-nowrap">{s.registeredDate}</span>
+                    </td>
+                    {/* Access status */}
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-1">
+                        <button
                           onClick={() => handleToggleStatus(s)}
                           disabled={updatingId === s.id}
-                          className={`px-4 py-2 rounded-full text-[12px] font-black uppercase tracking-[0.2em] border transition-all flex items-center gap-2 ${
-                          s.status === 'Active' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20'
-                          } disabled:opacity-50`}
+                          className={`px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all disabled:opacity-50 w-fit ${
+                            s.status === 'Active'
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                              : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'
+                          }`}
                         >
-                          {updatingId === s.id && <Loader2 className="w-3 h-3 animate-spin" />}
+                          {updatingId === s.id && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
                           {s.status === 'Active' ? 'AUTHORIZED' : 'DISABLED'}
                         </button>
-
                         {s.mustChangePassword && (
-                          <button 
+                          <button
                             onClick={() => handleResendCredentials(s.id, s.email)}
-                            className="px-4 py-2 rounded-full text-[12px] font-black uppercase tracking-[0.2em] border border-indigo-500/20 bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 transition-all flex items-center gap-2"
+                            className="px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider border border-indigo-500/20 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition-all flex items-center gap-1.5 w-fit"
                           >
-                            <Mail className="w-3 h-3" />
-                            RESEND ACCESS
+                            <Mail className="w-2.5 h-2.5" /> RESEND
                           </button>
                         )}
                       </div>
                     </td>
-                    <td className="px-10 py-8 text-right">
-                      <button 
+                    {/* Actions */}
+                    <td className="px-4 py-3">
+                      <button
                         onClick={() => setSelectedSponsor(s)}
-                        className="p-3 bg-white/5 border border-white/5 rounded-xl text-slate-600 hover:text-white transition-all active:scale-95"
+                        className="p-1.5 bg-white/5 border border-white/5 rounded-lg text-slate-600 hover:text-cyan-400 hover:border-cyan-500/30 transition-all"
                       >
-                        <Eye className="w-5 h-5" />
+                        <Eye className="w-3.5 h-3.5" />
                       </button>
                     </td>
                   </tr>
@@ -262,150 +302,193 @@ export default function SponsorsManagement({ allUsers = [], allStudies = [], onR
         </div>
       </div>
 
+      {/* ── CREDENTIAL CARD ─────────────────────────────────── */}
+      <AnimatePresence>
+        {showCredentialCard && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 backdrop-blur-2xl bg-black/70">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-[#0a0b1a] border border-emerald-500/20 w-full max-w-md rounded-2xl p-8 shadow-2xl"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-black text-white italic uppercase">Account Provisioned</h2>
+                  <p className="text-[10px] text-emerald-400 font-black uppercase tracking-wider mt-0.5">Credentials dispatched via email</p>
+                </div>
+              </div>
+              <div className="space-y-3 mb-6">
+                <div className="p-3 bg-white/[0.03] border border-white/5 rounded-xl">
+                  <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-1">Email</p>
+                  <p className="text-sm font-black text-white font-mono">{showCredentialCard.email}</p>
+                </div>
+                <div className="p-3 bg-white/[0.03] border border-white/5 rounded-xl flex items-center justify-between">
+                  <div>
+                    <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-1">Username</p>
+                    <p className="text-sm font-black text-cyan-400 font-mono">{showCredentialCard.username}</p>
+                  </div>
+                  <button onClick={() => copyToClipboard(showCredentialCard.username)} className="p-2 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-cyan-400 hover:bg-cyan-500/20">
+                    {copied ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+                <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl">
+                  <p className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">🔒 Temporary password sent to their email. Must reset on first login.</p>
+                </div>
+              </div>
+              <button onClick={() => setShowCredentialCard(null)} className="w-full py-3 bg-emerald-600 text-white rounded-xl font-black uppercase tracking-wider text-[11px] hover:bg-emerald-500">Done</button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── DETAIL DRAWER ───────────────────────────────────── */}
       <AnimatePresence>
         {selectedSponsor && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 backdrop-blur-3xl bg-black/60" onClick={() => setSelectedSponsor(null)}>
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 backdrop-blur-2xl bg-black/60" onClick={() => setSelectedSponsor(null)}>
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 30 }}
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 30 }}
-              className="bg-[#0a0b1a] border border-white/10 w-full max-w-2xl rounded-[3rem] p-12 shadow-[0_0_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col max-h-[85vh]"
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#0a0b1a] border border-white/10 w-full max-w-lg rounded-2xl p-6 shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
               onClick={e => e.stopPropagation()}
             >
-              <div className="flex justify-between items-start mb-10 shrink-0">
-                <div className="space-y-3">
-                  <div className="w-12 h-12 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl flex items-center justify-center text-cyan-400">
-                    <History className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter shrink-0">Activity <span className="text-cyan-400">Snapshot</span></h2>
-                  <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-widest">{selectedSponsor.name} • Clinical Sync Audit</p>
+              <div className="flex justify-between items-center mb-5">
+                <div>
+                  <h2 className="text-base font-black text-white italic uppercase tracking-tighter">
+                    Sponsor <span className="text-cyan-400">Profile</span>
+                  </h2>
+                  <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider mt-0.5">{selectedSponsor.name}</p>
                 </div>
-                <button onClick={() => setSelectedSponsor(null)} className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-colors"><X className="w-6 h-6 text-slate-500" /></button>
+                <button onClick={() => setSelectedSponsor(null)} className="p-2 bg-white/5 hover:bg-white/10 rounded-xl">
+                  <X className="w-4 h-4 text-slate-500" />
+                </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto pr-4 space-y-6 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto space-y-2">
                 {[
-                  { event: 'SECURITY_AUTH', date: 'Oct 12, 2024 • 14:22', icon: Shield, color: 'text-indigo-400', desc: 'Secure platform authentication from IP 182.16.8.2. Authorized.' },
-                  { event: 'STUDY_REVIEW', date: 'Oct 10, 2024 • 09:15', icon: Eye, color: 'text-cyan-400', desc: 'Portfolio review of "BIO-2030: Muscle Regen" synchronized.' },
-                  { event: 'CREDENTIAL_SYNC', date: 'Sep 28, 2024 • 11:45', icon: Building2, color: 'text-emerald-400', desc: 'Corporate affiliation verified via cross-project audit.' },
-                  { event: 'ACCOUNT_PROVISION', date: 'Sep 15, 2024 • 16:30', icon: UserPlus, color: 'text-slate-500', desc: 'Initial sponsor personnel account generated by Coordinator.' }
-                ].map((log, i) => (
-                  <div key={i} className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 flex gap-6 hover:bg-white/[0.04] transition-all group">
-                    <div className={`w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center ${log.color} border border-white/5 opacity-50 group-hover:opacity-100 transition-all`}>
-                      <log.icon className="w-6 h-6" />
-                    </div>
-                    <div className="space-y-1.5 flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className={`text-[11px] font-black uppercase tracking-[0.2em] ${log.color}`}>{log.event}</span>
-                        <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{log.date}</span>
-                      </div>
-                      <p className="text-sm font-bold text-slate-300 leading-relaxed italic">{log.desc}</p>
-                    </div>
+                  { label: 'Email', val: selectedSponsor.email },
+                  { label: 'Company', val: selectedSponsor.company },
+                  { label: 'Status', val: selectedSponsor.status },
+                  { label: 'Registered', val: selectedSponsor.registeredDate },
+                  { label: 'Studies', val: selectedSponsor.studies.length > 0 ? selectedSponsor.studies.join(', ') : 'None linked' },
+                  { label: 'Pending Reset', val: selectedSponsor.mustChangePassword ? 'Yes' : 'No' },
+                ].map((row, i) => (
+                  <div key={i} className="flex items-start justify-between gap-4 p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest shrink-0">{row.label}</p>
+                    <p className="text-[11px] font-black text-white italic text-right">{row.val}</p>
                   </div>
                 ))}
+                {selectedSponsor.mustChangePassword && (
+                  <button onClick={() => { handleResendCredentials(selectedSponsor.id, selectedSponsor.email); setSelectedSponsor(null); }}
+                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all mt-2">
+                    <Mail className="w-3.5 h-3.5" /> Resend Access Credentials
+                  </button>
+                )}
               </div>
 
-              <div className="mt-10 pt-8 border-t border-white/5 flex gap-4 shrink-0">
-                 <button onClick={() => setSelectedSponsor(null)} className="flex-1 py-5 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest italic transition-all">Close Audit</button>
-                 <button onClick={() => window.print()} className="flex-1 py-5 bg-cyan-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest italic transition-all shadow-xl shadow-cyan-900/40">Export Log</button>
+              <div className="mt-4 pt-4 border-t border-white/5 flex gap-3">
+                <button onClick={() => setSelectedSponsor(null)} className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-all">Close</button>
+                <button
+                  onClick={() => handleToggleStatus(selectedSponsor)}
+                  disabled={updatingId === selectedSponsor.id}
+                  className={`flex-1 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+                    selectedSponsor.status === 'Active' ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                  }`}
+                >
+                  {updatingId === selectedSponsor.id && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  {selectedSponsor.status === 'Active' ? 'Suspend' : 'Restore Access'}
+                </button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
+      {/* ── CREATE MODAL ────────────────────────────────────── */}
       <AnimatePresence>
         {showCreateModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-3xl bg-black/60">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-2xl bg-black/60">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 30 }}
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 30 }}
-              className="bg-[#0f1133] border border-white/10 w-full max-w-2xl rounded-[3rem] p-12 shadow-2xl relative overflow-hidden"
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#0f1133] border border-white/10 w-full max-w-lg rounded-2xl p-6 shadow-2xl"
             >
-              <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none text-cyan-500">
-                <Building2 className="w-64 h-64" />
-              </div>
-
-              <div className="flex justify-between items-start mb-14 relative z-10">
-                <div className="space-y-3">
-                  <div className="w-12 h-12 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl flex items-center justify-center text-cyan-400">
-                    <UserPlus className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Sponsor <span className="text-cyan-400">Onboarding</span></h2>
-                  <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-widest text-[#8b8fa8]">Generate secure clinical trial funding credentials</p>
+              <div className="flex justify-between items-center mb-5">
+                <div>
+                  <h2 className="text-base font-black text-white italic uppercase tracking-tighter">Sponsor <span className="text-cyan-400">Onboarding</span></h2>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">Generate secure clinical trial credentials</p>
                 </div>
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="p-3 hover:bg-white/5 rounded-2xl transition-colors"
-                  disabled={isCreating}
-                >
-                  <X className="w-6 h-6 text-slate-700 hover:text-white" />
+                <button onClick={() => setShowCreateModal(false)} disabled={isCreating} className="p-2 hover:bg-white/5 rounded-xl">
+                  <X className="w-4 h-4 text-slate-600" />
                 </button>
               </div>
 
-              <form onSubmit={handleCreateSponsor} className="space-y-8 relative z-10">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-4">
-                      <label className="text-sm font-black text-[#555a7a] uppercase tracking-widest px-4 italic">First Name</label>
+              <form onSubmit={handleCreateSponsor} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: 'First Name', key: 'firstName', placeholder: 'John', required: true },
+                    { label: 'Last Name', key: 'lastName', placeholder: 'Doe', required: true },
+                  ].map(f => (
+                    <div key={f.key} className="space-y-1">
+                      <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest block ml-0.5">{f.label}</label>
                       <input
                         type="text"
-                        placeholder="John"
-                        required
-                        value={newSponsor.firstName}
-                        onChange={e => setNewSponsor({ ...newSponsor, firstName: e.target.value })}
-                        className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-cyan-500/40 transition-all font-mono"
+                        placeholder={f.placeholder}
+                        required={f.required}
+                        value={(newSponsor as any)[f.key]}
+                        onChange={e => setNewSponsor({ ...newSponsor, [f.key]: e.target.value })}
+                        className="w-full bg-[#0a0b1a] border border-white/5 rounded-xl px-3 py-2.5 text-[12px] text-white font-bold outline-none focus:border-cyan-500/40 transition-all"
                       />
                     </div>
-                    <div className="space-y-4">
-                      <label className="text-sm font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Last Name</label>
-                      <input
-                        type="text"
-                        placeholder="Doe"
-                        required
-                        value={newSponsor.lastName}
-                        onChange={e => setNewSponsor({ ...newSponsor, lastName: e.target.value })}
-                        className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-cyan-500/40 transition-all font-mono"
-                      />
-                    </div>
-                  </div>
+                  ))}
+                </div>
 
-                  <div className="space-y-4">
-                    <label className="text-sm font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Corporate Email</label>
-                    <input
-                      type="email"
-                      placeholder="john@pharmacorp.com"
-                      required
-                      value={newSponsor.email}
-                      onChange={e => setNewSponsor({ ...newSponsor, email: e.target.value })}
-                      className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-cyan-500/40 transition-all font-mono"
-                    />
-                  </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest block ml-0.5">Corporate Email</label>
+                  <input
+                    type="email"
+                    placeholder="john@pharmacorp.com"
+                    required
+                    value={newSponsor.email}
+                    onChange={e => setNewSponsor({ ...newSponsor, email: e.target.value })}
+                    className="w-full bg-[#0a0b1a] border border-white/5 rounded-xl px-3 py-2.5 text-[12px] text-white font-bold outline-none focus:border-cyan-500/40 transition-all"
+                  />
+                </div>
 
-                  <div className="p-8 bg-cyan-500/5 rounded-[2rem] border border-cyan-500/10 flex items-center gap-6 mb-8">
-                    <ShieldAlert className="w-10 h-10 text-cyan-400 opacity-50 shrink-0" />
-                    <div>
-                      <p className="text-[12px] text-white font-black uppercase tracking-widest leading-relaxed italic">Access Delegation Rule:</p>
-                      <p className="text-[12px] text-[#8b8fa8] font-bold leading-relaxed uppercase tracking-tighter mt-1 italic">As Muscle Research Staff, you are authorized to provision Sponsor credentials for portfolio collaboration.</p>
-                    </div>
-                  </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-slate-500 font-black uppercase tracking-widest block ml-0.5">Company <span className="text-slate-600">(optional)</span></label>
+                  <input
+                    type="text"
+                    placeholder="PharmaCorp Inc."
+                    value={newSponsor.company}
+                    onChange={e => setNewSponsor({ ...newSponsor, company: e.target.value })}
+                    className="w-full bg-[#0a0b1a] border border-white/5 rounded-xl px-3 py-2.5 text-[12px] text-white font-bold outline-none focus:border-cyan-500/40 transition-all"
+                  />
+                </div>
 
-                  <div className="flex gap-4">
-                    <button 
-                      type="button"
-                      onClick={() => setShowCreateModal(false)}
-                      className="flex-1 py-5 bg-white/5 border border-white/5 text-[#555a7a] hover:text-white rounded-2xl font-black uppercase tracking-widest transition-all italic"
-                      disabled={isCreating}
-                    >Abort</button>
-                    <button 
-                      type="submit"
-                      disabled={isCreating}
-                      className="flex-1 py-5 bg-cyan-600 text-white rounded-2xl font-black uppercase tracking-widest italic shadow-xl shadow-cyan-900/40 hover:scale-[1.02] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                    >
-                      {isCreating ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserPlus className="w-5 h-5" />}
-                      Generate Account
-                    </button>
-                  </div>
+                <div className="p-3 bg-cyan-500/5 rounded-xl border border-cyan-500/10 flex items-center gap-3">
+                  <ShieldAlert className="w-7 h-7 text-cyan-400 opacity-40 shrink-0" />
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide leading-relaxed">
+                    A temporary password will be emailed to the sponsor. They must reset it on first login.
+                  </p>
+                </div>
+
+                <div className="flex gap-3 pt-1">
+                  <button type="button" onClick={() => setShowCreateModal(false)} disabled={isCreating}
+                    className="flex-1 py-2.5 bg-white/5 border border-white/5 text-slate-400 hover:text-white rounded-xl font-black uppercase tracking-wider text-[11px] transition-all">
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={isCreating}
+                    className="flex-1 py-2.5 bg-cyan-600 text-white rounded-xl font-black uppercase tracking-wider text-[11px] shadow-lg shadow-cyan-900/40 hover:bg-cyan-500 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                    {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                    Generate Account
+                  </button>
+                </div>
               </form>
             </motion.div>
           </div>
@@ -414,5 +497,3 @@ export default function SponsorsManagement({ allUsers = [], allStudies = [], onR
     </div>
   );
 }
-
-

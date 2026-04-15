@@ -97,7 +97,7 @@ export const ConsentBuilder: React.FC<ConsentBuilderProps> = ({
 
             {/* CENTER PANEL */}
             <div className="flex-1 bg-[#060a14] flex flex-col min-h-[700px] 2xl:min-h-0">
-                <div className="px-6 lg:px-10 py-6 lg:py-8 border-b border-white/10 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8 bg-[#0B101B]/80 backdrop-blur-xl sticky top-0 z-30">
+                <div className="px-4 lg:px-6 py-3 lg:py-4 border-b border-white/10 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-[#0B101B]/80 backdrop-blur-xl sticky top-0 z-30">
                     <div className="flex flex-col md:flex-row items-start md:items-center gap-6 lg:gap-10 w-full xl:w-auto">
                         <div className="flex items-center gap-4 bg-white/5 p-2 rounded-xl border border-white/10 w-full md:w-auto justify-center md:justify-start">
                             <button style={{ ...S.btnGhost, padding: '0.6rem' }} onClick={() => setCurrentViewerPage(p => Math.max(1, p-1))}><ChevronLeft size={16} /></button>
@@ -151,7 +151,7 @@ export const ConsentBuilder: React.FC<ConsentBuilderProps> = ({
                             ))}
                         </div>
                     )}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar p-10 2xl:p-20 flex flex-col items-center gap-10 range-min-h-[600px] 2xl:min-h-0 bg-[#060a14]/50">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-4 2xl:p-8 flex flex-col items-center gap-6 range-min-h-[600px] 2xl:min-h-0 bg-[#060a14]/50">
                         {activeConsent ? (
                             <PDFPage pageNumber={currentViewerPage} placedFields={activeConsent.placedFields} width={`${viewerZoom}%`} />
                         ) : (

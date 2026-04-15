@@ -125,90 +125,67 @@ const DashboardView = ({
 
     // ──────────────── CASE 2: ENROLLED ────────────────
     return (
-        <div className="space-y-10 animate-in fade-in duration-700 pb-10">
+        <div className="flex flex-col gap-4 animate-in fade-in duration-700 pb-6">
 
             {/* WELCOME HEADER */}
-            <div className="flex items-center gap-3">
-                <div className="w-1.5 h-8 bg-[#1E88E5] rounded-full" />
-                <h2 className="text-xl sm:text-2xl font-bold text-[#1A2B49] tracking-tight">
+            <div className="flex items-center gap-2.5">
+                <div className="w-1 h-6 bg-[#1E88E5] rounded-full" />
+                <h2 className="text-lg font-bold text-[#1A2B49] tracking-tight">
                     Welcome back, <span className="text-[#1E88E5]">{firstName}</span>
                 </h2>
             </div>
 
             {/* TOP SECTION: ENROLLMENT & TIMELINE */}
-            <div className="grid-dashboard">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-                {/* Enrollment Card - Senior Developer Implementation (Permanent Horizontal Layout) */}
-                <Card className="lg:col-span-8 p-6 sm:p-8 flex flex-col sm:flex-row items-center sm:items-center gap-6 sm:gap-10 shadow-sm border-[#E3ECF5]">
-
-                    {/* LEFT: Circular Progress */}
-                    <div className="flex-shrink-0 flex items-center justify-center">
-                        <div className="relative w-[100px] h-[100px] sm:w-[120px] sm:h-[120px]">
-                            <CircularProgress value={progressPercent} size={120} strokeWidth={11} />
-
+                {/* Enrollment Card */}
+                <Card className="lg:col-span-8 p-4 sm:p-5 flex flex-row items-center gap-4 sm:gap-6 shadow-sm border-[#E3ECF5]">
+                    {/* Circular Progress */}
+                    <div className="flex-shrink-0">
+                        <div className="relative w-[80px] h-[80px]">
+                            <CircularProgress value={progressPercent} size={80} strokeWidth={8} />
                             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-2xl sm:text-3xl font-black text-[#1A2B49] leading-none">
-                                    {progressPercent}%
-                                </span>
-                                <span className="text-[10px] font-bold text-[#1E88E5] uppercase tracking-widest mt-1">
-                                    Complete
-                                </span>
+                                <span className="text-lg font-black text-[#1A2B49] leading-none">{progressPercent}%</span>
+                                <span className="text-[8px] font-bold text-[#1E88E5] uppercase tracking-wider mt-0.5">Done</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* RIGHT: Content */}
-                    <div className="flex-1 flex flex-col justify-center gap-3 text-center sm:text-left">
-
-                        {/* Status Badges */}
-                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                            {isEnrolled && (
-                                <Badge color="blue" className="px-4 py-1.5 text-[11px] font-bold rounded-lg border-none shadow-sm">
-                                    ACTIVE PARTICIPANT
-                                </Badge>
-                            )}
-                            <Badge color="slate" className="px-4 py-1.5 text-[11px] font-bold rounded-lg border-none shadow-sm">
-                                {participant?.status?.replace(/_/g, ' ') || 'RECRUITING'}
+                    {/* Content */}
+                    <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <Badge color="slate" className="text-[10px] rounded-md">
+                                {participant?.status?.replace(/_/g, ' ') || 'ENROLLED'}
                             </Badge>
+                            {isEnrolled && (
+                                <Badge color="blue" className="text-[10px] rounded-md">ACTIVE</Badge>
+                            )}
                         </div>
-
-                        {/* Title */}
-                        <h3 className="text-xl sm:text-3xl font-black text-[#1A2B49] leading-tight italic uppercase">
+                        <h3 className="text-base sm:text-lg font-black text-[#1A2B49] leading-tight italic uppercase truncate">
                             {study?.title || 'Untitled Study'}
                         </h3>
-
-                        {/* Metadata */}
-                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-[12px] font-bold text-[#5F6F89] uppercase tracking-tight">
-                            <div className="flex items-center gap-1.5">
-                                <span className="opacity-60">PID:</span>
-                                <span className="text-[#1A2B49]">{participant?.participant_sid || 'PO-XXXX'}</span>
-                            </div>
-                            <span className="hidden sm:inline w-1 h-1 bg-[#E3ECF5] rounded-full" />
-                            <div className="flex items-center gap-1.5">
-                                <span className="opacity-60">Study ID:</span>
-                                <span className="text-[#1A2B49]">{study?.protocol_id || 'STD-XXXX'}</span>
-                            </div>
-                            <span className="hidden sm:inline w-1 h-1 bg-[#E3ECF5] rounded-full" />
-                            <div className="flex items-center gap-1.5">
-                                <span className="opacity-60">Enrolled:</span>
-                                <span className="text-[#1A2B49]">{enrollmentDateStr}</span>
-                            </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-bold text-[#5F6F89] uppercase tracking-tight">
+                            <span>PID: <span className="text-[#1A2B49]">{participant?.participant_sid || 'PO-XXXX'}</span></span>
+                            <span className="hidden sm:inline">·</span>
+                            <span>Study ID: <span className="text-[#1A2B49]">{study?.protocol_id || 'STD-XXXX'}</span></span>
+                            <span className="hidden sm:inline">·</span>
+                            <span>Enrolled: <span className="text-[#1A2B49]">{enrollmentDateStr}</span></span>
                         </div>
                     </div>
                 </Card>
-                {/* Timeline Section */}
-                <Card className="lg:col-span-4 p-8 flex flex-col justify-between hover:border-[#1E88E5]/30 transition-all">
-                    <div className="space-y-1">
-                        <span className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest">Enrollment Timeline</span>
-                        <div className="flex items-center gap-3 text-[#1E88E5]">
-                            <History className="w-5 h-5" />
-                            <p className="text-xl font-bold tracking-tight">Study Day {daysInStudy}</p>
+
+                {/* Timeline Card */}
+                <Card className="lg:col-span-4 p-4 sm:p-5 flex flex-col justify-between hover:border-[#1E88E5]/30 transition-all">
+                    <div className="space-y-0.5">
+                        <span className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest">Enrollment Timeline</span>
+                        <div className="flex items-center gap-2 text-[#1E88E5]">
+                            <History className="w-4 h-4" />
+                            <p className="text-base font-bold tracking-tight">Study Day {daysInStudy}</p>
                         </div>
                     </div>
-
-                    <div className="space-y-4 mt-8">
-                        <ProgressBar percent={Math.min(100, (daysInStudy / 90) * 100)} height={6} />
-                        <div className="flex justify-between items-center text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">
+                    <div className="space-y-2 mt-4">
+                        <ProgressBar percent={Math.min(100, (daysInStudy / 90) * 100)} height={5} />
+                        <div className="flex justify-between items-center text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest">
                             <span>DAY 1</span>
                             <span>Target: 90 Days</span>
                         </div>
@@ -216,132 +193,130 @@ const DashboardView = ({
                 </Card>
             </div>
 
-            {/* DASHBOARD GRID */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* DASHBOARD GRID: Tasks + Visit */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-                {/* Tasks Section */}
+                {/* Tasks Card */}
                 <Card
-                    className="lg:col-span-6 p-8 hover:border-[#1E88E5]/50 border-2 border-transparent transition-all cursor-pointer flex flex-col justify-between min-h-[240px] bg-white group shadow-[0_4px_25px_rgba(30,136,229,0.04)]"
+                    className="p-5 hover:border-[#1E88E5]/50 border-2 border-transparent transition-all cursor-pointer flex flex-col justify-between min-h-[180px] bg-white group shadow-[0_4px_25px_rgba(30,136,229,0.04)]"
                     onClick={() => onAction('Tasks')}
                 >
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-[#E3F2FD] rounded-xl flex items-center justify-center text-[#1E88E5] border border-[#BBDEFB]">
-                                <ClipboardList className="w-5 h-5" />
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 bg-[#E3F2FD] rounded-lg flex items-center justify-center text-[#1E88E5] border border-[#BBDEFB]">
+                                <ClipboardList className="w-4 h-4" />
                             </div>
-                            <span className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest">Clinical Protocol</span>
+                            <span className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">Clinical Protocol</span>
                         </div>
                         <div className="space-y-1">
-                            <h4 className="text-2xl font-bold text-[#1A2B49] tracking-tight">
+                            <h4 className="text-xl font-bold text-[#1A2B49] tracking-tight">
                                 <span className="text-[#1E88E5]">{pendingTasksCount}</span> Activities Pending
                             </h4>
-                            <p className="text-[14px] font-bold text-[#5F6F89] uppercase tracking-widest leading-relaxed">
+                            <p className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest">
                                 {pendingTasksCount > 0 ? "Items requiring immediate attention." : "Protocol adherence complete for today."}
                             </p>
                         </div>
                     </div>
-                    <div className="mt-8">
-                        <button className="flex items-center gap-2 group-hover:text-[#1E88E5] text-[#5F6F89] text-[13px] font-bold uppercase tracking-widest transition-all">
-                            Manage Tasks <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                        </button>
-                    </div>
+                    <button className="flex items-center gap-2 group-hover:text-[#1E88E5] text-[#5F6F89] text-[11px] font-bold uppercase tracking-widest transition-all mt-4">
+                        Manage Tasks <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                    </button>
                 </Card>
 
-                {/* Next Visit Section */}
+                {/* Next Visit Card */}
                 <Card
-                    className="lg:col-span-6 p-8 hover:border-[#1E88E5]/50 border-2 border-transparent transition-all cursor-pointer flex flex-col justify-between min-h-[240px] bg-white group shadow-[0_4px_25px_rgba(30,136,229,0.04)]"
+                    className="p-5 hover:border-[#1E88E5]/50 border-2 border-transparent transition-all cursor-pointer flex flex-col justify-between min-h-[180px] bg-white group shadow-[0_4px_25px_rgba(30,136,229,0.04)]"
                     onClick={() => onAction('Visits')}
                 >
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-[#FFF3E0] rounded-xl flex items-center justify-center text-[#E65100] border border-[#FFE0B2]">
-                                <Calendar className="w-5 h-5" />
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 bg-[#FFF3E0] rounded-lg flex items-center justify-center text-[#E65100] border border-[#FFE0B2]">
+                                <Calendar className="w-4 h-4" />
                             </div>
-                            <span className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest">Next Site Visit</span>
+                            <span className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">Next Site Visit</span>
                         </div>
 
                         {nextVisit ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
-                                <div className="space-y-4">
-                                    <div className="space-y-1">
-                                        <span className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest flex items-center gap-1.5">
-                                            <Calendar className="w-3 h-3" /> Scheduled Date
-                                        </span>
-                                        <p className="text-[14px] font-bold text-[#1A2B49] tracking-tight">
-                                            {new Date(nextVisit.scheduled_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
-                                        </p>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <span className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest flex items-center gap-1.5">
-                                            <MapPin className="w-3 h-3" /> Location
-                                        </span>
-                                        <p className="text-[15px] font-bold text-[#1E88E5] leading-none truncate mb-1 uppercase tracking-tight">
-                                            {nextVisit.location_name || study.location || 'Research Site'}
-                                        </p>
-                                        <p className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-tight leading-relaxed line-clamp-1 italic">
-                                            {nextVisit.location_address || 'Address information pending'}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="space-y-1">
-                                    <span className="text-[10px] font-bold text-[#8A99B3] uppercase tracking-widest flex items-center gap-1.5">
-                                        <Clock className="w-3 h-3" /> Check-in Time
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                <div className="space-y-0.5">
+                                    <span className="text-[9px] font-bold text-[#5F6F89] uppercase tracking-widest flex items-center gap-1">
+                                        <Calendar className="w-2.5 h-2.5" /> Scheduled Date
                                     </span>
-                                    <p className="text-[14px] font-bold text-[#1A2B49] tracking-tight">
+                                    <p className="text-[13px] font-bold text-[#1A2B49] tracking-tight">
+                                        {new Date(nextVisit.scheduled_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                                    </p>
+                                </div>
+                                <div className="space-y-0.5">
+                                    <span className="text-[9px] font-bold text-[#8A99B3] uppercase tracking-widest flex items-center gap-1">
+                                        <Clock className="w-2.5 h-2.5" /> Check-in Time
+                                    </span>
+                                    <p className="text-[13px] font-bold text-[#1A2B49] tracking-tight">
                                         {new Date(nextVisit.scheduled_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                </div>
+                                <div className="col-span-2 space-y-0.5">
+                                    <span className="text-[9px] font-bold text-[#5F6F89] uppercase tracking-widest flex items-center gap-1">
+                                        <MapPin className="w-2.5 h-2.5" /> Location
+                                    </span>
+                                    <p className="text-[13px] font-bold text-[#1E88E5] uppercase tracking-tight truncate">
+                                        {nextVisit.location_name || study.location || 'Research Site'}
+                                    </p>
+                                    <p className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-tight line-clamp-1 italic">
+                                        {nextVisit.location_address || 'Address pending'}
                                     </p>
                                 </div>
                             </div>
                         ) : (
-                            <div className="py-2">
-                                <p className="text-xl font-bold text-[#5F6F89] uppercase tracking-tight">Not scheduled yet</p>
-                                <p className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest mt-1">Your site coordinator will update this soon</p>
+                            <div className="py-1">
+                                <p className="text-base font-bold text-[#5F6F89] uppercase tracking-tight">Not scheduled yet</p>
+                                <p className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest mt-1">Your coordinator will update this soon</p>
                             </div>
                         )}
                     </div>
                 </Card>
             </div>
 
-            {/* MESSAGES SECTION */}
-            <Card className="p-8 hover:border-[#1E88E5]/30 transition-all flex flex-col sm:flex-row items-center justify-between gap-6 bg-white">
-                <div className="flex items-center gap-6">
-                    <div className="w-16 h-16 bg-[#F0F6FF] rounded-2xl flex items-center justify-center text-[#1E88E5] border border-[#E3F2FD]">
-                        <MessageSquare className="w-8 h-8" />
+            {/* MESSAGES BAR */}
+            <Card className="p-4 hover:border-[#1E88E5]/30 transition-all flex flex-row items-center justify-between gap-4 bg-white">
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-[#F0F6FF] rounded-xl flex items-center justify-center text-[#1E88E5] border border-[#E3F2FD] shrink-0">
+                        <MessageSquare className="w-5 h-5" />
                     </div>
-                    <div className="space-y-1 text-center sm:text-left">
-                        <h4 className="text-xl font-bold text-[#1A2B49] tracking-tight uppercase">Support & Communication</h4>
-                        <p className="text-[14px] font-bold text-[#5F6F89] uppercase tracking-widest leading-none">
-                            {latestConv?.last_message_preview ? (
-                                <>LATEST: <span className="text-[#1A2B49]">"{latestConv.last_message_preview.substring(0, 45)}..."</span></>
-                            ) : "Message your clinical study team directly."}
+                    <div className="min-w-0">
+                        <h4 className="text-sm font-bold text-[#1A2B49] tracking-tight uppercase leading-none">Support & Communication</h4>
+                        <p className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest leading-none mt-1 truncate max-w-[260px]">
+                            {latestConv?.last_message_preview
+                                ? <>LATEST: <span className="text-[#1A2B49]">"{latestConv.last_message_preview.substring(0, 40)}..."</span></>
+                                : "Message your clinical study team directly."}
                         </p>
                     </div>
                 </div>
                 <button
                     onClick={() => onAction('Messages')}
-                    className="px-8 py-4 bg-[#F8FBFF] hover:bg-[#E3F2FD] border border-[#E3ECF5] text-[#1E88E5] text-[12px] font-bold uppercase tracking-widest rounded-xl transition-all flex items-center gap-3 shadow-sm hover:shadow active:scale-95"
+                    className="px-5 py-2.5 bg-[#F8FBFF] hover:bg-[#E3F2FD] border border-[#E3ECF5] text-[#1E88E5] text-[11px] font-bold uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 shadow-sm hover:shadow active:scale-95 shrink-0"
                 >
                     Open Messages Hub
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-3.5 h-3.5" />
                 </button>
             </Card>
 
-            {/* REGULATORY INFO */}
-            <div className="flex flex-wrap justify-center gap-x-12 gap-y-4 py-10 border-t border-[#E3ECF5] mt-10">
+            {/* REGULATORY FOOTER */}
+            <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 py-4 border-t border-[#E3ECF5]">
                 {[
                     { label: 'SECURE CLINICAL CLOUD', icon: Globe },
                     { label: 'HIPAA COMPLIANT', icon: ShieldCheck },
                     { label: 'VERIFIED RESEARCH SITE', icon: CheckCircle2 }
                 ].map((tag, idx) => (
-                    <div key={idx} className="flex items-center gap-2.5 opacity-70 hover:opacity-100 transition-opacity group">
-                        <tag.icon className="w-4 h-4 text-[#1E88E5] group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-[0.2em]">{tag.label}</span>
+                    <div key={idx} className="flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity">
+                        <tag.icon className="w-3.5 h-3.5 text-[#1E88E5]" />
+                        <span className="text-[9px] font-bold text-[#5F6F89] uppercase tracking-[0.2em]">{tag.label}</span>
                     </div>
                 ))}
             </div>
 
         </div>
     );
+
+
 };
 
 export default React.memo(DashboardView);

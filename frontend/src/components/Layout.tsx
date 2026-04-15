@@ -137,9 +137,9 @@ export default function Layout({ children }: LayoutProps) {
                     </a>
 
                     {/* Right-aligned Navigation Group */}
-                    <div className="hidden xl:flex items-center gap-2 2xl:gap-8 ml-auto">
+                    <div className="hidden xl:flex items-center gap-2 2xl:gap-6 ml-auto">
                         {/* Desktop Navigation */}
-                        <nav className={`flex items-center ${isTrialsPage ? 'gap-4 2xl:gap-12' : 'gap-2 2xl:gap-6'}`}>
+                        <nav className={`flex items-center ${isTrialsPage ? 'gap-3 2xl:gap-8' : 'gap-1 2xl:gap-4'}`}>
                             {navItems.map((item) => (
                                 <div
                                     key={item.label}
@@ -149,7 +149,7 @@ export default function Layout({ children }: LayoutProps) {
                                 >
                                     {item.path === '#' ? (
                                         <div
-                                            className="text-[12px] font-black tracking-[0.12em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 cursor-pointer text-slate-900 whitespace-nowrap"
+                                            className="text-[11px] font-black tracking-[0.1em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 cursor-pointer text-slate-900 whitespace-nowrap"
                                         >
                                             {item.label}
                                             <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${openDropdown === item.label ? 'rotate-180' : ''}`} />
@@ -158,7 +158,7 @@ export default function Layout({ children }: LayoutProps) {
                                     ) : (
                                         <Link
                                             to={item.path}
-                                            className={`text-[11px] font-black tracking-[0.1em] lg:tracking-[0.12em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 whitespace-nowrap ${location.pathname === item.path ? 'text-cyan-600' : 'text-slate-900'
+                                            className={`text-[10px] 2xl:text-[11px] font-black tracking-[0.08em] lg:tracking-[0.1em] uppercase transition-all hover:text-cyan-600 flex items-center gap-1 2xl:gap-1.5 py-8 whitespace-nowrap ${location.pathname === item.path ? 'text-cyan-600' : 'text-slate-900'
                                                 }`}
                                         >
                                             {item.label}
@@ -190,12 +190,12 @@ export default function Layout({ children }: LayoutProps) {
                         </nav>
 
                         {/* CTA Buttons */}
-                        <div className="flex items-center gap-1.5 2xl:gap-4">
+                        <div className="flex items-center gap-1.5 2xl:gap-3">
                             {isTrialsPage ? (
                                 <>
                                     <Link
                                         to="/trials#current-studies"
-                                        className="bg-cyan-500 text-slate-900 px-4 2xl:px-8 py-3 rounded-xl font-black text-[12px] uppercase tracking-[0.15em] hover:bg-white hover:-translate-y-0.5 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
+                                        className="bg-cyan-500 text-slate-900 px-3 2xl:px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-[0.1em] hover:bg-white hover:-translate-y-0.5 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
                                     >
                                         Check Eligibility
                                         <ArrowRight className="w-4 h-4" />
@@ -205,7 +205,7 @@ export default function Layout({ children }: LayoutProps) {
                                 <>
                                     <Link
                                         to="/trials"
-                                        className="bg-cyan-500 text-slate-900 px-4 2xl:px-8 py-3 rounded-xl font-black text-[12px] uppercase tracking-[0.15em] hover:bg-white hover:-translate-y-0.5 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
+                                        className="bg-cyan-500 text-slate-900 px-3 2xl:px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-[0.1em] hover:bg-white hover:-translate-y-0.5 transition-all shadow-xl shadow-cyan-500/20 flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
                                     >
                                         Join a Study
                                         <ArrowRight className="w-4 h-4" />
@@ -216,7 +216,7 @@ export default function Layout({ children }: LayoutProps) {
                             {!isLoggedIn() ? (
                                 <button
                                     onClick={redirectToLogin}
-                                    className="bg-slate-900 text-white px-4 2xl:px-8 py-3 rounded-xl font-black text-[12px] uppercase tracking-[0.15em] hover:bg-cyan-500 hover:text-slate-900 transition-all shadow-xl flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
+                                    className="bg-slate-900 text-white px-3 2xl:px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-[0.1em] hover:bg-cyan-500 hover:text-slate-900 transition-all shadow-xl flex items-center gap-1 2xl:gap-2 whitespace-nowrap"
                                 >
                                     <LogIn className="w-4 h-4" />
                                     Sign In
@@ -225,26 +225,26 @@ export default function Layout({ children }: LayoutProps) {
                                 <>
                                     <Link
                                         to={dashboardLink}
-                                        className="flex items-center gap-2 group ml-2 md:ml-4"
+                                        className="flex items-center gap-2 group ml-1 md:ml-2"
                                     >
-                                        <div className="text-right hidden sm:flex flex-col justify-center">
-                                            <div className="text-[12px] font-black uppercase tracking-[0.05em] text-slate-800 leading-tight">DASHBOARD</div>
-                                            <div className="text-[#00d8ff] text-[18px] font-black leading-tight tracking-tight group-hover:text-[#00c4e8] transition-colors">{userName}</div>
+                                        <div className="text-right hidden sm:flex flex-col justify-center max-w-[80px] md:max-w-[120px]">
+                                            <div className="text-[10px] font-black uppercase tracking-[0.05em] text-slate-800 leading-tight">DASHBOARD</div>
+                                            <div className="text-[#00d8ff] text-sm md:text-base font-black leading-tight tracking-tight group-hover:text-[#00c4e8] transition-colors truncate">{userName}</div>
                                         </div>
-                                        <div className="w-[42px] h-[42px] rounded-[14px] border-[2px] border-[#00d8ff] overflow-hidden flex items-center justify-center bg-white shadow-sm group-hover:scale-105 transition-transform shrink-0">
+                                        <div className="w-[38px] h-[38px] rounded-[12px] border-[2px] border-[#00d8ff] overflow-hidden flex items-center justify-center bg-white shadow-sm group-hover:scale-105 transition-transform shrink-0">
                                             {userObj?.profile_image ? (
                                                 <img src={userObj.profile_image} alt={userName} className="w-full h-full object-cover" />
                                             ) : (
-                                                <User className="w-[22px] h-[22px] text-[#00d8ff]" strokeWidth={2.5} />
+                                                <User className="w-[20px] h-[20px] text-[#00d8ff]" strokeWidth={2.5} />
                                             )}
                                         </div>
                                     </Link>
                                     <button
                                         onClick={() => { clearToken(); window.location.href = "/"; }}
-                                        className="w-[42px] h-[42px] rounded-full border-[1.5px] border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50 transition-all shrink-0 ml-1 md:ml-3"
+                                        className="w-[38px] h-[38px] rounded-full border-[1.5px] border-slate-200 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-50 transition-all shrink-0 ml-1"
                                         title="Logout"
                                     >
-                                        <LogOut className="w-[20px] h-[20px] translate-x-[1.5px]" strokeWidth={2} />
+                                        <LogOut className="w-[18px] h-[18px] translate-x-[1px]" strokeWidth={2} />
                                     </button>
                                 </>
                             )}

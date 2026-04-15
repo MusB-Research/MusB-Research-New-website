@@ -60,7 +60,7 @@ export default function SubjectReviewModule() {
     const [isFlagged, setIsFlagged] = useState(false);
     const [auditLog, setAuditLog] = useState<any[]>([
         { action: 'Site Monitoring Visit', user: 'Sarah Jenkins', time: '2026-03-19 14:22' },
-        { action: 'Protocol Deviation Marked', user: 'Mark Wilson', time: '2026-03-18 10:05' },
+        { action: 'Study Deviation Marked', user: 'Mark Wilson', time: '2026-03-18 10:05' },
         { action: 'Informed Consent Verified', user: 'Elena Rodriguez', time: '2026-03-15 09:44' }
     ]);
 
@@ -104,30 +104,30 @@ export default function SubjectReviewModule() {
         <div className="flex flex-col h-[calc(100vh-14rem)] bg-[#0B101B] border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl relative">
 
             {/* Top Tactical Header */}
-            <div className="flex-shrink-0 px-6 lg:px-10 py-6 lg:py-8 bg-[#0B101B]/80 backdrop-blur-3xl border-b border-white/5 flex flex-col lg:flex-row lg:items-center justify-between gap-6 z-30">
+            <div className="flex-shrink-0 px-6 lg:px-10 py-3 lg:py-4 bg-[#0B101B]/80 backdrop-blur-3xl border-b border-white/5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 z-30">
                 <div className="flex items-center gap-4 lg:gap-8">
-                    <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-2xl lg:rounded-3xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                    <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-2xl lg:rounded-3xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 shrink-0">
                         <User className="w-6 h-6 lg:w-8 lg:h-8" />
                     </div>
                     <div>
                         <div className="flex flex-wrap items-center gap-3">
                             <h2 className="text-xl lg:text-2xl font-black text-white italic uppercase tracking-tighter">{participant.id}</h2>
-                            <span className={`px-3 lg:px-4 py-1 rounded-full text-[12px] lg:text-[12px] font-black uppercase tracking-widest border transition-all ${
+                            <span className={`px-3 lg:px-4 py-1 rounded-full text-sm lg:text-sm font-black uppercase tracking-widest border transition-all ${
                                 status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
-                                status === 'Screening' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 
+                                status === 'Screening' ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' : 
                                 'bg-slate-500/10 text-slate-500 border-white/5'
                             }`}>
                                 {status}
                             </span>
                             {isFlagged && <Flag className="w-4 h-4 lg:w-5 lg:h-5 text-red-500 fill-red-500/20 animate-pulse" />}
                         </div>
-                        <p className="text-[12px] lg:text-[12px] text-slate-500 font-bold uppercase tracking-[0.2em] lg:tracking-[0.3em] mt-1 lg:mt-2 italic line-clamp-1">
-                            {participant.study} • Protocol #{participant.protocol}
+                        <p className="text-sm lg:text-sm text-slate-500 font-bold uppercase tracking-[0.2em] lg:tracking-[0.3em] mt-1 lg:mt-2 italic line-clamp-1">
+                            {participant.study} • Study ID #{participant.protocol}
                         </p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-2 lg:pb-0">
-                    <button className="px-5 lg:px-6 py-3 lg:py-3.5 bg-emerald-600 text-white rounded-xl lg:rounded-2xl text-[12px] lg:text-[12px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-emerald-900/40 whitespace-nowrap">
+                    <button className="px-5 lg:px-6 py-3 lg:py-3.5 bg-emerald-600 text-white rounded-xl lg:rounded-2xl text-sm lg:text-sm font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-emerald-900/40 whitespace-nowrap">
                         Approve Subject
                     </button>
                     <button onClick={toggleFlag} className={`p-3 lg:p-3.5 rounded-xl lg:rounded-2xl border transition-all shrink-0 ${isFlagged ? 'bg-red-600 text-white border-red-500' : 'bg-white/5 border-white/10 text-slate-400'}`}>
@@ -146,12 +146,12 @@ export default function SubjectReviewModule() {
             <div className="flex flex-1 overflow-hidden relative">
                 {/* Central Workspace: Navigation & Tab Content */}
                 <div className="flex-1 flex flex-col overflow-hidden">
-                    <div className="px-6 lg:px-10 py-5 bg-white/[0.01] border-b border-white/5">
+                    <div className="px-6 lg:px-10 py-2 bg-white/[0.01] border-b border-white/5">
                         {/* Custom Mobile Section Selector */}
                         <div className="lg:hidden w-full relative">
                             <button
                                 onClick={() => setIsSectionSelectorOpen(!isSectionSelectorOpen)}
-                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 flex items-center justify-center gap-3 text-[12px] font-black text-white uppercase tracking-[0.2em] italic focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all active:scale-[0.98]"
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 flex items-center justify-center gap-3 text-sm font-black text-white uppercase tracking-[0.2em] italic focus:outline-none focus:ring-2 focus:ring-teal-500/50 transition-all active:scale-[0.98]"
                             >
                                 <span>{activeSection}</span>
                                 <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform duration-300 ${isSectionSelectorOpen ? 'rotate-180 text-white' : ''}`} />
@@ -170,8 +170,8 @@ export default function SubjectReviewModule() {
                                                 <button
                                                     key={s}
                                                     onClick={() => { setActiveSection(s); setIsSectionSelectorOpen(false); }}
-                                                    className={`w-full px-6 py-4 rounded-xl text-left text-[12px] font-black uppercase tracking-widest transition-all ${
-                                                        activeSection === s ? 'bg-indigo-500/10 text-indigo-300 font-black' : 'text-slate-500 hover:bg-white/5 hover:text-white'
+                                                    className={`w-full px-6 py-4 rounded-xl text-left text-sm font-black uppercase tracking-widest transition-all ${
+                                                        activeSection === s ? 'bg-teal-500/10 text-teal-300 font-black' : 'text-slate-500 hover:bg-white/5 hover:text-white'
                                                     }`}
                                                 >
                                                     {s}
@@ -190,8 +190,8 @@ export default function SubjectReviewModule() {
                                 <button 
                                     key={s}
                                     onClick={() => setActiveSection(s)}
-                                    className={`px-4 lg:px-6 py-2 rounded-lg lg:rounded-xl text-[12px] lg:text-[12px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
-                                        activeSection === s ? 'bg-indigo-700 text-white shadow-lg shadow-indigo-700/20' : 'text-slate-500 hover:text-white'
+                                    className={`px-4 lg:px-6 py-2 rounded-lg lg:rounded-xl text-sm lg:text-sm font-black uppercase tracking-widest whitespace-nowrap transition-all ${
+                                        activeSection === s ? 'bg-teal-700 text-white shadow-lg shadow-teal-700/20' : 'text-slate-500 hover:text-white'
                                     }`}
                                 >
                                     {s}
@@ -201,7 +201,7 @@ export default function SubjectReviewModule() {
                     </div>
 
 
-                    <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 space-y-10 lg:space-y-12">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-4 lg:p-6 space-y-6 lg:space-y-8">
 
                         {/* Summary / Alerts Banner */}
                         <div className="flex flex-col gap-3 lg:gap-4">
@@ -209,15 +209,15 @@ export default function SubjectReviewModule() {
                                 <div key={a.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-5 lg:p-4 rounded-2xl lg:rounded-3xl border gap-4 ${
                                     a.severity === 'high' ? 'bg-red-500/5 border-red-500/20 text-red-400' : 
                                     a.severity === 'medium' ? 'bg-amber-500/5 border-amber-500/20 text-amber-400' : 
-                                    'bg-indigo-500/5 border-indigo-500/20 text-indigo-400'
+                                    'bg-teal-500/5 border-teal-500/20 text-teal-400'
                                 }`}>
                                     <div className="flex items-center gap-4">
                                         <div className="p-2 bg-white/5 rounded-xl shrink-0">
                                             <ShieldAlert className="w-5 h-5" />
                                         </div>
-                                        <p className="text-[12px] lg:text-[12px] font-black uppercase tracking-widest italic leading-tight">{a.msg}</p>
+                                        <p className="text-sm lg:text-sm font-black uppercase tracking-widest italic leading-tight">{a.msg}</p>
                                     </div>
-                                    <button className="w-full sm:w-auto px-4 py-2 border border-current/20 rounded-xl text-[12px] font-black uppercase underline-offset-4 opacity-70 hover:opacity-100 transition-all text-center">
+                                    <button className="w-full sm:w-auto px-4 py-2 border border-current/20 rounded-xl text-sm font-black uppercase underline-offset-4 opacity-70 hover:opacity-100 transition-all text-center">
                                         Investigate
                                     </button>
                                 </div>
@@ -242,7 +242,7 @@ export default function SubjectReviewModule() {
                                         { label: 'Lead Coordinator', val: participant.coordinator, icon: MessageSquare },
                                         { label: 'Review Eligibility', val: eligibility, icon: CheckCircle2, color: 'emerald' }
                                     ].map((card, i) => (
-                                        <div key={i} className="bg-white/5 border border-white/5 rounded-[2.5rem] p-8 space-y-4">
+                                        <div key={i} className="bg-white/5 border border-white/5 rounded-[2.5rem] p-4 space-y-4">
                                             <div className="flex items-center justify-between mb-4">
                                                 <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500">
                                                     <card.icon className="w-5 h-5" />
@@ -250,22 +250,22 @@ export default function SubjectReviewModule() {
                                                 <button className="p-2 text-slate-700 hover:text-white transition-colors"><Plus className="w-4 h-4" /></button>
                                             </div>
                                             <div>
-                                                <p className="text-[12px] text-slate-600 font-extrabold uppercase tracking-widest italic">{card.label}</p>
+                                                <p className="text-sm text-slate-600 font-extrabold uppercase tracking-widest italic">{card.label}</p>
                                                 <p className="text-base font-black text-white italic truncate mt-1">{card.val}</p>
                                             </div>
                                         </div>
                                     ))}
-                                    <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-indigo-500/5 border border-indigo-500/10 rounded-[2.5rem] p-8 flex items-center justify-between">
+                                    <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-teal-500/5 border border-teal-500/10 rounded-[2.5rem] p-4 flex items-center justify-between">
                                         <div className="flex items-center gap-6">
-                                            <div className="w-14 h-14 rounded-full bg-indigo-900/40 flex items-center justify-center border border-indigo-500/20 text-indigo-300">
+                                            <div className="w-14 h-14 rounded-full bg-teal-900/40 flex items-center justify-center border border-teal-500/20 text-teal-300">
                                                 <Activity className="w-6 h-6" />
                                             </div>
                                             <div>
-                                                <p className="text-[12px] font-black text-indigo-400 uppercase tracking-widest italic underline decoration-indigo-800 underline-offset-4">AI Scientific Synthesis</p>
+                                                <p className="text-sm font-black text-teal-400 uppercase tracking-widest italic underline decoration-indigo-800 underline-offset-4">AI Scientific Synthesis</p>
                                                 <p className="text-sm font-black text-white italic leading-relaxed mt-2">"{participant.aiSummary}"</p>
                                             </div>
                                         </div>
-                                        <button className="px-6 py-3 bg-white text-slate-950 rounded-xl text-[12px] font-black uppercase tracking-widest hover:scale-105 transition-all">View Record</button>
+                                        <button className="px-6 py-3 bg-white text-slate-950 rounded-xl text-sm font-black uppercase tracking-widest hover:scale-105 transition-all">View Record</button>
                                     </div>
                                 </div>
                             )}
@@ -274,34 +274,34 @@ export default function SubjectReviewModule() {
                                 <div className="space-y-12">
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                                         <div className="space-y-6">
-                                            <h4 className="text-[12px] font-black text-emerald-400 uppercase tracking-[0.3em] border-b border-white/5 pb-4 italic">Inclusion Checklist</h4>
+                                            <h4 className="text-sm font-black text-emerald-400 uppercase tracking-[0.3em] border-b border-white/5 pb-4 italic">Inclusion Checklist</h4>
                                             <div className="space-y-3">
                                                 {[
                                                     'Diagnosis of GI Inflammation > 6 months',
                                                     'BMI between 18.5 and 29.9 kg/m²',
-                                                    'Available for full 8-visit protocol',
+                                                    'Available for full 8-visit study',
                                                     'Stable on baseline medications for 30 days'
                                                 ].map((item, i) => (
                                                     <div key={i} className="flex items-start gap-4 p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl group transition-all">
                                                         <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                                                        <span className="text-[12px] font-black text-slate-400 uppercase italic leading-tight group-hover:text-white">{item}</span>
+                                                        <span className="text-sm font-black text-slate-400 uppercase italic leading-tight group-hover:text-white">{item}</span>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
                                         <div className="space-y-6">
-                                            <h4 className="text-[12px] font-black text-red-400 uppercase tracking-[0.3em] border-b border-white/5 pb-4 italic">Exclusion Flags</h4>
+                                            <h4 className="text-sm font-black text-red-400 uppercase tracking-[0.3em] border-b border-white/5 pb-4 italic">Exclusion Flags</h4>
                                             <div className="space-y-3">
                                                 {[
                                                     { term: 'Recent Probiotic Use', flagged: false },
-                                                    { term: 'Known Allergy to Protocol Agent', flagged: false },
+                                                    { term: 'Known Allergy to Study Agent', flagged: false },
                                                     { term: 'Participation in Concurrent Trials', flagged: true },
                                                     { term: 'History of Major GI Surgery', flagged: false }
                                                 ].map((item, i) => (
                                                     <div key={i} className={`flex items-start gap-4 p-4 border rounded-2xl transition-all ${item.flagged ? 'bg-red-500/10 border-red-500/40' : 'bg-white/5 border-white/5'}`}>
                                                         {item.flagged ? <ShieldAlert className="w-5 h-5 text-red-500" /> : <div className="w-5 h-5 rounded-full border border-white/10" />}
-                                                        <span className={`text-[12px] font-black uppercase italic leading-tight ${item.flagged ? 'text-red-100' : 'text-slate-500'}`}>{item.term}</span>
-                                                        {item.flagged && <span className="ml-auto text-[12px] font-black bg-red-600 text-white px-2 py-0.5 rounded uppercase">Critical</span>}
+                                                        <span className={`text-sm font-black uppercase italic leading-tight ${item.flagged ? 'text-red-100' : 'text-slate-500'}`}>{item.term}</span>
+                                                        {item.flagged && <span className="ml-auto text-sm font-black bg-red-600 text-white px-2 py-0.5 rounded uppercase">Critical</span>}
                                                     </div>
                                                 ))}
                                             </div>
@@ -309,18 +309,18 @@ export default function SubjectReviewModule() {
                                     </div>
                                     <div className="p-10 bg-[#0B101B] border border-white/10 rounded-[3rem] space-y-8">
                                         <div>
-                                            <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest italic mb-4">Coordinator Final Assessment</p>
+                                            <p className="text-sm font-black text-slate-500 uppercase tracking-widest italic mb-4">Coordinator Final Assessment</p>
                                             <div className="p-6 bg-white/5 border border-white/5 rounded-3xl text-sm italic text-slate-400 leading-relaxed font-black uppercase tracking-tight">
                                                 "Participant meets all inclusion criteria. Exclusion flag for concurrent trials was reviewed; it was a previous phase study completed 4 months ago. No washout collision detected. Recommend for PI Approval."
-                                                <p className="mt-4 text-[12px] text-indigo-400">— Sarah Jenkins (Lead Coordinator) • 2026-03-20</p>
+                                                <p className="mt-4 text-sm text-teal-400">— Sarah Jenkins (Lead Coordinator) • 2026-03-20</p>
                                             </div>
                                         </div>
                                         <div className="pt-6 border-t border-white/5 flex flex-col gap-6">
-                                            <h4 className="text-[12px] font-black text-white uppercase tracking-widest italic">PI Final Eligibility Decision</h4>
+                                            <h4 className="text-sm font-black text-white uppercase tracking-widest italic">PI Final Eligibility Decision</h4>
                                             <div className="flex gap-4">
-                                                <button onClick={() => setEligibility('Eligible')} className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest shadow-xl shadow-emerald-900/40 hover:scale-105 transition-all">Approve Eligibility</button>
-                                                <button onClick={() => setEligibility('Rejected')} className="flex-1 py-4 bg-white/5 border border-white/5 text-red-500 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-all">Reject Subject</button>
-                                                <button className="flex-1 py-4 bg-white/5 border border-white/5 text-slate-400 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-white/10 transition-all">Request Clarification</button>
+                                                <button onClick={() => setEligibility('Eligible')} className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-emerald-900/40 hover:scale-105 transition-all">Approve Eligibility</button>
+                                                <button onClick={() => setEligibility('Rejected')} className="flex-1 py-4 bg-white/5 border border-white/5 text-red-500 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-red-500/20 transition-all">Reject Subject</button>
+                                                <button className="flex-1 py-4 bg-white/5 border border-white/5 text-slate-400 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-white/10 transition-all">Request Clarification</button>
                                             </div>
                                         </div>
                                     </div>
@@ -332,8 +332,8 @@ export default function SubjectReviewModule() {
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                                         <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-10 space-y-8">
                                             <div className="flex items-center justify-between">
-                                                <h4 className="text-[12px] font-black text-white uppercase tracking-widest italic">Symptom Metrics</h4>
-                                                <TrendingUp className="w-5 h-5 text-indigo-400" />
+                                                <h4 className="text-sm font-black text-white uppercase tracking-widest italic">Symptom Metrics</h4>
+                                                <TrendingUp className="w-5 h-5 text-teal-400" />
                                             </div>
                                             <div className="space-y-6">
                                                 {[
@@ -344,14 +344,14 @@ export default function SubjectReviewModule() {
                                                 ].map((metric, i) => (
                                                     <div key={i} className="space-y-3">
                                                         <div className="flex justify-between items-end">
-                                                            <span className="text-[12px] font-black text-slate-500 uppercase italic tracking-widest">{metric.label}</span>
+                                                            <span className="text-sm font-black text-slate-500 uppercase italic tracking-widest">{metric.label}</span>
                                                             <div className="flex items-center gap-3">
-                                                                <span className="text-[12px] text-slate-700 font-bold uppercase">Baseline: {metric.baseline}</span>
+                                                                <span className="text-sm text-slate-700 font-bold uppercase">Baseline: {metric.baseline}</span>
                                                                 <span className="text-xl font-black text-emerald-400 italic">{metric.current}</span>
                                                             </div>
                                                         </div>
                                                         <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden flex">
-                                                            <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${(metric.current / 10) * 100}%` }} />
+                                                            <div className="h-full bg-teal-600 rounded-full" style={{ width: `${(metric.current / 10) * 100}%` }} />
                                                             <div className="h-full bg-white/10" style={{ width: `${((metric.baseline - metric.current) / 10) * 100}%` }} />
                                                         </div>
                                                     </div>
@@ -360,17 +360,17 @@ export default function SubjectReviewModule() {
                                         </div>
 
                                         <div className="flex flex-col gap-6">
-                                            <div className="p-8 bg-indigo-600/10 border border-indigo-500/20 rounded-[2.5rem] flex-1 flex flex-col justify-center">
-                                                <p className="text-[12px] text-indigo-400 font-black uppercase tracking-[0.3em] italic mb-2 underline decoration-indigo-800 underline-offset-4">Endpoint Performance</p>
-                                                <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">55<span className="text-indigo-500">%</span></h3>
-                                                <p className="text-[12px] text-slate-500 font-extrabold uppercase tracking-widest mt-4">Average improvement in reported GI distress markers vs cohort baseline</p>
+                                            <div className="p-8 bg-teal-600/10 border border-teal-500/20 rounded-[2.5rem] flex-1 flex flex-col justify-center">
+                                                <p className="text-sm text-teal-400 font-black uppercase tracking-[0.3em] italic mb-2 underline decoration-indigo-800 underline-offset-4">Endpoint Performance</p>
+                                                <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">55<span className="text-teal-500">%</span></h3>
+                                                <p className="text-sm text-slate-500 font-extrabold uppercase tracking-widest mt-4">Average improvement in reported GI distress markers vs cohort baseline</p>
                                             </div>
                                             <div className="p-8 bg-white/5 border border-white/5 rounded-[2.5rem] flex-1">
                                                 <div className="flex items-center gap-4 mb-6">
-                                                    <Activity className="w-5 h-5 text-indigo-400" />
-                                                    <p className="text-[12px] text-white font-black uppercase tracking-widest">Trend Synthesis</p>
+                                                    <Activity className="w-5 h-5 text-teal-400" />
+                                                    <p className="text-sm text-white font-black uppercase tracking-widest">Trend Synthesis</p>
                                                 </div>
-                                                <p className="text-[12px] text-slate-400 font-bold italic leading-relaxed uppercase tracking-tight">
+                                                <p className="text-sm text-slate-400 font-bold italic leading-relaxed uppercase tracking-tight">
                                                     Longitudinal data indicates rapid response in bloating markers (Visit 2-3). Inflammatory scores are lagging but show downward trajectory. No worsening symptoms noted across any domain.
                                                 </p>
                                             </div>
@@ -384,11 +384,11 @@ export default function SubjectReviewModule() {
                                     <table className="w-full text-left">
                                         <thead>
                                             <tr className="bg-white/10 border-b border-white/5">
-                                                <th className="px-8 py-5 text-[12px] font-black text-slate-400 uppercase tracking-widest">Reported AE Term</th>
-                                                <th className="px-8 py-5 text-[12px] font-black text-slate-400 uppercase tracking-widest">Severity</th>
-                                                <th className="px-8 py-5 text-[12px] font-black text-slate-400 uppercase tracking-widest">Relatedness</th>
-                                                <th className="px-8 py-5 text-[12px] font-black text-slate-400 uppercase tracking-widest">Onset</th>
-                                                <th className="px-10 py-5 text-[12px] font-black text-slate-400 uppercase tracking-widest text-right">PI Action</th>
+                                                <th className="px-8 py-5 text-sm font-black text-slate-400 uppercase tracking-widest">Reported AE Term</th>
+                                                <th className="px-8 py-5 text-sm font-black text-slate-400 uppercase tracking-widest">Severity</th>
+                                                <th className="px-8 py-5 text-sm font-black text-slate-400 uppercase tracking-widest">Relatedness</th>
+                                                <th className="px-8 py-5 text-sm font-black text-slate-400 uppercase tracking-widest">Onset</th>
+                                                <th className="px-10 py-5 text-sm font-black text-slate-400 uppercase tracking-widest text-right">PI Action</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/5">
@@ -399,25 +399,25 @@ export default function SubjectReviewModule() {
                                                 <tr key={i} className="hover:bg-white/[0.02] transition-colors">
                                                     <td className="px-8 py-7">
                                                         <div className="flex items-center gap-4">
-                                                            <div className={`w-2 h-2 rounded-full ${ae.severity === 'Moderate' ? 'bg-amber-500' : 'bg-blue-500'}`} />
-                                                            <p className="text-[12px] font-black text-white italic uppercase tracking-wider">{ae.term}</p>
+                                                            <div className={`w-2 h-2 rounded-full ${ae.severity === 'Moderate' ? 'bg-amber-500' : 'bg-teal-500'}`} />
+                                                            <p className="text-sm font-black text-white italic uppercase tracking-wider">{ae.term}</p>
                                                         </div>
                                                     </td>
                                                     <td className="px-8 py-7">
-                                                        <span className={`px-3 py-1 bg-white/5 border rounded-lg text-[12px] font-black uppercase tracking-widest ${ae.severity === 'Moderate' ? 'text-amber-500 border-amber-500/20' : 'text-blue-500 border-blue-500/20'}`}>
+                                                        <span className={`px-3 py-1 bg-white/5 border rounded-lg text-sm font-black uppercase tracking-widest ${ae.severity === 'Moderate' ? 'text-amber-500 border-amber-500/20' : 'text-teal-500 border-teal-500/20'}`}>
                                                             {ae.severity}
                                                         </span>
                                                     </td>
-                                                    <td className="px-8 py-7 text-[12px] font-black text-slate-400 uppercase italic">{ae.related}</td>
-                                                    <td className="px-8 py-7 text-[12px] font-black text-slate-400 uppercase tracking-widest">{ae.date}</td>
+                                                    <td className="px-8 py-7 text-sm font-black text-slate-400 uppercase italic">{ae.related}</td>
+                                                    <td className="px-8 py-7 text-sm font-black text-slate-400 uppercase tracking-widest">{ae.date}</td>
                                                     <td className="px-10 py-7 text-right">
                                                         {ae.status === 'Pending' ? (
                                                             <div className="flex items-center justify-end gap-2">
-                                                                <button className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[12px] font-black uppercase tracking-widest hover:scale-105 transition-all">Confirm AE</button>
+                                                                <button className="px-4 py-2 bg-teal-600 text-white rounded-xl text-sm font-black uppercase tracking-widest hover:scale-105 transition-all">Confirm AE</button>
                                                                 <button className="p-2 border border-red-500/20 text-red-500 rounded-xl hover:bg-red-500/10"><ShieldAlert className="w-4 h-4" /></button>
                                                             </div>
                                                         ) : (
-                                                            <span className="text-[12px] font-black text-emerald-500 uppercase tracking-widest px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">Verified</span>
+                                                            <span className="text-sm font-black text-emerald-500 uppercase tracking-widest px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">Verified</span>
                                                         )}
                                                     </td>
                                                 </tr>
@@ -429,18 +429,18 @@ export default function SubjectReviewModule() {
 
                             {activeSection === 'Audit' && (
                                 <div className="space-y-4">
-                                    <h4 className="text-[12px] font-black text-slate-600 uppercase tracking-[0.3em] mb-8 border-b border-white/5 pb-4 italic">Immutable Digital Ledger</h4>
+                                    <h4 className="text-sm font-black text-slate-600 uppercase tracking-[0.3em] mb-8 border-b border-white/5 pb-4 italic">Immutable Digital Ledger</h4>
                                     {auditLog.map((log, i) => (
                                         <div key={i} className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl flex items-center justify-between group hover:border-white/10 transition-all">
                                             <div className="flex items-center gap-6">
                                                 <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-700">
                                                     <History className="w-4 h-4" />
                                                 </div>
-                                                <p className="text-[12px] font-black text-white italic uppercase tracking-tight">{log.action}</p>
+                                                <p className="text-sm font-black text-white italic uppercase tracking-tight">{log.action}</p>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-[12px] text-indigo-400 font-bold uppercase tracking-widest">{log.user}</p>
-                                                <p className="text-[12px] text-slate-700 font-bold uppercase tracking-widest mt-1 font-mono">{log.time}</p>
+                                                <p className="text-sm text-teal-400 font-bold uppercase tracking-widest">{log.user}</p>
+                                                <p className="text-sm text-slate-700 font-bold uppercase tracking-widest mt-1 font-mono">{log.time}</p>
                                             </div>
                                         </div>
                                     ))}
@@ -452,19 +452,19 @@ export default function SubjectReviewModule() {
                     {/* Sticky Bottom Actions */}
                     <div className="flex-shrink-0 px-6 lg:px-10 py-6 border-t border-white/10 bg-[#0B101B]/95 backdrop-blur-3xl z-30 flex flex-col gap-6">
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:flex lg:items-center gap-3 lg:gap-4">
-                            <button className="px-5 lg:px-8 py-3.5 lg:py-4 bg-indigo-600 text-white rounded-xl lg:rounded-2xl text-[12px] lg:text-[12px] font-black uppercase tracking-widest shadow-xl shadow-indigo-900/40 hover:scale-[1.03] active:scale-95 transition-all italic whitespace-nowrap">
+                            <button className="px-5 lg:px-8 py-3.5 lg:py-4 bg-teal-600 text-white rounded-xl lg:rounded-2xl text-sm lg:text-sm font-black uppercase tracking-widest shadow-xl shadow-teal-900/40 hover:scale-[1.03] active:scale-95 transition-all italic whitespace-nowrap">
                                 Approve Subject
                             </button>
-                            <button onClick={toggleFlag} className="px-5 lg:px-8 py-3.5 lg:py-4 bg-white/5 border border-white/5 text-slate-400 rounded-xl lg:rounded-2xl text-[12px] lg:text-[12px] font-black uppercase tracking-widest hover:text-white transition-all italic whitespace-nowrap">
+                            <button onClick={toggleFlag} className="px-5 lg:px-8 py-3.5 lg:py-4 bg-white/5 border border-white/5 text-slate-400 rounded-xl lg:rounded-2xl text-sm lg:text-sm font-black uppercase tracking-widest hover:text-white transition-all italic whitespace-nowrap">
                                 Flag For Review
                             </button>
-                            <button className="px-5 lg:px-8 py-3.5 lg:py-4 bg-white/5 border border-white/5 text-slate-400 rounded-xl lg:rounded-2xl text-[12px] lg:text-[12px] font-black uppercase tracking-widest hover:text-white transition-all italic whitespace-nowrap">
+                            <button className="px-5 lg:px-8 py-3.5 lg:py-4 bg-white/5 border border-white/5 text-slate-400 rounded-xl lg:rounded-2xl text-sm lg:text-sm font-black uppercase tracking-widest hover:text-white transition-all italic whitespace-nowrap">
                                 Request info
                             </button>
-                            <button className="px-5 lg:px-8 py-3.5 lg:py-4 bg-red-600/10 border border-red-500/20 text-red-500 rounded-xl lg:rounded-2xl text-[12px] lg:text-[12px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all italic whitespace-nowrap">
+                            <button className="px-5 lg:px-8 py-3.5 lg:py-4 bg-red-600/10 border border-red-500/20 text-red-500 rounded-xl lg:rounded-2xl text-sm lg:text-sm font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all italic whitespace-nowrap">
                                 Withdraw Subject
                             </button>
-                            <button className="px-5 lg:px-8 py-3.5 lg:py-4 bg-white text-slate-950 rounded-xl lg:rounded-2xl text-[12px] lg:text-[12px] font-black uppercase tracking-widest shadow-2xl hover:scale-[1.03] transition-all whitespace-nowrap lg:ml-auto">
+                            <button className="px-5 lg:px-8 py-3.5 lg:py-4 bg-white text-slate-950 rounded-xl lg:rounded-2xl text-sm lg:text-sm font-black uppercase tracking-widest shadow-2xl hover:scale-[1.03] transition-all whitespace-nowrap lg:ml-auto">
                                 Save Notes
                             </button>
                         </div>
@@ -476,7 +476,7 @@ export default function SubjectReviewModule() {
                 <div className="hidden xl:block w-[380px] bg-white/[0.02] border-l border-white/5 p-10 space-y-12 shrink-0 overflow-y-auto custom-scrollbar">
 
                     <section>
-                        <h4 className="text-[12px] font-black text-slate-600 uppercase tracking-[0.3em] mb-6 border-b border-white/5 pb-3">Protocol Vitality</h4>
+                        <h4 className="text-sm font-black text-slate-600 uppercase tracking-[0.3em] mb-6 border-b border-white/5 pb-3">Protocol Vitality</h4>
                         <div className="space-y-4">
                             {[
                                 { label: 'Eligibility', val: eligibility, color: eligibility === 'Eligible' ? 'emerald' : 'amber' },
@@ -487,7 +487,7 @@ export default function SubjectReviewModule() {
                                 { label: 'Protocol Flags', val: participant.hasDeviation ? '1 Deviation' : 'None', color: participant.hasDeviation ? 'amber' : 'slate' }
                             ].map((s, i) => (
                                 <div key={i} className="flex flex-col gap-2 p-4 bg-white/5 rounded-[1.5rem] border border-white/5">
-                                    <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest">{s.label}</span>
+                                    <span className="text-sm font-black text-slate-500 uppercase tracking-widest">{s.label}</span>
                                     <div className="flex items-center gap-2">
                                         <div className={`w-2 h-2 rounded-full bg-${s.color}-500 shadow-[0_0_5px_rgba(var(--${s.color}-rgb),0.8)]`} />
                                         <span className={`text-lg font-black text-${s.color}-400 italic uppercase tracking-tighter`}>{s.val}</span>
@@ -496,16 +496,16 @@ export default function SubjectReviewModule() {
                             ))}
                         </div>
                     </section>
-                    <section className="mt-12 p-8 bg-indigo-500/5 border border-indigo-500/10 rounded-[2.5rem] relative overflow-hidden group">
+                    <section className="mt-12 p-8 bg-teal-500/5 border border-teal-500/10 rounded-[2.5rem] relative overflow-hidden group">
                         <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:rotate-12 transition-transform">
-                            <Beaker className="w-8 h-8 text-indigo-400" />
+                            <Beaker className="w-8 h-8 text-teal-400" />
                         </div>
-                        <h5 className="text-[12px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-4 italic">Next Interaction</h5>
+                        <h5 className="text-sm font-black text-teal-400 uppercase tracking-[0.2em] mb-4 italic">Next Interaction</h5>
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/30 font-black italic">V5</div>
+                            <div className="w-10 h-10 rounded-xl bg-teal-600 flex items-center justify-center text-white shadow-lg shadow-teal-600/30 font-black italic">V5</div>
                             <div>
-                                <p className="text-[12px] font-black text-white uppercase italic">Scheduled 2026-03-24</p>
-                                <p className="text-[12px] text-slate-500 font-bold uppercase tracking-widest mt-1">Visit 5: End of Cohort A dosing</p>
+                                <p className="text-sm font-black text-white uppercase italic">Scheduled 2026-03-24</p>
+                                <p className="text-sm text-slate-500 font-bold uppercase tracking-widest mt-1">Visit 5: End of Cohort A dosing</p>
                             </div>
                         </div>
                     </section>

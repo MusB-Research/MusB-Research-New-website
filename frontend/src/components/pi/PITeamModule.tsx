@@ -43,46 +43,19 @@ interface ConfirmModal {
     type?: 'danger' | 'warning';
 }
 
-// --- MOCK DATA ---
-const MOCK_MUSB: TeamMember[] = [
-    {
-        id: 'm1', name: 'Dr. Sarah Chen', email: 's.chen@musb.network', phone: '(555) 012-3456',
-        role: 'Senior Coordinator', type: 'MusB', status: 'Active', assignedStudies: ['HI-202B'],
-        permissionLevel: 'Full', expertise: 'Neurology', documents: []
-    },
-    {
-        id: 'm2', name: 'Marcus Rodriguez', email: 'm.rod@musb.network', phone: '(555) 012-3457',
-        role: 'Clinical Lead', type: 'MusB', status: 'Active', assignedStudies: [],
-        permissionLevel: 'Limited', expertise: 'Cardiology', documents: []
-    },
-    {
-        id: 'm3', name: 'Elena Gilbert', email: 'e.gilbert@musb.network', phone: '(555) 012-3458',
-        role: 'Data Manager', type: 'MusB', status: 'Inactive', assignedStudies: ['PT-901'],
-        permissionLevel: 'Read-only', expertise: 'Oncology', documents: []
-    }
-];
+  
 
-const INITIAL_OFFICE_TEAM: TeamMember[] = [
-    {
-        id: 'o1', name: 'James Wilson', email: 'j.wilson@clinic.res', phone: '(555) 987-6543',
-        role: 'Clinical Coordinator', type: 'Office', status: 'Active', assignedStudies: ['HI-202B'],
-        permissionLevel: 'Full', documents: [
-            { id: 'd1', name: 'CV', status: 'Valid', uploadDate: '2023-10-15', isRequired: true },
-            { id: 'd2', name: 'GCP Certificate', status: 'Valid', uploadDate: '2023-11-20', isRequired: true },
-            { id: 'd3', name: 'HSP Certificate', status: 'Missing', isRequired: true }
-        ]
-    }
-];
+  
 
 const ROLE_DOCS: Record<string, string[]> = {
-    'Clinical Coordinator': ['CV', 'GCP Certificate', 'HSP Certificate', 'HIPAA Agreement', 'Protocol Training'],
+    'Clinical Coordinator': ['CV', 'GCP Certificate', 'HSP Certificate', 'HIPAA Agreement', 'Study Training'],
     'APRN': ['CV', 'APRN License', 'Malpractice Insurance', 'GCP Certificate', 'HIPAA Agreement'],
     'Sub-Investigator': ['Medical License', 'CV', 'GCP Certificate', 'DOB/ID'],
     'Phlebotomist': ['CV', 'Training Certificate', 'Venipuncture Competency', 'OSHA Training', 'HIPAA Agreement'],
     'Other': ['CV']
 };
 
-const PROTOCOLS = ['HI-202B', 'PT-901', 'OB-442', 'VX-001', 'DM-772'];
+const STUDIES = ['HI-202B', 'PT-901', 'OB-442', 'VX-001', 'DM-772'];
 
 interface PITeamModuleProps {
     allUsers?: any[];
@@ -361,61 +334,48 @@ export default function PITeamModule({
         container: {
             display: 'flex',
             flexDirection: 'column' as const,
-            height: isMobile ? 'auto' : '100vh',
+            minHeight: '100%',
             width: '100%',
             backgroundColor: 'transparent',
             color: 'white',
-            overflow: isMobile ? 'visible' : 'hidden',
+            overflowX: 'hidden',
             fontFamily: 'system-ui, -apple-system, sans-serif'
         },
         header: {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: isMobile ? '1.5rem 1.5rem' : '1rem 2.5rem',
+            padding: isMobile ? '1rem' : '0.5rem 1.5rem',
             flexWrap: 'wrap',
-            gap: '1rem',
-            borderBottom: '1px solid rgba(99, 102, 241, 0.15)',
-            backgroundColor: 'rgba(7, 10, 19, 0.7)',
+            gap: '0.75rem',
+            borderBottom: '1px solid rgba(20, 184, 166, 0.1)',
+            backgroundColor: 'rgba(7, 10, 19, 0.4)',
             backdropFilter: 'blur(40px)',
             flexShrink: 0,
-            boxShadow: 'inset 0 -1px 20px rgba(99, 102, 241, 0.05)'
+            width: '100%'
         },
         title: {
-            fontSize: isMobile ? '1.25rem' : '1.75rem',
+            fontSize: isMobile ? '1.1rem' : '1.4rem',
             fontWeight: 900,
             fontStyle: 'italic',
             textTransform: 'uppercase' as const,
-            letterSpacing: '-0.04em',
-            margin: 0
+            letterSpacing: '-0.02em',
+            margin: 0,
+            opacity: 0.9
         },
         btnPrimary: {
-            backgroundColor: '#6366f1',
+            backgroundColor: '#14b8a6',
             color: 'white',
             border: 'none',
-            padding: '1rem 2rem',
-            borderRadius: '6px',
-            fontSize: '14px',
+            padding: '0.5rem 1rem',
+            borderRadius: '4px',
+            fontSize: '11px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
-            letterSpacing: '0.12em',
+            letterSpacing: '0.1em',
             cursor: 'pointer',
             transition: 'all 0.2s',
-            marginLeft: '1.5rem',
-            boxShadow: '0 4px 20px rgba(99, 102, 241, 0.3)'
-        },
-        btnGhost: {
-            backgroundColor: 'transparent',
-            color: '#94a3b8',
-            border: '1px solid rgba(255,255,255,0.1)',
-            padding: '1rem 2rem',
-            borderRadius: '6px',
-            fontSize: '13px',
-            fontWeight: 900,
-            textTransform: 'uppercase' as const,
-            letterSpacing: '0.12em',
-            cursor: 'pointer',
-            transition: 'all 0.2s'
+            boxShadow: '0 4px 15px rgba(20, 184, 166, 0.2)'
         },
         kpiStrip: {
             display: 'flex',
@@ -427,81 +387,84 @@ export default function PITeamModule({
             backdropFilter: 'blur(10px)'
         },
         kpiItem: {
-            flex: isMobile ? '0 0 auto' : isTablet ? '1 1 30%' : '1',
+            flex: isMobile ? '0 0 auto' : isTablet ? '1 1 20%' : '1',
             display: 'flex',
             alignItems: 'center',
-            padding: '1rem 1.75rem',
-            gap: '1rem',
-            borderRight: '1px solid rgba(99, 102, 241, 0.15)',
-            borderBottom: isTablet ? '1px solid rgba(99, 102, 241, 0.15)' : 'none',
-            backgroundColor: 'rgba(255, 255, 255, 0.01)',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            padding: '0.4rem 1rem',
+            gap: '0.75rem',
+            borderRight: '1px solid rgba(20, 184, 166, 0.08)',
+            backgroundColor: 'transparent',
+            transition: 'all 0.2s ease'
         },
         kpiValue: {
-            fontSize: '22px',
+            fontSize: '18px',
             fontFamily: 'monospace',
             fontWeight: 900,
             fontStyle: 'italic',
             lineHeight: 1,
-            letterSpacing: '-0.05em',
-            textShadow: '0 0 30px rgba(99, 102, 241, 0.3)'
+            letterSpacing: '-0.02em',
         },
         kpiLabel: {
-            fontSize: '13px',
+            fontSize: '11px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
-            letterSpacing: '0.25em',
-            color: '#94a3b8',
-            marginTop: '8px'
+            letterSpacing: '0.15em',
+            color: '#14b8a6',
+            marginTop: '4px',
+            opacity: 0.8
         },
         navRow: {
             display: 'flex',
-            padding: isMobile ? '1.25rem' : '0.75rem 2.5rem',
+            padding: isMobile ? '0.75rem' : '0.5rem 1.5rem',
             flexDirection: isMobile ? 'column' : 'row',
             alignItems: isMobile ? 'stretch' : 'center',
-            flexWrap: 'wrap',
-            gap: '1.25rem',
-            flexShrink: 0
+            justifyContent: 'space-between',
+            gap: '1rem',
+            flexShrink: 0,
+            width: '100%',
+            backgroundColor: 'rgba(255,255,255,0.01)',
+            borderBottom: '1px solid rgba(255,255,255,0.03)'
         },
         tabBtn: (active: boolean) => ({
             padding: '0.6rem 1.25rem',
-            backgroundColor: active ? '#6366f1' : 'transparent',
+            backgroundColor: active ? '#14b8a6' : 'transparent',
             color: active ? 'white' : '#94a3b8',
             border: active ? 'none' : '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '6px',
-            fontSize: '12px',
+            borderRadius: '4px',
+            fontSize: '11px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
-            letterSpacing: '0.12em',
+            letterSpacing: '0.1em',
             cursor: 'pointer',
-            marginRight: '0.75rem',
             transition: 'all 0.2s'
         }),
         searchBox: {
             display: 'flex',
             alignItems: 'center',
             backgroundColor: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '6px',
-            padding: '0 1.25rem'
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '4px',
+            padding: '0 1rem',
+            flex: isMobile ? '1' : '0 1 400px',
+            marginLeft: isMobile ? '0' : 'auto'
         },
         searchInput: {
             backgroundColor: 'transparent',
             border: 'none',
             color: 'white',
             padding: '0.6rem 0.75rem',
-            fontSize: '13px',
+            fontSize: '12px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             outline: 'none',
-            width: '200px',
+            width: '100%',
             letterSpacing: '0.05em'
         },
         tableArea: {
             flex: 1,
             overflowX: 'auto' as const,
             overflowY: isMobile ? 'visible' : 'auto' as const,
-            padding: isMobile ? '0 1rem' : isTablet ? '0 1.5rem' : '0 2.5rem'
+            padding: isMobile ? '0 1rem' : isTablet ? '0 1rem' : '0 1.5rem'
         },
         table: {
             width: '100%',
@@ -511,31 +474,32 @@ export default function PITeamModule({
         th: {
             position: 'sticky' as const,
             top: isMobile ? '64px' : 0,
-            padding: isMobile ? '0.75rem' : isTablet ? '1rem' : '1.25rem 1.5rem',
-            fontSize: '13px',
+            padding: '1rem 1.5rem',
+            fontSize: '11px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
-            letterSpacing: '0.05em',
-            color: '#64748b',
+            letterSpacing: '0.12em',
+            color: '#475569',
             textAlign: 'left' as const,
-            backgroundColor: 'rgba(11, 16, 27, 0.9)',
+            backgroundColor: 'rgba(11, 16, 27, 0.95)',
             backdropFilter: 'blur(20px)',
+            borderBottom: '1px solid rgba(255,255,255,0.03)',
             zIndex: 10
         },
         td: {
-            padding: isMobile ? '1rem 0.75rem' : isTablet ? '1.25rem' : '1.5rem 1.5rem',
-            backgroundColor: 'rgba(255,255,255,0.01)',
+            padding: isMobile ? '0.5rem' : '0.5rem 1rem',
+            backgroundColor: 'transparent',
             verticalAlign: 'middle',
-            borderBottom: '1px solid rgba(255,255,255,0.04)'
+            borderBottom: '1px solid rgba(255,255,255,0.03)'
         },
         name: {
-            fontSize: '15px',
+            fontSize: '13px',
             fontWeight: 900,
             fontStyle: 'italic',
             textTransform: 'uppercase' as const,
             color: 'white',
-            marginBottom: '6px',
-            letterSpacing: '-0.02em'
+            marginBottom: '2px',
+            letterSpacing: '0.02em'
         },
         panel: {
             position: 'fixed' as const,
@@ -545,11 +509,11 @@ export default function PITeamModule({
             height: '100vh',
             backgroundColor: 'rgba(7, 10, 19, 0.85)',
             backdropFilter: 'blur(40px)',
-            borderLeft: '1px solid rgba(99, 102, 241, 0.3)',
+            borderLeft: '1px solid rgba(20, 184, 166, 0.3)',
             zIndex: 100,
             display: 'flex',
             flexDirection: 'column' as const,
-            boxShadow: '-20px 0 60px rgba(0,0,0,0.8), inset 0 0 100px rgba(99, 102, 241, 0.05)',
+            boxShadow: '-20px 0 60px rgba(0,0,0,0.8), inset 0 0 100px rgba(20, 184, 166, 0.05)',
             transform: panelOpen ? 'translateX(0)' : 'translateX(100%)',
             transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
         },
@@ -600,26 +564,30 @@ export default function PITeamModule({
             minWidth: isMobile ? 'calc(100vw - 4rem)' : '320px'
         }),
         statusBadge: (status: string) => ({
-            padding: '0.6rem 1rem',
-            borderRadius: '20px',
-            fontSize: '13px',
+            padding: '0.5rem 1rem',
+            borderRadius: '4px',
+            fontSize: '11px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
-            backgroundColor: status === 'Active' ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)',
-            color: status === 'Active' ? '#10b981' : '#94a3b8',
-            border: `1px solid ${status === 'Active' ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.1)'}`
+            letterSpacing: '0.05em',
+            backgroundColor: 'rgba(20, 184, 166, 0.05)',
+            color: '#14b8a6',
+            border: '1px solid rgba(20, 184, 166, 0.15)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem'
         })
     } as Record<string, any>;
 
     // --- RENDER HELPERS ---
     const renderKPI = (label: string, value: number, Icon: any, color: string) => (
         <div style={S.kpiItem}>
-            <div style={{ padding: '0.5rem', borderRadius: '8px', backgroundColor: `${color}10`, color: color }}>
-                <Icon size={20} />
+            <div style={{ padding: '0.5rem', borderRadius: '4px', backgroundColor: 'rgba(20, 184, 166, 0.08)', color: '#14b8a6' }}>
+                <Icon size={16} />
             </div>
             <div>
-                <div style={{ ...S.kpiValue, color: label === 'Action Required' && value > 0 ? '#f59e0b' : 'inherit' }}>{value.toString().padStart(2, '0')}</div>
-                <div style={{ ...S.kpiLabel, fontSize: '13px' }}>{label}</div>
+                <div style={S.kpiValue}>{value.toString().padStart(2, '0')}</div>
+                <div style={S.kpiLabel}>{label}</div>
             </div>
         </div>
     );
@@ -655,9 +623,9 @@ export default function PITeamModule({
 
             {/* KPI STRIP */}
             <div style={S.kpiStrip} className="custom-scrollbar-horizontal">
-                {renderKPI('Total Team', officeTeam.length + musbTeam.length, Users, '#6366f1')}
+                {renderKPI('Total Team', officeTeam.length + musbTeam.length, Users, '#14b8a6')}
                 {renderKPI('Active Members', [...officeTeam, ...musbTeam].filter(t => t.status === 'Active').length, CheckCircle2, '#10b981')}
-                {renderKPI('MusB Team', musbTeam.length, Building2, '#6366f1')}
+                {renderKPI('MusB Team', musbTeam.length, Building2, '#14b8a6')}
                 {renderKPI('My Office Team', officeTeam.length, Users, '#475569')}
                 {renderKPI('Missing Documents', officeTeam.filter(m => m.documents.some(d => d.status !== 'Valid')).length, AlertTriangle, '#f59e0b')}
             </div>
@@ -681,7 +649,9 @@ export default function PITeamModule({
                     display: 'flex', 
                     flexDirection: isMobile ? 'column' : 'row', 
                     gap: isMobile ? '1.25rem' : '1.5rem',
-                    width: isMobile ? '100%' : 'auto'
+                    flex: 1,
+                    justifyContent: 'flex-end',
+                    width: '100%'
                 }}>
                     {activeTab === 'MusB' && (
                         <div className="custom-scrollbar-horizontal" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', overflowX: isMobile ? 'auto' : 'visible', paddingBottom: isMobile ? '0.5rem' : '0' }}>
@@ -693,16 +663,16 @@ export default function PITeamModule({
                                         ...S.tabBtn(filterStatus === f),
                                         padding: '0.4rem 0.6rem',
                                         backgroundColor: filterStatus === f ? 'rgba(99,102,241,0.1)' : 'transparent',
-                                        border: filterStatus === f ? '1px solid #6366f1' : '1px solid rgba(255,255,255,0.06)',
-                                        color: filterStatus === f ? '#6366f1' : '#475569'
+                                        border: filterStatus === f ? '1px solid #14b8a6' : '1px solid rgba(255,255,255,0.06)',
+                                        color: filterStatus === f ? '#14b8a6' : '#475569'
                                     }}>{f}</button>
                             ))}
                         </div>
                     )}
-                    <div style={{ ...S.searchBox, width: isMobile ? '100%' : 'auto' }}>
+                    <div style={S.searchBox}>
                         <Search size={14} color="#475569" />
                         <input
-                            style={{ ...S.searchInput, width: isMobile ? '100%' : '200px' }}
+                            style={S.searchInput}
                             placeholder="SEARCH TEAM..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -713,17 +683,18 @@ export default function PITeamModule({
 
             {/* TABLE AREA */}
             <div style={S.tableArea} className="custom-scrollbar-horizontal">
-                <table style={{ ...S.table, minWidth: isTablet ? '1200px' : '100%' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
                     <thead>
                         <tr>
                             <th style={S.th}>Team Member</th>
-                            <th style={{ ...S.th, width: '20%' }}>Role</th>
+                            <th style={S.th}>Role</th>
                             <th style={S.th}>Assigned Studies</th>
                             <th style={{ ...S.th, textAlign: 'center' }}>Status</th>
-                            <th style={{ ...S.th, textAlign: 'right' }}>Actions</th>
+                            <th style={{ ...S.th, textAlign: 'right', paddingRight: '2rem' }}>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>                        {getVisibleTeam().map(m => (
+                    <tbody>
+                        {getVisibleTeam().map(m => (
                             <tr key={m.id} className="group-row">
                                 <td style={S.td}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -737,14 +708,14 @@ export default function PITeamModule({
                                     </div>
                                 </td>
                                 <td style={S.td}>
-                                    <div style={{ fontSize: '13px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{m.role}</div>
-                                    {m.expertise && <div style={{ fontSize: '13px', color: '#6366f1', marginTop: '6px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.expertise}</div>}
+                                    <div style={{ fontSize: '11px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.role}</div>
+                                    {m.expertise && <div style={{ fontSize: '10px', color: '#14b8a6', marginTop: '2px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.expertise}</div>}
                                 </td>
                                 <td style={S.td}>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                                         {m.assignedStudies.length > 0 ? m.assignedStudies.map(s => (
-                                            <span key={s} style={{ fontSize: '14px', fontWeight: 900, color: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)', padding: '0.4rem 0.8rem', borderRadius: '4px', border: '1px solid rgba(99,102,241,0.2)' }}>{s}</span>
-                                        )) : <span style={{ fontSize: '14px', color: '#475569', fontWeight: 900, letterSpacing: '0.1em' }}>NO ASSIGNMENTS</span>}
+                                            <span key={s} style={{ fontSize: '11px', fontWeight: 900, color: '#14b8a6', backgroundColor: 'rgba(99,102,241,0.05)', padding: '0.25rem 0.5rem', borderRadius: '4px', border: '1px solid rgba(99,102,241,0.1)' }}>{s}</span>
+                                        )) : <span style={{ fontSize: '11px', color: '#475569', fontWeight: 900, letterSpacing: '0.05em' }}>NO ASSIGNMENTS</span>}
                                     </div>
                                 </td>
                                 <td style={{ ...S.td, textAlign: 'center' }}>
@@ -752,40 +723,42 @@ export default function PITeamModule({
                                 </td>
                                 <td style={{ ...S.td, textAlign: 'right' }}>
                                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                                        {m.type === 'Office' && (
+                                            <button 
+                                                title="Edit Personnel"
+                                                style={{ ...S.btnGhost, padding: '0.6rem', color: '#14b8a6', borderColor: 'rgba(99,102,241,0.2)' }} 
+                                                onClick={() => {
+                                                    setPanelMode('edit');
+                                                    setEditedMember({ ...m });
+                                                    setSelectedMember(m);
+                                                    setPanelOpen(true);
+                                                }}
+                                            >
+                                                <Edit2 size={16} />
+                                            </button>
+                                        )}
+
+                                        <button 
+                                            title={m.status === 'Inactive' ? "Activate" : "Lock Access"}
+                                            style={{ ...S.btnGhost, padding: '0.6rem', color: m.status === 'Inactive' ? '#10b981' : '#f59e0b', borderColor: 'rgba(255,255,255,0.1)' }} 
+                                            onClick={() => handleInactivateToggle(m)}
+                                        >
+                                            {m.status === 'Inactive' ? <Unlock size={16} /> : <Lock size={16} />}
+                                        </button>
+
                                         {m.type === 'Office' ? (
-                                            <>
-                                                <button 
-                                                    title="Edit Personnel"
-                                                    style={{ ...S.btnGhost, padding: '0.6rem', color: '#6366f1', borderColor: 'rgba(99,102,241,0.2)' }} 
-                                                    onClick={() => {
-                                                        setPanelMode('edit');
-                                                        setEditedMember({ ...m });
-                                                        setSelectedMember(m);
-                                                        setPanelOpen(true);
-                                                    }}
-                                                >
-                                                    <Edit2 size={16} />
-                                                </button>
-                                                <button 
-                                                    title={m.status === 'Inactive' ? "Activate" : "Lock Access"}
-                                                    style={{ ...S.btnGhost, padding: '0.6rem', color: m.status === 'Inactive' ? '#10b981' : '#f59e0b', borderColor: 'rgba(255,255,255,0.1)' }} 
-                                                    onClick={() => handleInactivateToggle(m)}
-                                                >
-                                                    {m.status === 'Inactive' ? <Unlock size={16} /> : <Lock size={16} />}
-                                                </button>
-                                                <button 
-                                                    title="Remove Member"
-                                                    style={{ ...S.btnGhost, padding: '0.6rem', color: '#ef4444', borderColor: 'rgba(239,68,68,0.1)' }} 
-                                                    onClick={() => handleDelete(m)}
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </>
+                                            <button 
+                                                title="Remove Member"
+                                                style={{ ...S.btnGhost, padding: '0.6rem', color: '#ef4444', borderColor: 'rgba(239,68,68,0.1)' }} 
+                                                onClick={() => handleDelete(m)}
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
                                         ) : (
                                             <button 
                                                 title="MUSB NETWORK USER"
                                                 style={{ ...S.btnGhost, padding: '0.6rem' }} 
-                                                onClick={() => addToast('MUSB CREDENTIALS MANAGED BY NETWORK ADMIN', 'warning')}
+                                                onClick={() => addToast('MUSB PROFILE MANAGED BY ADMIN', 'warning')}
                                             >
                                                 <Shield size={16} />
                                             </button>
@@ -806,26 +779,26 @@ export default function PITeamModule({
                     <button style={{ ...S.btnGhost, padding: '0.5rem' }} onClick={() => setPanelOpen(false)}><X size={20} /></button>
                 </div>
 
-                <div style={{ flex: 1, overflowY: 'auto', padding: '2rem' }}>
+                <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 2rem' }}>
                     {/* IDENTITY */}
-                    <section style={{ marginBottom: '2.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                            <div style={{ width: '2px', height: '14px', backgroundColor: '#6366f1' }} />
+                    <section style={{ marginBottom: '2rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                            <div style={{ width: '2px', height: '14px', backgroundColor: '#14b8a6' }} />
                             <h3 style={S.label}>Personnel Identity</h3>
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                             <div>
                                 <label style={S.label}>Full Name</label>
                                 <input style={S.input} value={editedMember.name || ''} onChange={e => setEditedMember({ ...editedMember, name: e.target.value })} />
                             </div>
                             <div>
                                 <label style={S.label}>Role Dropdown</label>
-                                <select style={{ ...S.input, fontSize: '18px', fontWeight: 900, textTransform: 'uppercase', cursor: 'pointer' }} value={editedMember.role} onChange={e => {
+                                <select style={{ ...S.input, fontSize: '13px', fontWeight: 900, textTransform: 'uppercase', cursor: 'pointer' }} value={editedMember.role} onChange={e => {
                                     const role = e.target.value;
                                     setEditedMember({
                                         ...editedMember,
                                         role,
-                                        documents: ROLE_DOCS[role].map(name => ({
+                                        documents: (ROLE_DOCS[role] || []).map(name => ({
                                             id: Math.random().toString(36).substr(2, 9),
                                             name, status: 'Missing', isRequired: true
                                         }))
@@ -846,14 +819,14 @@ export default function PITeamModule({
                     </section>
 
                     {/* AUTHORIZATION */}
-                    <section style={{ marginBottom: '2.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                            <div style={{ width: '2px', height: '14px', backgroundColor: '#6366f1' }} />
+                    <section style={{ marginBottom: '2rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                            <div style={{ width: '2px', height: '14px', backgroundColor: '#14b8a6' }} />
                             <h3 style={S.label}>Authorization & Scope</h3>
                         </div>
-                        <label style={{ ...S.label, marginBottom: '0.75rem' }}>Assign Studies</label>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                            {PROTOCOLS.map(p => {
+                        <label style={{ ...S.label, marginBottom: '0.5rem' }}>Assign Studies</label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+                            {STUDIES.map(p => {
                                 const selected = editedMember.assignedStudies?.includes(p);
                                 return (
                                     <button key={p}
@@ -865,23 +838,24 @@ export default function PITeamModule({
                                         })}
                                         style={{
                                             ...S.btnGhost,
-                                            backgroundColor: selected ? '#6366f1' : 'transparent',
+                                            padding: '0.5rem 1rem',
+                                            backgroundColor: selected ? '#14b8a6' : 'transparent',
                                             color: selected ? 'white' : '#475569',
-                                            borderColor: selected ? '#6366f1' : 'rgba(255,255,255,0.06)'
+                                            borderColor: selected ? '#14b8a6' : 'rgba(255,255,255,0.06)'
                                         }}>{p}</button>
                                 );
                             })}
                         </div>
 
-                        <label style={{ ...S.label, marginBottom: '0.75rem' }}>Permission Level</label>
+                        <label style={{ ...S.label, marginBottom: '0.5rem' }}>Permission Level</label>
                         <div style={{ display: 'flex', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '4px', padding: '4px' }}>
                             {['Full', 'Limited', 'Read-only'].map(lvl => (
                                 <button key={lvl}
                                     onClick={() => setEditedMember({ ...editedMember, permissionLevel: lvl as any })}
                                     style={{
-                                        flex: 1, padding: '0.75rem', border: 'none', borderRadius: '4px',
-                                        fontSize: '12px', fontWeight: 900, textTransform: 'uppercase',
-                                        backgroundColor: editedMember.permissionLevel === lvl ? '#6366f1' : 'transparent',
+                                        flex: 1, padding: '0.6rem', border: 'none', borderRadius: '4px',
+                                        fontSize: '11px', fontWeight: 900, textTransform: 'uppercase',
+                                        backgroundColor: editedMember.permissionLevel === lvl ? '#14b8a6' : 'transparent',
                                         color: editedMember.permissionLevel === lvl ? 'white' : '#475569',
                                         cursor: 'pointer'
                                     }}>{lvl}</button>
@@ -892,7 +866,7 @@ export default function PITeamModule({
                     {/* REPOSITORY */}
                     <section>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                            <div style={{ width: '2px', height: '14px', backgroundColor: '#6366f1' }} />
+                            <div style={{ width: '2px', height: '14px', backgroundColor: '#14b8a6' }} />
                             <h3 style={S.label}>Qualification Repository ({editedMember.role})</h3>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -978,7 +952,7 @@ export default function PITeamModule({
                                 onClick={() => {
                                     setTempMusbSelected(prev => prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id]);
                                 }}>
-                                <input type="checkbox" checked={tempMusbSelected.includes(m.id)} readOnly style={{ width: '22px', height: '22px', accentColor: '#6366f1', cursor: 'pointer' }} />
+                                <input type="checkbox" checked={tempMusbSelected.includes(m.id)} readOnly style={{ width: '22px', height: '22px', accentColor: '#14b8a6', cursor: 'pointer' }} />
                                 <div>
                                     <div style={{ fontSize: '18px', fontWeight: 900, color: 'white', textTransform: 'uppercase', letterSpacing: '-0.02em' }}>{m.name}</div>
                                     <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 'bold', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.expertise || m.role} <span style={{ opacity: 0.3, margin: '0 8px' }}>|</span> {m.email}</div>
@@ -1011,7 +985,7 @@ export default function PITeamModule({
                         <button style={{
                             ...S.btnPrimary,
                             flex: 1,
-                            backgroundColor: confirmModal.type === 'danger' ? '#ef4444' : '#6366f1'
+                            backgroundColor: confirmModal.type === 'danger' ? '#ef4444' : '#14b8a6'
                         }} onClick={confirmModal.onConfirm}>PROCEED</button>
                     </div>
                 </div>

@@ -207,7 +207,7 @@ export default function AdminDashboard() {
         { id: 'AUDIT_LOGS', label: 'Audit Logs', icon: ShieldAlert, roles: ['super_admin', 'admin'] },
         { id: 'COMPLIANCE', label: 'Compliance Docs', icon: ShieldCheck, roles: ['coordinator', 'pi'] },
         { id: 'SUBMIT_CONTENT', label: 'Submit Content', icon: Plus, roles: ['super_admin', 'admin', 'coordinator', 'pi'] },
-        { id: 'WORKFLOW', label: 'Moderation', icon: ShieldCheck, roles: ['super_admin', 'admin'] },
+        { id: 'WORKFLOW', label: 'Moderation Queue', icon: ShieldCheck, roles: ['super_admin', 'admin'] },
         { id: 'WEBSITE', label: 'View Public Site', icon: Globe, roles: ['*'] },
 
 
@@ -224,15 +224,15 @@ export default function AdminDashboard() {
     return (
         <div className="min-h-screen bg-[#060811] text-white flex font-sans selection:bg-pink-500/30">
             {/* Sidebar Navigation */}
-            <aside className={`fixed left-0 top-0 bottom-0 bg-[#0B101B]/40 backdrop-blur-3xl border-r border-white/5 p-6 z-[70] overflow-y-auto transition-all duration-500 custom-scrollbar ${isSidebarOpen ? 'w-80' : 'w-24'}`}>
-                <div className="h-24 flex items-center justify-center mb-6">
+            <aside className={`fixed left-0 top-0 bottom-0 bg-[#0B101B]/40 backdrop-blur-3xl border-r border-white/5 p-4 lg:p-5 z-[70] overflow-y-auto transition-all duration-500 custom-scrollbar ${isSidebarOpen ? 'w-60' : 'w-24'}`}>
+                <div className="h-20 lg:h-24 flex items-center justify-center mb-6">
                     <Link to="/" target="_blank" rel="noopener noreferrer" className="group transition-all">
                         <div className="bg-white p-2 rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-                            <img src="/logo.jpg" alt="Logo" className="h-12 w-auto object-contain rounded-xl" />
+                            <img src="/logo.jpg" alt="Logo" className="h-10 lg:h-12 w-auto object-contain rounded-xl" />
                         </div>
                     </Link>
                 </div>
-                <nav className="space-y-1.5">
+                <nav className="space-y-1">
                     {navItems.map((item) => (
                         <button
                             key={item.id}
@@ -240,13 +240,13 @@ export default function AdminDashboard() {
                                 if (item.id === 'WEBSITE') window.open('/', '_blank');
                                 else handleModuleChange(item.id as AdminModule);
                             }}
-                            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group ${activeModule === item.id
+                            className={`w-full flex items-center gap-4 px-3 py-3 rounded-2xl transition-all group ${activeModule === item.id
                                 ? 'bg-[#0a1525] text-cyan-400 border border-cyan-500/30'
                                 : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
                                 }`}
                         >
                             <item.icon className={`w-5 h-5 ${activeModule === item.id ? 'text-cyan-400' : 'text-slate-500'}`} />
-                            {isSidebarOpen && <span className="text-base font-bold">{item.label}</span>}
+                            {isSidebarOpen && <span className="text-sm font-bold">{item.label}</span>}
                             {activeModule === item.id && isSidebarOpen && (
                                 <motion.div layoutId="activeInd" className="ml-auto w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,1)]" />
                             )}
@@ -263,30 +263,29 @@ export default function AdminDashboard() {
             </aside>
 
             {/* Top Bar Header */}
-            <header className={`fixed top-0 right-0 h-24 z-[60] bg-[#0B101B]/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between px-10 transition-all duration-500 ${isSidebarOpen ? 'left-80' : 'left-24'}`}>
-                <div className="flex lg:flex flex-col">
-                    <h1 className="text-2xl lg:text-3xl font-black text-white tracking-tighter uppercase italic">Admin Panel</h1>
-                    <div className="flex items-center gap-2">
-                        <span className="text-[14px] font-black uppercase tracking-[0.4em] text-cyan-400 font-mono italic">Main Control</span>
+            <header className={`fixed top-0 right-0 h-[64px] lg:h-[80px] z-[60] bg-[#0B101B]/80 backdrop-blur-2xl border-b border-white/5 flex items-center justify-between px-4 lg:px-6 transition-all duration-500 ${isSidebarOpen ? 'left-60' : 'left-24'}`}>
+                <div className="flex flex-col shrink-0">
+                    <h1 className="text-lg lg:text-xl font-black text-white tracking-tighter uppercase italic leading-none">Admin Panel</h1>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-cyan-400 font-mono italic">Main Control</span>
                     </div>
                 </div>
 
-                <div className="relative group hidden lg:block">
-                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
+                <div className="relative group hidden xl:block mx-4">
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-600 group-focus-within:text-cyan-400 transition-colors" />
                     <input
                         type="text"
                         placeholder="SEARCH DATA..."
-                        className="bg-white/5 border border-white/10 rounded-2xl pl-16 pr-8 py-4 w-[500px] text-[15px] font-bold text-white outline-none focus:border-cyan-500/30 transition-all uppercase tracking-widest placeholder:text-slate-800 shadow-2xl shadow-black/20"
+                        className="bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-2.5 w-[250px] xl:w-[380px] text-[11px] font-bold text-white outline-none focus:border-cyan-500/30 transition-all uppercase tracking-widest placeholder:text-slate-800 shadow-2xl shadow-black/20"
                     />
                 </div>
 
-
-                <div className="flex items-center gap-8">
-                    <div className="flex flex-col items-end text-right border-r border-white/5 pr-4 md:pr-6">
-                        <span className="text-sm md:text-xl font-black text-cyan-400 font-mono tracking-tighter tabular-nums leading-none">
+                <div className="flex items-center gap-3 lg:gap-6">
+                    <div className="flex flex-col items-end text-right border-r border-white/5 pr-2 md:pr-4">
+                        <span className="text-[14px] md:text-lg font-black text-cyan-400 font-mono tracking-tighter tabular-nums leading-none">
                             {currentTime.toLocaleTimeString('en-US', { hour12: false })}
                         </span>
-                        <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mt-1 md:mt-1.5">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">
                             {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()}
                         </span>
                     </div>
@@ -299,18 +298,18 @@ export default function AdminDashboard() {
                     </div>
 
                         <div 
-                            className="flex items-center gap-6 pl-4 border-l border-white/5 relative" 
+                            className="flex items-center gap-2 lg:gap-4 pl-3 border-l border-white/5 relative" 
                             ref={profileRef}
                         >
-                            <div className="text-right hidden sm:block">
-                                <p className="text-[12px] font-black text-white uppercase tracking-widest">{user?.role?.replace('_', ' ') || 'Admin Control'}</p>
-                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">{user?.email}</p>
+                            <div className="text-right hidden sm:flex flex-col max-w-[80px] md:max-w-[120px]">
+                                <p className="text-[10px] font-black text-white uppercase tracking-widest truncate w-full">{user?.role?.replace('_', ' ') || 'Admin Control'}</p>
+                                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-0.5 truncate w-full">{user?.email}</p>
                             </div>
                             <button 
                                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                                className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-indigo-600 p-0.5 shadow-xl hover:rotate-6 transition-transform cursor-pointer"
+                                className="w-9 h-9 lg:w-11 lg:h-11 rounded-xl bg-gradient-to-br from-cyan-500 to-indigo-600 p-0.5 shadow-xl hover:rotate-6 transition-transform cursor-pointer shrink-0"
                             >
-                                <div className="w-full h-full bg-[#0B101B] rounded-[0.9rem] flex items-center justify-center font-black text-white uppercase italic text-[12px]">
+                                <div className="w-full h-full bg-[#0B101B] rounded-[0.6rem] flex items-center justify-center font-black text-white uppercase italic text-[10px] lg:text-[11px]">
                                     {user?.first_name?.[0] || 'A'}{user?.last_name?.[0] || 'D'}
                                 </div>
                             </button>
@@ -349,7 +348,7 @@ export default function AdminDashboard() {
             </header>
 
             {/* Main Workspace Area */}
-            <main className={`flex-1 pt-32 pb-24 px-10 transition-all duration-500 ${isSidebarOpen ? 'ml-80' : 'ml-24'}`}>
+            <main className={`flex-1 pt-32 pb-24 px-10 transition-all duration-500 ${isSidebarOpen ? 'ml-60' : 'ml-24'}`}>
                 {activeModule === 'DASHBOARD' && (
                     <DashboardModule
                         key="DASHBOARD"
@@ -369,6 +368,8 @@ export default function AdminDashboard() {
                 {activeModule === 'SCREENER_BUILDER' && (
                     <QuestionnaireBuilder />
                 )}
+
+
 
                 {activeModule === 'AUDIT_LOGS' && (
                     <AuditLogs />

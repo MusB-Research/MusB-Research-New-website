@@ -5,7 +5,7 @@ import {
     Clock, Tag, Bookmark, ShieldAlert, FileText, ChevronRight, ChevronDown,
     ArrowUpRight, AlertCircle, Save, Layers, ListFilter
 } from 'lucide-react';
-import { authFetch, API } from '../../utils/auth';
+import { authFetch, API, getUser } from '../../utils/auth';
 
 // --- TYPES ---
 interface Message {
@@ -17,6 +17,7 @@ interface Message {
     tag: 'Safety' | 'Protocol' | 'Eligibility' | 'General';
     attachment: string | null;
     fromPI: boolean;
+    is_from_me: boolean;
 }
 
 interface Conversation {
@@ -59,8 +60,8 @@ const MOCK_CONVERSATIONS: Conversation[] = [
         participantStatus: 'Active',
         draft: '',
         messages: [
-            { id: 'm1', sender: 'John Doe', role: 'Coordinator', time: '10:32 AM', text: 'Participant BTB-023 reported mild bloating increase after dose 3.', tag: 'Safety', attachment: 'Symptom_Log.pdf', fromPI: false },
-            { id: 'm2', sender: 'You', role: 'PI', time: '10:45 AM', text: 'Please monitor for 24 hours and report any escalation immediately.', tag: 'Protocol', attachment: null, fromPI: true }
+            { id: 'm1', sender: 'John Doe', role: 'Coordinator', time: '10:32 AM', text: 'Participant BTB-023 reported mild bloating increase after dose 3.', tag: 'Safety', attachment: 'Symptom_Log.pdf', fromPI: false, is_from_me: true },
+            { id: 'm2', sender: 'You', role: 'PI', time: '10:45 AM', text: 'Please monitor for 24 hours and report any escalation immediately.', tag: 'Protocol', attachment: null, fromPI: true, is_from_me: false }
         ]
     },
     {
@@ -78,7 +79,7 @@ const MOCK_CONVERSATIONS: Conversation[] = [
         participantStatus: 'Active',
         draft: '',
         messages: [
-            { id: 'm3', sender: 'Sarah Lee', role: 'Coordinator', time: 'Yesterday 2:15 PM', text: 'Visit 4 completed successfully. Labs submitted to central lab.', tag: 'General', attachment: null, fromPI: false }
+            { id: 'm3', sender: 'Sarah Lee', role: 'Coordinator', time: 'Yesterday 2:15 PM', text: 'Visit 4 completed successfully. Labs submitted to central lab.', tag: 'General', attachment: null, fromPI: false, is_from_me: false }
         ]
     },
     {
@@ -96,7 +97,7 @@ const MOCK_CONVERSATIONS: Conversation[] = [
         participantStatus: 'Screening',
         draft: '',
         messages: [
-            { id: 'm4', sender: 'Admin', role: 'Admin', time: 'Mon 9:00 AM', text: 'IRB approval renewal is due in 14 days. Please submit required documents.', tag: 'Protocol', attachment: 'IRB_Renewal_Form.pdf', fromPI: false }
+            { id: 'm4', sender: 'Admin', role: 'Admin', time: 'Mon 9:00 AM', text: 'IRB approval renewal is due in 14 days. Please submit required documents.', tag: 'Protocol', attachment: 'IRB_Renewal_Form.pdf', fromPI: false, is_from_me: false }
         ]
     }
 ];
@@ -142,43 +143,72 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
             if (res.ok) {
                 const data = await res.json();
                 const results = Array.isArray(data) ? data : (data.results || []);
-                const mapped: Conversation[] = results.map((c: any) => ({
-                    id: c.id,
-                    participantId: c.participant_sid || 'N/A',
-                    study: c.study_protocol || 'Global',
-                    sender: c.assigned_coordinator || 'N/A',
-                    senderRole: 'Coordinator',
-                    preview: c.last_message_preview || 'No messages yet',
-                    timestamp: c.last_updated ? new Date(c.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A',
-                    rawLastUpdated: c.last_updated ? new Date(c.last_updated).getTime() : 0,
-                    status: !c.status ? 'Open' : c.status === 'ACTION_REQUIRED' ? 'Action Required' : c.status.charAt(0).toUpperCase() + c.status.slice(1).toLowerCase().replace('_', ' '),
-                    flagged: !!c.is_flagged,
-                    assignedCoordinator: c.assigned_coordinator || 'Unassigned',
-                    participantStatus: c.participant_status || 'Active',
-                    draft: '',
-                    messages: (c.messages || []).map((m: any) => ({
-                        id: m.id,
-                        sender: m.sender_name || 'System',
-                        role: m.user_role_label || 'Bot',
-                        time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        text: m.text || '',
-                        tag: (m.tag || 'General').charAt(0).toUpperCase() + (m.tag || 'General').slice(1).toLowerCase(),
-                        fromPI: !!m.is_from_pi
-                    }))
-                }));
-                setConversations(mapped);
-                if (mapped.length > 0 && !activeConvId) {
-                    setActiveConvId(mapped[0].id);
-                }
+                setConversations(prev => {
+                    return results.map((c: any) => {
+                        const existing = prev.find(p => p.id === c.id);
+                        return {
+                            id: c.id,
+                            participantId: c.participant_sid || 'N/A',
+                            study: c.study_protocol || 'Global',
+                            sender: c.assigned_coordinator || 'N/A',
+                            senderRole: 'Coordinator',
+                            preview: c.last_message_preview || 'No messages yet',
+                            timestamp: c.last_updated ? new Date(c.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A',
+                            rawLastUpdated: c.last_updated ? new Date(c.last_updated).getTime() : 0,
+                            status: !c.status ? 'Open' : c.status === 'ACTION_REQUIRED' ? 'Action Required' : c.status.charAt(0).toUpperCase() + c.status.slice(1).toLowerCase().replace('_', ' '),
+                            flagged: !!c.is_flagged,
+                            assignedCoordinator: c.assigned_coordinator || 'Unassigned',
+                            participantStatus: c.participant_status || 'Active',
+                            draft: existing ? existing.draft : '',
+                            messages: existing ? existing.messages : []
+                        };
+                    });
+                });
+                
+                setActiveConvId(prevActive => {
+                    if (!prevActive && results.length > 0) {
+                        return results[0].id;
+                    }
+                    return prevActive;
+                });
             } else {
-                addToast('Synchronicity failure', 'error');
+                addToast('Error', 'error');
             }
         } catch (e) {
-            addToast('Synchronicity failure', 'error');
+            addToast('Error', 'error');
         } finally {
             setLoading(false);
         }
     };
+
+    const loadThread = async (id: string) => {
+        try {
+            const res = await authFetch(`${API}/api/clinical-conversations/${id}/`);
+            if (res.ok) {
+                const currentUser = getUser();
+                const data = await res.json();
+                const mappedMessages = (data.messages || []).map((m: any) => ({
+                    id: m.id,
+                    sender: m.sender_name || 'System',
+                    role: m.user_role_label || 'Bot',
+                    time: m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '---',
+                    text: m.text || '',
+                    tag: (m.tag || 'General').charAt(0).toUpperCase() + (m.tag || 'General').slice(1).toLowerCase(),
+                    fromPI: !!m.is_from_pi,
+                    is_from_me: m.sender && currentUser ? m.sender === currentUser.id : false
+                }));
+                setConversations(prev => prev.map(c => c.id === id ? { ...c, messages: mappedMessages } : c));
+            }
+        } catch (e) {
+            console.error("Failed to load thread", e);
+        }
+    };
+
+    useEffect(() => {
+        if (activeConvId) {
+            loadThread(activeConvId);
+        }
+    }, [activeConvId]);
 
     // Auto-scroll on active conversation or messages change
     const fetchComposeData = async () => {
@@ -260,10 +290,11 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
 
             if (res.ok) {
                 fetchConversations();
+                if (activeConvId) loadThread(activeConvId);
                 setMessageInput('');
                 setAttachedFile(null);
                 setSelectedTag('General');
-                addToast('Message dispatched');
+                addToast('Sent');
             }
         } catch (e) {
             addToast('Transmission failure', 'error');
@@ -282,7 +313,7 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
             const res = await authFetch(`${API}/api/clinical-conversations/${id}/toggle_flag/`, { method: 'POST' });
             if (res.ok) {
                 fetchConversations();
-                addToast('Priority status updated');
+                addToast('Flagged');
             }
         } catch (e) {}
     };
@@ -320,7 +351,8 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
             text: systemText,
             tag,
             attachment: null,
-            fromPI: false
+            fromPI: false,
+            is_from_me: false
         };
         setConversations(prev => prev.map(c => c.id === activeConvId ? {
             ...c,
@@ -359,7 +391,7 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                     })
                 });
 
-                addToast('Clinical thread initialized', 'success');
+                addToast('Thread created', 'success');
                 setComposeOpen(false);
                 setComposeForm({ participantId: '', studyId: '', text: '' });
                 fetchConversations();
@@ -380,11 +412,11 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
             boxShadow: 'inset 0 0 20px rgba(99, 102, 241, 0.05)'
         },
         title: {
-            fontSize: '2.5rem',
+            fontSize: '1.25rem',
             fontWeight: 900,
             fontStyle: 'italic',
             textTransform: 'uppercase' as const,
-            letterSpacing: '-0.04em',
+            letterSpacing: '-0.02em',
             margin: 0,
             color: 'white'
         },
@@ -399,45 +431,58 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
             backgroundColor: '#6366f1',
             color: 'white',
             border: 'none',
-            padding: '1rem 2rem',
-            borderRadius: '6px',
-            fontSize: '12px',
+            padding: '0.3rem 0.6rem',
+            borderRadius: '4px',
+            fontSize: '10px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
             cursor: 'pointer',
-            boxShadow: '0 4px 20px rgba(99, 102, 241, 0.3)'
+            boxShadow: '0 4px 10px rgba(99, 102, 241, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px',
+            whiteSpace: 'nowrap' as const
         },
         btnGhost: {
             backgroundColor: 'transparent',
             color: '#94a3b8',
             border: '1px solid rgba(255,255,255,0.1)',
-            padding: '0.8rem 1.25rem',
-            borderRadius: '6px',
-            fontSize: '12px',
+            padding: '0.3rem 0.6rem',
+            borderRadius: '4px',
+            fontSize: '10px',
             fontWeight: 900,
             textTransform: 'uppercase' as const,
-            cursor: 'pointer'
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px',
+            whiteSpace: 'nowrap' as const
         }
     };
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', backgroundColor: '#0B101B', color: 'white', overflow: 'hidden' }}>
             {/* TOP BAR */}
-            <header style={{ ...G.glass, padding: '1rem 3rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10 }}>
-                <h1 style={{ ...G.title, fontSize: '2rem' }}>Messages</h1>
+            <header style={{ ...G.glass, padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10 }}>
+                <h1 style={{ ...G.title, fontSize: '1.25rem' }}>Messages</h1>
 
                 <div style={{ display: 'flex', flex: 1, maxWidth: '600px', margin: '0 2rem', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '0 1rem' }}>
                     <Search size={14} color="#64748b" style={{ marginTop: '0.75rem' }} />
                     <input 
-                        style={{ backgroundColor: 'transparent', border: 'none', color: 'white', padding: '0.75rem', fontSize: '12px', outline: 'none', width: '100%', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.1em' }}
-                        placeholder="Search IDs, studies, or clinical keywords..."
+                        style={{ backgroundColor: 'transparent', border: 'none', color: 'white', padding: '0.4rem', fontSize: '11px', outline: 'none', width: '100%', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.1em' }}
+                        placeholder="Search..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                     />
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <button style={G.btnPrimary} onClick={() => setComposeOpen(true)}><Plus size={18} style={{ marginRight: '8px', verticalAlign: 'middle' }} /> Compose</button>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <button style={G.btnPrimary} onClick={() => setComposeOpen(true)}>
+                        <Plus size={14} /> 
+                        Compose
+                    </button>
                     <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem' }}>
                         {['All', 'Unread', 'Flagged', 'Requires Action'].map(f => {
                             const count = conversations.filter(c => {
@@ -450,8 +495,8 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                             return (
                                 <button key={f} 
                                     onClick={() => setFilterStatus(f)}
-                                    style={{ ...G.btnGhost, borderColor: filterStatus === f ? '#6366f1' : 'rgba(255,255,255,0.1)', backgroundColor: filterStatus === f ? 'rgba(99,102,241,0.1)' : 'transparent', color: filterStatus === f ? 'white' : '#64748b' }}>
-                                    {f} <span style={{ marginLeft: '6px', opacity: 0.5, fontSize: '10px' }}>({count})</span>
+                                    style={{ ...G.btnGhost, padding: '0.2rem 0.6rem', borderColor: filterStatus === f ? '#6366f1' : 'rgba(255,255,255,0.1)', backgroundColor: filterStatus === f ? 'rgba(99,102,241,0.1)' : 'transparent', color: filterStatus === f ? 'white' : '#64748b' }}>
+                                    {f} <span style={{ marginLeft: '4px', opacity: 0.5, fontSize: '9px' }}>({count})</span>
                                 </button>
                             );
                         })}
@@ -463,8 +508,8 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
                 
                 {/* LEFT PANEL: Conversation List */}
-                <div style={{ width: '360px', borderRight: '1px solid rgba(99, 102, 241, 0.2)', display: 'flex', flexDirection: 'column', ...G.glass }}>
-                    <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ width: '320px', borderRight: '1px solid rgba(99, 102, 241, 0.2)', display: 'flex', flexDirection: 'column', ...G.glass }}>
+                    <div style={{ padding: '0.5rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={G.label}>Conversations</span>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <button onClick={() => setSortMode('recent')} style={{ border: 'none', background: 'none', color: sortMode === 'recent' ? '#6366f1' : '#64748b', cursor: 'pointer' }}><Clock size={16} /></button>
@@ -485,7 +530,7 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                                 key={conv.id}
                                 onClick={() => handleSelectConv(conv.id)}
                                 style={{
-                                    padding: '1.25rem 1.5rem',
+                                    padding: '0.5rem 0.75rem',
                                     borderBottom: '1px solid rgba(255,255,255,0.03)',
                                     cursor: 'pointer',
                                     borderLeft: activeConvId === conv.id ? '4px solid #6366f1' : '4px solid transparent',
@@ -493,19 +538,19 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                                     transition: 'all 0.2s'
                                 }}
                             >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                    <span style={{ fontSize: '16px', fontWeight: 900, fontStyle: 'italic', color: 'white' }}>{conv.participantId} <span style={{ color: '#64748b', fontSize: '12px' }}>| {conv.study}</span></span>
-                                    <span style={{ fontSize: '12px', color: '#64748b' }}>{conv.timestamp}</span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                                    <span style={{ fontSize: '14px', fontWeight: 900, fontStyle: 'italic', color: 'white' }}>{conv.participantId} <span style={{ color: '#64748b', fontSize: '11px' }}>| {conv.study}</span></span>
+                                    <span style={{ fontSize: '11px', color: '#64748b' }}>{conv.timestamp}</span>
                                 </div>
-                                <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: 'bold', textTransform: 'uppercase' }}>{conv.sender} • {conv.senderRole}</div>
-                                <div style={{ fontSize: '13px', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.preview}</div>
+                                <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '0.25rem', fontWeight: 'bold', textTransform: 'uppercase' }}>{conv.sender} • {conv.senderRole}</div>
+                                <div style={{ fontSize: '12px', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.preview}</div>
                                 
-                                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', alignItems: 'center' }}>
                                     {conv.status === 'Unread' && <span style={{ backgroundColor: '#6366f1', height: '8px', width: '8px', borderRadius: '50%' }} />}
                                     {conv.status === 'Action Required' && <span style={{ backgroundColor: '#ef4444', height: '8px', width: '8px', borderRadius: '50%' }} />}
                                     {conv.status === 'Resolved' && <CheckCircle2 size={12} color="#10b981" />}
-                                    {conv.flagged && <Bookmark size={12} color="#f59e0b" fill="#f59e0b" />}
-                                    <span style={{ fontSize: '12px', fontWeight: 900, color: conv.status === 'Resolved' ? '#10b981' : '#64748b', textTransform: 'uppercase' }}>{conv.status}</span>
+                                    {conv.flagged && <Bookmark size={10} color="#f59e0b" fill="#f59e0b" />}
+                                    <span style={{ fontSize: '10px', fontWeight: 900, color: conv.status === 'Resolved' ? '#10b981' : '#64748b', textTransform: 'uppercase' }}>{conv.status}</span>
                                 </div>
                             </div>
                         )))}
@@ -517,36 +562,36 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                     {activeConv ? (
                         <>
                             {/* THREAD HEADER */}
-                            <div style={{ ...G.glass, borderTop: 'none', borderRight: 'none', padding: '1rem 3rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ ...G.glass, borderTop: 'none', borderRight: 'none', padding: '0.4rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <div>
-                                    <div style={{ fontSize: '20px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' }}>{activeConv.participantId} • <span style={{ color: '#6366f1' }}>{activeConv.study}</span></div>
-                                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.4rem', alignItems: 'center' }}>
-                                        <span style={{ fontSize: '12px', fontWeight: 900, color: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', padding: '0.2rem 0.6rem', borderRadius: '20px' }}>{activeConv.participantStatus} Participant</span>
-                                        <span style={{ fontSize: '12px', color: '#94a3b8' }}><User size={12} style={{ marginRight: '6px' }} /> {activeConv.assignedCoordinator}</span>
+                                    <div style={{ fontSize: '16px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' }}>{activeConv.participantId} • <span style={{ color: '#6366f1' }}>{activeConv.study}</span></div>
+                                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.2rem', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '10px', fontWeight: 900, color: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>{activeConv.participantStatus} Participant</span>
+                                        <span style={{ fontSize: '10px', color: '#94a3b8' }}><User size={10} style={{ marginRight: '4px' }} /> {activeConv.assignedCoordinator}</span>
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                                    <button style={{ ...G.btnGhost, padding: '0.6rem 1rem' }} onClick={() => toggleFlag(activeConv.id)}><Bookmark size={14} color={activeConv.flagged ? '#f59e0b' : '#64748b'} fill={activeConv.flagged ? '#f59e0b' : 'none'} style={{ marginRight: '6px' }} /> FLAG</button>
-                                    <button style={{ ...G.btnGhost, padding: '0.6rem 1rem' }} onClick={() => markResolved(activeConv.id)}><CheckCircle2 size={14} color="#10b981" style={{ marginRight: '6px' }} /> RESOLVE</button>
-                                    <button style={{ ...G.btnGhost, padding: '0.6rem 1rem' }} onClick={() => setParticipantDrawerOpen(true)}><FileText size={14} style={{ marginRight: '6px' }} /> RECORD</button>
-                                    <button style={{ ...G.btnPrimary, padding: '0.6rem 1.5rem' }} onClick={() => setActionPanelOpen(!actionPanelOpen)}>ACTIONS {actionPanelOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</button>
+                                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                    <button style={{ ...G.btnGhost, padding: '0.3rem 0.6rem' }} onClick={() => toggleFlag(activeConv.id)}><Bookmark size={12} color={activeConv.flagged ? '#f59e0b' : '#64748b'} fill={activeConv.flagged ? '#f59e0b' : 'none'} style={{ marginRight: '4px' }} /> FLAG</button>
+                                    <button style={{ ...G.btnGhost, padding: '0.3rem 0.6rem' }} onClick={() => markResolved(activeConv.id)}><CheckCircle2 size={12} color="#10b981" style={{ marginRight: '4px' }} /> RESOLVE</button>
+                                    <button style={{ ...G.btnGhost, padding: '0.3rem 0.6rem' }} onClick={() => setParticipantDrawerOpen(true)}><FileText size={12} style={{ marginRight: '4px' }} /> RECORD</button>
+                                    <button style={{ ...G.btnPrimary, padding: '0.3rem 0.8rem' }} onClick={() => setActionPanelOpen(!actionPanelOpen)}>ACTIONS {actionPanelOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}</button>
                                 </div>
                             </div>
 
                             {/* DYNAMIC ACTION PANEL */}
                             {actionPanelOpen && (
-                                <div style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '1rem 3rem' }}>
-                                    <div style={{ display: 'flex', gap: '3rem' }}>
+                                <div style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0.4rem 1rem' }}>
+                                    <div style={{ display: 'flex', gap: '1.5rem' }}>
                                         <div>
-                                            <div style={{ ...G.label, marginBottom: '0.6rem' }}>Clinical Actions</div>
+                                            <div style={{ ...G.label, marginBottom: '0.3rem', fontSize: '10px' }}>Actions</div>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem' }} onClick={() => handleAction('Info Request', 'PI has requested additional information. Please update clinical details.', 'General')}>Request MI</button>
-                                                <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem' }} onClick={() => handleAction('Deviation', 'Marked as protocol deviation by PI.', 'Protocol')}>Protocol Dev.</button>
-                                                <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', borderColor: '#ef444430', color: '#ef4444' }} onClick={() => handleAction('Escalation', 'Escalated to safety event by PI. Immediate review required.', 'Safety', true)}>Escalate Safety</button>
+                                                <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', fontSize: '12px' }} onClick={() => handleAction('Request Info', 'PI has requested additional information. Please update clinical details.', 'General')}>Request Info</button>
+                                                <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', fontSize: '12px' }} onClick={() => handleAction('Deviation', 'Marked as protocol deviation by PI.', 'Protocol')}>Deviation</button>
+                                                <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', fontSize: '12px', borderColor: '#ef444430', color: '#ef4444' }} onClick={() => handleAction('Escalation', 'Escalated to safety event by PI. Immediate review required.', 'Safety', true)}>Escalate</button>
                                             </div>
                                         </div>
                                         <div>
-                                            <div style={{ ...G.label, marginBottom: '0.6rem' }}>Workflow Actions</div>
+                                            <div style={{ ...G.label, marginBottom: '0.3rem', fontSize: '10px' }}>Workflow</div>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                                                 <select 
                                                     style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', outline: 'none', backgroundColor: '#0B101B' }}
@@ -565,36 +610,37 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                             )}
 
                             {/* CHAT THREAD */}
-                            <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 3rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                 {activeConv.messages.map(m => (
-                                    <div key={m.id} style={{ alignSelf: m.fromPI ? 'flex-end' : 'flex-start', maxWidth: '75%', textAlign: m.fromPI ? 'right' : 'left' }}>
-                                        <div style={{ fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', color: '#64748b', marginBottom: '0.4rem', display: 'flex', justifyContent: m.fromPI ? 'flex-end' : 'flex-start', gap: '0.6rem' }}>
-                                            {!m.fromPI && <span style={{ color: '#6366f1' }}>{m.sender} [{m.role}]</span>}
+                                    <div key={m.id} style={{ alignSelf: m.is_from_me ? 'flex-end' : 'flex-start', maxWidth: '75%', textAlign: m.is_from_me ? 'right' : 'left' }}>
+                                        <div style={{ fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', color: '#64748b', marginBottom: '0.4rem', display: 'flex', justifyContent: m.is_from_me ? 'flex-end' : 'flex-start', gap: '0.6rem' }}>
+                                            {!m.is_from_me && <span style={{ color: '#6366f1' }}>{m.sender} [{m.role}]</span>}
                                             <span>{m.time}</span>
-                                            {m.fromPI && <span style={{ color: '#6366f1' }}>YOU [PI]</span>}
+                                            {m.is_from_me && <span style={{ color: '#6366f1' }}>YOU [{m.role}]</span>}
                                         </div>
                                         <div style={{ 
-                                            padding: '1.5rem', 
-                                            borderRadius: '12px', 
-                                            backgroundColor: m.fromPI ? 'rgba(99, 102, 241, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-                                            border: `1px solid ${m.fromPI ? 'rgba(99, 102, 241, 0.3)' : 'rgba(255, 255, 255, 0.08)'}`,
-                                            lineHeight: '1.6',
-                                            fontSize: '14px',
+                                            padding: '0.5rem 0.75rem', 
+                                            borderRadius: m.is_from_me ? '16px 16px 0 16px' : '16px 16px 16px 0', 
+                                            backgroundColor: m.is_from_me ? '#6366f1' : 'rgba(255, 255, 255, 0.05)',
+                                            border: `1px solid ${m.is_from_me ? '#6366f1' : 'rgba(255, 255, 255, 0.1)'}`,
+                                            lineHeight: '1.4',
+                                            fontSize: '13px',
                                             color: '#f8fafc',
-                                            boxShadow: m.fromPI ? '0 10px 30px rgba(99, 102, 241, 0.1)' : 'none'
+                                            boxShadow: m.is_from_me ? '0 10px 30px rgba(99, 102, 241, 0.2)' : 'none',
+                                            textAlign: 'left'
                                         }}>
                                             {m.text}
                                             {m.attachment && (
-                                                <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.8rem', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '6px', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
-                                                    <Paperclip size={14} color="#6366f1" />
-                                                    <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#6366f1' }}>{m.attachment}</span>
+                                                <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.8rem', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                                    <Paperclip size={14} color={m.is_from_me ? "white" : "#6366f1"} />
+                                                    <span style={{ fontSize: '12px', fontWeight: 'bold', color: m.is_from_me ? "white" : "#6366f1" }}>{m.attachment}</span>
                                                 </div>
                                             )}
                                         </div>
-                                        <div style={{ marginTop: '0.75rem', display: 'flex', justifyContent: m.fromPI ? 'flex-end' : 'flex-start', gap: '0.5rem' }}>
+                                        <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: m.is_from_me ? 'flex-end' : 'flex-start', gap: '0.5rem' }}>
                                             <span style={{ 
-                                                fontSize: '12px', fontWeight: 900, textTransform: 'uppercase',
-                                                padding: '0.25rem 0.6rem', borderRadius: '4px',
+                                                fontSize: '11px', fontWeight: 900, textTransform: 'uppercase',
+                                                padding: '0.2rem 0.5rem', borderRadius: '4px',
                                                 backgroundColor: m.tag === 'Safety' ? '#ef444420' : m.tag === 'Protocol' ? '#6366f120' : 'rgba(255,255,255,0.05)',
                                                 color: m.tag === 'Safety' ? '#ef4444' : m.tag === 'Protocol' ? '#6366f1' : '#64748b',
                                                 border: `1px solid ${m.tag === 'Safety' ? '#ef444440' : 'rgba(255,255,255,0.1)'}`
@@ -606,22 +652,22 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                             </div>
 
                             {/* INPUT AREA */}
-                            <div style={{ ...G.glass, borderRight: 'none', borderBottom: 'none', padding: '1rem 3rem' }}>
+                            <div style={{ ...G.glass, borderRight: 'none', borderBottom: 'none', padding: '0.4rem 1rem' }}>
                                 <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                                    <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', fontSize: '12px' }} onClick={() => {
+                                    <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', fontSize: '11px' }} onClick={() => {
                                         const t = TEMPLATES[0];
                                         setMessageInput(t.text.replace('[ID]', activeConv.participantId));
-                                    }}>Template: Eligibility</button>
-                                    <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', fontSize: '12px' }} onClick={() => {
+                                    }}>Eligibility</button>
+                                    <button style={{ ...G.btnGhost, padding: '0.4rem 0.8rem', fontSize: '11px' }} onClick={() => {
                                         const t = TEMPLATES[1];
                                         setMessageInput(t.text);
-                                    }}>Template: AE Follow-up</button>
+                                    }}>AE Follow-up</button>
                                     <div style={{ flex: 1 }} />
                                     <div style={{ display: 'flex', backgroundColor: 'rgba(255,255,255,0.03)', padding: '2px', borderRadius: '4px' }}>
                                         {['General', 'Safety', 'Eligibility', 'Protocol'].map(t => (
                                             <button key={t} 
                                                 onClick={() => setSelectedTag(t as any)}
-                                                style={{ border: 'none', background: selectedTag === t ? 'rgba(99,102,241,0.2)' : 'transparent', color: selectedTag === t ? '#6366f1' : '#64748b', padding: '0.4rem 1rem', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', borderRadius: '4px', cursor: 'pointer' }}>
+                                                style={{ border: 'none', background: selectedTag === t ? 'rgba(99,102,241,0.2)' : 'transparent', color: selectedTag === t ? '#6366f1' : '#64748b', padding: '0.2rem 0.5rem', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', borderRadius: '4px', cursor: 'pointer' }}>
                                                 {t}
                                             </button>
                                         ))}
@@ -637,24 +683,23 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                                             </div>
                                         )}
                                         <textarea 
-                                            style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'white', padding: '1.25rem', fontSize: '14px', outline: 'none', minHeight: '80px', resize: 'vertical' }}
-                                            placeholder="Compose clinical feedback..."
+                                            style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'white', padding: '0.75rem', fontSize: '13px', outline: 'none', minHeight: '40px', resize: 'vertical' }}
+                                            placeholder="Type a message..."
                                             value={messageInput}
                                             onChange={e => setMessageInput(e.target.value)}
                                         />
                                     </div>
                                     <input type="file" ref={fileInputRef} hidden onChange={e => setAttachedFile(e.target.files?.[0] || null)} />
-                                    <button style={{ ...G.btnGhost, padding: '1.25rem' }} onClick={() => fileInputRef.current?.click()}><Paperclip size={20} /></button>
-                                    <button style={{ ...G.btnGhost, padding: '1.25rem' }} onClick={handleSaveDraft}><Save size={20} /></button>
-                                    <button style={{ ...G.btnPrimary, height: '80px', padding: '0 2.5rem' }} onClick={handleSendMessage}><Send size={20} /></button>
+                                    <button style={{ ...G.btnGhost, padding: '0.75rem' }} onClick={() => fileInputRef.current?.click()}><Paperclip size={18} /></button>
+                                    <button style={{ ...G.btnGhost, padding: '0.75rem' }} onClick={handleSaveDraft}><Save size={18} /></button>
+                                    <button style={{ ...G.btnPrimary, height: '40px', padding: '0 1.5rem' }} onClick={handleSendMessage}><Send size={18} /></button>
                                 </div>
                             </div>
                         </>
                     ) : (
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
                             <MessageSquare size={80} style={{ marginBottom: '2rem', opacity: 0.1 }} />
-                            <div style={{ fontSize: '24px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' }}>Select a participant thread</div>
-                            <div style={{ fontSize: '14px', marginTop: '1rem' }}>Clinical correspondence queue active.</div>
+                            <div style={{ fontSize: '24px', fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase' }}>Select a conversation</div>
                         </div>
                     )}
                 </div>
@@ -665,10 +710,10 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                 <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)' }} onClick={() => setComposeOpen(false)} />
                     <div style={{ ...G.glass, width: '720px', padding: '3rem', position: 'relative', borderRadius: '12px' }}>
-                        <h2 style={G.title}>Compose New Message</h2>
+                        <h2 style={G.title}>New Message</h2>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '2.5rem' }}>
                             <div>
-                                <label style={G.label}>Participant ID / To</label>
+                                <label style={G.label}>To</label>
                                 <select 
                                     style={{ ...G.btnGhost, width: '100%', padding: '1rem', marginTop: '0.5rem', backgroundColor: '#0B101B' }}
                                     value={composeForm.participantId}
@@ -695,7 +740,7 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                             </div>
                         </div>
                         <div style={{ marginTop: '2rem' }}>
-                            <label style={G.label}>Clinical Assessment / Message</label>
+                            <label style={G.label}>Message</label>
                             <textarea 
                                 style={{ ...G.glass, width: '100%', padding: '1.5rem', marginTop: '0.5rem', minHeight: '200px', fontSize: '14px', color: 'white', outline: 'none' }} 
                                 placeholder="Detail assessment..." 
@@ -705,7 +750,7 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                         </div>
                         <div style={{ display: 'flex', gap: '1rem', marginTop: '3rem', justifyContent: 'flex-end' }}>
                             <button style={G.btnGhost} onClick={() => setComposeOpen(false)}>CANCEL</button>
-                            <button style={G.btnPrimary} onClick={handleComposeSubmit}>SEND DISPATCH</button>
+                            <button style={G.btnPrimary} onClick={handleComposeSubmit}>SEND</button>
                         </div>
                     </div>
                 </div>
@@ -719,7 +764,7 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                         <ShieldAlert size={48} color="#ef4444" style={{ marginBottom: '1.5rem' }} />
                         <p style={{ fontSize: '16px', fontWeight: 'bold', lineHeight: 1.6, marginBottom: '2.5rem' }}>{confirmModal.message}</p>
                         <div style={{ display: 'flex', gap: '1rem' }}>
-                            <button style={{ ...G.btnGhost, flex: 1 }} onClick={() => setConfirmModal(null)}>ABORT</button>
+                             <button style={{ ...G.btnGhost, flex: 1 }} onClick={() => setConfirmModal(null)}>CANCEL</button>
                             <button style={{ ...G.btnPrimary, flex: 1, backgroundColor: '#ef4444' }} onClick={confirmModal.onConfirm}>CONFIRM</button>
                         </div>
                     </div>
@@ -730,13 +775,13 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
             {participantDrawerOpen && (
                 <div style={{ position: 'fixed', top: 0, right: 0, width: '480px', height: '100vh', ...G.glass, zIndex: 500, boxShadow: '-50px 0 100px rgba(0,0,0,0.8)', padding: '3rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
-                        <h2 style={G.title}>Participant Record</h2>
+                        <h2 style={G.title}>Record</h2>
                         <button style={G.btnGhost} onClick={() => setParticipantDrawerOpen(false)}><X size={24} /></button>
                     </div>
                     {activeConv && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                             <div style={{ padding: '2rem', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                <span style={G.label}>Primary ID</span>
+                                <span style={G.label}>ID</span>
                                 <div style={{ fontSize: '24px', fontWeight: 900, fontStyle: 'italic', marginTop: '0.5rem' }}>{activeConv.participantId}</div>
                             </div>
                             <div>
@@ -748,7 +793,7 @@ export default function CCMessagesModule({ selectedStudyId }: { selectedStudyId?
                                 <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#6366f1', marginTop: '0.5rem' }}>{activeConv.study}</div>
                             </div>
                             <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '2rem' }}>
-                                <button style={{ ...G.btnPrimary, width: '100%' }}>OPEN FULL MEDICAL VULCAN</button>
+                                <button style={{ ...G.btnPrimary, width: '100%' }}>OPEN RECORD</button>
                             </div>
                         </div>
                     )}
