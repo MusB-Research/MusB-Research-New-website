@@ -66,7 +66,10 @@ type PIModule =
     | 'TASKS'
     | 'ANALYTICS'
     | 'KITS'
-    | 'PARTICIPANT_TASKS';
+    | 'PARTICIPANT_TASKS'
+    | 'STUDY_DOCS'
+    | 'MY_DOCS'
+    | 'SUPPORT';
 
 interface SidebarItem {
     id: PIModule | 'WEBSITE';

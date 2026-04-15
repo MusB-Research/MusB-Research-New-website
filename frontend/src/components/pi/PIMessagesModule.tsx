@@ -14,7 +14,7 @@ interface Message {
     role: string;
     time: string;
     text: string;
-    tag: 'Safety' | 'Study' | 'Eligibility' | 'General';
+    tag: 'Safety' | 'Study' | 'Eligibility' | 'General' | 'Protocol';
     attachment: string | null;
     fromPI: boolean;
     is_from_me: boolean;
