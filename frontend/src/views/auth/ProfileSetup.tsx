@@ -47,7 +47,8 @@ const BirthDateField = ({ value, onChange, isMissing }: { value: string; onChang
 
     const [viewDate, setViewDate] = React.useState(new Date());
     const [viewMode, setViewMode] = React.useState<'days' | 'months' | 'years'>('days');
-    const years = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i);
+    // Generous year range for historical birth dates
+    const years = Array.from({ length: 110 }, (_, i) => new Date().getFullYear() - i);
     const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
     const getDaysInMonth = (month: number, year: number) => new Date(year, month + 1, 0).getDate();
@@ -64,7 +65,10 @@ const BirthDateField = ({ value, onChange, isMissing }: { value: string; onChang
 
     React.useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(e.target as Node)) setShowCalendar(false);
+            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+                setShowCalendar(false);
+                setViewMode('days'); // Reset view mode on close
+            }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -92,22 +96,92 @@ const BirthDateField = ({ value, onChange, isMissing }: { value: string; onChang
             <AnimatePresence>
                 {showCalendar && (
                     <motion.div 
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="absolute z-[100] mt-4 p-6 bg-[#161f35] border border-white/10 rounded-[2rem] shadow-2xl w-[300px] left-1/2 -translate-x-1/2"
+                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                        className="absolute z-[100] bottom-full mb-4 p-6 bg-[#111827] border border-white/10 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] w-[320px] left-1/2 -translate-x-1/2 ring-1 ring-white/5"
                     >
-                         <div className="flex items-center justify-between mb-4">
-                            <button onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1))} className="p-1 hover:bg-white/5 rounded text-slate-400"><ChevronLeft className="w-4 h-4" /></button>
-                            <span className="text-xs font-black uppercase text-white">{months[viewDate.getMonth()]} {viewDate.getFullYear()}</span>
-                            <button onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1))} className="p-1 hover:bg-white/5 rounded text-slate-400"><ChevronRight className="w-4 h-4" /></button>
+                         <div className="flex items-center justify-between mb-6">
+                            <button 
+                                onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1))} 
+                                className="p-2 hover:bg-white/5 rounded-xl text-slate-400 transition-colors"
+                            >
+                                <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            
+                            <div className="flex items-center gap-1 group/header">
+                                <button 
+                                    onClick={() => setViewMode(viewMode === 'months' ? 'days' : 'months')}
+                                    className="text-[11px] font-black uppercase text-white hover:text-cyan-400 transition-colors cursor-pointer px-2 py-1 rounded-lg hover:bg-white/5"
+                                >
+                                    {months[viewDate.getMonth()]}
+                                </button>
+                                <button 
+                                    onClick={() => setViewMode(viewMode === 'years' ? 'days' : 'years')}
+                                    className="text-[11px] font-black uppercase text-white hover:text-cyan-400 transition-colors cursor-pointer px-2 py-1 rounded-lg hover:bg-white/5"
+                                >
+                                    {viewDate.getFullYear()}
+                                </button>
+                            </div>
+
+                            <button 
+                                onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1))} 
+                                className="p-2 hover:bg-white/5 rounded-xl text-slate-400 transition-colors"
+                            >
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
                         </div>
-                        <div className="grid grid-cols-7 gap-1">
-                            {['S','M','T','W','T','F','S'].map(d => <span key={d} className="text-[10px] font-black text-slate-600 text-center">{d}</span>)}
-                            {Array.from({ length: getFirstDayOfMonth(viewDate.getMonth(), viewDate.getFullYear()) }).map((_, i) => <div key={i} />)}
-                            {Array.from({ length: getDaysInMonth(viewDate.getMonth(), viewDate.getFullYear()) }).map((_, i) => (
-                                <button key={i} onClick={() => handleDateSelect(i + 1)} className="aspect-square rounded text-[10px] font-bold text-slate-300 hover:bg-cyan-500 hover:text-white transition-all">{i + 1}</button>
-                            ))}
+
+                        <div className="min-h-[220px]">
+                            {viewMode === 'days' && (
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-7 gap-1">
+                                    {['S','M','T','W','T','F','S'].map(d => <span key={d} className="text-[10px] font-black text-slate-600 text-center py-2">{d}</span>)}
+                                    {Array.from({ length: getFirstDayOfMonth(viewDate.getMonth(), viewDate.getFullYear()) }).map((_, i) => <div key={i} />)}
+                                    {Array.from({ length: getDaysInMonth(viewDate.getMonth(), viewDate.getFullYear()) }).map((_, i) => (
+                                        <button 
+                                            key={i} 
+                                            onClick={() => handleDateSelect(i + 1)} 
+                                            className="aspect-square rounded-xl text-[11px] font-bold text-slate-300 hover:bg-cyan-500 hover:text-white transition-all flex items-center justify-center"
+                                        >
+                                            {i + 1}
+                                        </button>
+                                    ))}
+                                </motion.div>
+                            )}
+
+                            {viewMode === 'months' && (
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-3 gap-2 py-2">
+                                    {months.map((m, i) => (
+                                        <button
+                                            key={m}
+                                            onClick={() => {
+                                                setViewDate(new Date(viewDate.getFullYear(), i, 1));
+                                                setViewMode('days');
+                                            }}
+                                            className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewDate.getMonth() === i ? 'bg-cyan-500 text-black' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+                                        >
+                                            {m.substring(0, 3)}
+                                        </button>
+                                    ))}
+                                </motion.div>
+                            )}
+
+                            {viewMode === 'years' && (
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-4 gap-2 py-2 h-[220px] overflow-y-auto custom-scrollbar pr-2">
+                                    {years.map(y => (
+                                        <button
+                                            key={y}
+                                            onClick={() => {
+                                                setViewDate(new Date(y, viewDate.getMonth(), 1));
+                                                setViewMode('days');
+                                            }}
+                                            className={`py-3 rounded-xl text-[11px] font-bold transition-all ${viewDate.getFullYear() === y ? 'bg-cyan-500 text-black' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+                                        >
+                                            {y}
+                                        </button>
+                                    ))}
+                                </motion.div>
+                            )}
                         </div>
                     </motion.div>
                 )}
@@ -263,7 +337,7 @@ export default function ProfileSetup() {
              <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="w-full max-w-2xl bg-[#0f1133]/60 backdrop-blur-3xl border border-white/10 rounded-[4rem] p-12 md:p-16 shadow-2xl relative z-10 overflow-hidden"
+                className="w-full max-w-2xl bg-[#0f1133]/60 backdrop-blur-3xl border border-white/10 rounded-[4rem] p-12 md:p-16 shadow-2xl relative z-10"
              >
                 {/* Progress Header */}
                 <div className="flex items-center justify-between mb-16 px-4">

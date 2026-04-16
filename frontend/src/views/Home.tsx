@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ChevronLeft, ChevronRight, ChevronDown, Brain, FlaskConical, Activity, TestTube, Microscope, Leaf, Flower, Flower2, ShieldCheck, Zap, Beaker, BarChart, FileText, Stethoscope, Database, Smartphone, Box, CheckCircle2, Building2, Globe, HeartPulse, X } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, ChevronDown, Brain, FlaskConical, Activity, TestTube, Microscope, Leaf, Flower, Flower2, ShieldCheck, Zap, Beaker, BarChart, FileText, Stethoscope, Database, Smartphone, Box, CheckCircle2, Building2, Globe, HeartPulse, X, Calendar, Newspaper, Clock } from 'lucide-react';
 import StudyFilterSection from '@/components/StudyFilterSection';
+import { authFetch } from '../utils/auth';
+
+const decodeHTML = (html: string) => {
+    if (!html) return '';
+    const txt = document.createElement("textarea");
+    txt.innerHTML = html;
+    return txt.value;
+};
 
 const slides = [
     {
@@ -1378,6 +1386,50 @@ export default function Home() {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [selectedExpertise, setSelectedExpertise] = useState<any>(null);
     const [activeAccordionIndex, setActiveAccordionIndex] = useState<number | null>(0);
+    const [latestUpdates, setLatestUpdates] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchUpdates = async () => {
+            try {
+                const [newsRes, eventsRes] = await Promise.all([
+                    authFetch('/api/news/'),
+                    authFetch('/api/events/')
+                ]);
+                
+                let combined: any[] = [];
+                if (newsRes.ok) {
+                    const data = await newsRes.json();
+                    const newsArray = Array.isArray(data) ? data : (data.results || []);
+                    combined = [...combined, ...newsArray.map((n: any) => ({
+                        ...n,
+                        uiType: 'News',
+                        title: decodeHTML(n.title),
+                        excerpt: decodeHTML(n.excerpt || n.content?.substring(0, 150)),
+                        date: n.published_at || n.created_at,
+                        displayDate: new Date(n.published_at || n.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    }))];
+                }
+                if (eventsRes.ok) {
+                    const data = await eventsRes.json();
+                    const eventsArray = Array.isArray(data) ? data : (data.results || []);
+                    combined = [...combined, ...eventsArray.map((e: any) => ({
+                        ...e,
+                        uiType: 'Event',
+                        title: decodeHTML(e.title || e.name),
+                        excerpt: decodeHTML(e.description || e.excerpt),
+                        date: e.date || e.event_date,
+                        displayDate: new Date(e.date || e.event_date || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    }))];
+                }
+                
+                combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                setLatestUpdates(combined.slice(0, 4));
+            } catch (err) {
+                console.error("Failed to fetch updates:", err);
+            }
+        };
+        fetchUpdates();
+    }, []);
 
     const activeSlides = slides;
 
@@ -1516,6 +1568,77 @@ export default function Home() {
 
             {/* Find a Clinical Study Section */}
             <StudyFilterSection />
+
+            {/* Section: Latest News & Updates */}
+            {latestUpdates.length > 0 && (
+                <div className="py-24 relative z-10 overflow-hidden">
+                    <div className="max-w-[1700px] mx-auto px-6 md:px-12">
+                        <div className="flex flex-col md:flex-row justify-between items-end gap-8 mb-16">
+                            <div className="space-y-4 animate-fade-in-up">
+                                <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 font-bold text-[12px] tracking-widest uppercase">
+                                    <Activity className="w-4 h-4" /> Latest Updates
+                                </div>
+                                <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-tight uppercase">
+                                    News & <span className="text-cyan-400">Events</span>
+                                </h2>
+                                <p className="text-lg md:text-xl text-slate-400 font-medium max-w-2xl leading-relaxed">
+                                    Stay informed about our latest research discoveries, publications, and upcoming clinical events.
+                                </p>
+                            </div>
+                            <Link 
+                                to="/news" 
+                                className="group flex items-center gap-3 bg-white/5 border border-white/10 px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest text-white hover:bg-cyan-500 hover:text-slate-900 transition-all duration-500"
+                            >
+                                View All Updates
+                                <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                            </Link>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                            {latestUpdates.map((item, idx) => (
+                                <Link 
+                                    to="/news" 
+                                    key={idx}
+                                    className="group relative flex flex-col h-full bg-slate-950/40 border border-white/5 rounded-[2.5rem] overflow-hidden hover:bg-white/5 hover:border-cyan-500/30 transition-all duration-700 animate-fade-in-up"
+                                    style={{ animationDelay: `${idx * 150}ms` }}
+                                >
+                                    {/* Image Container */}
+                                    <div className="relative aspect-[16/10] overflow-hidden bg-slate-900">
+                                        <img 
+                                            src={item.image_url || item.image || 'https://images.unsplash.com/photo-1576091160550-217359ece236?q=80&w=2070&auto=format&fit=crop'} 
+                                            onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1576091160550-217359ece236?q=80&w=2070&auto=format&fit=crop'; }}
+                                            alt={item.title}
+                                            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                                        />
+                                        <div className="absolute inset-0 bg-slate-950/20 group-hover:bg-transparent transition-colors"></div>
+                                        <div className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-950/80 backdrop-blur-md border border-white/10">
+                                            {item.uiType === 'News' ? <Newspaper className="w-3.5 h-3.5 text-cyan-400" /> : <Calendar className="w-3.5 h-3.5 text-cyan-400" />}
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-white">{item.uiType}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="p-8 flex flex-col flex-grow space-y-4">
+                                        <div className="flex items-center gap-3 text-slate-500 text-[12px] font-bold uppercase tracking-widest">
+                                            <Clock className="w-4 h-4 text-cyan-500/50" />
+                                            {item.displayDate}
+                                        </div>
+                                        <h3 className="text-xl md:text-2xl font-black text-white group-hover:text-cyan-400 transition-colors line-clamp-2 leading-tight uppercase tracking-tight">
+                                            {item.title}
+                                        </h3>
+                                        <p className="text-slate-400 font-medium line-clamp-3 leading-relaxed flex-grow">
+                                            {item.excerpt || item.content?.substring(0, 120) || item.description?.substring(0, 120)}...
+                                        </p>
+                                        <div className="pt-4 flex items-center gap-2 text-cyan-400 font-black text-[12px] uppercase tracking-widest opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 transition-all duration-500">
+                                            Read More <ArrowRight className="w-4 h-4" />
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Section 3: Three Ways We Support You */}
             {

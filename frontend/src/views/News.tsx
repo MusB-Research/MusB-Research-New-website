@@ -41,6 +41,13 @@ const sectionDefinitions: { type: NewsType; label: string; accent: string }[] = 
 
 const HARDCODED_NEWS: NewsItem[] = [];
 
+const decodeHTML = (html: string) => {
+    if (!html) return '';
+    const txt = document.createElement("textarea");
+    txt.innerHTML = html;
+    return txt.value;
+};
+
 export default function News() {
     const [activeCategory, setActiveCategory] = useState<NewsType | 'All'>('All');
     const [searchQuery, setSearchQuery] = useState('');
@@ -83,58 +90,63 @@ export default function News() {
                 
                 if (newsRes.ok) {
                     const newsData = await newsRes.json();
-                    combined = [...combined, ...newsData.map((n: any) => ({
+                    const newsArray = Array.isArray(newsData) ? newsData : (newsData.results || []);
+                    combined = [...combined, ...newsArray.map((n: any) => ({
                         ...n,
                         type: n.is_success_story ? 'Success Story' : 'News',
-                        title: n.title || 'Untitled News',
-                        excerpt: n.excerpt || n.content?.substring(0, 150) || 'No excerpt available.',
-                        date: new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                        title: decodeHTML(n.title || 'Untitled News'),
+                        excerpt: decodeHTML(n.excerpt || n.content?.substring(0, 150) || 'No excerpt available.'),
+                        date: new Date(n.published_at || n.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
                         imageUrl: n.image_url || n.image // Standardized to imageUrl
                     }))];
                 }
 
                 if (eventsRes.ok) {
                     const eventsData = await eventsRes.json();
-                    combined = [...combined, ...eventsData.map((e: any) => ({
+                    const eventsArray = Array.isArray(eventsData) ? eventsData : (eventsData.results || []);
+                    combined = [...combined, ...eventsArray.map((e: any) => ({
                         ...e,
                         type: 'Event',
-                        title: e.title || e.name || 'Untitled Event',
-                        excerpt: e.description || e.excerpt || 'No description available.',
-                        date: new Date(e.date || e.event_date || e.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                        title: decodeHTML(e.title || e.name || 'Untitled Event'),
+                        excerpt: decodeHTML(e.description || e.excerpt || 'No description available.'),
+                        date: new Date(e.date || e.event_date || e.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
                         imageUrl: e.image_url || e.image // Standardized to imageUrl
                     }))];
                 }
 
                 if (partnersRes.ok) {
                     const partnersData = await partnersRes.json();
-                    combined = [...combined, ...partnersData.map((p: any) => ({
+                    const partnersArray = Array.isArray(partnersData) ? partnersData : (partnersData.results || []);
+                    combined = [...combined, ...partnersArray.map((p: any) => ({
                         ...p,
                         type: 'Partnership',
                         title: p.name || p.partner_name || p.title || 'New Partnership',
                         excerpt: p.description || p.collaboration_details || 'Partnership details not provided.',
-                        date: new Date(p.announcement_date || p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        date: new Date(p.announcement_date || p.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     }))];
                 }
 
                 if (pubsRes.ok) {
                     const pubsData = await pubsRes.json();
-                    combined = [...combined, ...pubsData.map((p: any) => ({
+                    const pubsArray = Array.isArray(pubsData) ? pubsData : (pubsData.results || []);
+                    combined = [...combined, ...pubsArray.map((p: any) => ({
                         ...p,
                         type: 'Publication',
                         title: p.title || 'Untitled Publication',
                         excerpt: p.abstract || p.summary || 'No abstract available.',
-                        date: new Date(p.publication_date || p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        date: new Date(p.publication_date || p.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     }))];
                 }
 
                 if (eduRes.ok) {
                     const eduData = await eduRes.json();
-                    combined = [...combined, ...eduData.map((e: any) => ({
+                    const eduArray = Array.isArray(eduData) ? eduData : (eduData.results || []);
+                    combined = [...combined, ...eduArray.map((e: any) => ({
                         ...e,
                         type: 'Educational Material',
                         title: e.title || 'Untitled Material',
                         excerpt: e.content || e.description || e.summary || 'No description available.',
-                        date: new Date(e.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        date: new Date(e.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     }))];
                 }
 
@@ -372,15 +384,12 @@ export default function News() {
                                                 return (
                                                     <div key={item.id} className={`group bg-white/5 border border-white/5 rounded-[2.5rem] overflow-hidden flex flex-col hover:bg-white/10 hover:border-white/10 ${accent.border} transition-all duration-300 shadow-xl`}>
                                                         <div className="aspect-[16/10] overflow-hidden relative">
-                                                            {item.imageUrl ? (
-                                                                <img 
-                                                                    src={item.imageUrl} 
-                                                                    alt={item.title} 
-                                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                                                />
-                                                            ) : (
-                                                                <div className="w-full h-full bg-gradient-to-br from-cyan-500/10 to-indigo-500/10 group-hover:scale-110 transition-transform duration-700"></div>
-                                                            )}
+                                                            <img 
+                                                                src={item.imageUrl || 'https://images.unsplash.com/photo-1576091160550-217359ece236?q=80&w=2070&auto=format&fit=crop'} 
+                                                                onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1576091160550-217359ece236?q=80&w=2070&auto=format&fit=crop'; }}
+                                                                alt={item.title} 
+                                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                                            />
                                                             <div className="absolute top-4 left-4">
                                                                 <span className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-950/80 backdrop-blur-md text-[12px] font-black uppercase tracking-widest border border-white/10 ${accent.badge}`}>
                                                                     <Icon className="w-3 h-3" />

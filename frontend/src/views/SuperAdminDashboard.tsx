@@ -322,8 +322,8 @@ const SponsorAssignCell = ({
   );
 };
 
-const StudiesPage = ({ 
-  studies, users, fetchData, handleStudiesLink, setSelectedStudy, handlePageChange 
+const StudiesPage = ({
+  studies, users, fetchData, handleStudiesLink, setSelectedStudy, handlePageChange
 }: any) => {
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -743,10 +743,10 @@ export default function SuperAdminDashboard() {
           // Use the robust utility to extract the name
           let name = revealValue(u.full_name, u.decrypted_name);
           if (!name) {
-             // Fallback to email prefix if decryption is failing for some reason
-             name = u.email ? u.email.split('@')[0] : 'User';
+            // Fallback to email prefix if decryption is failing for some reason
+            name = u.email ? u.email.split('@')[0] : 'User';
           }
-          
+
           return {
             ...u,
             name: name,
@@ -969,25 +969,25 @@ export default function SuperAdminDashboard() {
   // COMMON ELEMENTS
   // ═══════════════════════════════════════════
 
-// ═══════════════════════════════════════════
-// HELPER COMPONENTS
-// ═══════════════════════════════════════════
+  // ═══════════════════════════════════════════
+  // HELPER COMPONENTS
+  // ═══════════════════════════════════════════
 
-const StatusBadge = ({ status }: { status: string }) => (
-  <span className={`px-2 py-0.5 rounded-full text-[12px] font-black uppercase tracking-widest ${status === 'Active' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-slate-700/20 text-slate-500 border border-white/5'}`}>
-    {status}
-  </span>
-);
-
-const RoleBadge = ({ role }: { role: string }) => {
-  const normalizedRole = (role || '').toUpperCase();
-  const roleData = ROLES.find(r => r.id === normalizedRole) || ROLES[1];
-  return (
-    <span className="px-3 py-1 rounded-full text-[12px] font-bold uppercase tracking-wider" style={{ backgroundColor: `${roleData.color}20`, color: roleData.color, border: `1px solid ${roleData.color}40` }}>
-      {roleData.label}
+  const StatusBadge = ({ status }: { status: string }) => (
+    <span className={`px-2 py-0.5 rounded-full text-[12px] font-black uppercase tracking-widest ${status === 'Active' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-slate-700/20 text-slate-500 border border-white/5'}`}>
+      {status}
     </span>
   );
-};
+
+  const RoleBadge = ({ role }: { role: string }) => {
+    const normalizedRole = (role || '').toUpperCase();
+    const roleData = ROLES.find(r => r.id === normalizedRole) || ROLES[1];
+    return (
+      <span className="px-3 py-1 rounded-full text-[12px] font-bold uppercase tracking-wider" style={{ backgroundColor: `${roleData.color}20`, color: roleData.color, border: `1px solid ${roleData.color}40` }}>
+        {roleData.label}
+      </span>
+    );
+  };
 
 
   // ═══════════════════════════════════════════
@@ -998,865 +998,865 @@ const RoleBadge = ({ role }: { role: string }) => {
 
   // (SponsorAssignCell moved outside)
 
-// ═══════════════════════════════════════════
-// PAGE: DASHBOARD
-// ═══════════════════════════════════════════
+  // ═══════════════════════════════════════════
+  // PAGE: DASHBOARD
+  // ═══════════════════════════════════════════
 
-const DashboardPage = ({ 
-  currentUserName, users, studies, participants, studyInquiries, activities, 
-  handlePageChange, refreshDashboard, setModals, modals, currentPage, lastRefresh 
-}: any) => (
-  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-    <div className="relative overflow-hidden group">
-      {[
-        { top: '10%', left: '30%', color: '#7c3aed' },
-        { top: '60%', left: '80%', color: '#14b8a6' },
-        { top: '20%', left: '70%', color: '#ec4899' },
-        { top: '80%', left: '40%', color: '#7c3aed' },
-      ].map((dot, i) => (
-        <div key={i} className="absolute w-2 h-2 rounded-full blur-[2px] opacity-40 animate-pulse"
-          style={{ top: dot.top, left: dot.left, backgroundColor: dot.color, filter: 'blur(3px)' }}></div>
-      ))}
-      <div className="relative mb-8 lg:mb-10">
-        <div className="absolute -top-24 -left-20 w-[400px] h-[400px] bg-purple-600/10 blur-[120px] rounded-full"></div>
-        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-end gap-6 relative z-10">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Crown className="w-4 h-4 text-[#7c3aed]" />
-              <span className="text-[12px] font-black text-[#7c3aed] uppercase tracking-[0.3em]">Super Administrator</span>
+  const DashboardPage = ({
+    currentUserName, users, studies, participants, studyInquiries, activities,
+    handlePageChange, refreshDashboard, setModals, modals, currentPage, lastRefresh
+  }: any) => (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="relative overflow-hidden group">
+        {[
+          { top: '10%', left: '30%', color: '#7c3aed' },
+          { top: '60%', left: '80%', color: '#14b8a6' },
+          { top: '20%', left: '70%', color: '#ec4899' },
+          { top: '80%', left: '40%', color: '#7c3aed' },
+        ].map((dot, i) => (
+          <div key={i} className="absolute w-2 h-2 rounded-full blur-[2px] opacity-40 animate-pulse"
+            style={{ top: dot.top, left: dot.left, backgroundColor: dot.color, filter: 'blur(3px)' }}></div>
+        ))}
+        <div className="relative mb-8 lg:mb-10">
+          <div className="absolute -top-24 -left-20 w-[400px] h-[400px] bg-purple-600/10 blur-[120px] rounded-full"></div>
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-end gap-6 relative z-10">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Crown className="w-4 h-4 text-[#7c3aed]" />
+                <span className="text-[12px] font-black text-[#7c3aed] uppercase tracking-[0.3em]">Super Administrator</span>
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-black text-white italic truncate tracking-tighter uppercase">
+                {currentPage.replace('_', ' ')} <span className="text-[#3b82f6]">Overview</span>
+              </h2>
+              <p className="text-base sm:text-lg text-[#8b8fa8] font-medium tracking-tight max-w-2xl leading-none">
+                Welcome, {currentUserName}. You have full system access and visibility.
+              </p>
             </div>
-            <h2 className="text-2xl sm:text-4xl font-black text-white italic truncate tracking-tighter uppercase">
-              {currentPage.replace('_', ' ')} <span className="text-[#3b82f6]">Overview</span>
-            </h2>
-            <p className="text-base sm:text-lg text-[#8b8fa8] font-medium tracking-tight max-w-2xl leading-none">
-              Welcome, {currentUserName}. You have full system access and visibility.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3 sm:gap-4">
-            <button
-              onClick={refreshDashboard}
-              className="flex-1 sm:flex-none justify-center px-4 sm:px-6 py-3 bg-[#0d0f2b] border border-white/10 text-white rounded-xl font-bold text-[12px] sm:text-sm uppercase tracking-widest hover:bg-white/5 transition-all flex items-center gap-2"
-            >
-              <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="text-[12px]">Refresh</span>
-            </button>
-            <button
-              onClick={() => setModals({ ...modals, createUser: true })}
-              className="flex-1 sm:flex-none justify-center px-4 sm:px-6 py-3 bg-[#7c3aed] text-white rounded-xl font-bold text-[12px] sm:text-sm uppercase tracking-widest flex items-center gap-2 hover:bg-[#6d28d9] transition-all shadow-xl shadow-purple-900/40"
-            >
-              <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="text-[12px]">Create User</span>
-            </button>
+            <div className="flex flex-wrap gap-3 sm:gap-4">
+              <button
+                onClick={refreshDashboard}
+                className="flex-1 sm:flex-none justify-center px-4 sm:px-6 py-3 bg-[#0d0f2b] border border-white/10 text-white rounded-xl font-bold text-[12px] sm:text-sm uppercase tracking-widest hover:bg-white/5 transition-all flex items-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="text-[12px]">Refresh</span>
+              </button>
+              <button
+                onClick={() => setModals({ ...modals, createUser: true })}
+                className="flex-1 sm:flex-none justify-center px-4 sm:px-6 py-3 bg-[#7c3aed] text-white rounded-xl font-bold text-[12px] sm:text-sm uppercase tracking-widest flex items-center gap-2 hover:bg-[#6d28d9] transition-all shadow-xl shadow-purple-900/40"
+              >
+                <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="text-[12px]">Create User</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-      {[
-        { label: 'Total Users', value: (users || []).length, icon: Users, color: '#14b8a6', badge: 'Live', onClick: () => handlePageChange('ALL_USERS') },
-        { label: 'Total Studies', value: (studies || []).length, icon: Briefcase, color: '#3b82f6', onClick: () => handlePageChange('STUDIES') },
-        { label: 'Active Participants', value: (participants || []).length, icon: UserCheck, color: '#14b8a6', onClick: () => handlePageChange('PARTICIPANTS') },
-        { label: 'Admins & Staff', value: (users || []).filter((u:any) => ['ADMIN', 'SUPER_ADMIN', 'PI', 'COORDINATOR'].includes(u.role)).length, icon: Crown, color: '#f59e0b', onClick: () => handlePageChange('TEAM') },
-        { label: 'Sponsors', value: (users || []).filter((u:any) => u.role === 'SPONSOR').length, icon: Building, color: '#ec4899', onClick: () => handlePageChange('SPONSORS') },
-        { label: 'Sponsor Teams', value: (studyInquiries || []).length, icon: Users, color: '#ec4899', onClick: () => handlePageChange('INQUIRIES') },
-        { label: 'Active Studies', value: (studies || []).filter((s:any) => s.status === 'UPCOMING' || s.status === 'RECRUITING' || s.status === 'ACTIVE').length, icon: Activity, color: '#14b8a6', onClick: () => handlePageChange('STUDIES') },
-        { label: 'Open Adverse Events', value: 0, icon: ShieldAlert, color: '#ef4444', onClick: () => alert("Adverse Event Monitor: No active high-severity alerts detected in active matrix.") },
-        { label: 'Audit Events Today', value: (activities || []).length, icon: FileText, color: '#7c3aed', onClick: () => handlePageChange('AUDIT_LOGS') },
-      ].map((stat, i) => (
-        <div
-          key={i}
-          onClick={stat.onClick}
-          className="p-6 sm:p-8 bg-[#0f1133] border border-white/5 rounded-2xl relative cursor-pointer overflow-hidden transition-all hover:border-white/10 group"
-        >
-          <div className="flex justify-between items-start mb-6">
-            <div className="p-2 sm:p-3 rounded-xl" style={{ backgroundColor: `${stat.color}10`, color: stat.color }}>
-              <stat.icon className="w-5 h-5 sm:w-6 sm:h-6" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+        {[
+          { label: 'Total Users', value: (users || []).length, icon: Users, color: '#14b8a6', badge: 'Live', onClick: () => handlePageChange('ALL_USERS') },
+          { label: 'Total Studies', value: (studies || []).length, icon: Briefcase, color: '#3b82f6', onClick: () => handlePageChange('STUDIES') },
+          { label: 'Active Participants', value: (participants || []).length, icon: UserCheck, color: '#14b8a6', onClick: () => handlePageChange('PARTICIPANTS') },
+          { label: 'Admins & Staff', value: (users || []).filter((u: any) => ['ADMIN', 'SUPER_ADMIN', 'PI', 'COORDINATOR'].includes(u.role)).length, icon: Crown, color: '#f59e0b', onClick: () => handlePageChange('TEAM') },
+          { label: 'Sponsors', value: (users || []).filter((u: any) => u.role === 'SPONSOR').length, icon: Building, color: '#ec4899', onClick: () => handlePageChange('SPONSORS') },
+          { label: 'Sponsor Teams', value: (studyInquiries || []).length, icon: Users, color: '#ec4899', onClick: () => handlePageChange('INQUIRIES') },
+          { label: 'Active Studies', value: (studies || []).filter((s: any) => s.status === 'UPCOMING' || s.status === 'RECRUITING' || s.status === 'ACTIVE').length, icon: Activity, color: '#14b8a6', onClick: () => handlePageChange('STUDIES') },
+          { label: 'Open Adverse Events', value: 0, icon: ShieldAlert, color: '#ef4444', onClick: () => alert("Adverse Event Monitor: No active high-severity alerts detected in active matrix.") },
+          { label: 'Audit Events Today', value: (activities || []).length, icon: FileText, color: '#7c3aed', onClick: () => handlePageChange('AUDIT_LOGS') },
+        ].map((stat, i) => (
+          <div
+            key={i}
+            onClick={stat.onClick}
+            className="p-6 sm:p-8 bg-[#0f1133] border border-white/5 rounded-2xl relative cursor-pointer overflow-hidden transition-all hover:border-white/10 group"
+          >
+            <div className="flex justify-between items-start mb-6">
+              <div className="p-2 sm:p-3 rounded-xl" style={{ backgroundColor: `${stat.color}10`, color: stat.color }}>
+                <stat.icon className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              {stat.badge && (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 bg-green-500/10 rounded-full">
+                  <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-[12px] font-black text-green-500 uppercase tracking-widest">{stat.badge}</span>
+                </div>
+              )}
             </div>
-            {stat.badge && (
-              <div className="flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 bg-green-500/10 rounded-full">
-                <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-[12px] font-black text-green-500 uppercase tracking-widest">{stat.badge}</span>
-              </div>
-            )}
+            <p className="text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 group-hover:text-white transition-colors">{stat.label}</p>
+            <h4 className="text-2xl sm:text-3xl xl:text-4xl font-black text-white italic tracking-tighter drop-shadow-2xl">{stat.value}</h4>
+            <div className="absolute bottom-6 right-6 p-2 rounded-lg bg-white/5 border border-white/5 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1">
+              <ArrowRight className="w-4 h-4 text-white" />
+            </div>
+            <div className="absolute bottom-0 left-0 h-1 w-0 group-hover:w-full transition-all duration-300" style={{ backgroundColor: stat.color }}></div>
           </div>
-          <p className="text-[12px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 group-hover:text-white transition-colors">{stat.label}</p>
-          <h4 className="text-2xl sm:text-3xl xl:text-4xl font-black text-white italic tracking-tighter drop-shadow-2xl">{stat.value}</h4>
-          <div className="absolute bottom-6 right-6 p-2 rounded-lg bg-white/5 border border-white/5 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1">
-            <ArrowRight className="w-4 h-4 text-white" />
-          </div>
-          <div className="absolute bottom-0 left-0 h-1 w-0 group-hover:w-full transition-all duration-300" style={{ backgroundColor: stat.color }}></div>
-        </div>
-      ))}
-    </div>
-
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-      <div className="lg:col-span-1 space-y-6">
-        <div className="flex items-center gap-3">
-          <Zap className="w-4 h-4 text-cyan-500" />
-          <h3 className="text-sm font-black text-white uppercase italic tracking-widest">Quick Actions</h3>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          {[
-            { label: 'Manage Users', icon: Users, color: '#7c3aed', act: () => handlePageChange('ALL_USERS') },
-            { label: 'Manage Studies', icon: Briefcase, color: '#3b82f6', act: () => handlePageChange('STUDIES') },
-            { label: 'View Sponsors', icon: Building, color: '#ec4899', act: () => handlePageChange('SPONSORS') },
-            { label: 'Audit Logs', icon: FileText, color: '#64748b', act: () => handlePageChange('AUDIT_LOGS') },
-            { label: 'Announcements', icon: Megaphone, color: '#f59e0b', act: () => handlePageChange('ANNOUNCEMENTS') },
-            { label: 'System Settings', icon: Settings, color: '#14b8a6', act: () => handlePageChange('SETTINGS') },
-          ].map((action, i) => (
-            <button
-              key={i}
-              onClick={action.act}
-              className="bg-[#0f1133] border border-white/5 rounded-2xl p-6 flex flex-col items-center gap-4 group transition-all hover:bg-[#7c3aed] shadow-lg hover:shadow-purple-900/40"
-            >
-              <div className="p-3 bg-white/5 rounded-xl text-white group-hover:bg-white/20 transition-all">
-                <action.icon style={{ color: action.color }} className="w-6 h-6 group-hover:text-white" />
-              </div>
-              <span className="text-[12px] font-black uppercase text-[#8b8fa8] group-hover:text-white tracking-widest text-center">{action.label}</span>
-            </button>
-          ))}
-        </div>
+        ))}
       </div>
 
-      <div className="lg:col-span-2 space-y-6">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <Activity className="w-6 h-6 text-[#7c3aed]" />
-            <h3 className="text-2xl lg:text-3xl font-black text-white uppercase italic tracking-[0.2em] leading-none">Recent Platform Activity</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        <div className="lg:col-span-1 space-y-6">
+          <div className="flex items-center gap-3">
+            <Zap className="w-4 h-4 text-cyan-500" />
+            <h3 className="text-sm font-black text-white uppercase italic tracking-widest">Quick Actions</h3>
           </div>
-          <button onClick={() => handlePageChange('ACTIVITY_LOG')} className="text-[12px] font-black text-[#7c3aed] uppercase tracking-widest hover:text-white transition-all">View all &rarr;</button>
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { label: 'Manage Users', icon: Users, color: '#7c3aed', act: () => handlePageChange('ALL_USERS') },
+              { label: 'Manage Studies', icon: Briefcase, color: '#3b82f6', act: () => handlePageChange('STUDIES') },
+              { label: 'View Sponsors', icon: Building, color: '#ec4899', act: () => handlePageChange('SPONSORS') },
+              { label: 'Audit Logs', icon: FileText, color: '#64748b', act: () => handlePageChange('AUDIT_LOGS') },
+              { label: 'Announcements', icon: Megaphone, color: '#f59e0b', act: () => handlePageChange('ANNOUNCEMENTS') },
+              { label: 'System Settings', icon: Settings, color: '#14b8a6', act: () => handlePageChange('SETTINGS') },
+            ].map((action, i) => (
+              <button
+                key={i}
+                onClick={action.act}
+                className="bg-[#0f1133] border border-white/5 rounded-2xl p-6 flex flex-col items-center gap-4 group transition-all hover:bg-[#7c3aed] shadow-lg hover:shadow-purple-900/40"
+              >
+                <div className="p-3 bg-white/5 rounded-xl text-white group-hover:bg-white/20 transition-all">
+                  <action.icon style={{ color: action.color }} className="w-6 h-6 group-hover:text-white" />
+                </div>
+                <span className="text-[12px] font-black uppercase text-[#8b8fa8] group-hover:text-white tracking-widest text-center">{action.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="bg-[#0f1133] border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
-          <div className="divide-y divide-white/5">
-            {activities.slice(0, 10).map((log:any, i:number) => (
-              <div key={i} className="flex items-center justify-between px-10 py-6 hover:bg-white/[0.02] transition-colors">
-                <div className="flex items-center gap-6">
-                  <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
-                  <div>
-                    <div className="flex items-center gap-4">
-                      <p className="text-base font-black text-white uppercase tracking-tight italic">{log.type}</p>
-                      <span className="px-3 py-1 bg-[#7c3aed]/10 border border-[#7c3aed]/20 rounded-md text-[12px] font-black text-[#7c3aed] uppercase tracking-widest">{log.category}</span>
+
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <Activity className="w-6 h-6 text-[#7c3aed]" />
+              <h3 className="text-2xl lg:text-3xl font-black text-white uppercase italic tracking-[0.2em] leading-none">Recent Platform Activity</h3>
+            </div>
+            <button onClick={() => handlePageChange('ACTIVITY_LOG')} className="text-[12px] font-black text-[#7c3aed] uppercase tracking-widest hover:text-white transition-all">View all &rarr;</button>
+          </div>
+          <div className="bg-[#0f1133] border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
+            <div className="divide-y divide-white/5">
+              {activities.slice(0, 10).map((log: any, i: number) => (
+                <div key={i} className="flex items-center justify-between px-10 py-6 hover:bg-white/[0.02] transition-colors">
+                  <div className="flex items-center gap-6">
+                    <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
+                    <div>
+                      <div className="flex items-center gap-4">
+                        <p className="text-base font-black text-white uppercase tracking-tight italic">{log.type}</p>
+                        <span className="px-3 py-1 bg-[#7c3aed]/10 border border-[#7c3aed]/20 rounded-md text-[12px] font-black text-[#7c3aed] uppercase tracking-widest">{log.category}</span>
+                      </div>
+                      <p className="text-sm text-[#555a7a] font-bold mt-2 uppercase tracking-tighter italic">{log.details}</p>
                     </div>
-                    <p className="text-sm text-[#555a7a] font-bold mt-2 uppercase tracking-tighter italic">{log.details}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[12px] font-black text-[#8b8fa8] uppercase tracking-widest">{log.timestamp}</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-[12px] font-black text-[#8b8fa8] uppercase tracking-widest">{log.timestamp}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
+        <div className="lg:col-span-3 space-y-8">
+          <div className="flex items-center gap-4">
+            <Crown className="w-6 h-6 text-cyan-500" />
+            <h3 className="text-2xl lg:text-3xl font-black text-white uppercase italic tracking-[0.2em] leading-none">Role Hierarchy & Permissions</h3>
+          </div>
+          <div className="space-y-3">
+            {ROLES.map((role, i) => (
+              <div key={i} className="flex items-center justify-between px-8 py-5 bg-[#0f1133] border border-white/5 rounded-2xl hover:border-white/10 transition-all group">
+                <div className="flex items-center gap-10">
+                  <div className="w-40">
+                    <RoleBadge role={role.id} />
+                  </div>
+                  <p className="text-sm text-[#8b8fa8] italic font-black uppercase tracking-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-[400px]">
+                    {role.desc}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  {role.isYou && (
+                    <span className="px-4 py-1.5 bg-[#7c3aed]/20 border border-[#7c3aed]/30 rounded-full text-[12px] font-black text-[#7c3aed] uppercase tracking-widest">Master Admin</span>
+                  )}
+                  <ChevronRight className="w-4 h-4 text-[#333] group-hover:text-[#7c3aed] transition-all" />
                 </div>
               </div>
             ))}
           </div>
         </div>
+
+        <div className="lg:col-span-1 space-y-8">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-cyan-500" />
+            <h3 className="text-sm font-black text-white uppercase italic tracking-widest">Important Notice</h3>
+          </div>
+          <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-[2rem] p-10 h-full relative group overflow-hidden">
+            <AlertTriangle className="absolute -bottom-6 -right-6 w-32 h-32 text-cyan-500/10 group-hover:scale-110 transition-transform duration-1000" />
+            <div className="relative z-10 space-y-6">
+              <div className="space-y-4">
+                <p className="text-[12px] text-white font-bold leading-relaxed tracking-tight">
+                  You are logged in as <span className="text-cyan-500 uppercase italic">Super Administrator</span>. All actions you take are irreversible and logged.
+                </p>
+                <p className="text-[12px] text-[#8b8fa8] leading-relaxed">
+                  Before deleting users or studies, ensure you have proper authorization and have reviewed compliance requirements.
+                </p>
+                <p className="text-[12px] font-black text-cyan-500 uppercase tracking-widest pt-4">Never share your Super Admin credentials with anyone.</p>
+              </div>
+              <div className="pt-10 border-t border-cyan-500/10">
+                <p className="text-[12px] font-black text-cyan-500/50 uppercase tracking-widest italic">Last refresh: {lastRefresh}</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
+  );
 
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
-      <div className="lg:col-span-3 space-y-8">
-        <div className="flex items-center gap-4">
-          <Crown className="w-6 h-6 text-cyan-500" />
-          <h3 className="text-2xl lg:text-3xl font-black text-white uppercase italic tracking-[0.2em] leading-none">Role Hierarchy & Permissions</h3>
+
+  // ═══════════════════════════════════════════
+  // PAGE: ALL USERS
+  // ═══════════════════════════════════════════
+
+  const UsersPage = ({
+    users, searchTerm, setSearchTerm, setModals, modals, viewDetails, handleRoleUpdate, handleStatusToggle, formatName
+  }: any) => {
+    const filteredUsers = useMemo(() => {
+      return (users || []).filter((u: any) =>
+        (u.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (u.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+      );
+    }, [users, searchTerm]);
+
+    return (
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter leading-none">All <span className="text-[#7c3aed]">Users</span></h1>
+            <p className="text-[12px] text-[#8b8fa8] uppercase tracking-widest mt-3">Manage clinical research staff and participant accounts</p>
+          </div>
+          <button onClick={() => setModals({ ...modals, createUser: true })} className="w-full sm:w-auto px-10 py-5 bg-[#7c3aed] text-white rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] flex items-center justify-center gap-4 shadow-xl shadow-purple-900/40 hover:bg-purple-600 transition-all">
+            <Plus className="w-6 h-6" /> Create New Account
+          </button>
         </div>
-        <div className="space-y-3">
-          {ROLES.map((role, i) => (
-            <div key={i} className="flex items-center justify-between px-8 py-5 bg-[#0f1133] border border-white/5 rounded-2xl hover:border-white/10 transition-all group">
-              <div className="flex items-center gap-10">
-                <div className="w-40">
-                  <RoleBadge role={role.id} />
-                </div>
-                <p className="text-sm text-[#8b8fa8] italic font-black uppercase tracking-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-[400px]">
-                  {role.desc}
-                </p>
-              </div>
-              <div className="flex items-center gap-4">
-                {role.isYou && (
-                  <span className="px-4 py-1.5 bg-[#7c3aed]/20 border border-[#7c3aed]/30 rounded-full text-[12px] font-black text-[#7c3aed] uppercase tracking-widest">Master Admin</span>
-                )}
-                <ChevronRight className="w-4 h-4 text-[#333] group-hover:text-[#7c3aed] transition-all" />
-              </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+          {[
+            { label: 'Total Users', value: (users || []).length, color: 'text-white' },
+            { label: 'Active', value: (users || []).filter((u: any) => u.status !== 'Inactive').length, color: 'text-green-500' },
+            { label: 'Inactive', value: (users || []).filter((u: any) => u.status === 'Inactive').length, color: 'text-[#ef4444]' },
+            { label: 'Admins', value: (users || []).filter((u: any) => ['ADMIN', 'SUPER_ADMIN'].includes(u.role)).length, color: 'text-[#7c3aed]' },
+          ].map((s, i) => (
+            <div key={i} className="bg-[#0f1133] border border-white/5 rounded-3xl p-6 sm:p-8 text-center bg-gradient-to-br from-[#0f1133] to-[#0a0b1a] hover:border-purple-500/30 transition-colors">
+              <p className="text-[12px] font-black text-[#555a7a] uppercase tracking-[0.2em] mb-3">{s.label}</p>
+              <h4 className={`text-2xl sm:text-3xl font-black italic tracking-tighter ${s.color}`}>{s.value}</h4>
             </div>
           ))}
         </div>
-      </div>
 
-      <div className="lg:col-span-1 space-y-8">
-        <div className="flex items-center gap-3">
-          <AlertTriangle className="w-5 h-5 text-cyan-500" />
-          <h3 className="text-sm font-black text-white uppercase italic tracking-widest">Important Notice</h3>
-        </div>
-        <div className="bg-cyan-500/5 border border-cyan-500/20 rounded-[2rem] p-10 h-full relative group overflow-hidden">
-          <AlertTriangle className="absolute -bottom-6 -right-6 w-32 h-32 text-cyan-500/10 group-hover:scale-110 transition-transform duration-1000" />
-          <div className="relative z-10 space-y-6">
-            <div className="space-y-4">
-              <p className="text-[12px] text-white font-bold leading-relaxed tracking-tight">
-                You are logged in as <span className="text-cyan-500 uppercase italic">Super Administrator</span>. All actions you take are irreversible and logged.
-              </p>
-              <p className="text-[12px] text-[#8b8fa8] leading-relaxed">
-                Before deleting users or studies, ensure you have proper authorization and have reviewed compliance requirements.
-              </p>
-              <p className="text-[12px] font-black text-cyan-500 uppercase tracking-widest pt-4">Never share your Super Admin credentials with anyone.</p>
-            </div>
-            <div className="pt-10 border-t border-cyan-500/10">
-              <p className="text-[12px] font-black text-cyan-500/50 uppercase tracking-widest italic">Last refresh: {lastRefresh}</p>
+        <div className="bg-[#0f1133] border border-white/5 rounded-3xl overflow-hidden">
+          <div className="p-6 border-b border-white/5 flex gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+              <input
+                type="text"
+                placeholder="Search Personnel Database..."
+                className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl pl-16 pr-6 py-5 text-sm text-white outline-none focus:border-cyan-500/30 font-black uppercase italic tracking-widest"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-
-// ═══════════════════════════════════════════
-// PAGE: ALL USERS
-// ═══════════════════════════════════════════
-
-const UsersPage = ({ 
-  users, searchTerm, setSearchTerm, setModals, modals, viewDetails, handleRoleUpdate, handleStatusToggle, formatName 
-}: any) => {
-  const filteredUsers = useMemo(() => {
-    return (users || []).filter((u:any) =>
-      (u.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (u.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-    );
-  }, [users, searchTerm]);
-
-  return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-black text-white italic uppercase tracking-tighter leading-none">All <span className="text-[#7c3aed]">Users</span></h1>
-          <p className="text-[12px] text-[#8b8fa8] uppercase tracking-widest mt-3">Manage clinical research staff and participant accounts</p>
-        </div>
-        <button onClick={() => setModals({ ...modals, createUser: true })} className="w-full sm:w-auto px-10 py-5 bg-[#7c3aed] text-white rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] flex items-center justify-center gap-4 shadow-xl shadow-purple-900/40 hover:bg-purple-600 transition-all">
-          <Plus className="w-6 h-6" /> Create New Account
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-        {[
-          { label: 'Total Users', value: (users || []).length, color: 'text-white' },
-          { label: 'Active', value: (users || []).filter((u:any) => u.status !== 'Inactive').length, color: 'text-green-500' },
-          { label: 'Inactive', value: (users || []).filter((u:any) => u.status === 'Inactive').length, color: 'text-[#ef4444]' },
-          { label: 'Admins', value: (users || []).filter((u:any) => ['ADMIN', 'SUPER_ADMIN'].includes(u.role)).length, color: 'text-[#7c3aed]' },
-        ].map((s, i) => (
-          <div key={i} className="bg-[#0f1133] border border-white/5 rounded-3xl p-6 sm:p-8 text-center bg-gradient-to-br from-[#0f1133] to-[#0a0b1a] hover:border-purple-500/30 transition-colors">
-            <p className="text-[12px] font-black text-[#555a7a] uppercase tracking-[0.2em] mb-3">{s.label}</p>
-            <h4 className={`text-2xl sm:text-3xl font-black italic tracking-tighter ${s.color}`}>{s.value}</h4>
-          </div>
-        ))}
-      </div>
-
-      <div className="bg-[#0f1133] border border-white/5 rounded-3xl overflow-hidden">
-        <div className="p-6 border-b border-white/5 flex gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
-            <input
-              type="text"
-              placeholder="Search Personnel Database..."
-              className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl pl-16 pr-6 py-5 text-sm text-white outline-none focus:border-cyan-500/30 font-black uppercase italic tracking-widest"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-white/[0.02] text-[12px] font-black text-[#555a7a] uppercase tracking-[0.3em] italic border-b border-white/5">
-                <th className="px-6 py-4">Name & Access</th>
-                <th className="px-6 py-4">Privilege Level</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Last Interface Login</th>
-                <th className="px-6 py-4 text-right">System Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {filteredUsers.map((user:any, i:number) => (
-                <tr key={user.id || i} className="hover:bg-white/[0.01] transition-colors">
-                  <td className="px-10 py-6">
-                    <div className="flex items-center gap-3 cursor-pointer" onClick={() => viewDetails(user)}>
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[12px] font-black text-white italic border border-white/5 bg-gradient-to-br from-cyan-500/20 to-purple-500/20 hover:scale-110 transition-transform">
-                        {user.name?.[0] || 'U'}
-                      </div>
-                      <div>
-                        <p className="text-sm font-black text-white italic hover:text-cyan-400 transition-colors uppercase tracking-tight">{formatName(user.name)}</p>
-                        <p className="text-[12px] text-[#555a7a] font-medium tracking-tight mt-0.5">{user.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-10 py-6">
-                    <select
-                      value={user.role}
-                      onChange={(e) => handleRoleUpdate(user.id, e.target.value)}
-                      className="bg-[#0a0b1a] text-[12px] font-black uppercase tracking-widest text-[#7c3aed] border border-white/5 rounded-lg px-2 py-1 outline-none cursor-pointer"
-                    >
-                      {ROLES.map(r => <option key={r.id} value={r.id} className="bg-slate-900">{r.label}</option>)}
-                    </select>
-                  </td>
-                  <td className="px-10 py-6">
-                    <select
-                      value={user.status}
-                      onChange={() => handleStatusToggle(user)}
-                      className={`text-[12px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border outline-none cursor-pointer transition-all ${user.status === 'Active' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}
-                    >
-                      <option value="Active" className="bg-[#0a0b1a]">Active</option>
-                      <option value="Inactive" className="bg-[#0a0b1a]">Inactive</option>
-                    </select>
-                    <div className="mt-2 flex flex-col gap-1">
-                      {user.must_reset && (
-                        <span className="px-2 py-0.5 bg-cyan-500/10 text-cyan-500 border border-cyan-500/20 rounded-full text-[12px] font-black uppercase tracking-tighter w-fit flex items-center gap-1">
-                          <ShieldAlert className="w-2 h-2" /> Reset Required
-                        </span>
-                      )}
-                      {user.profile_incomplete && (
-                        <span className="px-2 py-0.5 bg-purple-500/10 text-purple-500 border border-purple-500/20 rounded-full text-[12px] font-black uppercase tracking-tighter w-fit flex items-center gap-1">
-                          <UserIcon className="w-2 h-2" /> Profile Draft
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-[12px] font-black text-[#8b8fa8] uppercase tracking-widest">{user.lastLogin || 'Never'}</td>
-                  <td className="px-6 py-4 text-right space-x-3">
-                    <button onClick={() => viewDetails(user)} className="p-2 text-[#555a7a] hover:text-white transition-all bg-white/5 rounded-lg border border-white/5 hover:border-white/10"><Eye className="w-4 h-4" /></button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-white/[0.02] text-[12px] font-black text-[#555a7a] uppercase tracking-[0.3em] italic border-b border-white/5">
+                  <th className="px-6 py-4">Name & Access</th>
+                  <th className="px-6 py-4">Privilege Level</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4">Last Interface Login</th>
+                  <th className="px-6 py-4 text-right">System Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {filteredUsers.map((user: any, i: number) => (
+                  <tr key={user.id || i} className="hover:bg-white/[0.01] transition-colors">
+                    <td className="px-10 py-6">
+                      <div className="flex items-center gap-3 cursor-pointer" onClick={() => viewDetails(user)}>
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[12px] font-black text-white italic border border-white/5 bg-gradient-to-br from-cyan-500/20 to-purple-500/20 hover:scale-110 transition-transform">
+                          {user.name?.[0] || 'U'}
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-white italic hover:text-cyan-400 transition-colors uppercase tracking-tight">{formatName(user.name)}</p>
+                          <p className="text-[12px] text-[#555a7a] font-medium tracking-tight mt-0.5">{user.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-10 py-6">
+                      <select
+                        value={user.role}
+                        onChange={(e) => handleRoleUpdate(user.id, e.target.value)}
+                        className="bg-[#0a0b1a] text-[12px] font-black uppercase tracking-widest text-[#7c3aed] border border-white/5 rounded-lg px-2 py-1 outline-none cursor-pointer"
+                      >
+                        {ROLES.map(r => <option key={r.id} value={r.id} className="bg-slate-900">{r.label}</option>)}
+                      </select>
+                    </td>
+                    <td className="px-10 py-6">
+                      <select
+                        value={user.status}
+                        onChange={() => handleStatusToggle(user)}
+                        className={`text-[12px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border outline-none cursor-pointer transition-all ${user.status === 'Active' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}
+                      >
+                        <option value="Active" className="bg-[#0a0b1a]">Active</option>
+                        <option value="Inactive" className="bg-[#0a0b1a]">Inactive</option>
+                      </select>
+                      <div className="mt-2 flex flex-col gap-1">
+                        {user.must_reset && (
+                          <span className="px-2 py-0.5 bg-cyan-500/10 text-cyan-500 border border-cyan-500/20 rounded-full text-[12px] font-black uppercase tracking-tighter w-fit flex items-center gap-1">
+                            <ShieldAlert className="w-2 h-2" /> Reset Required
+                          </span>
+                        )}
+                        {user.profile_incomplete && (
+                          <span className="px-2 py-0.5 bg-purple-500/10 text-purple-500 border border-purple-500/20 rounded-full text-[12px] font-black uppercase tracking-tighter w-fit flex items-center gap-1">
+                            <UserIcon className="w-2 h-2" /> Profile Draft
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-[12px] font-black text-[#8b8fa8] uppercase tracking-widest">{user.lastLogin || 'Never'}</td>
+                    <td className="px-6 py-4 text-right space-x-3">
+                      <button onClick={() => viewDetails(user)} className="p-2 text-[#555a7a] hover:text-white transition-all bg-white/5 rounded-lg border border-white/5 hover:border-white/10"><Eye className="w-4 h-4" /></button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
 
-// ═══════════════════════════════════════════
-// PAGE: SETTINGS
-// ═══════════════════════════════════════════
+  // ═══════════════════════════════════════════
+  // PAGE: SETTINGS
+  // ═══════════════════════════════════════════
 
-const SettingsPage = () => {
-  const tabs = ['General', 'Security', 'Notifications', 'Integrations', 'Backup'];
-  const [activeTab, setActiveTab] = useState('General');
-  return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <h1 className="text-2xl sm:text-3xl font-black text-white italic uppercase tracking-tighter">System <span className="text-[#7c3aed]">Settings</span></h1>
-      <div className="flex gap-1 border-b border-white/5">
-        {tabs.map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)} className={`px-8 py-4 text-[12px] font-black uppercase tracking-[0.2em] transition-all relative ${activeTab === tab ? 'text-white' : 'text-[#555a7a] hover:text-white'}`}>
-            {tab}
-            {activeTab === tab && <motion.div layoutId="settingTab" className="absolute bottom-0 left-0 right-0 h-1 bg-[#7c3aed]" />}
-          </button>
-        ))}
-      </div>
-      <div className="bg-[#0f1133] border border-white/5 rounded-3xl p-10 space-y-10">
-        {activeTab === 'General' && (
-          <div className="grid grid-cols-2 gap-10">
-            <div className="space-y-4">
-              <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-1">Platform Name</label>
-              <input type="text" value="MUSB Research Platform" className="w-full bg-white/5 border border-white/5 rounded-xl px-6 py-4 text-sm text-white font-bold" readOnly />
-            </div>
-            <div className="space-y-4">
-              <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-1">Timezone</label>
-              <select className="w-full bg-white/5 border border-white/5 rounded-xl px-6 py-4 text-sm text-white font-bold outline-none">
-                <option>UTC (Coordinated Universal Time)</option>
-                <option>EST (Eastern Standard Time)</option>
-              </select>
-            </div>
-          </div>
-        )}
-        {activeTab === 'Security' && (
-          <div className="space-y-8">
-            <div className="flex items-center justify-between p-6 bg-white/[0.02] rounded-2xl border border-white/5">
-              <div>
-                <p className="text-sm font-bold text-white uppercase italic tracking-tight">Two-Factor Authentication (2FA)</p>
-                <p className="text-[12px] text-[#555a7a] font-medium uppercase tracking-widest mt-1">Require 2FA for all administrative accounts</p>
-              </div>
-              <div className="w-12 h-6 bg-[#7c3aed] rounded-full relative cursor-pointer">
-                <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" />
-              </div>
-            </div>
+  const SettingsPage = () => {
+    const tabs = ['General', 'Security', 'Notifications', 'Integrations', 'Backup'];
+    const [activeTab, setActiveTab] = useState('General');
+    return (
+      <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <h1 className="text-2xl sm:text-3xl font-black text-white italic uppercase tracking-tighter">System <span className="text-[#7c3aed]">Settings</span></h1>
+        <div className="flex gap-1 border-b border-white/5">
+          {tabs.map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-8 py-4 text-[12px] font-black uppercase tracking-[0.2em] transition-all relative ${activeTab === tab ? 'text-white' : 'text-[#555a7a] hover:text-white'}`}>
+              {tab}
+              {activeTab === tab && <motion.div layoutId="settingTab" className="absolute bottom-0 left-0 right-0 h-1 bg-[#7c3aed]" />}
+            </button>
+          ))}
+        </div>
+        <div className="bg-[#0f1133] border border-white/5 rounded-3xl p-10 space-y-10">
+          {activeTab === 'General' && (
             <div className="grid grid-cols-2 gap-10">
               <div className="space-y-4">
-                <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-1">Session Timeout (minutes)</label>
-                <input type="number" defaultValue={30} className="w-full bg-white/5 border border-white/5 rounded-xl px-6 py-4 text-sm text-white font-bold" />
+                <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-1">Platform Name</label>
+                <input type="text" value="MUSB Research Platform" className="w-full bg-white/5 border border-white/5 rounded-xl px-6 py-4 text-sm text-white font-bold" readOnly />
               </div>
               <div className="space-y-4">
-                <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-1">Auto-Lock Period</label>
-                <input type="text" defaultValue="No Activity" className="w-full bg-white/5 border border-white/5 rounded-xl px-6 py-4 text-sm text-white font-bold" />
+                <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-1">Timezone</label>
+                <select className="w-full bg-white/5 border border-white/5 rounded-xl px-6 py-4 text-sm text-white font-bold outline-none">
+                  <option>UTC (Coordinated Universal Time)</option>
+                  <option>EST (Eastern Standard Time)</option>
+                </select>
               </div>
             </div>
-          </div>
-        )}
-        <div className="pt-10 border-t border-white/5 flex justify-end">
-          <button className="px-10 py-4 bg-[#7c3aed] text-white rounded-xl font-bold text-[12px] uppercase tracking-[0.2em] shadow-xl shadow-purple-900/40 hover:scale-105 transition-all">Save Changes</button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ═══════════════════════════════════════════
-// PAGE: SPONSORS
-// ═══════════════════════════════════════════
-
-const SponsorsPage = ({ users, studies, setCreationRole, setModals, modals, setSearchTerm, handlePageChange }: any) => {
-  const sponsors = (users || []).filter((u:any) => u.role === 'SPONSOR');
-  const getStudyCount = (sponsorName: string) => {
-    if (!sponsorName) return 0;
-    return (studies || []).filter((s:any) => s.sponsor_name?.toLowerCase() === sponsorName.toLowerCase()).length;
-  };
-  return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex justify-between items-center">
-        <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Active <span className="text-pink-500">Sponsors</span></h1>
-        <button
-          onClick={() => { setCreationRole('SPONSOR'); setModals({ ...modals, createUser: true }); }}
-          className="px-8 py-4 bg-pink-500 text-white rounded-xl font-black text-[12px] uppercase tracking-[0.2em] flex items-center gap-3 shadow-xl shadow-pink-500/20 hover:bg-pink-600 transition-all"
-        >
-          <UserPlus className="w-5 h-5" /> Register New Sponsor
-        </button>
-      </div>
-      <div className="bg-[#0f1133] border border-white/5 rounded-3xl overflow-hidden p-8 text-center bg-gradient-to-br from-[#0f1133] to-[#0a0b1a]">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {sponsors.length === 0 ? (
-            <div className="col-span-3 py-20 opacity-30 italic uppercase tracking-[0.2em] text-[12px]">No active sponsor accounts in persistence layers</div>
-          ) : (
-            sponsors.map((s:any, i:number) => (
-              <div key={i} className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 hover:border-pink-500/30 transition-all group">
-                <div className="w-16 h-16 rounded-2xl bg-pink-500/10 flex items-center justify-center mx-auto mb-6 text-pink-500">
-                  <Building className="w-8 h-8" />
-                </div>
-                <h4 className="text-xl font-black text-white uppercase italic group-hover:text-pink-400 transition-colors">{s.name}</h4>
-                <p className="text-[12px] text-slate-500 font-black mt-3 uppercase tracking-widest">{s.email}</p>
-                <div className="mt-10 pt-10 border-t border-white/5 flex justify-between items-center px-6">
-                  <div className="text-left">
-                    <p className="text-[12px] font-black text-slate-600 uppercase tracking-widest pb-1">Studies</p>
-                    <p className="text-2xl font-black text-white italic">{getStudyCount(s.name).toString().padStart(2, '0')}</p>
-                  </div>
-                  <button
-                    onClick={() => { setSearchTerm(s.name); handlePageChange('STUDIES'); }}
-                    className="px-6 py-3 bg-white/5 text-[12px] font-black uppercase tracking-widest rounded-xl hover:bg-white hover:text-slate-900 transition-all"
-                  >
-                    Configure
-                  </button>
-                </div>
-              </div>
-            ))
           )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ═══════════════════════════════════════════
-// PAGE: SPONSOR LEADS
-// ═══════════════════════════════════════════
-
-const SponsorLeadsPage = ({ studyInquiries, handlePageChange }: any) => (
-  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-    <div className="flex justify-between items-end">
-      <div>
-        <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Sponsor <span className="text-cyan-500">Leads & Inquiries</span></h1>
-        <p className="text-[12px] text-slate-500 font-black uppercase tracking-[0.2em] mt-3">Prospecting data filtered from global inquiry endpoints</p>
-      </div>
-      <button className="px-6 py-3 bg-white/5 border border-white/10 text-white rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-cyan-500/10 hover:text-cyan-500 transition-all">Export CRM Data</button>
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-      {studyInquiries.length === 0 ? (
-        <div className="col-span-full py-12 text-center opacity-30 text-[12px] font-black uppercase tracking-[0.3em]">No Prospecting Data Available</div>
-      ) : (
-        studyInquiries.map((iq:any, i:number) => (
-          <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-8 space-y-6 hover:border-cyan-500/30 transition-all group">
-            <div className="flex justify-between items-start">
-              <div className="w-12 h-12 bg-cyan-500/10 rounded-2xl flex items-center justify-center text-cyan-500">
-                <Building className="w-6 h-6" />
+          {activeTab === 'Security' && (
+            <div className="space-y-8">
+              <div className="flex items-center justify-between p-6 bg-white/[0.02] rounded-2xl border border-white/5">
+                <div>
+                  <p className="text-sm font-bold text-white uppercase italic tracking-tight">Two-Factor Authentication (2FA)</p>
+                  <p className="text-[12px] text-[#555a7a] font-medium uppercase tracking-widest mt-1">Require 2FA for all administrative accounts</p>
+                </div>
+                <div className="w-12 h-6 bg-[#7c3aed] rounded-full relative cursor-pointer">
+                  <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" />
+                </div>
               </div>
-              <span className="px-3 py-1 bg-cyan-500/10 text-cyan-500 rounded-lg text-[12px] font-black uppercase tracking-widest border border-cyan-500/10 italic">{(iq.needs || [])[0] || 'Inquiry'}</span>
-            </div>
-            <div>
-              <h4 className="text-lg font-black text-white uppercase italic group-hover:text-cyan-400 transition-colors truncate">{iq.product_name}</h4>
-              <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest mt-2">{iq.legal_name || 'Anonymous'}</p>
-            </div>
-            <div className="pt-6 border-t border-white/5 flex flex-col gap-3">
-              <div className="flex justify-between text-[12px] font-black uppercase tracking-widest text-[#555a7a]">
-                <span>Inquiry Focus</span>
-                <span className="text-white italic">{iq.primary_focus}</span>
-              </div>
-              <div className="flex justify-between text-[12px] font-black uppercase tracking-widest text-[#555a7a]">
-                <span>Status</span>
-                <span className="text-cyan-500/50 italic">{iq.status}</span>
+              <div className="grid grid-cols-2 gap-10">
+                <div className="space-y-4">
+                  <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-1">Session Timeout (minutes)</label>
+                  <input type="number" defaultValue={30} className="w-full bg-white/5 border border-white/5 rounded-xl px-6 py-4 text-sm text-white font-bold" />
+                </div>
+                <div className="space-y-4">
+                  <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-1">Auto-Lock Period</label>
+                  <input type="text" defaultValue="No Activity" className="w-full bg-white/5 border border-white/5 rounded-xl px-6 py-4 text-sm text-white font-bold" />
+                </div>
               </div>
             </div>
-            <button onClick={() => handlePageChange('INQUIRIES')} className="w-full py-4 bg-white/5 border border-white/5 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] hover:bg-cyan-500 hover:text-slate-950 transition-all">View Details</button>
+          )}
+          <div className="pt-10 border-t border-white/5 flex justify-end">
+            <button className="px-10 py-4 bg-[#7c3aed] text-white rounded-xl font-bold text-[12px] uppercase tracking-[0.2em] shadow-xl shadow-purple-900/40 hover:scale-105 transition-all">Save Changes</button>
           </div>
-        ))
-      )}
-    </div>
-  </div>
-);
-
-// ═══════════════════════════════════════════
-// PAGE: ANNOUNCEMENTS
-// ═══════════════════════════════════════════
-
-const AnnouncementsPage = ({ announcements, setModals, modals, authFetch, fetchData, API }: any) => (
-  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-    <div className="flex justify-between items-center">
-      <div>
-        <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Global <span className="text-emerald-500">Announcements</span></h1>
-        <p className="text-[12px] text-slate-500 font-black uppercase tracking-[0.3em] mt-3">Broadcast emergency protocols and platform updates</p>
-      </div>
-      <button
-        onClick={() => setModals({ ...modals, createAnnouncement: true })}
-        className="px-8 py-4 bg-emerald-500 text-white rounded-xl font-black text-[12px] uppercase tracking-[0.2em] flex items-center gap-3 shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all"
-      >
-        <Plus className="w-5 h-5" /> Cascade Broadcast
-      </button>
-    </div>
-    <div className="grid grid-cols-1 gap-6">
-      {announcements.length === 0 ? (
-        <div className="py-20 text-center bg-[#0f1133] rounded-3xl border border-dashed border-white/10 opacity-30">
-          <Megaphone className="w-12 h-12 mx-auto mb-4" />
-          <p className="text-[12px] font-black uppercase tracking-widest">No active transmissions in cluster logs</p>
         </div>
-      ) : (
-        announcements.map((a:any, i:number) => (
-          <div key={i} className="bg-[#0f1133] border border-white/5 rounded-3xl p-8 flex items-center justify-between hover:bg-white/[0.02] transition-colors group">
-            <div className="flex items-center gap-6">
-              <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 border border-emerald-500/20">
-                <Megaphone className="w-7 h-7" />
+      </div>
+    );
+  };
+
+  // ═══════════════════════════════════════════
+  // PAGE: SPONSORS
+  // ═══════════════════════════════════════════
+
+  const SponsorsPage = ({ users, studies, setCreationRole, setModals, modals, setSearchTerm, handlePageChange }: any) => {
+    const sponsors = (users || []).filter((u: any) => u.role === 'SPONSOR');
+    const getStudyCount = (sponsorName: string) => {
+      if (!sponsorName) return 0;
+      return (studies || []).filter((s: any) => s.sponsor_name?.toLowerCase() === sponsorName.toLowerCase()).length;
+    };
+    return (
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex justify-between items-center">
+          <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Active <span className="text-pink-500">Sponsors</span></h1>
+          <button
+            onClick={() => { setCreationRole('SPONSOR'); setModals({ ...modals, createUser: true }); }}
+            className="px-8 py-4 bg-pink-500 text-white rounded-xl font-black text-[12px] uppercase tracking-[0.2em] flex items-center gap-3 shadow-xl shadow-pink-500/20 hover:bg-pink-600 transition-all"
+          >
+            <UserPlus className="w-5 h-5" /> Register New Sponsor
+          </button>
+        </div>
+        <div className="bg-[#0f1133] border border-white/5 rounded-3xl overflow-hidden p-8 text-center bg-gradient-to-br from-[#0f1133] to-[#0a0b1a]">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {sponsors.length === 0 ? (
+              <div className="col-span-3 py-20 opacity-30 italic uppercase tracking-[0.2em] text-[12px]">No active sponsor accounts in persistence layers</div>
+            ) : (
+              sponsors.map((s: any, i: number) => (
+                <div key={i} className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 hover:border-pink-500/30 transition-all group">
+                  <div className="w-16 h-16 rounded-2xl bg-pink-500/10 flex items-center justify-center mx-auto mb-6 text-pink-500">
+                    <Building className="w-8 h-8" />
+                  </div>
+                  <h4 className="text-xl font-black text-white uppercase italic group-hover:text-pink-400 transition-colors">{s.name}</h4>
+                  <p className="text-[12px] text-slate-500 font-black mt-3 uppercase tracking-widest">{s.email}</p>
+                  <div className="mt-10 pt-10 border-t border-white/5 flex justify-between items-center px-6">
+                    <div className="text-left">
+                      <p className="text-[12px] font-black text-slate-600 uppercase tracking-widest pb-1">Studies</p>
+                      <p className="text-2xl font-black text-white italic">{getStudyCount(s.name).toString().padStart(2, '0')}</p>
+                    </div>
+                    <button
+                      onClick={() => { setSearchTerm(s.name); handlePageChange('STUDIES'); }}
+                      className="px-6 py-3 bg-white/5 text-[12px] font-black uppercase tracking-widest rounded-xl hover:bg-white hover:text-slate-900 transition-all"
+                    >
+                      Configure
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ═══════════════════════════════════════════
+  // PAGE: SPONSOR LEADS
+  // ═══════════════════════════════════════════
+
+  const SponsorLeadsPage = ({ studyInquiries, handlePageChange }: any) => (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Sponsor <span className="text-cyan-500">Leads & Inquiries</span></h1>
+          <p className="text-[12px] text-slate-500 font-black uppercase tracking-[0.2em] mt-3">Prospecting data filtered from global inquiry endpoints</p>
+        </div>
+        <button className="px-6 py-3 bg-white/5 border border-white/10 text-white rounded-xl text-[12px] font-black uppercase tracking-widest hover:bg-cyan-500/10 hover:text-cyan-500 transition-all">Export CRM Data</button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {studyInquiries.length === 0 ? (
+          <div className="col-span-full py-12 text-center opacity-30 text-[12px] font-black uppercase tracking-[0.3em]">No Prospecting Data Available</div>
+        ) : (
+          studyInquiries.map((iq: any, i: number) => (
+            <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-8 space-y-6 hover:border-cyan-500/30 transition-all group">
+              <div className="flex justify-between items-start">
+                <div className="w-12 h-12 bg-cyan-500/10 rounded-2xl flex items-center justify-center text-cyan-500">
+                  <Building className="w-6 h-6" />
+                </div>
+                <span className="px-3 py-1 bg-cyan-500/10 text-cyan-500 rounded-lg text-[12px] font-black uppercase tracking-widest border border-cyan-500/10 italic">{(iq.needs || [])[0] || 'Inquiry'}</span>
               </div>
               <div>
-                <h4 className="text-xl font-black text-white uppercase italic group-hover:text-emerald-400 transition-all">{a.title}</h4>
-                <div className="flex items-center gap-4 mt-2">
-                  <span className="text-[12px] text-slate-500 font-black uppercase tracking-widest">{new Date(a.published_at).toLocaleDateString()}</span>
-                  <span className="text-[12px] text-slate-500">•</span>
-                  <span className="text-[12px] text-slate-500 font-black uppercase tracking-widest">TYPE: {a.type || 'SYSTEM'}</span>
+                <h4 className="text-lg font-black text-white uppercase italic group-hover:text-cyan-400 transition-colors truncate">{iq.product_name}</h4>
+                <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest mt-2">{iq.legal_name || 'Anonymous'}</p>
+              </div>
+              <div className="pt-6 border-t border-white/5 flex flex-col gap-3">
+                <div className="flex justify-between text-[12px] font-black uppercase tracking-widest text-[#555a7a]">
+                  <span>Inquiry Focus</span>
+                  <span className="text-white italic">{iq.primary_focus}</span>
+                </div>
+                <div className="flex justify-between text-[12px] font-black uppercase tracking-widest text-[#555a7a]">
+                  <span>Status</span>
+                  <span className="text-cyan-500/50 italic">{iq.status}</span>
                 </div>
               </div>
-            </div>
-            <div className="flex items-center gap-6">
-              <span className="px-4 py-1.5 rounded-full text-[12px] font-black uppercase tracking-widest italic bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Live</span>
-              <button
-                onClick={async () => {
-                  if (!window.confirm("Purge announcement from global history?")) return;
-                  try {
-                    const apiUrl = API || 'http://localhost:8000';
-                    const res = await authFetch(`${apiUrl}/api/news/${a.id}/`, { method: 'DELETE' });
-                    if (res.ok) fetchData();
-                  } catch (err) { }
-                }}
-                className="p-3 bg-white/5 border border-white/5 text-rose-500/40 hover:text-rose-500 rounded-xl transition-all"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-        ))
-      )}
-    </div>
-  </div>
-);
-
-// ═══════════════════════════════════════════
-// PAGE: TEAM
-// ═══════════════════════════════════════════
-
-const TeamPage = ({ users, viewDetails }: any) => {
-  const internalTeam = (users || []).filter((u:any) => ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR'].includes(u.role));
-  return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">MUSB <span className="text-[#818cf8]">Internal Team</span></h1>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-        {internalTeam.length === 0 ? (
-          <div className="col-span-4 py-20 text-center opacity-30 italic uppercase tracking-[0.2em] text-[12px]">No internal team members detected</div>
-        ) : (
-          internalTeam.map((u:any, i:number) => (
-            <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-8 text-center hover:border-cyan-500/30 transition-all group">
-              <div className="w-20 h-20 bg-cyan-500/10 rounded-[2rem] flex items-center justify-center text-cyan-400 mx-auto mb-6 font-black text-2xl group-hover:scale-110 transition-transform">
-                {u.name ? u.name[0] : '?'}
-              </div>
-              <h4 className="text-xl font-black text-white uppercase italic tracking-tighter truncate px-2">{u.name}</h4>
-              <p className="text-[12px] text-[#555a7a] mt-3 font-black uppercase tracking-widest leading-relaxed">
-                {u.role === 'SUPER_ADMIN' ? 'Master Admin / Root' : 'Team Controller'}
-              </p>
-              <button
-                onClick={() => viewDetails(u)}
-                className="mt-8 w-full py-3 bg-white/5 text-[12px] font-black uppercase tracking-widest rounded-xl hover:bg-white hover:text-slate-900 transition-all"
-              >
-                Direct Link
-              </button>
+              <button onClick={() => handlePageChange('INQUIRIES')} className="w-full py-4 bg-white/5 border border-white/5 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] hover:bg-cyan-500 hover:text-slate-950 transition-all">View Details</button>
             </div>
           ))
         )}
       </div>
     </div>
   );
-};
 
-// ═══════════════════════════════════════════
-// PAGE: INQUIRIES
-// ═══════════════════════════════════════════
+  // ═══════════════════════════════════════════
+  // PAGE: ANNOUNCEMENTS
+  // ═══════════════════════════════════════════
 
-const InquiriesPage = ({ studyInquiries, studies, authFetch, API, fetchData, setSelectedStudy, handlePageChange }: any) => {
-  const [subTab, setSubTab] = useState<'study_queries' | 'authorizations'>('study_queries');
-  const [isEngaging, setIsEngaging] = useState<string | null>(null);
-  const [viewingInquiry, setViewingInquiry] = useState<any | null>(null);
-  const pendingStudies = (studies || []).filter((s:any) => s.approval_status === 'pending');
-
-  const handleRejectLead = async (iqId: string) => {
-    if (!window.confirm("Are you sure you want to REJECT this inquiry?")) return;
-    try {
-      const res = await authFetch(`${API}/api/study-inquiries/${iqId}/reject/`, { method: 'POST' });
-      if (res.ok) { alert("❌ LEAD REJECTED"); fetchData(); }
-      else {
-        const err = await res.json().catch(() => ({}));
-        alert(`Failed to reject lead: ${err.error || err.detail || res.statusText}`);
-      }
-    } catch (err) { alert("System error. Injection failed."); }
-  };
-
-  const handleDeleteLead = async (iqId: string) => {
-    if (!window.confirm("CRITICAL: Permanent deletion requested. Proceed with record erasure?")) return;
-    try {
-      const res = await authFetch(`${API}/api/study-inquiries/${iqId}/`, { method: 'DELETE' });
-      if (res.ok) { alert("🗑️ RECORD ERASED FROM CORE"); fetchData(); }
-      else {
-        const err = await res.json().catch(() => ({}));
-        alert(`❌ Erasure failed: ${err.error || err.detail || res.statusText}`);
-      }
-    } catch (err) { alert("Critical failure in deletion sub-routine."); }
-  };
-
-  const handleEngageLead = async (iqId: string) => {
-    setIsEngaging(iqId);
-    try {
-      const res = await authFetch(`${API}/api/study-inquiries/${iqId}/engage/`, { method: 'POST' });
-      if (res.ok) {
-        const data = await res.json();
-        alert(`✅ LEAD ENGAGED & AUTHORIZED\n\nStudy ID: ${data.id || 'N/A'}\n\nThe study has been auto-created and assigned to the sponsor.`);
-        fetchData();
-      } else {
-        let errorMsg = 'Failed to engage lead';
-        try { const err = await res.json(); errorMsg = err.error || err.details || errorMsg; } catch (e) { errorMsg = `Server error (${res.status})`; }
-        alert(`❌ PROTOCOL ERROR: ${errorMsg}`);
-      }
-    } catch (err) { alert("❌ CRITICAL INTERFACE FAILURE: Connection refused."); }
-    finally { setIsEngaging(null); }
-  };
-
-  const DetailRow = ({ label, value, color = "text-white", multiline = false }: any) => (
-    <div className={`flex ${multiline ? 'flex-col gap-2' : 'justify-between items-center'} py-1`}>
-      <span className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic">{label}</span>
-      <span className={`${multiline ? 'text-[13px] leading-relaxed' : 'text-sm'} font-black italic uppercase tracking-tight ${color}`}>{value}</span>
+  const AnnouncementsPage = ({ announcements, setModals, modals, authFetch, fetchData, API }: any) => (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">Global <span className="text-emerald-500">Announcements</span></h1>
+          <p className="text-[12px] text-slate-500 font-black uppercase tracking-[0.3em] mt-3">Broadcast emergency protocols and platform updates</p>
+        </div>
+        <button
+          onClick={() => setModals({ ...modals, createAnnouncement: true })}
+          className="px-8 py-4 bg-emerald-500 text-white rounded-xl font-black text-[12px] uppercase tracking-[0.2em] flex items-center gap-3 shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all"
+        >
+          <Plus className="w-5 h-5" /> Cascade Broadcast
+        </button>
+      </div>
+      <div className="grid grid-cols-1 gap-6">
+        {announcements.length === 0 ? (
+          <div className="py-20 text-center bg-[#0f1133] rounded-3xl border border-dashed border-white/10 opacity-30">
+            <Megaphone className="w-12 h-12 mx-auto mb-4" />
+            <p className="text-[12px] font-black uppercase tracking-widest">No active transmissions in cluster logs</p>
+          </div>
+        ) : (
+          announcements.map((a: any, i: number) => (
+            <div key={i} className="bg-[#0f1133] border border-white/5 rounded-3xl p-8 flex items-center justify-between hover:bg-white/[0.02] transition-colors group">
+              <div className="flex items-center gap-6">
+                <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 border border-emerald-500/20">
+                  <Megaphone className="w-7 h-7" />
+                </div>
+                <div>
+                  <h4 className="text-xl font-black text-white uppercase italic group-hover:text-emerald-400 transition-all">{a.title}</h4>
+                  <div className="flex items-center gap-4 mt-2">
+                    <span className="text-[12px] text-slate-500 font-black uppercase tracking-widest">{new Date(a.published_at).toLocaleDateString()}</span>
+                    <span className="text-[12px] text-slate-500">•</span>
+                    <span className="text-[12px] text-slate-500 font-black uppercase tracking-widest">TYPE: {a.type || 'SYSTEM'}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-6">
+                <span className="px-4 py-1.5 rounded-full text-[12px] font-black uppercase tracking-widest italic bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Live</span>
+                <button
+                  onClick={async () => {
+                    if (!window.confirm("Purge announcement from global history?")) return;
+                    try {
+                      const apiUrl = API || 'http://localhost:8000';
+                      const res = await authFetch(`${apiUrl}/api/news/${a.id}/`, { method: 'DELETE' });
+                      if (res.ok) fetchData();
+                    } catch (err) { }
+                  }}
+                  className="p-3 bg-white/5 border border-white/5 text-rose-500/40 hover:text-rose-500 rounded-xl transition-all"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 
-  return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-500">
-      <div className="flex flex-col lg:flex-row justify-between lg:items-end gap-6">
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#f472b6] shadow-[0_0_10px_#f472b6]" />
-            <span className="text-[12px] font-black text-[#f472b6] uppercase tracking-[0.3em]">Platform Terminal</span>
-          </div>
-          <h1 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">Global <span className="text-[#f472b6]">Inquiries</span></h1>
-          <p className="text-sm text-[#555a7a] font-black uppercase tracking-[0.1em] mt-4 max-w-xl">Central capture point for clinical study queries, protocol authorizations, and feasibility packets.</p>
-        </div>
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          <div className="flex bg-[#0a0b1a] p-1.5 rounded-2xl border border-white/5 shadow-2xl">
-            <button
-              onClick={() => setSubTab('study_queries')}
-              className={`px-8 py-3.5 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${subTab === 'study_queries' ? 'bg-[#f472b6] text-white shadow-lg' : 'text-[#555a7a] hover:text-white'}`}
-            >
-              Study Queries ({studyInquiries.length})
-            </button>
-            <button
-              onClick={() => setSubTab('authorizations')}
-              className={`px-8 py-3.5 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${subTab === 'authorizations' ? 'bg-[#f472b6] text-white shadow-lg' : 'text-[#555a7a] hover:text-white'}`}
-            >
-              Authorizations ({pendingStudies.length})
-            </button>
-          </div>
-          {subTab === 'study_queries' && studyInquiries.length > 0 && (
-            <button
-              onClick={async () => {
-                if (!window.confirm("CRITICAL WARNING: Are you sure you want to REJECT and DELETE ALL pending study inquiries?")) return;
-                try {
-                  const res = await authFetch(`${API}/api/study-inquiries/reject-all-delete/`, { method: 'POST' });
-                  if (res.ok) { alert("🗑️ ALL RECORDS REJECTED AND ERASED FROM CORE"); fetchData(); }
-                  else { const err = await res.json().catch(() => ({})); alert(`Failed: ${err.error || err.detail || res.statusText}`); }
-                } catch (err) { alert("System error."); }
-              }}
-              className="px-6 py-4 bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-[12px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2"
-            >
-              <Trash2 className="w-4 h-4" /> Reject & Delete All
-            </button>
+  // ═══════════════════════════════════════════
+  // PAGE: TEAM
+  // ═══════════════════════════════════════════
+
+  const TeamPage = ({ users, viewDetails }: any) => {
+    const internalTeam = (users || []).filter((u: any) => ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR'].includes(u.role));
+    return (
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter">MUSB <span className="text-[#818cf8]">Internal Team</span></h1>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {internalTeam.length === 0 ? (
+            <div className="col-span-4 py-20 text-center opacity-30 italic uppercase tracking-[0.2em] text-[12px]">No internal team members detected</div>
+          ) : (
+            internalTeam.map((u: any, i: number) => (
+              <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-8 text-center hover:border-cyan-500/30 transition-all group">
+                <div className="w-20 h-20 bg-cyan-500/10 rounded-[2rem] flex items-center justify-center text-cyan-400 mx-auto mb-6 font-black text-2xl group-hover:scale-110 transition-transform">
+                  {u.name ? u.name[0] : '?'}
+                </div>
+                <h4 className="text-xl font-black text-white uppercase italic tracking-tighter truncate px-2">{u.name}</h4>
+                <p className="text-[12px] text-[#555a7a] mt-3 font-black uppercase tracking-widest leading-relaxed">
+                  {u.role === 'SUPER_ADMIN' ? 'Master Admin / Root' : 'Team Controller'}
+                </p>
+                <button
+                  onClick={() => viewDetails(u)}
+                  className="mt-8 w-full py-3 bg-white/5 text-[12px] font-black uppercase tracking-widest rounded-xl hover:bg-white hover:text-slate-900 transition-all"
+                >
+                  Direct Link
+                </button>
+              </div>
+            ))
           )}
         </div>
       </div>
+    );
+  };
 
-      {subTab === 'study_queries' ? (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-          {studyInquiries.length === 0 ? (
-            <div className="col-span-full py-20 bg-[#0f1133] rounded-[3rem] border border-white/5 text-center">
-              <Server className="w-12 h-12 text-[#555a7a] mx-auto mb-6 animate-pulse" />
-              <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-[0.3em]">No incoming study queries</p>
+  // ═══════════════════════════════════════════
+  // PAGE: INQUIRIES
+  // ═══════════════════════════════════════════
+
+  const InquiriesPage = ({ studyInquiries, studies, authFetch, API, fetchData, setSelectedStudy, handlePageChange }: any) => {
+    const [subTab, setSubTab] = useState<'study_queries' | 'authorizations'>('study_queries');
+    const [isEngaging, setIsEngaging] = useState<string | null>(null);
+    const [viewingInquiry, setViewingInquiry] = useState<any | null>(null);
+    const pendingStudies = (studies || []).filter((s: any) => s.approval_status === 'pending');
+
+    const handleRejectLead = async (iqId: string) => {
+      if (!window.confirm("Are you sure you want to REJECT this inquiry?")) return;
+      try {
+        const res = await authFetch(`${API}/api/study-inquiries/${iqId}/reject/`, { method: 'POST' });
+        if (res.ok) { alert("❌ LEAD REJECTED"); fetchData(); }
+        else {
+          const err = await res.json().catch(() => ({}));
+          alert(`Failed to reject lead: ${err.error || err.detail || res.statusText}`);
+        }
+      } catch (err) { alert("System error. Injection failed."); }
+    };
+
+    const handleDeleteLead = async (iqId: string) => {
+      if (!window.confirm("CRITICAL: Permanent deletion requested. Proceed with record erasure?")) return;
+      try {
+        const res = await authFetch(`${API}/api/study-inquiries/${iqId}/`, { method: 'DELETE' });
+        if (res.ok) { alert("🗑️ RECORD ERASED FROM CORE"); fetchData(); }
+        else {
+          const err = await res.json().catch(() => ({}));
+          alert(`❌ Erasure failed: ${err.error || err.detail || res.statusText}`);
+        }
+      } catch (err) { alert("Critical failure in deletion sub-routine."); }
+    };
+
+    const handleEngageLead = async (iqId: string) => {
+      setIsEngaging(iqId);
+      try {
+        const res = await authFetch(`${API}/api/study-inquiries/${iqId}/engage/`, { method: 'POST' });
+        if (res.ok) {
+          const data = await res.json();
+          alert(`✅ LEAD ENGAGED & AUTHORIZED\n\nStudy ID: ${data.id || 'N/A'}\n\nThe study has been auto-created and assigned to the sponsor.`);
+          fetchData();
+        } else {
+          let errorMsg = 'Failed to engage lead';
+          try { const err = await res.json(); errorMsg = err.error || err.details || errorMsg; } catch (e) { errorMsg = `Server error (${res.status})`; }
+          alert(`❌ PROTOCOL ERROR: ${errorMsg}`);
+        }
+      } catch (err) { alert("❌ CRITICAL INTERFACE FAILURE: Connection refused."); }
+      finally { setIsEngaging(null); }
+    };
+
+    const DetailRow = ({ label, value, color = "text-white", multiline = false }: any) => (
+      <div className={`flex ${multiline ? 'flex-col gap-2' : 'justify-between items-center'} py-1`}>
+        <span className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic">{label}</span>
+        <span className={`${multiline ? 'text-[13px] leading-relaxed' : 'text-sm'} font-black italic uppercase tracking-tight ${color}`}>{value}</span>
+      </div>
+    );
+
+    return (
+      <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-500">
+        <div className="flex flex-col lg:flex-row justify-between lg:items-end gap-6">
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#f472b6] shadow-[0_0_10px_#f472b6]" />
+              <span className="text-[12px] font-black text-[#f472b6] uppercase tracking-[0.3em]">Platform Terminal</span>
             </div>
-          ) : (
-            studyInquiries.map((iq:any, i:number) => (
-              <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-12 hover:border-[#f472b6]/40 transition-all group overflow-hidden relative shadow-2xl">
-                <div className="absolute top-0 right-0 p-10 opacity-[0.03] group-hover:scale-110 transition-transform">
-                  <Globe className="w-40 h-40 text-white" />
+            <h1 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">Global <span className="text-[#f472b6]">Inquiries</span></h1>
+            <p className="text-sm text-[#555a7a] font-black uppercase tracking-[0.1em] mt-4 max-w-xl">Central capture point for clinical study queries, protocol authorizations, and feasibility packets.</p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="flex bg-[#0a0b1a] p-1.5 rounded-2xl border border-white/5 shadow-2xl">
+              <button
+                onClick={() => setSubTab('study_queries')}
+                className={`px-8 py-3.5 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${subTab === 'study_queries' ? 'bg-[#f472b6] text-white shadow-lg' : 'text-[#555a7a] hover:text-white'}`}
+              >
+                Study Queries ({studyInquiries.length})
+              </button>
+              <button
+                onClick={() => setSubTab('authorizations')}
+                className={`px-8 py-3.5 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${subTab === 'authorizations' ? 'bg-[#f472b6] text-white shadow-lg' : 'text-[#555a7a] hover:text-white'}`}
+              >
+                Authorizations ({pendingStudies.length})
+              </button>
+            </div>
+            {subTab === 'study_queries' && studyInquiries.length > 0 && (
+              <button
+                onClick={async () => {
+                  if (!window.confirm("CRITICAL WARNING: Are you sure you want to REJECT and DELETE ALL pending study inquiries?")) return;
+                  try {
+                    const res = await authFetch(`${API}/api/study-inquiries/reject-all-delete/`, { method: 'POST' });
+                    if (res.ok) { alert("🗑️ ALL RECORDS REJECTED AND ERASED FROM CORE"); fetchData(); }
+                    else { const err = await res.json().catch(() => ({})); alert(`Failed: ${err.error || err.detail || res.statusText}`); }
+                  } catch (err) { alert("System error."); }
+                }}
+                className="px-6 py-4 bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-[12px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" /> Reject & Delete All
+              </button>
+            )}
+          </div>
+        </div>
+
+        {subTab === 'study_queries' ? (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            {studyInquiries.length === 0 ? (
+              <div className="col-span-full py-20 bg-[#0f1133] rounded-[3rem] border border-white/5 text-center">
+                <Server className="w-12 h-12 text-[#555a7a] mx-auto mb-6 animate-pulse" />
+                <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-[0.3em]">No incoming study queries</p>
+              </div>
+            ) : (
+              studyInquiries.map((iq: any, i: number) => (
+                <div key={i} className="bg-[#0f1133] border border-white/5 rounded-[2.5rem] p-12 hover:border-[#f472b6]/40 transition-all group overflow-hidden relative shadow-2xl">
+                  <div className="absolute top-0 right-0 p-10 opacity-[0.03] group-hover:scale-110 transition-transform">
+                    <Globe className="w-40 h-40 text-white" />
+                  </div>
+                  <div className="flex justify-between items-start mb-8 relative z-10">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-[#f472b6]/10 flex items-center justify-center text-[#f472b6] border border-[#f472b6]/20">
+                        <Mail className="w-7 h-7" />
+                      </div>
+                      <div>
+                        <p className="text-[12px] font-black text-[#f472b6] uppercase tracking-widest mb-1 italic">{iq.category} INQUIRY</p>
+                        <h4 className="text-xl font-black text-white italic uppercase tracking-tight">{iq.product_name}</h4>
+                        <span className={`inline-block mt-2 px-2 py-0.5 rounded text-[12px] font-black uppercase tracking-widest ${iq.nda_preference === 'YES' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                          {iq.nda_preference === 'YES' ? 'NDA Path' : 'Direct Path'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest mb-1">{new Date(iq.created_at).toLocaleDateString()}</p>
+                      <span className="px-3 py-1 bg-cyan-500/10 text-cyan-500 rounded-lg text-[12px] font-black uppercase tracking-widest border border-cyan-500/10 italic">{iq.status}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-4 mb-10 relative z-10">
+                    <div className="flex justify-between items-center text-[12px] font-black uppercase tracking-widest">
+                      <span className="text-[#555a7a]">Legal Entity</span>
+                      <span className="text-white italic">{iq.legal_name || 'Anonymous Sponsor'}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[12px] font-black uppercase tracking-widest">
+                      <span className="text-[#555a7a]">Clinical Needs</span>
+                      <span className="text-cyan-400 italic">{(iq.needs || []).join(', ')}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[12px] font-black uppercase tracking-widest">
+                      <span className="text-[#555a7a]">Primary Health Focus</span>
+                      <span className="text-emerald-400 italic">{iq.primary_focus}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[12px] font-black uppercase tracking-widest">
+                      <span className="text-[#555a7a]">NDA Pref</span>
+                      <span className={`italic ${iq.nda_preference === 'YES' ? 'text-emerald-500' : 'text-slate-500'}`}>{iq.nda_preference}</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-4 relative z-10">
+                    <button
+                      onClick={() => handleEngageLead(iq.id)}
+                      disabled={isEngaging === iq.id || iq.status === 'QUALIFIED' || iq.status === 'REJECTED'}
+                      className={`flex-[3] py-4 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] italic shadow-xl transition-all hover:scale-[1.02] ${iq.status === 'QUALIFIED' ? 'bg-emerald-500 shadow-emerald-500/20 grayscale' : iq.status === 'REJECTED' ? 'bg-slate-700' : 'bg-[#f472b6] shadow-[#f472b6]/20'}`}
+                    >
+                      {isEngaging === iq.id ? 'Processing...' : iq.status === 'QUALIFIED' ? 'Lead Engaged' : iq.status === 'REJECTED' ? 'Inquiry Rejected' : 'Engage Lead'}
+                    </button>
+                    {iq.status !== 'QUALIFIED' && iq.status !== 'REJECTED' && (
+                      <button onClick={() => handleRejectLead(iq.id)} className="flex-1 py-4 bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all">Reject</button>
+                    )}
+                    <button onClick={() => handleDeleteLead(iq.id)} className="px-6 py-4 bg-white/5 border border-white/5 text-red-900/40 hover:text-red-500 rounded-2xl transition-all"><X className="w-5 h-5" /></button>
+                    <button onClick={() => setViewingInquiry(iq)} className="px-6 py-4 bg-white/5 border border-white/5 text-[#555a7a] hover:text-white rounded-2xl transition-all"><Eye className="w-5 h-5" /></button>
+                  </div>
                 </div>
-                <div className="flex justify-between items-start mb-8 relative z-10">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-[#f472b6]/10 flex items-center justify-center text-[#f472b6] border border-[#f472b6]/20">
-                      <Mail className="w-7 h-7" />
+              ))
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-8">
+            {pendingStudies.length === 0 ? (
+              <div className="min-h-[50vh] flex flex-col items-center justify-center bg-[#0f1133] border border-white/5 rounded-[3rem] p-20 text-center">
+                <Server className="w-16 h-16 text-[#555a7a] mb-8 animate-pulse" />
+                <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-4">Authorization Buffer Clear</h3>
+                <p className="max-w-md mx-auto text-[12px] text-[#555a7a] font-black uppercase tracking-[0.3em] leading-relaxed">No protocols are currently awaiting secure authorization keys.</p>
+              </div>
+            ) : (
+              pendingStudies.map((s: any, i: number) => (
+                <div key={i} className="bg-[#0f1133] border border-white/5 rounded-3xl p-8 flex items-center justify-between hover:bg-white/[0.01] transition-all hover:border-[#f472b6]/30 shadow-2xl group">
+                  <div className="flex items-center gap-8">
+                    <div className="w-16 h-16 bg-[#f472b6]/10 rounded-2xl flex items-center justify-center text-[#f472b6] border border-[#f472b6]/20 group-hover:scale-110 transition-transform">
+                      <FileText className="w-8 h-8" />
                     </div>
                     <div>
-                      <p className="text-[12px] font-black text-[#f472b6] uppercase tracking-widest mb-1 italic">{iq.category} INQUIRY</p>
-                      <h4 className="text-xl font-black text-white italic uppercase tracking-tight">{iq.product_name}</h4>
-                      <span className={`inline-block mt-2 px-2 py-0.5 rounded text-[12px] font-black uppercase tracking-widest ${iq.nda_preference === 'YES' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
-                        {iq.nda_preference === 'YES' ? 'NDA Path' : 'Direct Path'}
-                      </span>
+                      <div className="flex items-center gap-4 mb-2">
+                        <h4 className="text-xl font-black text-white uppercase italic tracking-tight">{s.title}</h4>
+                        <span className="px-3 py-1 bg-[#f472b6]/10 text-[#f472b6] rounded-full text-[12px] font-black uppercase tracking-widest border border-[#f472b6]/20 italic">Feasibility Review</span>
+                      </div>
+                      <div className="flex items-center gap-6 text-[12px] font-black uppercase tracking-widest text-[#555a7a]">
+                        <span className="flex items-center gap-2"><Building className="w-3 h-3" /> {s.sponsor_name || 'Anonymous Sponsor'}</span>
+                        <span>•</span>
+                        <span className="flex items-center gap-2"><Calendar className="w-3 h-3" /> Submitted {new Date(s.created_at).toLocaleDateString()}</span>
+                        <span>•</span>
+                        <span className="flex items-center gap-2"><Users className="w-3 h-3" /> Target: {s.target_screened}</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest mb-1">{new Date(iq.created_at).toLocaleDateString()}</p>
-                    <span className="px-3 py-1 bg-cyan-500/10 text-cyan-500 rounded-lg text-[12px] font-black uppercase tracking-widest border border-cyan-500/10 italic">{iq.status}</span>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => { setSelectedStudy(s); handlePageChange('LAUNCH_STUDY'); }}
+                      className="px-10 py-5 bg-white text-slate-950 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] italic hover:bg-[#f472b6] hover:text-white transition-all shadow-xl shadow-black/40"
+                    >
+                      Process Authorization
+                    </button>
+                    <button className="p-4 bg-white/5 border border-white/5 text-slate-600 hover:text-white rounded-2xl transition-all"><MoreVertical className="w-5 h-5" /></button>
                   </div>
                 </div>
-                <div className="space-y-4 mb-10 relative z-10">
-                  <div className="flex justify-between items-center text-[12px] font-black uppercase tracking-widest">
-                    <span className="text-[#555a7a]">Legal Entity</span>
-                    <span className="text-white italic">{iq.legal_name || 'Anonymous Sponsor'}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-[12px] font-black uppercase tracking-widest">
-                    <span className="text-[#555a7a]">Clinical Needs</span>
-                    <span className="text-cyan-400 italic">{(iq.needs || []).join(', ')}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-[12px] font-black uppercase tracking-widest">
-                    <span className="text-[#555a7a]">Primary Health Focus</span>
-                    <span className="text-emerald-400 italic">{iq.primary_focus}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-[12px] font-black uppercase tracking-widest">
-                    <span className="text-[#555a7a]">NDA Pref</span>
-                    <span className={`italic ${iq.nda_preference === 'YES' ? 'text-emerald-500' : 'text-slate-500'}`}>{iq.nda_preference}</span>
-                  </div>
-                </div>
-                <div className="flex gap-4 relative z-10">
-                  <button
-                    onClick={() => handleEngageLead(iq.id)}
-                    disabled={isEngaging === iq.id || iq.status === 'QUALIFIED' || iq.status === 'REJECTED'}
-                    className={`flex-[3] py-4 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] italic shadow-xl transition-all hover:scale-[1.02] ${iq.status === 'QUALIFIED' ? 'bg-emerald-500 shadow-emerald-500/20 grayscale' : iq.status === 'REJECTED' ? 'bg-slate-700' : 'bg-[#f472b6] shadow-[#f472b6]/20'}`}
-                  >
-                    {isEngaging === iq.id ? 'Processing...' : iq.status === 'QUALIFIED' ? 'Lead Engaged' : iq.status === 'REJECTED' ? 'Inquiry Rejected' : 'Engage Lead'}
-                  </button>
-                  {iq.status !== 'QUALIFIED' && iq.status !== 'REJECTED' && (
-                    <button onClick={() => handleRejectLead(iq.id)} className="flex-1 py-4 bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all">Reject</button>
-                  )}
-                  <button onClick={() => handleDeleteLead(iq.id)} className="px-6 py-4 bg-white/5 border border-white/5 text-red-900/40 hover:text-red-500 rounded-2xl transition-all"><X className="w-5 h-5" /></button>
-                  <button onClick={() => setViewingInquiry(iq)} className="px-6 py-4 bg-white/5 border border-white/5 text-[#555a7a] hover:text-white rounded-2xl transition-all"><Eye className="w-5 h-5" /></button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-8">
-          {pendingStudies.length === 0 ? (
-            <div className="min-h-[50vh] flex flex-col items-center justify-center bg-[#0f1133] border border-white/5 rounded-[3rem] p-20 text-center">
-              <Server className="w-16 h-16 text-[#555a7a] mb-8 animate-pulse" />
-              <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-4">Authorization Buffer Clear</h3>
-              <p className="max-w-md mx-auto text-[12px] text-[#555a7a] font-black uppercase tracking-[0.3em] leading-relaxed">No protocols are currently awaiting secure authorization keys.</p>
-            </div>
-          ) : (
-            pendingStudies.map((s:any, i:number) => (
-              <div key={i} className="bg-[#0f1133] border border-white/5 rounded-3xl p-8 flex items-center justify-between hover:bg-white/[0.01] transition-all hover:border-[#f472b6]/30 shadow-2xl group">
-                <div className="flex items-center gap-8">
-                  <div className="w-16 h-16 bg-[#f472b6]/10 rounded-2xl flex items-center justify-center text-[#f472b6] border border-[#f472b6]/20 group-hover:scale-110 transition-transform">
-                    <FileText className="w-8 h-8" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-4 mb-2">
-                      <h4 className="text-xl font-black text-white uppercase italic tracking-tight">{s.title}</h4>
-                      <span className="px-3 py-1 bg-[#f472b6]/10 text-[#f472b6] rounded-full text-[12px] font-black uppercase tracking-widest border border-[#f472b6]/20 italic">Feasibility Review</span>
-                    </div>
-                    <div className="flex items-center gap-6 text-[12px] font-black uppercase tracking-widest text-[#555a7a]">
-                      <span className="flex items-center gap-2"><Building className="w-3 h-3" /> {s.sponsor_name || 'Anonymous Sponsor'}</span>
-                      <span>•</span>
-                      <span className="flex items-center gap-2"><Calendar className="w-3 h-3" /> Submitted {new Date(s.created_at).toLocaleDateString()}</span>
-                      <span>•</span>
-                      <span className="flex items-center gap-2"><Users className="w-3 h-3" /> Target: {s.target_screened}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => { setSelectedStudy(s); handlePageChange('LAUNCH_STUDY'); }}
-                    className="px-10 py-5 bg-white text-slate-950 rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] italic hover:bg-[#f472b6] hover:text-white transition-all shadow-xl shadow-black/40"
-                  >
-                    Process Authorization
-                  </button>
-                  <button className="p-4 bg-white/5 border border-white/5 text-slate-600 hover:text-white rounded-2xl transition-all"><MoreVertical className="w-5 h-5" /></button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
+              ))
+            )}
+          </div>
+        )}
 
-      {viewingInquiry && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 backdrop-blur-3xl bg-black/80">
-          <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} className="bg-[#0f1133] border border-white/10 w-full max-w-4xl rounded-[3rem] p-12 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <button onClick={() => setViewingInquiry(null)} className="absolute top-8 right-8 p-4 hover:bg-white/5 rounded-2xl transition-all"><X className="w-6 h-6 text-[#555a7a]" /></button>
-            <div className="flex items-center gap-6 mb-12">
-              <div className="w-20 h-20 bg-[#f472b6]/10 rounded-3xl flex items-center justify-center text-[#f472b6] border border-[#f472b6]/20">
-                <Mail className="w-10 h-10" />
-              </div>
-              <div>
-                <p className="text-[12px] font-black text-[#f472b6] uppercase tracking-[0.2em] mb-2">Detailed Feasibility Analysis</p>
-                <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">{viewingInquiry.product_name}</h2>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-              <div className="space-y-8">
-                <h3 className="text-sm font-black text-[#555a7a] uppercase tracking-widest border-b border-white/5 pb-4 italic">Core Information</h3>
-                <div className="space-y-4">
-                  <DetailRow label="Category" value={viewingInquiry.category} />
-                  <DetailRow label="Dev Stage" value={viewingInquiry.development_stage} />
-                  <DetailRow label="Health Focus" value={viewingInquiry.primary_focus} color="text-emerald-400" />
-                  <DetailRow label="Timeline" value={viewingInquiry.timeline} />
-                  <DetailRow label="Preferred Email" value={viewingInquiry.contact_email || 'N/A'} color="text-cyan-400" />
+        {viewingInquiry && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 backdrop-blur-3xl bg-black/80">
+            <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} className="bg-[#0f1133] border border-white/10 w-full max-w-4xl rounded-[3rem] p-12 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+              <button onClick={() => setViewingInquiry(null)} className="absolute top-8 right-8 p-4 hover:bg-white/5 rounded-2xl transition-all"><X className="w-6 h-6 text-[#555a7a]" /></button>
+              <div className="flex items-center gap-6 mb-12">
+                <div className="w-20 h-20 bg-[#f472b6]/10 rounded-3xl flex items-center justify-center text-[#f472b6] border border-[#f472b6]/20">
+                  <Mail className="w-10 h-10" />
+                </div>
+                <div>
+                  <p className="text-[12px] font-black text-[#f472b6] uppercase tracking-[0.2em] mb-2">Detailed Feasibility Analysis</p>
+                  <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">{viewingInquiry.product_name}</h2>
                 </div>
               </div>
-              <div className="space-y-8">
-                <h3 className="text-sm font-black text-[#555a7a] uppercase tracking-widest border-b border-white/5 pb-4 italic">Study Requirements</h3>
-                <div className="space-y-4">
-                  <DetailRow label="Target Pop" value={viewingInquiry.target_population || 'N/A'} multiline />
-                  <DetailRow label="Budget Range" value={viewingInquiry.budget_range || 'Not Defined'} />
-                  <DetailRow label="Services" value={(viewingInquiry.services_needed || []).join(', ') || 'N/A'} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <div className="space-y-8">
+                  <h3 className="text-sm font-black text-[#555a7a] uppercase tracking-widest border-b border-white/5 pb-4 italic">Core Information</h3>
+                  <div className="space-y-4">
+                    <DetailRow label="Category" value={viewingInquiry.category} />
+                    <DetailRow label="Dev Stage" value={viewingInquiry.development_stage} />
+                    <DetailRow label="Health Focus" value={viewingInquiry.primary_focus} color="text-emerald-400" />
+                    <DetailRow label="Timeline" value={viewingInquiry.timeline} />
+                    <DetailRow label="Preferred Email" value={viewingInquiry.contact_email || 'N/A'} color="text-cyan-400" />
+                  </div>
                 </div>
-                <div className="bg-[#0a0b1a] p-8 rounded-3xl border border-white/5 font-mono text-sm text-cyan-200/60 leading-relaxed whitespace-pre-wrap min-h-[120px]">
-                  {viewingInquiry.project_description || 'No detailed scope provided.'}
+                <div className="space-y-8">
+                  <h3 className="text-sm font-black text-[#555a7a] uppercase tracking-widest border-b border-white/5 pb-4 italic">Study Requirements</h3>
+                  <div className="space-y-4">
+                    <DetailRow label="Target Pop" value={viewingInquiry.target_population || 'N/A'} multiline />
+                    <DetailRow label="Budget Range" value={viewingInquiry.budget_range || 'Not Defined'} />
+                    <DetailRow label="Services" value={(viewingInquiry.services_needed || []).join(', ') || 'N/A'} />
+                  </div>
+                  <div className="bg-[#0a0b1a] p-8 rounded-3xl border border-white/5 font-mono text-sm text-cyan-200/60 leading-relaxed whitespace-pre-wrap min-h-[120px]">
+                    {viewingInquiry.project_description || 'No detailed scope provided.'}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="mt-12 pt-12 border-t border-white/5 flex gap-4">
-              <button
-                onClick={() => { handleEngageLead(viewingInquiry.id); setViewingInquiry(null); }}
-                disabled={isEngaging === viewingInquiry.id || viewingInquiry.status === 'QUALIFIED' || viewingInquiry.status === 'REJECTED'}
-                className="flex-[2] py-5 bg-[#f472b6] text-white rounded-2xl font-black uppercase tracking-widest italic shadow-xl shadow-[#f472b6]/20"
-              >Authorize Engagement</button>
-              <button onClick={() => setViewingInquiry(null)} className="flex-1 py-5 bg-white/5 text-[#555a7a] rounded-2xl font-black uppercase tracking-widest">Close View</button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </div>
-  );
-};
+              <div className="mt-12 pt-12 border-t border-white/5 flex gap-4">
+                <button
+                  onClick={() => { handleEngageLead(viewingInquiry.id); setViewingInquiry(null); }}
+                  disabled={isEngaging === viewingInquiry.id || viewingInquiry.status === 'QUALIFIED' || viewingInquiry.status === 'REJECTED'}
+                  className="flex-[2] py-5 bg-[#f472b6] text-white rounded-2xl font-black uppercase tracking-widest italic shadow-xl shadow-[#f472b6]/20"
+                >Authorize Engagement</button>
+                <button onClick={() => setViewingInquiry(null)} className="flex-1 py-5 bg-white/5 text-[#555a7a] rounded-2xl font-black uppercase tracking-widest">Close View</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // ═══════════════════════════════════════════
   // SIDEBAR CONFIG
