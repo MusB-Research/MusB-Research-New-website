@@ -66,10 +66,6 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
                     return ret
             except Exception:
                 pass
-        elif isinstance(ret, list):
-            # For lists, we don't do a full scan here to avoid O(N) penalties, 
-            # as individual items will handle their own decryption in their serializers.
-            return ret
 
         request = self.context.get('request')
         user = request.user if request else None
