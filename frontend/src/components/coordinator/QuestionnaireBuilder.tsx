@@ -21,7 +21,7 @@ interface Template {
     id: string;
     name: string;
     pdf_file: string | null;
-    json_structure: { questions?: Question[] };
+    json_structure: { questions?: Question[]; instructions?: string };
     created_at: string;
 }
 

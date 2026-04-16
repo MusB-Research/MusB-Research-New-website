@@ -194,7 +194,7 @@ export default function StudyDocumentsModule({ selectedStudyId }: { selectedStud
 
             {/* Repository List */}
             <div className="divide-y divide-white/5">
-                {filteredDocs.map((doc) => (
+                {filteredDocs.map((doc: any) => (
                     <motion.div key={doc.id} className="group flex items-center justify-between py-10 px-4 transition-colors">
                         <div className="flex items-center gap-10">
                             <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 group-hover:text-teal-400 group-hover:border-teal-500/40 transition-all shadow-lg shadow-black/20">
