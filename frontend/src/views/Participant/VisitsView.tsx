@@ -314,9 +314,9 @@ const VisitsView = ({ visits = [], study, tasks = [], isLoading = false }: { vis
                                                                     Clinical Care Team
                                                                 </h4>
                                                                 <div className="space-y-3">
-                                                                    {pi_details && <StaffEntry person={pi_details} />}
-                                                                    {coordinator_details && <StaffEntry person={coordinator_details} secondary={!!pi_details} />}
-                                                                    {!pi_details && !coordinator_details && scheduled_by_details && <StaffEntry person={scheduled_by_details} />}
+                                                                    {pi_details ? <StaffEntry person={pi_details} /> : (study?.assigned_pis?.[0] && <StaffEntry person={study.assigned_pis[0]} />)}
+                                                                    {coordinator_details ? <StaffEntry person={coordinator_details} secondary={!!pi_details} /> : (study?.assigned_coordinators?.[0] && <StaffEntry person={study.assigned_coordinators[0]} secondary={true} />)}
+                                                                    {!pi_details && !coordinator_details && !study?.assigned_pis?.[0] && !study?.assigned_coordinators?.[0] && scheduled_by_details && <StaffEntry person={scheduled_by_details} />}
                                                                 </div>
                                                             </div>
                                                         );

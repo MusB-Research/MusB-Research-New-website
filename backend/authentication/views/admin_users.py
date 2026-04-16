@@ -121,18 +121,18 @@ def admin_create_user(request):
     try:
         # Rule 1.1: HOW AFFILIATION IS DETERMINED
         affiliation = 'musb' # Default
-        status_val = 'pending' # Default for invited users
+        status_val = 'active' # Default for MusB invited users
         
-        # Onsite PI adds team members -> inherit onsite
+        # Onsite PI adds team members -> inherit onsite, set pending
         if admin_user.role == 'pi' and admin_user.affiliation == 'onsite':
             affiliation = 'onsite'
+            # Rule 6: Onsite PI team member requests ALWAYS go through Super Admin approval
+            if role == 'team_member':
+                status_val = 'pending'
             
         # Explicit override for onsite PIs if flag provided (e.g., from study assignment flow)
         elif request.data.get('is_onsite_hire'):
              affiliation = 'onsite'
-             # If created by Super Admin/Admin, maybe it doesn't need approval? 
-             # Rule: "Onsite PI team member requests ALWAYS go through Super Admin approval"
-             # Rule 6 suggests only TM created by Onsite PI needs approval.
              if role == 'team_member':
                  status_val = 'pending'
 

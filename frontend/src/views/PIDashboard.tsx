@@ -973,8 +973,8 @@ function StudyOverviewModule({ studies, onAdd, onEdit, onStatusUpdate }: { studi
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10">
             <div className="flex justify-between items-center">
-                <h2 className="text-xl md:text-2xl font-bold text-white uppercase tracking-tight leading-none">Research <span className="text-teal-400">Studies</span></h2>
-                <button onClick={onAdd} className="px-8 py-3.5 bg-teal-600 text-white rounded-xl text-[13px] font-bold uppercase tracking-widest flex items-center gap-3 shadow-xl shadow-teal-900/40 hover:scale-[1.02] transition-all">
+                <h2 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tight leading-none">Research <span className="text-teal-400">Studies</span></h2>
+                <button onClick={onAdd} className="px-8 py-3.5 bg-teal-600 text-white rounded-xl text-[13px] font-black uppercase tracking-widest flex items-center gap-3 shadow-xl shadow-teal-900/40 hover:scale-[1.02] transition-all">
                     <Plus className="w-4 h-4" /> START NEW STUDY
                 </button>
             </div>
@@ -996,7 +996,7 @@ function StudyOverviewModule({ studies, onAdd, onEdit, onStatusUpdate }: { studi
                         )}
                         <div className="flex items-center gap-3 relative z-10">
                             <cat.icon className={`w-3.5 h-3.5 ${filter === cat.id ? 'text-teal-400' : 'text-slate-500'}`} />
-                            <span className={`text-xs font-black uppercase tracking-widest ${filter === cat.id ? 'text-teal-400' : 'text-slate-500'}`}>
+                            <span className={`text-[11px] font-black uppercase tracking-widest ${filter === cat.id ? 'text-teal-400' : 'text-slate-500'}`}>
                                 {cat.label}
                             </span>
                         </div>
@@ -1022,10 +1022,10 @@ function StudyOverviewModule({ studies, onAdd, onEdit, onStatusUpdate }: { studi
                                 </div>
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-xs font-black text-teal-400/60 tracking-widest font-mono">Study</span>
+                                        <span className="text-xs font-black text-teal-400/60 tracking-widest font-mono italic">Study Node</span>
                                         <p className="text-sm font-black text-[#2dd4bf] tracking-widest leading-none">{study.protocol_id}</p>
                                     </div>
-                                    <h3 className="text-xl font-black text-white uppercase tracking-tight leading-tight group-hover:text-teal-400 transition-colors">
+                                    <h3 className="text-xl font-black text-white uppercase italic tracking-tight leading-tight group-hover:text-teal-400 transition-colors">
                                         {study.title}
                                     </h3>
                                 </div>
@@ -1087,9 +1087,9 @@ function StudyOverviewModule({ studies, onAdd, onEdit, onStatusUpdate }: { studi
                                 { label: 'Phase', val: (study.phase || 'Phase II/III').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase()), color: 'text-teal-400' },
                                 { label: 'Diversity', val: study.diversity_score || '94%', color: 'text-emerald-400' }
                             ].map((met, idx) => (
-                                <div key={idx} className="p-4 rounded-xl bg-white/[0.03] border border-white/5 group-hover:bg-white/[0.05] transition-colors">
-                                    <p className="text-xs font-black text-slate-500 uppercase tracking-widest">{met.label}</p>
-                                    <p className={`text-lg font-black mt-1 ${met.color}`}>
+                                <div key={idx} className="p-4 rounded-xl bg-white/[0.03] border border-white/5 group-hover:bg-white/[0.05] transition-colors relative h-24 flex flex-col justify-end">
+                                    <span className="text-[10px] text-white/40 font-black uppercase tracking-widest italic absolute top-4 left-4">{met.label}</span>
+                                    <p className={`text-lg font-black ${met.color}`}>
                                         {met.val}
                                         {met.target && <span className="text-xs text-slate-600 ml-1 font-bold">/{met.target}</span>}
                                     </p>
@@ -1106,16 +1106,16 @@ function StudyOverviewModule({ studies, onAdd, onEdit, onStatusUpdate }: { studi
                                 className="flex-1 p-4 rounded-xl bg-teal-500/5 border border-teal-500/10 cursor-pointer hover:bg-teal-500/10 transition-all flex flex-col justify-center gap-1"
                             >
                                 <div className="flex items-center justify-between">
-                                    <p className="text-xs font-black text-teal-400 uppercase tracking-widest">Study Lifecycle Stage</p>
+                                    <p className="text-xs font-black text-teal-400 uppercase tracking-widest italic">Study Lifecycle Stage</p>
                                     <ListFilter className="w-3 h-3 text-teal-400/50" />
                                 </div>
-                                <p className="text-sm font-black text-white uppercase tracking-tight">
+                                <p className="text-sm font-black text-white italic uppercase tracking-tight">
                                     {(study.stage || study.status || "In Evaluation").replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())}
                                 </p>
                             </div>
                             <button
                                 onClick={() => onEdit(study)}
-                                className="px-6 py-4 bg-white/5 border border-white/10 text-white rounded-xl text-xs font-black uppercase tracking-[0.2em] hover:bg-white hover:text-slate-950 transition-all shadow-lg active:scale-95 shrink-0"
+                                className="px-6 py-4 bg-white/5 border border-white/10 text-white rounded-xl text-xs font-black italic uppercase tracking-[0.2em] hover:bg-white hover:text-slate-950 transition-all shadow-lg active:scale-95 shrink-0"
                             >
                                 STUDY DETAILS
                             </button>

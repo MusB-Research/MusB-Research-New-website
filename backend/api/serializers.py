@@ -59,9 +59,13 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
 
         # 3. Optimization: Skip expensive decryption loop if no Fernet tokens exist at top-level
         # Special Case: User records usually have tokens, but list-views of static data don't.
-        has_pii = any(isinstance(v, str) and v.startswith('gAAAA') for v in ret.values())
-        if not has_pii:
-            return ret
+        try:
+            has_pii = any(isinstance(v, str) and v.startswith('gAAAA') for v in ret.values())
+            if not has_pii:
+                return ret
+        except Exception:
+            # Fallback if ret is not a standard dict
+            pass
 
         request = self.context.get('request')
         user = request.user if request else None
@@ -422,6 +426,13 @@ class VisitSerializer(SanitizedModelSerializer):
             'pi_approved', 'locked', 'scheduled_by', 'scheduled_by_details',
             'updated_by', 'updated_by_details', 'pi_details', 'coordinator_details'
         ]
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        # Rule 9.4: Default medical node state
+        if not ret.get('dispensing'):
+             ret['dispensing'] = { 'dispensed': 'N/A', 'dose': 'N/A', 'compliance': 100 }
+        return ret
 
     def get_notes(self, obj):
         return obj.decrypted_notes

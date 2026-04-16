@@ -22,19 +22,17 @@ import {
 
 interface StudyDoc {
     id: string;
-    title: string;
-    category: string;
+    name: string;
+    category: 'Protocol' | 'IB' | 'Pharmacy' | 'Imaging' | 'Regulatory';
     version: string;
-    uploaded_at: string;
-    file: string;
-    is_archived: boolean;
-    status?: string;
+    effectiveDate: string;
+    status: 'Active' | 'Draft' | 'Archived';
 }
 
-export default function StudyDocumentsModule({ selectedStudyId }: { selectedStudyId?: string }) {
+export default function StudyDocumentsModule({ selectedStudyId }: { selectedStudyId?: string | null }) {
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeCategory, setActiveCategory] = useState<string>('All');
-    const [documents, setDocuments] = useState<StudyDoc[]>([]);
+    const [activeCategory, setActiveCategory] = useState<'All' | 'Protocol' | 'IB' | 'Pharmacy' | 'Regulatory'>('All');
+    const [documents, setDocuments] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
 
@@ -144,34 +142,10 @@ export default function StudyDocumentsModule({ selectedStudyId }: { selectedStud
             {/* Quick Access Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-8">
                 {[
-                    { 
-                        label: 'Core Protocol', 
-                        count: documents.find(d => d.category === 'Protocol')?.version ? `v${documents.find(d => d.category === 'Protocol')?.version}` : 'N/A', 
-                        icon: BookOpen, 
-                        color: 'indigo', 
-                        cat: 'Protocol' 
-                    },
-                    { 
-                        label: 'IB Edits', 
-                        count: documents.find(d => d.category === 'IB')?.version ? `v${documents.find(d => d.category === 'IB')?.version}` : 'N/A', 
-                        icon: FileCheck, 
-                        color: 'emerald', 
-                        cat: 'IB' 
-                    },
-                    { 
-                        label: 'Pharmacy', 
-                        count: documents.filter(d => d.category === 'Pharmacy').length > 0 ? `${documents.filter(d => d.category === 'Pharmacy').length} Files` : 'N/A', 
-                        icon: Beaker, 
-                        color: 'blue', 
-                        cat: 'Pharmacy' 
-                    },
-                    { 
-                        label: 'Master Binder', 
-                        count: `${documents.length} Files`, 
-                        icon: Shield, 
-                        color: 'indigo', 
-                        cat: 'All' 
-                    }
+                    { label: 'Core Protocol', count: 'v3.2 Final', icon: BookOpen, color: 'indigo', cat: 'Protocol' },
+                    { label: 'IB Edits', count: 'v12 Active', icon: FileCheck, color: 'emerald', cat: 'IB' },
+                    { label: 'IP Manual', count: 'v4.1 Draft', icon: Beaker, color: 'blue', cat: 'Pharmacy' },
+                    { label: 'Master Binder', count: '42 Files', icon: Shield, color: 'indigo', cat: 'All' }
                 ].map((q, i) => (
                     <div 
                         key={i} 
@@ -180,11 +154,11 @@ export default function StudyDocumentsModule({ selectedStudyId }: { selectedStud
                             activeCategory === q.cat ? 'opacity-100 scale-105' : 'opacity-60 hover:opacity-100'
                         }`}
                     >
-                        <div className={`flex-shrink-0 w-16 h-16 bg-${q.color}-500/5 border border-${q.color}-500/10 rounded-2xl flex items-center justify-center text-${q.color}-400 group-hover:scale-110 transition-transform`}>
+                        <div className={`p-4 rounded-xl shadow-lg bg-${q.color}-500/10 text-${q.color}-400 group-hover:scale-110 transition-transform`}>
                             <q.icon className="w-8 h-8" />
                         </div>
                         <div>
-                            <span className="text-[11px] text-white/40 font-black uppercase tracking-widest italic block mb-1">{q.label}</span>
+                            <span className="text-[13px] text-white/40 font-black uppercase tracking-widest italic block mb-1">{q.label}</span>
                             <p className="text-xl font-black text-white italic tracking-tight leading-none truncate">{q.count}</p>
                         </div>
                     </div>
@@ -228,15 +202,15 @@ export default function StudyDocumentsModule({ selectedStudyId }: { selectedStud
                             </div>
                             <div>
                                 <div className="flex items-center gap-4">
-                                    <h4 className="text-xl font-black text-white italic uppercase tracking-tight leading-none">{doc.title}</h4>
-                                    <span className={`px-4 py-1.5 rounded-xl text-[13px] font-black uppercase tracking-widest border shadow-lg ${
+                                    <h4 className="text-xl font-black text-white italic uppercase tracking-tight leading-none">{doc.title || doc.name}</h4>
+                                    <span className={`px-4 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest border shadow-lg ${
                                         !doc.is_archived ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5' : 
                                         'text-slate-500 border-white/5 bg-white/5'
                                     }`}>
                                         {!doc.is_archived ? 'Active' : 'Archived'}
                                     </span>
                                 </div>
-                                <p className="text-sm text-slate-500 font-black tracking-widest uppercase mt-3 italic opacity-60">Version {doc.version} • Uploaded {new Date(doc.uploaded_at).toLocaleDateString()} • {doc.category || 'General'}</p>
+                                <p className="text-sm text-slate-500 font-black tracking-widest uppercase mt-3 italic opacity-60">Version {doc.version || 'v1.0'} • Effective {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString() : 'N/A'} • {doc.category || 'Regulatory'}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-3 transition-all">
