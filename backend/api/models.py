@@ -388,6 +388,7 @@ class Visit(BaseMongoModel):
 
     participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='visits')
     scheduled_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='scheduled_visits')
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='updated_visits', help_text="Staff who performed/completed the visit")
     visit_type = models.CharField(max_length=100) # relaxed choices
     scheduled_date = models.DateTimeField()
     actual_date = models.DateTimeField(null=True, blank=True)

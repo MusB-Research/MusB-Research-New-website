@@ -38,6 +38,9 @@ class ApiConfig(AppConfig):
             return original_bulk_create(self, objs, **kwargs)
         
         QuerySet.bulk_create = patched_bulk_create
+        
+        # Register Signals
+        import api.signals
 
         # Proactive ContentType Sync to prevent IntegrityError in MongoDB migration
         import sys

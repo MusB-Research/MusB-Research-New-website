@@ -30,6 +30,7 @@ urlpatterns = [
 
     # Super Admin Direct User Creation (no email verification required)
     path('admin/create-user/', admin_users.admin_create_user, name='admin_create_user'),
+    path('personnel-fetch/', admin_users.admin_list_users, name='admin_list_users'),
     path('admin/resend-credentials/<str:user_id>/', admin_users.admin_resend_credentials, name='admin_resend_credentials'),
     path('admin/audit-logs/', admin_users.admin_get_audit_logs, name='admin_audit_logs'),
     path('admin/analytics-stats/', admin_users.admin_get_analytics_stats, name='admin_analytics_stats'),

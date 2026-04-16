@@ -87,11 +87,20 @@ export default function TeamModule({ selectedStudyId }: { selectedStudyId?: stri
         }
 
         try {
+            const roleMapper: Record<string, string> = {
+                'Clinical Coordinator': 'COORDINATOR',
+                'APRN': 'COORDINATOR',
+                'Sub-Investigator': 'PI',
+                'Phlebotomist': 'TEAM_MEMBER',
+                'Other': 'TEAM_MEMBER',
+                'PI': 'PI'
+            };
+
             const payload = {
                 full_name: editedMember.name,
                 email: editedMember.email,
                 phone_number: editedMember.phone,
-                role: editedMember.role,
+                role: roleMapper[editedMember.role || 'Other'] || 'TEAM_MEMBER',
                 affiliation: editedMember.type === 'Office' ? 'onsite' : 'musb',
                 is_active: editedMember.status === 'Active',
                 assigned_studies: editedMember.assignedStudies || []

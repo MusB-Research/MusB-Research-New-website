@@ -51,32 +51,31 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         """Handle MongoDB ObjectId serialization and authorized decryption (SUPER_ADMIN, etc.)."""
+        # 1. Base Serialization
         ret = super().to_representation(instance)
-        request = self.context.get('request')
-        user = request.user if request else None
         
-        # Only decrypt for authorized clinical/admin roles
-        is_authorized = user and user.is_authenticated and (user.role.upper() in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR'])
-        
-        # Step 1: Initial recursive sanitization for MongoDB types
+        # 2. Recursive Sanitization (MANDATORY for MongoDB ObjectId -> JSON)
         ret = self.sanitize_data(ret)
 
-        # Step 2: Decryption handling for PII fields
+        # 3. Optimization: Skip expensive decryption loop if no Fernet tokens exist at top-level
+        # Special Case: User records usually have tokens, but list-views of static data don't.
+        has_pii = any(isinstance(v, str) and v.startswith('gAAAA') for v in ret.values())
+        if not has_pii:
+            return ret
+
+        request = self.context.get('request')
+        user = request.user if request else None
+        is_authorized = user and user.is_authenticated and (user.role.upper() in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR'])
+        
+        # 4. Decryption loop for authorized roles
         for key, value in ret.items():
-            # Handle potential Fernet tokens (PII)
             if isinstance(value, str) and value.startswith('gAAAA'):
-                # ROBUST CHECK: Decrypt if staff OR if instance belongs to user
                 can_decrypt = is_authorized
                 if not can_decrypt and user and user.is_authenticated:
-                    # Use .pk for reliable ID access on both instance and user
-                    # Note: ID strings already sanitized to string by Step 1
                     iid = str(instance.pk) if hasattr(instance, 'pk') else None
                     uid = str(user.pk) if hasattr(user, 'pk') else None
-                    
-                    # Direct User match
                     if iid and uid and iid == uid:
                         can_decrypt = True
-                    # Related User match (e.g. Participant.user)
                     elif hasattr(instance, 'user') and instance.user:
                         instance_user_pk = str(instance.user.pk) if hasattr(instance.user, 'pk') else None
                         if instance_user_pk and uid and instance_user_pk == uid:
@@ -88,7 +87,6 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
                     if decrypted != value:
                         ret[key] = decrypted
 
-        # Ensure created_by is a string
         if 'created_by' in ret and hasattr(instance, 'created_by') and instance.created_by:
             ret['created_by'] = str(instance.created_by.pk)
             
@@ -150,7 +148,8 @@ class UserSerializer(SanitizedModelSerializer):
             'date_of_birth', 'age', 'has_active_enrollment',
             'medical_licence', 'insurance_certificate', 'cv_document',
             'must_change_password', 'profile_completed', 'is_screener_completed', 'is_active', 'timezone',
-            'status', 'affiliation', 'assigned_studies', 'created_by'
+            'status', 'affiliation', 'assigned_studies', 'created_by',
+            'first_name', 'last_name'
         ]
 
     def to_representation(self, instance):
@@ -207,7 +206,29 @@ class DocumentSerializer(SanitizedModelSerializer):
 
     class Meta:
         model = Document
-        fields = ['id', 'title', 'file', 'file_url', 'version', 'visibility', 'is_archived', 'uploaded_at']
+        fields = ['id', 'title', 'study', 'file', 'file_url', 'version', 'visibility', 'is_archived', 'uploaded_at']
+
+    def to_internal_value(self, data):
+        """Map frontend protocol ID to study ObjectId if needed."""
+        # Handle study lookup if protocol_id string is passed
+        if 'study' in data and isinstance(data['study'], str):
+            if data['study'] == 'all':
+                raise serializers.ValidationError({"study": "You must select a specific study, not 'All Studies', to upload a document."})
+            import bson
+            if not bson.ObjectId.is_valid(data['study']):
+                study_obj = Study.objects.filter(protocol_id=data['study']).first()
+                if study_obj:
+                    data['study'] = str(study_obj.id)
+
+        # Handle visibility if sent as string (common in multipart/form-data)
+        if 'visibility' in data and isinstance(data['visibility'], str):
+            import json
+            try:
+                data['visibility'] = json.loads(data['visibility'])
+            except:
+                pass
+
+        return super().to_internal_value(data)
 
     def get_file_url(self, obj):
         if obj.file:
@@ -383,17 +404,49 @@ class VisitSerializer(SanitizedModelSerializer):
         queryset=User.objects.all(), required=False, allow_null=True
     )
     
+    updated_by_details = UserSerializer(source='updated_by', read_only=True)
+    updated_by = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), required=False, allow_null=True
+    )
+
+    # Study Staff Details (PI & Primary Coordinator)
+    pi_details = serializers.SerializerMethodField()
+    coordinator_details = serializers.SerializerMethodField()
+    
     class Meta:
         model = Visit
         fields = [
             'id', 'participant', 'participant_name', 'participant_sid', 'visit_type', 'scheduled_date', 
             'actual_date', 'status', 'notes', 'location', 'location_address', 'checklist', 
             'assessments', 'measurements', 'deviations', 'samples', 'dispensing', 
-            'pi_approved', 'locked', 'scheduled_by', 'scheduled_by_details'
+            'pi_approved', 'locked', 'scheduled_by', 'scheduled_by_details',
+            'updated_by', 'updated_by_details', 'pi_details', 'coordinator_details'
         ]
 
     def get_notes(self, obj):
         return obj.decrypted_notes
+
+    def get_pi_details(self, obj):
+        pi = obj.participant.study.pi
+        if pi:
+            return {
+                'name': pi.decrypted_name or pi.full_name,
+                'email': pi.email,
+                'phone': pi.decrypted_phone or pi.phone_number or 'N/A',
+                'role': 'Principal Investigator'
+            }
+        return None
+
+    def get_coordinator_details(self, obj):
+        coord = obj.participant.study.coordinator
+        if coord:
+            return {
+                'name': coord.decrypted_name or coord.full_name,
+                'email': coord.email,
+                'phone': coord.decrypted_phone or coord.phone_number or 'N/A',
+                'role': 'Study Coordinator'
+            }
+        return None
 
 
 
@@ -853,9 +906,10 @@ class AEReportSerializer(SanitizedModelSerializer):
         read_only_fields = ['participant']
 
 class DailyMedicationLogSerializer(SanitizedModelSerializer):
+    participant_sid = serializers.CharField(source='participant.participant_sid', read_only=True)
     class Meta:
         model = DailyMedicationLog
-        fields = '__all__'
+        fields = ['id', 'participant', 'participant_sid', 'date', 'took_medicine', 'time_taken', 'full_dose', 'dose_amount', 'reason_missed', 'noticed_side_effects', 'side_effect_description', 'side_effect_start_time', 'side_effect_ongoing', 'severity', 'interfered_daily_activities', 'sought_medical_care', 'ae_additional_comments', 'overall_feeling', 'health_updates', 'supporting_file', 'is_draft', 'created_at', 'updated_at']
         read_only_fields = ['participant']
 
 class ParticipantSerializer(SanitizedModelSerializer):

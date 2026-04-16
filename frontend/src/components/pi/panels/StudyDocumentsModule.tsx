@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { authFetch, API } from '../../../utils/auth';
 import { 
     FileText, 
     Search, 
@@ -21,28 +22,88 @@ import {
 
 interface StudyDoc {
     id: string;
-    name: string;
-    category: 'Protocol' | 'IB' | 'Pharmacy' | 'Imaging' | 'Regulatory';
+    title: string;
+    category: string;
     version: string;
-    effectiveDate: string;
-    status: 'Active' | 'Draft' | 'Archived';
+    uploaded_at: string;
+    file: string;
+    is_archived: boolean;
+    status?: string;
 }
 
-export default function StudyDocumentsModule() {
+export default function StudyDocumentsModule({ selectedStudyId }: { selectedStudyId?: string }) {
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeCategory, setActiveCategory] = useState<'All' | 'Protocol' | 'IB' | 'Pharmacy' | 'Regulatory'>('All');
+    const [activeCategory, setActiveCategory] = useState<string>('All');
+    const [documents, setDocuments] = useState<StudyDoc[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isUploading, setIsUploading] = useState(false);
 
-    const documents: StudyDoc[] = [
-        { id: 'DOC-01', name: 'Clinical Study Protocol MB-202B', category: 'Protocol', version: 'v3.2', effectiveDate: '2026-01-15', status: 'Active' },
-        { id: 'DOC-02', name: 'Investigator Brochure (Metabolic Agent X)', category: 'IB', version: 'v12', effectiveDate: '2025-11-20', status: 'Active' },
-        { id: 'DOC-03', name: 'Pharmacy Manual - Unblinded IP Prep', category: 'Pharmacy', version: 'v4', effectiveDate: '2026-03-01', status: 'Active' },
-        { id: 'DOC-04', name: 'Site-Specific Regulatory Binder (NY Hub)', category: 'Regulatory', version: 'v1.4', effectiveDate: '2026-03-10', status: 'Active' },
-        { id: 'DOC-05', name: 'Historical Protocol (Initial Release)', category: 'Protocol', version: 'v1.0', effectiveDate: '2025-06-01', status: 'Archived' },
-    ];
+    const fetchDocuments = async () => {
+        setIsLoading(true);
+        try {
+            const studyId = selectedStudyId && selectedStudyId !== 'all' ? selectedStudyId : '';
+            const url = studyId ? `${API}/api/documents/?study_id=${studyId}` : `${API}/api/documents/`;
+            const res = await authFetch(url);
+            if (res.ok) {
+                const data = await res.json();
+                setDocuments(Array.isArray(data) ? data : data.results || []);
+            }
+        } catch (err) {
+            console.error("Failed to fetch documents:", err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-    const filteredDocs = documents.filter(d => {
+    useEffect(() => {
+        fetchDocuments();
+    }, [selectedStudyId]);
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !selectedStudyId || selectedStudyId === 'all') {
+            if (!file) return;
+            alert("Please select a specific study first to upload documents.");
+            return;
+        }
+
+        setIsUploading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('title', file.name.split('.')[0]);
+        formData.append('study', selectedStudyId);
+        formData.append('visibility', JSON.stringify(['PI', 'COORDINATOR', 'SPONSOR']));
+
+        try {
+            const res = await authFetch(`${API}/api/documents/`, {
+                method: 'POST',
+                body: formData
+            });
+            if (res.ok) {
+                fetchDocuments();
+            } else {
+                const err = await res.json();
+                alert(`Upload failed: ${JSON.stringify(err)}`);
+            }
+        } catch (err) {
+            alert("Connection error during upload.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const getFullUrl = (path: string) => {
+        if (!path) return '';
+        if (path.startsWith('http')) return path;
+        return `${API}${path}`;
+    };
+
+    const documentsArray = Array.isArray(documents) ? documents : (documents && typeof documents === 'object' && 'results' in documents && Array.isArray((documents as any).results) ? (documents as any).results : []);
+
+    const filteredDocs = documentsArray.filter((d: any) => {
         const matchesCategory = activeCategory === 'All' || d.category === activeCategory;
-        const matchesSearch = d.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const title = d.title || d.name || '';
+        const matchesSearch = title.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesCategory && matchesSearch;
     });
 
@@ -62,26 +123,55 @@ export default function StudyDocumentsModule() {
                         Bulk Download (.zip)
                     </button>
                     <div className="relative">
-                        <input type="file" id="protocol-upload" className="hidden" onChange={(e) => {
-                            if (e.target.files?.length) alert(`Uploading Node: [${e.target.files[0].name}]... Initiating secure ingest.`);
-                        }} />
+                        <input 
+                            type="file" 
+                            id="protocol-upload" 
+                            className="hidden" 
+                            onChange={handleUpload} 
+                            disabled={isUploading}
+                        />
                         <button 
+                            disabled={isUploading || !selectedStudyId || selectedStudyId === 'all'}
                             onClick={() => document.getElementById('protocol-upload')?.click()}
-                            className="px-8 py-3.5 bg-teal-600 text-white rounded-2xl text-sm font-black uppercase tracking-widest hover:scale-[1.03] hover:shadow-teal-500/40 transition-all shadow-xl shadow-teal-600/30 flex items-center gap-3 active:scale-95"
+                            className="px-8 py-3.5 bg-teal-600 text-white rounded-2xl text-sm font-black uppercase tracking-widest hover:scale-[1.03] hover:shadow-teal-500/40 transition-all shadow-xl shadow-teal-600/30 flex items-center gap-3 active:scale-95 disabled:opacity-50"
                         >
-                            Upload Document <Folder className="w-4 h-4" />
+                            {isUploading ? 'Uploading...' : 'Upload Document'} <Folder className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
             </div>
 
             {/* Quick Access Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-8">
                 {[
-                    { label: 'Core Protocol', count: 'v3.2 Final', icon: BookOpen, color: 'indigo', cat: 'Protocol' },
-                    { label: 'IB Edits', count: 'v12 Active', icon: FileCheck, color: 'emerald', cat: 'IB' },
-                    { label: 'IP Manual', count: 'v4.1 Draft', icon: Beaker, color: 'blue', cat: 'Pharmacy' },
-                    { label: 'Master Binder', count: '42 Files', icon: Shield, color: 'indigo', cat: 'All' }
+                    { 
+                        label: 'Core Protocol', 
+                        count: documents.find(d => d.category === 'Protocol')?.version ? `v${documents.find(d => d.category === 'Protocol')?.version}` : 'N/A', 
+                        icon: BookOpen, 
+                        color: 'indigo', 
+                        cat: 'Protocol' 
+                    },
+                    { 
+                        label: 'IB Edits', 
+                        count: documents.find(d => d.category === 'IB')?.version ? `v${documents.find(d => d.category === 'IB')?.version}` : 'N/A', 
+                        icon: FileCheck, 
+                        color: 'emerald', 
+                        cat: 'IB' 
+                    },
+                    { 
+                        label: 'Pharmacy', 
+                        count: documents.filter(d => d.category === 'Pharmacy').length > 0 ? `${documents.filter(d => d.category === 'Pharmacy').length} Files` : 'N/A', 
+                        icon: Beaker, 
+                        color: 'blue', 
+                        cat: 'Pharmacy' 
+                    },
+                    { 
+                        label: 'Master Binder', 
+                        count: `${documents.length} Files`, 
+                        icon: Shield, 
+                        color: 'indigo', 
+                        cat: 'All' 
+                    }
                 ].map((q, i) => (
                     <div 
                         key={i} 
@@ -94,7 +184,7 @@ export default function StudyDocumentsModule() {
                             <q.icon className="w-8 h-8" />
                         </div>
                         <div>
-                            <span className="text-[13px] text-white/40 font-black uppercase tracking-widest italic block mb-1">{q.label}</span>
+                            <span className="text-[11px] text-white/40 font-black uppercase tracking-widest italic block mb-1">{q.label}</span>
                             <p className="text-xl font-black text-white italic tracking-tight leading-none truncate">{q.count}</p>
                         </div>
                     </div>
@@ -138,23 +228,36 @@ export default function StudyDocumentsModule() {
                             </div>
                             <div>
                                 <div className="flex items-center gap-4">
-                                    <h4 className="text-xl font-black text-white italic uppercase tracking-tight leading-none">{doc.name}</h4>
+                                    <h4 className="text-xl font-black text-white italic uppercase tracking-tight leading-none">{doc.title}</h4>
                                     <span className={`px-4 py-1.5 rounded-xl text-[13px] font-black uppercase tracking-widest border shadow-lg ${
-                                        doc.status === 'Active' ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5' : 
+                                        !doc.is_archived ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5' : 
                                         'text-slate-500 border-white/5 bg-white/5'
                                     }`}>
-                                        {doc.status}
+                                        {!doc.is_archived ? 'Active' : 'Archived'}
                                     </span>
                                 </div>
-                                <p className="text-sm text-slate-500 font-black tracking-widest uppercase mt-3 italic opacity-60">Version {doc.version} • Effective {doc.effectiveDate} • {doc.category}</p>
+                                <p className="text-sm text-slate-500 font-black tracking-widest uppercase mt-3 italic opacity-60">Version {doc.version} • Uploaded {new Date(doc.uploaded_at).toLocaleDateString()} • {doc.category || 'General'}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-3 transition-all">
+                            <button 
+                                onClick={() => window.open(getFullUrl(doc.file), '_blank')}
+                                className="px-8 py-4 bg-white/5 border border-white/10 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-white hover:text-teal-900 shadow-xl active:scale-95 transition-all flex items-center gap-3"
+                            >
+                                VIEW <BookOpen className="w-4 h-4" />
+                            </button>
                             <button className="p-4 bg-white/5 border border-white/10 rounded-2xl text-slate-400 hover:text-white hover:bg-white/10 transition-all shadow-lg active:scale-95 group/btn">
                                 <History className="w-4 h-4 group-hover/btn:rotate-180 transition-transform" />
                             </button>
                             <button 
-                                onClick={() => window.open('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', '_blank')}
+                                onClick={() => {
+                                    const link = document.createElement('a');
+                                    link.href = getFullUrl(doc.file);
+                                    link.download = doc.title;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                }}
                                 className="px-8 py-4 bg-teal-600 text-white rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-white hover:text-teal-900 shadow-xl shadow-teal-600/30 active:scale-95 transition-all flex items-center gap-3"
                             >
                                 DOWNLOAD <Download className="w-4 h-4" />

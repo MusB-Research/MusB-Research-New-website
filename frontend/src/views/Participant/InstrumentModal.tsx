@@ -158,7 +158,74 @@ export default function InstrumentModal({ isOpen, onClose, task, onSuccess }: In
                                     </div>
                                 ) : (
                                     <div className="space-y-12 pb-10">
-                                        {Array.isArray(template?.json_structure?.sections) && template.json_structure.sections.length > 0 ? template.json_structure.sections.map((section: any, si: number) => (
+                                         {template?.json_structure?.instructions && (
+                                             <div className="p-8 bg-[#F8FBFF] border border-[#E3ECF5] rounded-[2rem]">
+                                                 <div className="flex items-center gap-3 mb-4">
+                                                     <div className="w-8 h-8 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600">
+                                                         <Activity className="w-4 h-4" />
+                                                     </div>
+                                                     <h4 className="text-[11px] font-black text-[#1A2B49] uppercase tracking-widest">Protocol Instructions</h4>
+                                                 </div>
+                                                 <p className="text-[#5F6F89] text-sm font-bold leading-relaxed whitespace-pre-wrap">
+                                                     {template.json_structure.instructions}
+                                                 </p>
+                                             </div>
+                                         )}
+
+                                         {Array.isArray(template?.json_structure?.questions) && template.json_structure.questions.length > 0 ? (
+                                             <div className="space-y-6">
+                                                 {template.json_structure.questions.map((q: any, i: number) => (
+                                                     <div key={i} className="bg-[#F8FBFF]/50 border border-[#E3ECF5] rounded-[24px] p-6 sm:p-8 transition-all hover:border-[#1E88E5]/30 group">
+                                                         <div className="flex gap-6 mb-6">
+                                                             <span className="text-[#1E88E5] font-black italic text-xl tracking-tighter opacity-40 group-hover:opacity-100 transition-opacity">
+                                                                 {i + 1 < 10 ? `0${i + 1}` : i + 1}
+                                                             </span>
+                                                             <h4 className="text-lg font-bold text-[#1A2B49] uppercase tracking-tight leading-snug">
+                                                                 {q.label || q.question || q.question_text}
+                                                             </h4>
+                                                         </div>
+                                                         
+                                                         {q.type === 'choice' || q.type === 'multiple_choice' ? (
+                                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-0 sm:pl-12">
+                                                                 {q.options?.map((opt: string) => (
+                                                                     <button 
+                                                                         key={opt}
+                                                                         onClick={() => setResponses({...responses, [q.id || `q-${i}`]: opt})}
+                                                                         className={`p-5 rounded-2xl border text-left text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${responses[q.id || `q-${i}`] === opt ? 'bg-[#1E88E5] border-[#1E88E5] text-white shadow-xl shadow-blue-500/20 scale-[1.02]' : 'bg-white border-[#E3ECF5] text-[#5F6F89] hover:border-[#1E88E5]/40 hover:bg-white/80'}`}
+                                                                     >
+                                                                         <div className="flex items-center gap-3">
+                                                                             <div className={`w-3 h-3 rounded-full border-2 transition-all ${responses[q.id || `q-${i}`] === opt ? 'border-white bg-white' : 'border-[#E3ECF5]'}`} />
+                                                                             {opt}
+                                                                         </div>
+                                                                     </button>
+                                                                 ))}
+                                                             </div>
+                                                         ) : q.type === 'yesno' ? (
+                                                             <div className="flex gap-4 pl-0 sm:pl-12">
+                                                                 {['Yes', 'No'].map((opt) => (
+                                                                     <button 
+                                                                         key={opt}
+                                                                         onClick={() => setResponses({...responses, [q.id || `q-${i}`]: opt})}
+                                                                         className={`px-8 py-4 rounded-2xl border text-[11px] font-black uppercase tracking-widest transition-all ${responses[q.id || `q-${i}`] === opt ? 'bg-[#1E88E5] border-[#1E88E5] text-white' : 'bg-white border-[#E3ECF5] text-[#5F6F89] hover:border-[#1E88E5]/40'}`}
+                                                                     >
+                                                                         {opt}
+                                                                     </button>
+                                                                 ))}
+                                                             </div>
+                                                         ) : (
+                                                             <div className="pl-0 sm:pl-12">
+                                                                 <textarea 
+                                                                     className="w-full bg-white border border-[#E3ECF5] rounded-2xl p-5 text-[#1A2B49] font-bold placeholder:text-[#B0BCCF] min-h-[120px] focus:border-[#1E88E5] focus:ring-4 focus:ring-blue-500/5 transition-all outline-none"
+                                                                     placeholder={q.placeholder || "Type your response here..."}
+                                                                     value={responses[q.id || `q-${i}`] || ''}
+                                                                     onChange={(e) => setResponses({...responses, [q.id || `q-${i}`]: e.target.value})}
+                                                                 />
+                                                             </div>
+                                                         )}
+                                                     </div>
+                                                 ))}
+                                             </div>
+                                         ) : Array.isArray(template?.json_structure?.sections) && template.json_structure.sections.length > 0 ? template.json_structure.sections.map((section: any, si: number) => (
                                             <div key={si} className="space-y-8">
                                                 <div className="flex items-center gap-4">
                                                     <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#E3ECF5]" />

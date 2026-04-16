@@ -121,12 +121,11 @@ def admin_create_user(request):
     try:
         # Rule 1.1: HOW AFFILIATION IS DETERMINED
         affiliation = 'musb' # Default
-        status_val = 'active' # Default
+        status_val = 'pending' # Default for invited users
         
-        # Onsite PI adds team members -> inherit onsite, set pending
+        # Onsite PI adds team members -> inherit onsite
         if admin_user.role == 'pi' and admin_user.affiliation == 'onsite':
             affiliation = 'onsite'
-            status_val = 'pending'
             
         # Explicit override for onsite PIs if flag provided (e.g., from study assignment flow)
         elif request.data.get('is_onsite_hire'):
@@ -439,3 +438,30 @@ def admin_get_analytics_stats(request):
         'recent_activity': recent_audit,
         'study_distribution': studies_by_status
     })
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated, IsAdminOrCoordinator])
+def admin_list_users(request):
+    """
+    List users by role for administrative assignment (e.g., Launch Study flow).
+    """
+    role = request.query_params.get('role', '').upper()
+    if not role:
+        users = User.objects.all()
+    else:
+        users = User.objects.filter(role=role)
+    
+    # Simple serialization for assignment dropdowns
+    data = []
+    for u in users:
+        data.append({
+            'id': str(u.id),
+            'first_name': u.first_name,
+            'last_name': u.last_name,
+            'email': u.email,
+            'role': u.role,
+            'full_name': f"{u.first_name} {u.last_name}".strip() or u.email,
+            'status': (u.status or 'active').upper(),
+            'date': u.date_joined.strftime('%Y-%m-%d')
+        })
+    return Response(data)

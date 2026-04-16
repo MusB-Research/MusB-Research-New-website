@@ -60,6 +60,7 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
     const [showSourceText, setShowSourceText] = useState(false);
     const [sourceLines, setSourceLines] = useState<string[]>([]);
     const [name, setName] = useState('');
+    const [instructions, setInstructions] = useState('');
     const [questions, setQuestions] = useState<Question[]>([]);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -82,12 +83,14 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
             setEditingId(initialTemplate.id || null);
             setEditingPdfUrl(getFullUrl(initialTemplate.pdf_file));
             setName(initialTemplate.title || initialTemplate.name || '');
+            setInstructions(initialTemplate.json_structure?.instructions || '');
             setQuestions(initialTemplate.json_structure?.questions || []);
             setViewMode('BUILDER');
         } else if (initialTab === 'Create New') {
             setEditingId(null);
             setEditingPdfUrl(null);
             setName('');
+            setInstructions('');
             setQuestions([]);
             setViewMode('BUILDER');
         }
@@ -138,95 +141,104 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                 const data = await res.json();
                 const rawLines: string[] = data.lines || [];
                 
-                // 1. Group raw lines into logical paragraphs/sentences
-                const paragraphs: string[] = [];
-                let currentPara = "";
+                // 1. Group raw lines into logical blocks
+                const blocks: string[] = [];
+                let currentBlock = "";
+                
                 for (const line of rawLines) {
                     const trimmed = line.trim();
-                    if (!trimmed) continue;
-                    if (trimmed.startsWith('©') || trimmed.includes('All rights reserved') || trimmed.toLowerCase().includes('page')) continue;
+                    if (!trimmed || trimmed.startsWith('©') || trimmed.includes('All rights reserved') || /page\s+\d+/i.test(trimmed)) continue;
                     
-                    const isNewQuestion = /^\d+[\.\)]\s/.test(trimmed);
-                    const isNewExplicitOption = /^[a-g][\.\)]\s/i.test(trimmed);
-                    
-                    if ((isNewQuestion || isNewExplicitOption) && currentPara) {
-                        paragraphs.push(currentPara.trim());
-                        currentPara = trimmed;
+                    // Question Marker Detect (Numbering or Bullets)
+                    const isNewQuestion = /^(\d+[\.\)]|[A-G][\.\)]|[\u2022\u25cf\-\u25a1])\s+/.test(trimmed);
+                    // Section/Header Detect (Short, Uppercase)
+                    const isSectionHeader = /^(PART|SECTION|BLOCK)\s+\d+/i.test(trimmed) || (trimmed.toUpperCase() === trimmed && trimmed.length < 50 && trimmed.length > 5);
+
+                    if ((isNewQuestion || isSectionHeader) && currentBlock) {
+                        blocks.push(currentBlock.trim());
+                        currentBlock = trimmed;
                     } else {
-                        currentPara += (currentPara ? " " : "") + trimmed;
+                        currentBlock += (currentBlock ? " " : "") + trimmed;
                     }
                 }
-                if (currentPara) paragraphs.push(currentPara.trim());
+                if (currentBlock) blocks.push(currentBlock.trim());
 
-                // 2. Parse paragraphs into hierarchical Questions
+                // 2. Identify Global Scoring Scale (e.g., 0=None, 1=Mild...)
+                let globalScale: string[] = [];
+                const scaleDetectPattern = /(\d)\s*[=\-:]\s*([A-Z][A-Z\s]+?)(?=\s+\d|\s*$)/g;
+                
+                for (const b of blocks.slice(0, 3)) { // Look in first few blocks (headers/instructions)
+                    let match;
+                    while ((match = scaleDetectPattern.exec(b)) !== null) {
+                        globalScale.push(`${match[1]} ${match[2].trim()}`);
+                    }
+                    if (globalScale.length > 0) break;
+                }
+
+                // 3. Transform blocks into Questions
                 const suggested: Question[] = [];
-                let parentQuestion: Question | null = null;
-
-                // Enhanced detection for scores (0, 1) AND Checkboxes ([], \u25A1, etc)
-                const scorePattern = /(\d)[\s\.\)-]+([A-Za-z\s\/\\,\(\)-]+?)(?=\s+\d|\s*$)/g;
-                const boxPattern = /[\u25A1\u2610\u2611\u2612\uf0a8\uf0fe\uf071\u0001\u0002]|(?:\[\s?\])/g;
-
-                for (let para of paragraphs) {
-                    if (para.length < 5 || para.startsWith('©')) continue;
+                let introText = "";
+                
+                for (let block of blocks) {
+                    // Check if it's an intro/instruction block
+                    const isInstruction = suggested.length === 0 && !/^(\d+[\.\)]|[A-G][\.\)]|[\u2022\u25cf\-\u25a1])/.test(block);
+                    if (isInstruction) {
+                        introText += (introText ? "\n\n" : "") + block;
+                        continue;
+                    }
 
                     let options: string[] = [];
-                    let label = para;
-                    
-                    // Priority 1: Checkbox-based splitting
-                    if (boxPattern.test(para)) {
-                        const parts = para.split(boxPattern).map(p => p.trim()).filter(p => p.length > 1);
-                        if (parts.length > 1) {
-                            label = parts[0];
-                            options = parts.slice(1);
-                        }
-                    } 
-                    // Priority 2: Score-based splitting
-                    else {
-                        let match;
-                        scorePattern.lastIndex = 0;
-                        while ((match = scorePattern.exec(para)) !== null) {
-                            options.push(`${match[1]} ${match[2].trim()}`);
-                        }
-                        if (options.length > 0) {
-                            const firstMatchIdx = para.search(/\d[\s\.\)-]+[A-Za-z]/);
-                            if (firstMatchIdx > 10) label = para.substring(0, firstMatchIdx).trim();
-                        }
-                    }
+                    let label = block;
 
-                    const isExplicitOption = /^[a-g][\.\)]\s/i.test(para);
-
-                    if (isExplicitOption && parentQuestion) {
-                        const cleanedOpt = para.replace(/^[a-g][\.\)]\s+/i, '').trim();
-                        parentQuestion.type = 'choice';
-                        parentQuestion.options = [...(parentQuestion.options || []), cleanedOpt];
-                    } else if (options.length > 0 && parentQuestion && label.length < 20) {
-                        parentQuestion.type = 'choice';
-                        parentQuestion.options = [...(parentQuestion.options || []), ...options];
+                    // Option Detection Logic
+                    // Path A: Has scale buttons in the line (e.g. "Question Text 0 1 2 3")
+                    const trailingNumbers = block.match(/\s(\d\s+){2,}\d\s?$/);
+                    if (trailingNumbers && globalScale.length > 0) {
+                        label = block.replace(/\s(\d\s?)+$/, '').trim();
+                        options = [...globalScale];
                     } else {
-                        const isNumberStart = /^\d+[\.\)]\s/.test(para);
-                        if (!isNumberStart && para.length > 300) continue;
-
-                        const cleanLabel = label.replace(/^\d+[\.\)]\s+/, '').trim();
-                        if (cleanLabel.length < 5) continue;
-
-                        parentQuestion = {
-                            id: `ai_${suggested.length}_${Date.now()}`,
-                            type: options.length > 0 ? 'choice' : 'short_text',
-                            label: cleanLabel,
-                            placeholder: '...',
-                            required: true,
-                            options: options.length > 0 ? options : []
-                        };
-                        suggested.push(parentQuestion);
+                        // Path B: Inline Key-Value Pairs (e.g. "0 None 1 Some")
+                        const inlineScorePattern = /(\d)\s*[=\-:]?\s*([A-Za-z][A-Za-z\s\/\\,\(\)-]+?)(?=\s+\d|\s*$)/g;
+                        const inlineMatches = [...block.matchAll(inlineScorePattern)];
+                        if (inlineMatches.length > 1) {
+                            options = inlineMatches.map(m => `${m[1]} ${m[2].trim()}`);
+                            const firstMatchIdx = block.search(/\d\s*[=\-:]?\s*[A-Za-z]/);
+                            if (firstMatchIdx > 5) label = block.substring(0, firstMatchIdx).trim();
+                        }
                     }
+
+                    // Cleaning
+                    const cleanLabel = label.replace(/^\d+[\.\)]\s+/, '').replace(/^[A-G][\.\)]\s+/, '').trim();
+                    if (cleanLabel.length < 3) continue;
+
+                    suggested.push({
+                        id: `ai_${suggested.length}_${Date.now()}`,
+                        type: options.length > 0 ? 'choice' : 'short_text',
+                        label: cleanLabel,
+                        placeholder: '...',
+                        required: true,
+                        options: options.length > 0 ? options : []
+                    });
                 }
 
-                const final = suggested.filter(q => q.label.length > 5);
+                // Final Assembly: Inject Intro as instructions instead of a pseudo-question
+                if (introText.length > 20) {
+                    setInstructions(introText);
+                } else {
+                    setInstructions('');
+                }
+
+                const final = suggested.filter(q => q.label.length > 3);
                 setQuestions(final);
-                alert(`Clinical Structure Restored: Extracted ${final.length} instruments with automated option mapping.`);
+                
+                const msg = final.length > 0 
+                    ? `Clinical Logic Restored: ${final.length} instruments synchronized with automated scale mapping.`
+                    : "Extraction completed, but no clear questions found. Please check PDF quality.";
+                alert(msg);
             }
         } catch (err) {
             console.error(err);
+            alert("AI Extraction failed. Checking PDF stream...");
         } finally {
             setIsSaving(false);
         }
@@ -260,7 +272,12 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                 method: editingId ? 'PATCH' : 'POST',
                 body: JSON.stringify({
                     name,
-                    json_structure: { questions }
+                    json_structure: { 
+                        questions,
+                        instructions,
+                        // Compatibility with older renderer if needed
+                        sections: [{ label: 'Main Section', fields: questions }]
+                    }
                 })
             });
             if (res.ok) {
@@ -268,6 +285,7 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                 fetchTemplates();
                 setEditingId(null);
                 setName('');
+                setInstructions('');
                 setQuestions([]);
             } else if (res.status === 404 && editingId) {
                 // Handle 404 Gracefully: Offer to save as new
@@ -284,6 +302,13 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
         } catch (err) {
             console.error("Save Error:", err);
         } finally { setIsSaving(false); }
+    };
+
+    const closePreview = () => {
+        if (previewPdf && previewPdf.startsWith('blob:')) {
+            URL.revokeObjectURL(previewPdf);
+        }
+        setPreviewPdf(null);
     };
 
     return (
@@ -362,7 +387,9 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                                         setEditingPdfUrl(getFullUrl(t.pdf_file));
                                         setEditingPdfName(t.pdf_file ? (t.pdf_file.split('/').pop() || 'Protocol.pdf') : 'Protocol.pdf');
                                         setName(t.name);
-                                        setQuestions(Array.isArray(t.json_structure) ? t.json_structure : []);
+                                        const js = t.json_structure || {};
+                                        setInstructions(js.instructions || '');
+                                        setQuestions(js.questions || (Array.isArray(js) ? js : []));
                                         setViewMode('BUILDER');
                                     }}
                                     className="px-6 py-2 bg-indigo-600 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
@@ -390,8 +417,18 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                                 value={name}
                                 onChange={e => setName(e.target.value)}
                                 placeholder="Enter Questionnaire Name..."
-                                className="w-full bg-transparent text-4xl font-black text-white uppercase italic outline-none mb-8 border-b border-white/5 pb-4 focus:border-indigo-500/50"
+                                className="w-full bg-transparent text-4xl font-black text-white uppercase italic outline-none mb-4 border-b border-white/5 pb-4 focus:border-indigo-500/50"
                             />
+
+                            <div className="mb-8">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 block">Global Instructions & Protocol Header</label>
+                                <textarea
+                                    value={instructions}
+                                    onChange={e => setInstructions(e.target.value)}
+                                    placeholder="Enter instructions for the participant (e.g. Please read this first...)"
+                                    className="w-full bg-white/[0.02] border border-white/5 rounded-2xl p-6 text-slate-300 font-bold outline-none focus:border-indigo-500/30 transition-all min-h-[120px]"
+                                />
+                            </div>
 
                             {editingPdfUrl && (
                                 <div className="mb-8 p-6 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-between">
@@ -419,7 +456,17 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                                             <List className="w-4 h-4" /> Choose from PDF Text
                                         </button>
                                         <button
-                                            onClick={() => setPreviewPdf(editingPdfUrl)}
+                                            onClick={async () => {
+                                                try {
+                                                    const res = await authFetch(`${API}/api/questionnaire-templates/${editingId}/view/`);
+                                                    if (!res.ok) throw new Error("Failed to load PDF");
+                                                    const blob = await res.blob();
+                                                    const blobUrl = URL.createObjectURL(blob);
+                                                    setPreviewPdf(blobUrl);
+                                                } catch (err) {
+                                                    alert("Secure PDF stream failed. Check your permissions.");
+                                                }
+                                            }}
                                             className="px-4 py-2 bg-indigo-500/20 rounded-lg text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:bg-indigo-500/30 transition-all flex items-center gap-2"
                                         >
                                             <Eye className="w-4 h-4" /> View Source
@@ -572,7 +619,7 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                                         <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mt-1">Full-Scale Clinical Instrument Access</p>
                                     </div>
                                 </div>
-                                <button onClick={() => setPreviewPdf(null)} className="p-3 text-slate-500 hover:text-white transition-all hover:bg-white/5 rounded-xl">
+                                <button onClick={closePreview} className="p-3 text-slate-500 hover:text-white transition-all hover:bg-white/5 rounded-xl">
                                     <X className="w-6 h-6" />
                                 </button>
                             </div>
@@ -596,7 +643,7 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                                     >
                                         <ExternalLink className="w-4 h-4" /> Open In New Tab
                                     </a>
-                                    <button onClick={() => setPreviewPdf(null)} className="px-5 py-2 bg-indigo-600 rounded-lg text-[10px] font-black text-white uppercase tracking-widest hover:bg-indigo-500 transition-all">
+                                    <button onClick={closePreview} className="px-5 py-2 bg-indigo-600 rounded-lg text-[10px] font-black text-white uppercase tracking-widest hover:bg-indigo-500 transition-all">
                                         Close Preview
                                     </button>
                                 </div>

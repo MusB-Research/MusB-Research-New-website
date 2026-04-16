@@ -30,6 +30,7 @@ import AnimatedBackground from '../components/AnimatedBackground';
 import StaffTasksModule from '../components/shared/StaffTasksModule';
 import StudyKitsModule from '../components/shared/StudyKitsModule';
 import ParticipantTaskManagement from '../components/shared/ParticipantTaskManagement';
+import TeamInventoryModule from '../components/pi/panels/TeamInventoryModule';
 
 
 import {
@@ -69,6 +70,7 @@ type PIModule =
     | 'PARTICIPANT_TASKS'
     | 'STUDY_DOCS'
     | 'MY_DOCS'
+    | 'TEAM_INVENTORY'
     | 'SUPPORT';
 
 interface SidebarItem {
@@ -111,6 +113,7 @@ export default function PIDashboard() {
         if (route === 'reports' || route === 'docs') return 'REPORTS';
         if (route === 'study-docs') return 'STUDY_DOCS';
         if (route === 'my-docs') return 'MY_DOCS';
+        if (route === 'team-inventory') return 'TEAM_INVENTORY';
         if (route === 'messages') return 'MESSAGES';
         if (route === 'alerts') return 'ALERTS';
         if (route === 'launch-study') return 'LAUNCH_STUDY';
@@ -144,6 +147,7 @@ export default function PIDashboard() {
         else if (route === 'reports') setActiveModule('REPORTS');
         else if (route === 'study-docs' || route === 'docs') setActiveModule('STUDY_DOCS');
         else if (route === 'my-docs') setActiveModule('MY_DOCS');
+        else if (route === 'team-inventory') setActiveModule('TEAM_INVENTORY');
         else if (route === 'alerts') setActiveModule('ALERTS');
         else if (route === 'launch-study') setActiveModule('LAUNCH_STUDY');
         else if (route === 'support' || route === 'help') setActiveModule('SUPPORT');
@@ -169,6 +173,7 @@ export default function PIDashboard() {
             'LABS': 'labs',
             'REPORTS': 'reports',
             'STUDY_DOCS': 'study-docs',
+            'TEAM_INVENTORY': 'team-inventory',
             'MY_DOCS': 'my-docs',
             'MESSAGES': 'messages',
             'ALERTS': 'alerts',
@@ -277,7 +282,7 @@ export default function PIDashboard() {
                 authFetch(`${API}/api/notifications/`).then(r => r.json()),
                 authFetch(`${API}/api/visits/`).then(r => r.json()),
                 authFetch(`${API}/api/staff-tasks/`).then(r => r.json()),
-                authFetch(`${API}/api/auth/list-team-members/`).then(r => r.json()).catch(() => [])
+                authFetch(`${API}/api/auth/personnel-fetch/`).then(r => r.json()).catch(() => [])
             ]);
 
             // Senior Dev: Normalize DRF Paginated results to Standard Arrays
@@ -398,6 +403,7 @@ export default function PIDashboard() {
             items: [
                 { id: 'STUDIES', label: 'My Studies', icon: Beaker },
                 { id: 'TEAM', label: 'My Team', icon: Users },
+                { id: 'TEAM_INVENTORY', label: 'Team Inventory', icon: UsersRound },
                 { id: 'PARTICIPANTS', label: 'Participants', icon: UsersRound },
                 { id: 'SUBJECT_REVIEW', label: 'Review', icon: Activity },
                 { id: 'FORMS', label: 'Screening Forms', icon: ClipboardList },
@@ -624,6 +630,19 @@ export default function PIDashboard() {
                                 setSelectedStudy(s);
                                 setActiveModule('LAUNCH_STUDY');
                             }}
+                            onStatusUpdate={async (protocolId, newStatus) => {
+                                try {
+                                    const res = await authFetch(`${API}/api/studies/${protocolId}/`, {
+                                        method: 'PATCH',
+                                        body: JSON.stringify({ status: newStatus, stage: newStatus })
+                                    });
+                                    if (res.ok) {
+                                        fetchAllData();
+                                    }
+                                } catch (e) {
+                                    console.error("Status update failed:", e);
+                                }
+                            }}
                         />
                     )}
                     {activeModule === 'LAUNCH_STUDY' && (
@@ -634,6 +653,13 @@ export default function PIDashboard() {
                             }}
                             initialData={selectedStudy}
                             onSave={handleCreateStudy}
+                        />
+                    )}
+                    {activeModule === 'TEAM_INVENTORY' && (
+                        <TeamInventoryModule 
+                            members={users} 
+                            loading={loading}
+                            onRefresh={fetchAllData}
                         />
                     )}
                     {activeModule === 'MESSAGES' && <PIMessagesModule />}
@@ -663,6 +689,7 @@ export default function PIDashboard() {
                     {activeModule === 'AUDIT_LOG' && <AuditLogModule />}
                     {activeModule === 'TASKS' && <StaffTasksModule primaryColor="teal" onRefresh={fetchAllData} />}
                     {activeModule === 'PARTICIPANT_TASKS' && <ParticipantTaskManagement primaryColor="teal" />}
+                    {activeModule === 'STUDY_DOCS' && <StudyDocumentsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'ANALYTICS' && <AnalyticsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'SPONSORS' && (
                         <SponsorsManagement 
@@ -897,8 +924,40 @@ function OverviewModule({ loading, studyCount, participantCount, stats, visits, 
     );
 }
 
-function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd: () => void, onEdit: (s: any) => void }) {
+const STUDY_STATUS_CHOICES = [
+    { value: 'DRAFT', label: 'DRAFT' },
+    { value: 'PROPOSAL_SUBMITTED', label: 'PROPOSAL SUBMITTED' },
+    { value: 'PROPOSAL_UNDER_NEGOTIATION', label: 'PROPOSAL UNDER NEGOTIATION' },
+    { value: 'AGREEMENT_SIGNED', label: 'AGREEMENT SIGNED' },
+    { value: 'IRB_PROTOCOL_INITIATED', label: 'IRB PROTOCOL INITIATED' },
+    { value: 'UNDER_IRB_SUBMISSION', label: 'UNDER IRB SUBMISSION / DEV' },
+    { value: 'IRB_APPROVED', label: 'IRB APPROVED' },
+    { value: 'PREPARING_TO_LAUNCH', label: 'PREPARING TO LAUNCH' },
+    { value: 'ACTIVE', label: 'ACTIVE' },
+    { value: 'RECRUITING', label: 'RECRUITING' },
+    { value: 'RECRUITMENT_COMPLETED', label: 'RECRUITMENT COMPLETED' },
+    { value: 'ANALYSIS_UNDERWAY', label: 'ANALYSIS UNDERWAY' },
+    { value: 'PROGRESS_REPORT_DRAFT', label: 'PROGRESS REPORT DRAFT' },
+    { value: 'FINAL_REPORT_SENT', label: 'FINAL REPORT SENT' },
+    { value: 'COMPLETED', label: 'COMPLETED' },
+    { value: 'PAUSED', label: 'PAUSED' },
+    { value: 'CLOSED_ARCHIVED', label: 'CLOSED / ARCHIVED' },
+];
+
+function StudyOverviewModule({ studies, onAdd, onEdit, onStatusUpdate }: { studies: any[], onAdd: () => void, onEdit: (s: any) => void, onStatusUpdate: (pid: string, status: string) => void }) {
     const [filter, setFilter] = useState('ALL');
+    const [activeStatusMenu, setActiveStatusMenu] = useState<string | null>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setActiveStatusMenu(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const categories = [
         { id: 'ALL', label: 'Total Studies', count: studies.length, icon: Layers },
@@ -971,13 +1030,53 @@ function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd
                                     </h3>
                                 </div>
                             </div>
-                            <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border shrink-0 ${
-                                study.status?.toUpperCase() === 'ACTIVE' ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' :
-                                study.status?.toUpperCase() === 'RECRUITING' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                                'bg-white/5 text-slate-500 border-white/10'
-                            }`}>
-                                {(study.status || '').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())}
-                            </span>
+                            
+                            {/* Status Indicator with Dropdown */}
+                            <div className="relative">
+                                <button 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveStatusMenu(activeStatusMenu === study.protocol_id ? null : study.protocol_id);
+                                    }}
+                                    className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border shrink-0 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 ${
+                                        study.status?.toUpperCase() === 'ACTIVE' ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' :
+                                        study.status?.toUpperCase() === 'RECRUITING' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                        'bg-white/5 text-slate-500 border-white/10'
+                                    }`}
+                                >
+                                    {(study.status || '').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                                    <ChevronDown className={`w-3 h-3 transition-transform ${activeStatusMenu === study.protocol_id ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {activeStatusMenu === study.protocol_id && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        className="absolute right-0 top-full mt-2 w-64 bg-[#0B101B] border border-white/10 rounded-xl shadow-3xl z-[100] p-1 overflow-hidden"
+                                        ref={dropdownRef}
+                                    >
+                                        <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                                            {STUDY_STATUS_CHOICES.map((choice) => (
+                                                <button
+                                                    key={choice.value}
+                                                    onClick={() => {
+                                                        onStatusUpdate(study.protocol_id, choice.value);
+                                                        setActiveStatusMenu(null);
+                                                    }}
+                                                    className={`w-full text-left px-4 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all transition-all flex items-center justify-between ${
+                                                        study.status === choice.value 
+                                                        ? 'bg-teal-500/10 text-teal-400' 
+                                                        : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                                                    }`}
+                                                >
+                                                    {choice.label}
+                                                    {study.status === choice.value && <CheckCircle2 className="w-3 h-3" />}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Metrics Grid */}
@@ -999,9 +1098,18 @@ function StudyOverviewModule({ studies, onAdd, onEdit }: { studies: any[], onAdd
                         </div>
 
                         <div className="flex flex-col md:flex-row gap-3">
-                            <div className="flex-1 p-4 rounded-xl bg-teal-500/5 border border-teal-500/10">
-                                <p className="text-xs font-black text-teal-400 uppercase tracking-widest">Study Lifecycle Stage</p>
-                                <p className="text-sm font-black text-white mt-1.5 uppercase tracking-tight">
+                            <div 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveStatusMenu(activeStatusMenu === study.protocol_id ? null : study.protocol_id);
+                                }}
+                                className="flex-1 p-4 rounded-xl bg-teal-500/5 border border-teal-500/10 cursor-pointer hover:bg-teal-500/10 transition-all flex flex-col justify-center gap-1"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <p className="text-xs font-black text-teal-400 uppercase tracking-widest">Study Lifecycle Stage</p>
+                                    <ListFilter className="w-3 h-3 text-teal-400/50" />
+                                </div>
+                                <p className="text-sm font-black text-white uppercase tracking-tight">
                                     {(study.stage || study.status || "In Evaluation").replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())}
                                 </p>
                             </div>

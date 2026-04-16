@@ -56,6 +56,7 @@ interface Visit {
     assessments: Assessment[];
     vitals: { weight: number | string; height: number | string; bmi: number | string; bp: string; hr: number | string; temp: number | string };
     meds: { dispensed: string; dose: string; compliance: number };
+    notes?: string;
 }
 
 interface AEReport {
@@ -172,7 +173,8 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                             dispensed: v.dispensing[0].product || 'N/A',
                             dose: v.dispensing[0].dose || 'N/A',
                             compliance: v.dispensing[0].compliance || 100
-                        } : { dispensed: 'N/A', dose: 'N/A', compliance: 100 }
+                        } : { dispensed: 'N/A', dose: 'N/A', compliance: 100 },
+                        notes: v.notes || ''
                     })),
                     aeReports: (Array.isArray(p.ae_reports) ? p.ae_reports : []).map((ae: any) => ({
                         id: ae.id,

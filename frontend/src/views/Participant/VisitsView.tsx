@@ -43,7 +43,19 @@ interface Visit {
         phone?: string;
         decrypted_name?: string;
         decrypted_phone?: string;
-    }
+    };
+    pi_details?: {
+        name: string;
+        email: string;
+        phone: string;
+        role: string;
+    };
+    coordinator_details?: {
+        name: string;
+        email: string;
+        phone: string;
+        role: string;
+    };
 }
 
 const VisitsView = ({ visits = [], study, tasks = [], isLoading = false }: { visits: Visit[]; study: any; tasks: any[]; isLoading?: boolean }) => {
@@ -262,35 +274,49 @@ const VisitsView = ({ visits = [], study, tasks = [], isLoading = false }: { vis
                                                     </div>
 
                                                     {(() => {
-                                                        const contact = visit.scheduled_by_details || study?.assigned_coordinators?.[0] || study?.assigned_pis?.[0];
-                                                        if (!contact) return null;
+                                                        const { pi_details, coordinator_details, scheduled_by_details } = visit;
                                                         
-                                                        const contactName = contact.decrypted_name || contact.full_name || 'Protocol Staff';
-                                                        const displayChar = contactName.charAt(0).toUpperCase();
+                                                        // Render Staff Card Helper
+                                                        const StaffEntry = ({ person, secondary = false }: { person: any, secondary?: boolean }) => {
+                                                            if (!person) return null;
+                                                            const name = person.name || person.decrypted_name || person.full_name || 'Protocol Staff';
+                                                            const role = person.role || (secondary ? 'Secondary Contact' : 'Coordinator');
+                                                            
+                                                            return (
+                                                                <div className={`p-4 rounded-2xl border transition-all ${secondary ? 'bg-white border-[#E3ECF5]' : 'bg-[#F8FBFF] border-[#1E88E5]/20'}`}>
+                                                                    <div className="flex items-start gap-3">
+                                                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-[12px] shadow-sm uppercase ${secondary ? 'bg-[#F8FBFF] text-[#5F6F89] border border-[#E3ECF5]' : 'bg-[#1E88E5] text-white'}`}>
+                                                                            {name.charAt(0)}
+                                                                        </div>
+                                                                        <div className="space-y-1 flex-1">
+                                                                            <div className="flex items-center justify-between">
+                                                                                <p className="text-[13px] font-bold text-[#1A2B49] uppercase tracking-tight">{name}</p>
+                                                                                <Badge color={secondary ? 'slate' : 'blue'}>{role}</Badge>
+                                                                            </div>
+                                                                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-bold text-[#5F6F89]">
+                                                                                {person.email && (
+                                                                                    <div className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-[#1E88E5]/70" /> {person.email}</div>
+                                                                                )}
+                                                                                {(person.phone || person.decrypted_phone) && (
+                                                                                    <div className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-[#1E88E5]/70" /> {person.phone || person.decrypted_phone}</div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        };
 
                                                         return (
-                                                            <div className="pt-4 border-t border-[#F8FBFF] space-y-3">
-                                                                <h4 className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest flex items-center gap-2">
-                                                                    <User className="w-3.5 h-3.5" />
-                                                                    Point of Contact
+                                                            <div className="pt-6 border-t border-[#F8FBFF] space-y-4">
+                                                                <h4 className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest flex items-center gap-2">
+                                                                    <User className="w-3.5 h-3.5 text-[#1E88E5]" />
+                                                                    Clinical Care Team
                                                                 </h4>
-                                                                <div className="flex flex-wrap items-center gap-6">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className="w-9 h-9 rounded-full bg-[#E3F2FD] flex items-center justify-center text-[#1E88E5] font-extrabold text-[12px] shadow-sm ring-2 ring-white uppercase">
-                                                                            {displayChar}
-                                                                        </div>
-                                                                        <p className="text-[13px] font-bold text-[#1A2B49] uppercase tracking-tight">
-                                                                            {contactName}
-                                                                        </p>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-4 text-[11px] font-bold text-[#5F6F89]">
-                                                                        {contact.email && (
-                                                                            <div className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-[#1E88E5]" /> {contact.email}</div>
-                                                                        )}
-                                                                        {(contact.decrypted_phone || contact.phone) && (
-                                                                            <div className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-[#1E88E5]" /> {contact.decrypted_phone || contact.phone}</div>
-                                                                        )}
-                                                                    </div>
+                                                                <div className="space-y-3">
+                                                                    {pi_details && <StaffEntry person={pi_details} />}
+                                                                    {coordinator_details && <StaffEntry person={coordinator_details} secondary={!!pi_details} />}
+                                                                    {!pi_details && !coordinator_details && scheduled_by_details && <StaffEntry person={scheduled_by_details} />}
                                                                 </div>
                                                             </div>
                                                         );

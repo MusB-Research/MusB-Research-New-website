@@ -318,7 +318,8 @@ def list_team_members(request):
             'email': u.email,
             'role': u.role or 'Sponsor Member',
             'status': 'ACTIVE',
-            'id': str(u.id)
+            'id': str(u.id),
+            'date': u.date_joined.strftime('%Y-%m-%d')
         })
         
     # Add pending invites
@@ -328,7 +329,8 @@ def list_team_members(request):
             'email': i.email,
             'role': i.role,
             'status': 'PENDING',
-            'id': f"inv-{i.id}"
+            'id': f"inv-{i.id}",
+            'date': i.created_at.strftime('%Y-%m-%d')
         })
         
     return Response(members)

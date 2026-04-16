@@ -3,6 +3,27 @@
  * Handles JWT storage, encryption fallbacks, and role-based pathing.
  */
 
+// COOKIE MANAGEMENT
+export const setCookie = (name: string, value: string, days: number = 7) => {
+    const expires = new Date(Date.now() + days * 864e5).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+};
+
+export const getCookie = (name: string) => {
+    return document.cookie.split('; ').reduce((r, v) => {
+        const parts = v.split('=');
+        return parts[0] === name ? decodeURIComponent(parts[1]) : r;
+    }, '');
+};
+
+export const deleteCookie = (name: string) => {
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+};
+
+// CACHE MANAGEMENT
+const _apiCache = new Map<string, { data: any; expiry: number }>();
+const CACHE_DURATION = 5000; // 5 seconds default cache for repeating GETs
+
 export const API = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://musb-research-new-website.onrender.com' : 'http://localhost:8000');
 
 interface User {
@@ -36,8 +57,8 @@ export const clearAuth = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
-    document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    document.cookie = "refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    deleteCookie('access_token');
+    deleteCookie('refresh_token');
 };
 
 export const getToken = () => localStorage.getItem('access_token');
@@ -81,38 +102,60 @@ export const redirectToLogin = () => {
 // API HELPERS (WITH AUTH)
 
 export async function authFetch(url: string, options: any = {}) {
-    let accessToken = getAccessToken();
+    const method = options.method || 'GET';
+    const isCacheable = method.toUpperCase() === 'GET' && !options.skipCache;
     
     // Ensure URL is absolute if it starts with /
     const fullUrl = url.startsWith('/') ? `${API}${url}` : url;
 
+    // 1. Check Memory Cache
+    if (isCacheable) {
+        const cached = _apiCache.get(fullUrl);
+        if (cached && cached.expiry > Date.now()) {
+            return cached.data.clone(); // Return clone to prevent shared state issues
+        }
+    }
+
+    let accessToken = getAccessToken();
+    
     const headers: Record<string, string> = {
         ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
         ...options.headers
     };
 
-    // Only set Content-Type to application/json if not FormData and not already set
     if (!(options.body instanceof FormData) && !headers['Content-Type']) {
         headers['Content-Type'] = 'application/json';
     }
 
-    let response = await fetch(fullUrl, { ...options, headers });
-
-    if (response.status === 401 && getRefreshToken()) {
-        const refreshed = await tryRefresh();
-        if (refreshed) {
-            accessToken = getAccessToken();
-            const retryHeaders = {
-                ...headers,
-                'Authorization': `Bearer ${accessToken}`
-            };
-            response = await fetch(fullUrl, { ...options, headers: retryHeaders });
-        } else {
-            performLogout();
+    let response: Response;
+    try {
+        response = await fetch(fullUrl, { ...options, headers });
+        
+        // Handle 401 Unauthorized (Token Expiry)
+        if (response.status === 401 && getRefreshToken()) {
+            const refreshed = await tryRefresh();
+            if (refreshed) {
+                accessToken = getAccessToken();
+                const retryHeaders = { ...headers, 'Authorization': `Bearer ${accessToken}` };
+                response = await fetch(fullUrl, { ...options, headers: retryHeaders });
+            } else {
+                performLogout();
+            }
         }
-    }
 
-    return response;
+        // 2. Hydrate Cache if successful
+        if (isCacheable && response.ok) {
+            _apiCache.set(fullUrl, {
+                data: response.clone(),
+                expiry: Date.now() + CACHE_DURATION
+            });
+        }
+
+        return response;
+    } catch (error) {
+        console.error(`Fetch error at ${fullUrl}:`, error);
+        throw error;
+    }
 }
 
 async function tryRefresh() {

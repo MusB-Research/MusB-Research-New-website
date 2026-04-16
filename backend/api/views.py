@@ -49,6 +49,26 @@ class IsAdminOrCoordinator(permissions.BasePermission):
             return False
         return (request.user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']
 
+class SoftPaginationMixin:
+    """
+    Mixin to apply a limit-based slice to the queryset in the list view.
+    Maintains a plain array response structure without metadata.
+    """
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        try:
+            limit = int(request.query_params.get('limit', 50))
+            if limit <= 0: limit = 50
+        except (ValueError, TypeError):
+            limit = 50
+            
+        # Optimization: Slice the queryset directly
+        queryset = queryset[:limit]
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
 class WorkflowContentMixin:
     """Mixin to handle role-based workflow logic for content creation and status."""
     
@@ -489,11 +509,17 @@ class SponsorViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = UserSerializer(team_members, many=True)
         return Response(serializer.data)
 
-class ParticipantViewSet(viewsets.ModelViewSet):
+class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
     queryset = Participant.objects.all()
     serializer_class = ParticipantSerializer
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = 'participant_sid'
+
+    def get_serializer_class(self):
+        # PERFORMANCE: Use light-weight serializer for lists, full for detail views
+        if self.action == 'list':
+            return ParticipantBriefSerializer
+        return ParticipantSerializer
 
     def get_queryset(self):
         user = self.request.user
@@ -504,11 +530,15 @@ class ParticipantViewSet(viewsets.ModelViewSet):
         
         # Admins, PIs, and Coordinators can see everyone
         if role in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']:
-            return Participant.objects.all().order_by('-created_at')
+            return Participant.objects.select_related('user', 'study', 'study__coordinator', 'reviewed_by').prefetch_related(
+                'visits', 'daily_logs', 'lab_results', 'ae_reports', 'consent_records'
+            ).order_by('-created_at')
             
         # Participants can ONLY see their own records
         if role == 'PARTICIPANT':
-            return Participant.objects.filter(user=user).order_by('-created_at')
+            return Participant.objects.filter(user=user).select_related('user', 'study').prefetch_related(
+                'visits', 'daily_logs'
+            ).order_by('-created_at')
             
         # Default to nothing for security
         return Participant.objects.none()
@@ -894,7 +924,7 @@ class VisitViewSet(viewsets.ModelViewSet):
         return Response({'status': 'check complete', 'missed_marked': missed_count})
 
     def perform_update(self, serializer):
-        visit = serializer.save()
+        visit = serializer.save(updated_by=self.request.user)
         if visit.status == 'COMPLETED':
             AuditLog.log('VISIT_COMPLETED', user_email=self.request.user.email, request=self.request, detail=f"Visit {visit.visit_type} COMPLETED for {visit.participant.participant_sid}")
             trigger_reward_logic(visit, 'VISIT')
@@ -921,7 +951,7 @@ class CommunicationLogViewSet(viewsets.ModelViewSet):
         if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']: return CommunicationLog.objects.all()
         return CommunicationLog.objects.filter(participant__study__assignments__user=user).distinct()
 
-class CompensationViewSet(viewsets.ModelViewSet):
+class CompensationViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
     queryset = Compensation.objects.all()
     serializer_class = CompensationSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -930,11 +960,11 @@ class CompensationViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated: return Compensation.objects.none()
         if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
-            queryset = Compensation.objects.all().order_by('-paid_at')
+            queryset = Compensation.objects.select_related('participant', 'study').order_by('-paid_at')
         elif (user.role or '').upper() == 'PARTICIPANT':
-            queryset = Compensation.objects.filter(participant__user=user).order_by('-paid_at')
+            queryset = Compensation.objects.filter(participant__user=user).select_related('participant', 'study').order_by('-paid_at')
         else:
-            queryset = Compensation.objects.filter(participant__study__assignments__user=user).distinct().order_by('-paid_at')
+            queryset = Compensation.objects.filter(participant__study__assignments__user=user).distinct().select_related('participant', 'study').order_by('-paid_at')
         
         study_id = self.request.query_params.get('study_id')
         if study_id and study_id != 'all':
@@ -944,7 +974,7 @@ class CompensationViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(study__protocol_id=study_id)
         return queryset
 
-class LabResultViewSet(viewsets.ModelViewSet):
+class LabResultViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
     queryset = LabResult.objects.all()
     serializer_class = LabResultSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -953,10 +983,10 @@ class LabResultViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated: return LabResult.objects.none()
         if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
-            return LabResult.objects.all().order_by('-lab_date')
+            return LabResult.objects.select_related('participant', 'participant__study').order_by('-lab_date')
         if (user.role or '').upper() == 'PARTICIPANT':
-            return LabResult.objects.filter(participant__user=user, is_released=True).order_by('-lab_date')
-        queryset = LabResult.objects.filter(participant__study__assignments__user=user).distinct().order_by('-lab_date')
+            return LabResult.objects.filter(participant__user=user, is_released=True).select_related('participant').order_by('-lab_date')
+        queryset = LabResult.objects.filter(participant__study__assignments__user=user).distinct().select_related('participant', 'participant__study').order_by('-lab_date')
         
         study_id = self.request.query_params.get('study_id')
         if study_id and study_id != 'all':
@@ -1066,8 +1096,9 @@ class DocumentViewSet(viewsets.ModelViewSet):
         
         if user_role:
             from django.db.models import Q
+            # For MongoDB backend, we use equality which automatically performs an 'in' check for arrays
             queryset = queryset.filter(
-                Q(visibility__contains=user_role) | Q(visibility=[]) | Q(visibility__isnull=True)
+                Q(visibility=user_role) | Q(visibility=[]) | Q(visibility__isnull=True)
             )
 
         # Further restrict to assigned studies for non-admins
@@ -1337,19 +1368,20 @@ class ConsentViewSet(viewsets.ModelViewSet):
         consent.save()
         return Response({'status': 'consent invalidated'})
 
-class DosingLogViewSet(viewsets.ModelViewSet):
+class DosingLogViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
     serializer_class = DosingLogSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
+        base_qs = DosingLog.objects.select_related('participant', 'participant__study')
         if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN']:
-            return DosingLog.objects.all()
+            return base_qs.all()
         # Participants see their own logs
         if (user.role or '').upper() == 'PARTICIPANT':
-            return DosingLog.objects.filter(participant__user=user)
+            return base_qs.filter(participant__user=user)
         # Coordinators/PIs see logs for their assigned studies
-        return DosingLog.objects.filter(participant__study__assignments__user=user)
+        return base_qs.filter(participant__study__assignments__user=user)
 
     def perform_create(self, serializer):
         participant = Participant.objects.filter(user=self.request.user).first()
@@ -1711,6 +1743,20 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'create', 'retrieve', 'update', 'partial_update', 'destroy']:
             return [IsAdminOrCoordinator()]
         return super().get_permissions()
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            print(f"!!! USER CREATION VALIDATION FAILED: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        except Exception as e:
+            print(f"!!! USER CREATION EXCEPTION: {e}")
+            return Response({"error": "System failure during record creation", "detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def get_queryset(self):
         user = self.request.user
@@ -2386,29 +2432,121 @@ class StudyMetaView(APIView):
 class QuestionnaireTemplateViewSet(viewsets.ModelViewSet):
     queryset = QuestionnaireTemplate.objects.all().order_by('-created_at')
     serializer_class = QuestionnaireTemplateSerializer
+    def _get_pdf_content(self, template):
+        """Adaptive retrieval engine for both Cloudinary and Local clinical PDFs."""
+        import requests, io
+        from django.conf import settings
+        
+        if not template.pdf_file: return None, "No file record."
+        
+        # 1. Primary Attempt: Standard Django file-access
+        try:
+            template.pdf_file.open("rb")
+            content = template.pdf_file.read()
+            template.pdf_file.close()
+            if content and len(content) > 100:
+                print(f"DEBUG: Successfully read {len(content)} bytes from local storage for {template.name}")
+                return content, None
+        except Exception as e:
+            print(f"DEBUG: Direct stream attempt failed for {template.name}: {e}")
+
+        # 2. Secondary Attempt: Cloudinary-specific Signed URL retrieval
+        # Only attempt if Cloudinary settings exist to avoid AttributeError
+        if hasattr(settings, 'CLOUDINARY_STORAGE'):
+            import cloudinary
+            cloudinary.config(
+                cloud_name=settings.CLOUDINARY_STORAGE.get('CLOUD_NAME'),
+                api_key=settings.CLOUDINARY_STORAGE.get('API_KEY'),
+                api_secret=settings.CLOUDINARY_STORAGE.get('API_SECRET'),
+                secure=True
+            )
+            
+            name = template.pdf_file.name
+            clean_id = name.lstrip('/')
+            if clean_id.startswith('media/'): clean_id = clean_id[6:]
+            candidates = [clean_id]
+            if '.' in clean_id: candidates.append(clean_id.rsplit('.', 1)[0])
+
+            for cid in candidates:
+                for r_type in ['raw', 'image']:
+                    try:
+                        exists = cloudinary.api.resource(cid, resource_type=r_type)
+                        if exists:
+                            url = cloudinary.utils.private_download_url(cid, resource_type=r_type, type='upload')
+                            resp = requests.get(url, timeout=10)
+                            if resp.status_code == 200: return resp.content, None
+                    except: continue
+
+        return None, f"All retrieval paths failed (Storage potentially misconfigured)."
+
+    @action(detail=True, methods=['get'], url_path='view', permission_classes=[permissions.IsAuthenticated])
+    def view_pdf(self, request, pk=None):
+        from django.http import HttpResponse
+        template = self.get_object()
+        content, error = self._get_pdf_content(template)
+        if content: return HttpResponse(content, content_type='application/pdf')
+        return Response({"error": "Stream failed", "detail": error}, status=400)
+
     @action(detail=True, methods=['get'])
     def extract_text(self, request, pk=None):
         template = self.get_object()
-        if not template.pdf_file:
-            return Response({'error': 'No PDF associated with this template'}, status=400)
-        
+        content, error = self._get_pdf_content(template)
+
+        if not content:
+            return Response({'error': f'Retrieval failed: {error}'}, status=400)
+
+        if not content.startswith(b'%PDF'):
+            return Response({'error': 'File is not a valid PDF header'}, status=400)
+
         try:
-            import pypdf
-            import re
-            reader = pypdf.PdfReader(template.pdf_file.path)
-            raw_text = ""
-            for page in reader.pages:
-                raw_text += page.extract_text() + "\n"
+            import pypdf, io, re, tempfile, os
+            from pypdf.errors import PdfStreamError
             
-            # Smart Sentence Reconstructor for Clinical Instruments
+            # 1. Byte-level Signature Guard
+            if not content.startswith(b'%PDF'):
+                idx = content.find(b'%PDF')
+                if idx != -1:
+                    content = content[idx:]
+                else:
+                    return Response({'error': 'Source file did not contain a valid PDF signature.'}, status=400)
+
+            raw_text = ""
+            
+            # 2. Dual-Path Reading (Memory -> TempFile Fallback)
+            # Sometimes pypdf on Windows has issues with io.BytesIO if the bytes are slightly malformed
+            try:
+                reader = pypdf.PdfReader(io.BytesIO(content))
+                for page in reader.pages:
+                    text = page.extract_text()
+                    if text: raw_text += text + "\n"
+            except (PdfStreamError, Exception) as pe:
+                print(f"DEBUG: Memory-based parse failed, trying TempFile path: {pe}")
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
+                    tmp.write(content)
+                    tmp_path = tmp.name
+                
+                try:
+                    reader = pypdf.PdfReader(tmp_path)
+                    for page in reader.pages:
+                        text = page.extract_text()
+                        if text: raw_text += text + "\n"
+                finally:
+                    if os.path.exists(tmp_path):
+                        os.remove(tmp_path)
+            
+            if not raw_text.strip():
+                 return Response({
+                     'lines': [], 
+                     'message': 'The PDF extraction returned no text. This usually means the file is a scanned image (requires OCR) or uses non-standard fonts.'
+                 })
+
+            # Smart Sentence Reconstructor
             raw_lines = [l.strip() for l in raw_text.split('\n') if l.strip()]
             final_lines = []
             current_buffer = ""
 
             for line in raw_lines:
-                # Detect markers: Numbers (1., 01.), Letters (a., a)), Bullets, and Scores (0, 1, 2)
                 is_marker = re.match(r'^(\d+[\.\)]?|[a-g][\.\)]|•|\-)\s', line.lower())
-                # Detect lines that look like a multi-score range (e.g. "0 None 1 Mild 2 Moderate")
                 is_multi_score = re.search(r'\d\s+[A-Za-z]+\s+\d\s+[A-Za-z]+', line)
                 
                 if (is_marker or is_multi_score) and current_buffer:
@@ -2417,24 +2555,17 @@ class QuestionnaireTemplateViewSet(viewsets.ModelViewSet):
                 elif not current_buffer:
                     current_buffer = line
                 else:
-                    # Check if previous buffer ended with definitive punctuation (not just any punctuation)
                     if re.search(r'[\?\!]$', current_buffer.strip()):
                         final_lines.append(current_buffer.strip())
                         current_buffer = line
                     elif re.search(r'[\.\:]$', current_buffer.strip()) and not re.search(r'(No\.|Vol\.|Dr\.)$', current_buffer.strip()):
-                         # Standard sentence end or section end
                          final_lines.append(current_buffer.strip())
                          current_buffer = line
                     else:
-                        # Continue joining lines if they seem part of the same block
                         current_buffer += " " + line
             
-            if current_buffer:
-                final_lines.append(current_buffer.strip())
-
-            # Post-process: Filter out empty or extremely long junk blocks
+            if current_buffer: final_lines.append(current_buffer.strip())
             final_lines = [l for l in final_lines if len(l) > 3 and not l.startswith('©')]
-
             return Response({'lines': final_lines})
         except Exception as e:
             return Response({'error': str(e)}, status=500)
@@ -2445,7 +2576,8 @@ class QuestionnaireTemplateViewSet(viewsets.ModelViewSet):
         name = self.request.data.get('name')
         if not name and pdf_file:
             name = pdf_file.name.rsplit('.', 1)[0]
-        serializer.save(created_by=user, name=name or "Untitled Questionnaire")
+        # Ensure pdf_file is passed explicitly to handle potential sanitizer stripping
+        serializer.save(created_by=user, name=name or "Untitled Questionnaire", pdf_file=pdf_file)
 
 class StudyQuestionnaireViewSet(viewsets.ModelViewSet):
     queryset = StudyQuestionnaire.objects.all()
