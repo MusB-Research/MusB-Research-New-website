@@ -1,3 +1,5 @@
+from django.db.models import Q
+from bson import ObjectId
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status, permissions
@@ -449,7 +451,11 @@ def admin_list_users(request):
     if not role:
         users = User.objects.all()
     if role:
-        users = User.objects.filter(role=role.upper())
+        users = User.objects.filter(
+            Q(role=role.upper()) | 
+            Q(role=role.lower()) | 
+            Q(role=role.capitalize())
+        )
     
     # Simple serialization for assignment dropdowns
     data = []

@@ -31,7 +31,7 @@ class ObjectIdField(serializers.Field):
         if not data:
             return None
         try:
-            return bson.ObjectId(data)
+            return ObjectId(data)
         except Exception:
             raise serializers.ValidationError(f"Invalid ObjectId: {data}")
 
