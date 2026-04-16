@@ -448,8 +448,8 @@ def admin_list_users(request):
     role = request.query_params.get('role', '').upper()
     if not role:
         users = User.objects.all()
-    else:
-        users = User.objects.filter(role=role)
+    if role:
+        users = User.objects.filter(role=role.upper())
     
     # Simple serialization for assignment dropdowns
     data = []

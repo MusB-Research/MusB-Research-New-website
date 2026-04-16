@@ -55,17 +55,21 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
         ret = super().to_representation(instance)
         
         # 2. Recursive Sanitization (MANDATORY for MongoDB ObjectId -> JSON)
-        ret = self.sanitize_data(ret)
+        ret = SanitizedModelSerializer.sanitize_data(ret)
 
         # 3. Optimization: Skip expensive decryption loop if no Fernet tokens exist at top-level
-        # Special Case: User records usually have tokens, but list-views of static data don't.
-        try:
-            has_pii = any(isinstance(v, str) and v.startswith('gAAAA') for v in ret.values())
-            if not has_pii:
-                return ret
-        except Exception:
-            # Fallback if ret is not a standard dict
-            pass
+        # Only scan if ret is a dictionary (single object representation)
+        if isinstance(ret, dict):
+            try:
+                has_pii = any(isinstance(v, str) and v.startswith('gAAAA') for v in ret.values())
+                if not has_pii:
+                    return ret
+            except Exception:
+                pass
+        elif isinstance(ret, list):
+            # For lists, we don't do a full scan here to avoid O(N) penalties, 
+            # as individual items will handle their own decryption in their serializers.
+            return ret
 
         request = self.context.get('request')
         user = request.user if request else None
