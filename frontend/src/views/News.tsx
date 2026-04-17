@@ -19,6 +19,7 @@ import {
 import { NewsItem, NewsType } from '@/types';
 import { authFetch , API } from '../utils/auth';
 import { Link } from 'react-router-dom';
+import SEO from '@/components/SEO';
 
 const categories: (NewsType | 'All')[] = [
     'All',
@@ -245,6 +246,11 @@ export default function News() {
 
     return (
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden">
+            <SEO 
+                title="Clinical Trial News & Medical Research Updates | MUSB Health"
+                description="Stay updated with the latest in musculoskeletal research, clinical trial progress, and medical education from MUSB Health."
+                canonical="https://www.musbhealth.com/news"
+            />
             {/* Atmospheric Background Layers */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-blue-600/10 blur-[120px] rounded-full"></div>

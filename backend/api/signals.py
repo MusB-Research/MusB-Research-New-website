@@ -1,7 +1,8 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import Visit, DailyMedicationLog, Notification, Participant, Study
+from .models import Visit, DailyMedicationLog, Notification, Participant, Study, QuestionnaireScheduleInstance, News, Event
 from django.utils.timezone import now
+from .tasks import refresh_study_stats_cache, refresh_participants_list_cache
 
 @receiver(post_save, sender=Visit)
 def notify_participant_on_visit_completion(sender, instance, created, **kwargs):
@@ -71,5 +72,53 @@ def alert_staff_on_log_submission(sender, instance, created, **kwargs):
                 title=notif_title,
                 message=msg,
                 type=notif_type,
-                link=f"/dashboard/pi/participants/{participant.participant_sid}/logs"
             )
+            
+@receiver(post_save, sender=Participant)
+def trigger_cache_refresh_on_participant_change(sender, instance, **kwargs):
+    """
+    Refresh participants and study stats caches when a participant record is updated.
+    """
+    refresh_participants_list_cache.delay()
+    if instance.study:
+        refresh_study_stats_cache.delay(str(instance.study.id))
+
+@receiver(post_save, sender=QuestionnaireScheduleInstance)
+def trigger_stats_refresh_on_task_update(sender, instance, **kwargs):
+    """
+    Refresh study stats when tasks (questionnaires) are updated.
+    """
+    if instance.participant and instance.participant.study:
+        refresh_study_stats_cache.delay(str(instance.participant.study.id))
+
+@receiver(post_save, sender=Study)
+def trigger_cache_refresh_on_study_change(sender, instance, **kwargs):
+    """
+    Invalidate global study cache.
+    """
+    from .utils.cache_utils import invalidate_cache
+    invalidate_cache("studies_list")
+
+@receiver(post_save, sender=Visit)
+def invalidate_visit_cache(sender, instance, **kwargs):
+    """
+    Invalidate visits list cache when a visit is updated.
+    """
+    from .utils.cache_utils import invalidate_cache
+    invalidate_cache("visits_list")
+
+@receiver(post_save, sender=News)
+def invalidate_news_cache(sender, instance, **kwargs):
+    """
+    Invalidate public news cache.
+    """
+    from .utils.cache_utils import invalidate_cache
+    invalidate_cache("news_list")
+
+@receiver(post_save, sender=Event)
+def invalidate_event_cache(sender, instance, **kwargs):
+    """
+    Invalidate public events cache.
+    """
+    from .utils.cache_utils import invalidate_cache
+    invalidate_cache("events_list")

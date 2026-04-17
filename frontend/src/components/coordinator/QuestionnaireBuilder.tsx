@@ -140,15 +140,15 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
             if (res.ok) {
                 const data = await res.json();
                 const rawLines: string[] = data.lines || [];
-                
+
                 // 1. Group raw lines into logical blocks
                 const blocks: string[] = [];
                 let currentBlock = "";
-                
+
                 for (const line of rawLines) {
                     const trimmed = line.trim();
                     if (!trimmed || trimmed.startsWith('©') || trimmed.includes('All rights reserved') || /page\s+\d+/i.test(trimmed)) continue;
-                    
+
                     // Question Marker Detect (Numbering or Bullets)
                     const isNewQuestion = /^(\d+[\.\)]|[A-G][\.\)]|[\u2022\u25cf\-\u25a1])\s+/.test(trimmed);
                     // Section/Header Detect (Short, Uppercase)
@@ -166,7 +166,7 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                 // 2. Identify Global Scoring Scale (e.g., 0=None, 1=Mild...)
                 let globalScale: string[] = [];
                 const scaleDetectPattern = /(\d)\s*[=\-:]\s*([A-Z][A-Z\s]+?)(?=\s+\d|\s*$)/g;
-                
+
                 for (const b of blocks.slice(0, 3)) { // Look in first few blocks (headers/instructions)
                     let match;
                     while ((match = scaleDetectPattern.exec(b)) !== null) {
@@ -178,7 +178,7 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                 // 3. Transform blocks into Questions
                 const suggested: Question[] = [];
                 let introText = "";
-                
+
                 for (let block of blocks) {
                     // Check if it's an intro/instruction block
                     const isInstruction = suggested.length === 0 && !/^(\d+[\.\)]|[A-G][\.\)]|[\u2022\u25cf\-\u25a1])/.test(block);
@@ -191,13 +191,30 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                     let label = block;
 
                     // Option Detection Logic
-                    // Path A: Has scale buttons in the line (e.g. "Question Text 0 1 2 3")
-                    const trailingNumbers = block.match(/\s(\d\s+){2,}\d\s?$/);
-                    if (trailingNumbers && globalScale.length > 0) {
-                        label = block.replace(/\s(\d\s?)+$/, '').trim();
+                    // Path A: Binary Clinical Pattern (e.g. "0 for NO, 1 for YES")
+                    if (/\(0 for NO, 1 for YES\)/i.test(block) || /\(0 for NO, 1 for YES\)/i.test(block)) {
+                        label = block.replace(/\(0 for NO, 1 for YES\)/i, '').replace(/\b(NO|YES)\s+(NO|YES)\s?$/i, '').trim();
+                        options = ["0 - NO", "1 - YES"];
+                    }
+                    // Path B: Has scale buttons in the line (e.g. "Question Text 0 1 2 3")
+                    else if (block.match(/\s(\d\s*){2,}\d\s?$/) && globalScale.length > 0) {
+                        label = block.replace(/\s(\d\s*)+$/, '').trim();
                         options = [...globalScale];
-                    } else {
-                        // Path B: Inline Key-Value Pairs (e.g. "0 None 1 Some")
+                    } 
+                    // Path C: Inline Key-Value Pairs (e.g. "0 None 1 Some")
+                    else if (/(\d)\s+[A-Za-z]+\s+(\d)\s+[A-Za-z]+/.test(block)) {
+                        const localScale: string[] = [];
+                        const matches = block.matchAll(/(\d)\s*([A-Za-z][A-Za-z\s]+?)(?=\s+\d|\s*$)/g);
+                        for (const m of matches) {
+                            localScale.push(`${m[1]} ${m[2].trim()}`);
+                        }
+                        if (localScale.length > 1) {
+                            options = localScale;
+                            // Clean label from the trailing scale definitions
+                            label = block.split(/\s\d\s[A-Za-z]/)[0].trim();
+                        }
+                    }
+                    else {
                         const inlineScorePattern = /(\d)\s*[=\-:]?\s*([A-Za-z][A-Za-z\s\/\\,\(\)-]+?)(?=\s+\d|\s*$)/g;
                         const inlineMatches = [...block.matchAll(inlineScorePattern)];
                         if (inlineMatches.length > 1) {
@@ -230,8 +247,8 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
 
                 const final = suggested.filter(q => q.label.length > 3);
                 setQuestions(final);
-                
-                const msg = final.length > 0 
+
+                const msg = final.length > 0
                     ? `Clinical Logic Restored: ${final.length} instruments synchronized with automated scale mapping.`
                     : "Extraction completed, but no clear questions found. Please check PDF quality.";
                 alert(msg);
@@ -272,7 +289,7 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                 method: editingId ? 'PATCH' : 'POST',
                 body: JSON.stringify({
                     name,
-                    json_structure: { 
+                    json_structure: {
                         questions,
                         instructions,
                         // Compatibility with older renderer if needed
@@ -603,9 +620,9 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                             onClick={() => setPreviewPdf(null)}
                             className="fixed inset-0 bg-black/95 backdrop-blur-2xl z-[200]"
                         />
-                        <motion.div 
-                            initial={{ opacity: 0, y: 30 }} 
-                            animate={{ opacity: 1, y: 0 }} 
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 30 }}
                             className="fixed inset-0 bg-[#0B101B] z-[201] flex flex-col overflow-hidden shadow-2xl"
                         >
@@ -624,20 +641,20 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                                 </button>
                             </div>
                             <div className="flex-1 bg-black">
-                                <iframe 
-                                    src={previewPdf} 
+                                <iframe
+                                    src={previewPdf}
                                     className="w-full h-full border-0"
                                     title="PDF Preview"
                                 />
                             </div>
-                             <div className="px-8 py-4 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
+                            <div className="px-8 py-4 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
                                 <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.3em] flex items-center gap-2">
                                     SECURED CONTENT VIEWPORT
                                 </p>
                                 <div className="flex items-center gap-4">
-                                    <a 
-                                        href={previewPdf} 
-                                        target="_blank" 
+                                    <a
+                                        href={previewPdf}
+                                        target="_blank"
                                         rel="noopener noreferrer"
                                         className="px-5 py-2 bg-white/5 rounded-lg text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-white transition-all flex items-center gap-2 border border-white/10"
                                     >
@@ -680,76 +697,76 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                                         <p className="text-[12px] font-bold text-slate-300 group-hover:text-white mb-4">{line}</p>
                                         <div className="flex items-center gap-3">
                                             <button
-                                                 onClick={() => {
-                                                     // Smart New Question Logic
-                                                     let type: 'short_text' | 'choice' | 'date' | 'yesno' = 'short_text';
-                                                     let label = line;
-                                                     let options: string[] = [];
+                                                onClick={() => {
+                                                    // Smart New Question Logic
+                                                    let type: 'short_text' | 'choice' | 'date' | 'yesno' = 'short_text';
+                                                    let label = line;
+                                                    let options: string[] = [];
 
-                                                     const boxPattern = /[\u25A1\u2610\u2611\u2612\uf0a8\uf0fe\uf071\u0001\u0002]|(?:\[\s?\])/g;
+                                                    const boxPattern = /[\u25A1\u2610\u2611\u2612\uf0a8\uf0fe\uf071\u0001\u0002]|(?:\[\s?\])/g;
 
-                                                     if (boxPattern.test(line)) {
-                                                         const parts = line.split(boxPattern).map(p => p.trim()).filter(p => p.length > 1);
-                                                         if (parts.length > 1) {
-                                                             label = parts[0];
-                                                             options = parts.slice(1);
-                                                             type = 'choice';
-                                                         }
-                                                     } else {
-                                                         const scorePattern = /\s*(\d)[\s\.-]([A-Za-z\s\/\\-]+?)(?=\s+\d|\s*$)/g;
-                                                         let match;
-                                                         while ((match = scorePattern.exec(line)) !== null) {
-                                                             options.push(`${match[1]} ${match[2].trim()}`);
-                                                         }
-                                                         if (options.length > 0) {
-                                                             type = 'choice';
-                                                             const firstMatchIdx = line.search(/\s*\d[\s\.-][A-Za-z\s\/\\-]+?(?=\s+\d|\s*$)/);
-                                                             if (firstMatchIdx > 5) label = line.substring(0, firstMatchIdx).trim();
-                                                         } else if (line.toLowerCase().includes('date')) {
-                                                             type = 'date';
-                                                         } else if (line.toLowerCase().includes('yes') && line.toLowerCase().includes('no')) {
-                                                             type = 'yesno';
-                                                         }
-                                                     }
+                                                    if (boxPattern.test(line)) {
+                                                        const parts = line.split(boxPattern).map(p => p.trim()).filter(p => p.length > 1);
+                                                        if (parts.length > 1) {
+                                                            label = parts[0];
+                                                            options = parts.slice(1);
+                                                            type = 'choice';
+                                                        }
+                                                    } else {
+                                                        const scorePattern = /\s*(\d)[\s\.-]([A-Za-z\s\/\\-]+?)(?=\s+\d|\s*$)/g;
+                                                        let match;
+                                                        while ((match = scorePattern.exec(line)) !== null) {
+                                                            options.push(`${match[1]} ${match[2].trim()}`);
+                                                        }
+                                                        if (options.length > 0) {
+                                                            type = 'choice';
+                                                            const firstMatchIdx = line.search(/\s*\d[\s\.-][A-Za-z\s\/\\-]+?(?=\s+\d|\s*$)/);
+                                                            if (firstMatchIdx > 5) label = line.substring(0, firstMatchIdx).trim();
+                                                        } else if (line.toLowerCase().includes('date')) {
+                                                            type = 'date';
+                                                        } else if (line.toLowerCase().includes('yes') && line.toLowerCase().includes('no')) {
+                                                            type = 'yesno';
+                                                        }
+                                                    }
 
-                                                     const newQ: Question = {
-                                                         id: `q_src_${Date.now()}`,
-                                                         type,
-                                                         label: label.replace(/^\d+[\.\)]\s+/, '').trim(),
-                                                         placeholder: '...',
-                                                         required: true,
-                                                         options: options.length > 0 ? options : []
-                                                     };
-                                                     setQuestions([...questions, newQ]);
-                                                 }}
-                                                 className="flex-1 py-2 bg-indigo-500/10 rounded-lg text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:bg-indigo-500/20 transition-all flex items-center justify-center gap-2"
-                                             >
-                                                 <Plus className="w-3 h-3" /> New Question
-                                             </button>
-                                             <button
-                                                 onClick={() => {
-                                                     if (questions.length === 0) return;
-                                                     const lastQ = questions[questions.length - 1];
-                                                     let newOpts: string[] = [];
-                                                     const boxPattern = /[\u25A1\u2610\u2611\u2612\uf0a8\uf0fe\uf071\u0001\u0002]|(?:\[\s?\])/g;
+                                                    const newQ: Question = {
+                                                        id: `q_src_${Date.now()}`,
+                                                        type,
+                                                        label: label.replace(/^\d+[\.\)]\s+/, '').trim(),
+                                                        placeholder: '...',
+                                                        required: true,
+                                                        options: options.length > 0 ? options : []
+                                                    };
+                                                    setQuestions([...questions, newQ]);
+                                                }}
+                                                className="flex-1 py-2 bg-indigo-500/10 rounded-lg text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:bg-indigo-500/20 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <Plus className="w-3 h-3" /> New Question
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    if (questions.length === 0) return;
+                                                    const lastQ = questions[questions.length - 1];
+                                                    let newOpts: string[] = [];
+                                                    const boxPattern = /[\u25A1\u2610\u2611\u2612\uf0a8\uf0fe\uf071\u0001\u0002]|(?:\[\s?\])/g;
 
-                                                     if (boxPattern.test(line)) {
-                                                         newOpts = line.split(boxPattern).map(p => p.trim()).filter(p => p.length > 1);
-                                                     } else {
-                                                         const scorePattern = /\s*(\d)[\s\.-]([A-Za-z\s\/\\-]+?)(?=\s+\d|\s*$)/g;
-                                                         let match;
-                                                         while ((match = scorePattern.exec(line)) !== null) {
-                                                             newOpts.push(`${match[1]} ${match[2].trim()}`);
-                                                         }
-                                                     }
-                                                     if (newOpts.length === 0) newOpts = [line.trim()];
+                                                    if (boxPattern.test(line)) {
+                                                        newOpts = line.split(boxPattern).map(p => p.trim()).filter(p => p.length > 1);
+                                                    } else {
+                                                        const scorePattern = /\s*(\d)[\s\.-]([A-Za-z\s\/\\-]+?)(?=\s+\d|\s*$)/g;
+                                                        let match;
+                                                        while ((match = scorePattern.exec(line)) !== null) {
+                                                            newOpts.push(`${match[1]} ${match[2].trim()}`);
+                                                        }
+                                                    }
+                                                    if (newOpts.length === 0) newOpts = [line.trim()];
 
-                                                     setQuestions(questions.map((q, qIdx) => 
-                                                         qIdx === questions.length - 1 
-                                                         ? { ...q, type: 'choice', options: [...(q.options || []), ...newOpts] } 
-                                                         : q
-                                                     ));
-                                                 }}
+                                                    setQuestions(questions.map((q, qIdx) =>
+                                                        qIdx === questions.length - 1
+                                                            ? { ...q, type: 'choice', options: [...(q.options || []), ...newOpts] }
+                                                            : q
+                                                    ));
+                                                }}
                                                 className="flex-1 py-2 bg-pink-500/10 rounded-lg text-[9px] font-black text-pink-400 uppercase tracking-widest hover:bg-pink-500/20 transition-all flex items-center justify-center gap-2"
                                             >
                                                 <Layers className="w-3 h-3" /> + Add to Options

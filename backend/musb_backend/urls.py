@@ -40,6 +40,11 @@ urlpatterns = [
     path('', api_root),
     path('api/health/', health_check, name='health_check'),
     path('api/health', health_check), # Fallback for monitoring tools
+    
+    # Technical SEO Endpoints
+    path('robots.txt', include('api.seo_urls')),
+    path('sitemap.xml', include('api.seo_urls')),
+    
     path('admin/', admin.site.urls),
     path('api/careers/', include('careers.urls')),
     path('api/', include('api.urls')),

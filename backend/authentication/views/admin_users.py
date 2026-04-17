@@ -468,6 +468,6 @@ def admin_list_users(request):
             'role': u.role,
             'full_name': f"{u.first_name} {u.last_name}".strip() or u.email,
             'status': (u.status or 'active').upper(),
-            'date': u.date_joined.strftime('%Y-%m-%d')
+            'date': u.date_joined.strftime('%Y-%m-%d') if u.date_joined else ''
         })
     return Response(data)

@@ -9,6 +9,8 @@ export default function StudyConsent() {
     const navigate = useNavigate();
     const location = useLocation();
     const [study, setStudy] = useState<any | null>(null);
+    const [template, setTemplate] = useState<any | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     
     // Tracking & Fingerprinting (Section 8 & 9)
     const [timezone, setTimezone] = useState('');
@@ -24,21 +26,30 @@ export default function StudyConsent() {
     const contentRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const fetchStudy = async () => {
+        const initialize = async () => {
+            setIsLoading(true);
             try {
-                const response = await authFetch(`${API}/api/studies/${id}/`);
-                if (!response.ok) throw new Error('Study not found');
-                const data = await response.json();
-                setStudy({
-                    ...data,
-                    id: data.protocol_id || data.id,
-                    duration: "4-12 Weeks"
-                });
+                // 1. Fetch Study
+                const sResponse = await fetch(`${API}/api/public-studies/${id}/`);
+                if (!sResponse.ok) throw new Error('Study not found');
+                const sData = await sResponse.json();
+                setStudy(sData);
+
+                // 2. Fetch Active Template
+                const tResponse = await fetch(`${API}/api/consent-templates/?study_id=${id}&public=true`);
+                if (tResponse.ok) {
+                    const tData = await tResponse.json();
+                    const activeTemplate = Array.isArray(tData) ? tData[0] : (tData.results?.[0]);
+                    if (activeTemplate) setTemplate(activeTemplate);
+                }
             } catch (err) {
+                console.error("Consent init failed:", err);
                 navigate('/trials');
+            } finally {
+                setIsLoading(false);
             }
         };
-        fetchStudy();
+        initialize();
 
         // Section 8: Auto-detect strict timezone
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -97,6 +108,7 @@ export default function StudyConsent() {
                 method: 'POST',
                 body: JSON.stringify({
                     study: study.pk || study.id, // Handles both API and Hardcoded fallback
+                    template: template?.id,
                     full_name: signature.trim(),
                     email: email || 'anonymous@musbresearch.com',
                     device_hash: deviceFingerprint,
@@ -153,30 +165,36 @@ export default function StudyConsent() {
                         onScroll={handleScroll}
                         className="bg-slate-950/50 rounded-2xl p-8 max-h-[500px] overflow-y-auto space-y-6 text-sm text-slate-300 leading-relaxed border border-white/5 relative custom-scrollbar"
                     >
-                        <h2 className="text-xl font-bold text-white uppercase mb-4 text-center">Protocol # {study.id.toUpperCase()}</h2>
+                        <h2 className="text-xl font-bold text-white uppercase mb-4 text-center">Protocol # {(study.protocol_id || study.id || "").toUpperCase()}</h2>
                         
-                        <div className="space-y-4">
-                            <h3 className="font-bold text-white uppercase tracking-widest text-[12px] border-b border-white/10 pb-2">1. Purpose of the Study</h3>
-                            <p>You are invited to participate in a clinical research study titled <strong>{study.title}</strong>. The purpose of this study is to investigate specific digital or physical biomarkers over a defined duration. Your participation will contribute to scientific knowledge and potential future therapies.</p>
-                            
-                            <h3 className="font-bold text-white uppercase tracking-widest text-[12px] border-b border-white/10 pb-2 pt-4">2. Procedures & Time Commitment</h3>
-                            <p>If you agree to participate, you will be expected to complete regular digital tasks, surveys, and potentially utilize shipped physical kits. The estimated duration of the trial is {study.duration}. All activities are outlined within your Participant Portal.</p>
-                            
-                            <h3 className="font-bold text-white uppercase tracking-widest text-[12px] border-b border-white/10 pb-2 pt-4">3. Data Privacy & GDPR/HIPAA Compliance</h3>
-                            <p>Your privacy is our utmost priority. All personal health information is strictly protected by global compliance frameworks (including HIPAA in the US and GDPR for EU/UK participants).</p>
-                            <ul className="list-disc pl-6 space-y-2 text-slate-400">
-                                <li>Data is encrypted at rest and in transit.</li>
-                                <li>Subject identity is pseudo-anonymized via Secure Participant IDs before being provided to Sponsors or internal researchers.</li>
-                                <li>You maintain the <strong>Right to Withdraw</strong> from this study at any time without penalty or loss of benefits.</li>
-                                <li>You maintain the <strong>Right to Data Deletion</strong>. A request will permanently scrub non-aggregated clinical responses associated with your profile from active servers within 30 days.</li>
-                            </ul>
-                            
-                            <h3 className="font-bold text-white uppercase tracking-widest text-[12px] border-b border-white/10 pb-2 pt-4">4. Risks & Discomforts</h3>
-                            <p>While this is primarily an observational or decentralized study, there may be minor risks associated with data entry or standard kit usage. Full risk disclosure is maintained by the designated Principal Investigator (PI).</p>
-
-                            <h3 className="font-bold text-white uppercase tracking-widest text-[12px] border-b border-white/10 pb-2 pt-4">5. Compensation</h3>
-                            <p>If financial compensation is rendered applicable to this protocol arm, details will be strictly issued via our compliant payment gateway upon successful completion of required trial milestones.</p>
-                        </div>
+                        {template?.terms_content ? (
+                            <div className="prose prose-invert max-w-none">
+                                <p className="whitespace-pre-wrap">{template.terms_content}</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <h3 className="font-bold text-white uppercase tracking-widest text-[12px] border-b border-white/10 pb-2">1. Purpose of the Study</h3>
+                                <p>You are invited to participate in a clinical research study titled <strong>{study.title}</strong>. The purpose of this study is to investigate specific digital or physical biomarkers over a defined duration. Your participation will contribute to scientific knowledge and potential future therapies.</p>
+                                
+                                <h3 className="font-bold text-white uppercase tracking-widest text-[12px] border-b border-white/10 pb-2 pt-4">2. Procedures & Time Commitment</h3>
+                                <p>If you agree to participate, you will be expected to complete regular digital tasks, surveys, and potentially utilize shipped physical kits. The estimated duration of the trial is {study.duration || "Study Duration varies by protocol"}. All activities are outlined within your Participant Portal.</p>
+                                
+                                <h3 className="font-bold text-white uppercase tracking-widest text-[12px] border-b border-white/10 pb-2 pt-4">3. Data Privacy & GDPR/HIPAA Compliance</h3>
+                                <p>Your privacy is our utmost priority. All personal health information is strictly protected by global compliance frameworks (including HIPAA in the US and GDPR for EU/UK participants).</p>
+                                <ul className="list-disc pl-6 space-y-2 text-slate-400">
+                                    <li>Data is encrypted at rest and in transit.</li>
+                                    <li>Subject identity is pseudo-anonymized via Secure Participant IDs before being provided to Sponsors or internal researchers.</li>
+                                    <li>You maintain the <strong>Right to Withdraw</strong> from this study at any time without penalty or loss of benefits.</li>
+                                    <li>You maintain the <strong>Right to Data Deletion</strong>. A request will permanently scrub non-aggregated clinical responses associated with your profile from active servers within 30 days.</li>
+                                </ul>
+                                
+                                <h3 className="font-bold text-white uppercase tracking-widest text-[12px] border-b border-white/10 pb-2 pt-4">4. Risks & Discomforts</h3>
+                                <p>While this is primarily an observational or decentralized study, there may be minor risks associated with data entry or standard kit usage. Full risk disclosure is maintained by the designated Principal Investigator (PI).</p>
+    
+                                <h3 className="font-bold text-white uppercase tracking-widest text-[12px] border-b border-white/10 pb-2 pt-4">5. Compensation</h3>
+                                <p>If financial compensation is rendered applicable to this protocol arm, details will be strictly issued via our compliant payment gateway upon successful completion of required trial milestones.</p>
+                            </div>
+                        )}
                         
                         <div className="h-20" /> {/* Spacer purely so user definitely scrolls far enough */}
                         

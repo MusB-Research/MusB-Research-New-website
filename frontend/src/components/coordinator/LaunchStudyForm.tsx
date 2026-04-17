@@ -155,10 +155,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
         fetchTeamData();
     }, []);
 
-    const [uploadedDocs, setUploadedDocs] = useState<DocumentFile[]>(() => [
-        { id: '1', name: 'IRB_Protocol_V3.pdf', category: 'Protocol', version: 'V3.1', status: 'Current' },
-        { id: '2', name: 'Consent_Form_Template.docx', category: 'Other', version: 'V1.0', status: 'Draft' }
-    ]);
+    const [uploadedDocs, setUploadedDocs] = useState<DocumentFile[]>([]);
     const [sponsorSearch, setSponsorSearch] = useState('');
     const [showSponsorDropdown, setShowSponsorDropdown] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -751,24 +748,24 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                 <div 
                                                     key={pi?.id} 
                                                     onClick={() => toggleMultiSelect('pi_id', pi?.id)} 
-                                                    className={`relative p-6 rounded-[1.5rem] border transition-all cursor-pointer group flex flex-col items-center text-center gap-3 ${
+                                                    className={`relative p-6 rounded-[1.5rem] border transition-all cursor-pointer group flex flex-col items-center text-center gap-3 overflow-hidden ${
                                                         Array.isArray(formData.pi_id) && formData.pi_id.includes(pi?.id) 
                                                         ? 'bg-indigo-500/10 border-indigo-500/50 shadow-xl shadow-indigo-500/5' 
                                                         : 'bg-white/[0.03] border-white/5 hover:border-white/20 hover:bg-white/[0.05]'
                                                     }`}
                                                 >
                                                     {Array.isArray(formData.pi_id) && formData.pi_id.includes(pi?.id) && (
-                                                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white border-2 border-[#0B101B] shadow-lg">
+                                                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white border-2 border-[#0B101B] shadow-lg z-10">
                                                             <Check className="w-3 h-3" />
                                                         </motion.div>
                                                     )}
-                                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-black italic shadow-inner transition-all group-hover:scale-110 ${
+                                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-black italic shadow-inner transition-all group-hover:scale-110 shrink-0 ${
                                                         Array.isArray(formData.pi_id) && formData.pi_id.includes(pi?.id) ? 'bg-indigo-600/20 text-indigo-400' : 'bg-white/5 text-slate-500'
                                                     }`}>
                                                         {String(pi?.full_name || pi?.name || 'U').charAt(0)}
                                                     </div>
-                                                    <div>
-                                                        <p className="text-[13px] font-black text-white uppercase tracking-tighter leading-tight truncate px-2">{pi?.full_name || pi?.name || 'Unknown'}</p>
+                                                    <div className="w-full overflow-hidden">
+                                                        <p className="text-[13px] font-black text-white uppercase tracking-tighter leading-tight truncate px-2 w-full">{pi?.full_name || pi?.name || 'Unknown'}</p>
                                                         <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Authorized PI</p>
                                                     </div>
                                                 </div>
@@ -787,24 +784,24 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                 <div 
                                                     key={crc?.id} 
                                                     onClick={() => toggleMultiSelect('coordinator_id', crc?.id)} 
-                                                    className={`relative p-6 rounded-[1.5rem] border transition-all cursor-pointer group flex flex-col items-center text-center gap-3 ${
+                                                    className={`relative p-6 rounded-[1.5rem] border transition-all cursor-pointer group flex flex-col items-center text-center gap-3 overflow-hidden ${
                                                         Array.isArray(formData.coordinator_id) && formData.coordinator_id.includes(crc?.id) 
                                                         ? 'bg-emerald-500/10 border-emerald-500/50 shadow-xl shadow-emerald-500/5' 
                                                         : 'bg-white/[0.03] border-white/5 hover:border-white/20 hover:bg-white/[0.05]'
                                                     }`}
                                                 >
                                                     {Array.isArray(formData.coordinator_id) && formData.coordinator_id.includes(crc?.id) && (
-                                                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-600 rounded-full flex items-center justify-center text-white border-2 border-[#0B101B] shadow-lg">
+                                                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-600 rounded-full flex items-center justify-center text-white border-2 border-[#0B101B] shadow-lg z-10">
                                                             <Check className="w-3 h-3" />
                                                         </motion.div>
                                                     )}
-                                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-black italic shadow-inner transition-all group-hover:scale-110 ${
+                                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-black italic shadow-inner transition-all group-hover:scale-110 shrink-0 ${
                                                         Array.isArray(formData.coordinator_id) && formData.coordinator_id.includes(crc?.id) ? 'bg-emerald-600/20 text-emerald-400' : 'bg-white/5 text-slate-500'
                                                     }`}>
                                                         {String(crc?.full_name || crc?.name || 'C').charAt(0)}
                                                     </div>
-                                                    <div>
-                                                        <p className="text-[13px] font-black text-white uppercase tracking-tighter leading-tight truncate px-2">{crc?.full_name || crc?.name || 'Unknown'}</p>
+                                                    <div className="w-full overflow-hidden">
+                                                        <p className="text-[13px] font-black text-white uppercase tracking-tighter leading-tight truncate px-2 w-full">{crc?.full_name || crc?.name || 'Unknown'}</p>
                                                         <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Operational CRC</p>
                                                     </div>
                                                 </div>
@@ -823,24 +820,24 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                 <div 
                                                     key={sp?.id} 
                                                     onClick={() => toggleMultiSelect('assigned_sponsors' as any, sp?.id)} 
-                                                    className={`relative p-6 rounded-[1.5rem] border transition-all cursor-pointer group flex flex-col items-center text-center gap-3 ${
+                                                    className={`relative p-6 rounded-[1.5rem] border transition-all cursor-pointer group flex flex-col items-center text-center gap-3 overflow-hidden ${
                                                         Array.isArray(formData.assigned_sponsors) && formData.assigned_sponsors.includes(sp?.id) 
                                                         ? 'bg-cyan-500/10 border-cyan-500/50 shadow-xl shadow-cyan-500/5' 
                                                         : 'bg-white/[0.03] border-white/5 hover:border-white/20 hover:bg-white/[0.05]'
                                                     }`}
                                                 >
                                                     {Array.isArray(formData.assigned_sponsors) && formData.assigned_sponsors.includes(sp?.id) && (
-                                                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 w-6 h-6 bg-cyan-600 rounded-full flex items-center justify-center text-white border-2 border-[#0B101B] shadow-lg">
+                                                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 w-6 h-6 bg-cyan-600 rounded-full flex items-center justify-center text-white border-2 border-[#0B101B] shadow-lg z-10">
                                                             <Check className="w-3 h-3" />
                                                         </motion.div>
                                                     )}
-                                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-black italic shadow-inner transition-all group-hover:scale-110 ${
+                                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-black italic shadow-inner transition-all group-hover:scale-110 shrink-0 ${
                                                         Array.isArray(formData.assigned_sponsors) && formData.assigned_sponsors.includes(sp?.id) ? 'bg-cyan-600/20 text-cyan-400' : 'bg-white/5 text-slate-500'
                                                     }`}>
                                                         {String(sp?.full_name || sp?.name || sp?.email || 'S').charAt(0)}
                                                     </div>
-                                                    <div>
-                                                        <p className="text-[13px] font-black text-white uppercase tracking-tighter leading-tight truncate px-2">{sp?.full_name || sp?.name || sp?.email || 'Unknown'}</p>
+                                                    <div className="w-full overflow-hidden">
+                                                        <p className="text-[13px] font-black text-white uppercase tracking-tighter leading-tight truncate px-2 w-full">{sp?.full_name || sp?.name || sp?.email || 'Unknown'}</p>
                                                         <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Protocol Sponsor</p>
                                                     </div>
                                                 </div>
@@ -889,7 +886,16 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                             if (isSelected) {
                                                                 setFormData({...formData, study_questionnaires: formData.study_questionnaires.filter((sq: any) => sq.template !== t.id)});
                                                             } else {
-                                                                setFormData({...formData, study_questionnaires: [...formData.study_questionnaires, { template: t.id, mode: 'STRUCTURED', frequency_interval: 1, frequency_unit: 'WEEKS', repetitions: 1, schedule_name: t.name }]});
+                                                                setFormData({...formData, study_questionnaires: [...formData.study_questionnaires, { 
+                                                                    template: t.id, 
+                                                                    mode: 'STRUCTURED', 
+                                                                    frequency_interval: 1, 
+                                                                    frequency_unit: 'WEEKS', 
+                                                                    repetitions: 1, 
+                                                                    schedule_name: t.name,
+                                                                    allow_participant_download: false,
+                                                                    notify_staff_on_submission: true
+                                                                }]});
                                                             }
                                                         }}
                                                         className={`p-2 rounded-lg transition-all ${isSelected ? 'bg-rose-500 text-white' : 'bg-indigo-600 text-white'}`}
@@ -959,6 +965,27 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                                     </div>
                                                                 </div>
                                                             </div>
+                                                        </div>
+
+                                                        <div className="pt-4 border-t border-white/5 grid grid-cols-2 gap-3 mb-4">
+                                                            <button 
+                                                                onClick={() => setFormData({...formData, study_questionnaires: formData.study_questionnaires.map((sq: any) => sq.template === t.id ? {...sq, allow_participant_download: !sq.allow_participant_download} : sq)})}
+                                                                className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${config.allow_participant_download ? 'bg-indigo-600/20 border-indigo-500 text-white' : 'bg-white/5 border-white/5 text-slate-500'}`}
+                                                            >
+                                                                <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${config.allow_participant_download ? 'bg-indigo-500 border-indigo-500' : 'border-white/20'}`}>
+                                                                    {config.allow_participant_download && <CheckSquare className="w-2.5 h-2.5 text-white" />}
+                                                                </div>
+                                                                <span className="text-[9px] font-black uppercase tracking-widest leading-none">Allow Download</span>
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => setFormData({...formData, study_questionnaires: formData.study_questionnaires.map((sq: any) => sq.template === t.id ? {...sq, notify_staff_on_submission: !sq.notify_staff_on_submission} : sq)})}
+                                                                className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${config.notify_staff_on_submission ? 'bg-emerald-600/20 border-emerald-500 text-white' : 'bg-white/5 border-white/5 text-slate-500'}`}
+                                                            >
+                                                                <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${config.notify_staff_on_submission ? 'bg-emerald-500 border-emerald-500' : 'border-white/20'}`}>
+                                                                    {config.notify_staff_on_submission && <CheckSquare className="w-2.5 h-2.5 text-white" />}
+                                                                </div>
+                                                                <span className="text-[9px] font-black uppercase tracking-widest leading-none">Notify Staff</span>
+                                                            </button>
                                                         </div>
 
                                                         <div className="pt-4 border-t border-white/5 space-y-4">

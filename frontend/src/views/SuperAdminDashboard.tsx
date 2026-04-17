@@ -637,14 +637,26 @@ export default function SuperAdminDashboard() {
     navigate(`/dashboard/super-admin${slug ? '/' + slug : ''}`);
   };
 
+  const ClockDisplay = React.memo(() => {
+    const [clock, setClock] = useState(new Date());
+    useEffect(() => {
+      const timer = setInterval(() => setClock(new Date()), 1000);
+      return () => clearInterval(timer);
+    }, []);
+    return (
+      <div className="flex flex-col items-end text-right border-r border-white/5 pr-2 md:pr-4">
+        <span className="text-[14px] md:text-lg font-black text-[#7c3aed] font-mono tracking-tighter tabular-nums leading-none">
+          {clock.toLocaleTimeString('en-US', { hour12: false })}
+        </span>
+        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+          {clock.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()}
+        </span>
+      </div>
+    );
+  });
+
   const [searchTerm, setSearchTerm] = useState('');
   const [lastRefresh, setLastRefresh] = useState(new Date().toLocaleTimeString());
-  const [currentTime, setCurrentTime] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [modals, setModals] = useState({ createUser: false, createAnnouncement: false });
@@ -789,9 +801,9 @@ export default function SuperAdminDashboard() {
       console.error("Failed to fetch platform data:", err);
       addToast("Terminal Connection Unstable", "error");
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
-  }, [addToast]);
+  }, [API, navigate, addToast]);
 
   useEffect(() => {
     const user = localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -805,7 +817,7 @@ export default function SuperAdminDashboard() {
   const notificationRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setTimeout(() => setLoading(false), 1500);
+    // Initial load handled by fetchData(true)
     const handleClickOutside = (event: MouseEvent) => {
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
         setIsProfileOpen(false);
@@ -1210,7 +1222,7 @@ export default function SuperAdminDashboard() {
   // ═══════════════════════════════════════════
 
   const UsersPage = ({
-    users, searchTerm, setSearchTerm, setModals, modals, viewDetails, handleRoleUpdate, handleStatusToggle, formatName
+    users, searchTerm, setSearchTerm, setModals, modals, viewDetails, handleRoleUpdate, handleStatusToggle, formatName, onDelete
   }: any) => {
     const filteredUsers = useMemo(() => {
       return (users || []).filter((u: any) =>
@@ -1316,7 +1328,8 @@ export default function SuperAdminDashboard() {
                     </td>
                     <td className="px-6 py-4 text-[12px] font-black text-[#8b8fa8] uppercase tracking-widest">{user.lastLogin || 'Never'}</td>
                     <td className="px-6 py-4 text-right space-x-3">
-                      <button onClick={() => viewDetails(user)} className="p-2 text-[#555a7a] hover:text-white transition-all bg-white/5 rounded-lg border border-white/5 hover:border-white/10"><Eye className="w-4 h-4" /></button>
+                      <button onClick={() => onDelete(user)} className="p-2 text-[#555a7a] hover:text-red-400 transition-all bg-white/5 rounded-lg border border-white/5 hover:border-red-500/20" title="Delete Account"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => viewDetails(user)} className="p-2 text-[#555a7a] hover:text-white transition-all bg-white/5 rounded-lg border border-white/5 hover:border-white/10" title="View Details"><Eye className="w-4 h-4" /></button>
                     </td>
                   </tr>
                 ))}
@@ -1947,10 +1960,10 @@ export default function SuperAdminDashboard() {
 
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-3xl bg-black/60">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-[#0f1133] border border-white/10 w-full max-w-xl rounded-[3rem] p-12 shadow-2xl relative overflow-hidden">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-[#0f1133] border border-white/10 w-full max-w-xl rounded-[3rem] p-12 shadow-2xl relative overflow-hidden text-left">
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-emerald-500/5 blur-3xl rounded-full"></div>
-          <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mb-8 relative z-10">Broadcast <span className="text-emerald-500">Signal</span></h2>
-          <div className="space-y-6 relative z-10">
+          <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mb-8 relative z-10 text-left">Broadcast <span className="text-emerald-500">Signal</span></h2>
+          <div className="space-y-6 relative z-10 flex flex-col items-start w-full">
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Subject / Transmission Header" className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-white font-bold outline-none focus:border-emerald-500/40 transition-all placeholder:text-slate-800" />
             <select value={type} onChange={(e) => setType(e.target.value)} className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-white font-bold outline-none focus:border-emerald-500/40 transition-all uppercase tracking-widest text-[12px]">
               <option value="PLATFORM">Platform Update</option>
@@ -2023,13 +2036,13 @@ export default function SuperAdminDashboard() {
           <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
             <Users className="w-64 h-64 text-white" />
           </div>
-          <div className="flex justify-between items-start mb-14 relative z-10">
-            <div className="space-y-3">
-              <div className="w-12 h-12 bg-purple-500/10 border border-purple-500/20 rounded-2xl flex items-center justify-center text-[#7c3aed]">
+          <div className="flex justify-between items-start mb-14 relative z-10 text-left">
+            <div className="space-y-3 flex flex-col items-start">
+              <div className="w-12 h-12 bg-purple-500/10 border border-purple-500/20 rounded-2xl flex items-center justify-center text-[#7c3aed] shrink-0">
                 <UserPlus className="w-6 h-6" />
               </div>
-              <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Initialize <span className="text-[#7c3aed]">Personnel</span></h2>
-              <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-widest">Secure credential provisioning and onboarding module</p>
+              <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter text-left">Initialize <span className="text-[#7c3aed]">Personnel</span></h2>
+              <p className="text-[12px] text-[#555a7a] font-black uppercase tracking-widest text-left">Secure credential provisioning and onboarding module</p>
             </div>
             <button onClick={() => setModals({ ...modals, createUser: false })} className="p-3 hover:bg-white/5 rounded-2xl transition-colors" disabled={isCreating}>
               <X className="w-6 h-6 text-slate-700 hover:text-white" />
@@ -2037,29 +2050,29 @@ export default function SuperAdminDashboard() {
           </div>
           <form onSubmit={handleCreateUser} className="space-y-8 relative z-10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <label className="text-sm font-black text-[#555a7a] uppercase tracking-widest px-4 italic">First Name <span className="text-red-500">*</span></label>
-                <input type="text" placeholder="John" required value={newUser.firstName} onChange={e => setNewUser({ ...newUser, firstName: e.target.value })} className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono" />
+              <div className="space-y-4 text-left w-full">
+                <label className="block text-sm font-black text-[#555a7a] uppercase tracking-widest italic text-left">First Name <span className="text-red-500">*</span></label>
+                <input type="text" placeholder="John" required value={newUser.firstName} onChange={e => setNewUser({ ...newUser, firstName: e.target.value })} className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono text-left" />
               </div>
-              <div className="space-y-4">
-                <label className="text-sm font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Middle Name (Optional)</label>
-                <input type="text" placeholder="Quincy" value={newUser.middleName} onChange={e => setNewUser({ ...newUser, middleName: e.target.value })} className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono" />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <label className="text-sm font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Last Name <span className="text-red-500">*</span></label>
-                <input type="text" placeholder="Doe" required value={newUser.lastName} onChange={e => setNewUser({ ...newUser, lastName: e.target.value })} className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono" />
-              </div>
-              <div className="space-y-4">
-                <label className="text-sm font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Personal Gmail <span className="text-red-500">*</span></label>
-                <input type="email" placeholder="john.doe@gmail.com" required value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono" />
+              <div className="space-y-4 text-left w-full">
+                <label className="block text-sm font-black text-[#555a7a] uppercase tracking-widest italic text-left">Middle Name (Optional)</label>
+                <input type="text" placeholder="Quincy" value={newUser.middleName} onChange={e => setNewUser({ ...newUser, middleName: e.target.value })} className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono text-left" />
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <label className="text-sm font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Access Tier (Role)</label>
-                <select className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono" value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })}>
+              <div className="space-y-4 text-left w-full">
+                <label className="block text-sm font-black text-[#555a7a] uppercase tracking-widest italic text-left">Last Name <span className="text-red-500">*</span></label>
+                <input type="text" placeholder="Doe" required value={newUser.lastName} onChange={e => setNewUser({ ...newUser, lastName: e.target.value })} className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono text-left" />
+              </div>
+              <div className="space-y-4 text-left w-full">
+                <label className="block text-sm font-black text-[#555a7a] uppercase tracking-widest italic text-left">Personal Gmail <span className="text-red-500">*</span></label>
+                <input type="email" placeholder="john.doe@gmail.com" required value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono text-left" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4 text-left w-full">
+                <label className="block text-sm font-black text-[#555a7a] uppercase tracking-widest italic text-left">Access Tier (Role)</label>
+                <select className="w-full bg-[#0a0b1a] border border-white/5 rounded-2xl px-6 py-5 text-base text-white font-bold outline-none focus:border-purple-500/40 transition-all font-mono text-left" value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })}>
                   {filteredRoles.map(r => <option key={r.id} value={r.id} className="bg-[#0a0b1a]">{r.label}</option>)}
                 </select>
               </div>
@@ -2132,9 +2145,9 @@ export default function SuperAdminDashboard() {
                       ? 'bg-[#7c3aed]/20 text-white border-l-[3px] border-[#7c3aed] shadow-lg shadow-purple-900/10'
                       : 'text-[#8b8fa8] hover:bg-white/[0.02] hover:text-white'}`}
                   >
-                    <div className="flex items-center gap-4">
-                      <item.icon className={`w-5 h-5 ${currentPage === item.id && !(item as any).isExternal ? 'text-[#7c3aed]' : 'text-slate-700 group-hover:text-purple-400'}`} />
-                      <span className="text-[12px] xl:text-sm font-black uppercase tracking-[0.1em]">{item.label}</span>
+                    <div className="flex items-start gap-3 text-left">
+                      <item.icon className={`w-5 h-5 mt-0.5 shrink-0 ${currentPage === item.id && !(item as any).isExternal ? 'text-[#7c3aed]' : 'text-slate-700 group-hover:text-purple-400'}`} />
+                      <span className="text-[12px] xl:text-sm font-black uppercase tracking-[0.1em] leading-tight flex-1">{item.label}</span>
                     </div>
                     {(item as any).isExternal && <ExternalLink className="w-3 h-3 opacity-40 group-hover:opacity-100" />}
                     {(item as any).hasNotify && <div className="w-2 h-2 bg-pink-500 rounded-full shadow-[0_0_8px_rgba(236,72,153,0.5)]" />}
@@ -2147,21 +2160,21 @@ export default function SuperAdminDashboard() {
 
         <div className="p-6 border-t border-white/5 mt-auto bg-[#0a0b1a]/40 backdrop-blur-md">
           <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-4 bg-white/[0.02] p-4 rounded-3xl border border-white/5 hover:border-purple-500/30 transition-all duration-500">
+            <div className="flex items-center gap-3 bg-white/[0.02] p-4 rounded-3xl border border-white/5 hover:border-purple-500/30 transition-all duration-500">
               <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-cyan-600 flex items-center justify-center font-black text-white shadow-lg shadow-purple-900/40 italic text-sm">
                 {currentUserName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
               </div>
-              <div className="flex-1 overflow-hidden">
-                <p className="text-[12px] font-black text-white uppercase italic truncate tracking-tight">{currentUserName}</p>
-                <p className="text-[10px] text-purple-400 font-black uppercase tracking-[0.2em] mt-1 opacity-70">Super Admin Portal</p>
+              <div className="flex-1 overflow-hidden text-left">
+                <p className="text-[12px] font-black text-white uppercase italic truncate tracking-tight leading-none">{currentUserName}</p>
+                <p className="text-[10px] text-purple-400 font-black uppercase tracking-[0.1em] mt-1.5 opacity-70 leading-tight">Super Admin Portal</p>
               </div>
             </div>
             <button
               onClick={handleSignOut}
-              className="w-full group flex items-center justify-center gap-3 py-4 bg-red-500/5 hover:bg-red-500 border border-red-500/10 hover:border-red-500 rounded-[2rem] transition-all duration-500 shadow-lg hover:shadow-red-500/20"
+              className="w-full group flex items-center justify-start gap-3 px-6 py-4 bg-red-500/5 hover:bg-red-500 border border-red-500/10 hover:border-red-500 rounded-2xl transition-all duration-500 shadow-lg hover:shadow-red-500/20"
             >
-              <LogOut className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 group-hover:text-white transition-colors" />
-              <span className="text-[12px] sm:text-sm font-black uppercase tracking-[0.2em] text-red-500 group-hover:text-white transition-colors">Sign Out Interface</span>
+              <LogOut className="w-5 h-5 text-red-500 group-hover:text-white transition-colors shrink-0" />
+              <span className="text-[12px] sm:text-sm font-black uppercase tracking-[0.1em] text-red-500 group-hover:text-white transition-colors text-left leading-tight">Sign Out Interface</span>
             </button>
           </div>
         </div>
@@ -2177,14 +2190,7 @@ export default function SuperAdminDashboard() {
           </div>
 
           <div className="flex-1 flex justify-end">
-            <div className="flex flex-col items-end text-right border-r border-white/5 pr-2 md:pr-4">
-              <span className="text-[14px] md:text-lg font-black text-[#7c3aed] font-mono tracking-tighter tabular-nums leading-none">
-                {currentTime.toLocaleTimeString('en-US', { hour12: false })}
-              </span>
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase()}
-              </span>
-            </div>
+            <ClockDisplay />
           </div>
 
           <div className="flex items-center gap-2 sm:gap-6 lg:gap-8">
@@ -2280,6 +2286,7 @@ export default function SuperAdminDashboard() {
               handleStatusToggle={handleStatusToggle}
               formatName={formatName}
               ROLES={ROLES}
+              onDelete={(u: any) => { setSelectedUser(u); setIsDeleteConfirmOpen(true); }}
             />
           )}
           {currentPage === 'STUDIES' && (

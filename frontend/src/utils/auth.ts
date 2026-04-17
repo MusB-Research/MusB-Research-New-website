@@ -99,6 +99,9 @@ export const redirectToLogin = () => {
     window.location.href = '/signin';
 };
 
+// ── REFRESH SYNCHRONIZATION ──────────────────────────────
+let _refreshPromise: Promise<boolean> | null = null;
+
 // API HELPERS (WITH AUTH)
 
 export async function authFetch(url: string, options: any = {}) {
@@ -133,10 +136,20 @@ export async function authFetch(url: string, options: any = {}) {
         
         // Handle 401 Unauthorized (Token Expiry)
         if (response.status === 401 && getRefreshToken()) {
-            const refreshed = await tryRefresh();
+            // Check if a refresh is already in progress
+            if (!_refreshPromise) {
+                _refreshPromise = tryRefresh().finally(() => {
+                    _refreshPromise = null;
+                });
+            }
+
+            const refreshed = await _refreshPromise;
             if (refreshed) {
-                accessToken = getAccessToken();
-                const retryHeaders = { ...headers, 'Authorization': `Bearer ${accessToken}` };
+                const newAccessToken = getAccessToken();
+                const retryHeaders = { 
+                    ...headers, 
+                    'Authorization': `Bearer ${newAccessToken}` 
+                };
                 response = await fetch(fullUrl, { ...options, headers: retryHeaders });
             } else {
                 performLogout();

@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clock, MapPin, Calendar } from 'lucide-react';
 import { fetchNewsDetail, fetchEventDetail } from '../api';
 import { motion } from 'framer-motion';
+import SEO from '@/components/SEO';
 
 export default function NewsDetail() {
     const { id } = useParams();
@@ -58,6 +59,11 @@ export default function NewsDetail() {
 
     return (
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden pt-40 pb-24 px-4 md:px-12">
+            <SEO 
+                title={`${item.title} | MUSB Health`}
+                description={item.excerpt || item.content?.substring(0, 160)}
+                canonical={`https://www.musbhealth.com/news/${id}`}
+            />
             {/* Atmospheric Background Layers */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-blue-600/10 blur-[120px] rounded-full"></div>

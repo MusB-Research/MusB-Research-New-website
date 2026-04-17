@@ -40,35 +40,8 @@ const MOCK_STUDIES = ['Beat the Bloat', 'Menopause Study', 'NR-009 Neuro Study']
 const MOCK_PARTICIPANTS = ['BTB-023', 'BTB-017', 'BTB-031', 'MS-044', 'MS-052', 'NR-009-001'];
 
 // === MOCK DATA ===
-const MOCK_CONSENTS = [
-    { 
-        id: 'c1', title: 'BTB Main Consent', shortName: 'BTB-MC', study: 'Beat the Bloat', type: 'Main Consent', version: '1.0', irbNumber: '25-028', irbApprovalDate: '2026-03-20', effectiveDate: '2026-04-01', expirationDate: '2027-03-31', language: 'English', status: 'Active', notes: 'IRB approved March 2026', pageCount: 12, 
-        signatureRequirements: { participantSignature: true, participantDate: true, larSignature: false, witnessSignature: false, ccSignature: true, piVerification: true, initialEachPage: false, initialKeySections: true }, 
-        completionRules: { mustScrollFull: true, mustAnswerComprehension: true, mustCheckAgreements: true, allowRemote: true, allowInPerson: true, requireCCBeforePI: true }, 
-        placedFields: [ { id: 'f1', type: 'Participant Signature', page: 12, x: 15, y: 82 }, { id: 'f2', type: 'Participant Date', page: 12, x: 55, y: 82 }, { id: 'f3', type: 'CC Signature', page: 12, x: 15, y: 90 } ], 
-        auditLog: [ { time: '2026-03-20 09:00', user: 'Dr. Yadav', role: 'PI', action: 'Consent PDF uploaded' }, { time: '2026-03-20 09:30', user: 'Dr. Yadav', role: 'PI', action: 'Signature fields configured — 3 fields placed' }, { time: '2026-03-21 10:00', user: 'Dr. Yadav', role: 'PI', action: 'Consent published — v1.0 activated' } ] 
-    },
-    { 
-        id: 'c2', title: 'Menopause Study Consent', shortName: 'MS-MC', study: 'Menopause Study', type: 'Main Consent', version: '2.1', irbNumber: '25-041', irbApprovalDate: '2026-02-15', effectiveDate: '2026-03-01', expirationDate: '2027-02-28', language: 'English', status: 'Active', notes: '', pageCount: 10, 
-        signatureRequirements: { participantSignature: true, participantDate: true, larSignature: false, witnessSignature: true, ccSignature: true, piVerification: true, initialEachPage: true, initialKeySections: false }, 
-        completionRules: { mustScrollFull: true, mustAnswerComprehension: false, mustCheckAgreements: true, allowRemote: true, allowInPerson: true, requireCCBeforePI: true }, 
-        placedFields: [], 
-        auditLog: [ { time: '2026-02-15 11:00', user: 'Dr. Yadav', role: 'PI', action: 'Consent v2.1 uploaded and published' } ] 
-    },
-    { 
-        id: 'c3', title: 'BTB HIPAA Authorization', shortName: 'BTB-HIPAA', study: 'Beat the Bloat', type: 'HIPAA Authorization', version: '1.0', irbNumber: '25-028', irbApprovalDate: '2026-03-20', effectiveDate: '2026-04-01', expirationDate: null, language: 'English', status: 'Draft', notes: 'Pending final review', pageCount: 4, 
-        signatureRequirements: { participantSignature: true, participantDate: true, larSignature: false, witnessSignature: false, ccSignature: false, piVerification: false, initialEachPage: false, initialKeySections: false }, 
-        completionRules: { mustScrollFull: false, mustAnswerComprehension: false, mustCheckAgreements: true, allowRemote: true, allowInPerson: true, requireCCBeforePI: false }, 
-        placedFields: [], 
-        auditLog: [ { time: '2026-03-22 08:00', user: 'Dr. Yadav', role: 'PI', action: 'Draft created' } ] 
-    }
-];
-
-const MOCK_CONSENT_RECORDS = [
-    { id: 'r1', participantId: 'BTB-023', study: 'Beat the Bloat', consentId: 'c1', version: '1.0', sentDate: '2026-04-02', participantSigned: true, participantSignedDate: '2026-04-10 10:21', ccReviewed: true, ccReviewedDate: '2026-04-10 11:05', piVerified: false, piVerifiedDate: null, status: 'Pending PI Verification', locked: false, auditLog: [ { time: '2026-04-02 09:00', user: 'Dr. Yadav', role: 'PI', action: 'Consent sent to participant' }, { time: '2026-04-10 10:21', user: 'BTB-023', role: 'Participant', action: 'Participant signed consent electronically' }, { time: '2026-04-10 11:05', user: 'John Doe', role: 'CC', action: 'CC review completed — forwarded for PI verification' } ] },
-    { id: 'r2', participantId: 'BTB-017', study: 'Beat the Bloat', consentId: 'c1', version: '1.0', sentDate: '2026-04-02', participantSigned: true, participantSignedDate: '2026-04-05 14:30', ccReviewed: true, ccReviewedDate: '2026-04-06 09:00', piVerified: true, piVerifiedDate: '2026-04-07 10:00', status: 'Verified', locked: true, auditLog: [ { time: '2026-04-02 09:00', user: 'Dr. Yadav', role: 'PI', action: 'Consent sent' }, { time: '2026-04-05 14:30', user: 'BTB-017', role: 'Participant', action: 'Participant signed' }, { time: '2026-04-06 09:00', user: 'Sarah Lee', role: 'CC', action: 'CC reviewed' }, { time: '2026-04-07 10:00', user: 'Dr. Yadav', role: 'PI', action: 'PI verified and locked' } ] },
-    { id: 'r3', participantId: 'MS-044', study: 'Menopause Study', consentId: 'c2', version: '2.1', sentDate: '2026-03-25', participantSigned: false, participantSignedDate: null, ccReviewed: false, ccReviewedDate: null, piVerified: false, piVerifiedDate: null, status: 'Sent to Participant', locked: false, auditLog: [ { time: '2026-03-25 10:00', user: 'Dr. Yadav', role: 'PI', action: 'Consent sent to participant' } ] }
-];
+const MOCK_CONSENTS: any[] = [];
+const MOCK_CONSENT_RECORDS: any[] = [];
 
 // === HELPERS ===
 const suggestNextVersion = (consents: any[], title: string) => {
@@ -273,8 +246,37 @@ export default function PIConsentModule() {
             </div>
 
             {!isThumbnail && (placedFields || []).filter((f: any) => f.page === pageNumber).map((f: any) => {
-                const colorMap: any = { 'Participant Signature': COLORS.success, 'Participant Date': COLORS.info, 'Participant Initials': COLORS.warning, 'CC Signature': COLORS.accent, 'Witness Signature': '#a855f7', 'PI Verification': '#f43f5e' };
-                const isSigned = signedFields.includes(f.type);
+                const colorMap: any = { 
+                    'Participant Signature': COLORS.success, 'Participant Name': COLORS.success, 'Participant Date': COLORS.info, 
+                    'CC Signature': COLORS.accent, 'CC Name': COLORS.accent, 'CC Date': COLORS.accent,
+                    'PI Verification': '#f43f5e', 'PI Name': '#f43f5e', 'PI Date': '#f43f5e'
+                };
+                
+                // Determine if this field should be shown as "signed" based on activeRecord metadata
+                let isSigned = signedFields.includes(f.type);
+                let signatureData = null;
+                let signerName = "";
+                let signedTime = "";
+
+                if (activeRecord) {
+                    if (f.type.includes('Participant')) {
+                        isSigned = !!(activeRecord.participant_signature || activeRecord.full_name);
+                        signatureData = activeRecord.participant_signature;
+                        signerName = activeRecord.full_name;
+                        signedTime = activeRecord.participant_signed_at || activeRecord.agreed_at;
+                    } else if (f.type.includes('CC')) {
+                        isSigned = !!activeRecord.cc_verified;
+                        signatureData = activeRecord.cc_signature;
+                        signerName = activeRecord.cc_name;
+                        signedTime = activeRecord.cc_verified_at;
+                    } else if (f.type.includes('PI')) {
+                        isSigned = !!activeRecord.pi_verified;
+                        signatureData = activeRecord.pi_signature;
+                        signerName = activeRecord.pi_name;
+                        signedTime = activeRecord.pi_verified_at;
+                    }
+                }
+
                 return (
                     <div 
                         key={f.id} 
@@ -282,13 +284,18 @@ export default function PIConsentModule() {
                             position: 'absolute', top: `${f.y}%`, left: `${f.x}%`, transform: 'translate(-50%, -50%)',
                             border: `2px ${isSigned ? 'solid' : 'dashed'} ${colorMap[f.type] || COLORS.label}`,
                             backgroundColor: isSigned ? `${colorMap[f.type]}15` : 'transparent',
-                            padding: '0.6rem 1.2rem', borderRadius: '4px', color: colorMap[f.type] || COLORS.label, fontSize: '13px', fontWeight: 900, textTransform: 'uppercase'
+                            padding: isSigned ? '0.2rem 0.5rem' : '0.6rem 1.2rem', borderRadius: '4px', color: colorMap[f.type] || COLORS.label, fontSize: '13px', fontWeight: 900, textTransform: 'uppercase',
+                            minWidth: isSigned ? 'auto' : '120px', textAlign: 'center'
                         }}
                     >
                         {isSigned ? (
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <div style={{ fontFamily: 'cursive', fontSize: '18px', marginBottom: '4px' }}>{activeRecord?.participantId || 'Signed'}</div>
-                                <div style={{ fontSize: '8px', opacity: 0.7 }}>{new Date().toLocaleString()}</div>
+                                {signatureData ? (
+                                    <img src={signatureData} alt="Signature" style={{ maxHeight: '40px', maxWidth: '120px', filter: 'brightness(1.5) contrast(1.2)' }} />
+                                ) : (
+                                    <div style={{ fontFamily: 'cursive', fontSize: '16px', textTransform: 'none', color: 'white', marginBottom: '2px' }}>{signerName || 'Verified'}</div>
+                                )}
+                                <div style={{ fontSize: '8px', opacity: 0.7, fontWeight: 500 }}>{signedTime ? new Date(signedTime).toLocaleString() : 'Timestamp Recorded'}</div>
                             </div>
                         ) : `[${f.type}]`}
                     </div>

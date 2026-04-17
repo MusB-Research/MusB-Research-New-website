@@ -62,7 +62,7 @@ export default function LabsResultsModule({ selectedStudyId }: { selectedStudyId
                         subjectId: l.participant_sid || 'ID_PENDING',
                         subjectName: l.participant_name || 'Participant Name',
                         type: l.test_name,
-                        status: l.status.charAt(0) + l.status.slice(1).toLowerCase() as any,
+                        status: l.status && l.status.length > 0 ? (l.status.charAt(0).toUpperCase() + l.status.slice(1).toLowerCase()) as any : 'Processing',
                         value: l.value,
                         unit: l.units,
                         date: l.lab_date,

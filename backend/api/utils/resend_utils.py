@@ -2,8 +2,8 @@ import os
 import resend
 from django.conf import settings
 from django.utils.timezone import now
+from celery import shared_task
 from typing import List, Optional
-import threading
 import logging
 
 logger = logging.getLogger(__name__)
@@ -22,6 +22,16 @@ def _log_email_locally(to_email, subject, content):
         logger.info(f"Email content saved to local log: {log_file}")
     except Exception as e:
         logger.error(f"Failed to log email locally: {e}")
+
+@shared_task(bind=True, max_retries=3)
+def send_email_task(self, params):
+    """Async task to send email with automatic retries."""
+    try:
+        success = safe_resend_send(params)
+        if not success:
+            raise Exception("Email sending failed according to safe_resend_send logic.")
+    except Exception as exc:
+        raise self.retry(exc=exc, countdown=60)
 
 def safe_resend_send(params):
     """Wraps Resend API calls with domain verification fallbacks."""
@@ -50,24 +60,8 @@ def safe_resend_send(params):
         logger.error(f"Safe send failed: {e}")
         return False
 
-def run_in_background(func):
-    """
-    Decorator to run a function in a separate thread.
-    Catches all exceptions to prevent any crashing.
-    """
-    def wrapper(*args, **kwargs):
-        def task():
-            try:
-                func(*args, **kwargs)
-            except Exception as e:
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Background task {func.__name__} failed: {e}")
-        thread = threading.Thread(target=task, daemon=True)
-        thread.start()
-    return wrapper
 
-@run_in_background
+@shared_task
 def send_newsletter_update(subject: str, html_content: str, text_content: Optional[str] = None):
     """
     Fetches all active Newsletter subscribers and sends them an email via Resend.
@@ -113,7 +107,7 @@ def send_newsletter_update(subject: str, html_content: str, text_content: Option
             
     return success_count > 0
 
-@run_in_background
+@shared_task
 def send_welcome_email(to_email: str):
     """
     Sends a welcome email to a new newsletter subscriber.
@@ -138,7 +132,7 @@ def send_welcome_email(to_email: str):
         print(f"Error sending welcome email via Resend to {to_email}: {e}")
         return False
 
-@run_in_background
+@shared_task
 def send_inquiry_notification(inquiry_data: dict, target_email: str):
     """
     Sends a detailed notification to MusB team when a new study inquiry is submitted.
@@ -246,7 +240,7 @@ def send_inquiry_notification(inquiry_data: dict, target_email: str):
         print(f"Error sending inquiry notification: {e}")
         return False
 
-@run_in_background
+@shared_task
 def send_facility_inquiry_email(inquiry):
     """
     Sends an email notification when a new Facility Inquiry is submitted.
@@ -333,7 +327,7 @@ def send_facility_inquiry_email(inquiry):
         print(f"Error sending facility inquiry email: {e}")
         return False
 
-@run_in_background
+@shared_task
 def send_help_request_notification(study_title, participant_name, participant_id, action_title, pi_email, coordinator_email):
     """
     Sends an urgent help request notification to the PI and Coordinator.
@@ -380,7 +374,7 @@ def send_help_request_notification(study_title, participant_name, participant_id
 
     return safe_resend_send(params)
 
-@run_in_background
+@shared_task
 def send_sponsor_inquiry_email(inquiry):
     """
     Sends an email notification when a new Sponsor Inquiry (Partnership) is submitted.

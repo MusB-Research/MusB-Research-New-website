@@ -98,7 +98,7 @@ export default function SupportModule({ selectedStudyId }: { selectedStudyId?: s
                     study: t.study_protocol || 'Global Node',
                     participantId: t.participant_id || 'N/A',
                     category: t.category as any,
-                    priority: t.priority.charAt(0) + t.priority.slice(1).toLowerCase() as any,
+                    priority: t.priority ? (t.priority.charAt(0).toUpperCase() + t.priority.slice(1).toLowerCase()) as any : 'Medium',
                     status: t.status as any,
                     lastUpdated: new Date(t.updated_at).toLocaleString(),
                     createdAt: new Date(t.created_at).toLocaleString(),

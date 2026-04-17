@@ -9,6 +9,7 @@ import {
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authFetch, clearToken, getRole, performLogout, getUser, saveUser, getDisplayName, API } from '../../utils/auth';
 import { apiFetch } from '../../api';
+import SEO from '../../components/SEO';
 
 // Sub-components from the new modular structure
 import { ActionModal, EditModal, LogoutConfirmationModal } from './SharedComponents';
@@ -75,7 +76,7 @@ export default function ParticipantDashboard() {
 
     const handleNavClick = (label: string) => {
         // Normalize label to Title Case (e.g., 'tasks' -> 'Tasks')
-        const normalizedLabel = label.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+        const normalizedLabel = label.split(' ').map(w => w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : '').join(' ');
 
         const slugs: Record<string, string> = {
             'Dashboard': '', 'Tasks': 'tasks', 'Study Kit': 'study-kit', 'Logs': 'logs',
@@ -1197,6 +1198,11 @@ export default function ParticipantDashboard() {
 
     return (
         <div className="h-screen flex overflow-hidden font-sans relative participant-portal-root">
+            <SEO 
+                title="Participant Portal for Clinical Trials | MUSB Health"
+                description="Join clinical trials, complete consent forms, and manage your participation securely."
+                canonical="https://www.musbhealth.com/participant-portal"
+            />
             <ParticipantBackground />
             {/* Sidebar Overlay */}
             {isMobileMenuOpen && <div className="fixed inset-0 bg-slate-900/10 z-30 lg:hidden backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />}

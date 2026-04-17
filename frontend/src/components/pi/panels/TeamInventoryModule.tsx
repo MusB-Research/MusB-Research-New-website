@@ -64,7 +64,10 @@ export default function TeamInventoryModule({ members = [], loading = false, onR
 
     const filteredMembers = useMemo(() => {
         return members.filter(m => {
-            const matchesSearch = (m.name + m.email + m.role).toLowerCase().includes(searchQuery.toLowerCase());
+            const name = m.name || '';
+            const email = m.email || '';
+            const role = m.role || '';
+            const matchesSearch = (name + email + role).toLowerCase().includes(searchQuery.toLowerCase());
             const matchesStatus = statusFilter === 'ALL' || m.status === statusFilter;
             return matchesSearch && matchesStatus;
         });
@@ -184,10 +187,10 @@ export default function TeamInventoryModule({ members = [], loading = false, onR
                                     <td className="px-8 py-5">
                                         <div className="flex items-center gap-4">
                                             <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-teal-400 font-black italic shadow-inner group-hover:scale-110 transition-transform">
-                                                {member.name.charAt(0).toUpperCase()}
+                                                {(member.name || member.email || 'U').charAt(0).toUpperCase()}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-black text-white uppercase tracking-tight italic group-hover:text-teal-400 transition-colors">{member.name}</p>
+                                                <p className="text-sm font-black text-white uppercase tracking-tight italic group-hover:text-teal-400 transition-colors">{member.name || member.email || 'Unknown User'}</p>
                                                 <p className="text-[11px] text-slate-500 font-bold tracking-tight lowercase">{member.email}</p>
                                             </div>
                                         </div>
@@ -270,42 +273,40 @@ export default function TeamInventoryModule({ members = [], loading = false, onR
                                 <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Invite Personnel</h3>
                                 <button onClick={() => setShowInviteModal(false)} className="p-2 hover:bg-white/5 rounded-full transition-all"><X className="w-5 h-5 text-slate-500" /></button>
                             </div>
-
-                            <form onSubmit={handleInvite} className="space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-2">Full Identity Name</label>
+                            {/* Invite Form */}
+                            <form onSubmit={handleInvite} className="space-y-6 relative z-10 w-full text-left">
+                                <div className="space-y-2 text-left w-full">
+                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest italic ml-1 text-left">Full Name</label>
                                     <input 
                                         type="text" 
-                                        required
+                                        placeholder="Jane Smith"
+                                        className="w-full bg-slate-900/50 border border-white/5 rounded-xl px-5 py-4 text-white font-bold outline-none focus:border-teal-500/30 transition-all text-left"
                                         value={inviteData.name}
                                         onChange={e => setInviteData({...inviteData, name: e.target.value})}
-                                        className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-4 text-white font-bold outline-none focus:border-teal-500/50 transition-all font-mono"
-                                        placeholder="EX: DR. JONATHAN REED"
                                     />
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-2">Sync Email Address</label>
+                                <div className="space-y-2 text-left w-full">
+                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest italic ml-1 text-left">Email Address</label>
                                     <input 
                                         type="email" 
-                                        required
+                                        placeholder="jane.smith@musbresearch.com"
+                                        className="w-full bg-slate-900/50 border border-white/5 rounded-xl px-5 py-4 text-white font-bold outline-none focus:border-teal-500/30 transition-all text-left"
                                         value={inviteData.email}
                                         onChange={e => setInviteData({...inviteData, email: e.target.value})}
-                                        className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-4 text-white font-bold outline-none focus:border-teal-500/50 transition-all font-mono"
-                                        placeholder="REED@MUSB-RESEARCH.COM"
                                     />
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-2">Assigned Authorization Role</label>
+                                <div className="space-y-2 text-left w-full border-b border-white/5 pb-2">
+                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest italic ml-1 text-left">Platform Role</label>
                                     <select 
+                                        className="w-full bg-slate-900/50 border border-white/5 rounded-xl px-5 py-4 text-white font-bold outline-none focus:border-teal-500/30 transition-all appearance-none text-left"
                                         value={inviteData.role}
                                         onChange={e => setInviteData({...inviteData, role: e.target.value})}
-                                        className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-4 text-white font-bold outline-none focus:border-teal-500/50 transition-all appearance-none uppercase tracking-widest text-[11px]"
                                     >
-                                        <option value="pi" className="bg-[#0B101B]">Principal Investigator (PI)</option>
-                                        <option value="coordinator" className="bg-[#0B101B]">Clinical Coordinator</option>
-                                        <option value="sponsor" className="bg-[#0B101B]">Sponsor Official / Delegate</option>
+                                        <option value="coordinator" className="bg-slate-900">Research Coordinator</option>
+                                        <option value="pi" className="bg-slate-900">Principal Investigator</option>
+                                        <option value="sponsor" className="bg-slate-900">Sponsor Delegate</option>
                                     </select>
                                 </div>
 

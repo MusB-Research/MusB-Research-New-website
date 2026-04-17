@@ -139,7 +139,7 @@ const TeamMemberCard = ({ member }: { member: any }) => {
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
                                 <Users className="w-12 h-12 text-slate-400 mb-2" />
-                                <span className="text-slate-400 font-black text-4xl">{member.name.charAt(0)}</span>
+                                <span className="text-slate-400 font-black text-4xl">{(member.name || 'U').charAt(0)}</span>
                             </div>
                         )}
                     </div>
@@ -290,7 +290,7 @@ const AdvisorCard = ({ advisor }: { advisor: any }) => {
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50">
                                 <Users className="w-10 h-10 text-slate-400 mb-2" />
-                                <span className="text-slate-400 font-black text-3xl">{advisor.name.charAt(0)}</span>
+                                <span className="text-slate-400 font-black text-3xl">{(advisor.name || 'A').charAt(0)}</span>
                             </div>
                         )}
                     </div>

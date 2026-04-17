@@ -116,7 +116,7 @@ class OnboardingEnforcementMiddleware:
 
         except jwt.ExpiredSignatureError:
             # Token expired is a routine event, no need to log as full error
-            logger.warning(f"Expired token in middleware for {path}")
+            logger.debug(f"Expired token in middleware for {path}")
             pass
         except Exception as e:
             logger.error(f"Middleware token extraction err: {e}")

@@ -153,7 +153,7 @@ const BirthDateField = ({ value, onChange, isMissing }: { value: string; onChang
                         </div>
 
                         {/* Calendar View Area */}
-                        <div className="min-h-[210px]">
+                        <div className="min-h-[210px] max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
                             {viewMode === 'days' && (
                                 <>
                                     <div className="grid grid-cols-7 mb-2">

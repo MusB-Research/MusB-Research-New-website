@@ -17,6 +17,7 @@ import { fetchStudies, Study } from '../data/studies';
 import { motion } from 'framer-motion';
 import { authFetch } from '../utils/auth';
 import { Skeleton } from './Participant/SharedComponents';
+import SEO from '@/components/SEO';
 
 const customStudyContent: Record<string, any> = {
     'beat the bloat': {
@@ -149,6 +150,11 @@ export default function StudyDetail() {
 
     return (
         <div className="min-h-screen pt-40 pb-24 px-4 md:px-12 bg-transparent text-slate-200">
+            <SEO 
+                title={`${customContent ? customContent.title : study.title} | MusB Research Study`}
+                description={customContent ? customContent.description : study.description}
+                canonical={`https://www.musbhealth.com/studies/${id}`}
+            />
             <div className="max-w-7xl mx-auto space-y-16">
 
                 {/* Header Nav */}

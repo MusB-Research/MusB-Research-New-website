@@ -45,7 +45,7 @@ class CookieJWTAuthentication(authentication.BaseAuthentication):
             return (user, None)
 
         except jwt.ExpiredSignatureError:
-            logger.warning("Token expired for request to %s", request.path)
+            logger.debug("Token expired for request to %s", request.path)
             raise exceptions.AuthenticationFailed("Your session has expired. Please login again.")
         except Exception as e:
             logger.error(f"Auth error decoding token: {str(e)}")

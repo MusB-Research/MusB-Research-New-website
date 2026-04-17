@@ -12,6 +12,7 @@ import {
     Star
 } from 'lucide-react';
 import { JobOpening } from '@/types';
+import SEO from '@/components/SEO';
 
 
 const API_ROOT = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -83,6 +84,11 @@ export default function JobDetail() {
 
     return (
         <div className="min-h-screen text-slate-200 relative overflow-x-hidden">
+            <SEO 
+                title={`${job.title} | Careers at MUSB Health`}
+                description={job.summary || `Join MUSB Health as a ${job.title} in ${job.location}. Impact the future of clinical research.`}
+                canonical={`https://www.musbhealth.com/careers/${id}`}
+            />
             {/* Atmospheric Background Layers */}
             <div className="absolute inset-0 z-0 pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-blue-600/10 blur-[120px] rounded-full"></div>

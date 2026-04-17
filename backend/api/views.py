@@ -42,6 +42,7 @@ import pytz
 from .utils.reward_logic import trigger_reward_logic
 import datetime
 import bson
+from .utils.cache_utils import cache_api_response
 
 class IsAdminOrCoordinator(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -208,6 +209,10 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
             participants__user=user,
             approval_status='approved'
         ).distinct().order_by('created_at')
+    
+    @cache_api_response("studies_list", timeout=3600)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -265,7 +270,9 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
                     frequency_unit=unit,
                     repeat_count=q_data.get('repetitions', 1),
                     repeat_type=freq, # Carry over for legacy reporting
-                    schedule_name=q_data.get('schedule_name', template.name)
+                    schedule_name=q_data.get('schedule_name', template.name),
+                    allow_participant_download=q_data.get('allow_participant_download', False),
+                    notify_staff_on_submission=q_data.get('notify_staff_on_submission', True)
                 )
             except QuestionnaireTemplate.DoesNotExist:
                 pass # Or log error
@@ -276,6 +283,7 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
             StudyAssignment.objects.get_or_create(study=study, user=user, role=user.role)
 
     @action(detail=True, methods=['get'], permission_classes=[IsAdminOrCoordinator])
+    @cache_api_response("study_stats", timeout=300)
     def stats(self, request, protocol_id=None):
         """High-level completion stats for the PI/Coordinator dashboard"""
         study = self.get_object()
@@ -304,6 +312,7 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         })
 
     @action(detail=True, methods=['get'], permission_classes=[IsAdminOrCoordinator])
+    @cache_api_response("participant_tracking", timeout=300)
     def participant_tracking(self, request, protocol_id=None):
         """Real-time progress tracking for each participant in the study"""
         study = self.get_object()
@@ -339,14 +348,44 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         pi_ids = serializer.validated_data.pop('pi_ids', None)
         coord_ids = serializer.validated_data.pop('coordinator_ids', None)
         sponsor_ids = serializer.validated_data.pop('sponsor_ids', None)
-        # Fix for update flow: Pop questionnaires_data to avoid M2M crash
-        _ = serializer.validated_data.pop('study_questionnaires', None)
+        # Fix for update flow: Sync questionnaires_data
+        questionnaires_data = serializer.validated_data.pop('study_questionnaires', None)
         
         # Logic 4: If stage is moved to CLOSED_ARCHIVED, auto-archive
         if serializer.validated_data.get('stage') == 'CLOSED_ARCHIVED':
             serializer.validated_data['is_archived'] = True
 
         study = serializer.save()
+        
+        if questionnaires_data is not None:
+            # Sync StudyQuestionnaires (Update or Create)
+            existing_templates = set()
+            for q_data in questionnaires_data:
+                template_id = q_data.get('template')
+                if not template_id: continue
+                existing_templates.add(template_id)
+                
+                try:
+                    template = QuestionnaireTemplate.objects.get(pk=template_id)
+                    StudyQuestionnaire.objects.update_or_create(
+                        study=study,
+                        template=template,
+                        defaults={
+                            'mode': q_data.get('mode', 'STRUCTURED'),
+                            'frequency_interval': q_data.get('frequency_interval', 1),
+                            'frequency_unit': q_data.get('frequency_unit', 'WEEKS'),
+                            'repeat_count': q_data.get('repetitions', 1),
+                            'schedule_name': q_data.get('schedule_name', template.name),
+                            'allow_participant_download': q_data.get('allow_participant_download', False),
+                            'notify_staff_on_submission': q_data.get('notify_staff_on_submission', True)
+                        }
+                    )
+                except QuestionnaireTemplate.DoesNotExist:
+                    pass
+            
+            # Optional: Remove ones that were unselected (if the list is exhaustive)
+            # study.study_questionnaires.exclude(template__in=list(existing_templates)).delete()
+
         self._sync_assignments(study, pi_ids, coord_ids, sponsor_ids)
         AuditLog.log('UPDATE_STUDY', user_email=user.email, request=self.request, detail=f"Modified study {study.title}")
 
@@ -543,6 +582,10 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         # Default to nothing for security
         return Participant.objects.none()
 
+    @cache_api_response("participants_list", timeout=300)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     # Removed _ensure_test_participant logic to allow 'No Active Study' states for testing as per user request.
 
     def get_object(self):
@@ -570,6 +613,7 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
 
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    @cache_api_response("participant_me", timeout=120)
     def me(self, request):
         user = request.user
         study_id = request.query_params.get('study_id')
@@ -852,6 +896,10 @@ class VisitViewSet(viewsets.ModelViewSet):
     serializer_class = VisitSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    @cache_api_response("visits_list", timeout=300)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated: return Visit.objects.none()
@@ -1030,14 +1078,25 @@ class ConsentTemplateViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
     queryset = ConsentTemplate.objects.all().order_by('-created_at')
     serializer_class = ConsentTemplateSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
+    def get_permissions(self):
+        if self.action == 'list' and self.request.query_params.get('public') == 'true':
+            return [permissions.AllowAny()]
+        return super().get_permissions()
 
     def get_queryset(self):
         user = self.request.user
-        if not user.is_authenticated:
-            return ConsentTemplate.objects.none()
-            
         study_id = self.request.query_params.get('study_id')
+
+        # PUBLIC: allow anyone to see ACTIVE templates for a specific study
+        if not user.is_authenticated or self.request.query_params.get('public') == 'true':
+            if not study_id:
+                return ConsentTemplate.objects.none()
+            
+            import bson
+            if bson.ObjectId.is_valid(study_id):
+                return ConsentTemplate.objects.filter(study_id=study_id, status='ACTIVE')
+            else:
+                return ConsentTemplate.objects.filter(study__protocol_id=study_id, status='ACTIVE')
 
         if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
             queryset = ConsentTemplate.objects.all().order_by('-created_at')
@@ -1102,7 +1161,12 @@ class DocumentViewSet(viewsets.ModelViewSet):
             )
 
         # Further restrict to assigned studies for non-admins
-        return queryset.filter(study__assignments__user=user).distinct().order_by('-uploaded_at')
+        from django.db.models import Q
+        return queryset.filter(
+            Q(study__pi=user) | 
+            Q(study__coordinator=user) | 
+            Q(study__assignments__user=user)
+        ).distinct().order_by('-uploaded_at')
 
     def perform_create(self, serializer):
         serializer.save()
@@ -1124,7 +1188,12 @@ class ConsentViewSet(viewsets.ModelViewSet):
             queryset = self.queryset.filter(participant__user=user)
         else:
             # PIs, Coordinators, and Sponsors see consents for assigned studies
-            queryset = self.queryset.filter(participant__study__assignments__user=user).distinct()
+            from django.db.models import Q
+            queryset = self.queryset.filter(
+                Q(participant__study__pi=user) | 
+                Q(participant__study__coordinator=user) | 
+                Q(participant__study__assignments__user=user)
+            ).distinct()
             
         study_id = self.request.query_params.get('study_id')
         participant_id = self.request.query_params.get('participant_id')
@@ -1355,6 +1424,11 @@ class ConsentViewSet(viewsets.ModelViewSet):
         return Response(ConsentSerializer(consent).data)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def pi_verify(self, request, pk=None):
+        """Twin of verify action for PI verification"""
+        return self.verify(request, pk)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def reject(self, request, pk=None):
         """Mark as invalid"""
         consent = self.get_object()
@@ -1381,7 +1455,12 @@ class DosingLogViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         if (user.role or '').upper() == 'PARTICIPANT':
             return base_qs.filter(participant__user=user)
         # Coordinators/PIs see logs for their assigned studies
-        return base_qs.filter(participant__study__assignments__user=user)
+        from django.db.models import Q
+        return base_qs.filter(
+            Q(participant__study__pi=user) | 
+            Q(participant__study__coordinator=user) | 
+            Q(participant__study__assignments__user=user)
+        )
 
     def perform_create(self, serializer):
         participant = Participant.objects.filter(user=self.request.user).first()
@@ -1411,7 +1490,12 @@ class AEReportViewSet(viewsets.ModelViewSet):
             return AEReport.objects.all()
         if (user.role or '').upper() == 'PARTICIPANT':
             return AEReport.objects.filter(participant__user=user)
-        return AEReport.objects.filter(participant__study__assignments__user=user)
+        from django.db.models import Q
+        return AEReport.objects.filter(
+            Q(participant__study__pi=user) | 
+            Q(participant__study__coordinator=user) | 
+            Q(participant__study__assignments__user=user)
+        )
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -1434,7 +1518,12 @@ class DailyMedicationLogViewSet(viewsets.ModelViewSet):
             return DailyMedicationLog.objects.all()
         if (user.role or '').upper() == 'PARTICIPANT':
             return DailyMedicationLog.objects.filter(participant__user=user)
-        return DailyMedicationLog.objects.filter(participant__study__assignments__user=user)
+        from django.db.models import Q
+        return DailyMedicationLog.objects.filter(
+            Q(participant__study__pi=user) | 
+            Q(participant__study__coordinator=user) | 
+            Q(participant__study__assignments__user=user)
+        )
 
     def perform_create(self, serializer):
         participant = Participant.objects.filter(user=self.request.user).first()
@@ -1514,7 +1603,12 @@ class AssignedFormViewSet(viewsets.ModelViewSet):
         if (user.role or '').upper() == 'PARTICIPANT':
             return AssignedForm.objects.filter(participant__user=user).order_by('-created_at')
         # PIs/Coordinators see forms for their assigned studies
-        return AssignedForm.objects.filter(study__assignments__user=user).distinct().order_by('-created_at')
+        from django.db.models import Q
+        return AssignedForm.objects.filter(
+            Q(study__pi=user) | 
+            Q(study__coordinator=user) | 
+            Q(study__assignments__user=user)
+        ).distinct().order_by('-created_at')
 
     @action(detail=True, methods=['post'])
     def sign_participant(self, request, pk=None):
@@ -1638,7 +1732,12 @@ class FormViewSet(viewsets.ModelViewSet):
         if (user.role or '').upper() == 'PARTICIPANT':
             qs = Form.objects.filter(study__participants__user=user).distinct()
         else:
-            qs = Form.objects.filter(study__assignments__user=user).distinct()
+            from django.db.models import Q
+            qs = Form.objects.filter(
+                Q(study__pi=user) | 
+                Q(study__coordinator=user) | 
+                Q(study__assignments__user=user)
+            ).distinct()
         if study_id and study_id != 'all':
             import bson
             if bson.ObjectId.is_valid(study_id):
@@ -1777,7 +1876,12 @@ class UserViewSet(viewsets.ModelViewSet):
 
         return User.objects.filter(id=user.id)
 
+    @cache_api_response("users_list", timeout=300)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     @action(detail=False, methods=['get', 'patch'], permission_classes=[permissions.IsAuthenticated])
+    @cache_api_response("user_me", timeout=120)
     def me(self, request):
         """Endpoint for the current user to view or update their own profile."""
         if request.method == 'GET':
@@ -1796,6 +1900,10 @@ class NewsViewSet(viewsets.ModelViewSet):
     queryset = News.objects.all()
     serializer_class = NewsSerializer
     permission_classes = [permissions.AllowAny]
+
+    @cache_api_response("news_list", timeout=3600)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 class StaffTaskViewSet(viewsets.ModelViewSet):
     queryset = StaffTask.objects.all()
@@ -1833,6 +1941,10 @@ class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
     permission_classes = [permissions.AllowAny]
 
+    @cache_api_response("events_list", timeout=3600)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
 from rest_framework.views import APIView
 
 class FacilityInquiryView(APIView):
@@ -1867,7 +1979,7 @@ class SubscribeNewsletterView(APIView):
             subscriber.save()
         else:
             from api.utils.resend_utils import send_welcome_email
-            send_welcome_email(email)
+            send_welcome_email.delay(email)
         serializer = NewsletterSubscriberSerializer(subscriber)
         return Response(serializer.data, status=status.HTTP_200_OK if not created else status.HTTP_201_CREATED)
 
@@ -1982,7 +2094,7 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
                 except Exception as tz_err:
                     logger.warning(f"Timezone conversion failed: {tz_err}")
 
-            send_inquiry_notification(notification_data, target)
+            send_inquiry_notification.delay(notification_data, target)
 
         except Exception as e:
             logger.error(f"Failed to send inquiry notification: {e}")
@@ -2124,7 +2236,12 @@ class KitViewSet(viewsets.ModelViewSet):
         if (user.role or '').upper() == 'PARTICIPANT':
             return Kit.objects.filter(participant__user=user).order_by('-assignment_date')
         # PIs, Coordinators, and Sponsors: only kits for their assigned studies
-        queryset = Kit.objects.filter(participant__study__assignments__user=user).distinct().order_by('-assignment_date')
+        from django.db.models import Q
+        queryset = Kit.objects.filter(
+            Q(participant__study__pi=user) | 
+            Q(participant__study__coordinator=user) | 
+            Q(participant__study__assignments__user=user)
+        ).distinct().order_by('-assignment_date')
         
         study_id = self.request.query_params.get('study_id')
         if study_id and study_id != 'all':
@@ -2219,7 +2336,12 @@ class ClinicalConversationViewSet(viewsets.ModelViewSet):
             queryset = ClinicalConversation.objects.filter(participant__user=user).order_by('-last_updated')
         else:
             # PIs and Coordinators see conversations related to their assigned studies
-            queryset = ClinicalConversation.objects.filter(study__assignments__user=user).distinct().order_by('-last_updated')
+            from django.db.models import Q
+            queryset = ClinicalConversation.objects.filter(
+                Q(study__pi=user) | 
+                Q(study__coordinator=user) | 
+                Q(study__assignments__user=user)
+            ).distinct().order_by('-last_updated')
         
         study_id = self.request.query_params.get('study_id')
         if study_id and study_id != 'all':
@@ -2334,14 +2456,13 @@ class ParticipantHelpRequestView(APIView):
             except Exception as e:
                 import logging
                 logging.getLogger(__name__).warning(f"Failed to auto-resolve study: {e}")
-
         # If study_id is still missing, we send to a default admin email
         if not study_id:
             if not action_title:
                 return Response({'error': 'Action title is required.'}, status=status.HTTP_400_BAD_REQUEST)
             
             from .utils.resend_utils import send_help_request_notification
-            send_help_request_notification(
+            send_help_request_notification.delay(
                 study_title="UNASSIGNED STUDY",
                 participant_name=user.decrypted_name,
                 participant_id=f"REF_{str(user.id)[-6:]}",
@@ -2366,8 +2487,7 @@ class ParticipantHelpRequestView(APIView):
             pi_email = study.pi.email if study.pi else None
             coordinator_email = study.coordinator.email if study.coordinator else None
             
-            from .utils.resend_utils import send_help_request_notification
-            send_help_request_notification(
+            send_help_request_notification.delay(
                 study_title=study.title,
                 participant_name=user.decrypted_name,
                 participant_id=participant_sid,
@@ -2604,12 +2724,18 @@ class QuestionnaireScheduleInstanceViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def submit_responses(self, request, pk=None):
         instance = self.get_object()
-        responses = request.data.get('responses')
+        responses = request.data.get('responses', {})
+        signature = request.data.get('signature')
         
-        if not responses:
-            return Response({'error': 'No responses provided.'}, status=status.HTTP_400_BAD_REQUEST)
+        # If it's a PDF mode, signature is mandatory
+        if instance.study_questionnaire.mode == 'PDF' and not signature:
+            return Response({'error': 'Signature required for this instrument.'}, status=status.HTTP_400_BAD_REQUEST)
         
         instance.response_data = responses
+        if signature:
+            instance.participant_signature = signature
+            instance.participant_signed_at = timezone.now()
+            
         instance.status = 'COMPLETED'
         instance.completed_at = timezone.now()
         instance.save()
@@ -2618,6 +2744,28 @@ class QuestionnaireScheduleInstanceViewSet(viewsets.ModelViewSet):
         AuditLog.log('SUBMIT_INSTRUMENT', user_email=request.user.email, request=request, detail=f"Submitted {instance.schedule_name} for Study {instance.participant.study.protocol_id}")
         
         return Response({'status': 'submitted', 'completed_at': instance.completed_at})
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def sign_staff(self, request, pk=None):
+        """Staff (CC/PI) countersigns the submitted instrument"""
+        instance = self.get_object()
+        role = (request.user.role or '').upper()
+        if role not in ['COORDINATOR', 'PI', 'ADMIN', 'SUPER_ADMIN']:
+            return Response({'error': 'Unauthorized'}, status=403)
+            
+        signature = request.data.get('signature')
+        if not signature:
+            return Response({'error': 'Signature required'}, status=400)
+            
+        if role == 'PI':
+            instance.pi_signature = signature
+            instance.pi_signed_at = timezone.now()
+        else:
+            instance.coordinator_signature = signature
+            instance.coordinator_signed_at = timezone.now()
+            
+        instance.save()
+        return Response({'status': 'staff_signed'})
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def save_draft(self, request, pk=None):

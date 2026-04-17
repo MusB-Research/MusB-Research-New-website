@@ -1,5 +1,7 @@
 from django.db import models
 from django.conf import settings
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from authentication.security import encrypt_data, decrypt_data
 
 class BaseMongoModel(models.Model):
@@ -355,15 +357,6 @@ class Participant(BaseMongoModel):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def save(self, *args, **kwargs):
-        if self.gender and not self.gender.startswith('gAAAA'):
-            self.gender = encrypt_data(self.gender)
-        super().save(*args, **kwargs)
-
-    @property
-    def decrypted_gender(self):
-        return decrypt_data(self.gender)
-
     def __str__(self):
         return f"{self.participant_sid} ({self.study.protocol_id})"
 
@@ -529,6 +522,8 @@ class StudyQuestionnaire(BaseMongoModel):
     allow_late_submission = models.BooleanField(default=True)
     
     show_answers_to_participant = models.BooleanField(default=True)
+    allow_participant_download = models.BooleanField(default=False, help_text="Allow participants to download their completed response as PDF")
+    notify_staff_on_submission = models.BooleanField(default=True, help_text="Notify PI and Coordinator when a response is submitted")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def generate_instances_for_participant(self, participant):
@@ -599,8 +594,33 @@ class QuestionnaireScheduleInstance(BaseMongoModel):
     reminder_count = models.IntegerField(default=0)
     last_reminder_at = models.DateTimeField(null=True, blank=True)
 
+    # Multi-signatory clinical completion
+    participant_signature = models.TextField(blank=True, null=True)
+    participant_signed_at = models.DateTimeField(null=True, blank=True)
+    
+    coordinator_signature = models.TextField(blank=True, null=True)
+    coordinator_signed_at = models.DateTimeField(null=True, blank=True)
+    
+    pi_signature = models.TextField(blank=True, null=True)
+    pi_signed_at = models.DateTimeField(null=True, blank=True)
+    
+    signed_pdf = models.FileField(upload_to='signed_questionnaires/', null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        super().save(*args, **kwargs)
+        
+        # Trigger PDF generation on completion if it's a PDF-mode instrument
+        if self.status == 'COMPLETED' and not self.signed_pdf:
+            from .utils.pdf_utils import generate_signed_questionnaire_pdf
+            try:
+                generate_signed_questionnaire_pdf(self)
+                super().save(update_fields=['signed_pdf'])
+            except Exception as e:
+                print(f"Instrument PDF Generation Error: {e}")
+
     def __str__(self):
-        return f"{self.participant.participant_sid} - {self.study_questionnaire.template.name} ({self.scheduled_date})"
+        return f"{self.participant.participant_sid} - {self.study_questionnaire.template.name} ({self.scheduled_date}) - {self.status}"
 
 class FormResponse(BaseMongoModel):
     form = models.ForeignKey(Form, on_delete=models.CASCADE)
@@ -811,6 +831,7 @@ class Consent(BaseMongoModel):
     IS_VALID_CHOICES = [
         ('PENDING', 'Pending Participant Signature'),
         ('PARTIALLY_SIGNED', 'Signed by Participant (Awaiting Coordinator)'),
+        ('AWAITING_PI', 'Signed by Coordinator (Awaiting PI Signature)'),
         ('FULLY_SIGNED', 'Fully Executed (Signed by All)'),
         ('REJECTED', 'Rejected'),
         ('EXPIRED', 'Expired / Superseded')
@@ -827,7 +848,9 @@ class Consent(BaseMongoModel):
 
         if not is_new:
             try:
-                old_pi_verified = Consent.objects.get(pk=self.pk).pi_verified
+                db_record = Consent.objects.get(pk=self.pk)
+                old_pi_verified = db_record.pi_verified
+                old_cc_verified = db_record.cc_verified
             except Consent.DoesNotExist:
                 pass
 
@@ -886,20 +909,63 @@ class Consent(BaseMongoModel):
                 print(f"PDF Generation Error (Initial): {e}")
 
         # ── POST-SAVE side effects for CC sign transition ──
-        if not is_new and self.cc_verified and self.signing_status == 'PARTIALLY_SIGNED':
+        if not is_new and self.cc_verified and not old_cc_verified:
             from django.utils.timezone import now as _now
-            self.signing_status = 'FULLY_SIGNED'
+            
+            # Check if PI verification is required
+            requires_pi = False
+            if self.template:
+                requires_pi = self.template.require_pi_signoff
+            
+            if requires_pi and not self.pi_verified:
+                self.signing_status = 'AWAITING_PI'
+                # StaffTask notification for PI
+                try:
+                    from .models import StaffTask
+                    if self.study and self.study.pi:
+                        StaffTask.objects.get_or_create(
+                            user=self.study.pi,
+                            study=self.study,
+                            task_type='CONSENT_SIGNATURE',
+                            reference_id=str(self.id),
+                            defaults={
+                                'title': "PI Verification Required",
+                                'description': f"Consent co-signed by coordinator for participant {self.participant.participant_sid}. Your final verification is required."
+                            }
+                        )
+                except Exception as e:
+                    print(f"PI StaffTask error: {e}")
+            elif not requires_pi or self.pi_verified:
+                self.signing_status = 'FULLY_SIGNED'
+
             if not self.cc_verified_at:
                 self.cc_verified_at = _now()
+            
             self.audit_trail.append({
                 "action": "COORDINATOR_SIGNED",
                 "time": self.cc_verified_at.isoformat(),
                 "actor": self.cc_name or "Coordinator",
                 "role": "COORDINATOR"
             })
-            # Use update_fields to avoid a full re-insert
             super().save(update_fields=['signing_status', 'cc_verified_at', 'audit_trail'])
 
+        # ── POST-SAVE side effects for PI sign transition ──
+        if not is_new and self.pi_verified and not old_pi_verified:
+            from django.utils.timezone import now as _now
+            self.signing_status = 'FULLY_SIGNED'
+            if not self.pi_verified_at:
+                self.pi_verified_at = _now()
+            
+            self.audit_trail.append({
+                "action": "PI_VERIFIED",
+                "time": self.pi_verified_at.isoformat(),
+                "actor": self.pi_name or "Principal Investigator",
+                "role": "PI"
+            })
+            super().save(update_fields=['signing_status', 'pi_verified_at', 'audit_trail'])
+
+        # ── Archival logic for when it becomes FULLY_SIGNED ──
+        if not is_new and self.signing_status == 'FULLY_SIGNED' and ((self.cc_verified and not old_cc_verified) or (self.pi_verified and not old_pi_verified)):
             try:
                 from .utils.pdf_utils import generate_signed_consent_pdf
                 generate_signed_consent_pdf(self)
@@ -1063,6 +1129,26 @@ class Notification(BaseMongoModel):
     def __str__(self):
         return f"{self.user.email} - {self.title} ({'Read' if self.is_read else 'Unread'})"
 
+@receiver(post_save, sender=QuestionnaireScheduleInstance)
+def notify_on_questionnaire_completion(sender, instance, created, **kwargs):
+    """Notify PI and Coordinator when a participant completes a questionnaire"""
+    if not created and instance.status == 'COMPLETED' and instance.study_questionnaire.notify_staff_on_submission:
+        study = instance.participant.study
+        if not study: return
+        
+        staff_team = [study.pi, study.coordinator]
+        sid = instance.participant.participant_sid
+        instrument_name = instance.study_questionnaire.template.name
+        
+        for staff in filter(None, staff_team):
+            Notification.objects.create(
+                user=staff,
+                title="Questionnaire Submitted",
+                message=f"Participant {sid} has completed the '{instrument_name}' assessment.",
+                type="SUCCESS",
+                link=f"/coordinator/participants/{instance.participant.participant_sid}/assessments"
+            )
+
 class NewsletterSubscriber(models.Model):
     email = models.EmailField(unique=True)
     user_type = models.CharField(max_length=20, choices=[('BUSINESS', 'Business'), ('INDIVIDUAL', 'Individual')], default='BUSINESS')
@@ -1112,8 +1198,6 @@ class AssignedForm(BaseMongoModel):
         return f"Assigned Form: {self.form.title} for {self.participant.participant_sid}"
 
 # --- Signals for Notifications ---
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 
 @receiver(post_save, sender=News)
 def notify_subscribers_on_news(sender, instance, created, **kwargs):
@@ -1122,7 +1206,7 @@ def notify_subscribers_on_news(sender, instance, created, **kwargs):
         content = f"<p>A new research update has been posted.</p><h2>{instance.title}</h2><p>{instance.content[:200]}...</p><p><a href='https://musbresearch.com/news'>Read More at musbresearch.com</a></p>"
         from .utils.resend_utils import send_newsletter_update
         try:
-            send_newsletter_update(subject, content)
+            send_newsletter_update.delay(subject, content)
         except Exception as e:
             print(f"Error triggering newsletter update: {e}")
 
@@ -1441,7 +1525,7 @@ def notify_team_on_facility_inquiry(sender, instance, created, **kwargs):
             )
         from .utils.resend_utils import send_facility_inquiry_email
         try:
-            send_facility_inquiry_email(instance)
+            send_facility_inquiry_email.delay(instance)
         except Exception as e:
             print(f"Error triggering facility inquiry email: {e}")
 
@@ -1723,7 +1807,27 @@ def notify_team_on_sponsor_inquiry(sender, instance, created, **kwargs):
     if created:
         from .utils.resend_utils import send_sponsor_inquiry_email
         try:
-            send_sponsor_inquiry_email(instance)
+            send_sponsor_inquiry_email.delay(instance)
         except Exception as e:
             print(f"Error triggering sponsor inquiry email: {e}")
+
+@receiver(post_save, sender=QuestionnaireScheduleInstance)
+def notify_on_questionnaire_completion(sender, instance, created, **kwargs):
+    """Notify PI and Coordinator when a participant completes a questionnaire"""
+    if not created and instance.status == 'COMPLETED' and instance.study_questionnaire.notify_staff_on_submission:
+        study = instance.participant.study
+        if not study: return
+        
+        staff_team = [study.pi, study.coordinator]
+        sid = instance.participant.participant_sid
+        instrument_name = instance.study_questionnaire.template.name
+        
+        for staff in filter(None, staff_team):
+            Notification.objects.create(
+                user=staff,
+                title="Questionnaire Submitted",
+                message=f"Participant {sid} has completed the '{instrument_name}' assessment.",
+                type="SUCCESS",
+                link=f"/coordinator/participants/{instance.participant.participant_sid}/assessments"
+            )
 

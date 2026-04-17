@@ -231,7 +231,7 @@ export default function PISubjectReviewModule({ participantId = '' }: { particip
                     id: ae.id,
                     event: ae.description,
                     onset: ae.start_date?.split('T')[0],
-                    severity: ae.severity.charAt(0) + ae.severity.slice(1).toLowerCase(),
+                    severity: ae.severity ? ae.severity.charAt(0) + ae.severity.slice(1).toLowerCase() : 'Unknown',
                     relatedness: ae.related_to_product === 'YES' ? 'Related' : 'Unrelated',
                     status: ae.is_ongoing ? 'Ongoing' : 'Resolved',
                     confirmed: true

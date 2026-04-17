@@ -83,7 +83,7 @@ const BirthDateField = ({ value, onChange, isMissing }: { value: string; onChang
                     value={displayValue}
                     onChange={handleInputChange}
                     placeholder="MM / DD / YYYY"
-                    className={`w-full bg-black/40 border rounded-2xl py-4 text-white outline-none transition-all px-12 text-center text-lg font-bold ${isMissing ? 'border-red-500/50' : 'border-white/5 focus:border-cyan-500/40'}`}
+                    className={`w-full bg-black/40 border rounded-2xl py-4 text-white outline-none transition-all px-6 text-base font-bold ${isMissing ? 'border-red-500/50' : 'border-white/5 focus:border-cyan-500/40'}`}
                 />
                 <button 
                     type="button"
@@ -372,23 +372,23 @@ export default function ProfileSetup() {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-3 px-2">
-                                    <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">First Name</label>
+                                <div className="space-y-3 flex flex-col items-start px-2">
+                                    <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">First Name</label>
                                     <input name="first_name" value={formData.first_name} onChange={handleChange} placeholder="John" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-cyan-500/40 transition-all font-bold" />
                                 </div>
-                                <div className="space-y-3 px-2">
-                                    <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Middle Name</label>
+                                <div className="space-y-3 flex flex-col items-start px-2">
+                                    <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Middle Name</label>
                                     <input name="middle_name" value={formData.middle_name} onChange={handleChange} placeholder="Optional" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-cyan-500/40 transition-all font-bold" />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-3 px-2">
-                                    <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Last Name</label>
+                                <div className="space-y-3 flex flex-col items-start px-2">
+                                    <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Last Name</label>
                                     <input name="last_name" value={formData.last_name} onChange={handleChange} placeholder="Doe" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-cyan-500/40 transition-all font-bold" />
                                 </div>
-                                <div className="space-y-3 px-2">
-                                    <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Gender Identity</label>
+                                <div className="space-y-3 flex flex-col items-start px-2">
+                                    <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Gender Identity</label>
                                     <select name="gender" value={formData.gender} onChange={handleChange} className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white outline-none focus:border-cyan-500/40 transition-all font-bold appearance-none">
                                         <option value="">Select Gender</option>
                                         <option value="Male">Male</option>
@@ -399,16 +399,16 @@ export default function ProfileSetup() {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-3 px-2">
-                                    <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Birth Date</label>
+                                <div className="space-y-3 flex flex-col items-start px-2">
+                                    <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Birth Date</label>
                                     <BirthDateField 
                                         value={formData.date_of_birth} 
                                         onChange={handleDOBChange} 
                                         isMissing={false} 
                                     />
                                 </div>
-                                <div className="space-y-3 px-2">
-                                    <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Current Age</label>
+                                <div className="space-y-3 flex flex-col items-start px-2">
+                                    <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Current Age</label>
                                     <input 
                                         readOnly 
                                         value={formData.age} 
@@ -438,43 +438,43 @@ export default function ProfileSetup() {
                             </div>
 
                             <div className="space-y-6">
-                                <div className="space-y-3 px-2">
-                                    <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Full Residential Address</label>
+                                <div className="space-y-3 flex flex-col items-start px-2">
+                                    <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Full Residential Address</label>
                                     <input name="full_address" value={formData.full_address} onChange={handleChange} placeholder="123 Research Way, Lab 4" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-8">
-                                    <div className="space-y-3 px-2">
-                                        <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">City</label>
+                                    <div className="space-y-3 flex flex-col items-start px-2">
+                                        <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">City</label>
                                         <input name="city" value={formData.city} onChange={handleChange} placeholder="Metro" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
                                     </div>
-                                    <div className="space-y-3 px-2">
-                                        <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">State / Province</label>
+                                    <div className="space-y-3 flex flex-col items-start px-2">
+                                        <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">State / Province</label>
                                         <input name="state" value={formData.state} onChange={handleChange} placeholder="Zone A" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-8">
-                                    <div className="space-y-3 px-2">
-                                        <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">ZIP / PIN Code</label>
+                                    <div className="space-y-3 flex flex-col items-start px-2">
+                                        <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">ZIP / PIN Code</label>
                                         <input name="zip_code" value={formData.zip_code} onChange={handleChange} placeholder="12345" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
                                     </div>
-                                    <div className="space-y-3 px-2">
-                                        <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Country</label>
+                                    <div className="space-y-3 flex flex-col items-start px-2">
+                                        <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Country</label>
                                         <input name="country" value={formData.country} onChange={handleChange} placeholder="USA" className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-8">
-                                    <div className="space-y-3 px-2">
-                                        <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Place of Origin / Birth</label>
+                                    <div className="space-y-3 flex flex-col items-start px-2">
+                                        <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Place of Origin / Birth</label>
                                         <div className="relative">
                                             <Globe className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-700" />
                                             <input name="place_of_origin" value={formData.place_of_origin} onChange={handleChange} placeholder="City, Country" className="w-full bg-black/40 border border-white/5 rounded-[1.5rem] pl-16 pr-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
                                         </div>
                                     </div>
-                                    <div className="space-y-3 px-2">
-                                        <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">Mobile Number</label>
+                                    <div className="space-y-3 flex flex-col items-start px-2">
+                                        <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">Mobile Number</label>
                                         <input name="mobile_number" value={formData.mobile_number} onChange={handleChange} placeholder="+1 234 567 8900" className="w-full bg-black/40 border border-white/5 rounded-[1.5rem] px-6 py-4 text-white placeholder:text-slate-800 outline-none focus:border-purple-500/40 transition-all font-bold" />
                                     </div>
                                 </div>
@@ -520,9 +520,9 @@ export default function ProfileSetup() {
                                     { id: 'insurance_certificate', label: 'Insurance Certificate', icon: MapPin },
                                     { id: 'cv_document', label: 'Professional CV', icon: User }
                                 ].map((doc) => (
-                                    <div key={doc.id} className="space-y-3 px-2">
-                                        <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest px-4 italic">{doc.label} (PDF, JPEG, PNG)</label>
-                                        <div className="relative group">
+                                    <div key={doc.id} className="space-y-3 flex flex-col items-start px-2">
+                                        <label className="text-[12px] font-black text-[#555a7a] uppercase tracking-widest italic text-left">{doc.label} (PDF, JPEG, PNG)</label>
+                                        <div className="relative group w-full">
                                             <doc.icon className={`absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${files[doc.id] ? 'text-emerald-400' : 'text-slate-700'}`} />
                                             <input 
                                                 type="file" 

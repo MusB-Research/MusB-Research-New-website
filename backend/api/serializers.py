@@ -117,16 +117,8 @@ class UserSerializer(SanitizedModelSerializer):
     
     # Aliases for frontend compatibility
     mobile_number = serializers.CharField(source='phone_number', required=False, allow_blank=True)
-    decrypted_name = serializers.SerializerMethodField()
     decrypted_phone = serializers.SerializerMethodField()
     decrypted_address = serializers.SerializerMethodField()
-
-    def get_decrypted_name(self, obj):
-        """Always return the decrypted full_name using the model's property."""
-        try:
-            return obj.decrypted_name or ''
-        except Exception:
-            return ''
 
     def get_decrypted_phone(self, obj):
         """Always return the decrypted phone_number using the model's property."""
@@ -145,7 +137,7 @@ class UserSerializer(SanitizedModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'full_name', 'decrypted_name', 'decrypted_phone', 'decrypted_address',
+            'id', 'email', 'full_name', 'decrypted_phone', 'decrypted_address',
             'role', 'phone_number', 'mobile_number',
             'profile_picture', 'password', 'last_login_formatted', 'date_joined_formatted',
             'full_address', 'city', 'state', 'zip_code', 'country', 'place_of_origin',
@@ -399,7 +391,7 @@ class StudyAssignmentSerializer(SanitizedModelSerializer):
 class VisitSerializer(SanitizedModelSerializer):
     id = serializers.CharField(read_only=True)
     notes = serializers.SerializerMethodField()
-    participant_name = serializers.CharField(source='participant.user.decrypted_name', read_only=True)
+    participant_name = serializers.CharField(source='participant.user.full_name', read_only=True)
     participant_sid = serializers.CharField(source='participant.participant_sid', read_only=True)
     
     # Coordinator info for the participant portal
@@ -441,7 +433,7 @@ class VisitSerializer(SanitizedModelSerializer):
         pi = obj.participant.study.pi
         if pi:
             return {
-                'name': pi.decrypted_name or pi.full_name,
+                'name': pi.full_name,
                 'email': pi.email,
                 'phone': pi.decrypted_phone or pi.phone_number or 'N/A',
                 'role': 'Principal Investigator'
@@ -452,7 +444,7 @@ class VisitSerializer(SanitizedModelSerializer):
         coord = obj.participant.study.coordinator
         if coord:
             return {
-                'name': coord.decrypted_name or coord.full_name,
+                'name': coord.full_name,
                 'email': coord.email,
                 'phone': coord.decrypted_phone or coord.phone_number or 'N/A',
                 'role': 'Study Coordinator'
@@ -486,7 +478,7 @@ class KitSerializer(SanitizedModelSerializer):
     shipping_label_url = serializers.SerializerMethodField()
     return_label_url = serializers.SerializerMethodField()
     
-    participant_name = serializers.CharField(source='participant.user.decrypted_name', read_only=True)
+    participant_name = serializers.CharField(source='participant.user.full_name', read_only=True)
     participant_sid = serializers.CharField(source='participant.participant_sid', read_only=True)
     protocol_id = serializers.CharField(source='participant.study.protocol_id', read_only=True)
     
@@ -534,7 +526,7 @@ class FormResponseSerializer(SanitizedModelSerializer):
 class AssignedFormSerializer(SanitizedModelSerializer):
     form_details = FormSerializer(source='form', read_only=True)
     signed_pdf_url = serializers.SerializerMethodField()
-    participant_name = serializers.CharField(source='participant.user.decrypted_name', read_only=True)
+    participant_name = serializers.CharField(source='participant.user.full_name', read_only=True)
 
     class Meta:
         model = AssignedForm
@@ -569,7 +561,7 @@ class ParticipantTaskSerializer(SanitizedModelSerializer):
 
     def get_participant_name(self, obj):
         try:
-            return obj.participant.user.decrypted_name
+            return obj.participant.user.full_name
         except Exception:
             return "Anonymous"
 
@@ -704,8 +696,8 @@ class ConsentTemplateSerializer(SanitizedModelSerializer):
 
 class ConsentSerializer(SanitizedModelSerializer):
     id = ObjectIdField(read_only=True)
-    pi_user_name = serializers.CharField(source='pi_user.decrypted_name', read_only=True)
-    cc_user_name = serializers.CharField(source='cc_user.decrypted_name', read_only=True)
+    pi_user_name = serializers.CharField(source='pi_user.full_name', read_only=True)
+    cc_user_name = serializers.CharField(source='cc_user.full_name', read_only=True)
     template_version = serializers.CharField(source='template.version', read_only=True)
     study_title = serializers.CharField(source='study.title', read_only=True)
     protocol_id = serializers.CharField(source='study.protocol_id', read_only=True)
@@ -729,11 +721,7 @@ class ConsentSerializer(SanitizedModelSerializer):
         read_only_fields = ['agreed_at', 'ip_address']
 
     def get_decrypted_name(self, obj):
-        """Decrypt the participant's full_name (stored as Fernet ciphertext) for display."""
-        try:
-            return decrypt_data(obj.full_name) or obj.full_name or ''
-        except Exception:
-            return obj.full_name or ''
+        return obj.full_name or ''
     
     def to_internal_value(self, data):
         """Map frontend protocol ID to study ObjectId if needed."""
@@ -856,7 +844,7 @@ class StudyInquirySerializer(SanitizedModelSerializer):
 
 class ClinicalMessageSerializer(SanitizedModelSerializer):
     id = ObjectIdField(read_only=True)
-    sender_name = serializers.CharField(source='sender.decrypted_name', read_only=True)
+    sender_name = serializers.CharField(source='sender.full_name', read_only=True)
     user_role_label = serializers.CharField(source='sender.role', read_only=True)
     
     class Meta:
@@ -866,9 +854,9 @@ class ClinicalMessageSerializer(SanitizedModelSerializer):
 class ClinicalConversationBriefSerializer(SanitizedModelSerializer):
     id = ObjectIdField(read_only=True)
     participant_sid = serializers.CharField(source='participant.participant_sid', read_only=True)
-    participant_name = serializers.CharField(source='participant.user.decrypted_name', read_only=True)
+    participant_name = serializers.CharField(source='participant.user.full_name', read_only=True)
     study_protocol = serializers.CharField(source='study.protocol_id', read_only=True)
-    assigned_coordinator = serializers.CharField(source='study.coordinator.decrypted_name', read_only=True, allow_null=True)
+    assigned_coordinator = serializers.CharField(source='study.coordinator.full_name', read_only=True, allow_null=True)
     participant_status = serializers.CharField(source='participant.status', read_only=True)
 
     class Meta:
@@ -887,9 +875,9 @@ class ClinicalConversationSerializer(SanitizedModelSerializer):
     id = ObjectIdField(read_only=True)
     messages = ClinicalMessageSerializer(many=True, read_only=True)
     participant_sid = serializers.CharField(source='participant.participant_sid', read_only=True)
-    participant_name = serializers.CharField(source='participant.user.decrypted_name', read_only=True)
+    participant_name = serializers.CharField(source='participant.user.full_name', read_only=True)
     study_protocol = serializers.CharField(source='study.protocol_id', read_only=True)
-    assigned_coordinator = serializers.CharField(source='study.coordinator.decrypted_name', read_only=True, allow_null=True)
+    assigned_coordinator = serializers.CharField(source='study.coordinator.full_name', read_only=True, allow_null=True)
     participant_status = serializers.CharField(source='participant.status', read_only=True)
 
     class Meta:
@@ -929,7 +917,7 @@ class ParticipantSerializer(SanitizedModelSerializer):
     user_details = UserSerializer(source='user', read_only=True)
     study_name = serializers.CharField(source='study.title', read_only=True)
     protocol_id = serializers.CharField(source='study.protocol_id', read_only=True)
-    coordinator_name = serializers.CharField(source='study.coordinator.decrypted_name', read_only=True, allow_null=True)
+    coordinator_name = serializers.CharField(source='study.coordinator.full_name', read_only=True, allow_null=True)
     visits = VisitSerializer(many=True, read_only=True)
     ae_reports = AEReportSerializer(many=True, read_only=True)
     daily_logs = DailyMedicationLogSerializer(many=True, read_only=True)
@@ -937,7 +925,7 @@ class ParticipantSerializer(SanitizedModelSerializer):
     consent_records = ConsentSerializer(many=True, read_only=True)
     age = serializers.SerializerMethodField()
     
-    reviewer_name = serializers.CharField(source='reviewed_by.decrypted_name', read_only=True, allow_null=True)
+    reviewer_name = serializers.CharField(source='reviewed_by.full_name', read_only=True, allow_null=True)
     participant_status = serializers.CharField(source='status', read_only=True)
 
     class Meta:
@@ -971,7 +959,7 @@ class ParticipantSerializer(SanitizedModelSerializer):
         return data
 
     def get_gender(self, obj):
-        return obj.decrypted_gender
+        return obj.gender
 
     def get_age(self, obj):
         if not obj.dob: return None
@@ -1015,7 +1003,7 @@ class DeIdentifiedParticipantSerializer(SanitizedModelSerializer):
         ]
 
     def get_gender(self, obj):
-        return obj.decrypted_gender
+        return obj.gender
 
     def get_age(self, obj):
         if not obj.dob: return None
@@ -1107,5 +1095,5 @@ class QuestionnaireScheduleInstanceSerializer(SanitizedModelSerializer):
     def get_participant_details(self, obj):
         return {
             'sid': obj.participant.participant_sid,
-            'name': obj.participant.user.decrypted_name if obj.participant.user else 'Subject'
+            'name': obj.participant.user.full_name if obj.participant.user else 'Subject'
         }

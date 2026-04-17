@@ -12,11 +12,17 @@ from .serializers import (
     InquiryTypeSerializer, 
     SubmissionSerializer
 )
+from api.utils.cache_utils import cache_api_response
+from api.utils.resend_utils import send_email_task
 
 class ContactPageSettingsView(generics.RetrieveAPIView):
     serializer_class = ContactPageSettingsSerializer
     permission_classes = [permissions.AllowAny]
     
+    @cache_api_response("contact_settings", timeout=3600)
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
     def get_object(self):
         return ContactPageSettings.load()
 
@@ -24,6 +30,10 @@ class ContactFormConfigView(generics.RetrieveAPIView):
     serializer_class = ContactFormConfigurationSerializer
     permission_classes = [permissions.AllowAny]
     
+    @cache_api_response("contact_form_config", timeout=3600)
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
     def get_object(self):
         return ContactFormConfiguration.load()
 
@@ -31,6 +41,10 @@ class InquiryTypeListView(generics.ListAPIView):
     queryset = InquiryType.objects.filter(is_active=True)
     serializer_class = InquiryTypeSerializer
     permission_classes = [permissions.AllowAny]
+    
+    @cache_api_response("inquiry_types", timeout=3600)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 class SubmissionCreateView(generics.CreateAPIView):
     serializer_class = SubmissionSerializer
@@ -71,7 +85,7 @@ class SubmissionCreateView(generics.CreateAPIView):
                 </div>
                 """
                 from api.utils.resend_utils import safe_resend_send
-                safe_resend_send({
+                send_email_task.delay({
                     "from": "MusB Research <info@musbresearch.com>",
                     "to": ["info@musbresearch.com"],
                     "subject": f"[FALLBACK] Contact Form: {name}",
@@ -221,7 +235,7 @@ class SubmissionCreateView(generics.CreateAPIView):
             recipients = list(set([r for r in recipients if r]))
 
             # Send to Admin & Study Team
-            safe_resend_send({
+            send_email_task.delay({
                 "from": from_email,
                 "to": recipients,
                 "subject": admin_subject,
@@ -229,7 +243,7 @@ class SubmissionCreateView(generics.CreateAPIView):
             })
             
             # Send to Participant
-            safe_resend_send({
+            send_email_task.delay({
                 "from": from_email,
                 "to": [submission.email],
                 "subject": participant_subject,

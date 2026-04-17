@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronLeft, ChevronRight, ChevronDown, Brain, FlaskConical, Activity, TestTube, Microscope, Leaf, Flower, Flower2, ShieldCheck, Zap, Beaker, BarChart, FileText, Stethoscope, Database, Smartphone, Box, CheckCircle2, Building2, Globe, HeartPulse, X, Calendar, Newspaper, Clock } from 'lucide-react';
 import StudyFilterSection from '@/components/StudyFilterSection';
 import { authFetch } from '../utils/auth';
+import SEO from '@/components/SEO';
 
 const decodeHTML = (html: string) => {
     if (!html) return '';
@@ -1457,6 +1458,11 @@ export default function Home() {
 
     return (
         <div className="min-h-screen font-sans text-slate-200 relative overflow-x-hidden bg-transparent">
+            <SEO 
+                title="Clinical Trial Management Software | MUSB Health"
+                description="MUSB Health provides a secure platform to manage clinical trials, participants, and digital consent forms efficiently."
+                canonical="https://www.musbhealth.com"
+            />
 
             {/* Slider Container */}
             <div className="relative h-[100svh] md:h-[95vh] min-h-[750px] md:min-h-[800px] w-full flex items-center overflow-hidden bg-transparent z-10">

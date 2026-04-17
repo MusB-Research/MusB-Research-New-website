@@ -4,6 +4,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authFetch, clearToken, getRole, performLogout, getUser, getDisplayName, API } from '../../utils/auth';
 import { apiFetch } from '../../api';
+import SEO from '../../components/SEO';
 import LogoutConfirmationModal from '../../components/LogoutConfirmationModal';
 import SubmitContentForms from '../../components/coordinator/SubmitContentForms';
 import LaunchStudyForm from '../../components/coordinator/LaunchStudyForm';
@@ -661,6 +662,11 @@ export default function CoordinatorDashboard() {
 
     return (
         <div className="min-h-screen relative overflow-hidden">
+            <SEO 
+                title="Clinical Study Coordinator Portal | MUSB Health"
+                description="Coordinate clinical trials, manage patient visits, and review study documents securely."
+                canonical="https://www.musbhealth.com/coordinator-portal"
+            />
             <AnimatedBackground />
             {renderHeader()}
 

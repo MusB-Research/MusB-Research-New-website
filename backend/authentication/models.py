@@ -119,16 +119,12 @@ class User(AbstractBaseUser, PermissionsMixin):
             return id(self)
 
     def save(self, *args, **kwargs):
-        # Update full_name from components if they exist
-        if self.first_name and self.last_name:
-            f_plain = decrypt_data(str(self.first_name))
-            l_plain = decrypt_data(str(self.last_name))
-            self.full_name = f"{f_plain} {l_plain}"
-
-        # Encrypt personal fields if not already encrypted
+        # ─────────────────────────────────────────────────────────
+        # FIX: Encryption Restriction 
+        # Only encrypt high-sensitivity PII that isn't used for UI filtering/search
+        # ─────────────────────────────────────────────────────────
         fields_to_encrypt = [
-            'full_name', 'first_name', 'last_name', 'organization', 'phone_number', 
-            'full_address', 'city', 'state', 'place_of_origin'
+            'phone_number', 'full_address', 'place_of_origin'
         ]
         
         for field in fields_to_encrypt:
@@ -137,28 +133,11 @@ class User(AbstractBaseUser, PermissionsMixin):
             if val and isinstance(val, str) and not str(val).startswith('gAAAA'):
                 setattr(self, field, encrypt_data(val))
 
-        
         # Normalize active status
         if self.is_active is None:
             self.is_active = True
             
         super().save(*args, **kwargs)
-
-    @cached_property
-    def decrypted_name(self):
-        return decrypt_data(self.full_name)
-
-    @cached_property
-    def decrypted_first_name(self):
-        return decrypt_data(self.first_name)
-
-    @cached_property
-    def decrypted_last_name(self):
-        return decrypt_data(self.last_name)
-
-    @cached_property
-    def decrypted_organization(self):
-        return decrypt_data(self.organization)
 
     @cached_property
     def decrypted_phone(self):
@@ -167,18 +146,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     @cached_property
     def decrypted_address(self):
         return decrypt_data(self.full_address)
-
-    @cached_property
-    def decrypted_city(self):
-        return decrypt_data(self.city)
-
-    @cached_property
-    def decrypted_state(self):
-        return decrypt_data(self.state)
-
-    @cached_property
-    def decrypted_zip(self):
-        return decrypt_data(self.zip_code)
 
     @cached_property
     def decrypted_origin(self):

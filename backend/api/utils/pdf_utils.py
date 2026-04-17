@@ -6,6 +6,19 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from PyPDF2 import PdfReader, PdfWriter
 from PIL import Image
+from django.conf import settings
+
+def decode_and_draw_signature(can, sig_data, px, py, width=120, height=45):
+    """Refactored helper to decode base64 signature and draw it on canvas"""
+    try:
+        if not sig_data: return
+        img_data = sig_data
+        if 'base64,' in img_data:
+            img_data = img_data.split('base64,')[1]
+        sig_img = Image.open(io.BytesIO(base64.b64decode(img_data)))
+        can.drawInlineImage(sig_img, px - (width/2), py - (height/2), width=width, height=height)
+    except Exception as e:
+        print(f"Signature decoding error: {e}")
 
 def generate_signed_consent_pdf(consent_obj):
     """
@@ -18,98 +31,144 @@ def generate_signed_consent_pdf(consent_obj):
     if not os.path.exists(template_path):
         return None
 
-    # 1. Create a buffer for the overlay PDF
-    packet = io.BytesIO()
-    can = canvas.Canvas(packet, pagesize=letter)
-    
     # Predefined fields from template
     fields = consent_obj.template.placed_fields or []
-    
-    # Group fields by page
-    pages_to_overlay = {}
-    
-    for field in fields:
-        f_type = field.get('type')
-        page_num = field.get('page', 1)
-        x = field.get('x', 0)
-        y = field.get('y', 0)
-        
-        if page_num not in pages_to_overlay:
-            pages_to_overlay[page_num] = []
-            
-        # Draw logic based on type
-        if f_type == 'participant_signature' and consent_obj.participant_signature:
-            # signature is usually a base64 string
-            img_data = consent_obj.participant_signature
-            if img_data.startswith('data:image'):
-                img_data = img_data.split(',')[1]
-            
-            sig_img = Image.open(io.BytesIO(base64.b64decode(img_data)))
-            # Draw image at (x, y) - adjust size as needed (e.g., 150x50)
-            can.drawInlineImage(sig_img, x, y, width=120, height=45)
-            
-        elif f_type == 'participant_name':
-            can.setFont("Helvetica", 10)
-            can.drawString(x, y, consent_obj.full_name)
-            
-        elif f_type == 'participant_date':
-            can.setFont("Helvetica", 10)
-            date_str = consent_obj.participant_signed_at.strftime("%Y-%m-%d %H:%M") if consent_obj.participant_signed_at else ""
-            can.drawString(x, y, date_str)
-            
-        elif f_type == 'coordinator_signature' and consent_obj.cc_signature:
-            img_data = consent_obj.cc_signature
-            if img_data.startswith('data:image'):
-                img_data = img_data.split(',')[1]
-            sig_img = Image.open(io.BytesIO(base64.b64decode(img_data)))
-            can.drawInlineImage(sig_img, x, y, width=120, height=45)
-            
-        elif f_type == 'coordinator_name' and consent_obj.cc_name:
-            can.setFont("Helvetica", 10)
-            can.drawString(x, y, consent_obj.cc_name)
-            
-        elif f_type == 'coordinator_date' and consent_obj.cc_verified_at:
-            can.setFont("Helvetica", 10)
-            date_str = consent_obj.cc_verified_at.strftime("%Y-%m-%d %H:%M")
-            can.drawString(x, y, date_str)
+    if not fields:
+        return None
 
-    can.save()
-    packet.seek(0)
+    # 1. Group fields by page (1-based index)
+    pages_to_fields = {}
+    for f in fields:
+        p = f.get('page', 1)
+        if p not in pages_to_fields:
+            pages_to_fields[p] = []
+        pages_to_fields[p].append(f)
+
+    # 2. Prepare for PyPDF2 merge
+    reader = PdfReader(template_path)
+    writer = PdfWriter()
     
-    # 2. Merge with PyPDF2
-    new_pdf = PdfReader(packet)
-    existing_pdf = PdfReader(open(template_path, "rb"))
-    output = PdfWriter()
-    
-    # Iterate through pages of original PDF
-    for i in range(len(existing_pdf.pages)):
-        page = existing_pdf.pages[i]
-        # If we have an overlay for this specific page index (1-based vs 0-based)
-        # Note: ReportLab canvas above was single page. We might need a multi-page canvas if fields are spread out.
-        # For simplicity, if we have ANY fields, we currently overlay on page 1 only in the logic above.
-        # Let's fix that to support multi-page overlays.
+    # PDF dimensions (Letter is 612 x 792 points)
+    WIDTH, HEIGHT = 612, 792
+
+    for i in range(len(reader.pages)):
+        page = reader.pages[i]
+        page_num = i + 1
         
-        # [REFINED LOGIC]
-        # We should create a separate reportlab canvas for each page that needs an overlay.
-        # But for MVP, if it's mostly last page, we can just overlay.
+        if page_num in pages_to_fields:
+            # Create overlay for this specific page
+            packet = io.BytesIO()
+            can = canvas.Canvas(packet, pagesize=letter)
+            
+            for f in pages_to_fields[page_num]:
+                f_type = f.get('type')
+                # Map percentage (0-100) to points. 
+                # Note: ReportLab (0,0) is BOTTOM LEFT. Frontend (0,0) is TOP LEFT.
+                # So y_points = HEIGHT - (y_percent * HEIGHT / 100)
+                px = (f.get('x', 0) / 100.0) * WIDTH
+                py = HEIGHT - ((f.get('y', 0) / 100.0) * HEIGHT)
+                
+                # DRAW LOGIC
+                if f_type == 'Participant Signature':
+                    decode_and_draw_signature(can, consent_obj.participant_signature, px, py)
+                elif f_type in ['Participant Name', 'Legal Full Name']:
+                    can.setFont("Helvetica-Bold", 10)
+                    can.drawString(px, py, consent_obj.full_name or "")
+                elif f_type in ['Participant Date', 'Date']:
+                    can.setFont("Helvetica", 10)
+                    dt = consent_obj.participant_signed_at or consent_obj.agreed_at
+                    can.drawString(px, py, dt.strftime("%Y-%m-%d %H:%M") if dt else "")
+                elif f_type == 'CC Signature':
+                    decode_and_draw_signature(can, consent_obj.cc_signature, px, py)
+                elif f_type in ['CC Name', 'Coordinator Name']:
+                    can.setFont("Helvetica-Bold", 10)
+                    can.drawString(px, py, consent_obj.cc_name or "")
+                elif (f_type == 'PI Verification' or f_type == 'PI Signature'):
+                    decode_and_draw_signature(can, consent_obj.pi_signature, px, py)
+                elif f_type == 'PI Name':
+                    can.setFont("Helvetica-Bold", 10)
+                    can.drawString(px, py, consent_obj.pi_name or "")
+
+            can.save()
+            packet.seek(0)
+            overlay_reader = PdfReader(packet)
+            if len(overlay_reader.pages) > 0:
+                page.merge_page(overlay_reader.pages[0])
         
-        # Better: Create a single 1-page overlay and merge it where requested.
-        # Actually, let's keep it simple: merge the single 'packet' overlay onto the first page where requested.
-        if i == 0: # Page 1
-            overlay_page = new_pdf.pages[0]
-            page.merge_page(overlay_page)
-        
-        output.add_page(page)
-    
-    # 3. Save result
+        writer.add_page(page)
+
+    # 3. Finalize
     output_stream = io.BytesIO()
-    output.write(output_stream)
+    writer.write(output_stream)
     
-    # Generate filename: {studyName}_{participantName}_{PID}_signed.pdf
-    study_name = consent_obj.study.protocol_id.replace(" ", "_")
-    p_name = consent_obj.full_name.replace(" ", "_")
-    p_id = consent_obj.participant.participant_sid if consent_obj.participant else "Guest"
-    filename = f"{study_name}_{p_name}_{p_id}_signed.pdf"
-    
+    study_id = consent_obj.study.protocol_id or str(consent_obj.study.pk)
+    filename = f"Consent_{study_id}_{consent_obj.pk}.pdf"
     consent_obj.signed_pdf.save(filename, ContentFile(output_stream.getvalue()), save=False)
     return filename
+
+def generate_signed_questionnaire_pdf(instance):
+    """
+    Generates a signed PDF for a QuestionnaireScheduleInstance by overlaying sigs.
+    """
+    template = instance.study_questionnaire.template
+    if not template or not template.pdf_file:
+        return None
+
+    template_path = template.pdf_file.path
+    if not os.path.exists(template_path):
+        return None
+
+    fields = template.placed_fields or []
+    if not fields:
+        # If no fields placed, we still want to indicate completion if needed
+        return None
+
+    pages_to_fields = {}
+    for f in fields:
+        p = f.get('page', 1)
+        if p not in pages_to_fields: pages_to_fields[p] = []
+        pages_to_fields[p].append(f)
+
+    reader = PdfReader(template_path)
+    writer = PdfWriter()
+    WIDTH, HEIGHT = 612, 792
+
+    for i in range(len(reader.pages)):
+        page = reader.pages[i]
+        page_num = i + 1
+        if page_num in pages_to_fields:
+            packet = io.BytesIO()
+            can = canvas.Canvas(packet, pagesize=letter)
+            for f in pages_to_fields[page_num]:
+                f_type = f.get('type')
+                px = (f.get('x', 0) / 100.0) * WIDTH
+                py = HEIGHT - ((f.get('y', 0) / 100.0) * HEIGHT)
+
+                if f_type == 'Participant Signature':
+                    decode_and_draw_signature(can, instance.participant_signature, px, py)
+                elif f_type in ['Participant Name', 'Name']:
+                    can.setFont("Helvetica-Bold", 10)
+                    can.drawString(px, py, instance.participant.full_name or "")
+                elif f_type in ['Participant Date', 'Date']:
+                    can.setFont("Helvetica", 10)
+                    dt = instance.participant_signed_at
+                    can.drawString(px, py, dt.strftime("%Y-%m-%d %H:%M") if dt else "")
+                elif f_type == 'CC Signature':
+                    decode_and_draw_signature(can, instance.coordinator_signature, px, py)
+                elif f_type == 'PI Signature':
+                    decode_and_draw_signature(can, instance.pi_signature, px, py)
+
+            can.save()
+            packet.seek(0)
+            overlay_reader = PdfReader(packet)
+            if len(overlay_reader.pages) > 0:
+                page.merge_page(overlay_reader.pages[0])
+        writer.add_page(page)
+
+    output_stream = io.BytesIO()
+    writer.write(output_stream)
+    
+    filename = f"Signed_Instrument_{instance.pk}.pdf"
+    instance.signed_pdf.save(filename, ContentFile(output_stream.getvalue()), save=False)
+    return filename
+
