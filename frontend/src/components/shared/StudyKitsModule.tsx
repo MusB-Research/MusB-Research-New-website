@@ -98,7 +98,7 @@ const MOCK_KITS: StudyKit[] = [
     },
 ];
 
-export default function StudyKitsModule({ selectedStudyId, preloadedStudies, preloadedParticipants }: { selectedStudyId?: string, preloadedStudies?: any[], preloadedParticipants?: any[] }) {
+export default function StudyKitsModule({ selectedStudyId, preloadedStudies, preloadedParticipants, isLoading }: { selectedStudyId?: string, preloadedStudies?: any[], preloadedParticipants?: any[], isLoading?: boolean }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [kits, setKits] = useState<StudyKit[]>([]);
     const [studies, setStudies] = useState<any[]>(preloadedStudies || []);

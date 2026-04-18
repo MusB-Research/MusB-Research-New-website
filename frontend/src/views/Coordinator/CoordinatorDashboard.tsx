@@ -848,7 +848,7 @@ export default function CoordinatorDashboard() {
                                 onOpenProfile={(id) => setSelectedParticipantId(id)} 
                                 onMessage={() => setActiveModule('MESSAGES')}
                                 preloadedData={summaryData}
-                                isLoadingSummary={summaryLoading}
+                                isLoading={summaryLoading}
                             />
                         )
                     )}
@@ -874,6 +874,7 @@ export default function CoordinatorDashboard() {
                         <LabsResultsModule 
                             selectedStudyId={globalSelectedStudyId} 
                             preloadedStudies={studies}
+                            isLoading={loading}
                         />
                     )}
                     {activeModule === 'KITS' && (

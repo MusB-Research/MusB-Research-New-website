@@ -579,7 +579,7 @@ export default function ParticipantOversight({
                     <div className="py-24 flex flex-col items-center gap-4">
                         <AlertCircle className="w-10 h-10 text-red-500/50" />
                         <p className="text-[12px] text-red-400 font-bold uppercase italic">{error}</p>
-                        <button onClick={fetchParticipants} className="text-[11px] font-black text-white px-5 py-2 bg-white/5 rounded-full hover:bg-white/10 transition-all uppercase tracking-widest">Retry</button>
+                        <button onClick={() => fetchParticipants()} className="text-[11px] font-black text-white px-5 py-2 bg-white/5 rounded-full hover:bg-white/10 transition-all uppercase tracking-widest">Retry</button>
                     </div>
                 ) : (
                     <table className="w-full text-left border-collapse min-w-[1100px] border-t border-white/5">

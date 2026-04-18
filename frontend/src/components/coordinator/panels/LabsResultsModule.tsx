@@ -35,10 +35,11 @@ interface LabSample {
     isReleased: boolean;
 }
 
-export default function LabsResultsModule({ selectedStudyId, preloadedStudies }: { selectedStudyId?: string, preloadedStudies?: any[] }) {
+export default function LabsResultsModule({ selectedStudyId, preloadedStudies, isLoading: propLoading }: { selectedStudyId?: string, preloadedStudies?: any[], isLoading?: boolean }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [samples, setSamples] = useState<LabSample[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [internalLoading, setInternalLoading] = useState(true);
+    const isLoading = propLoading !== undefined ? propLoading : internalLoading;
     const [selectedSample, setSelectedSample] = useState<LabSample | null>(null);
     const [isReRunning, setIsReRunning] = useState(false);
     
@@ -46,7 +47,7 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies }:
 
     React.useEffect(() => {
         const fetchLabs = async () => {
-            setIsLoading(true);
+            setInternalLoading(true);
             try {
                 let url = `${apiUrl}/api/lab-results/`;
                 if (selectedStudyId && selectedStudyId !== 'all') {
@@ -74,7 +75,7 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies }:
             } catch (err) {
                 console.error("Failed to sync labs:", err);
             } finally {
-                setIsLoading(false);
+                setInternalLoading(false);
                 console.log("Labs sync complete.");
             }
         };

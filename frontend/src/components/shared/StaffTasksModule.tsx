@@ -435,9 +435,10 @@ interface StaffTasksModuleProps {
     primaryColor?: string;
     onRefresh?: () => void;
     preloadedTasks?: StaffTask[];
+    isLoading?: boolean;
 }
 
-export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, preloadedTasks }: StaffTasksModuleProps) {
+export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, preloadedTasks, isLoading }: StaffTasksModuleProps) {
     const [tasks, setTasks] = useState<StaffTask[]>(preloadedTasks || []);
     const [loading, setLoading] = useState(!preloadedTasks || preloadedTasks.length === 0);
     const [reviewTask, setReviewTask] = useState<StaffTask | null>(null);

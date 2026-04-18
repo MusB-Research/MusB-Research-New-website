@@ -731,7 +731,7 @@ export default function PIDashboard() {
                     {activeModule === 'PARTICIPANTS' && <ParticipantOversight
                         selectedStudyId={globalSelectedStudyId}
                         preloadedData={summaryData}
-                        isLoadingSummary={summaryLoading}
+                        isLoading={summaryLoading}
                         onOpenProfile={(id) => {
                             setSelectedParticipantId(id);
                             setActiveModule('SUBJECT_REVIEW');
@@ -751,12 +751,14 @@ export default function PIDashboard() {
                             preloadedStudies={studies}
                             preloadedTasks={tasks}
                             onRefresh={fetchAllData}
+                            isLoading={summaryLoading}
                         />
                     )}
                     {activeModule === 'LABS' && (
                         <LabsResultsModule 
                             selectedStudyId={globalSelectedStudyId} 
                             preloadedStudies={studies}
+                            isLoading={summaryLoading}
                         />
                     )}
                     {activeModule === 'KITS' && (
@@ -764,6 +766,7 @@ export default function PIDashboard() {
                             selectedStudyId={globalSelectedStudyId} 
                             preloadedStudies={studies}
                             preloadedParticipants={participants}
+                            isLoading={summaryLoading}
                         />
                     )}
                     {activeModule === 'ALERTS' && <AlertsModule />}

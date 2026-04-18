@@ -25,9 +25,10 @@ interface SponsorsManagementProps {
   allStudies?: any[];
   onRefresh?: () => void;
   selectedStudyId?: string;
+  isLoading?: boolean;
 }
 
-export default function SponsorsManagement({ onRefresh, selectedStudyId, preloadedStudies }: SponsorsManagementProps & { preloadedStudies?: any[] }) {
+export default function SponsorsManagement({ onRefresh, selectedStudyId, preloadedStudies, isLoading }: SponsorsManagementProps & { preloadedStudies?: any[] }) {
   const [rawSponsors, setRawSponsors] = useState<any[]>([]);
   const [allStudies, setAllStudies] = useState<any[]>(preloadedStudies || []);
   const [dataLoading, setDataLoading] = useState(true);

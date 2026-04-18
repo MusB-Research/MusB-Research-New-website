@@ -60,7 +60,7 @@ const MOCK_PARTICIPANT = {
 };
 
 // --- COMPONENT ---
-export default function CCC_SubjectReviewModule({ participantId, selectedStudyId }: { participantId?: string, selectedStudyId?: string }) {
+export default function CCC_SubjectReviewModule({ participantId, selectedStudyId, preloadedTracking }: { participantId?: string, selectedStudyId?: string, preloadedTracking?: any }) {
     // State
     const [participant, setParticipant] = useState<any>(null);
     const [loading, setLoading] = useState(true);

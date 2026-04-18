@@ -92,9 +92,10 @@ interface VisitsModuleProps {
     preloadedStudies?: any[];
     preloadedTasks?: any[];
     onRefresh?: () => void;
+    isLoading?: boolean;
 }
 
-export default function VisitsModule({ selectedStudyId, preloadedParticipants, preloadedStudies, preloadedTasks, onRefresh }: VisitsModuleProps) {
+export default function VisitsModule({ selectedStudyId, preloadedParticipants, preloadedStudies, preloadedTasks, onRefresh, isLoading }: VisitsModuleProps) {
     const [viewMode, setViewMode] = useState<'Timeline' | 'Calendar'>('Timeline');
     const [participants, setParticipants] = useState<Participant[]>([]);
     const [globalTasks, setGlobalTasks] = useState<any[]>(preloadedTasks || []);

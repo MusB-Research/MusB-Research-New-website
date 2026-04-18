@@ -201,20 +201,21 @@ function CompensationModal({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function ParticipantOversight({
-    onOpenProfile, onMessage, selectedStudyId, preloadedData, isLoadingSummary
+    onOpenProfile, onMessage, selectedStudyId, preloadedData, isLoading: propLoading
 }: {
     onOpenProfile?: (id: string) => void;
     onMessage?: (id: string) => void;
     selectedStudyId?: string | 'all';
     preloadedData?: any;
-    isLoadingSummary?: boolean;
+    isLoading?: boolean;
 }) {
     const [activeTab, setActiveTab] = useState<TabKey>('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [filterOpen, setFilterOpen] = useState(false);
     const [riskFilter, setRiskFilter] = useState<'All' | 'Low' | 'Medium' | 'High'>('All');
     const [participants, setParticipants] = useState<ParticipantRow[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [internalLoading, setInternalLoading] = useState(true);
+    const isLoading = propLoading !== undefined ? propLoading : internalLoading;
     const [error, setError] = useState<string | null>(null);
     const [reviewingId, setReviewingId] = useState<string | null>(null);
     const [reviewNotes, setReviewNotes] = useState('');
@@ -251,11 +252,11 @@ export default function ParticipantOversight({
                 tasksCompleted: p.tasks_completed || 0,
             }));
             setParticipants(mapped);
-            setIsLoading(false);
+            setInternalLoading(false);
             return;
         }
 
-        setIsLoading(true); setError(null);
+        setInternalLoading(true); setError(null);
         try {
             const [pRes, tRes] = await Promise.all([
                 authFetch(`${API}/api/participants/`),
@@ -303,7 +304,7 @@ export default function ParticipantOversight({
         } catch (err: any) {
             setError(err.message);
         } finally {
-            setTimeout(() => setIsLoading(false), 600);
+            setInternalLoading(false);
         }
     }, [preloadedData, selectedStudyId]);
 
@@ -560,7 +561,7 @@ export default function ParticipantOversight({
                     <div className="py-24 flex flex-col items-center gap-4">
                         <AlertCircle className="w-10 h-10 text-red-500/50" />
                         <p className="text-sm text-red-400 font-bold uppercase italic">{error}</p>
-                        <button onClick={fetchParticipants} className="text-[13px] font-black text-white px-5 py-2 bg-white/5 rounded-full hover:bg-white/10 transition-all uppercase tracking-widest">Retry</button>
+                        <button onClick={() => fetchParticipants()} className="text-[13px] font-black text-white px-5 py-2 bg-white/5 rounded-full hover:bg-white/10 transition-all uppercase tracking-widest">Retry</button>
                     </div>
                 ) : (
                     <table className="w-full text-left border-collapse min-w-[1100px] border-t border-white/5">
