@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import AnimatedBackground from './components/AnimatedBackground';
@@ -56,12 +56,17 @@ function AppContent() {
         }
     }, [location.pathname, isDashboard, navigate]);
 
+    const hasPung = useRef(false);
+
     // KEEP-ALIVE FOR RENDER LIVE INSTANCE
     useEffect(() => {
+        if (hasPung.current) return;
+        hasPung.current = true;
+
         const pingProduction = async () => {
             try {
                 // Ping the specific production health endpoint the user provided
-                                const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://musb-research-new-website.onrender.com' : 'http://localhost:8000');
+                const apiUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://musb-research-new-website.onrender.com' : 'http://localhost:8000');
                 const res = await fetch(`${apiUrl}/api/health/`);
                 if (res.ok) console.log('✅ GLOBAL_NODE_SYNC: PRODUCTION_WAKE_SUCCESS');
             } catch (e) {
@@ -90,8 +95,12 @@ function AppContent() {
 
     return (
         <>
-            <MeshBackground />
-            <AnimatedBackground />
+            {!isDashboard && (
+                <>
+                    <MeshBackground />
+                    <AnimatedBackground />
+                </>
+            )}
             <Layout>
                 <Suspense fallback={<PageLoader />}>
                     <Routes>

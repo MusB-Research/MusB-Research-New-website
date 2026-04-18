@@ -32,13 +32,13 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('PARTICIPANT', 'Participant'),
     ]
     AFFILIATION_CHOICES = [
-        ('musb', 'MusB'),
-        ('onsite', 'Onsite'),
+        ('MUSB', 'MusB'),
+        ('ONSITE', 'Onsite'),
     ]
     STATUS_CHOICES = [
-        ('active', 'Active'),
-        ('pending', 'Pending'),
-        ('rejected', 'Rejected'),
+        ('ACTIVE', 'Active'),
+        ('PENDING', 'Pending'),
+        ('REJECTED', 'Rejected'),
     ]
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=150, unique=True, null=True, blank=True)
@@ -49,8 +49,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     organization = models.CharField(max_length=255, blank=True, null=True)
     role = models.CharField(max_length=30, choices=ROLE_CHOICES, default='PARTICIPANT')
-    affiliation = models.CharField(max_length=20, choices=AFFILIATION_CHOICES, default='musb', null=True, blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active', null=True, blank=True)
+    affiliation = models.CharField(max_length=20, choices=AFFILIATION_CHOICES, default='MUSB', null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', null=True, blank=True)
     assigned_studies = models.JSONField(default=list, blank=True, null=True) # List of study protocol_ids
     
     # Hierarchy
@@ -99,7 +99,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-    date_joined = models.DateTimeField(default=now)
+    date_joined = models.DateTimeField(auto_now_add=True)
+
+    # Invitation Metadata (New)
+    invited_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='invited_personnel')
+    invited_in_study = models.CharField(max_length=255, null=True, blank=True) # Protocol ID or Study Name
     modified_at = models.DateTimeField(auto_now=True, null=True)
     created_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='users_created')
 
@@ -150,6 +154,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     @cached_property
     def decrypted_origin(self):
         return decrypt_data(self.place_of_origin)
+
+    @cached_property
+    def decrypted_name(self):
+        """
+        Unified display name property for clinical UI. 
+        Falls back from full_name to structured parts or email.
+        """
+        return self.full_name or f"{self.first_name} {self.last_name}".strip() or self.email
 
     def __str__(self):
         return self.email

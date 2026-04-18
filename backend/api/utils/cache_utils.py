@@ -21,10 +21,16 @@ def cache_api_response(key_prefix, timeout=300):
             if not hasattr(request, 'user') and hasattr(args[0], 'request'):
                 request = args[0].request
 
-            # Generate a unique cache key based on user and parameters
-            user_id = request.user.id if request.user.is_authenticated else "anonymous"
+            import hashlib
             params = json.dumps(request.GET, sort_keys=True)
-            cache_key = f"{key_prefix}:{user_id}:{hash(params)}"
+            params_hash = hashlib.md5(params.encode()).hexdigest()
+            
+            # Identify the user (or use 'anonymous' for public data)
+            user_id = 'anonymous'
+            if hasattr(request, 'user') and request.user.is_authenticated:
+                user_id = str(request.user.id)
+                
+            cache_key = f"{key_prefix}:{user_id}:{params_hash}"
 
             cached_data = cache.get(cache_key)
             if cached_data:

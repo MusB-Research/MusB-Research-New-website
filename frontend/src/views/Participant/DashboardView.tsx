@@ -139,7 +139,7 @@ const DashboardView = ({
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
                 {/* Enrollment Card */}
-                <Card className="lg:col-span-8 p-4 sm:p-5 flex flex-row items-center gap-4 sm:gap-6 shadow-sm border-[#E3ECF5]">
+                <Card className="lg:col-span-8 p-4 sm:p-5 flex flex-col sm:flex-row items-center sm:items-start lg:items-center gap-4 sm:gap-6 shadow-sm border-[#E3ECF5]">
                     {/* Circular Progress */}
                     <div className="flex-shrink-0">
                         <div className="relative w-[80px] h-[80px]">
@@ -152,7 +152,7 @@ const DashboardView = ({
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                    <div className="flex-1 min-w-0 flex flex-col items-center sm:items-start gap-1.5 text-center sm:text-left">
                         <div className="flex flex-wrap items-center gap-1.5">
                             <Badge color="slate" className="text-[10px] rounded-md">
                                 {participant?.status?.replace(/_/g, ' ') || 'ENROLLED'}
@@ -164,7 +164,7 @@ const DashboardView = ({
                         <h3 className="text-base sm:text-lg font-black text-[#1A2B49] leading-tight italic uppercase truncate">
                             {study?.title || 'Untitled Study'}
                         </h3>
-                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-bold text-[#5F6F89] uppercase tracking-tight">
+                        <div className="flex flex-wrap justify-center sm:justify-start gap-x-3 gap-y-1 text-[10px] font-bold text-[#5F6F89] uppercase tracking-tight">
                             <span>PID: <span className="text-[#1A2B49]">{participant?.participant_sid || 'PO-XXXX'}</span></span>
                             <span className="hidden sm:inline">·</span>
                             <span>Study ID: <span className="text-[#1A2B49]">{study?.protocol_id || 'STD-XXXX'}</span></span>
@@ -276,8 +276,8 @@ const DashboardView = ({
             </div>
 
             {/* MESSAGES BAR */}
-            <Card className="p-4 hover:border-[#1E88E5]/30 transition-all flex flex-row items-center justify-between gap-4 bg-white">
-                <div className="flex items-center gap-4">
+            <Card className="p-4 hover:border-[#1E88E5]/30 transition-all flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
+                <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
                     <div className="w-10 h-10 bg-[#F0F6FF] rounded-xl flex items-center justify-center text-[#1E88E5] border border-[#E3F2FD] shrink-0">
                         <MessageSquare className="w-5 h-5" />
                     </div>

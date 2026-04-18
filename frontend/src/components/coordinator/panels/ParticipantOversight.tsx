@@ -7,7 +7,8 @@ import {
     ClipboardList, CheckCheck, Filter, DollarSign,
     CheckSquare, ListChecks
 } from 'lucide-react';
-import { SkeletonLoader } from '../../shared/SkeletonLoader';
+import { Skeleton } from '../../../views/Participant/SharedComponents';
+
 
 interface ParticipantRow {
     id: string;
@@ -201,18 +202,21 @@ function CompensationModal({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function ParticipantOversight({
-    onOpenProfile, onMessage, selectedStudyId
+    onOpenProfile, onMessage, selectedStudyId, preloadedData, isLoading: propLoading
 }: {
     onOpenProfile?: (id: string) => void;
     onMessage?: (id: string) => void;
     selectedStudyId?: string | 'all';
+    preloadedData?: any;
+    isLoading?: boolean;
 }) {
     const [activeTab, setActiveTab] = useState<TabKey>('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [filterOpen, setFilterOpen] = useState(false);
     const [riskFilter, setRiskFilter] = useState<'All' | 'Low' | 'Medium' | 'High'>('All');
     const [participants, setParticipants] = useState<ParticipantRow[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [internalLoading, setInternalLoading] = useState(true);
+    const isLoading = propLoading !== undefined ? propLoading : internalLoading;
     const [error, setError] = useState<string | null>(null);
     const [reviewingId, setReviewingId] = useState<string | null>(null);
     const [reviewNotes, setReviewNotes] = useState('');
@@ -230,8 +234,30 @@ export default function ParticipantOversight({
         setTimeout(() => setToastMsg(null), 3500);
     };
 
-    const fetchParticipants = useCallback(async () => {
-        setIsLoading(true); setError(null);
+    const fetchParticipants = useCallback(async (isInitial = false) => {
+        // If we have preloaded data for a specific study, use it instead of fetching
+        if (isInitial && preloadedData?.participant_tracking && selectedStudyId && selectedStudyId !== 'all') {
+            const results = preloadedData.participant_tracking;
+            const mapped: ParticipantRow[] = results.map((p: any) => ({
+                id: p.id,
+                name: p.sid || p.name || 'Unknown Subject',
+                study: preloadedData.study?.protocol_id || 'Assigned Study',
+                study_id: preloadedData.study?.id || '',
+                rawStatus: p.status,
+                displayStatus: STATUS_MAP[p.status?.toUpperCase()] || p.status,
+                progress: p.progress || 0,
+                submittedAt: p.last_interaction || null,
+                lastVisit: 'Tracking...',
+                risk: 'Low',
+                tasksTotal: p.tasks_total || 0,
+                tasksCompleted: p.tasks_completed || 0,
+            }));
+            setParticipants(mapped);
+            setInternalLoading(false);
+            return;
+        }
+
+        setInternalLoading(true); setError(null);
         try {
             const [pRes, tRes] = await Promise.all([
                 authFetch(`${API}/api/participants/`),
@@ -279,11 +305,17 @@ export default function ParticipantOversight({
         } catch (err: any) {
             setError(err.message);
         } finally {
-            setTimeout(() => setIsLoading(false), 600);
+            setInternalLoading(false);
         }
-    }, []);
+    }, [preloadedData, selectedStudyId]);
 
-    useEffect(() => { fetchParticipants(); }, [fetchParticipants]);
+    useEffect(() => { 
+        if (preloadedData?.participant_tracking && selectedStudyId && selectedStudyId !== 'all') {
+            fetchParticipants(true);
+        } else {
+            fetchParticipants();
+        }
+    }, [fetchParticipants, selectedStudyId, preloadedData]);
 
     const handleReviewDecision = async () => {
         if (!reviewModal) return;
@@ -525,7 +557,24 @@ export default function ParticipantOversight({
             {/* Table */}
             <div className="overflow-x-auto custom-scrollbar-horizontal">
                 {isLoading ? (
-                    <SkeletonLoader type="table" rows={5} />
+                    <div className="space-y-3">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <div key={i} className="bg-white/5 border border-white/5 rounded-2xl p-6 flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <Skeleton variant="circle" size="w-10 h-10" dark={true} />
+                                    <div className="space-y-2">
+                                        <Skeleton variant="text" className="w-48 h-3" dark={true} />
+                                        <Skeleton variant="text" className="w-32 h-2 opacity-50" dark={true} />
+                                    </div>
+                                </div>
+                                <div className="hidden md:flex items-center gap-8">
+                                    <Skeleton variant="text" className="w-24 h-2 opacity-30" dark={true} />
+                                    <Skeleton variant="text" className="w-24 h-2 opacity-30" dark={true} />
+                                </div>
+                                <Skeleton variant="text" className="w-20 h-6 rounded-full" dark={true} />
+                            </div>
+                        ))}
+                    </div>
                 ) : error ? (
                     <div className="py-24 flex flex-col items-center gap-4">
                         <AlertCircle className="w-10 h-10 text-red-500/50" />

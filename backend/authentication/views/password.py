@@ -71,6 +71,7 @@ def reset_password(request):
         return Response({'error': list(e.messages)}, status=status.HTTP_400_BAD_REQUEST)
 
     user.set_password(new_password)
+    user.status = 'ACTIVE'
     user.save()
 
     magic_link.is_used = True
@@ -107,6 +108,7 @@ def reset_forced(request):
 
     user.set_password(new_password)
     user.must_change_password = False
+    user.status = 'ACTIVE'
     user.save()
     
     from ..models import AuditLog

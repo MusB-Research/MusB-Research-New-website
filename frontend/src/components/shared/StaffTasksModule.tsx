@@ -6,6 +6,8 @@ import {
     Download, Pen, ZoomIn, ZoomOut
 } from 'lucide-react';
 import { authFetch, API } from '../../utils/auth';
+import { Skeleton } from '../../views/Participant/SharedComponents';
+
 
 interface StaffTask {
     id: string;
@@ -432,11 +434,12 @@ function ConsentReviewModal({
 interface StaffTasksModuleProps {
     primaryColor?: string;
     onRefresh?: () => void;
+    preloadedTasks?: StaffTask[];
 }
 
-export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh }: StaffTasksModuleProps) {
-    const [tasks, setTasks] = useState<StaffTask[]>([]);
-    const [loading, setLoading] = useState(true);
+export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh, preloadedTasks }: StaffTasksModuleProps) {
+    const [tasks, setTasks] = useState<StaffTask[]>(preloadedTasks || []);
+    const [loading, setLoading] = useState(!preloadedTasks || preloadedTasks.length === 0);
     const [reviewTask, setReviewTask] = useState<StaffTask | null>(null);
 
     const isConsentTask = (t: StaffTask) =>
@@ -460,8 +463,13 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh }:
     };
 
     useEffect(() => {
-        fetchTasks();
-    }, []);
+        if (!preloadedTasks || preloadedTasks.length === 0) {
+            fetchTasks();
+        } else {
+            setTasks(preloadedTasks);
+            setLoading(false);
+        }
+    }, [preloadedTasks]);
 
     const markComplete = async (taskId: string) => {
         try {
@@ -487,14 +495,6 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh }:
 
     const accent = primaryColor === 'indigo' ? 'indigo' : 'blue';
 
-    if (loading) {
-        return (
-            <div className="py-24 text-center">
-                <Activity className="w-10 h-10 text-slate-700 mx-auto mb-4 animate-spin" />
-                <p className="text-slate-500 text-sm font-medium">Loading your tasks...</p>
-            </div>
-        );
-    }
 
     return (
         <div className="space-y-10">
@@ -534,7 +534,23 @@ export default function StaffTasksModule({ primaryColor = 'indigo', onRefresh }:
                     </h3>
 
                     <div className="space-y-3">
-                        {pendingTasks.length === 0 ? (
+                        {loading ? (
+                            Array.from({ length: 4 }).map((_, i) => (
+                                <div key={i} className="p-5 rounded-2xl border border-white/5 bg-white/[0.03] space-y-4">
+                                    <div className="flex items-start gap-3">
+                                        <Skeleton variant="circle" size="w-9 h-9" dark={true} className="rounded-xl" />
+                                        <div className="flex-1 space-y-2">
+                                            <Skeleton variant="text" className="w-1/3 h-3" dark={true} />
+                                            <Skeleton variant="text" className="w-2/3 h-2" dark={true} />
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-2">
+                                        <Skeleton variant="text" className="w-24 h-2 opacity-30" dark={true} />
+                                        <Skeleton variant="text" className="w-24 h-8 rounded-xl" dark={true} />
+                                    </div>
+                                </div>
+                            ))
+                        ) : pendingTasks.length === 0 ? (
                             <div className="py-12 text-center">
                                 <CheckCircle2 className="w-7 h-7 text-slate-700 mx-auto mb-4 opacity-40" />
                                 <p className="text-sm text-slate-500 font-black uppercase tracking-widest opacity-60">No pending tasks</p>

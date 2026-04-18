@@ -39,18 +39,18 @@ const BooleanChoice = ({ value, onChange, label, inverse = false }: any) => {
     };
 
     return (
-        <div className="flex items-center justify-between gap-4 py-1">
-            {label && <label className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest flex-1">{label}</label>}
-            <div className="flex gap-1.5 p-1 bg-[#F8FBFF] border border-[#E3ECF5] rounded-[1.25rem] w-fit shadow-inner relative overflow-hidden shrink-0">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-1">
+            {label && <label className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest flex-1 text-center sm:text-left">{label}</label>}
+            <div className="flex gap-1.5 p-1 bg-[#F8FBFF] border border-[#E3ECF5] rounded-[1.25rem] w-full sm:w-fit shadow-inner relative overflow-hidden shrink-0">
                 <button
                     onClick={() => onChange(true)}
-                    className={`px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${getYesStyle()}`}
+                    className={`flex-1 sm:px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${getYesStyle()}`}
                 >
                     Yes
                 </button>
                 <button
                     onClick={() => onChange(false)}
-                    className={`px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${getNoStyle()}`}
+                    className={`flex-1 sm:px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${getNoStyle()}`}
                 >
                     No
                 </button>
@@ -193,11 +193,11 @@ const LogDetailModal = ({ log, onClose }: { log: any; onClose: () => void }) => 
 
 // --- MAIN COMPONENT ---
 
-const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultViewMode = 'FORM' }: { study?: any; onAction?: (title: string, task?: any) => void; preselectedDate?: string | null; preselectedLog?: any; defaultViewMode?: 'FORM' | 'HISTORY' }) => {
+const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultViewMode = 'FORM', initialLogs = [] }: { study?: any; onAction?: (title: string, task?: any) => void; preselectedDate?: string | null; preselectedLog?: any; defaultViewMode?: 'FORM' | 'HISTORY', initialLogs?: any[] }) => {
     const apiUrl = API || 'http://localhost:8000';
 
     // UI Toggle
-    const [viewMode, setViewMode] = useState<'FORM' | 'HISTORY'>(defaultViewMode);
+    const [viewMode, setViewMode] = useState<'FORM' | 'HISTORY'>(defaultViewMode || (initialLogs.length > 0 ? 'HISTORY' : 'FORM'));
 
     // --- DAILY LOG STATE ---
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -246,8 +246,8 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
         }
     }, [preselectedDate]);
 
-    const [history, setHistory] = useState<any[]>([]);
-    const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+    const [history, setHistory] = useState<any[]>(initialLogs);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(initialLogs.length === 0);
     const [selectedLog, setSelectedLog] = useState<any | null>(preselectedLog || null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(!!preselectedLog);
@@ -262,6 +262,26 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
             setViewMode('HISTORY');
         }
     }, [preselectedLog]);
+
+    // NEW: Synergy function to populate form from a log entry
+    const populateFormFromLog = (existing: any) => {
+        if (existing.took_medicine !== undefined) setTookMedicine(existing.took_medicine);
+        if (existing.time_taken) setTimeTaken(existing.time_taken.substring(0, 5));
+        if (existing.full_dose !== undefined) setFullDose(existing.full_dose);
+        if (existing.dose_amount) setDoseAmount(existing.dose_amount);
+        if (existing.reason_missed) setReasonMissed(existing.reason_missed);
+        if (existing.noticed_side_effects !== undefined) setNoticedAE(existing.noticed_side_effects);
+        if (existing.side_effect_description) setAeDescription(existing.side_effect_description);
+        if (existing.side_effect_start_time) setAeStartTime(existing.side_effect_start_time);
+        if (existing.side_effect_ongoing !== undefined) setAeOngoing(existing.side_effect_ongoing);
+        if (existing.severity) setAeSeverity(existing.severity);
+        if (existing.interfered_daily_activities !== undefined) setAeInterfered(existing.interfered_daily_activities);
+        if (existing.sought_medical_care !== undefined) setAeMedicalCare(existing.sought_medical_care);
+        if (existing.ae_additional_comments) setAeComments(existing.ae_additional_comments);
+        if (existing.overall_feeling) setOverallFeeling(existing.overall_feeling);
+        if (existing.health_updates) setHealthUpdates(existing.health_updates);
+    };
+
     const [isProcessingFile, setIsProcessingFile] = useState(false);
     const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -369,11 +389,30 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
     ]);
 
     React.useEffect(() => {
-        fetchHistory();
-        fetchTodayLog();
-    }, []);
+        const today = getLocalISODate(new Date());
+        
+        // 🚀 PERFORMANT ORCHESTRATION: Use preloaded logs instead of re-fetching
+        if (initialLogs && initialLogs.length > 0) {
+            setHistory(initialLogs);
+            setIsLoadingHistory(false);
+            
+            const existing = initialLogs.find((l: any) => l.date === today);
+            if (existing) {
+                setTodayLog(existing);
+                populateFormFromLog(existing);
+            }
+        } else {
+            // Fallback for direct deep-links or manual refresh
+            fetchHistory();
+            fetchTodayLog();
+        }
+    }, [initialLogs]);
+
+    const isFetchingRef = React.useRef(false);
 
     const fetchTodayLog = async () => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
             const today = getLocalISODate(new Date());
             const resp = await authFetch(`${apiUrl}/api/daily-medication-logs/?date=${today}`);
@@ -403,10 +442,14 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
             }
         } catch (e) {
             console.warn('Could not fetch today log', e);
+        } finally {
+            isFetchingRef.current = false;
         }
     };
 
     const fetchHistory = async () => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
         try {
             const resp = await authFetch(`${apiUrl}/api/daily-medication-logs/`);
             if (resp.ok) {
@@ -418,6 +461,7 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
             console.error("History fetch failed", e);
         } finally {
             setIsLoadingHistory(false);
+            isFetchingRef.current = false;
         }
     };
 
@@ -605,9 +649,9 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                             </AnimatePresence>
 
                             {tookMedicine === false && (
-                                <div className="space-y-4 bg-[#FDECEA] p-8 rounded-2xl border border-[#FFCDD2] animate-in zoom-in-95">
+                                <div className="space-y-4 bg-[#FDECEA] p-5 sm:p-8 rounded-2xl border border-[#FFCDD2] animate-in zoom-in-95">
                                     <label className="text-[14px] font-bold text-[#D32F2F] uppercase tracking-widest block">Reason for missed dose</label>
-                                    <textarea value={reasonMissed} onChange={(e) => setReasonMissed(e.target.value)} placeholder="Please explain why the dose was omitted..." className="w-full bg-white border border-[#FFCDD2] rounded-xl p-6 h-32 text-[#D32F2F] font-bold outline-none focus:border-[#D32F2F] shadow-sm resize-none" />
+                                    <textarea value={reasonMissed} onChange={(e) => setReasonMissed(e.target.value)} placeholder="Please explain why the dose was omitted..." className="w-full bg-white border border-[#FFCDD2] rounded-xl p-4 sm:p-6 h-32 text-[#D32F2F] font-bold outline-none focus:border-[#D32F2F] shadow-sm resize-none" />
                                 </div>
                             )}
                         </section>

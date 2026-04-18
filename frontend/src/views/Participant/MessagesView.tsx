@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Search, Plus, Filter, Send, AlertTriangle, ChevronRight, Download, Archive, 
     User, MessageSquare, Check, CheckCheck, Clock, X, FileText, 
-    Image as ImageIcon, ExternalLink, ShieldCheck, Paperclip 
+    Image as ImageIcon, ExternalLink, ShieldCheck, Paperclip, ArrowLeft
 } from 'lucide-react';
 import { Card, Badge, Skeleton } from './SharedComponents';
 import { getUser, API, authFetch } from '../../utils/auth';
@@ -31,13 +31,26 @@ interface Thread {
     status: 'active' | 'awaiting' | 'responded';
 }
 
-const MessagesView = ({ study, conversations = [], onAction, isLoading = false }: { study?: any, conversations?: any[], onAction?: () => void, isLoading?: boolean }) => {
+const MessagesView = ({ 
+    study, 
+    conversations = [], 
+    onAction, 
+    isLoading = false,
+    fullConversations = {},
+    setFullConversations = () => {}
+}: { 
+    study?: any, 
+    conversations?: any[], 
+    onAction?: () => void, 
+    isLoading?: boolean,
+    fullConversations?: Record<string, any>,
+    setFullConversations?: React.Dispatch<React.SetStateAction<Record<string, any>>>
+}) => {
     const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [messageInput, setMessageInput] = useState('');
 
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
-    const [fullConversations, setFullConversations] = useState<Record<string, any>>({});
     const chatEndRef = useRef<HTMLDivElement>(null);
 
     // Map Backend Conversations to UI Threads
@@ -108,10 +121,21 @@ const MessagesView = ({ study, conversations = [], onAction, isLoading = false }
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
+    const [isMobileList, setIsMobileList] = useState(true);
+
+    const handleThreadClick = (id: string) => {
+        setSelectedThreadId(id);
+        setIsMobileList(false);
+    };
+
+    const handleBackToList = () => {
+        setIsMobileList(true);
+    };
+
     if (isLoading) {
         return (
             <div className="h-[calc(100vh-120px)] flex gap-6 pb-2 animate-pulse">
-                <div className="w-80 flex flex-col gap-6 shrink-0">
+                <div className="hidden lg:flex w-80 flex-col gap-6 shrink-0">
                     <Skeleton className="h-8 w-48 rounded-lg" />
                     <Skeleton className="h-14 w-full rounded-2xl" />
                     <div className="space-y-3 flex-1">
@@ -177,9 +201,9 @@ const MessagesView = ({ study, conversations = [], onAction, isLoading = false }
     };
 
     return (
-        <div className="h-[calc(100vh-120px)] flex gap-6 pb-2">
+        <div className="h-[calc(100vh-120px)] flex gap-6 pb-2 overflow-hidden">
             {/* THREAD LIST */}
-            <div className="w-full lg:w-80 flex flex-col gap-6 shrink-0">
+            <div className={`${isMobileList ? 'flex' : 'hidden'} lg:flex w-full lg:w-80 flex-col gap-6 shrink-0`}>
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
                         <h3 className="text-[14px] font-bold text-[#1A2B49] uppercase tracking-widest">Conversations</h3>
@@ -195,7 +219,7 @@ const MessagesView = ({ study, conversations = [], onAction, isLoading = false }
                                     });
                                     if (res.ok) {
                                         const newConv = await res.json();
-                                        setSelectedThreadId(newConv.id);
+                                        handleThreadClick(newConv.id);
                                         if (onAction) onAction();
                                     }
                                 } catch (err) { console.error(err); }
@@ -218,39 +242,49 @@ const MessagesView = ({ study, conversations = [], onAction, isLoading = false }
                 </div>
 
                 <div className="flex-1 overflow-y-auto no-scrollbar space-y-3">
-                    {threads.map((thread) => (
-                        <motion.div
-                            key={thread.id}
-                            onClick={() => setSelectedThreadId(thread.id)}
-                            whileHover={{ x: 4 }}
-                            className={`p-5 rounded-2xl border-2 transition-all cursor-pointer relative group ${selectedThreadId === thread.id
-                                ? 'bg-[#E3F2FD] border-[#1E88E5]/20 shadow-sm'
-                                : 'bg-white border-transparent hover:border-[#E3ECF5]'
-                                }`}
-                        >
-                            <div className="flex items-center justify-between mb-2">
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-inner ${selectedThreadId === thread.id ? 'bg-white text-[#1E88E5]' : 'bg-[#F8FBFF] text-[#B0BCCF]'}`}>
-                                    <User className="w-5 h-5" />
+                    {threads.length === 0 ? (
+                        <div className="p-8 text-center text-[#5F6F89] font-medium text-sm">No conversations found...</div>
+                    ) : (
+                        threads.map((thread) => (
+                            <motion.div
+                                key={thread.id}
+                                onClick={() => handleThreadClick(thread.id)}
+                                whileHover={{ x: 4 }}
+                                className={`p-5 rounded-2xl border-2 transition-all cursor-pointer relative group ${selectedThreadId === thread.id
+                                    ? 'bg-[#E3F2FD] border-[#1E88E5]/20 shadow-sm'
+                                    : 'bg-white border-transparent hover:border-[#E3ECF5]'
+                                    }`}
+                            >
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-inner ${selectedThreadId === thread.id ? 'bg-white text-[#1E88E5]' : 'bg-[#F8FBFF] text-[#B0BCCF]'}`}>
+                                        <User className="w-5 h-5" />
+                                    </div>
+                                    <span className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest">{thread.timestamp}</span>
                                 </div>
-                                <span className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest">{thread.timestamp}</span>
-                            </div>
-                            <h5 className={`text-[14px] font-bold uppercase tracking-tight truncate mb-1 ${selectedThreadId === thread.id ? 'text-[#1E88E5]' : 'text-[#1A2B49]'}`}>{thread.title}</h5>
-                            <p className="text-[12px] font-bold text-[#5F6F89] truncate mb-2">{thread.last_message}</p>
-                            <div className="flex justify-end">
-                                <Badge color={thread.status === 'responded' ? 'green' : 'blue'}>
-                                    {thread.status === 'responded' ? 'Replied' : 'Pending'}
-                                </Badge>
-                            </div>
-                        </motion.div>
-                    ))}
+                                <h5 className={`text-[14px] font-bold uppercase tracking-tight truncate mb-1 ${selectedThreadId === thread.id ? 'text-[#1E88E5]' : 'text-[#1A2B49]'}`}>{thread.title}</h5>
+                                <p className="text-[12px] font-bold text-[#5F6F89] truncate mb-2">{thread.last_message}</p>
+                                <div className="flex justify-end">
+                                    <Badge color={thread.status === 'responded' ? 'green' : 'blue'}>
+                                        {thread.status === 'responded' ? 'Replied' : 'Pending'}
+                                    </Badge>
+                                </div>
+                            </motion.div>
+                        ))
+                    )}
                 </div>
             </div>
 
             {/* CHAT PANEL */}
-            <Card className="flex-1 flex flex-col overflow-hidden relative border-[#E3ECF5] shadow-xl bg-white">
+            <Card className={`${!isMobileList ? 'flex' : 'hidden'} lg:flex flex-1 flex flex-col overflow-hidden relative border-[#E3ECF5] shadow-xl bg-white`}>
                 {/* Header */}
-                <div className="px-4 py-2.5 border-b border-[#E3ECF5] flex items-center justify-between bg-[#F8FBFF]">
+                <div className="px-4 py-3 border-b border-[#E3ECF5] flex items-center justify-between bg-[#F8FBFF]">
                     <div className="flex items-center gap-3">
+                        <button 
+                            onClick={handleBackToList}
+                            className="lg:hidden w-8 h-8 rounded-lg bg-white border border-[#E3ECF5] flex items-center justify-center text-[#5F6F89] hover:text-[#1E88E5] transition-all mr-1"
+                        >
+                            <ArrowLeft className="w-5 h-5" />
+                        </button>
                         <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center text-[#1E88E5] border border-[#E3ECF5] shadow-sm shrink-0">
                             <ShieldCheck className="w-4 h-4" />
                         </div>

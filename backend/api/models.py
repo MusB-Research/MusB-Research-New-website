@@ -149,6 +149,7 @@ class Study(BaseMongoModel):
     duration = models.CharField(max_length=100, blank=True)
     tags = models.JSONField(default=list, blank=True)
     compensation = models.CharField(max_length=255, blank=True)
+    compensation_currency = models.CharField(max_length=10, default='USD', blank=True)
     location = models.CharField(max_length=255, blank=True)
     time_commitment = models.CharField(max_length=255, blank=True)
     overview = models.TextField(blank=True)
@@ -247,6 +248,7 @@ class News(models.Model):
     content = models.TextField()
     type = models.CharField(max_length=50, blank=True)
     published_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
     image = models.ImageField(upload_to='news_images/', null=True, blank=True)
 
 class Event(models.Model):
@@ -319,10 +321,10 @@ class Participant(BaseMongoModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='participant_records')
     
     # Section 18.3: unique study-linked ID
-    participant_sid = models.CharField(max_length=50, unique=True, verbose_name="Participant Study ID")
+    participant_sid = models.CharField(max_length=50, unique=True, verbose_name="Participant Study ID", db_index=True)
     
     # Enrollment Tracking
-    status = models.CharField(max_length=30, default='NEW', choices=[
+    status = models.CharField(max_length=30, default='NEW', db_index=True, choices=[
         ('RECRUITING', 'Recruiting'),
         ('PENDING_REVIEW', 'Pending Review'),
         ('ELIGIBLE', 'Eligible'),
@@ -532,36 +534,47 @@ class StudyQuestionnaire(BaseMongoModel):
         if self.relative_to_enrollment:
             base_date = participant.created_at.date()
 
+        # Step 1: Pre-calculate all target dates
+        target_dates_map = {}
         for i in range(self.repeat_count):
             offset_days = 0
-            
-            # Use new flexible logic if interval is set, otherwise fallback to old repeat_type
             if self.frequency_interval and self.frequency_unit:
-                if self.frequency_unit == 'DAYS':
-                    offset_days = i * self.frequency_interval
-                elif self.frequency_unit == 'WEEKS':
-                    offset_days = i * 7 * self.frequency_interval
-                elif self.frequency_unit == 'MONTHS':
-                    offset_days = i * 30 * self.frequency_interval
+                if self.frequency_unit == 'DAYS': offset_days = i * self.frequency_interval
+                elif self.frequency_unit == 'WEEKS': offset_days = i * 7 * self.frequency_interval
+                elif self.frequency_unit == 'MONTHS': offset_days = i * 30 * self.frequency_interval
             else:
-                # Fallback for legacy data
                 if self.repeat_type == 'DAILY': offset_days = i
                 elif self.repeat_type == 'WEEKLY': offset_days = i * 7
                 elif self.repeat_type == 'MONTHLY': offset_days = i * 30
             
             target_date = base_date + timedelta(days=offset_days)
-            win_open = datetime.combine(target_date, self.window_open_time) if self.window_open_time else None
-            win_close = datetime.combine(target_date, self.window_close_time) if self.window_close_time else None
+            target_dates_map[target_date] = {
+                'open': datetime.combine(target_date, self.window_open_time) if self.window_open_time else None,
+                'close': datetime.combine(target_date, self.window_close_time) if self.window_close_time else None
+            }
 
-            QuestionnaireScheduleInstance.objects.get_or_create(
-                study_questionnaire=self,
-                participant=participant,
-                scheduled_date=target_date,
-                defaults={
-                    'window_open_at': win_open,
-                    'window_close_at': win_close
-                }
-            )
+        # Step 2: Fetch existing instances in ONE query
+        existing_dates = set(QuestionnaireScheduleInstance.objects.filter(
+            study_questionnaire=self,
+            participant=participant,
+            scheduled_date__in=target_dates_map.keys()
+        ).values_list('scheduled_date', flat=True))
+
+        # Step 3: Identify missing instances and bulk_create
+        new_instances = []
+        for date, windows in target_dates_map.items():
+            if date not in existing_dates:
+                new_instances.append(QuestionnaireScheduleInstance(
+                    study_questionnaire=self,
+                    participant=participant,
+                    scheduled_date=date,
+                    window_open_at=windows['open'],
+                    window_close_at=windows['close']
+                ))
+        
+        if new_instances:
+            QuestionnaireScheduleInstance.objects.bulk_create(new_instances)
+
 
     def __str__(self):
         return f"{self.study.protocol_id} - {self.template.name}"
@@ -578,13 +591,13 @@ class QuestionnaireScheduleInstance(BaseMongoModel):
 
     study_questionnaire = models.ForeignKey(StudyQuestionnaire, on_delete=models.CASCADE, related_name='instances')
     participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='scheduled_questionnaires')
-    scheduled_date = models.DateField()
+    scheduled_date = models.DateField(db_index=True)
     
     # Precise timing windows
     window_open_at = models.DateTimeField(null=True, blank=True)
     window_close_at = models.DateTimeField(null=True, blank=True)
     
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', db_index=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     lateness_minutes = models.IntegerField(default=0, help_text="Minutes submitted after window_close_at")
     

@@ -63,10 +63,11 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
         if (initialKits && initialKits.length > 0) {
             setKits(initialKits);
             setInternalLoading(false);
-        } else {
+        } else if (!isLoading) {
+            // Only fetch if parent isn't already loading its summary
             fetchKits();
         }
-    }, [initialKits]);
+    }, [initialKits, isLoading]);
 
     const fetchKits = async () => {
         setInternalLoading(true);

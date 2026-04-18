@@ -25,26 +25,48 @@ import {
     XCircle
 } from 'lucide-react';
 
-export default function AnalyticsModule({ selectedStudyId }: { selectedStudyId?: string }) {
+export default function AnalyticsModule({ 
+    selectedStudyId,
+    preloadedData,
+    isLoading: parentLoading
+}: { 
+    selectedStudyId?: string;
+    preloadedData?: any;
+    isLoading?: boolean;
+}) {
     const [activeView, setActiveView] = useState<'Recruitment' | 'Adherence' | 'Data Quality'>('Recruitment');
     const [stats, setStats] = useState<any>(null);
     const [tracking, setTracking] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (preloadedData) {
+            setStats(preloadedData.stats);
+            setTracking(preloadedData.participant_tracking);
+            setLoading(false);
+            return;
+        }
+
         const fetchData = async () => {
             if (!selectedStudyId || selectedStudyId === 'all') {
                 setLoading(false);
                 return;
             }
+            if (parentLoading) {
+                setLoading(true);
+                return;
+            }
+
             setLoading(true);
             try {
-                const [sData, tData] = await Promise.all([
-                    authFetch(`${API}/api/studies/${selectedStudyId}/stats/`).then(r => r.json()),
-                    authFetch(`${API}/api/studies/${selectedStudyId}/participant_tracking/`).then(r => r.json())
-                ]);
-                setStats(sData);
-                setTracking(tData);
+                const res = await authFetch(`${API}/api/studies/${selectedStudyId}/coordinator_summary/`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setStats(data.stats);
+                    setTracking(data.participant_tracking);
+                } else {
+                    console.error("PI Analytics fetch failed", res.status);
+                }
             } catch (err) {
                 console.error("PI Analytics fetch failed", err);
             } finally {
@@ -52,7 +74,7 @@ export default function AnalyticsModule({ selectedStudyId }: { selectedStudyId?:
             }
         };
         fetchData();
-    }, [selectedStudyId]);
+    }, [selectedStudyId, preloadedData, parentLoading]);
 
     if (!selectedStudyId || selectedStudyId === 'all') {
         return (
@@ -65,10 +87,12 @@ export default function AnalyticsModule({ selectedStudyId }: { selectedStudyId?:
     }
 
     const complianceKPIs = [
-        { label: 'Overall Compliance', val: `${stats?.completion?.compliance_rate || 0}%`, trend: 'up', icon: Target, color: 'emerald' },
-        { label: 'Late Submissions', val: stats?.completion?.late || 0, trend: 'down', icon: Clock, color: 'amber' },
-        { label: 'Missed Windows', val: stats?.completion?.missed || 0, trend: 'down', icon: AlertTriangle, color: 'red' },
-        { label: 'Total Enrolled', val: stats?.enrolled || 0, trend: 'up', icon: Users, color: 'indigo' },
+        { label: 'Overall Adherence', val: `${stats?.compliance || 0}%`, trend: 'up', icon: Target, color: 'emerald' },
+        { label: 'Upcoming Visits', val: stats?.visits?.upcoming || 0, trend: 'neutral', icon: Calendar, color: 'indigo' },
+        { label: 'Overdue Visits', val: stats?.visits?.overdue || 0, trend: 'down', icon: AlertTriangle, color: 'red' },
+        { label: 'Missed Tasks', val: stats?.completion?.missed || 0, trend: 'down', icon: XCircle, color: 'rose' },
+        { label: 'Late Tasks', val: stats?.completion?.late || 0, trend: 'down', icon: Clock, color: 'amber' },
+        { label: 'Total Enrolled', val: stats?.enrolled || 0, trend: 'up', icon: Users, color: 'teal' },
     ];
 
     if (loading) {

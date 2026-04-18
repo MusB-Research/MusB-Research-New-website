@@ -53,6 +53,9 @@ urlpatterns = [
     path('api/support/', include('support.urls')),
 ]
 
-if settings.DEBUG:
-    from django.conf.urls.static import static
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+from django.conf.urls.static import static
+import os
+
+# Serve media files in both development and production (required for Render persistent disk)
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+

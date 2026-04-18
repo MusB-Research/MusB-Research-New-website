@@ -42,9 +42,12 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
     def sanitize_data(data):
         """Recursively convert ObjectIds and other non-serializable types to strings."""
         if isinstance(data, dict):
+            # Optimization: use dict comprehension
             return {k: SanitizedModelSerializer.sanitize_data(v) for k, v in data.items()}
         elif isinstance(data, list):
+            # Optimization: use list comprehension
             return [SanitizedModelSerializer.sanitize_data(v) for v in data]
+        # Faster type check for common BSON type
         elif type(data).__name__ == 'ObjectId':
             return str(data)
         return data
@@ -57,43 +60,39 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
         # 2. Recursive Sanitization (MANDATORY for MongoDB ObjectId -> JSON)
         ret = SanitizedModelSerializer.sanitize_data(ret)
 
-        # 3. Optimization: Skip expensive decryption loop if no Fernet tokens exist at top-level
-        # Only scan if ret is a dictionary (single object representation)
-        if isinstance(ret, dict):
-            try:
-                has_pii = any(isinstance(v, str) and v.startswith('gAAAA') for v in ret.values())
-                if not has_pii:
-                    return ret
-            except Exception:
-                pass
+        # 3. Optimization: Quick exit if no encrypted data is present
+        # Most objects won't have encrypted data. A single string scan is cheaper than a loop with permission checks.
+        ret_str = str(ret) # Quick serialization check
+        if 'gAAAA' not in ret_str:
+            return ret
 
         request = self.context.get('request')
         user = request.user if request else None
-        is_authorized = user and user.is_authenticated and (user.role.upper() in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR'])
+        is_authorized = user and user.is_authenticated and (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR']
         
-        # 4. Decryption loop for authorized roles
+        # 4. Target Decryption (avoid nested loops where possible)
         for key, value in ret.items():
             if isinstance(value, str) and value.startswith('gAAAA'):
                 can_decrypt = is_authorized
                 if not can_decrypt and user and user.is_authenticated:
+                    # Check if user is the resource owner
                     iid = str(instance.pk) if hasattr(instance, 'pk') else None
                     uid = str(user.pk) if hasattr(user, 'pk') else None
                     if iid and uid and iid == uid:
                         can_decrypt = True
                     elif hasattr(instance, 'user') and instance.user:
-                        instance_user_pk = str(instance.user.pk) if hasattr(instance.user, 'pk') else None
-                        if instance_user_pk and uid and instance_user_pk == uid:
+                        i_user_pk = str(instance.user.pk) if hasattr(instance.user, 'pk') else None
+                        if i_user_pk and uid and i_user_pk == uid:
                             can_decrypt = True
                 
                 if can_decrypt:
                     from authentication.security import decrypt_data
-                    decrypted = decrypt_data(value)
-                    if decrypted != value:
-                        ret[key] = decrypted
-
-        if 'created_by' in ret and hasattr(instance, 'created_by') and instance.created_by:
-            ret['created_by'] = str(instance.created_by.pk)
-            
+                    try:
+                        decrypted = decrypt_data(value)
+                        if decrypted != value:
+                            ret[key] = decrypted
+                    except:
+                        pass
         return ret
 
     def to_internal_value(self, data):
@@ -148,14 +147,32 @@ class UserSerializer(SanitizedModelSerializer):
             'first_name', 'last_name'
         ]
 
+    def validate_status(self, value):
+        if value:
+            return value.upper()
+        return value
+
+    def validate_role(self, value):
+        if value:
+            return value.upper()
+        return value
+        
+    def validate_affiliation(self, value):
+        if value:
+            return value.upper()
+        return value
+
     def to_representation(self, instance):
         """Ultra-robust decryption enforcement for all User fields."""
-        from authentication.security import decrypt_data
-        
-        # Get raw representation first
+        # Use simple string check for performance first
         ret = super().to_representation(instance)
         
-        # Scan all fields for Fernet tokens and attempt decryption
+        if 'gAAAA' not in str(ret):
+            return ret
+
+        from authentication.security import decrypt_data
+        
+        # Decrypt identified tokens
         for field, val in ret.items():
             if isinstance(val, str) and val.startswith('gAAAA'):
                 try:
@@ -281,6 +298,7 @@ class StudySerializer(SanitizedModelSerializer):
     reward_logic = serializers.ChoiceField(choices=REWARD_LOGIC_CHOICES, required=False, default='PER_TASK')
     reward_config = serializers.JSONField(required=False, default=dict)
     compensation = serializers.CharField(required=False, allow_blank=True, default='')
+    compensation_currency = serializers.CharField(required=False, allow_blank=True, default='USD')
     tags = serializers.JSONField(required=False, default=list)
     timeline = serializers.JSONField(required=False, default=list)
     privacy_standards = serializers.JSONField(required=False, default=list)
@@ -318,7 +336,7 @@ class StudySerializer(SanitizedModelSerializer):
             'assigned_pis', 'assigned_coordinators', 'assigned_sponsors', 'approval_status', 'created_by', 'created_by_role',
             'primary_indication', 'trial_model', 'phase', 'masking_strategy', 'is_double_blind', 'has_placebo_control',
             'has_screening_log', 'shipment_mode', 'consent_mode', 'condition',
-            'trial_format', 'benefit', 'duration', 'tags', 'compensation', 'location', 'uses_kit',
+            'trial_format', 'benefit', 'duration', 'tags', 'compensation', 'compensation_currency', 'location', 'uses_kit',
             'time_commitment', 'overview', 'timeline', 'kits_info', 'safety_info',
             'privacy_standards', 'remote_participation', 'start_date', 'end_date',
             'launch_date', 'irb_status', 'target_subjects', 'target_screened', 'actual_screened',

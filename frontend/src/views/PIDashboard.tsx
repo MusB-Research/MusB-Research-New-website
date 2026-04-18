@@ -231,10 +231,10 @@ export default function PIDashboard() {
         };
 
         document.addEventListener('mousedown', handleClickOutside);
-        window.addEventListener('scroll', handleScroll, true);
+        window.addEventListener('scroll', handleScroll, false);
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
-            window.removeEventListener('scroll', handleScroll, true);
+            window.removeEventListener('scroll', handleScroll, false);
         };
     }, [isProfileOpen]);
 
@@ -272,6 +272,34 @@ export default function PIDashboard() {
     });
     const [participantsByStudy, setParticipantsByStudy] = useState<Record<string, number>>({});
     const [globalSelectedStudyId, setGlobalSelectedStudyId] = useState<string>('all');
+    const [summaryData, setSummaryData] = useState<any>(null);
+    const [summaryLoading, setSummaryLoading] = useState(false);
+
+    // Consolidated Data Orchestration: Fetch Summary when selection changes
+    useEffect(() => {
+        const fetchSummary = async () => {
+            if (!globalSelectedStudyId || globalSelectedStudyId === 'all') {
+                setSummaryData(null);
+                return;
+            }
+            
+            setSummaryLoading(true);
+            try {
+                // Use the consolidated coordinator_summary endpoint (reused for PI as well)
+                const res = await authFetch(`${API}/api/studies/${globalSelectedStudyId}/coordinator_summary/`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setSummaryData(data);
+                }
+            } catch (err) {
+                console.error("[PI Dashboard] Failed to fetch study summary:", err);
+            } finally {
+                setSummaryLoading(false);
+            }
+        };
+
+        fetchSummary();
+    }, [globalSelectedStudyId]);
 
     const fetchAllData = useCallback(async () => {
         setLoading(true);
@@ -336,10 +364,26 @@ export default function PIDashboard() {
         }
     }, []);
 
+    const mountGuard = useRef({ checkMissed: false });
+
     useEffect(() => {
         fetchAllData();
-        // Removed aggressive 30-second polling interval to prevent infinite fetching loop
     }, [fetchAllData]);
+
+    // [PERFORMANCE] One-time Dashboard Initialization
+    useEffect(() => {
+        const initializeDashboard = async () => {
+            if (mountGuard.current.checkMissed) return;
+            mountGuard.current.checkMissed = true;
+
+            try {
+                // Trigger missed visit check to ensure oversight stats are accurate
+                await authFetch(`${API}/api/visits/check_missed/`, { method: 'POST' });
+            } catch (e) { /* silent check */ }
+        };
+
+        initializeDashboard();
+    }, []);
 
     useEffect(() => {
         const handleNav = () => handleModuleChange('PARTICIPANTS');
@@ -403,8 +447,7 @@ export default function PIDashboard() {
             group: 'Research',
             items: [
                 { id: 'STUDIES', label: 'My Studies', icon: Beaker },
-                { id: 'TEAM', label: 'My Team', icon: Users },
-                { id: 'TEAM_INVENTORY', label: 'Team Inventory', icon: UsersRound },
+                { id: 'TEAM', label: 'Invited Team Members', icon: Users },
                 { id: 'PARTICIPANTS', label: 'Participants', icon: UsersRound },
                 { id: 'SUBJECT_REVIEW', label: 'Review', icon: Activity },
                 { id: 'FORMS', label: 'Screening Forms', icon: ClipboardList },
@@ -666,10 +709,17 @@ export default function PIDashboard() {
                             members={users} 
                             loading={loading}
                             onRefresh={fetchAllData}
+                            selectedStudyId={globalSelectedStudyId}
                         />
                     )}
                     {activeModule === 'MESSAGES' && <PIMessagesModule />}
-                    {activeModule === 'SUBJECT_REVIEW' && <SubjectReviewModule participantId={selectedParticipantId || ''} selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined} />}
+                    {activeModule === 'SUBJECT_REVIEW' && (
+                        <SubjectReviewModule 
+                            participantId={selectedParticipantId || ''} 
+                            selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined}
+                            preloadedTracking={summaryData?.participant_tracking}
+                        />
+                    )}
                     {activeModule === 'TEAM' && (
                         <PITeamModule 
                             allUsers={users} 
@@ -680,27 +730,66 @@ export default function PIDashboard() {
                     )}
                     {activeModule === 'PARTICIPANTS' && <ParticipantOversight
                         selectedStudyId={globalSelectedStudyId}
+                        preloadedData={summaryData}
+                        isLoadingSummary={summaryLoading}
                         onOpenProfile={(id) => {
                             setSelectedParticipantId(id);
                             setActiveModule('SUBJECT_REVIEW');
                         }}
                     />}
                     {activeModule === 'FORMS' && <FormsQuestionnairesModule />}
-                    {activeModule === 'CONSENT' && <ConsentModule selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined} />}
-                    {activeModule === 'VISITS' && <VisitsModule selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined} />}
-                    {activeModule === 'LABS' && <LabsResultsModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'KITS' && <StudyKitsModule selectedStudyId={globalSelectedStudyId} />}
+                    {activeModule === 'CONSENT' && (
+                        <ConsentModule 
+                            selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined} 
+                            preloadedStudies={studies}
+                        />
+                    )}
+                    {activeModule === 'VISITS' && (
+                        <VisitsModule 
+                            selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined} 
+                            preloadedParticipants={participants}
+                            preloadedStudies={studies}
+                            preloadedTasks={tasks}
+                            onRefresh={fetchAllData}
+                        />
+                    )}
+                    {activeModule === 'LABS' && (
+                        <LabsResultsModule 
+                            selectedStudyId={globalSelectedStudyId} 
+                            preloadedStudies={studies}
+                        />
+                    )}
+                    {activeModule === 'KITS' && (
+                        <StudyKitsModule 
+                            selectedStudyId={globalSelectedStudyId} 
+                            preloadedStudies={studies}
+                            preloadedParticipants={participants}
+                        />
+                    )}
                     {activeModule === 'ALERTS' && <AlertsModule />}
                     {activeModule === 'SUPPORT' && <PIHelpSupportModule />}
                     {activeModule === 'AUDIT_LOG' && <AuditLogModule />}
-                    {activeModule === 'TASKS' && <StaffTasksModule primaryColor="teal" onRefresh={fetchAllData} />}
+                    {activeModule === 'TASKS' && (
+                        <StaffTasksModule 
+                            primaryColor="teal" 
+                            onRefresh={fetchAllData} 
+                            preloadedTasks={tasks}
+                        />
+                    )}
                     {activeModule === 'PARTICIPANT_TASKS' && <ParticipantTaskManagement primaryColor="teal" />}
                     {activeModule === 'STUDY_DOCS' && <StudyDocumentsModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'ANALYTICS' && <AnalyticsModule selectedStudyId={globalSelectedStudyId} />}
+                    {activeModule === 'ANALYTICS' && (
+                        <AnalyticsModule 
+                            selectedStudyId={globalSelectedStudyId}
+                            preloadedData={summaryData}
+                            isLoading={summaryLoading}
+                        />
+                    )}
                     {activeModule === 'SPONSORS' && (
                         <SponsorsManagement 
                             onRefresh={fetchAllData}
                             selectedStudyId={globalSelectedStudyId !== 'all' ? globalSelectedStudyId : undefined}
+                            preloadedStudies={studies}
                         />
                     )}
                 </AnimatePresence>
@@ -848,14 +937,15 @@ function OverviewModule({ loading, studyCount, participantCount, stats, visits, 
                 </div>
 
                 <div className="grid grid-cols-7 bg-white/[0.02] border-b border-white/5">
-                    {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map(d => (
-                        <div key={d} className="py-3 text-center text-xs font-bold text-white/30 tracking-[0.2em]">
-                            {d}
+                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+                        <div key={i} className="py-3 text-center text-[10px] md:text-xs font-black text-white/30 tracking-[0.2em] uppercase">
+                            <span className="hidden md:inline">{['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'][i]}</span>
+                            <span className="md:hidden">{d}</span>
                         </div>
                     ))}
                 </div>
 
-                <div className="grid grid-cols-7 h-[350px]">
+                <div className="grid grid-cols-7 auto-rows-fr md:min-h-[400px]">
                     {Array.from({ length: 35 }).map((_, i) => {
                         const { daysInMonth, firstDay, sessionsByDate } = calendarData;
                         const adjFirstDay = (firstDay === 0 ? 6 : firstDay - 1);
@@ -870,34 +960,51 @@ function OverviewModule({ loading, studyCount, participantCount, stats, visits, 
                         return (
                             <div 
                                 key={i} 
-                                className={`p-2 border-r border-b border-white/5 min-h-[70px] group transition-all min-w-0 overflow-hidden
-                                    ${!isCurrentMonth ? 'bg-black/20 opacity-10' : 'hover:bg-white/[0.03]'}
-                                    ${isToday ? 'bg-teal-500/5' : ''}
+                                className={`p-1.5 md:p-3 border-r border-b border-white/5 aspect-square md:aspect-auto min-h-[60px] md:min-h-[90px] group transition-all relative overflow-hidden
+                                    ${!isCurrentMonth ? 'bg-black/20 opacity-[0.05]' : 'hover:bg-teal-500/[0.02]'}
+                                    ${isToday ? 'bg-teal-500/[0.07] ring-1 ring-inset ring-teal-500/20' : ''}
                                 `}
                             >
-                                <div className="flex justify-between items-start mb-1">
-                                    <span className={`text-xs font-bold tracking-tight ${isToday ? 'text-teal-400' : isCurrentMonth ? 'text-white/40 group-hover:text-white/80' : 'text-white/10'}`}>
+                                <div className="flex justify-between items-start mb-1 md:mb-2">
+                                    <span className={`text-[10px] md:text-xs font-black italic tracking-tighter ${isToday ? 'text-teal-400' : isCurrentMonth ? 'text-white/40 group-hover:text-white/80' : 'text-white/10'}`}>
                                         {isCurrentMonth ? dayNum.toString().padStart(2, '0') : ''}
                                     </span>
+                                    {isToday && isCurrentMonth && <div className="w-1 h-1 rounded-full bg-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.6)]" />}
                                 </div>
-                                <div className="space-y-1">
-                                    {daySessions.slice(0, 2).map((s, idx) => (
+
+                                {/* Desktop View: Text Labels */}
+                                <div className="hidden md:block space-y-1.5">
+                                    {daySessions.slice(0, 3).map((s, idx) => (
                                         <button 
                                             key={idx} 
-                                            title={`Click to open Visits manager. Event details: ${s.label}`}
+                                            title={`Visit Tracker: ${s.label}`}
                                             onClick={(e) => { e.stopPropagation(); onNavigate('VISITS'); }}
-                                            className={`px-2 py-1 rounded text-xs leading-tight font-bold uppercase tracking-tighter truncate w-full text-left transition-all active:scale-95 block
-                                                ${s.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20' : 
-                                                  s.status === 'SCHEDULED' ? 'bg-teal-500/10 text-teal-300 border border-teal-500/20 hover:bg-teal-500/20' : 
-                                                  'bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20'}
+                                            className={`px-2 py-1 rounded-lg text-[9px] leading-none font-black uppercase tracking-widest truncate w-full text-left transition-all active:scale-95 border
+                                                ${s.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
+                                                  s.status === 'SCHEDULED' ? 'bg-teal-500/10 text-teal-300 border-teal-500/20' : 
+                                                  'bg-red-500/10 text-red-400 border-red-500/20'}
                                             `}
                                         >
                                             {s.label}
                                         </button>
                                     ))}
-                                    {daySessions.length > 2 && (
-                                        <p className="text-[6px] text-white/20 font-bold uppercase tracking-wider pl-1">+{daySessions.length - 2} more</p>
+                                    {daySessions.length > 3 && (
+                                        <p className="text-[8px] text-white/20 font-black uppercase tracking-[0.2em] pl-1">+{daySessions.length - 3} More</p>
                                     )}
+                                </div>
+
+                                {/* Mobile/Tablet View: Activity Dots */}
+                                <div className="flex flex-wrap gap-1 md:hidden mt-1">
+                                    {daySessions.map((s, idx) => (
+                                        <div 
+                                            key={idx} 
+                                            className={`w-1.5 h-1.5 rounded-full shadow-sm
+                                                ${s.status === 'COMPLETED' ? 'bg-emerald-500' : 
+                                                  s.status === 'SCHEDULED' ? 'bg-teal-500' : 
+                                                  'bg-red-500'}
+                                            `}
+                                        />
+                                    ))}
                                 </div>
                             </div>
                         );

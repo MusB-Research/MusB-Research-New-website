@@ -35,7 +35,7 @@ interface LabSample {
     isReleased: boolean;
 }
 
-export default function LabsResultsModule({ selectedStudyId }: { selectedStudyId?: string }) {
+export default function LabsResultsModule({ selectedStudyId, preloadedStudies }: { selectedStudyId?: string, preloadedStudies?: any[] }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [samples, setSamples] = useState<LabSample[]>([]);
     const [isLoading, setIsLoading] = useState(true);

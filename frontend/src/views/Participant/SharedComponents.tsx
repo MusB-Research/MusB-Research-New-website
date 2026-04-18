@@ -302,19 +302,21 @@ export const LogoutConfirmationModal = ({ isOpen, onClose, onConfirm }: any) => 
     );
 };
 
-export const Skeleton = ({ className = '', variant = 'card', ...props }: any) => {
+export const Skeleton = ({ className = '', variant = 'card', dark = false, ...props }: any) => {
     const variants: Record<string, string> = {
-        card: 'bg-white border border-[#E3ECF5] rounded-[16px]',
-        item: 'bg-[#F8FBFF] border border-[#E3ECF5] rounded-[12px]',
-        text: 'bg-[#F0F6FF] rounded-lg',
-        circle: 'bg-[#F0F6FF] rounded-full'
+        card: dark ? 'bg-white/5 border border-white/5 rounded-[16px]' : 'bg-white border border-[#E3ECF5] rounded-[16px]',
+        item: dark ? 'bg-white/[0.03] border border-white/5 rounded-[12px]' : 'bg-[#F8FBFF] border border-[#E3ECF5] rounded-[12px]',
+        text: dark ? 'bg-white/10 rounded-lg' : 'bg-[#F0F6FF] rounded-lg',
+        circle: dark ? 'bg-white/10 rounded-full' : 'bg-[#F0F6FF] rounded-full'
     };
     return (
         <div className={`relative overflow-hidden ${variants[variant] || variants.card} ${className} animate-pulse`} {...props}>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+            <div className={`absolute inset-0 bg-gradient-to-r from-transparent ${dark ? 'via-white/5' : 'via-white/40'} to-transparent`} />
         </div>
     );
 };
+
+
 
 export const SkeletonText = ({ className = '', width = 'w-full', height = 'h-4' }: any) => (
     <Skeleton variant="text" className={`${width} ${height} ${className}`} />

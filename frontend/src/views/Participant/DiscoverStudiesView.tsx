@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Loader2, ClipboardCheck, ArrowRight, Clock, MapPin, DollarSign, ChevronRight, Activity, Filter, Info, LayoutGrid, List } from 'lucide-react';
+import { Search, Loader2, ClipboardCheck, ArrowRight, Clock, MapPin, DollarSign, ChevronRight, Activity, Filter, Info, LayoutGrid, List, Banknote } from 'lucide-react';
 import { authFetch, API } from '../../utils/auth';
+import { CURRENCY_SYMBOLS } from '../../components/coordinator/LaunchStudyForm';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Card, Badge, Skeleton } from './SharedComponents';
@@ -240,10 +241,11 @@ export default function DiscoverStudiesView({ loading: externalLoading }: { load
                                             {study.visits || 'Hybrid'} Protocol
                                         </div>
                                         {study.compensation && (
-                                            <div className="flex items-center gap-2 text-[10px] font-bold text-[#4CAF50] uppercase tracking-wide">
-                                                <div className="p-0.5 bg-[#E8F5E9] rounded-md"><DollarSign className="w-3 h-3" /></div>
-                                                Compensated
-                                            </div>
+                                                <div className="px-2.5 py-1 bg-[#F0FDF4] border border-[#DCFCE7] rounded-full flex items-center gap-1.5">
+                                                    <span className="text-[11px] font-bold text-[#166534]">{CURRENCY_SYMBOLS[study.compensation_currency] || '$'}{study.compensation}</span>
+                                                    <span className="w-1 h-1 rounded-full bg-[#166534]/30" />
+                                                    <span className="text-[10px] font-bold text-[#166534] uppercase tracking-wide">You will be compensated</span>
+                                                </div>
                                         )}
                                     </div>
                                 </div>

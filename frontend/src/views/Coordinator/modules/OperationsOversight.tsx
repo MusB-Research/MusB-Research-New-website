@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus, Beaker, Users, Bell, Calendar as CalendarIcon,
-    ChevronLeft, ChevronRight, Clock, Phone, FileText
+    ChevronLeft, ChevronRight, Clock, Phone, FileText, Activity
 } from 'lucide-react';
+
+import { Skeleton } from '../../Participant/SharedComponents';
 
 interface Stats {
     upcomingVisits: number;
@@ -30,6 +32,7 @@ interface OversightModuleProps {
     onLaunch: () => void;
     onNavigate: (id: string) => void;
     isAdmin?: boolean;
+    isLoading?: boolean;
 }
 
 export const OperationsOversight: React.FC<OversightModuleProps> = ({
@@ -39,7 +42,8 @@ export const OperationsOversight: React.FC<OversightModuleProps> = ({
     visits,
     onLaunch,
     onNavigate,
-    isAdmin = false
+    isAdmin = false,
+    isLoading = false
 }) => {
     const [viewDate, setViewDate] = useState(new Date());
     const [selectedDayVisits, setSelectedDayVisits] = useState<{ date: Date; visits: Visit[] } | null>(null);
@@ -83,7 +87,17 @@ export const OperationsOversight: React.FC<OversightModuleProps> = ({
 
             {/* Simplified KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[
+                {isLoading ? (
+                    Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="bg-[#1E293B]/40 border border-white/5 p-5 rounded-2xl">
+                            <div className="flex items-center gap-3 mb-4">
+                                <Skeleton variant="circle" size="w-9 h-9" dark={true} />
+                                <Skeleton variant="text" className="w-24 h-3" dark={true} />
+                            </div>
+                            <Skeleton variant="text" className="w-16 h-8" dark={true} />
+                        </div>
+                    ))
+                ) : [
                     { label: 'Active studies', val: studyCount, icon: Beaker, id: 'STUDIES', color: 'text-blue-500', bg: 'bg-blue-500/10' },
                     { label: 'Participants', val: stats.activeSubjects, icon: Users, id: 'PARTICIPANTS', color: 'text-slate-400', bg: 'bg-slate-400/10' },
                     { label: 'New alerts', val: stats.overdueFollowUps > 0 ? stats.overdueFollowUps.toString().padStart(2, '0') : '00', icon: Bell, id: 'ALERTS', color: 'text-rose-500', bg: 'bg-rose-500/10' },
@@ -109,7 +123,20 @@ export const OperationsOversight: React.FC<OversightModuleProps> = ({
             <div className="space-y-6">
                 <h3 className="text-sm font-black text-slate-500 tracking-widest uppercase italic">Action items Required</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {[
+                    {isLoading ? (
+                        Array.from({ length: 3 }).map((_, i) => (
+                            <div key={i} className="flex items-center justify-between p-5 bg-[#1E293B]/20 border border-white/5 rounded-2xl">
+                                <div className="flex items-center gap-4">
+                                    <Skeleton variant="circle" size="w-10 h-10" dark={true} className="rounded-xl" />
+                                    <div className="space-y-2">
+                                        <Skeleton variant="text" className="w-24 h-3" dark={true} />
+                                        <Skeleton variant="text" className="w-32 h-2 opacity-50" dark={true} />
+                                    </div>
+                                </div>
+                                <Skeleton variant="text" className="w-8 h-8" dark={true} />
+                            </div>
+                        ))
+                    ) : [
                         { label: 'Late tasks', val: stats.overdueFollowUps, icon: Clock, color: 'text-rose-500', bg: 'bg-rose-500/10', sub: 'Immediate attention required' },
                         { label: 'Calls to make', val: stats.awaitingCallback, icon: Phone, color: 'text-blue-500', bg: 'bg-blue-500/10', sub: 'Pending participant outreach' },
                         { label: 'Forms to finish', val: stats.pendingForms, icon: FileText, color: 'text-blue-500', bg: 'bg-blue-500/10', sub: 'Incomplete study documentation' },
@@ -143,50 +170,69 @@ export const OperationsOversight: React.FC<OversightModuleProps> = ({
                         </div>
                     </div>
 
-                    <div className="bg-[#0B101B]/50 border border-white/5 rounded-[2.5rem] p-8 xl:p-10 overflow-hidden shadow-2xl">
-                        <div className="grid grid-cols-7 gap-2">
-                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                                <div key={d} className="text-center text-[10px] font-black text-slate-700 py-4 tracking-widest uppercase">{d}</div>
-                            ))}
-                            {calendarDays.map((date, i) => {
-                                if (!date) return <div key={i} className="aspect-square opacity-5" />;
-                                const isToday = date.toDateString() === new Date().toDateString();
-                                const dayVisits = getVisitsForDay(date);
+                <div className="bg-[#0B101B]/50 border border-white/5 rounded-[2.5rem] p-4 md:p-8 xl:p-10 overflow-hidden shadow-2xl">
+                    <div className="grid grid-cols-7 gap-1 md:gap-2">
+                        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                            <div key={i} className="text-center text-[9px] md:text-[10px] font-black text-slate-700 py-3 md:py-4 tracking-widest uppercase italic">
+                                <span className="hidden md:inline">{['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][i]}</span>
+                                <span className="md:hidden">{d}</span>
+                            </div>
+                        ))}
+                        {isLoading ? (
+                            Array.from({ length: 35 }).map((_, i) => (
+                                <div key={i} className="aspect-square md:aspect-[4/3] p-0.5 md:p-1">
+                                    <Skeleton variant="card" className="w-full h-full rounded-xl md:rounded-2xl" dark={true} />
+                                </div>
+                            ))
+                        ) : calendarDays.map((date, i) => {
+                            if (!date) return <div key={i} className="aspect-square opacity-[0.02]" />;
+                            const isToday = date.toDateString() === new Date().toDateString();
+                            const dayVisits = getVisitsForDay(date);
 
-                                return (
-                                    <div key={i} className="aspect-[4/3] p-1 relative group">
-                                        <button 
-                                            onClick={() => dayVisits.length > 0 && setSelectedDayVisits({ date, visits: dayVisits })}
-                                            className={`w-full h-full rounded-2xl border flex flex-col items-center p-3 gap-2 transition-all ${
-                                                isToday ? 'bg-blue-500/10 border-blue-500/30' : 
-                                                dayVisits.length > 0 ? 'bg-white/[0.03] border-white/5 hover:border-blue-500/30 hover:bg-white/[0.05]' : 
-                                                'bg-transparent border-transparent opacity-40'
-                                            }`}
-                                        >
-                                            <span className={`text-[12px] font-black ${isToday ? 'text-blue-400' : 'text-slate-500 group-hover:text-white'}`}>
-                                                {date.getDate()}
-                                            </span>
-                                            <div className="flex flex-col gap-1 w-full mt-1">
-                                                {dayVisits.slice(0, 2).map((v, j) => (
-                                                    <div key={j} className="flex items-center gap-1.5 overflow-hidden">
-                                                        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${v.status === 'COMPLETED' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
-                                                        <span className="text-[9px] font-black text-slate-400 truncate tracking-tighter uppercase whitespace-nowrap">
-                                                            {v.participant?.split('-').pop()} {v.visit_type}
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                                {dayVisits.length > 2 && (
-                                                    <div className="text-[8px] font-black text-slate-600 text-center uppercase tracking-widest mt-1">
-                                                        + {dayVisits.length - 2} more
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </button>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                            return (
+                                <div key={i} className="aspect-square md:aspect-[4/3] p-0.5 md:p-1 relative group min-w-0">
+                                    <button 
+                                        onClick={() => dayVisits.length > 0 && setSelectedDayVisits({ date, visits: dayVisits })}
+                                        className={`w-full h-full rounded-xl md:rounded-2xl border flex flex-col items-center justify-center md:justify-start p-1.5 md:p-3 transition-all relative overflow-hidden ${
+                                            isToday ? 'bg-blue-600/10 border-blue-500/50 ring-1 ring-blue-500/20' : 
+                                            dayVisits.length > 0 ? 'bg-white/[0.03] border-white/10 hover:border-blue-500/40 hover:bg-white/[0.05]' : 
+                                            'bg-transparent border-transparent opacity-30 hover:opacity-80 hover:bg-white/[0.01]'
+                                        }`}
+                                    >
+                                        <span className={`text-[10px] md:text-[12px] font-black italic tracking-tighter ${isToday ? 'text-blue-400' : 'text-slate-500 group-hover:text-white'}`}>
+                                            {date.getDate()}
+                                        </span>
+                                        
+                                        {/* Desktop View: Interactive Labels */}
+                                        <div className="hidden md:flex flex-col gap-1 w-full mt-1.5">
+                                            {dayVisits.slice(0, 2).map((v, j) => (
+                                                <div key={j} className="flex items-center gap-1.5 overflow-hidden">
+                                                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${v.status === 'COMPLETED' ? 'bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]' : 'bg-blue-500 shadow-[0_0_5px_rgba(59,130,246,0.5)]'}`} />
+                                                    <span className="text-[9px] font-black text-slate-400 truncate tracking-tighter uppercase whitespace-nowrap italic group-hover:text-slate-200">
+                                                        {v.participant?.split('-').pop()} {v.visit_type}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                            {dayVisits.length > 2 && (
+                                                <div className="text-[8px] font-black text-slate-600 text-center uppercase tracking-widest mt-1 group-hover:text-slate-400">
+                                                    + {dayVisits.length - 2} more
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Mobile View: Fluid Activity Indicators */}
+                                        <div className="flex flex-wrap items-center justify-center gap-1 md:hidden mt-0.5 max-w-full">
+                                            {dayVisits.slice(0, 4).map((v, j) => (
+                                                <div key={j} className={`w-1 h-1 rounded-full ${v.status === 'COMPLETED' ? 'bg-emerald-500' : 'bg-blue-400 shadow-[0_0_5px_rgba(96,165,250,0.5)]'}`} />
+                                            ))}
+                                            {dayVisits.length > 4 && <div className="w-1 h-1 rounded-full bg-slate-600" />}
+                                        </div>
+                                    </button>
+                                </div>
+                            );
+                        })}
                     </div>
+                </div>
                 </div>
 
                 {/* What's Next Side */}

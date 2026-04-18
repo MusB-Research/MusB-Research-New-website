@@ -5,6 +5,8 @@ import {
   ShieldAlert, Mail, RefreshCw, CheckCircle2, Copy
 } from 'lucide-react';
 import { authFetch, API } from '../../utils/auth';
+import { Skeleton } from '../../views/Participant/SharedComponents';
+
 
 interface Sponsor {
   id: string;
@@ -25,26 +27,36 @@ interface SponsorsManagementProps {
   selectedStudyId?: string;
 }
 
-export default function SponsorsManagement({ onRefresh, selectedStudyId }: SponsorsManagementProps) {
+export default function SponsorsManagement({ onRefresh, selectedStudyId, preloadedStudies }: SponsorsManagementProps & { preloadedStudies?: any[] }) {
   const [rawSponsors, setRawSponsors] = useState<any[]>([]);
-  const [allStudies, setAllStudies] = useState<any[]>([]);
+  const [allStudies, setAllStudies] = useState<any[]>(preloadedStudies || []);
   const [dataLoading, setDataLoading] = useState(true);
 
   const fetchSponsorData = useCallback(async () => {
     setDataLoading(true);
     try {
-      const [spRes, stRes] = await Promise.all([
-        authFetch(`${API}/api/sponsors/`).then(r => r.json()).catch(() => []),
-        authFetch(`${API}/api/studies/`).then(r => r.json()).catch(() => [])
-      ]);
-      setRawSponsors(Array.isArray(spRes) ? spRes : (spRes.results || []));
-      setAllStudies(Array.isArray(stRes) ? stRes : (stRes.results || []));
+      const promises: Promise<any>[] = [
+        authFetch(`${API}/api/sponsors/`).then(r => r.json()).catch(() => [])
+      ];
+
+      // Only fetch studies if not preloaded
+      if (!preloadedStudies || preloadedStudies.length === 0) {
+        promises.push(authFetch(`${API}/api/studies/`).then(r => r.json()).catch(() => []));
+      }
+
+      const results = await Promise.all(promises);
+      setRawSponsors(Array.isArray(results[0]) ? results[0] : (results[0].results || []));
+
+      if (results.length > 1) {
+        const stRes = results[1];
+        setAllStudies(Array.isArray(stRes) ? stRes : (stRes.results || []));
+      }
     } catch (e) {
       console.error('Sponsor data fetch failed:', e);
     } finally {
       setDataLoading(false);
     }
-  }, []);
+  }, [preloadedStudies]);
 
   useEffect(() => { fetchSponsorData(); }, [fetchSponsorData]);
 
@@ -205,14 +217,23 @@ export default function SponsorsManagement({ onRefresh, selectedStudyId }: Spons
             </thead>
             <tbody className="divide-y divide-white/[0.04]">
               {dataLoading ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center">
-                    <div className="flex items-center justify-center gap-2 text-slate-500">
-                      <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
-                      <span className="text-[11px] font-black uppercase tracking-wider">Syncing sponsors...</span>
-                    </div>
-                  </td>
-                </tr>
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="border-b border-white/5">
+                    <td colSpan={6} className="px-4 py-6">
+                      <div className="flex items-center gap-4">
+                        <Skeleton variant="circle" size="w-10 h-10" dark={true} />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton variant="text" className="w-1/3 h-3" dark={true} />
+                          <Skeleton variant="text" className="w-1/4 h-2 opacity-50" dark={true} />
+                        </div>
+                        <div className="flex gap-4">
+                          <Skeleton variant="text" className="w-20 h-4" dark={true} />
+                          <Skeleton variant="text" className="w-20 h-4" dark={true} />
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               ) : filteredSponsors.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-12 text-center">

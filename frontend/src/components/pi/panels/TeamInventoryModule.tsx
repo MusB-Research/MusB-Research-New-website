@@ -15,15 +15,17 @@ interface TeamMember {
     role: string;
     status: 'ACTIVE' | 'PENDING';
     date: string;
+    invited_by?: string;
 }
 
 interface TeamInventoryModuleProps {
     members: TeamMember[];
     loading?: boolean;
     onRefresh?: () => void;
+    selectedStudyId?: string;
 }
 
-export default function TeamInventoryModule({ members = [], loading = false, onRefresh }: TeamInventoryModuleProps) {
+export default function TeamInventoryModule({ members = [], loading = false, onRefresh, selectedStudyId }: TeamInventoryModuleProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'PENDING'>('ALL');
     const [showInviteModal, setShowInviteModal] = useState(false);
@@ -42,7 +44,8 @@ export default function TeamInventoryModule({ members = [], loading = false, onR
                     email: inviteData.email,
                     first_name: inviteData.name.split(' ')[0] || inviteData.email.split('@')[0],
                     last_name: inviteData.name.split(' ').slice(1).join(' ') || 'User',
-                    role: inviteData.role.toUpperCase()
+                    role: inviteData.role.toUpperCase(),
+                    study_id: selectedStudyId === 'all' ? null : selectedStudyId
                 })
             });
 
@@ -51,6 +54,14 @@ export default function TeamInventoryModule({ members = [], loading = false, onR
                 setInviteData({ name: '', email: '', role: 'coordinator' });
                 if (onRefresh) onRefresh();
                 alert("Personnel invited successfully.");
+            } else if (res.status === 400 || res.status === 409) {
+                const data = await res.json();
+                if (data.existing_user) {
+                    const u = data.existing_user;
+                    alert(`⚠️ DUPLICATE DETECTED\n\nUser ${u.name} (${u.email}) is already in the platform.\n\nInvited By: ${u.invited_by || 'Unknown'}\nStudy Context: ${u.invited_in_study || 'General Platform'}\nStatus: ${u.status}`);
+                } else {
+                    alert(data.error || "Invitation failed.");
+                }
             } else {
                 const data = await res.json();
                 alert(data.error || "Invitation failed.");
@@ -88,7 +99,7 @@ export default function TeamInventoryModule({ members = [], loading = false, onR
                 <div>
                     <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic flex items-center gap-3">
                         <Users className="w-8 h-8 text-teal-400" />
-                        Team Inventory
+                        Invited Team Members
                     </h2>
                     <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[11px] mt-2 flex items-center gap-2">
                         <Shield className="w-3 h-3 text-teal-500/50" />
@@ -169,6 +180,7 @@ export default function TeamInventoryModule({ members = [], loading = false, onR
                         <tr className="border-b border-white/5">
                             <th className="px-8 py-6 text-left text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Identity & Resource</th>
                             <th className="px-8 py-6 text-left text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Access Role</th>
+                            <th className="px-8 py-6 text-left text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Origin Hub</th>
                             <th className="px-8 py-6 text-left text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Sync Status</th>
                             <th className="px-8 py-6 text-right text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] italic">Deployment Date</th>
                         </tr>
@@ -200,6 +212,14 @@ export default function TeamInventoryModule({ members = [], loading = false, onR
                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                                 <Briefcase className="w-3 h-3 text-white/20" />
                                                 {member.role.replace('_', ' ')}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-5">
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                <UserCheck className="w-3 h-3 text-teal-500/50" />
+                                                {member.invited_by || 'Super Admin'}
                                             </span>
                                         </div>
                                     </td>

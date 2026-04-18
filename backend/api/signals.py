@@ -18,9 +18,9 @@ def notify_participant_on_visit_completion(sender, instance, created, **kwargs):
         if participant_user:
             staff_name = "Clinical Staff"
             if instance.updated_by:
-                staff_name = instance.updated_by.decrypted_name or instance.updated_by.full_name
+                staff_name = getattr(instance.updated_by, 'decrypted_name', instance.updated_by.full_name) or "Staff"
             elif instance.scheduled_by:
-                staff_name = instance.scheduled_by.decrypted_name or instance.scheduled_by.full_name
+                staff_name = getattr(instance.scheduled_by, 'decrypted_name', instance.scheduled_by.full_name) or "Staff"
                 
             Notification.objects.create(
                 user=participant_user,

@@ -20,13 +20,20 @@ import { ParticipantSignView } from './views/ParticipantSignView';
 import { UploadConsentModal } from './components/UploadConsentModal';
 import { AuditDrawer } from './components/AuditDrawer';
 
-export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: string }) {
+export default function ConsentModule({ selectedStudyId, preloadedStudies }: { selectedStudyId?: string, preloadedStudies?: any[] }) {
     // API State
     const [consents, setConsents] = useState<ConsentTemplate[]>([]);
     const [consentRecords, setConsentRecords] = useState<ConsentRecord[]>([]);
-    const [studies, setStudies] = useState<any[]>([]);
+    const [studies, setStudies] = useState<any[]>(preloadedStudies || []);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // Sync studies with preloaded data
+    useEffect(() => {
+        if (preloadedStudies) {
+            setStudies(preloadedStudies.map((s: any) => ({ ...s, id: s.id || s._id })));
+        }
+    }, [preloadedStudies]);
 
     // Filter/View State
     const [activeView, setActiveView] = useState('builder');
@@ -61,15 +68,13 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
         try {
             setLoading(true);
             const queryStr = selectedStudyId ? `?study_id=${selectedStudyId}` : '';
-            const [templatesRes, recordsRes, studiesRes] = await Promise.all([
+            const [templatesRes, recordsRes] = await Promise.all([
                 authFetch(`${API}/api/consent-templates/${queryStr}`).then(res => res.json()),
-                authFetch(`${API}/api/consent/${queryStr}`).then(res => res.json()),
-                authFetch(`${API}/api/studies/`).then(res => res.json())
+                authFetch(`${API}/api/consent/${queryStr}`).then(res => res.json())
             ]);
             
             const rawTemplates = templatesRes.results || templatesRes || [];
             const rawRecords = recordsRes.results || recordsRes || [];
-            const rawStudies = studiesRes.results || studiesRes || [];
 
             const correctedTemplates = rawTemplates.map((t: any) => ({
                 ...t,
@@ -88,7 +93,6 @@ export default function ConsentModule({ selectedStudyId }: { selectedStudyId?: s
             
             setConsents(correctedTemplates);
             setConsentRecords(rawRecords.map((r: any) => ({ ...r, id: r.id || r._id })));
-            setStudies(rawStudies.map((s: any) => ({ ...s, id: s.id || s._id })));
             
             if (correctedTemplates.length > 0 && !activeConsentId) {
                 setActiveConsentId(correctedTemplates[0].id);

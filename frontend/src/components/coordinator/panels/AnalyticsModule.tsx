@@ -27,10 +27,14 @@ import {
 
 export default function AnalyticsModule({ 
     selectedStudyId, 
-    onViewProfile 
+    onViewProfile,
+    preloadedData,
+    isLoading: parentLoading
 }: { 
     selectedStudyId?: string;
     onViewProfile?: (id: string) => void;
+    preloadedData?: any;
+    isLoading?: boolean;
 }) {
     const [activeView, setActiveView] = useState<'Recruitment' | 'Adherence' | 'Data Quality'>('Recruitment');
     const [stats, setStats] = useState<any>(null);
@@ -39,25 +43,33 @@ export default function AnalyticsModule({
     const [isMaximized, setIsMaximized] = useState(false);
 
     useEffect(() => {
+        if (preloadedData) {
+            setStats(preloadedData.stats);
+            setTracking(preloadedData.participant_tracking);
+            setLoading(false);
+            return;
+        }
+
         const fetchData = async () => {
             if (!selectedStudyId || selectedStudyId === 'all') {
                 setLoading(false);
                 return;
             }
+            // If parent says it's loading, we stay in loading state
+            if (parentLoading) {
+                setLoading(true);
+                return;
+            }
+
             setLoading(true);
             try {
-                const [sRes, tRes] = await Promise.all([
-                    authFetch(`${API}/api/studies/${selectedStudyId}/stats/`),
-                    authFetch(`${API}/api/studies/${selectedStudyId}/participant_tracking/`)
-                ]);
-
-                if (sRes.ok && tRes.ok) {
-                    const sData = await sRes.json();
-                    const tData = await tRes.json();
-                    setStats(sData);
-                    setTracking(tData);
+                const res = await authFetch(`${API}/api/studies/${selectedStudyId}/coordinator_summary/`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setStats(data.stats);
+                    setTracking(data.participant_tracking);
                 } else {
-                    console.error("Analytics fetch returned non-200 status", sRes.status, tRes.status);
+                    console.error("Analytics fetch failed", res.status);
                 }
             } catch (err) {
                 console.error("Analytics fetch failed", err);
@@ -66,7 +78,7 @@ export default function AnalyticsModule({
             }
         };
         fetchData();
-    }, [selectedStudyId]);
+    }, [selectedStudyId, preloadedData, parentLoading]);
 
     if (!selectedStudyId || selectedStudyId === 'all') {
         return (
@@ -79,10 +91,12 @@ export default function AnalyticsModule({
     }
 
     const complianceKPIs = [
-        { label: 'Overall Compliance', val: `${stats?.completion?.compliance_rate || 0}%`, trend: 'up', icon: Target, color: 'emerald' },
-        { label: 'Late Submissions', val: stats?.completion?.late || 0, trend: 'down', icon: Clock, color: 'amber' },
-        { label: 'Missed Windows', val: stats?.completion?.missed || 0, trend: 'down', icon: AlertTriangle, color: 'red' },
-        { label: 'Total Enrolled', val: stats?.enrolled || 0, trend: 'up', icon: Users, color: 'blue' },
+        { label: 'Overall Adherence', val: `${stats?.compliance || 0}%`, trend: 'up', icon: Target, color: 'emerald' },
+        { label: 'Upcoming Visits', val: stats?.visits?.upcoming || 0, trend: 'neutral', icon: Calendar, color: 'blue' },
+        { label: 'Overdue Visits', val: stats?.visits?.overdue || 0, trend: 'down', icon: AlertTriangle, color: 'red' },
+        { label: 'Missed Tasks', val: stats?.completion?.missed || 0, trend: 'down', icon: XCircle, color: 'rose' },
+        { label: 'Late Tasks', val: stats?.completion?.late || 0, trend: 'down', icon: Clock, color: 'amber' },
+        { label: 'Total Enrolled', val: stats?.enrolled || 0, trend: 'up', icon: Users, color: 'teal' },
     ];
 
     return (

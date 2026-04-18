@@ -63,7 +63,7 @@ const ProfileView = ({
                     <div className="px-10 pb-10 relative -mt-20">
                         <div className="relative inline-block group/photo">
                             <div className="w-40 h-40 rounded-[40px] bg-[#F5F9FF] border-[8px] border-white flex items-center justify-center text-[#1E88E5] font-bold text-5xl overflow-hidden shadow-2xl">
-                                {userPicture ? <img src={userPicture} alt="profile" className="w-full h-full object-cover" /> : initials}
+                                {userPicture ? <img src={userPicture} alt="profile" crossOrigin="anonymous" className="w-full h-full object-cover" /> : initials}
                             </div>
                             <button
                                 onClick={() => onAction('Change Photo')}

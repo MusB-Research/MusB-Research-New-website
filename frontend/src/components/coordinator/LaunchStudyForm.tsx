@@ -11,6 +11,32 @@ import {
 } from 'lucide-react';
 import { authFetch, API, revealValue } from '../../utils/auth';
 
+export const CURRENCY_SYMBOLS: Record<string, string> = {
+    'USD': '$',
+    'EUR': '€',
+    'GBP': '£',
+    'INR': '₹',
+    'NGN': '₦',
+    'KES': 'KSh',
+    'ZAR': 'R',
+    'GHS': 'GH₵',
+    'CAD': 'C$',
+    'AUD': 'A$',
+    'JPY': '¥',
+    'CHF': 'CHF',
+    'CNY': '¥',
+    'SEK': 'kr',
+    'NZD': 'NZ$',
+    'SGD': 'S$',
+    'HKD': 'HK$',
+    'KRW': '₩',
+    'TRY': '₺',
+    'RUB': '₽',
+    'BRL': 'R$',
+    'AED': 'DH',
+    'SAR': 'SR',
+};
+
 interface LaunchStudyFormProps {
     onClose?: () => void;
     onSave?: (data: any) => void | boolean | Promise<void | boolean>;
@@ -71,12 +97,6 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
 
     const displaySponsors = useMemo(() => availableSponsors || [], [availableSponsors]);
 
-    const CURRENCY_SYMBOLS: Record<string, string> = {
-        'USD': '$', 'EUR': '€', 'GBP': '£', 'JPY': '¥', 'INR': '₹',
-        'AUD': 'A$', 'CAD': 'C$', 'CHF': 'CHF', 'CNY': '¥', 'SEK': 'kr',
-        'NZD': 'NZ$', 'SGD': 'S$', 'HKD': 'HK$', 'KRW': '₩', 'TRY': '₺',
-        'RUB': '₽', 'BRL': 'R$', 'ZAR': 'R', 'AED': 'DH', 'SAR': 'SR'
-    };
 
     const [formData, setFormData] = useState({
         protocol_id: initialData?.protocol_id || `MUSB-${new Date().getFullYear()}-${Math.floor(Math.random() * 900) + 100}`,

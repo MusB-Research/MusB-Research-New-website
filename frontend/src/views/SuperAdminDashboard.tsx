@@ -1905,7 +1905,7 @@ export default function SuperAdminDashboard() {
       group: 'ANALYTICS & INTEL', items: [
         { id: 'METRICS', label: 'Visitor Analytics', icon: Globe },
         { id: 'SPONSOR_LEADS', label: 'Sponsor Leads', icon: BarChart2 },
-        { id: 'TEAM', label: 'MUSB Team', icon: Users },
+        { id: 'TEAM', label: 'Invited Team Members', icon: Users },
         { id: 'INQUIRIES', label: 'Platform Inquiries', icon: Bell, hasNotify: studyInquiries.length > 0 },
       ]
     },

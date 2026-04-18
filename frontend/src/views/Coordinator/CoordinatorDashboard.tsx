@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import NotificationBell from '../../components/NotificationBell';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -102,6 +102,8 @@ export default function CoordinatorDashboard() {
         return 'OVERSIGHT';
     });
 
+    const mountGuard = useRef({ checkMissed: false, fetchContent: false, notifications: false });
+
     // Sync activeModule when URL changes (for browser back button support)
     useEffect(() => {
         const path = location.pathname.toLowerCase().replace(/\/$/, "");
@@ -129,9 +131,14 @@ export default function CoordinatorDashboard() {
             // Stay consistent with dashboard root
             if (location.pathname.endsWith('/coordinator')) setActiveModule('OVERSIGHT');
         }
+    }, [location.pathname, navigate]);
 
-        // Senior Developer Add: Check for missed visits on load to trigger alerts/notifications
-        const checkMissed = async () => {
+    // [PERFORMANCE] One-time Dashboard Initialization
+    useEffect(() => {
+        const initializeDashboard = async () => {
+            if (mountGuard.current.checkMissed) return;
+            mountGuard.current.checkMissed = true;
+
             try {
                 const res = await authFetch(`${API}/api/visits/check_missed/`, { method: 'POST' });
                 if (res.ok) {
@@ -142,8 +149,9 @@ export default function CoordinatorDashboard() {
                 }
             } catch (e) { /* silent check */ }
         };
-        checkMissed();
-    }, [location.pathname]);
+
+        initializeDashboard();
+    }, []);
 
     const handleModuleChange = (mod: CCModule) => {
         const slugs: Record<string, string> = {
@@ -183,6 +191,7 @@ export default function CoordinatorDashboard() {
     const profileRef = useRef<HTMLDivElement>(null);
 
     const [toasts, setToasts] = useState<any[]>([]);
+    const [selectedNotification, setSelectedNotification] = useState<any>(null);
 
     const addToast = (msg: string, type: 'info' | 'success' | 'warning' | 'danger' = 'info') => {
         const id = Math.random().toString(36).substr(2, 9);
@@ -194,7 +203,10 @@ export default function CoordinatorDashboard() {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         
         // Initial Notification Sync
-        fetchNotifications();
+        if (!mountGuard.current.notifications) {
+            mountGuard.current.notifications = true;
+            fetchNotifications();
+        }
         
         return () => {
             clearInterval(timer);
@@ -211,17 +223,21 @@ export default function CoordinatorDashboard() {
             }
         }
 
-        function handleScroll() {
-            if (isNotificationOpen) setIsNotificationOpen(false);
-            if (isProfileOpen) setIsProfileOpen(false);
-        }
-
         document.addEventListener("mousedown", handleClickOutside);
-        window.addEventListener("scroll", handleScroll, true); // true to catch all scrolls
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
-            window.removeEventListener("scroll", handleScroll, true);
         };
+    }, []);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (isNotificationOpen) setIsNotificationOpen(false);
+            if (isProfileOpen) setIsProfileOpen(false);
+        };
+
+        // Senior DEV: Disable capture phase to ignore internal div scrolls (bubbling phase)
+        window.addEventListener('scroll', handleScroll, false);
+        return () => window.removeEventListener('scroll', handleScroll, false);
     }, [isNotificationOpen, isProfileOpen]);
 
     const fetchNotifications = async () => {
@@ -294,15 +310,14 @@ export default function CoordinatorDashboard() {
 
     const [studies, setStudies] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
+    const [participants, setParticipants] = useState<any[]>([]);
+    const [globalTasks, setGlobalTasks] = useState<any[]>([]);
     const [sponsorOrganizations, setSponsorOrganizations] = useState<any[]>([]);
+
     const [loading, setLoading] = useState(true);
+    const [visits, setVisits] = useState<any[]>([]);
     const [selectedStudy, setSelectedStudy] = useState<any>(null);
     const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
-    const [globalSelectedStudyId, setGlobalSelectedStudyId] = useState<string | 'all'>('all');
-    // Participant count per study for the dropdown
-    const [participantsByStudy, setParticipantsByStudy] = useState<Record<string, number>>({});
-
-    const [visits, setVisits] = useState<any[]>([]);
     const [oversightStats, setOversightStats] = useState({
         upcomingVisits: 0,
         overdueFollowUps: 0,
@@ -311,12 +326,47 @@ export default function CoordinatorDashboard() {
         activeSubjects: 0,
         hasCriticalAlert: false
     });
+    const [participantsByStudy, setParticipantsByStudy] = useState<Record<string, number>>({});
+    const [globalSelectedStudyId, setGlobalSelectedStudyId] = useState<string>('all');
+    const [summaryData, setSummaryData] = useState<any>(null);
+    const [summaryLoading, setSummaryLoading] = useState(false);
 
+    // Fetch Aggregated Summary when Study Changes
+    useEffect(() => {
+        const fetchSummary = async () => {
+            if (!globalSelectedStudyId || globalSelectedStudyId === 'all') {
+                setSummaryData(null);
+                return;
+            }
+            
+            setSummaryLoading(true);
+            try {
+                const res = await authFetch(`${API}/api/studies/${globalSelectedStudyId}/coordinator_summary/`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setSummaryData(data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch coordinator summary:", err);
+            } finally {
+                setSummaryLoading(false);
+            }
+        };
 
-    const fetchCoordinatorContent = async () => {
+        fetchSummary();
+    }, [globalSelectedStudyId]);
+
+    const fetchCoordinatorContent = useCallback(async () => {
         setLoading(true);
         try {
-            const [studiesData, usersData, sponsorsData, visitsData, participantsData, questionnairesData] = await Promise.all([
+            const [
+                studiesData,
+                usersData,
+                sponsorsData,
+                visitsData,
+                participantsData,
+                questionnairesData
+            ] = await Promise.all([
                 apiFetch<any[]>('/api/studies/'),
                 apiFetch<any[]>('/api/users/'),
                 apiFetch<any[]>('/api/sponsor-organizations/'),
@@ -336,6 +386,7 @@ export default function CoordinatorDashboard() {
 
             setSponsorOrganizations(sponsorsData || []);
             setVisits(visitsData || []);
+            setParticipants(participantsData || []);
 
             const activeParticipants = participantsData || [];
 
@@ -366,11 +417,14 @@ export default function CoordinatorDashboard() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
-        fetchCoordinatorContent();
-    }, []);
+        if (!mountGuard.current.fetchContent) {
+            mountGuard.current.fetchContent = true;
+            fetchCoordinatorContent();
+        }
+    }, [fetchCoordinatorContent]);
 
     const toStudyAssignmentIds = (value: any) => {
         const list = Array.isArray(value) ? value : value ? [value] : [];
@@ -480,7 +534,7 @@ export default function CoordinatorDashboard() {
             group: 'COORDINATION',
             items: [
                 { id: 'STUDIES', label: 'Studies', icon: Beaker },
-                { id: 'TEAM', label: 'Team', icon: Users },
+                { id: 'TEAM', label: 'Invited Team Members', icon: Users },
                 { id: 'PARTICIPANTS', label: 'Participants', icon: UsersRound },
                 { id: 'FORMS', label: 'Forms', icon: ClipboardList },
                 { id: 'CONSENT', label: 'Consent', icon: ShieldCheck },
@@ -522,16 +576,16 @@ export default function CoordinatorDashboard() {
         } catch (e) { }
 
         return (
-            <header className="fixed top-0 left-0 xl:left-[240px] right-0 h-16 md:h-20 z-[60] bg-[#0B101B] border-b border-white/5 flex items-center justify-between px-3 md:px-6 transition-all">
-                <div className="flex items-center gap-2 xl:hidden">
+            <header className="fixed top-0 left-0 lg:left-[240px] right-0 h-16 md:h-20 z-[80] bg-[#0B101B]/95 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-3 md:px-6 transition-all">
+                <div className="flex items-center gap-2 lg:hidden">
                     <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1.5 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:text-white transition-all h-9 w-9 shrink-0 flex items-center justify-center">
                         {isSidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
                     </button>
                 </div>
 
-                <div className="flex-1 flex items-center justify-start xl:pl-4">
+                <div className="flex-1 flex items-center justify-start lg:pl-4">
                     <div className="flex items-center gap-4">
-                        <div className="hidden xl:flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/10 h-10">
+                        <div className="hidden lg:flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/10 h-10">
                             <div className="px-2 text-[9px] font-black text-slate-500 uppercase tracking-widest italic border-r border-white/10 shrink-0">Study</div>
                              <select
                                  value={globalSelectedStudyId}
@@ -574,10 +628,15 @@ export default function CoordinatorDashboard() {
                                     <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="absolute right-0 mt-6 w-80 md:w-96 bg-[#0F172A]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl z-[100] overflow-hidden">
                                         <div className="p-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
                                             <h3 className="text-[11px] font-black text-white uppercase tracking-widest">System Alerts</h3>
-                                            {unreadCount > 0 && <button onClick={markAllAsRead} className="text-[11px] font-bold text-blue-400 uppercase tracking-widest">Clear All</button>}
+                                            <button 
+                                                onClick={() => setIsNotificationOpen(false)}
+                                                className="p-1.5 hover:bg-white/5 rounded-lg text-slate-500 hover:text-white transition-all"
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
                                         </div>
                                         <div className="max-h-[60vh] overflow-y-auto custom-scrollbar p-0">
-                                            {notifications.length === 0 ? (
+                                             {notifications.length === 0 ? (
                                                 <div className="p-12 text-center">
                                                     <Bell className="w-6 h-6 text-slate-700 mx-auto mb-4" />
                                                     <p className="text-[11px] text-slate-500 uppercase tracking-widest">Monitoring active...</p>
@@ -585,14 +644,31 @@ export default function CoordinatorDashboard() {
                                             ) : (
                                                  <div className="divide-y divide-white/5">
                                                      {notifications.map((notif) => (
-                                                         <div key={notif.id} className="p-5 hover:bg-white/[0.02] transition-colors border-l-2 border-transparent hover:border-blue-500">
+                                                         <div 
+                                                            key={notif.id} 
+                                                            onClick={async () => {
+                                                                setSelectedNotification(notif);
+                                                                if (!notif.is_read) {
+                                                                    await markAsRead(notif.id);
+                                                                }
+                                                                setIsNotificationOpen(false);
+                                                            }}
+                                                            className="p-5 hover:bg-white/[0.04] transition-all border-l-2 border-transparent hover:border-blue-500 cursor-pointer group"
+                                                         >
                                                              <div className="flex items-start gap-4">
-                                                                 <div className="p-2 bg-blue-500/10 rounded-xl">
-                                                                     <Bell className="w-4 h-4 text-blue-400" />
+                                                                 <div className={`p-2 rounded-xl border transition-colors ${notif.is_read ? 'bg-white/5 border-white/5' : 'bg-blue-500/10 border-blue-500/20'}`}>
+                                                                     <Bell className={`w-4 h-4 ${notif.is_read ? 'text-slate-500' : 'text-blue-400'}`} />
                                                                  </div>
                                                                  <div className="flex-1 min-w-0">
-                                                                     <p className="text-sm font-bold text-white leading-snug">{notif.message}</p>
-                                                                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-2">{new Date(notif.created_at).toLocaleTimeString()}</p>
+                                                                     <p className={`text-[13px] leading-snug transition-colors ${notif.is_read ? 'text-slate-400 font-medium' : 'text-white font-bold'}`}>
+                                                                         {notif.message}
+                                                                     </p>
+                                                                     <div className="flex items-center gap-2 mt-2">
+                                                                         <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest leading-none">
+                                                                             {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                         </p>
+                                                                         {!notif.is_read && <span className="w-1 h-1 rounded-full bg-blue-500 shadow-[0_0_5px_rgba(59,130,246,0.5)]" />}
+                                                                     </div>
                                                                  </div>
                                                              </div>
                                                          </div>
@@ -682,7 +758,7 @@ export default function CoordinatorDashboard() {
                 )}
             </AnimatePresence>
 
-            <aside className={`fixed left-0 top-0 bottom-0 w-[240px] bg-[#0B101B] border-r border-white/5 z-[70] transition-transform duration-300 xl:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'}`}>
+            <aside className={`fixed left-0 top-0 bottom-0 w-[240px] bg-[#0B101B] border-r border-white/5 z-[70] transition-transform duration-300 lg:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
                 <div className="h-20 px-8 flex justify-between items-center border-b border-white/[0.05] shrink-0">
                     <Link to="/" target="_blank" rel="noopener noreferrer" className="group transition-all">
                         <div className="bg-white p-2 rounded-2xl group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
@@ -691,7 +767,7 @@ export default function CoordinatorDashboard() {
                     </Link>
                     <button
                         onClick={() => setIsSidebarOpen(false)}
-                        className="xl:hidden p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:text-white transition-all h-10 w-10 flex items-center justify-center shrink-0"
+                        className="lg:hidden p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:text-white transition-all h-10 w-10 flex items-center justify-center shrink-0"
                     >
                         <X className="w-5 h-5" />
                     </button>
@@ -723,8 +799,8 @@ export default function CoordinatorDashboard() {
                 </div>
             </aside>
 
-            <main className="flex-1 xl:pl-[240px] pt-20 md:pt-24 pb-20 overflow-x-hidden bg-[#0F172A] min-h-screen">
-                <div className="px-8 flex-1">
+            <main className="flex-1 lg:pl-[240px] pt-24 md:pt-32 pb-20 overflow-x-hidden bg-[#0F172A] min-h-screen">
+                <div className="px-3 md:px-6 flex-1">
                     <AnimatePresence mode="wait">
                     {activeModule === 'OVERSIGHT' && (
                         <OperationsOversight
@@ -735,6 +811,7 @@ export default function CoordinatorDashboard() {
                             onLaunch={() => handleModuleChange('LAUNCH_STUDY')}
                             onNavigate={(id) => handleModuleChange(id as CCModule)}
                             isAdmin={isAdmin}
+                            isLoading={loading}
                         />
                     )}
                     {activeModule === 'STUDIES' && (
@@ -762,38 +839,85 @@ export default function CoordinatorDashboard() {
                         selectedParticipantId ? (
                             <CCC_SubjectReviewModule 
                                 selectedStudyId={globalSelectedStudyId} 
-                                participantId={selectedParticipantId} 
+                                participantId={selectedParticipantId}
+                                preloadedTracking={summaryData?.participant_tracking}
                             />
                         ) : (
                             <ParticipantOversight 
                                 selectedStudyId={globalSelectedStudyId} 
                                 onOpenProfile={(id) => setSelectedParticipantId(id)} 
-                                onMessage={() => setActiveModule('MESSAGES')} 
+                                onMessage={() => setActiveModule('MESSAGES')}
+                                preloadedData={summaryData}
+                                isLoadingSummary={summaryLoading}
                             />
                         )
                     )}
                     {activeModule === 'FORMS' && <FormsQuestionnairesModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'CONSENT' && <CCConsentModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'VISITS' && <CCC_VisitsAssessmentsModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'LABS' && <LabsResultsModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'KITS' && <StudyKitsModule selectedStudyId={globalSelectedStudyId} />}
+                    {activeModule === 'CONSENT' && (
+                        <CCConsentModule 
+                            selectedStudyId={globalSelectedStudyId} 
+                            preloadedStudies={studies}
+                        />
+                    )}
+                    {activeModule === 'VISITS' && (
+                        <CCC_VisitsAssessmentsModule 
+                            selectedStudyId={globalSelectedStudyId} 
+                            preloadedParticipants={participants}
+                            preloadedStudies={studies}
+                            preloadedTasks={globalTasks}
+                            onRefresh={fetchCoordinatorContent}
+                            isLoading={loading}
+                        />
+                    )}
+
+                    {activeModule === 'LABS' && (
+                        <LabsResultsModule 
+                            selectedStudyId={globalSelectedStudyId} 
+                            preloadedStudies={studies}
+                        />
+                    )}
+                    {activeModule === 'KITS' && (
+                        <StudyKitsModule 
+                            selectedStudyId={globalSelectedStudyId} 
+                            preloadedStudies={studies}
+                            preloadedParticipants={participants}
+                            isLoading={loading}
+                        />
+                    )}
                     {activeModule === 'REPORTS' && <ReportsSignOffModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'STUDY_DOCS' && <StudyDocumentsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'MY_DOCS' && <MyDocumentsModule selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'ALERTS' && <AlertsModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'TASKS' && <StaffTasksModule primaryColor="blue" />}
+                    {activeModule === 'TASKS' && (
+                        <StaffTasksModule 
+                            primaryColor="blue" 
+                            preloadedTasks={globalTasks}
+                            isLoading={loading}
+                        />
+                    )}
+
                     {activeModule === 'PARTICIPANT_TASKS' && <ParticipantTaskManagement primaryColor="blue" selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'COMPENSATION' && <CompensationManagement selectedStudyId={globalSelectedStudyId} />}
                     {activeModule === 'ANALYTICS' && (
                         <AnalyticsModule 
-                            selectedStudyId={globalSelectedStudyId} 
+                            selectedStudyId={globalSelectedStudyId}
+                            preloadedData={summaryData}
+                            isLoading={summaryLoading}
                             onViewProfile={(id) => {
                                 setSelectedParticipantId(id);
                                 setActiveModule('PARTICIPANTS');
                             }}
                         />
                     )}
-                    {activeModule === 'SPONSORS' && <SponsorsManagement selectedStudyId={globalSelectedStudyId} allUsers={users} allStudies={studies} onRefresh={fetchCoordinatorContent} />}
+                    {activeModule === 'SPONSORS' && (
+                        <SponsorsManagement 
+                            selectedStudyId={globalSelectedStudyId} 
+                            allUsers={users} 
+                            preloadedStudies={studies} 
+                            onRefresh={fetchCoordinatorContent}
+                            isLoading={loading}
+                        />
+                    )}
                 </AnimatePresence>
                 </div>
             </main>
@@ -832,6 +956,73 @@ export default function CoordinatorDashboard() {
             </div>
 
             <LogoutConfirmationModal isOpen={isLogoutModalOpen} onClose={() => setIsLogoutModalOpen(false)} onConfirm={confirmSignOut} />
+
+            {/* Notification Detail Overlay */}
+            <AnimatePresence>
+                {selectedNotification && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }}
+                            onClick={() => setSelectedNotification(null)}
+                            className="absolute inset-0 bg-[#0B101B]/80 backdrop-blur-sm"
+                        />
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative w-full max-w-lg bg-[#0F172A] border border-white/10 rounded-3xl shadow-2xl overflow-hidden"
+                        >
+                            <div className="p-8 space-y-6">
+                                <div className="flex items-start justify-between">
+                                    <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-2xl">
+                                        <Bell className="w-6 h-6 text-blue-400" />
+                                    </div>
+                                    <button 
+                                        onClick={() => setSelectedNotification(null)}
+                                        className="p-2 hover:bg-white/5 rounded-xl text-slate-500 hover:text-white transition-all"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+                                
+                                <div className="space-y-4">
+                                    <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter shrink-0">Alert <span className="text-blue-400">Details</span></h3>
+                                    <div className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+                                        <p className="text-lg font-medium text-slate-200 leading-relaxed italic">
+                                            "{selectedNotification.message}"
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between pt-6 border-t border-white/5">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest italic">Received At</p>
+                                        <p className="text-sm font-bold text-white italic">
+                                            {new Date(selectedNotification.created_at).toLocaleString('en-US', { 
+                                                weekday: 'short', month: 'short', day: 'numeric',
+                                                hour: '2-digit', minute: '2-digit'
+                                            })}
+                                        </p>
+                                    </div>
+                                    {selectedNotification.link && (
+                                        <button 
+                                            onClick={() => {
+                                                navigate(selectedNotification.link);
+                                                setSelectedNotification(null);
+                                            }}
+                                            className="px-6 py-3 bg-blue-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest italic hover:scale-105 active:scale-95 transition-all shadow-lg shadow-blue-500/20"
+                                        >
+                                            View Related Record
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

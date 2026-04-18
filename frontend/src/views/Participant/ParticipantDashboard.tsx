@@ -34,6 +34,7 @@ import ParticipantBackground from './ParticipantBackground';
 export default function ParticipantDashboard() {
     const navigate = useNavigate();
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const notificationRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // ──────────────── STATE MANAGEMENT ────────────────
@@ -119,7 +120,7 @@ export default function ParticipantDashboard() {
     const [availableConsentTemplates, setAvailableConsentTemplates] = useState<any[]>([]);
     const [selectedLog, setSelectedLog] = useState<any | null>(null);
     const [logsDefaultViewMode, setLogsDefaultViewMode] = useState<'FORM' | 'HISTORY'>('FORM');
-
+    const [fullConversations, setFullConversations] = useState<Record<string, any>>({});
     const [logsPreselectedDate, setLogsPreselectedDate] = useState<string | null>(null);
     const [tasksDefaultFilter, setTasksDefaultFilter] = useState('Overdue');
     const [modalConfig, setModalConfig] = useState<{ isOpen: boolean; title: string; desc: string; primaryAction: string; task?: any } | null>(null);
@@ -205,11 +206,27 @@ export default function ParticipantDashboard() {
 
     // Auto-close dropdowns on scroll
     useEffect(() => {
-        const handleScroll = () => {
-            if (isNotificationOpen) setIsNotificationOpen(false);
-            if (isDropdownOpen) setIsDropdownOpen(false);
+        const handleScroll = (e: any) => {
+            // Robust scroll handling:
+            // 1. If notification hub is open, only close if we are scrolling the main body AND the target is not the hub
+            if (isNotificationOpen && notificationRef.current) {
+                // If the scroll is happening inside the notification container, DO NOT close
+                if (notificationRef.current.contains(e.target as Node)) {
+                    return;
+                }
+                
+                // If we are scrolling the window, only close if the hub is NOT sticky-pinned (it's absolute here)
+                // For better UX, we'll keep it open on scroll unless the user clicks away
+            }
+            
+            // For general dropdowns (like profile), we close on scroll
+            if (isDropdownOpen || (isNotificationOpen && !notificationRef.current?.contains(e.target as Node))) {
+                 // setIsNotificationOpen(false); // Commented out to prevent "scrolling disappears" issues
+                 if (isDropdownOpen) setIsDropdownOpen(false);
+            }
         };
-        window.addEventListener('scroll', handleScroll, true);
+        // Use passive: true if we don't call preventDefault
+        window.addEventListener('scroll', handleScroll, { capture: true, passive: true });
         return () => window.removeEventListener('scroll', handleScroll, true);
     }, [isNotificationOpen, isDropdownOpen]);
 
@@ -223,378 +240,214 @@ export default function ParticipantDashboard() {
     const safeArray = (data: any) => Array.isArray(data) ? data : [];
     const safeData = (data: any) => data?.results || (Array.isArray(data) ? data : []);
 
-    // ──────────────── INITIAL FETCH (Participants & Studies) ────────────────
-    useEffect(() => {
-        const initDashboard = async () => {
-            const apiUrl = API || 'http://localhost:8000';
+    // ──────────────── AGGREGATED DATA MANAGEMENT (V2) ────────────────
+    const processSummaryData = (data: any, currentRefreshKey: number) => {
+        if (!data || !data.participant) return;
 
-            // ── Render Cold-Start Wake-Up ──────────────────────────────────
-            // Render free-tier sleeps after 15 min inactivity. The first fetch
-            // gets a hard NetworkError while the server is spinning up.
-            // We ping a lightweight endpoint first and retry so the dashboard
-            // never shows empty just because the server was asleep.
-            const pingBackend = async (retries = 3, delayMs = 3000): Promise<void> => {
-                for (let i = 0; i < retries; i++) {
-                    try {
-                        const ctrl = new AbortController();
-                        const timer = setTimeout(() => ctrl.abort(), 8000);
-                        const res = await fetch(`${apiUrl}/api/studies/?page_size=1`, {
-                            signal: ctrl.signal,
-                            headers: { 'Accept': 'application/json' }
-                        });
-                        clearTimeout(timer);
-                        if (res.ok || res.status === 401 || res.status === 403) return;
-                    } catch {
-                        console.warn(`[MusB] Backend wake-up attempt ${i + 1}/${retries}...`);
-                        if (i < retries - 1) await new Promise(r => setTimeout(r, delayMs));
-                    }
-                }
-            };
-            await pingBackend();
+        const p = data.participant;
+        const s = data.study;
+        const pId = getId(p);
+        const sId = getId(s);
 
-            try {
-                // 1. Refresh user data from server to ensure decryption for PII fields
-                try {
-                    const userRes = await authFetch(`${apiUrl}/api/users/me/`);
-                    if (userRes.ok) {
-                        const freshUser = await userRes.json();
-                        const localU = getUser();
-                        saveUser({ ...localU, ...freshUser });
-                        setUserProfile({
-                            userName: freshUser.decrypted_name || freshUser.full_name || getDisplayName(freshUser),
-                            userEmail: freshUser.email || '',
-                            userPicture: freshUser.profile_picture || freshUser.picture || '',
-                            firstName: (freshUser.decrypted_name || freshUser.full_name)?.split(' ')[0] || getDisplayName(freshUser),
-                            userPhone: freshUser.decrypted_phone || freshUser.phone_number || freshUser.mobile_number || '',
-                            userLocation: freshUser.decrypted_address || freshUser.full_address || '',
-                            userTimezone: freshUser.timezone || 'UTC',
-                            userAge: freshUser.age || '',
-                            userDob: freshUser.date_of_birth || '',
-                            userRole: freshUser.role || 'PARTICIPANT'
-                        });
-                    } else {
-                        const u = getUser();
-                        if (u) {
-                            setUserProfile({
-                                userName: getDisplayName(u),
-                                userEmail: u.email || '',
-                                userPicture: u.picture || u.avatar || u.profile_picture || '',
-                                firstName: getDisplayName(u),
-                                userPhone: u.decrypted_phone || u.mobile_number || u.phone_number || '',
-                                userLocation: u.decrypted_address || u.full_address || '',
-                                userTimezone: u.timezone || 'UTC',
-                                userAge: u.age || '',
-                                userDob: u.date_of_birth || '',
-                                userRole: u.role || 'PARTICIPANT'
-                            });
+        // 1. Core Profile & State
+        setActiveParticipant(p);
+        setActiveStudy(s);
+        
+        const fetchedTasks = safeArray(data.tasks);
+        const fetchedQues = safeArray(data.questionnaire_schedules);
+        const fetchedLogs = safeArray(data.medication_logs);
+        const fetchedConversations = safeArray(data.conversations);
+        
+        setVisits(safeArray(data.visits));
+        setKits(safeArray(data.kits));
+        setLabResults(safeArray(data.lab_results));
+        setCompensations(safeArray(data.compensations));
+        setConversations(fetchedConversations);
+        setAssignedForms(safeArray(data.assigned_forms));
+        setSignatures(safeArray(data.active_consents));
+        setAvailableConsentTemplates(safeArray(data.available_consent_templates));
+        setLogs(fetchedLogs);
+        setHelpRequests(safeArray(data.help_requests));
+
+        // 2. Pre-fill conversation cache to prevent re-fetching
+        if (fetchedConversations.length > 0) {
+            const cache: Record<string, any> = {};
+            fetchedConversations.forEach((c: any) => {
+                const cId = getId(c);
+                if (cId) cache[cId] = c;
+            });
+            setFullConversations(prev => ({ ...prev, ...cache }));
+        }
+
+        // 3. Daily Log Task Synthesis
+        if (s?.show_dosing_log) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            for (let i = -3; i <= 3; i++) {
+                const targetDate = new Date();
+                targetDate.setDate(targetDate.getDate() - i);
+                const dateStr = targetDate.toISOString().split('T')[0];
+
+                const hasTaskInDB = fetchedTasks.some((t: any) =>
+                    (t.task_type === 'DAILY_LOG' || t.task_details?.task_type === 'LOG' || t.task_details?.task_type === 'DAILY_LOG') &&
+                    (t.due_date?.startsWith(dateStr))
+                );
+                const logEntry = fetchedLogs.find((l: any) => l.date === dateStr);
+                const isToday = i === 0;
+                const isFuture = i < 0;
+
+                if (!hasTaskInDB) {
+                    fetchedTasks.unshift({
+                        id: `synth-log-${dateStr}`,
+                        study: sId,
+                        participant: pId,
+                        title: isToday ? 'Daily Medication Log' : isFuture ? `Upcoming Log: ${dateStr}` : `Missed Log: ${dateStr}`,
+                        status: logEntry ? 'COMPLETED' : 'PENDING',
+                        due_date: targetDate.toISOString(),
+                        visit_name: isToday ? 'Daily Check-in' : isFuture ? 'Scheduled Entry' : 'Retrospective Log',
+                        timeline_group: 'Medication Tracking',
+                        estimated_time: '2 min',
+                        task_type: 'DAILY_LOG',
+                        task_details: {
+                            task_type: 'DAILY_LOG',
+                            description: isToday ? 'Log your medication intake for today.' : isFuture ? `Scheduled medication log for ${dateStr}.` : `You missed your log for ${dateStr}. Please complete it now.`
                         }
-                    }
-                } catch (uErr) {
-                    console.error("Failed to sync user profile:", uErr);
-                }
-
-                // Senior Developer Add: Check for missed visits to trigger notifications/alerts
-                try {
-                    await authFetch(`${apiUrl}/api/visits/check_missed/`, { method: 'POST' });
-                } catch (e) { /* silent check */ }
-
-
-                const pData = await apiFetch<any[]>('/api/participants/');
-                if (pData) {
-                    let filteredData = pData.filter((p: any) => {
-                        const s = (p.status || '').toUpperCase();
-                        // COMPLETED studies should remain visible for records/compensation history
-                        return !['DROPPED', 'INELIGIBLE'].includes(s);
                     });
-
-                    // Senior Developer: Strict Priority Sorting
-                    const priority = ['ENROLLED', 'RANDOMIZED', 'ACTIVE', 'CONSENTED', 'COMPLETED', 'REGISTERED', 'SCREENING'];
-                    filteredData.sort((a: any, b: any) => {
-                        const sA = (a.status || '').toUpperCase().trim();
-                        const sB = (b.status || '').toUpperCase().trim();
-                        const idxA = priority.indexOf(sA);
-                        const idxB = priority.indexOf(sB);
-
-                        if (idxA !== -1 && idxB !== -1 && idxA !== idxB) return idxA - idxB;
-                        if (idxA !== -1 && idxB === -1) return -1;
-                        if (idxB !== -1 && idxA === -1) return 1;
-
-                        // Established studies remain at the top (Oldest First within same priority)
-                        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-                    });
-
-                    if (filteredData.length > 0) {
-                        setAllParticipants(filteredData);
-
-                        // Smart Preservation: Try to find previous active study
-                        let targetIndex = 0;
-                        const prevActiveId = activeParticipant ? getId(activeParticipant) : null;
-
-                        if (prevActiveId) {
-                            const foundIdx = filteredData.findIndex((p: any) => getId(p) === prevActiveId);
-                            if (foundIdx !== -1) targetIndex = foundIdx;
-                        }
-
-                        setSelectedStudyIndex(targetIndex);
-                        setActiveParticipant(filteredData[targetIndex]);
-
-                        const studiesPromises = filteredData.map((p: any) =>
-                            authFetch(`${apiUrl}/api/studies/${p.study}/`).then(res => res.ok ? res.json() : null)
-                        );
-                        const fetchedStudies = (await Promise.all(studiesPromises)).filter(s => s !== null);
-                        setAllStudies(fetchedStudies);
-                        if (fetchedStudies.length > targetIndex) {
-                            setActiveStudy(fetchedStudies[targetIndex]);
-                        } else if (fetchedStudies.length > 0) {
-                            setActiveStudy(fetchedStudies[0]);
-                        }
-                    }
                 }
-            } catch (err) {
-                console.error("Initial dashboard fetch failed:", err);
             }
-        };
-        initDashboard();
-    }, [refreshKey]);
+        }
 
+        // 3. eConsent Task Injection
+        const mySignatures = safeArray(data.active_consents);
+        safeArray(data.available_consent_templates).filter((t: any) => {
+            const alreadySigned = mySignatures.some((sig: any) => 
+                (sig.template && getId(sig.template) === getId(t.id)) || 
+                (sig.study && getId(sig.study) === sId)
+            ) || justSignedTemplateIds.current.has(getId(t.id));
+            return !alreadySigned;
+        }).forEach((t: any) => {
+            const tId = getId(t.id);
+            if (!fetchedTasks.some((task: any) => getId(task) === `db-consent-${tId}`)) {
+                fetchedTasks.unshift({
+                    id: `db-consent-${tId}`,
+                    study: sId,
+                    participant: pId,
+                    title: `${t.title} (v${t.version})`,
+                    status: 'PENDING',
+                    due_date: new Date().toISOString(),
+                    visit_name: 'eConsent Hub',
+                    timeline_group: 'Mandatory',
+                    estimated_time: '15 min',
+                    task_type: 'CONSENT',
+                    p_data: t,
+                    task_details: { task_type: 'CONSENT', description: `New Protocol Update: ${t.title}.` }
+                });
+            }
+        });
+
+        // 4. Questionnaire Injection
+        fetchedQues.forEach((q: any) => {
+            fetchedTasks.push({
+                id: `qs-${q.id}`,
+                study: sId,
+                participant: pId,
+                title: q.schedule_name || q.template_details?.name || 'Questionnaire',
+                status: q.status || 'PENDING',
+                due_date: q.scheduled_date || q.created_at,
+                visit_name: 'Instrumentation',
+                timeline_group: 'Clinical Data',
+                estimated_time: '10 min',
+                task_type: 'QUESTIONNAIRE',
+                q_data: q,
+                task_details: { task_type: 'QUESTIONNAIRE', description: `Please complete the ${q.schedule_name} instrument.` }
+            });
+        });
+
+        // 5. Finalize State
+        setTasks(fetchedTasks);
+        lastFetchIdRef.current = `${pId}-${sId}-${currentRefreshKey}`;
+    };
+
+    // ──────────────── UNIFIED DASHBOARD LOADER ────────────────
     useEffect(() => {
-        const fetchClinicalData = async (isSilent = false) => {
-            const currentUser = getUser();
-            if (!currentUser || allParticipants.length === 0) return;
-
-            const p = allParticipants[selectedStudyIndex];
-            const pId = getId(p);
-            const currentStudyId = getId(p.study);
-
-            // Senior Developer Optimization: Prevent redundant bursts
+        const loadDashboard = async (isSilent = false) => {
+            const apiUrl = API || 'http://localhost:8000';
             if (isFetchingRef.current) return;
-            if (isSilent && lastFetchIdRef.current === `${pId}-${currentStudyId}-${refreshKey}`) return;
-
+            
             try {
                 isFetchingRef.current = true;
                 if (!isSilent) setIsDataLoading(true);
 
-                console.log(`[Clinical Sync] Starting ${isSilent ? 'background' : 'full'} data sync for Participant: ${pId}`);
-                // Parallel fetch for speed
-                const [taskRes, quesRes, logRes, doseRes, compRes, visitRes, kitRes, labRes, meshRes, afRes, helpRes, sigRes, protocolRes] = await Promise.all([
-                    authFetch(`${API}/api/tasks/?participant_id=${pId}`),
-                    authFetch(`${API}/api/questionnaire-schedules/?participant_id=${pId}`),
-                    authFetch(`${API}/api/daily-medication-logs/?participant=${pId}`),
-                    authFetch(`${API}/api/dosing-logs/?participant=${pId}`),
-                    authFetch(`${API}/api/compensations/?participant=${pId}`),
-                    authFetch(`${API}/api/visits/?participant=${pId}`),
-                    authFetch(`${API}/api/kits/?study_id=${currentStudyId}`),
-                    authFetch(`${API}/api/lab-results/?participant=${pId}`),
-                    authFetch(`${API}/api/clinical-conversations/?study_id=${currentStudyId}`),
-                    authFetch(`${API}/api/assigned-forms/?participant=${pId}`),
-                    authFetch(`${API}/api/help-request/`),
-                    authFetch(`${API}/api/consent/?participant_id=${pId}`),
-                    authFetch(`${API}/api/consent-templates/?study_id=${currentStudyId}`)
+                // PERFORMANCE: Parallel burst of Global State + Detailed Summary
+                const currentP = allParticipants[selectedStudyIndex];
+                const pSid = currentP?.participant_sid;
+                const summaryUrl = pSid 
+                    ? `${apiUrl}/api/participants/dashboard_summary/?participant_sid=${pSid}`
+                    : `${apiUrl}/api/participants/dashboard_summary/`;
+
+                const [pDataRes, summaryRes, userRes] = await Promise.all([
+                    apiFetch<any[]>('/api/participants/'),
+                    authFetch(summaryUrl).then(res => res.ok ? res.json() : null),
+                    authFetch(`${apiUrl}/api/users/me/`).then(res => res.ok ? res.json() : null)
                 ]);
 
-                // Extract with safeArray & Normalize
-                const fetchedTasks = safeData(taskRes.ok ? await taskRes.json() : []);
-                const fetchedQues = safeData(quesRes.ok ? await quesRes.json() : []);
-                const fetchedLogs = safeData(logRes.ok ? await logRes.json() : []);
-                const fetchedDoses = safeData(doseRes.ok ? await doseRes.json() : []);
-                const compData = safeData(compRes.ok ? await compRes.json() : []);
-                const visitData = safeData(visitRes.ok ? await visitRes.json() : []);
-                const kitData = safeData(kitRes.ok ? await kitRes.json() : []);
-                const labData = safeData(labRes.ok ? await labRes.json() : []);
-                const meshData = safeData(meshRes.ok ? await meshRes.json() : []);
-                const afData = safeData(afRes.ok ? await afRes.json() : []);
-                const helpData = safeData(helpRes.ok ? await helpRes.json() : []);
-
-                // 2. Daily Log Task Synthesis (Critical: Ensure actionability)
-                if (activeStudy?.show_dosing_log) {
-                    const todayStr = new Date().toISOString().split('T')[0];
-
-                    // Handle Future (+3 days), Today (0), and Missed (-3 days)
-                    for (let i = -3; i <= 3; i++) {
-                        const targetDate = new Date();
-                        targetDate.setDate(targetDate.getDate() - i);
-                        const dateStr = targetDate.toISOString().split('T')[0];
-
-                        const hasTaskInDB = fetchedTasks.some((t: any) =>
-                            (t.task_type === 'DAILY_LOG' || t.task_details?.task_type === 'LOG' || t.task_details?.task_type === 'DAILY_LOG') &&
-                            (t.due_date?.startsWith(dateStr))
-                        );
-                        const logEntry = fetchedLogs.find((l: any) => l.date === dateStr) || fetchedDoses.find((l: any) => l.date === dateStr);
-                        const isToday = i === 0;
-                        const isFuture = i < 0;
-
-                        if (!hasTaskInDB) {
-                            fetchedTasks.unshift({
-                                id: `synth-log-${dateStr}`,
-                                study: currentStudyId,
-                                participant: pId,
-                                title: isToday ? 'Daily Medication Log' : isFuture ? `Upcoming Log: ${dateStr}` : `Missed Log: ${dateStr}`,
-                                status: logEntry ? 'COMPLETED' : 'PENDING',
-                                due_date: targetDate.toISOString(),
-                                visit_name: isToday ? 'Daily Check-in' : isFuture ? 'Scheduled Entry' : 'Retrospective Log',
-                                timeline_group: 'Medication Tracking',
-                                estimated_time: '2 min',
-                                task_type: 'DAILY_LOG',
-                                task_details: {
-                                    task_type: 'DAILY_LOG',
-                                    description: isToday ? 'Log your medication intake for today.' : isFuture ? `Scheduled medication log for ${dateStr}.` : `You missed your log for ${dateStr}. Please complete it now.`
-                                }
-                            });
-                        } else if (logEntry) {
-                            const dbTask = fetchedTasks.find((t: any) =>
-                                (t.task_type === 'DAILY_LOG' || t.task_details?.task_type === 'LOG' || t.task_details?.task_type === 'DAILY_LOG') &&
-                                (t.due_date?.startsWith(dateStr))
-                            );
-                            if (dbTask && dbTask.status !== 'COMPLETED') {
-                                dbTask.status = 'COMPLETED';
-                                dbTask.completed_at = logEntry.created_at;
-                            }
-                        }
-                    }
+                // 1. Handle User Profile
+                if (userRes) {
+                    const localU = getUser();
+                    saveUser({ ...localU, ...userRes });
+                    setUserProfile({
+                        userName: userRes.decrypted_name || userRes.full_name || getDisplayName(userRes),
+                        userEmail: userRes.email || '',
+                        userPicture: userRes.profile_picture || userRes.picture || '',
+                        firstName: (userRes.decrypted_name || userRes.full_name)?.split(' ')[0] || getDisplayName(userRes),
+                        userPhone: userRes.decrypted_phone || userRes.phone_number || '',
+                        userLocation: userRes.decrypted_address || userRes.full_address || '',
+                        userTimezone: userRes.timezone || 'UTC',
+                        userAge: userRes.age || '',
+                        userDob: userRes.date_of_birth || '',
+                        userRole: userRes.role || 'PARTICIPANT'
+                    });
                 }
 
-                // 3. Protocol & eConsent Sync
-                try {
-                    if (protocolRes.ok) {
-                        const protocolRaw = await protocolRes.json();
-                        const dbProtocols = safeArray(protocolRaw?.results || protocolRaw);
-                        setAvailableConsentTemplates(dbProtocols);
-
-                        const sigRaw = sigRes.ok ? await sigRes.json() : [];
-                        const mySignatures = safeArray(sigRaw?.results || sigRaw);
-
-                        setSignatures(mySignatures);
-
-                        safeArray(dbProtocols).filter((p: any) => {
-                            const isActive = p.status?.toUpperCase() === 'ACTIVE';
-                            const pStudyId = getId(p.study);
-
-                            const isMyEnrolledStudy = allParticipants.some((part: any) => {
-                                const myStudyId = getId(part.study);
-                                const statusRaw = String(part.status || '').toUpperCase().trim();
-                                const isEnrolled = ['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE'].some(s => statusRaw.includes(s));
-                                return pStudyId === myStudyId && isEnrolled;
-                            });
-
-                            // RC-2 FIX: match by template ID OR by study ID
-                            // If Consent.template was saved as null but Consent.study matches,
-                            // we still correctly identify the participant as already signed.
-                            const alreadySigned = mySignatures.some((s: any) => {
-                                const templateMatch = s.template && getId(s.template) === getId(p.id);
-                                const studyMatch = s.study && getId(s.study) === pStudyId;
-                                return templateMatch || studyMatch;
-                            }) || justSignedTemplateIds.current.has(getId(p.id));
-                            return isActive && isMyEnrolledStudy && !alreadySigned;
-                        }).forEach((p: any) => {
-                            const pInstanceId = getId(p.id);
-                            if (!fetchedTasks.some((t: any) => getId(t) === `db-consent-${pInstanceId}`)) {
-                                fetchedTasks.unshift({
-                                    id: `db-consent-${pInstanceId}`,
-                                    study: getId(p.study),
-                                    participant: pId,
-                                    title: `${p.title} (v${p.version})`,
-                                    status: 'PENDING',
-                                    due_date: new Date().toISOString(),
-                                    visit_name: 'eConsent Hub',
-                                    timeline_group: 'Mandatory',
-                                    estimated_time: '15 min',
-                                    task_type: 'CONSENT',
-                                    p_data: p,
-                                    task_details: { task_type: 'CONSENT', description: `New Protocol Update: ${p.title}.` }
-                                });
-                            }
+                // 2. Handle Participant List & Selection
+                if (pDataRes) {
+                    const filtered = pDataRes.filter((p: any) => !['DROPPED', 'INELIGIBLE'].includes((p.status || '').toUpperCase()));
+                    const priority = ['ENROLLED', 'RANDOMIZED', 'ACTIVE', 'CONSENTED', 'COMPLETED', 'REGISTERED', 'SCREENING'];
+                    filtered.sort((a: any, b: any) => {
+                        const idxA = priority.indexOf((a.status || '').toUpperCase());
+                        const idxB = priority.indexOf((b.status || '').toUpperCase());
+                        if (idxA !== idxB) return idxA - idxB;
+                        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+                    });
+                    setAllParticipants(filtered);
+                    
+                    // Sync parallel data if studies were returned inside summary
+                    if (summaryRes?.study) {
+                        setAllStudies(prev => {
+                            const exists = prev.some(s => getId(s) === getId(summaryRes.study));
+                            return exists ? prev : [...prev, summaryRes.study];
                         });
                     }
-                } catch (cErr) { console.error("Protocol Sync error:", cErr); }
+                }
 
-                // 4. Questionnaire Injection
-                safeArray(fetchedQues).forEach((q: any) => {
-                    if (getId(q.study_questionnaire?.study) === currentStudyId) {
-                        fetchedTasks.push({
-                            id: `qs-${q.id}`,
-                            study: currentStudyId,
-                            participant: pId,
-                            title: q.schedule_name || q.template_details?.name || 'Questionnaire',
-                            status: q.status || 'PENDING',
-                            due_date: q.scheduled_date || q.created_at,
-                            visit_name: 'Instrumentation',
-                            timeline_group: 'Clinical Data',
-                            estimated_time: '10 min',
-                            task_type: 'QUESTIONNAIRE',
-                            q_data: q,
-                            task_details: { task_type: 'QUESTIONNAIRE', description: `Please complete the ${q.schedule_name} instrument.` }
-                        });
+                // 3. Hydrate Clinical Data from Summary
+                if (summaryRes) {
+                    processSummaryData(summaryRes, refreshKey);
+                    if (summaryRes.notifications) {
+                         setNotifications(summaryRes.notifications);
                     }
-                });
-
-                // ──────────────── NOTIFICATION TRIGGERS (REAL-TIME) ────────────────
-                const newNotifs: any[] = [];
-                const currentStatus = activeParticipant?.status;
-                if (prevStatusRef.current && prevStatusRef.current !== currentStatus) {
-                    const statusName = (currentStatus || '').replace(/_/g, ' ');
-                    newNotifs.push({
-                        id: `status-${Date.now()}`,
-                        title: 'Enrollment Status Updated',
-                        desc: `Your status has been updated to: ${statusName}.`,
-                        time: 'Just now',
-                        type: 'system',
-                        read: false
-                    });
-                }
-                prevStatusRef.current = currentStatus;
-
-                const pendingTasksCount = safeArray(fetchedTasks).filter(t => t.status === 'PENDING').length;
-                if (prevTaskCountRef.current !== null && pendingTasksCount > prevTaskCountRef.current) {
-                    newNotifs.push({
-                        id: `task-${Date.now()}`,
-                        title: 'New Task Assigned',
-                        desc: 'A new clinical task requires your attention.',
-                        time: 'Just now',
-                        type: 'protocol',
-                        read: false
-                    });
-                }
-                prevTaskCountRef.current = pendingTasksCount;
-
-                const unreadMsgsCount = safeArray(meshData).reduce((acc: number, c: any) => acc + (c.unread_count || 0), 0);
-                if (prevMsgCountRef.current !== null && unreadMsgsCount > prevMsgCountRef.current) {
-                    newNotifs.push({
-                        id: `msg-${Date.now()}`,
-                        title: 'New Message',
-                        desc: 'You have a new message from the research team.',
-                        time: 'Just now',
-                        type: 'message',
-                        read: false
-                    });
-                }
-                prevMsgCountRef.current = unreadMsgsCount;
-
-                if (newNotifs.length > 0) {
-                    setNotifications(prev => [...newNotifs, ...prev].slice(0, 15));
                 }
 
-                setCompensations(compData);
-                setVisits(visitData);
-                setKits(kitData);
-                setLabResults(labData);
-                setConversations(meshData);
-                setAssignedForms(afData);
-                setHelpRequests(helpData);
-                setLogs(fetchedLogs);
-
-                setTasks(fetchedTasks);
-                lastFetchIdRef.current = `${pId}-${currentStudyId}-${refreshKey}`;
-                setIsDataLoading(false);
             } catch (err) {
-                console.error("Clinical data fetch failed:", err);
-                setIsDataLoading(false);
+                console.error("[Dashboard] Aggregated fetch failed:", err);
             } finally {
                 isFetchingRef.current = false;
+                setIsDataLoading(false);
             }
         };
 
-        fetchClinicalData(false);
-    }, [selectedStudyIndex, allParticipants.length, refreshKey]); // Removed activeStudy as it was redundant and caused duplicate firing
+        loadDashboard(false);
+    }, [selectedStudyIndex, refreshKey]);
+ // Removed activeStudy as it was redundant and caused duplicate firing
 
     const activeStudyId = String(activeStudy?.id || activeStudy?._id?.$oid || activeStudy?._id || activeStudy?.$oid || '').trim();
 
@@ -1284,7 +1137,7 @@ export default function ParticipantDashboard() {
 
                             <div className="relative">
                                 <NotificationBell
-                                    unreadCount={safeArray(notifications).filter(n => !n.read).length}
+                                    unreadCount={safeArray(notifications).filter(n => !n.is_read).length}
                                     onClick={() => {
                                         setIsNotificationOpen(!isNotificationOpen);
                                         setIsDropdownOpen(false);
@@ -1294,10 +1147,11 @@ export default function ParticipantDashboard() {
                                 <AnimatePresence>
                                     {isNotificationOpen && (
                                         <motion.div
+                                            ref={notificationRef}
                                             initial={{ opacity: 0, scale: 0.98, y: 10 }}
                                             animate={{ opacity: 1, scale: 1, y: 0 }}
                                             exit={{ opacity: 0, scale: 0.98, y: 10 }}
-                                            className="absolute right-0 top-full mt-6 w-[400px] bg-white border border-[#E3ECF5] rounded-24px shadow-[0_20px_60px_rgba(0,0,0,0.1)] z-[150] overflow-hidden"
+                                            className="absolute right-[-20px] sm:right-0 top-full mt-6 w-[90vw] sm:w-[400px] bg-white border border-[#E3ECF5] rounded-24px shadow-[0_20px_60px_rgba(0,0,0,0.1)] z-[150] overflow-hidden"
                                             style={{ borderRadius: '24px' }}
                                         >
                                             <div className="p-6 border-b border-[#E3ECF5] flex justify-between items-center bg-[#F8FBFF]">
@@ -1305,31 +1159,74 @@ export default function ParticipantDashboard() {
                                                     <h3 className="text-[12px] font-bold text-[#1A2B49] uppercase tracking-widest">Notifications Hub</h3>
                                                     <span className="text-[10px] text-[#5F6F89] font-bold uppercase tracking-widest leading-none">Updates & Alerts</span>
                                                 </div>
-                                                <button
-                                                    onClick={() => setNotifications(notifications.map(n => ({ ...n, read: true })))}
-                                                    className="px-4 py-2 bg-[#E3F2FD] border border-[#BBDEFB] text-[11px] font-bold text-[#1E88E5] uppercase tracking-tight hover:bg-[#1E88E5] hover:text-white rounded-xl transition-all"
-                                                >
-                                                    Mark all read
-                                                </button>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => setIsNotificationOpen(false)}
+                                                        className="p-1.5 rounded-lg hover:bg-gray-100 text-[#8A99B3] hover:text-[#1A2B49] transition-colors"
+                                                        title="Close Hub"
+                                                    >
+                                                        <X className="w-5 h-5" />
+                                                    </button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            try {
+                                                                // Persist to backend first
+                                                                await authFetch(`${API}/api/notifications/read_all/`, { method: 'POST' });
+                                                                // Update local state for immediate UI feedback
+                                                                setNotifications(notifications.map(n => ({ ...n, is_read: true })));
+                                                            } catch (err) {
+                                                                console.error("Failed to mark all read:", err);
+                                                            }
+                                                        }}
+                                                        className="px-4 py-2 bg-[#E3F2FD] border border-[#BBDEFB] text-[11px] font-bold text-[#1E88E5] uppercase tracking-tight hover:bg-[#1E88E5] hover:text-white rounded-xl transition-all"
+                                                    >
+                                                        Mark all read
+                                                    </button>
+                                                </div>
                                             </div>
                                             <div className="max-h-[450px] overflow-y-auto no-scrollbar bg-white">
                                                 {notifications.length > 0 ? notifications.map(n => (
                                                     <div
                                                         key={n.id}
-                                                        className={`p-6 border-b border-[#F0F6FF] last:border-0 hover:bg-[#F8FBFF] transition-all cursor-pointer relative group/notif ${!n.read ? 'bg-[#E3F2FD]/5' : ''}`}
-                                                        onClick={() => {
-                                                            if (n.type === 'protocol') setActiveNav('Tasks');
-                                                            setNotifications(notifications.map(notif => notif.id === n.id ? { ...notif, read: true } : notif));
-                                                            setIsNotificationOpen(false);
+                                                        className={`p-6 border-b border-[#F0F6FF] last:border-0 hover:bg-[#F8FBFF] transition-all cursor-pointer relative group/notif ${!n.is_read ? 'bg-[#E3F2FD]/5' : ''}`}
+                                                        onClick={async () => {
+                                                            try {
+                                                                // 1. Sync status to backend if unread
+                                                                if (!n.is_read) {
+                                                                    await authFetch(`${API}/api/notifications/${n.id}/read/`, { method: 'POST' });
+                                                                }
+
+                                                                // 2. Navigation logic
+                                                                if (n.link) {
+                                                                    if (n.link.startsWith('http')) {
+                                                                        window.open(n.link, '_blank');
+                                                                    } else {
+                                                                        navigate(n.link);
+                                                                    }
+                                                                } else if (n.type === 'protocol' || n.type === 'TASK') {
+                                                                    setActiveNav('Tasks');
+                                                                    navigate('/dashboard/participant/tasks');
+                                                                }
+                                                                
+                                                                // 3. Update local state
+                                                                setNotifications(notifications.map(notif => notif.id === n.id ? { ...notif, is_read: true } : notif));
+                                                                setIsNotificationOpen(false);
+                                                            } catch (err) {
+                                                                console.error("Failed to mark notification as read:", err);
+                                                                // Fallback to local state update even if API fails to avoid blocking navigation
+                                                                setIsNotificationOpen(false);
+                                                            }
                                                         }}
                                                     >
-                                                        {!n.read && <div className="absolute top-0 bottom-0 left-0 w-1 bg-[#1E88E5]" />}
+                                                        {!n.is_read && <div className="absolute top-0 bottom-0 left-0 w-1 bg-[#1E88E5]" />}
                                                         <div className="flex flex-col gap-1.5">
                                                             <div className="flex justify-between items-baseline gap-4">
                                                                 <span className={`text-[13px] font-bold uppercase tracking-tight leading-none ${n.type === 'protocol' ? 'text-[#1E88E5]' : 'text-[#1A2B49] group-hover/notif:text-[#1E88E5]'} transition-colors truncate`}>{n.title}</span>
-                                                                <span className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-tighter flex-shrink-0">{n.time}</span>
+                                                                <span className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-tighter flex-shrink-0">
+                                                                    {n.created_at ? new Date(n.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' }) : (n.time || '')}
+                                                                </span>
                                                             </div>
-                                                            <p className="text-[13px] text-[#5F6F89] font-medium leading-relaxed">{n.desc}</p>
+                                                            <p className="text-[13px] text-[#5F6F89] font-medium leading-relaxed">{n.message || n.desc}</p>
                                                         </div>
                                                     </div>
                                                 )) : (
@@ -1358,6 +1255,7 @@ export default function ParticipantDashboard() {
                                             <img
                                                 src={userProfile.userPicture}
                                                 alt=""
+                                                crossOrigin="anonymous"
                                                 className="w-full h-full object-cover"
                                                 onError={(e) => {
                                                     (e.target as HTMLImageElement).style.display = 'none';
@@ -1444,8 +1342,8 @@ export default function ParticipantDashboard() {
                             )}
                             {activeNav === 'Tasks' && <TasksView isLoading={isDataLoading} tasks={filteredTasks} onAction={openActionModal} study={activeStudy} userName={userProfile.userName} defaultFilter={tasksDefaultFilter} />}
                             {activeNav === 'Study Kit' && <StudyKitView isLoading={isDataLoading} onAction={openActionModal} study={activeStudy} kits={filteredKits} />}
-                            {activeNav === 'Logs' && <LogsView study={activeStudy} onAction={openActionModal} preselectedDate={logsPreselectedDate} preselectedLog={selectedLog} defaultViewMode={logsDefaultViewMode} />}
-                            {activeNav === 'Messages' && <MessagesView isLoading={isDataLoading} study={activeStudy} conversations={filteredConversations} onAction={refreshData} />}
+                            {activeNav === 'Logs' && <LogsView study={activeStudy} onAction={openActionModal} preselectedDate={logsPreselectedDate} preselectedLog={selectedLog} defaultViewMode={logsDefaultViewMode} initialLogs={logs} />}
+                            {activeNav === 'Messages' && <MessagesView isLoading={isDataLoading} study={activeStudy} conversations={filteredConversations} onAction={refreshData} fullConversations={fullConversations} setFullConversations={setFullConversations} />}
                             {activeNav === 'Documents' && (
                                 <div className="space-y-3">
                                     {consentSuccessToast && (

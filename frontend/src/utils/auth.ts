@@ -101,6 +101,7 @@ export const redirectToLogin = () => {
 
 // ── REFRESH SYNCHRONIZATION ──────────────────────────────
 let _refreshPromise: Promise<boolean> | null = null;
+const _inflightFetches = new Map<string, Promise<Response>>();
 
 // API HELPERS (WITH AUTH)
 
@@ -115,7 +116,14 @@ export async function authFetch(url: string, options: any = {}) {
     if (isCacheable) {
         const cached = _apiCache.get(fullUrl);
         if (cached && cached.expiry > Date.now()) {
-            return cached.data.clone(); // Return clone to prevent shared state issues
+            return cached.data.clone();
+        }
+        
+        // 2. Check for In-flight requests (De-duplication)
+        const inflight = _inflightFetches.get(fullUrl);
+        if (inflight) {
+            const res = await inflight;
+            return res.clone();
         }
     }
 
@@ -130,44 +138,51 @@ export async function authFetch(url: string, options: any = {}) {
         headers['Content-Type'] = 'application/json';
     }
 
-    let response: Response;
-    try {
-        response = await fetch(fullUrl, { ...options, headers });
-        
-        // Handle 401 Unauthorized (Token Expiry)
-        if (response.status === 401 && getRefreshToken()) {
-            // Check if a refresh is already in progress
-            if (!_refreshPromise) {
-                _refreshPromise = tryRefresh().finally(() => {
-                    _refreshPromise = null;
+    // Wrap the actual fetch in a promise to track it if it's cacheable
+    const performFetch = async (): Promise<Response> => {
+        let response: Response;
+        try {
+            response = await fetch(fullUrl, { ...options, headers });
+            
+            if (response.status === 401 && getRefreshToken()) {
+                if (!_refreshPromise) {
+                    _refreshPromise = tryRefresh().finally(() => {
+                        _refreshPromise = null;
+                    });
+                }
+
+                const refreshed = await _refreshPromise;
+                if (refreshed) {
+                    const newAccessToken = getAccessToken();
+                    const retryHeaders = { ...headers, 'Authorization': `Bearer ${newAccessToken}` };
+                    response = await fetch(fullUrl, { ...options, headers: retryHeaders });
+                } else {
+                    performLogout();
+                }
+            }
+
+            if (isCacheable && response.ok) {
+                _apiCache.set(fullUrl, {
+                    data: response.clone(),
+                    expiry: Date.now() + CACHE_DURATION
                 });
             }
-
-            const refreshed = await _refreshPromise;
-            if (refreshed) {
-                const newAccessToken = getAccessToken();
-                const retryHeaders = { 
-                    ...headers, 
-                    'Authorization': `Bearer ${newAccessToken}` 
-                };
-                response = await fetch(fullUrl, { ...options, headers: retryHeaders });
-            } else {
-                performLogout();
-            }
+            return response;
+        } catch (error) {
+            console.error(`Fetch error at ${fullUrl}:`, error);
+            throw error;
+        } finally {
+            if (isCacheable) _inflightFetches.delete(fullUrl);
         }
+    };
 
-        // 2. Hydrate Cache if successful
-        if (isCacheable && response.ok) {
-            _apiCache.set(fullUrl, {
-                data: response.clone(),
-                expiry: Date.now() + CACHE_DURATION
-            });
-        }
-
-        return response;
-    } catch (error) {
-        console.error(`Fetch error at ${fullUrl}:`, error);
-        throw error;
+    if (isCacheable) {
+        const fetchPromise = performFetch();
+        _inflightFetches.set(fullUrl, fetchPromise);
+        const finalRes = await fetchPromise;
+        return finalRes.clone();
+    } else {
+        return performFetch();
     }
 }
 

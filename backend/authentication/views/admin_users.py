@@ -20,7 +20,7 @@ ALLOWED_ROLES = ['super_admin', 'admin', 'sponsor', 'coordinator', 'pi', 'team_m
 
 def check_permission(creator, target_role):
     """Enforce RBAC rules for user creation (Section 1.4)"""
-    if creator.status.lower() != "active":
+    if creator.status.upper() != "ACTIVE":
         return False
 
     c_role = creator.role.lower()
@@ -104,39 +104,41 @@ def admin_create_user(request):
 
     existing_user = User.objects.filter(email=email).first()
     if existing_user:
-        # Instead of 409 Conflict, we gracefully return the existing user
-        # so the frontend can immediately assign them to the study.
+        # User requested: show them alert and who invited him and in which study
         return Response({
-            'message': 'User already exists.',
-            'id': str(existing_user.id),
-            'email': existing_user.email,
-            'first_name': existing_user.first_name,
-            'last_name': existing_user.last_name,
-            'role': existing_user.role,
-        }, status=status.HTTP_200_OK)
+            'error': 'This email is already registered on the platform.',
+            'existing_user': {
+                'name': f"{existing_user.first_name} {existing_user.last_name}",
+                'email': existing_user.email,
+                'invited_by': existing_user.invited_by.full_name if existing_user.invited_by else "System/Super Admin",
+                'invited_in_study': existing_user.invited_in_study or "General Platform",
+                'status': existing_user.status
+            }
+        }, status=status.HTTP_400_BAD_REQUEST)
 
     # 3. Generation
     username = generate_unique_username(first_name, last_name)
     temp_password = generate_secure_password(14)
+    study_id = request.data.get('study_id')
     
     # 4. Atomic Creation
     try:
         # Rule 1.1: HOW AFFILIATION IS DETERMINED
-        affiliation = 'musb' # Default
-        status_val = 'active' # Default for MusB invited users
+        affiliation = 'MUSB' # Default
+        status_val = 'PENDING' # Default for MusB invited users
         
         # Onsite PI adds team members -> inherit onsite, set pending
-        if admin_user.role == 'pi' and admin_user.affiliation == 'onsite':
-            affiliation = 'onsite'
+        if admin_user.role == 'pi' and admin_user.affiliation.upper() == 'ONSITE':
+            affiliation = 'ONSITE'
             # Rule 6: Onsite PI team member requests ALWAYS go through Super Admin approval
             if role == 'team_member':
-                status_val = 'pending'
+                status_val = 'PENDING'
             
         # Explicit override for onsite PIs if flag provided (e.g., from study assignment flow)
         elif request.data.get('is_onsite_hire'):
-             affiliation = 'onsite'
+             affiliation = 'ONSITE'
              if role == 'team_member':
-                 status_val = 'pending'
+                 status_val = 'PENDING'
 
         new_user = User.objects.create_user(
             email=email,
@@ -144,17 +146,20 @@ def admin_create_user(request):
             first_name=first_name,
             middle_name=middle_name,
             last_name=last_name,
+            full_name=f"{first_name} {last_name}".strip(),
             role=role,
             affiliation=affiliation,
             status=status_val,
             username=username,
             must_change_password=True,
             profile_completed=False,
-            created_by=admin_user
+            created_by=admin_user,
+            invited_by=admin_user,
+            invited_in_study=study_id
         )
         
         # 4.1 Approval Request for Onsite Team Members
-        if status_val == 'pending':
+        if status_val == 'PENDING':
             from ..models import ApprovalRequest
             ApprovalRequest.objects.create(
                 requested_by=admin_user,
@@ -162,6 +167,50 @@ def admin_create_user(request):
                 status='pending'
             )
         
+        # 4.2 TRIGGER NOTIFICATIONS
+        try:
+            from django.apps import apps
+            Notification = apps.get_model('api', 'Notification')
+            Study = apps.get_model('api', 'Study')
+            
+            # Notify Super Admins
+            super_admins = User.objects.filter(role='SUPER_ADMIN', is_active=True)
+            for sa in super_admins:
+                Notification.objects.create(
+                    user=sa,
+                    title="New Personnel Invitation",
+                    message=f"{admin_user.full_name} has invited {first_name} {last_name} as a {role}.",
+                    type='INFO',
+                    link='/dashboard/super-admin/all-users'
+                )
+
+            # If study context provided, notify PIs and Coordinators of that study
+            if study_id:
+                target_study = Study.objects.filter(Q(protocol_id=study_id) | Q(id=study_id)).first()
+                if target_study:
+                    # Collect all staff associated with this study
+                    recipients = set()
+                    if target_study.pi: recipients.add(target_study.pi)
+                    if target_study.coordinator: recipients.add(target_study.coordinator)
+                    
+                    # Also check for multiple PIs/Coordinators if the model supports it
+                    if hasattr(target_study, 'assigned_pis'):
+                        for pi in target_study.assigned_pis.all(): recipients.add(pi)
+                    if hasattr(target_study, 'assigned_coordinators'):
+                        for coord in target_study.assigned_coordinators.all(): recipients.add(coord)
+                    
+                    for r in recipients:
+                        if r.id != admin_user.id: # Don't notify the inviter themselves
+                            Notification.objects.create(
+                                user=r,
+                                title="Study Team Update",
+                                message=f"{first_name} {last_name} has been invited to join study {target_study.protocol_id}.",
+                                type='SUCCESS',
+                                link=f'/dashboard/pi/team'
+                            )
+        except Exception as notify_err:
+            logger.error(f"Notification trigger failed: {str(notify_err)}")
+
         # 5. Email Delivery Logic
         subject_map = {
             'pi': 'Your PI Coordinator Account Has Been Created',
@@ -375,10 +424,10 @@ def process_approval(request, request_id, action):
         app_req = ApprovalRequest.objects.get(id=request_id)
         if action == 'approve':
             app_req.status = 'approved'
-            app_req.target_user.status = 'active'
+            app_req.target_user.status = 'ACTIVE'
         else:
             app_req.status = 'rejected'
-            app_req.target_user.status = 'rejected'
+            app_req.target_user.status = 'REJECTED'
             
         app_req.target_user.save()
         app_req.reviewed_by = request.user
@@ -448,10 +497,12 @@ def admin_list_users(request):
     List users by role for administrative assignment (e.g., Launch Study flow).
     """
     role = request.query_params.get('role', '').upper()
-    if not role:
-        users = User.objects.all()
+    
+    # Base queryset: Exclude participants from professional team views by default
+    users = User.objects.exclude(role__in=['PARTICIPANT', 'participant', 'Participant'])
+
     if role:
-        users = User.objects.filter(
+        users = users.filter(
             Q(role=role.upper()) | 
             Q(role=role.lower()) | 
             Q(role=role.capitalize())
@@ -467,7 +518,9 @@ def admin_list_users(request):
             'email': u.email,
             'role': u.role,
             'full_name': f"{u.first_name} {u.last_name}".strip() or u.email,
-            'status': (u.status or 'active').upper(),
-            'date': u.date_joined.strftime('%Y-%m-%d') if u.date_joined else ''
+            'status': (u.status or 'PENDING').upper(),
+            'date': u.date_joined.strftime('%Y-%m-%d') if u.date_joined else '',
+            'invited_by': u.invited_by.full_name if u.invited_by else 'Super Admin',
+            'study': u.invited_in_study or 'N/A'
         })
     return Response(data)

@@ -201,11 +201,13 @@ function CompensationModal({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function ParticipantOversight({
-    onOpenProfile, onMessage, selectedStudyId
+    onOpenProfile, onMessage, selectedStudyId, preloadedData, isLoadingSummary
 }: {
     onOpenProfile?: (id: string) => void;
     onMessage?: (id: string) => void;
     selectedStudyId?: string | 'all';
+    preloadedData?: any;
+    isLoadingSummary?: boolean;
 }) {
     const [activeTab, setActiveTab] = useState<TabKey>('All');
     const [searchQuery, setSearchQuery] = useState('');
@@ -230,7 +232,29 @@ export default function ParticipantOversight({
         setTimeout(() => setToastMsg(null), 3500);
     };
 
-    const fetchParticipants = useCallback(async () => {
+    const fetchParticipants = useCallback(async (isInitial = false) => {
+        // If we have preloaded data for a specific study, use it instead of fetching
+        if (isInitial && preloadedData?.participant_tracking && selectedStudyId && selectedStudyId !== 'all') {
+            const results = preloadedData.participant_tracking;
+            const mapped: ParticipantRow[] = results.map((p: any) => ({
+                id: p.id,
+                name: p.sid || p.name || 'Unknown Subject',
+                study: preloadedData.study?.protocol_id || 'Assigned Study',
+                study_id: preloadedData.study?.id || '',
+                rawStatus: p.status,
+                displayStatus: STATUS_MAP[p.status?.toUpperCase()] || p.status,
+                progress: p.progress || 0,
+                submittedAt: p.last_interaction || null,
+                lastVisit: 'Tracking...',
+                risk: 'Low',
+                tasksTotal: p.tasks_total || 0,
+                tasksCompleted: p.tasks_completed || 0,
+            }));
+            setParticipants(mapped);
+            setIsLoading(false);
+            return;
+        }
+
         setIsLoading(true); setError(null);
         try {
             const [pRes, tRes] = await Promise.all([
@@ -281,9 +305,15 @@ export default function ParticipantOversight({
         } finally {
             setTimeout(() => setIsLoading(false), 600);
         }
-    }, []);
+    }, [preloadedData, selectedStudyId]);
 
-    useEffect(() => { fetchParticipants(); }, [fetchParticipants]);
+    useEffect(() => { 
+        if (preloadedData?.participant_tracking && selectedStudyId && selectedStudyId !== 'all') {
+            fetchParticipants(true);
+        } else {
+            fetchParticipants();
+        }
+    }, [fetchParticipants, selectedStudyId, preloadedData]);
 
     const handleReviewDecision = async () => {
         if (!reviewModal) return;

@@ -161,6 +161,8 @@ def setup_credentials(request):
         password=password,
         organization=invitation.organization,
         role=invitation.role,
+        status='ACTIVE',
+        affiliation=(invitation.organization or 'MUSB').upper(),
         parent_sponsor=invitation.invited_by,
         assigned_studies=invitation.study_ids
     )
@@ -234,8 +236,9 @@ def complete_profile(request):
     user.date_of_birth = data.get('date_of_birth', user.date_of_birth)
     user.age = data.get('age', user.age)
     
-    # Make sure we explicitly set profile_completed to True
+    # Make sure we explicitly set profile_completed to True and status to ACTIVE
     user.profile_completed = True
+    user.status = 'ACTIVE'
     
     # First save the fields that need encryption
     try:

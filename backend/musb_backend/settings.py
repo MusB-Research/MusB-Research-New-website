@@ -83,6 +83,7 @@ AUTH_USER_MODEL = 'authentication.User'
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'django.middleware.gzip.GZipMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -164,6 +165,17 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Asia/Kolkata'
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
+
+# ─────────────────────────────────────────────────────────
+#  Celery Beat Schedule
+# ─────────────────────────────────────────────────────────
+from celery.schedules import crontab
+CELERY_BEAT_SCHEDULE = {
+    'check-missed-visits-every-hour': {
+        'task': 'api.tasks.check_missed_visits',
+        'schedule': crontab(minute=0), # Every hour
+    },
+}
 
 # Silence AutoField checks for built-in Django apps (admin, auth, contenttypes)
 # that hardcode AutoField. The MongoDB backend handles these at runtime.
@@ -297,7 +309,7 @@ else:
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
+    X_FRAME_OPTIONS = 'SAMEORIGIN'
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_HTTPONLY = True

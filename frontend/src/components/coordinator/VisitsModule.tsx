@@ -38,6 +38,8 @@ import {
     Stethoscope
 } from 'lucide-react';
 import { API, authFetch, getUser } from '../../utils/auth';
+import { Skeleton } from '../../views/Participant/SharedComponents';
+
 
 interface Assessment {
     id: string;
@@ -84,12 +86,20 @@ interface Participant {
     aeReports: AEReport[];
 }
 
-export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: string }) {
+interface VisitsModuleProps {
+    selectedStudyId?: string;
+    preloadedParticipants?: Participant[];
+    preloadedStudies?: any[];
+    preloadedTasks?: any[];
+    onRefresh?: () => void;
+}
+
+export default function VisitsModule({ selectedStudyId, preloadedParticipants, preloadedStudies, preloadedTasks, onRefresh }: VisitsModuleProps) {
     const [viewMode, setViewMode] = useState<'Timeline' | 'Calendar'>('Timeline');
     const [participants, setParticipants] = useState<Participant[]>([]);
-    const [globalTasks, setGlobalTasks] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [allStudies, setAllStudies] = useState<any[]>([]);
+    const [globalTasks, setGlobalTasks] = useState<any[]>(preloadedTasks || []);
+    const [isLoading, setIsLoading] = useState(!preloadedParticipants);
+    const [allStudies, setAllStudies] = useState<any[]>(preloadedStudies || []);
     const [studyTasks, setStudyTasks] = useState<any[]>([]);
     const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
     const [selectedVisitId, setSelectedVisitId] = useState<string | null>(null);
@@ -97,7 +107,63 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
     const [isProblemModalOpen, setIsProblemModalOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [openAccordion, setOpenAccordion] = useState<string | null>('Checklist');
+    const [mobileView, setMobileView] = useState<'LIST' | 'TIMELINE' | 'DETAILS'>('LIST');
     const [tempVitals, setTempVitals] = useState({ weight: 78.5, height: 1.82 });
+
+    const mapParticipants = useCallback((data: any[]): Participant[] => {
+        return data.map((p: any) => ({
+            id: p.id,
+            db_id: p.id,
+            participant_sid: p.participant_sid || 'REQ-000',
+            name: p.user_details?.decrypted_name || p.user_details?.full_name || p.participant_sid || 'Subject',
+            protocol_id: p.protocol_id || 'N/A',
+            status: p.status === 'ACTIVE' ? 'Active' : p.status === 'SCREENING' ? 'Screening' : (p.status || 'Active'),
+            coordinator: p.coordinator_name || 'Coordinator Unassigned',
+            nextVisitDue: p.next_visit_date || 'N/A',
+            study: p.study_name || 'General Protocol',
+            study_id: p.study,
+            visits: (Array.isArray(p.visits) ? p.visits : []).map((v: any) => ({
+                id: v.id,
+                name: v.visit_type || 'Unspecified Visit',
+                scheduledDate: v.scheduled_date || v.date || null,
+                status: v.status === 'COMPLETED' ? 'Completed' : v.status === 'SCHEDULED' ? 'Scheduled' : 'Overdue',
+                window: '±3 days',
+                actualDate: v.actual_date,
+                checklist: (Array.isArray(v.checklist) ? v.checklist : []).map((inner: any) => ({
+                    item: inner.label || inner.item || 'Required Task',
+                    done: !!(inner.checked || inner.done),
+                    time: inner.time,
+                    user: inner.by || inner.user
+                })),
+                assessments: Array.isArray(v.assessments) ? v.assessments : [],
+                vitals: v.measurements || { weight: 0, height: 0, bmi: 0, bp: 'N/A', hr: 0, temp: 0 },
+                meds: (Array.isArray(v.dispensing) && v.dispensing.length > 0) ? {
+                    dispensed: v.dispensing[0].product || 'N/A',
+                    dose: v.dispensing[0].dose || 'N/A',
+                    compliance: v.dispensing[0].compliance || 100
+                } : { dispensed: 'N/A', dose: 'N/A', compliance: 100 },
+                notes: v.notes || ''
+            })),
+            aeReports: (Array.isArray(p.ae_reports) ? p.ae_reports : []).map((ae: any) => ({
+                id: ae.id,
+                description: ae.description || '',
+                start_date: ae.start_date,
+                severity: ae.severity || 'MILD',
+                is_ongoing: !!ae.is_ongoing,
+                related_to_product: ae.related_to_product || 'UNSURE',
+                action_taken: ae.action_taken || ''
+            }))
+        }));
+    }, []);
+
+    // Sync state with preloaded data from dashboard
+    useEffect(() => {
+        if (preloadedParticipants) {
+            setParticipants(mapParticipants(preloadedParticipants));
+            setIsLoading(false);
+        }
+        if (preloadedTasks) setGlobalTasks(preloadedTasks);
+    }, [preloadedParticipants, preloadedTasks, mapParticipants]);
     const [viewDate, setViewDate] = useState(new Date());
     const [scheduleData, setScheduleData] = useState({
         studyId: '',
@@ -129,69 +195,20 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
             const [pRes, sRes, tRes] = await Promise.all([
                 authFetch(`${apiUrl}/api/participants/`),
                 authFetch(`${apiUrl}/api/studies/`),
-                authFetch(`${apiUrl}/api/participant-tasks/`)
+                authFetch(`${apiUrl}/api/staff-tasks/`)
             ]);
 
             if (pRes.ok) {
                 const rawData = await pRes.json();
-                // Handle paginated responses from Django Rest Framework
                 const data = Array.isArray(rawData) ? rawData : (rawData.results || []);
-
                 if (!Array.isArray(data)) {
-                    console.error("[Clinical Sync] Dataset malformation:", rawData);
                     setParticipants([]);
                     return;
                 }
-                const mapped: Participant[] = data.map((p: any) => ({
-                    id: p.id,
-                    db_id: p.id,
-                    participant_sid: p.participant_sid || 'REQ-000',
-                    name: p.user_details?.decrypted_name || p.user_details?.full_name || p.participant_sid || 'Subject',
-                    protocol_id: p.protocol_id || 'N/A',
-                    status: p.status === 'ACTIVE' ? 'Active' : p.status === 'SCREENING' ? 'Screening' : (p.status || 'Active'),
-                    coordinator: p.coordinator_name || 'Coordinator Unassigned',
-                    nextVisitDue: p.next_visit_date || 'N/A',
-                    study: p.study_name || 'General Protocol',
-                    study_id: p.study,
-                    visits: (Array.isArray(p.visits) ? p.visits : []).map((v: any) => ({
-                        id: v.id,
-                        name: v.visit_type || 'Unspecified Visit',
-                        // Keep the raw ISO string for data logic, but format it for the UI later
-                        scheduledDate: v.scheduled_date || v.date || null,
-                        status: v.status === 'COMPLETED' ? 'Completed' : v.status === 'SCHEDULED' ? 'Scheduled' : 'Overdue',
-                        window: '±3 days',
-                        actualDate: v.actual_date,
-                        checklist: (Array.isArray(v.checklist) ? v.checklist : []).map((inner: any) => ({
-                            item: inner.label || inner.item || 'Required Task',
-                            done: !!(inner.checked || inner.done),
-                            time: inner.time,
-                            user: inner.by || inner.user
-                        })),
-                        assessments: Array.isArray(v.assessments) ? v.assessments : [],
-                        vitals: v.measurements || { weight: 0, height: 0, bmi: 0, bp: 'N/A', hr: 0, temp: 0 },
-                        meds: (Array.isArray(v.dispensing) && v.dispensing.length > 0) ? {
-                            dispensed: v.dispensing[0].product || 'N/A',
-                            dose: v.dispensing[0].dose || 'N/A',
-                            compliance: v.dispensing[0].compliance || 100
-                        } : { dispensed: 'N/A', dose: 'N/A', compliance: 100 },
-                        notes: v.notes || ''
-                    })),
-                    aeReports: (Array.isArray(p.ae_reports) ? p.ae_reports : []).map((ae: any) => ({
-                        id: ae.id,
-                        description: ae.description || '',
-                        start_date: ae.start_date,
-                        severity: ae.severity || 'MILD',
-                        is_ongoing: !!ae.is_ongoing,
-                        related_to_product: ae.related_to_product || 'UNSURE',
-                        action_taken: ae.action_taken || ''
-                    }))
-                }));
-                setParticipants(mapped);
+                setParticipants(mapParticipants(data));
             } else {
-                console.warn("[Clinical Sync] Dataset access restricted or unavailable:", pRes.status);
                 setParticipants([]);
             }
-
 
             if (sRes.ok) {
                 const sData = await sRes.json();
@@ -207,19 +224,16 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
         } finally {
             setIsLoading(false);
         }
-    }, [apiUrl]);
+    }, [apiUrl, mapParticipants]);
 
-    // Initial load
+    // Initial load sync - DISABLED redundant fetch in favor of dashboard orchestration
     useEffect(() => {
-        loadData();
-        // Check for missed visits on load to trigger alerts/notifications
-        const checkMissed = async () => {
-            try {
-                await authFetch(`${apiUrl}/api/visits/check_missed/`, { method: 'POST' });
-            } catch (e) { /* silent check */ }
-        };
-        checkMissed();
-    }, [loadData, apiUrl]);
+        /*
+        if (preloadedParticipants === undefined || preloadedParticipants === null) {
+            loadData();
+        }
+        */
+    }, [loadData, preloadedParticipants]);
 
     // Handle initial selection & filtering
     const filteredParticipants = useMemo(() => {
@@ -264,6 +278,15 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
         }
     }, [filteredParticipants, selectedParticipantId, selectedVisitId]);
 
+    // Adaptive Mobile Navigation Logic
+    useEffect(() => {
+        if (selectedParticipantId && mobileView === 'LIST') setMobileView('TIMELINE');
+    }, [selectedParticipantId, mobileView]);
+
+    useEffect(() => {
+        if (selectedVisitId && mobileView === 'TIMELINE') setMobileView('DETAILS');
+    }, [selectedVisitId, mobileView]);
+
 
     // ─── COMPUTED STATE ──────────────────────────────────────────────────────
     const selectedParticipant = useMemo(() =>
@@ -281,6 +304,30 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
 
 
     // ─── ACTIONS ─────────────────────────────────────────────────────────────
+    const handleSaveVitals = async () => {
+        if (!selectedVisit) return;
+        try {
+            const res = await authFetch(`${apiUrl}/api/visits/${selectedVisit.id}/`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    measurements: {
+                        ...selectedVisit.vitals,
+                        weight: tempVitals.weight,
+                        height: tempVitals.height,
+                        bmi: bmi
+                    }
+                })
+            });
+            if (res.ok) {
+                if (onRefresh) onRefresh();
+                else await loadData();
+                alert("Biometry Synced: Clinical records updated.");
+            }
+        } catch (err) {
+            alert("Sync Delay: Network interference detected.");
+        }
+    };
+
     const handleSignOff = async (action: 'Approve' | 'Flag') => {
         if (!selectedVisit) return;
         const confirmMsg = action === 'Approve' ? 'Confirm clinical sign-off for this visit?' : 'Flag this visit for PI review?';
@@ -298,7 +345,11 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                     body: JSON.stringify(payload)
                 });
 
-                if (res.ok) await loadData();
+                if (res.ok) {
+                    if (onRefresh) onRefresh();
+                    else await loadData();
+                    if(action === 'Approve') setMobileView('TIMELINE');
+                }
                 else alert("Persistence Failure: Network error");
             } catch (err) {
                 alert("Signal Interference: Network error");
@@ -350,7 +401,8 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
 
             if (visitResp.ok) {
                 setIsScheduleOpen(false);
-                loadData();
+                if (onRefresh) onRefresh();
+                else loadData();
             } else {
                 alert("Protocol Sync Error: Failed to persist visit data.");
             }
@@ -390,7 +442,8 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                     related_to_product: 'UNSURE',
                     action_taken: ''
                 });
-                loadData();
+                if (onRefresh) onRefresh();
+                else loadData();
             } else {
                 alert("Persistence Error: Failed to log clinical concern.");
             }
@@ -484,16 +537,32 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                     <div className={`text-sm font-semibold mb-2 ${isToday ? 'text-indigo-400' : 'text-slate-300'}`}>
                                         {isCurrentMonth ? dayNum : ''}
                                     </div>
-                                    <div className="space-y-1.5">
-                                        {daySessions.slice(0, 3).map((s, idx) => (
-                                            <div key={idx} className={`px-2 py-1 rounded text-[10px] font-medium truncate ${s.type === 'VISIT' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-emerald-500/20 text-emerald-300'
+                                    <div className="space-y-1.5 md:space-y-1">
+                                        {/* Desktop View: Text Labels */}
+                                        <div className="hidden md:flex flex-col gap-1">
+                                            {daySessions.slice(0, 3).map((s, idx) => (
+                                                <div key={idx} className={`px-2 py-1 rounded text-[9px] font-bold uppercase tracking-tight truncate ${
+                                                    s.type === 'VISIT' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-emerald-500/20 text-emerald-300'
                                                 }`}>
-                                                {s.label}
-                                            </div>
-                                        ))}
-                                        {daySessions.length > 3 && (
-                                            <p className="text-[10px] text-slate-500 pl-1">+{daySessions.length - 3} more</p>
-                                        )}
+                                                    {s.label}
+                                                </div>
+                                            ))}
+                                            {daySessions.length > 3 && (
+                                                <p className="text-[8px] text-slate-600 pl-1 font-bold italic">+{daySessions.length - 3} MORE</p>
+                                            )}
+                                        </div>
+
+                                        {/* Mobile View: High-visibility dots */}
+                                        <div className="flex flex-wrap items-center justify-center gap-1 md:hidden">
+                                            {daySessions.map((s, idx) => (
+                                                <div 
+                                                    key={idx} 
+                                                    className={`w-1.5 h-1.5 rounded-full ${
+                                                        s.type === 'VISIT' ? 'bg-indigo-400 shadow-[0_0_5px_rgba(129,140,248,0.5)]' : 'bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.5)]'
+                                                    }`} 
+                                                />
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             );
@@ -510,41 +579,36 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
         <div className="w-full flex flex-col h-[calc(100vh-6rem)] bg-[#0B101B]">
 
             {/* Overlays */}
-            {isLoading && (
-                <div className="absolute inset-0 z-[100] bg-[#0B101B]/80 flex flex-col items-center justify-center">
-                    <Activity className="w-8 h-8 text-indigo-500 animate-spin mb-4" />
-                    <p className="text-sm font-medium text-white tracking-wide">Loading records...</p>
-                </div>
-            )}
 
-            {/* Header Bar */}
-            <div className="flex-shrink-0 px-6 py-5 bg-[#0B101B] border-b border-white/10 flex items-center justify-between">
-                <div className="flex items-center gap-8">
-                    <h2 className="text-lg font-bold text-white tracking-wider">VISITS & ASSESSMENTS</h2>
-                    <div className="flex bg-white/5 p-1 rounded-lg border border-white/10">
+            {/* Header Bar: Responsive Stacking */}
+            <div className="flex-shrink-0 px-4 md:px-6 py-2.5 bg-[#0B101B] border-b border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div className="flex items-center justify-between lg:justify-start gap-4 md:gap-8">
+                    <h2 className="text-sm md:text-lg font-black text-white tracking-widest uppercase italic">VISITS Oversight</h2>
+                    <div className="flex bg-white/5 p-0.5 rounded-xl border border-white/10 shrink-0">
                         {(['Timeline', 'Calendar'] as const).map(mode => (
-                            <button key={mode} onClick={() => setViewMode(mode)} className={`px-4 py-1.5 rounded-md text-xs font-semibold tracking-wide transition-colors ${viewMode === mode ? 'bg-indigo-500 text-white' : 'text-slate-400 hover:text-white'}`}>
-                                {mode.toUpperCase()}
+                            <button key={mode} onClick={() => setViewMode(mode)} className={`px-3 md:px-4 py-1 rounded-lg text-[10px] md:text-xs font-black tracking-widest transition-all ${viewMode === mode ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500 hover:text-white'}`}>
+                                {mode}
                             </button>
                         ))}
                     </div>
                 </div>
-                <div className="flex items-center gap-4">
-                    <div className="relative w-64 hidden md:block">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input type="text" placeholder="Search Subjects..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm text-white outline-none focus:border-indigo-500" />
+
+                <div className="flex items-center gap-2 md:gap-3 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
+                    <div className="relative w-full md:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+                        <input type="text" placeholder="Filter Subjects..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-1.5 text-[12px] text-white outline-none focus:border-indigo-500/50 transition-all placeholder:text-slate-600" />
                     </div>
-                    <button onClick={() => setIsScheduleOpen(true)} className="px-5 py-2 border border-white/20 text-white rounded-lg text-xs font-bold tracking-wider hover:bg-white/10 transition-colors">
-                        + SCHEDULE FLOW
+                    <button onClick={() => setIsScheduleOpen(true)} className="whitespace-nowrap px-4 py-1.5 bg-indigo-600/10 border border-indigo-600/20 text-indigo-400 rounded-xl text-[10px] font-black tracking-widest hover:bg-indigo-600 hover:text-white transition-all italic">
+                        + SCHEDULE
                     </button>
-                    <button onClick={() => setIsProblemModalOpen(true)} className="px-5 py-2 border border-red-500/50 text-red-400 rounded-lg text-xs font-bold tracking-wider hover:bg-red-500/10 transition-colors">
-                        + REPORT PROBLEM
+                    <button onClick={() => setIsProblemModalOpen(true)} className="whitespace-nowrap px-4 py-1.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-[10px] font-black tracking-widest hover:bg-rose-500 hover:text-white transition-all italic">
+                        + REPORT
                     </button>
                 </div>
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex overflow-hidden relative">
+            <div className="flex-1 flex overflow-x-auto overflow-y-hidden relative custom-scrollbar bg-[#0B101B]">
                 {!isLoading && participants.length === 0 && (
                     <div className="absolute inset-0 z-10 bg-[#0B101B]/50 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
                         <Users className="w-16 h-16 text-slate-700/50 mb-6" />
@@ -556,71 +620,143 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                 )}
                 {viewMode === 'Timeline' ? (
                     <>
-                        {/* Sidebar */}
-                        <div className="w-80 h-full border-r border-white/10 bg-[#0f172a] flex flex-col shrink-0">
-                            <div className="flex-1 overflow-y-auto w-[250px] p-4 space-y-2">
-                                {filteredParticipants.map(p => (
-                                    <button key={p.id} onClick={() => setSelectedParticipantId(p.id)} className={`w-full text-left p-4 rounded-xl border transition-colors ${selectedParticipantId === p.id ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-transparent border-transparent hover:bg-white/[0.03]'}`}>
-                                        <div className="flex items-center justify-between mb-1">
-                                            <span className="text-sm font-bold text-white">{p.participant_sid}</span>
-                                            <div className={`w-1.5 h-1.5 rounded-full ${p.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-500'}`} />
+                        {/* Sidebar: Subject List */}
+                        <div className={`
+                            ${mobileView === 'LIST' ? 'flex w-full' : 'hidden lg:flex'} 
+                            lg:w-64 xl:w-72 min-w-[250px] h-full border-r border-white/10 bg-[#0f172a] flex-col shrink-0
+                        `}>
+                            <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5 custom-scrollbar">
+                                {isLoading ? (
+                                    Array.from({ length: 8 }).map((_, i) => (
+                                        <div key={i} className="p-3 bg-white/5 border border-white/5 rounded-xl space-y-2">
+                                            <div className="flex justify-between items-center">
+                                                <Skeleton variant="text" className="w-16 h-2" dark={true} />
+                                                <Skeleton variant="circle" size="w-2 h-2" dark={true} />
+                                            </div>
+                                            <Skeleton variant="text" className="w-32 h-3" dark={true} />
+                                            <Skeleton variant="text" className="w-24 h-2 opacity-50" dark={true} />
                                         </div>
-                                        <p className="text-xs font-medium text-slate-300 truncate">{p.name}</p>
-                                        <p className="text-[10px] text-slate-500 mt-1 truncate">[{p.protocol_id}] {p.study}</p>
+                                    ))
+                                ) : filteredParticipants.map(p => (
+                                    <button 
+                                        key={p.id} 
+                                        onClick={() => {
+                                            setSelectedParticipantId(p.id);
+                                            setMobileView('TIMELINE');
+                                        }} 
+                                        className={`w-full text-left p-3 rounded-xl border transition-all ${selectedParticipantId === p.id ? 'bg-indigo-600/10 border-indigo-500/40 shadow-lg shadow-indigo-500/5' : 'bg-transparent border-transparent hover:bg-white/[0.03]'}`}
+                                    >
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-[12px] font-black text-white italic tracking-tighter uppercase">{p.participant_sid}</span>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${p.status === 'Active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-600'}`} />
+                                        </div>
+                                        <p className="text-[13px] font-bold text-slate-300 truncate mb-0.5">{p.name}</p>
+                                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest truncate">
+                                            <span className="text-indigo-400 italic">[{p.protocol_id}]</span> {p.study}
+                                        </p>
                                     </button>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Center Panel */}
-                        <div className="flex-1 overflow-y-auto p-5 lg:p-8 bg-[#0B101B]">
+                        {/* Center Panel: Timeline */}
+                        <div className={`
+                            ${mobileView === 'TIMELINE' ? 'flex w-full' : 'hidden lg:flex'} 
+                            flex-1 min-w-[400px] flex-col overflow-y-auto p-3 md:p-4 bg-[#0B101B] custom-scrollbar
+                        `}>
                             {!selectedParticipant ? (
-                                <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
-                                    <p className="text-sm font-medium text-slate-400">Select a subject to view timeline</p>
+                                <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
+                                    <Users className="w-12 h-12 mb-4 text-slate-700" />
+                                    <p className="text-sm font-black uppercase tracking-[0.2em] italic text-slate-600">Select Subject</p>
                                 </div>
                             ) : (
-                                <div className="max-w-4xl mx-auto">
+                                <div className="max-w-4xl mx-auto w-full">
+                                    {/* Mobile Back Button */}
+                                    <button 
+                                        onClick={() => setMobileView('LIST')}
+                                        className="lg:hidden flex items-center gap-2 mb-6 text-slate-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest italic"
+                                    >
+                                        <ArrowRight className="w-3.5 h-3.5 rotate-180" />
+                                        Back to Subjects
+                                    </button>
+
                                     {/* Subject Header */}
-                                    <div className="mb-5">
-                                        <h3 className="text-2xl font-bold text-white mb-2 uppercase">{selectedParticipant.name}</h3>
-                                        <p className="text-xs text-slate-400 tracking-wide">
-                                            SID: {selectedParticipant.participant_sid} &bull; [{selectedParticipant.protocol_id}] {selectedParticipant.study}
-                                        </p>
+                                    <div className="mb-4 p-4 bg-white/[0.01] border border-white/5 rounded-2xl">
+                                        <div className="flex items-start justify-between">
+                                            <div className="min-w-0 flex-1">
+                                                <h3 className="text-xl md:text-2xl font-black text-white mb-1.5 uppercase italic tracking-tighter truncate">{selectedParticipant.name}</h3>
+                                                <div className="flex flex-wrap items-center gap-2.5">
+                                                    <span className="px-2.5 py-0.5 bg-white/5 rounded-lg text-[10px] font-black text-indigo-400 uppercase tracking-widest italic border border-white/10">
+                                                        SID: {selectedParticipant.participant_sid}
+                                                    </span>
+                                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest truncate">
+                                                        {selectedParticipant.study}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button 
+                                                onClick={() => setMobileView('DETAILS')}
+                                                className="lg:hidden p-2.5 bg-indigo-500/10 rounded-xl text-indigo-400"
+                                            >
+                                                <MoreVertical className="w-5 h-5" />
+                                            </button>
+                                        </div>
                                     </div>
 
                                     {/* Stats Grid */}
-                                    <div className="grid grid-cols-2 gap-4 mb-6">
-                                        <div className="p-6 bg-[#0f172a] border border-white/10 rounded-2xl flex items-center gap-5">
-                                            <Activity className="w-8 h-8 text-indigo-400" />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                                        <div className="p-4 bg-[#0f172a]/50 border border-white/5 rounded-2xl flex items-center gap-4 group hover:bg-[#0f172a] transition-all">
+                                            <div className="p-3 bg-indigo-500/10 rounded-xl group-hover:scale-110 transition-transform">
+                                                <Activity className="w-7 h-7 text-indigo-400" />
+                                            </div>
                                             <div>
-                                                <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-1">Protocol Progress</p>
-                                                <p className="text-3xl font-bold text-white">{(selectedParticipant.visits && selectedParticipant.visits.length > 0) ? Math.round((selectedParticipant.visits.filter(v => v.status === 'Completed').length / selectedParticipant.visits.length) * 100) : 0}%</p>
+                                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-0.5">Protocol Progress</p>
+                                                <p className="text-3xl font-black text-white tabular-nums italic">{(selectedParticipant.visits && selectedParticipant.visits.length > 0) ? Math.round((selectedParticipant.visits.filter(v => v.status === 'Completed').length / selectedParticipant.visits.length) * 100) : 0}%</p>
                                             </div>
                                         </div>
-                                        <div className="p-6 bg-[#0f172a] border border-white/10 rounded-2xl flex flex-col justify-center">
-                                            <p className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-2">Next Target Window</p>
-                                            <p className="text-lg font-bold text-white uppercase">{selectedParticipant.nextVisitDue !== 'N/A' ? new Date(selectedParticipant.nextVisitDue).toLocaleDateString() : 'Not Available'}</p>
+                                        <div className="p-4 bg-[#0f172a]/50 border border-white/5 rounded-2xl flex flex-col justify-center group hover:bg-[#0f172a] transition-all">
+                                            <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mb-1">Target Window</p>
+                                            <p className="text-lg font-black text-white uppercase italic tracking-tighter">
+                                                {selectedParticipant.nextVisitDue !== 'N/A' ? new Date(selectedParticipant.nextVisitDue).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase() : 'TBD'}
+                                            </p>
                                         </div>
                                     </div>
 
-                                    {/* Horizontal Timeline */}
-                                    <div className="relative pt-6">
-                                        <div className="absolute left-0 right-0 top-[40px] h-px bg-white/10" />
-                                        <div className="flex justify-between items-start w-full relative z-10 px-8">
-                                            {selectedParticipant.visits.length > 0 ? selectedParticipant.visits.map(v => (
-                                                <button key={v.id} onClick={() => setSelectedVisitId(v.id)} className="flex flex-col items-center gap-3 w-24">
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${v.id === selectedVisitId ? 'bg-indigo-600 border-indigo-400' : 'bg-[#0f172a] border-white/20'}`}>
-                                                        {v.status === 'Completed' ? <Check className="w-4 h-4 text-emerald-400" /> : <div className="w-2 h-2 rounded-full bg-slate-500" />}
+                                    <div className="relative py-4 overflow-x-auto custom-scrollbar scroll-smooth">
+                                        <div className="absolute left-0 right-0 top-[38px] h-px bg-white/5" />
+                                        <div className="flex flex-row flex-nowrap justify-start items-start gap-4 relative z-10 px-4 min-w-max">
+                                            {isLoading ? (
+                                                /* Skeletons for Timeline */
+                                                Array.from({ length: 5 }).map((_, i) => (
+                                                    <div key={i} className="flex flex-col items-center gap-2.5 w-28 flex-none min-w-[90px]">
+                                                        <Skeleton variant="circle" size="w-9 h-9" dark={true} className="rounded-xl" />
+                                                        <Skeleton variant="text" className="w-20 h-3" dark={true} />
+                                                        <Skeleton variant="text" className="w-14 h-2 opacity-50" dark={true} />
                                                     </div>
-                                                    <div className="text-center">
-                                                        <p className="text-[11px] text-white font-semibold truncate w-full">{v.name}</p>
-                                                        <p className="text-[10px] text-slate-500 mt-1">
-                                                            {v.scheduledDate ? new Date(v.scheduledDate).toLocaleDateString() : 'Pending'}
+                                                ))
+                                            ) : selectedParticipant.visits.length > 0 ? selectedParticipant.visits.map(v => (
+                                                <button 
+                                                    key={v.id} 
+                                                    onClick={() => {
+                                                        setSelectedVisitId(v.id);
+                                                        setMobileView('DETAILS');
+                                                    }} 
+                                                    className="flex flex-col items-center gap-2.5 w-28 group flex-none min-w-[90px] text-center"
+                                                >
+                                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all duration-300 ${v.id === selectedVisitId ? 'bg-indigo-600 border-indigo-400 scale-110 shadow-xl shadow-indigo-500/20' : 'bg-[#0f172a] border-white/10 group-hover:border-white/30'}`}>
+                                                        {v.status === 'Completed' ? <Check className="w-4.5 h-4.5 text-emerald-400" /> : <div className={`w-2 h-2 rounded-full ${v.status === 'Scheduled' ? 'bg-indigo-400' : 'bg-slate-600'}`} />}
+                                                    </div>
+                                                    <div className="text-center group-hover:scale-105 transition-transform">
+                                                        <p className="text-[11px] text-white font-black uppercase italic tracking-tighter truncate w-full px-2">{v.name}</p>
+                                                        <p className="text-[9px] text-slate-500 font-bold tracking-widest uppercase mt-0.5">
+                                                            {v.scheduledDate ? new Date(v.scheduledDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'PENDING'}
                                                         </p>
                                                     </div>
                                                 </button>
                                             )) : (
-                                                <div className="w-full py-8 text-center"><p className="text-sm text-slate-500 font-medium tracking-wide">No visits scheduled for this participant</p></div>
+                                                <div className="w-full py-8 text-center min-w-[300px]">
+                                                    <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.3em] italic">Telemetry Offline: No Visits</p>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
@@ -628,54 +764,74 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                             )}
                         </div>
 
-                        {/* Right Panel */}
-                        <div className="w-[450px] border-l border-white/10 bg-[#0f172a] flex flex-col shrink-0">
+                        {/* Right Panel: Details */}
+                        <div className={`
+                            ${mobileView === 'DETAILS' ? 'flex w-full' : 'hidden lg:flex'} 
+                            lg:w-[340px] xl:w-[400px] min-w-[320px] border-l border-white/10 bg-[#0f172a] flex-col shrink-0 overflow-y-auto custom-scrollbar
+                        `}>
                             {!selectedVisit ? (
-                                <div className="flex-1 flex flex-col items-center justify-center opacity-50">
-                                    <Stethoscope className="w-12 h-12 mb-4 text-slate-500" />
-                                    <p className="text-sm font-medium tracking-wide text-slate-400">Awaiting Selection</p>
+                                <div className="flex-1 flex flex-col items-center justify-center opacity-20 p-8 text-center">
+                                    <Stethoscope className="w-16 h-16 mb-6 text-slate-700" />
+                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] italic text-slate-600">Awaiting Signal</p>
                                 </div>
                             ) : (
-                                <>
-                                    <div className="p-6 border-b border-white/10">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div>
-                                                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">{selectedVisit.name}</h4>
-                                                <p className="text-xl font-bold text-white mt-1">Core Metrics</p>
+                                <div className="flex flex-col min-h-full">
+                                    {/* Mobile Sub-Header */}
+                                    <div className="lg:hidden p-6 border-b border-white/5 flex items-center gap-4 bg-white/[0.01]">
+                                        <button onClick={() => setMobileView('TIMELINE')} className="p-2.5 bg-white/5 rounded-xl text-slate-400">
+                                            <ArrowRight className="w-4 h-4 rotate-180" />
+                                        </button>
+                                        <div>
+                                            <p className="text-[10px] text-slate-500 font-black uppercase italic tracking-widest">Visit dossier</p>
+                                            <h4 className="text-lg font-black text-white italic uppercase tracking-tighter">{selectedVisit.name}</h4>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 pt-4 border-b border-white/10">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="hidden lg:block">
+                                                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] italic">{selectedVisit.name}</h4>
+                                                <p className="text-2xl font-black text-white mt-1 italic tracking-tighter">Core Metrics</p>
                                             </div>
-                                            <span className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${selectedVisit.status === 'Completed' ? 'bg-emerald-500/20 text-emerald-400' : selectedVisit.status === 'Scheduled' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-red-500/20 text-red-400'}`}>
+                                            <span className={`shrink-0 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest italic shadow-lg ${selectedVisit.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : selectedVisit.status === 'Scheduled' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
                                                 {selectedVisit.status}
                                             </span>
                                         </div>
                                         <div className="flex gap-3">
-                                            <button className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold uppercase tracking-widest transition-colors">Capture Vitals</button>
-                                            <button className="p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"><MoreHorizontal className="w-4 h-4 text-slate-400" /></button>
+                                            <button onClick={handleSaveVitals}
+                                                className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] italic hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-indigo-500/20"
+                                             >
+                                                Vitals Flow
+                                            </button>
                                         </div>
                                     </div>
-
-                                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                                    <div className="flex-1 overflow-y-auto p-4 pt-4 space-y-3">
                                         {/* Accordion 1: Visit Checklist */}
-                                        <div className="border border-white/10 rounded-xl overflow-hidden bg-[#0B101B]">
+                                        <div className="border border-white/10 rounded-2xl overflow-hidden bg-[#0B101B] shadow-lg">
                                             <button
                                                 onClick={() => setOpenAccordion(openAccordion === 'Checklist' ? null : 'Checklist')}
                                                 className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <Clipboard className="w-4 h-4 text-slate-400" />
-                                                    <span className="text-xs font-semibold text-white tracking-wide">Protocol Checklist</span>
+                                                    <Clipboard className="w-5 h-5 text-indigo-400" />
+                                                    <span className="text-[11px] font-black text-white italic tracking-[0.2em] uppercase">Protocol Check</span>
                                                 </div>
                                                 {openAccordion === 'Checklist' ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
                                             </button>
                                             {openAccordion === 'Checklist' && (
                                                 <div className="px-4 pb-4 space-y-2">
-                                                    {(selectedVisit?.checklist || []).map((item, idx) => (
-                                                        <div key={idx} className="flex items-center justify-between p-3 bg-white/[0.02] rounded-lg border border-white/5">
-                                                            <span className={`text-xs font-medium tracking-wide ${item.done ? 'text-slate-500' : 'text-slate-300'}`}>{item.item}</span>
-                                                            <div className={`w-4 h-4 rounded flex items-center justify-center ${item.done ? 'bg-emerald-500 text-white' : 'bg-transparent border border-white/20'}`}>
-                                                                {item.done && <Check className="w-3 h-3" />}
+                                                    {(selectedVisit?.checklist || []).length === 0 ? (
+                                                        <p className="text-[10px] text-slate-600 text-center py-2 font-black uppercase tracking-widest italic">No protocol items defined for this visit</p>
+                                                    ) : (
+                                                        (selectedVisit?.checklist || []).map((item: any, idx: number) => (
+                                                            <div key={idx} className="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5 group hover:border-indigo-500/20 transition-all">
+                                                                <span className={`text-[12px] font-bold italic tracking-tight ${item.done ? 'text-slate-600 line-through' : 'text-slate-300'}`}>{item.item}</span>
+                                                                <div className={`w-5 h-5 rounded-lg flex items-center justify-center transition-all ${item.done ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-transparent border-2 border-white/10'}`}>
+                                                                    {item.done && <Check className="w-3.5 h-3.5" />}
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    ))}
+                                                        ))
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -684,42 +840,42 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                         <div className="border border-white/10 rounded-xl overflow-hidden bg-[#0B101B]">
                                             <button
                                                 onClick={() => setOpenAccordion(openAccordion === 'Vitals' ? null : 'Vitals')}
-                                                className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
+                                                className="w-full flex items-center justify-between p-3.5 hover:bg-white/5 transition-colors"
                                             >
-                                                <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-2.5">
                                                     <Activity className="w-4 h-4 text-slate-400" />
-                                                    <span className="text-xs font-semibold text-white tracking-wide">Vitals & Metrics</span>
+                                                    <span className="text-[11px] font-black text-white italic tracking-[0.2em] uppercase">Vitals & Metrics</span>
                                                 </div>
                                                 {openAccordion === 'Vitals' ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
                                             </button>
                                             {openAccordion === 'Vitals' && (
-                                                <div className="px-4 pb-4 space-y-3">
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        <div className="p-3 bg-white/[0.02] rounded-lg border border-white/5">
-                                                            <p className="text-[10px] text-slate-500 uppercase font-semibold mb-1">Weight (kg)</p>
+                                                <div className="px-3.5 pb-3.5 space-y-2.5">
+                                                    <div className="grid grid-cols-2 gap-2.5">
+                                                        <div className="p-2.5 bg-white/[0.02] rounded-lg border border-white/5">
+                                                            <p className="text-[9px] text-slate-500 uppercase font-black mb-1 italic">Weight (kg)</p>
                                                             <input
                                                                 type="number"
                                                                 value={tempVitals.weight}
                                                                 onChange={e => setTempVitals(prev => ({ ...prev, weight: parseFloat(e.target.value) || 0 }))}
-                                                                className="w-full bg-transparent text-sm font-semibold text-white outline-none"
+                                                                className="w-full bg-transparent text-sm font-bold text-white outline-none"
                                                             />
                                                         </div>
-                                                        <div className="p-3 bg-white/[0.02] rounded-lg border border-white/5">
-                                                            <p className="text-[10px] text-slate-500 uppercase font-semibold mb-1">Height (m)</p>
+                                                        <div className="p-2.5 bg-white/[0.02] rounded-lg border border-white/5">
+                                                            <p className="text-[9px] text-slate-500 uppercase font-black mb-1 italic">Height (m)</p>
                                                             <input
                                                                 type="number"
                                                                 value={tempVitals.height}
                                                                 onChange={e => setTempVitals(prev => ({ ...prev, height: parseFloat(e.target.value) || 0 }))}
-                                                                className="w-full bg-transparent text-sm font-semibold text-white outline-none"
+                                                                className="w-full bg-transparent text-sm font-bold text-white outline-none"
                                                             />
                                                         </div>
                                                     </div>
-                                                    <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg flex justify-between items-center">
+                                                    <div className="p-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg flex justify-between items-center">
                                                         <div>
-                                                            <p className="text-[10px] text-indigo-300 font-semibold uppercase">Calculated BMI</p>
-                                                            <p className="text-lg font-bold text-indigo-400">{bmi}</p>
+                                                            <p className="text-[10px] text-indigo-300 font-semibold uppercase italic">Calculated BMI</p>
+                                                            <p className="text-lg font-bold text-indigo-400 italic">{bmi}</p>
                                                         </div>
-                                                        <span className="px-2 py-1 bg-indigo-500/20 text-indigo-300 text-[10px] font-bold uppercase rounded">Stable</span>
+                                                        <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 text-[10px] font-bold uppercase rounded italic">Stable</span>
                                                     </div>
                                                 </div>
                                             )}
@@ -729,22 +885,22 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                         <div className="border border-white/10 rounded-xl overflow-hidden bg-[#0B101B]">
                                             <button
                                                 onClick={() => setOpenAccordion(openAccordion === 'Meds' ? null : 'Meds')}
-                                                className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
+                                                className="w-full flex items-center justify-between p-3.5 hover:bg-white/5 transition-colors"
                                             >
-                                                <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-2.5">
                                                     <Droplet className="w-4 h-4 text-slate-400" />
-                                                    <span className="text-xs font-semibold text-white tracking-wide">Medication Tracking</span>
+                                                    <span className="text-[11px] font-black text-white italic tracking-[0.2em] uppercase">Medication</span>
                                                 </div>
                                                 {openAccordion === 'Meds' ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
                                             </button>
                                             {openAccordion === 'Meds' && (
-                                                <div className="px-4 pb-4">
-                                                    <div className="p-3 border border-white/5 rounded-lg bg-white/[0.02]">
-                                                        <p className="text-[10px] text-slate-500 uppercase font-semibold mb-1">Active Dispensation</p>
-                                                        <p className="text-sm font-semibold text-white">{selectedVisit?.meds?.dispensed || 'No medication assigned'}</p>
-                                                        <div className="mt-2 flex items-center gap-2">
-                                                            <span className="text-[10px] text-slate-400">Compliance:</span>
-                                                            <span className="text-[10px] font-bold text-slate-300">{selectedVisit?.meds?.compliance || 0}%</span>
+                                                <div className="px-3.5 pb-3.5">
+                                                    <div className="p-2.5 border border-white/5 rounded-lg bg-white/[0.02]">
+                                                        <p className="text-[9px] text-slate-500 uppercase font-black mb-0.5 italic">Active Dispensation</p>
+                                                        <p className="text-sm font-bold text-white italic truncate">{selectedVisit?.meds?.dispensed || 'No medication assigned'}</p>
+                                                        <div className="mt-1.5 flex items-center gap-2">
+                                                            <span className="text-[9px] text-slate-500 font-black uppercase italic">Compliance:</span>
+                                                            <span className="text-[10px] font-black text-emerald-400 italic">{selectedVisit?.meds?.compliance || 0}%</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -755,31 +911,31 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                         <div className="border border-white/10 rounded-xl overflow-hidden bg-[#0B101B]">
                                             <button
                                                 onClick={() => setOpenAccordion(openAccordion === 'Concerns' ? null : 'Concerns')}
-                                                className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
+                                                className="w-full flex items-center justify-between p-3.5 hover:bg-white/5 transition-colors"
                                             >
-                                                <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-2.5">
                                                     <ShieldAlert className="w-4 h-4 text-slate-400" />
-                                                    <span className="text-xs font-semibold text-white tracking-wide">Medical Concerns</span>
+                                                    <span className="text-[11px] font-black text-white italic tracking-[0.2em] uppercase">Security Signal</span>
                                                 </div>
                                                 {openAccordion === 'Concerns' ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
                                             </button>
                                             {openAccordion === 'Concerns' && (
-                                                <div className="px-4 pb-4 space-y-3">
+                                                <div className="px-3.5 pb-3.5 space-y-2.5">
                                                     {(selectedParticipant?.aeReports || []).length === 0 ? (
-                                                        <p className="text-xs text-slate-500 text-center py-2">No active medical findings</p>
+                                                        <p className="text-[10px] text-slate-600 text-center py-2 font-black uppercase tracking-widest italic">No active findings</p>
                                                     ) : (
                                                         selectedParticipant?.aeReports.map((ae, idx) => (
-                                                            <div key={idx} className="p-3 border border-white/5 rounded-lg bg-white/[0.02] space-y-2">
+                                                            <div key={idx} className="p-2.5 border border-white/5 rounded-lg bg-white/[0.02] space-y-1.5">
                                                                 <div className="flex items-center justify-between">
-                                                                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${ae.severity === 'SEVERE' ? 'bg-red-500/20 text-red-400' :
+                                                                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded italic ${ae.severity === 'SEVERE' ? 'bg-red-500/20 text-red-400' :
                                                                         ae.severity === 'MODERATE' ? 'bg-orange-500/20 text-orange-400' : 'bg-blue-500/20 text-blue-400'
                                                                         }`}>{ae.severity}</span>
-                                                                    <span className="text-[10px] text-slate-500">{new Date(ae.start_date).toLocaleDateString()}</span>
+                                                                    <span className="text-[9px] text-slate-500 font-bold italic">{new Date(ae.start_date).toLocaleDateString()}</span>
                                                                 </div>
-                                                                <p className="text-xs text-slate-300">{ae.description}</p>
-                                                                <div className="flex items-center gap-2 mt-1">
-                                                                    <span className="text-[10px] text-slate-500">Action:</span>
-                                                                    <span className="text-[10px] text-slate-300 font-medium">{ae.action_taken || 'Monitoring'}</span>
+                                                                <p className="text-[11px] text-slate-300 font-medium leading-relaxed">{ae.description}</p>
+                                                                <div className="flex items-center gap-2 mt-0.5">
+                                                                    <span className="text-[9px] text-slate-600 font-black uppercase italic">Protocol Action:</span>
+                                                                    <span className="text-[9px] text-indigo-400 font-black uppercase italic">{ae.action_taken || 'Monitoring'}</span>
                                                                 </div>
                                                             </div>
                                                         ))
@@ -789,17 +945,17 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                                         </div>
                                     </div>
 
-                                    <div className="p-6 border-t border-white/10 bg-[#0f172a]">
+                                    <div className="p-4 border-t border-white/10 bg-[#0f172a] mt-auto">
                                         <div className="flex gap-3">
-                                            <button onClick={() => handleSignOff('Approve')} className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors">
+                                            <button onClick={() => handleSignOff('Approve')} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] italic hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-emerald-500/20">
                                                 Approve Visit
                                             </button>
-                                            <button onClick={() => handleSignOff('Flag')} className="px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-red-400 rounded-lg transition-colors">
-                                                <Flag className="w-4 h-4" />
+                                            <button onClick={() => handleSignOff('Flag')} className="px-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl transition-all hover:bg-rose-500 hover:text-white">
+                                                <Flag className="w-5 h-5" />
                                             </button>
                                         </div>
                                     </div>
-                                </>
+                                </div>
                             )}
                         </div>
                     </>
@@ -813,8 +969,16 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                 {isScheduleOpen && (
                     <>
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsScheduleOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]" />
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] bg-[#1e293b] border border-white/10 rounded-xl z-[101] p-8 shadow-2xl">
-                            <h3 className="text-xl font-bold text-white mb-6">Schedule Clinical Visit</h3>
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] bg-[#1e293b] border border-white/10 rounded-2xl z-[101] p-8 shadow-2xl overflow-hidden">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-xl font-bold text-white uppercase italic tracking-tighter">Schedule Clinical Visit</h3>
+                                <button 
+                                    onClick={() => setIsScheduleOpen(false)}
+                                    className="p-2 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all group"
+                                >
+                                    <X className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                                </button>
+                            </div>
                             <div className="space-y-5">
                                 <div className="space-y-1.5">
                                     <label className="text-xs text-slate-400 font-semibold tracking-wide">Target Participant</label>
@@ -894,10 +1058,18 @@ export default function VisitsModule({ selectedStudyId }: { selectedStudyId?: st
                 {isProblemModalOpen && (
                     <>
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsProblemModalOpen(false)} className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]" />
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] bg-[#1e293b] border border-white/10 rounded-xl z-[101] p-8 shadow-2xl">
-                            <div className="flex items-center gap-3 mb-6">
-                                <ShieldAlert className="w-6 h-6 text-red-500" />
-                                <h3 className="text-xl font-bold text-white">Report Clinical Concern</h3>
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] bg-[#1e293b] border border-white/10 rounded-2xl z-[101] p-8 shadow-2xl overflow-hidden">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <ShieldAlert className="w-6 h-6 text-red-500" />
+                                    <h3 className="text-xl font-bold text-white uppercase italic tracking-tighter">Report Clinical Concern</h3>
+                                </div>
+                                <button 
+                                    onClick={() => setIsProblemModalOpen(false)}
+                                    className="p-2 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all group"
+                                >
+                                    <X className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                                </button>
                             </div>
 
                             <div className="space-y-5">

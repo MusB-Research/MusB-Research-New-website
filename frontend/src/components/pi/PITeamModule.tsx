@@ -110,8 +110,14 @@ export default function PITeamModule({
                 ? mapped.filter(m => m.assignedStudies.includes(selectedStudyId))
                 : mapped;
 
-            setOfficeTeam(filtered.filter(m => m.type === 'Office' && !m.role.includes('SPONSOR') && !m.role.includes('ADMIN')));
-            setMusbTeam(filtered.filter(m => m.type === 'MusB' && !m.role.includes('SPONSOR') && !m.role.includes('ADMIN')));
+            const staffOnly = filtered.filter(m => 
+                !m.role.includes('SPONSOR') && 
+                !m.role.includes('ADMIN') && 
+                !m.role.includes('PARTICIPANT')
+            );
+
+            setOfficeTeam(staffOnly.filter(m => m.type === 'Office'));
+            setMusbTeam(staffOnly.filter(m => m.type === 'MusB'));
         }
     }, [allUsers, selectedStudyId]);
 
@@ -947,7 +953,8 @@ export default function PITeamModule({
                         <button onClick={() => setMusbModalOpen(false)} style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer' }}><X size={20} /></button>
                     </div>
                     <div style={{ padding: '1.5rem', maxHeight: '500px', overflowY: 'auto' }}>
-                        {musbTeam.length > 0 ? musbTeam.map(m => (
+                        {musbTeam.filter(m => m.role.includes('COORDINATOR')).length > 0 ? 
+                         musbTeam.filter(m => m.role.includes('COORDINATOR')).map(m => (
                             <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.03)', cursor: 'pointer' }}
                                 onClick={() => {
                                     setTempMusbSelected(prev => prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id]);

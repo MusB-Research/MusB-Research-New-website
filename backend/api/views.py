@@ -35,7 +35,7 @@ from .serializers import (
     TechnologySerializer, InnovationPageSettingsSerializer, SponsorInquirySerializer
 )
 from authentication.models import User, AuditLog
-from django.db.models import Q
+from django.db.models import Q, Count, Case, When, IntegerField, FloatField, Avg
 from django.utils import timezone
 from django.utils.timezone import now
 import pytz
@@ -287,27 +287,67 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
     def stats(self, request, protocol_id=None):
         """High-level completion stats for the PI/Coordinator dashboard"""
         study = self.get_object()
-        from .models import Participant, QuestionnaireScheduleInstance
+        from .models import Participant, QuestionnaireScheduleInstance, Visit, ParticipantTask
+        from django.utils.timezone import now
         
-        participants = Participant.objects.filter(study=study)
-        total_enrolled = participants.count()
+        # Optimization: Single query for headcount
+        total_enrolled = Participant.objects.filter(study=study).count()
         
-        instances = QuestionnaireScheduleInstance.objects.filter(participant__study=study)
-        total_tasks = instances.count()
-        completed = instances.filter(status='COMPLETED').count()
-        late = instances.filter(status='LATE').count()
-        missed = instances.filter(status='MISSED').count()
+        # Optimization: Task aggregation (Questionnaires)
+        q_stats = QuestionnaireScheduleInstance.objects.filter(
+            participant__study=study
+        ).aggregate(
+            total=Count('id'),
+            completed=Count(Case(When(status='COMPLETED', then=1), output_field=IntegerField())),
+            late=Count(Case(When(status='LATE', then=1), output_field=IntegerField())),
+            missed=Count(Case(When(status='MISSED', then=1), output_field=IntegerField())),
+        )
+
+        # Optimization: ParticipantTask aggregation
+        t_stats = ParticipantTask.objects.filter(
+            participant__study=study
+        ).aggregate(
+            total=Count('id'),
+            completed=Count(Case(When(status='COMPLETED', then=1), output_field=IntegerField())),
+            missed=Count(Case(When(status='MISSED', then=1), output_field=IntegerField())),
+        )
         
-        compliance = (completed / total_tasks * 100) if total_tasks > 0 else 0
+        # Visit Statistics
+        v_stats = Visit.objects.filter(study=study).aggregate(
+            total=Count('id'),
+            completed=Count(Case(When(status='COMPLETED', then=1), output_field=IntegerField())),
+            upcoming=Count(Case(When(status='SCHEDULED', scheduled_date__gt=now(), then=1), output_field=IntegerField())),
+            overdue=Count(Case(When(status='SCHEDULED', scheduled_date__lt=now(), then=1), output_field=IntegerField())),
+        )
+
+        total_q = q_stats.get('total', 0) or 0
+        done_q = q_stats.get('completed', 0) or 0
+        total_t = t_stats.get('total', 0) or 0
+        done_t = t_stats.get('completed', 0) or 0
+        
+        total_tasks = total_q + total_t
+        completed_tasks = done_q + done_t
         
         return Response({
             'enrolled': total_enrolled,
-            'completion': {
+            'compliance': round(completed_tasks / total_tasks * 100, 1) if total_tasks > 0 else 0,
+            'completion': { # Backward compatibility
                 'total': total_tasks,
-                'completed': completed,
-                'late': late,
-                'missed': missed,
-                'compliance_rate': round(compliance, 1)
+                'completed': completed_tasks,
+                'late': q_stats.get('late', 0) or 0,
+                'missed': (q_stats.get('missed', 0) or 0) + (t_stats.get('missed', 0) or 0),
+                'compliance_rate': round(completed_tasks / total_tasks * 100, 1) if total_tasks > 0 else 0
+            },
+            'tasks': {
+                'total': total_tasks,
+                'completed': completed_tasks,
+                'missed': (q_stats.get('missed', 0) or 0) + (t_stats.get('missed', 0) or 0),
+            },
+            'visits': {
+                'total': v_stats.get('total', 0) or 0,
+                'completed': v_stats.get('completed', 0) or 0,
+                'upcoming': v_stats.get('upcoming', 0) or 0,
+                'overdue': v_stats.get('overdue', 0) or 0,
             }
         })
 
@@ -317,21 +357,65 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         """Real-time progress tracking for each participant in the study"""
         study = self.get_object()
         from .models import Participant
-        participants = Participant.objects.filter(study=study)
+        
+        # Optimization: Use annotation to get counts for ALL participants in one hit
+        # We aggregate both Questionnaires AND ParticipantTasks
+        participants = Participant.objects.filter(study=study).annotate(
+            total_ques=Count('scheduled_questionnaires', distinct=True),
+            done_ques=Count(Case(
+                When(scheduled_questionnaires__status__in=['COMPLETED', 'LATE'], then=1),
+                output_field=IntegerField()
+            ), distinct=True),
+            total_tasks=Count('assigned_tasks', distinct=True),
+            done_tasks=Count(Case(
+                When(assigned_tasks__status='COMPLETED', then=1),
+                output_field=IntegerField()
+            ), distinct=True)
+        ).only('id', 'participant_sid', 'status', 'updated_at')
         
         data = []
         for p in participants:
-            tasks = p.scheduled_questionnaires.all()
-            total = tasks.count()
-            done = tasks.filter(status__in=['COMPLETED', 'LATE']).count()
+            q_total = p.total_ques or 0
+            q_done = p.done_ques or 0
+            t_total = p.total_tasks or 0
+            t_done = p.done_tasks or 0
+            
+            # Combined progress
+            total = q_total + t_total
+            done = q_done + t_done
             
             data.append({
-                'id': p.participant_sid,
+                'id': str(p.id),
+                'sid': p.participant_sid,
                 'status': p.status,
                 'progress': round((done / total * 100), 1) if total > 0 else 0,
+                'tasks_total': t_total,
+                'tasks_completed': t_done,
+                'questionnaires_total': q_total,
+                'questionnaires_completed': q_done,
                 'last_interaction': p.updated_at
             })
         return Response(data)
+
+    @action(detail=True, methods=['get'], permission_classes=[IsAdminOrCoordinator])
+    @cache_api_response("coordinator_summary", timeout=120)
+    def coordinator_summary(self, request, protocol_id=None):
+        """
+        🚀 High-Efficiency Aggregated Action for Staff Dashboards.
+        Combines Study Details, Global Stats, and Participant Tracking into a single payload.
+        """
+        study = self.get_object()
+        
+        # We call the internal logic methods directly to avoid redundant lookups or HTTP overhead
+        stats_response = self.stats(request, protocol_id=protocol_id)
+        tracking_response = self.participant_tracking(request, protocol_id=protocol_id)
+        
+        return Response({
+            'study': StudySerializer(study).data,
+            'stats': stats_response.data,
+            'participant_tracking': tracking_response.data,
+            'server_time': timezone.now()
+        })
 
     def perform_update(self, serializer):
         user = self.request.user
@@ -567,17 +651,23 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
             
         role = (user.role or '').upper()
         
-        # Admins, PIs, and Coordinators can see everyone
+        # Staff roles see everyone
         if role in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']:
-            return Participant.objects.select_related('user', 'study', 'study__coordinator', 'reviewed_by').prefetch_related(
-                'visits', 'daily_logs', 'lab_results', 'ae_reports', 'consent_records'
-            ).order_by('-created_at')
+            qs = Participant.objects.select_related('user', 'study', 'study__coordinator', 'reviewed_by')
+            
+            # Optimization: Only prefetch heavy relations for detail view
+            if self.action == 'retrieve' or self.action == 'me':
+                qs = qs.prefetch_related(
+                    'visits', 'daily_logs', 'lab_results', 'ae_reports', 'consent_records'
+                )
+            return qs.order_by('-created_at')
             
         # Participants can ONLY see their own records
         if role == 'PARTICIPANT':
-            return Participant.objects.filter(user=user).select_related('user', 'study').prefetch_related(
-                'visits', 'daily_logs'
-            ).order_by('-created_at')
+            qs = Participant.objects.filter(user=user).select_related('user', 'study')
+            if self.action == 'retrieve' or self.action == 'me':
+                qs = qs.prefetch_related('visits', 'daily_logs')
+            return qs.order_by('-created_at')
             
         # Default to nothing for security
         return Participant.objects.none()
@@ -630,6 +720,103 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
             
         serializer = self.get_serializer(participant)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    @cache_api_response("participant_dashboard", timeout=300)
+    def dashboard_summary(self, request):
+        """
+        🚀 High-Performance Aggregated Endpoint for Participant Dashboard.
+        Batches 15+ API calls into a single response to bypass browser connection limits.
+        """
+        user = request.user
+        role = (user.role or '').upper()
+        
+        # Security: Only relevant for participants
+        if role != 'PARTICIPANT':
+            # Support for PIs/Coordinators viewing a specific participant's summary
+            p_sid = request.query_params.get('participant_sid')
+            if not p_sid:
+                 return Response({'error': 'Authorized for participants or requires participant_sid.'}, status=403)
+            participant = Participant.objects.filter(participant_sid=p_sid).select_related(
+                'study', 'study__coordinator', 'study__pi', 'user'
+            ).first()
+        else:
+            # Standard path for participants
+            participant = Participant.objects.filter(user=user).select_related(
+                'study', 'study__coordinator', 'study__pi', 'user'
+            ).order_by('-created_at').first()
+        
+        if not participant:
+            return Response({
+                'user': UserSerializer(user).data,
+                'participant': None,
+                'status': 'NO_ENROLLMENT'
+            }, status=200)
+            
+        p_id = participant.id
+        s_id = participant.study.id
+        
+        # PERFORMANCE: Fetch all related clinical data in parallelized ORM batches
+        # We use IDs directly to avoid redundant joins where possible
+        
+        # 1. Tasks & Questionnaires
+        tasks_qs = ParticipantTask.objects.filter(participant=participant).select_related(
+            'task', 'task__form', 'assigned_form', 'assigned_form__form'
+        )
+        ques_qs = QuestionnaireScheduleInstance.objects.filter(participant=participant).select_related(
+            'study_questionnaire', 'study_questionnaire__template'
+        )
+        
+        # 2. Logistics & Clinical
+        visits_qs = Visit.objects.filter(participant=participant).select_related(
+            'scheduled_by', 'updated_by', 'participant__study__coordinator', 'participant__study__pi'
+        )
+        kits_qs = Kit.objects.filter(study=participant.study).filter(
+            Q(participant=participant) | Q(participant__isnull=True)
+        )
+        lab_results_qs = LabResult.objects.filter(participant=participant, is_released=True)
+        
+        # 3. Communications & Records
+        conversations_qs = ClinicalConversation.objects.filter(participant=participant).prefetch_related('messages')
+        assigned_forms_qs = AssignedForm.objects.filter(participant=participant).select_related('form')
+        help_requests_qs = StaffTask.objects.filter(study=participant.study, task_type='HELP_REQUEST') # Simplified for dashboard
+        # 4. Compliance & Fin
+        compensations_qs = Compensation.objects.filter(participant=participant).select_related('visit', 'task')
+        consent_qs = Consent.objects.filter(participant=participant).select_related('template', 'study')
+        consent_templates_qs = ConsentTemplate.objects.filter(study=participant.study, status='ACTIVE')
+        logs_qs = DailyMedicationLog.objects.filter(participant=participant).order_by('-date')[:30]
+        
+        # FIX: Slicing must happen after or separately from filtering for counts
+        base_notifications = Notification.objects.filter(user=user)
+        unread_count = base_notifications.filter(is_read=False).count() if hasattr(Notification, 'is_read') else 0
+        notifications_list = base_notifications.order_by('-created_at')[:15]
+
+        # Aggregate Result
+        data = {
+            'user': UserSerializer(participant.user).data,
+            'participant': ParticipantSerializer(participant).data,
+            'study': StudySerializer(participant.study).data,
+            'tasks': ParticipantTaskSerializer(tasks_qs, many=True).data,
+            'questionnaire_schedules': QuestionnaireScheduleInstanceSerializer(ques_qs, many=True).data,
+            'visits': VisitSerializer(visits_qs, many=True).data,
+            'kits': KitSerializer(kits_qs, many=True).data,
+            'lab_results': LabResultSerializer(lab_results_qs, many=True).data,
+            'compensations': CompensationSerializer(compensations_qs, many=True).data,
+            'notifications': NotificationSerializer(notifications_list, many=True).data,
+            'conversations': ClinicalConversationSerializer(conversations_qs, many=True).data,
+            'assigned_forms': AssignedFormSerializer(assigned_forms_qs, many=True).data,
+            'active_consents': ConsentSerializer(consent_qs, many=True).data,
+            'available_consent_templates': ConsentTemplateSerializer(consent_templates_qs, many=True).data,
+            'medication_logs': DailyMedicationLogSerializer(logs_qs, many=True).data,
+            'help_requests': StaffTaskSerializer(help_requests_qs, many=True).data,
+            'server_time': timezone.now(),
+            'performance_metrics': {
+                'total_tasks': tasks_qs.count(),
+                'unread_notifs': unread_count
+            }
+        }
+        
+        return Response(data)
 
     @action(detail=False, methods=['post'], permission_classes=[IsAdminOrCoordinator])
     def admin_reassign(self, request):
@@ -933,43 +1120,10 @@ class VisitViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def check_missed(self, request):
-        user = request.user
-        role = (user.role or '').upper()
-        
-        # Determine relevant visits based on role
-        if role in ['SUPER_ADMIN', 'ADMIN']:
-            visits = Visit.objects.filter(status='SCHEDULED', scheduled_date__lt=now())
-        elif role == 'PARTICIPANT':
-            visits = Visit.objects.filter(participant__user=user, status='SCHEDULED', scheduled_date__lt=now())
-        else:
-            visits = Visit.objects.filter(participant__study__assignments__user=user, status='SCHEDULED', scheduled_date__lt=now()).distinct()
-            
-        missed_count = 0
-        for v in visits:
-            v.status = 'MISSED'
-            v.save()
-            missed_count += 1
-            
-            # Notify Participant
-            if v.participant.user:
-                Notification.objects.create(
-                    user=v.participant.user,
-                    title="Missed Visit Alert",
-                    message=f"Protocol Deviation: You missed your {v.visit_type} on {v.scheduled_date.strftime('%Y-%m-%d')}. Please contact clinical staff.",
-                    type="DANGER"
-                )
-            
-            # Notify Coordinator
-            coordinator = v.participant.study.coordinator or v.scheduled_by
-            if coordinator:
-                Notification.objects.create(
-                    user=coordinator,
-                    title="Subject Missed Visit",
-                    message=f"DEVIATION: {v.participant.participant_sid} missed their {v.visit_type}. Status marked as MISSED.",
-                    type="DANGER"
-                )
-        
-        return Response({'status': 'check complete', 'missed_marked': missed_count})
+        from .tasks import check_missed_visits
+        # Trigger background task
+        check_missed_visits.delay()
+        return Response({'status': 'Background check initiated', 'message': 'Missed visits are being processed in the background.'})
 
     def perform_update(self, serializer):
         visit = serializer.save(updated_by=self.request.user)
@@ -1862,15 +2016,17 @@ class UserViewSet(viewsets.ModelViewSet):
         if not user.is_authenticated:
             return User.objects.none()
         
-        # Super Admins and Admins see everyone
+        # Base: Staff management views should EXCLUDE participants (who are managed in /api/participants/)
+        staff_qs = User.objects.exclude(role__in=['PARTICIPANT', 'participant', 'Participant'])
+
+        # Super Admins and Admins see all staff
         if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN']:
-            return User.objects.all().order_by('-date_joined')
+            return staff_qs.order_by('-date_joined')
         
         if (user.role or '').upper() in ['PI', 'COORDINATOR']:
-            # PIs and Coordinators need visibility into Sponsors and Medical Personnel 
-            # for staffing and launch tasks. Participants should be managed via /api/participants/.
-            return User.objects.filter(
-                Q(role__in=['sponsor', 'SPONSOR', 'pi', 'PI', 'coordinator', 'COORDINATOR', 'admin', 'ADMIN']) |
+            # PIs and Coordinators see Sponsors, Admins, and colleagues
+            return staff_qs.filter(
+                Q(role__in=['SPONSOR', 'PI', 'COORDINATOR', 'ADMIN', 'SUPER_ADMIN']) |
                 Q(created_by=user)
             ).distinct().order_by('-date_joined')
 
@@ -1897,7 +2053,7 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class NewsViewSet(viewsets.ModelViewSet):
-    queryset = News.objects.all()
+    queryset = News.objects.all().order_by('-published_at')
     serializer_class = NewsSerializer
     permission_classes = [permissions.AllowAny]
 
@@ -1937,7 +2093,7 @@ class StaffTaskViewSet(viewsets.ModelViewSet):
         return Response({'status': 'task marked as completed'})
 
 class EventViewSet(viewsets.ModelViewSet):
-    queryset = Event.objects.all()
+    queryset = Event.objects.all().order_by('-date')
     serializer_class = EventSerializer
     permission_classes = [permissions.AllowAny]
 
@@ -2312,7 +2468,11 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def read_all(self, request):
-        Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+        # Iterate and save to ensure absolute persistence across all DB connectors (like Djongo)
+        unread = Notification.objects.filter(user=request.user, is_read=False)
+        for n in unread:
+            n.is_read = True
+            n.save()
         return Response({'status': 'all marked as read'})
 
 class ClinicalConversationViewSet(viewsets.ModelViewSet):

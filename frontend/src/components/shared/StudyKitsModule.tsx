@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authFetch, API } from '../../utils/auth';
+import { Skeleton } from '../../views/Participant/SharedComponents';
+
 import { 
     Box, 
     Search, 
@@ -96,13 +98,13 @@ const MOCK_KITS: StudyKit[] = [
     },
 ];
 
-export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?: string }) {
+export default function StudyKitsModule({ selectedStudyId, preloadedStudies, preloadedParticipants }: { selectedStudyId?: string, preloadedStudies?: any[], preloadedParticipants?: any[] }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [kits, setKits] = useState<StudyKit[]>([]);
-    const [studies, setStudies] = useState<any[]>([]);
+    const [studies, setStudies] = useState<any[]>(preloadedStudies || []);
     const [isLoading, setIsLoading] = useState(true);
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-    const [participants, setParticipants] = useState<any[]>([]);
+    const [participants, setParticipants] = useState<any[]>(preloadedParticipants || []);
     const [selectedStudyForAssignment, setSelectedStudyForAssignment] = useState<string>('');
     
     // Form state for new kit
@@ -188,9 +190,22 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
 
     useEffect(() => {
         fetchKits();
-        fetchStudies();
-        fetchParticipants();
+        if (!preloadedStudies || preloadedStudies.length === 0) {
+            fetchStudies();
+        }
+        if (!preloadedParticipants || preloadedParticipants.length === 0) {
+            fetchParticipants();
+        }
     }, [selectedStudyId]);
+
+    // Sync state if props change
+    useEffect(() => {
+        if (preloadedStudies && preloadedStudies.length > 0) setStudies(preloadedStudies);
+    }, [preloadedStudies]);
+
+    useEffect(() => {
+        if (preloadedParticipants && preloadedParticipants.length > 0) setParticipants(preloadedParticipants);
+    }, [preloadedParticipants]);
 
     // Update participants when study selection in modal changes
     useEffect(() => {
@@ -365,7 +380,36 @@ export default function StudyKitsModule({ selectedStudyId }: { selectedStudyId?:
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                        {filteredKits.map((kit) => (
+                        {isLoading ? (
+                            Array.from({ length: 5 }).map((_, i) => (
+                                <tr key={i} className="border-b border-white/5">
+                                    <td className="px-6 py-8 border-r border-white/5">
+                                        <div className="flex items-center gap-4">
+                                            <Skeleton variant="circle" size="w-10 h-10" dark={true} />
+                                            <div className="space-y-2">
+                                                <Skeleton variant="text" className="w-24 h-2" dark={true} />
+                                                <Skeleton variant="text" className="w-32 h-3" dark={true} />
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-8 border-r border-white/5">
+                                        <div className="space-y-2">
+                                            <Skeleton variant="text" className="w-48 h-3" dark={true} />
+                                            <Skeleton variant="text" className="w-32 h-2 opacity-50" dark={true} />
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-8 border-r border-white/5">
+                                        <Skeleton variant="text" className="w-24 h-2 opacity-30" dark={true} />
+                                    </td>
+                                    <td className="px-6 py-8 border-r border-white/5">
+                                        <Skeleton variant="text" className="w-20 h-6 rounded-full" dark={true} />
+                                    </td>
+                                    <td className="px-6 py-8 text-right">
+                                        <Skeleton variant="text" className="inline-block w-8 h-8 rounded-lg" dark={true} />
+                                    </td>
+                                </tr>
+                            ))
+                        ) : filteredKits.map((kit) => (
                             <motion.tr key={kit.id} layout className="hover:bg-white/[0.02] transition-colors group">
                                 <td className="px-6 py-4 border-r border-white/5">
                                     <div className="flex items-center gap-6">

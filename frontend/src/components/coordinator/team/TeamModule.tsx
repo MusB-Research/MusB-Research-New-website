@@ -60,8 +60,13 @@ export default function TeamModule({ selectedStudyId }: { selectedStudyId?: stri
                     documents: []
                 }));
 
-                setMusbTeam(formatted.filter(m => m.type === 'MusB'));
-                setOfficeTeam(formatted.filter(m => m.type === 'Office'));
+                const staffOnly = formatted.filter(m => 
+                    m.role !== 'Participant' && 
+                    m.role !== 'PARTICIPANT'
+                );
+
+                setMusbTeam(staffOnly.filter(m => m.type === 'MusB'));
+                setOfficeTeam(staffOnly.filter(m => m.type === 'Office'));
             } else {
                 // If status is not 200, log it and show a precise error
                 console.error(`Registry fetch failed: ${response.status}`);
