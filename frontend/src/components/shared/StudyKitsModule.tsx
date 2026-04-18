@@ -98,11 +98,12 @@ const MOCK_KITS: StudyKit[] = [
     },
 ];
 
-export default function StudyKitsModule({ selectedStudyId, preloadedStudies, preloadedParticipants, isLoading }: { selectedStudyId?: string, preloadedStudies?: any[], preloadedParticipants?: any[], isLoading?: boolean }) {
+export default function StudyKitsModule({ selectedStudyId, preloadedStudies, preloadedParticipants, isLoading: propLoading }: { selectedStudyId?: string, preloadedStudies?: any[], preloadedParticipants?: any[], isLoading?: boolean }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [kits, setKits] = useState<StudyKit[]>([]);
     const [studies, setStudies] = useState<any[]>(preloadedStudies || []);
-    const [isLoading, setIsLoading] = useState(true);
+    const [internalLoading, setInternalLoading] = useState(true);
+    const isLoading = propLoading !== undefined ? propLoading : internalLoading;
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [participants, setParticipants] = useState<any[]>(preloadedParticipants || []);
     const [selectedStudyForAssignment, setSelectedStudyForAssignment] = useState<string>('');
@@ -116,7 +117,7 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
     });
 
     const fetchKits = async () => {
-        setIsLoading(true);
+        setInternalLoading(true);
         try {
             let url = `${API}/api/kits/`;
             if (selectedStudyId && selectedStudyId !== 'all') {
@@ -154,7 +155,7 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
             // On network error also fall back to mock data
             setKits(MOCK_KITS);
         } finally {
-            setIsLoading(false);
+            setInternalLoading(false);
         }
     };
 

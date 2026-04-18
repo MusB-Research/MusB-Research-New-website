@@ -27,16 +27,17 @@ interface LabSample {
     isReleased: boolean;
 }
 
-export default function LabsResultsModule({ selectedStudyId, preloadedStudies }: { selectedStudyId?: string, preloadedStudies?: any[] }) {
+export default function LabsResultsModule({ selectedStudyId, preloadedStudies, isLoading: propLoading }: { selectedStudyId?: string, preloadedStudies?: any[], isLoading?: boolean }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [samples, setSamples] = useState<LabSample[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [internalLoading, setInternalLoading] = useState(true);
+    const isLoading = propLoading !== undefined ? propLoading : internalLoading;
     const apiUrl = API || '';
 
     useEffect(() => {
         const fetchLabs = async () => {
             try {
-                setLoading(true);
+                setInternalLoading(true);
                 const query = selectedStudyId && selectedStudyId !== 'all' ? `?study=${selectedStudyId}` : '';
                 const res = await authFetch(`${apiUrl}/api/lab-results/${query}`);
                 if (res.ok) {
@@ -58,7 +59,7 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies }:
             } catch (err) {
                 console.error("Failed to fetch labs:", err);
             } finally {
-                setLoading(false);
+                setInternalLoading(false);
             }
         };
         fetchLabs();
@@ -157,7 +158,7 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies }:
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                        {loading ? (
+                        {isLoading ? (
                             <tr>
                                 <td colSpan={5} className="py-20 text-center">
                                     <div className="w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />

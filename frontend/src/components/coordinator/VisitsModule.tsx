@@ -95,11 +95,12 @@ interface VisitsModuleProps {
     isLoading?: boolean;
 }
 
-export default function VisitsModule({ selectedStudyId, preloadedParticipants, preloadedStudies, preloadedTasks, onRefresh, isLoading }: VisitsModuleProps) {
+export default function VisitsModule({ selectedStudyId, preloadedParticipants, preloadedStudies, preloadedTasks, onRefresh, isLoading: propLoading }: VisitsModuleProps) {
     const [viewMode, setViewMode] = useState<'Timeline' | 'Calendar'>('Timeline');
     const [participants, setParticipants] = useState<Participant[]>([]);
     const [globalTasks, setGlobalTasks] = useState<any[]>(preloadedTasks || []);
-    const [isLoading, setIsLoading] = useState(!preloadedParticipants);
+    const [internalLoading, setInternalLoading] = useState(!preloadedParticipants);
+    const isLoading = propLoading !== undefined ? propLoading : internalLoading;
     const [allStudies, setAllStudies] = useState<any[]>(preloadedStudies || []);
     const [studyTasks, setStudyTasks] = useState<any[]>([]);
     const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
@@ -161,7 +162,7 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
     useEffect(() => {
         if (preloadedParticipants) {
             setParticipants(mapParticipants(preloadedParticipants));
-            setIsLoading(false);
+            setInternalLoading(false);
         }
         if (preloadedTasks) setGlobalTasks(preloadedTasks);
     }, [preloadedParticipants, preloadedTasks, mapParticipants]);
@@ -191,7 +192,7 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
 
     // ─── DATA LOADING ────────────────────────────────────────────────────────
     const loadData = useCallback(async () => {
-        setIsLoading(true);
+        setInternalLoading(true);
         try {
             const [pRes, sRes, tRes] = await Promise.all([
                 authFetch(`${apiUrl}/api/participants/`),
@@ -223,7 +224,7 @@ export default function VisitsModule({ selectedStudyId, preloadedParticipants, p
         } catch (error) {
             console.error("Clinical sync failure:", error);
         } finally {
-            setIsLoading(false);
+            setInternalLoading(false);
         }
     }, [apiUrl, mapParticipants]);
 
