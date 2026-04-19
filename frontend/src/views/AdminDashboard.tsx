@@ -113,9 +113,9 @@ export default function AdminDashboard() {
     const fetchDashboardMetrics = async () => {
         try {
             const [participantsData, staffData, auditData] = await Promise.all([
-                apiFetch<any[]>('/api/participants/'),
-                apiFetch<any[]>('/api/staff/'),
-                apiFetch<any[]>('/api/audit-logs/')
+                apiFetch<any[]>('/api/participants/?limit=50'),
+                apiFetch<any[]>('/api/staff/?limit=50'),
+                apiFetch<any[]>('/api/audit-logs/?limit=50')
             ]);
 
             setParticipants(participantsData || []);

@@ -174,13 +174,13 @@ export default function DiscoverStudiesView({ loading: externalLoading }: { load
                                                 e.stopPropagation();
                                                 navigate(`/studies/${study.protocol_id || study.id}/screener`);
                                             }}
-                                            className={`px-8 py-3 rounded-xl font-bold uppercase tracking-widest text-[11px] transition-all flex items-center gap-3 ${isEnrolled && enrollmentStatus !== 'PENDING'
+                                            className={`px-8 py-3 rounded-xl font-bold uppercase tracking-widest text-[11px] transition-all flex items-center gap-3 ${isEnrolled && enrollmentStatus !== 'PENDING_REVIEW'
                                                     ? 'bg-slate-50 text-slate-400'
                                                     : 'bg-[#00ADEF] text-white hover:bg-[#1565C0] shadow-lg shadow-[#00ADEF]/10'
                                                 }`}
                                         >
                                             <ClipboardCheck className="w-4 h-4" />
-                                            Action Required
+                                            {isEnrolled ? enrollmentStatus : 'Eligibility'}
                                             <ArrowRight className="w-3.5 h-3.5" />
                                         </button>
                                     </div>
@@ -256,13 +256,13 @@ export default function DiscoverStudiesView({ loading: externalLoading }: { load
                                             e.stopPropagation();
                                             navigate(`/studies/${study.protocol_id || study.id}/screener`);
                                         }}
-                                        className={`w-full flex items-center justify-center gap-2 font-bold uppercase tracking-widest text-[10px] py-3 rounded-xl transition-all shadow-sm ${isEnrolled && enrollmentStatus !== 'PENDING'
+                                        className={`w-full flex items-center justify-center gap-2 font-bold uppercase tracking-widest text-[10px] py-3 rounded-xl transition-all shadow-sm ${isEnrolled && enrollmentStatus !== 'PENDING_REVIEW'
                                                 ? 'bg-slate-100 text-slate-400 border border-slate-200'
                                                 : 'bg-[#00ADEF] text-white hover:bg-[#1565C0] shadow-blue-500/10'
                                             }`}
                                     >
                                         <ClipboardCheck className="w-3.5 h-3.5" />
-                                        {isEnrolled ? (enrollmentStatus === 'PENDING' ? 'Retry Screening' : 'Enrolled') : 'Eligibility'}
+                                        {isEnrolled ? enrollmentStatus : 'Eligibility'}
                                         <ArrowRight className="w-2.5 h-2.5 ml-1 transition-transform group-hover:translate-x-1" />
                                     </button>
                                 </div>

@@ -122,3 +122,25 @@ def invalidate_event_cache(sender, instance, **kwargs):
     """
     from .utils.cache_utils import invalidate_cache
     invalidate_cache("events_list")
+
+# ─────────────────────────────────────────────────────────
+#  Careers & Contact App Signals (Main Website Support)
+# ─────────────────────────────────────────────────────────
+
+from careers.models import JobPosting
+from contact.models import ContactPageSettings, ContactFormConfiguration, InquiryType
+
+@receiver(post_save, sender=JobPosting)
+def invalidate_careers_cache(sender, instance, **kwargs):
+    from .utils.cache_utils import invalidate_cache
+    invalidate_cache("active_jobs")
+    invalidate_cache("job_detail")
+
+@receiver(post_save, sender=ContactPageSettings)
+@receiver(post_save, sender=ContactFormConfiguration)
+@receiver(post_save, sender=InquiryType)
+def invalidate_contact_cache(sender, instance, **kwargs):
+    from .utils.cache_utils import invalidate_cache
+    invalidate_cache("contact_settings")
+    invalidate_cache("contact_form_config")
+    invalidate_cache("inquiry_types")

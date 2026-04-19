@@ -742,11 +742,11 @@ export default function SuperAdminDashboard() {
     try {
       const apiUrl = API || 'http://localhost:8000';
       const [uRes, sRes, pRes, iRes, nRes] = await Promise.all([
-        authFetch(`${apiUrl}/api/users/`),
-        authFetch(`${apiUrl}/api/studies/`),
-        authFetch(`${apiUrl}/api/participants/`),
-        authFetch(`${apiUrl}/api/study-inquiries/`),
-        authFetch(`${apiUrl}/api/news/`),
+        authFetch(`${apiUrl}/api/users/?limit=100`),
+        authFetch(`${apiUrl}/api/studies/?limit=50`),
+        authFetch(`${apiUrl}/api/participants/?limit=100`),
+        authFetch(`${apiUrl}/api/study-inquiries/?limit=50`),
+        authFetch(`${apiUrl}/api/news/?limit=50`),
       ]);
       if (uRes.ok) {
         const rawData = await uRes.json();

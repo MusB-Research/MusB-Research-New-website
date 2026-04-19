@@ -10,7 +10,8 @@ import { Card, Badge, ProgressBar, CircularProgress, Skeleton } from './SharedCo
 
 const DashboardView = ({
     firstName, onAction, tasks, study, participant,
-    visits = [], conversations = [], isLoading = false
+    visits = [], conversations = [], isLoading = false,
+    allStudies = [], selectedStudyIndex = 0, onStudySwitch
 }: any) => {
 
     // ──────────────── DATA CALCULATIONS ────────────────
@@ -25,6 +26,9 @@ const DashboardView = ({
     const progressPercent = totalTasksCount > 0 ? Math.round((completedTasksCount / totalTasksCount) * 100) : 0;
 
     const daysInStudy = React.useMemo(() => {
+        const status = (participant?.status || '').toUpperCase();
+        if (status === 'PENDING_REVIEW') return 0; // Don't count days during review
+
         const startTimestamp = participant?.reviewed_at || participant?.created_at;
         if (!startTimestamp) return 0;
         const start = new Date(startTimestamp);
@@ -73,8 +77,8 @@ const DashboardView = ({
         );
     }
 
-    const isEnrolled = participant?.status === 'ENROLLED' || participant?.status === 'ACTIVE';
-    const isPending = participant?.status === 'PENDING_REVIEW' || participant?.status === 'PENDING_APPROVAL' || participant?.status === 'APPLIED';
+    const isEnrolled = ['ENROLLED', 'ACTIVE', 'PENDING_REVIEW', 'CONSENTED', 'RANDOMIZED', 'COMPLETED', 'REGISTERED', 'SCREENING'].includes((participant?.status || '').toUpperCase());
+    const isPending = ['PENDING_APPROVAL', 'APPLIED', 'PENDING_REVIEW'].includes((participant?.status || '').toUpperCase());
 
     // ──────────────── CASE 1: NOT ENROLLED / REVIEW PENDING ────────────────
     if (!study || !participant || participant?.status === 'INELIGIBLE' || participant?.status === 'WITHDRAWN' || isPending) {
@@ -127,6 +131,28 @@ const DashboardView = ({
     return (
         <div className="flex flex-col gap-4 animate-in fade-in duration-700 pb-6">
 
+            {/* STUDY SWITCHER */}
+            {allStudies && allStudies.length > 1 && (
+                <div className="flex items-center gap-3 bg-white border border-[#E3ECF5] p-3 rounded-2xl shadow-sm">
+                    <span className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest shrink-0">Switch Study:</span>
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                        {allStudies.map((st: any, idx: number) => (
+                            <button
+                                key={idx}
+                                onClick={() => onStudySwitch?.(idx)}
+                                className={`px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest whitespace-nowrap transition-all ${
+                                    selectedStudyIndex === idx
+                                        ? 'bg-[#1E88E5] text-white shadow-lg shadow-blue-500/20'
+                                        : 'bg-[#F8FBFF] text-[#5F6F89] hover:bg-[#E3F2FD]'
+                                }`}
+                            >
+                                {st?.title || st?.protocol_id || `Study ${idx + 1}`}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* WELCOME HEADER */}
             <div className="flex items-center gap-2.5">
                 <div className="w-1 h-6 bg-[#1E88E5] rounded-full" />
@@ -157,7 +183,7 @@ const DashboardView = ({
                             <Badge color="slate" className="text-[10px] rounded-md">
                                 {participant?.status?.replace(/_/g, ' ') || 'ENROLLED'}
                             </Badge>
-                            {isEnrolled && (
+                            {['ACTIVE', 'RANDOMIZED', 'ENROLLED'].includes((participant?.status || '').toUpperCase()) && (
                                 <Badge color="blue" className="text-[10px] rounded-md">ACTIVE</Badge>
                             )}
                         </div>
@@ -180,7 +206,9 @@ const DashboardView = ({
                         <span className="text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest">Enrollment Timeline</span>
                         <div className="flex items-center gap-2 text-[#1E88E5]">
                             <History className="w-4 h-4" />
-                            <p className="text-base font-bold tracking-tight">Study Day {daysInStudy}</p>
+                            <p className="text-base font-bold tracking-tight">
+                                {daysInStudy > 0 ? `Study Day ${daysInStudy}` : 'Waiting for Approval'}
+                            </p>
                         </div>
                     </div>
                     <div className="space-y-2 mt-4">
@@ -194,86 +222,102 @@ const DashboardView = ({
             </div>
 
             {/* DASHBOARD GRID: Tasks + Visit */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-                {/* Tasks Card */}
-                <Card
-                    className="p-5 hover:border-[#1E88E5]/50 border-2 border-transparent transition-all cursor-pointer flex flex-col justify-between min-h-[180px] bg-white group shadow-[0_4px_25px_rgba(30,136,229,0.04)]"
-                    onClick={() => onAction('Tasks')}
-                >
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 bg-[#E3F2FD] rounded-lg flex items-center justify-center text-[#1E88E5] border border-[#BBDEFB]">
-                                <ClipboardList className="w-4 h-4" />
+            {(participant?.status || '').toUpperCase() !== 'PENDING_REVIEW' ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    
+                    {/* Tasks Card */}
+                    <Card
+                        className="p-5 hover:border-[#1E88E5]/50 border-2 border-transparent transition-all cursor-pointer flex flex-col justify-between min-h-[180px] bg-white group shadow-[0_4px_25px_rgba(30,136,229,0.04)]"
+                        onClick={() => onAction('Tasks')}
+                    >
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 bg-[#E3F2FD] rounded-lg flex items-center justify-center text-[#1E88E5] border border-[#BBDEFB]">
+                                    <ClipboardList className="w-4 h-4" />
+                                </div>
+                                <span className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">Clinical Protocol</span>
                             </div>
-                            <span className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">Clinical Protocol</span>
+                            <div className="space-y-1">
+                                <h4 className="text-xl font-bold text-[#1A2B49] tracking-tight">
+                                    <span className="text-[#1E88E5]">{pendingTasksCount}</span> Activities Pending
+                                </h4>
+                                <p className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest">
+                                    {pendingTasksCount > 0 ? "Items requiring immediate attention." : "Protocol adherence complete for today."}
+                                </p>
+                            </div>
                         </div>
-                        <div className="space-y-1">
-                            <h4 className="text-xl font-bold text-[#1A2B49] tracking-tight">
-                                <span className="text-[#1E88E5]">{pendingTasksCount}</span> Activities Pending
-                            </h4>
-                            <p className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest">
-                                {pendingTasksCount > 0 ? "Items requiring immediate attention." : "Protocol adherence complete for today."}
+                        <button className="flex items-center gap-2 group-hover:text-[#1E88E5] text-[#5F6F89] text-[11px] font-bold uppercase tracking-widest transition-all mt-4">
+                            Manage Tasks <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                        </button>
+                    </Card>
+    
+                    {/* Next Visit Card */}
+                    <Card
+                        className="p-5 hover:border-[#1E88E5]/50 border-2 border-transparent transition-all cursor-pointer flex flex-col justify-between min-h-[180px] bg-white group shadow-[0_4px_25px_rgba(30,136,229,0.04)]"
+                        onClick={() => onAction('Visits')}
+                    >
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 bg-[#FFF3E0] rounded-lg flex items-center justify-center text-[#E65100] border border-[#FFE0B2]">
+                                    <Calendar className="w-4 h-4" />
+                                </div>
+                                <span className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">Next Site Visit</span>
+                            </div>
+    
+                            {nextVisit ? (
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                    <div className="space-y-0.5">
+                                        <span className="text-[9px] font-bold text-[#5F6F89] uppercase tracking-widest flex items-center gap-1">
+                                            <Calendar className="w-2.5 h-2.5" /> Scheduled Date
+                                        </span>
+                                        <p className="text-[13px] font-bold text-[#1A2B49] tracking-tight">
+                                            {new Date(nextVisit.scheduled_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                                        </p>
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <span className="text-[9px] font-bold text-[#8A99B3] uppercase tracking-widest flex items-center gap-1">
+                                            <Clock className="w-2.5 h-2.5" /> Check-in Time
+                                        </span>
+                                        <p className="text-[13px] font-bold text-[#1A2B49] tracking-tight">
+                                            {new Date(nextVisit.scheduled_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                    </div>
+                                    <div className="col-span-2 space-y-0.5">
+                                        <span className="text-[9px] font-bold text-[#5F6F89] uppercase tracking-widest flex items-center gap-1">
+                                            <MapPin className="w-2.5 h-2.5" /> Location
+                                        </span>
+                                        <p className="text-[13px] font-bold text-[#1E88E5] uppercase tracking-tight truncate">
+                                            {nextVisit.location_name || study.location || 'Research Site'}
+                                        </p>
+                                        <p className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-tight line-clamp-1 italic">
+                                            {nextVisit.location_address || 'Address pending'}
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="py-1">
+                                    <p className="text-base font-bold text-[#5F6F89] uppercase tracking-tight">Not scheduled yet</p>
+                                    <p className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest mt-1">Your coordinator will update this soon</p>
+                                </div>
+                            )}
+                        </div>
+                    </Card>
+                </div>
+            ) : (
+                <Card className="p-8 border-[#1E88E5]/10 bg-[#E3F2FD]/20">
+                    <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-[#1E88E5]">
+                            <Clock className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h4 className="text-base font-bold text-[#1A2B49] uppercase tracking-widest mb-2">Review in Progress</h4>
+                            <p className="text-[13px] text-[#5F6F89] font-bold leading-relaxed uppercase">
+                                Your enrollment for <span className="text-[#1E88E5]">{study?.title}</span> is currently being reviewed by our clinical team. Once approved, your tasks and study timeline will appear here.
                             </p>
                         </div>
                     </div>
-                    <button className="flex items-center gap-2 group-hover:text-[#1E88E5] text-[#5F6F89] text-[11px] font-bold uppercase tracking-widest transition-all mt-4">
-                        Manage Tasks <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                    </button>
                 </Card>
-
-                {/* Next Visit Card */}
-                <Card
-                    className="p-5 hover:border-[#1E88E5]/50 border-2 border-transparent transition-all cursor-pointer flex flex-col justify-between min-h-[180px] bg-white group shadow-[0_4px_25px_rgba(30,136,229,0.04)]"
-                    onClick={() => onAction('Visits')}
-                >
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 bg-[#FFF3E0] rounded-lg flex items-center justify-center text-[#E65100] border border-[#FFE0B2]">
-                                <Calendar className="w-4 h-4" />
-                            </div>
-                            <span className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">Next Site Visit</span>
-                        </div>
-
-                        {nextVisit ? (
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                                <div className="space-y-0.5">
-                                    <span className="text-[9px] font-bold text-[#5F6F89] uppercase tracking-widest flex items-center gap-1">
-                                        <Calendar className="w-2.5 h-2.5" /> Scheduled Date
-                                    </span>
-                                    <p className="text-[13px] font-bold text-[#1A2B49] tracking-tight">
-                                        {new Date(nextVisit.scheduled_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
-                                    </p>
-                                </div>
-                                <div className="space-y-0.5">
-                                    <span className="text-[9px] font-bold text-[#8A99B3] uppercase tracking-widest flex items-center gap-1">
-                                        <Clock className="w-2.5 h-2.5" /> Check-in Time
-                                    </span>
-                                    <p className="text-[13px] font-bold text-[#1A2B49] tracking-tight">
-                                        {new Date(nextVisit.scheduled_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </p>
-                                </div>
-                                <div className="col-span-2 space-y-0.5">
-                                    <span className="text-[9px] font-bold text-[#5F6F89] uppercase tracking-widest flex items-center gap-1">
-                                        <MapPin className="w-2.5 h-2.5" /> Location
-                                    </span>
-                                    <p className="text-[13px] font-bold text-[#1E88E5] uppercase tracking-tight truncate">
-                                        {nextVisit.location_name || study.location || 'Research Site'}
-                                    </p>
-                                    <p className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-tight line-clamp-1 italic">
-                                        {nextVisit.location_address || 'Address pending'}
-                                    </p>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="py-1">
-                                <p className="text-base font-bold text-[#5F6F89] uppercase tracking-tight">Not scheduled yet</p>
-                                <p className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest mt-1">Your coordinator will update this soon</p>
-                            </div>
-                        )}
-                    </div>
-                </Card>
-            </div>
+            )}
 
             {/* MESSAGES BAR */}
             <Card className="p-4 hover:border-[#1E88E5]/30 transition-all flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">

@@ -304,14 +304,14 @@ export default function PIDashboard() {
     const fetchAllData = useCallback(async () => {
         setLoading(true);
         try {
-            // Updated endpoints to match backend reality
+            // OPTIMIZED: Added pagination limits to reduce payload
             const [studiesRaw, participantsRaw, notificationsRaw, visitsRaw, staffTasksRaw, usersRaw] = await Promise.all([
-                authFetch(`${API}/api/studies/`).then(r => r.json()),
-                authFetch(`${API}/api/participants/?pi=true`).then(r => r.json()), 
-                authFetch(`${API}/api/notifications/`).then(r => r.json()),
-                authFetch(`${API}/api/visits/`).then(r => r.json()),
-                authFetch(`${API}/api/staff-tasks/`).then(r => r.json()),
-                authFetch(`${API}/api/auth/personnel-fetch/`).then(r => r.json()).catch(() => [])
+                authFetch(`${API}/api/studies/?limit=50`).then(r => r.json()),
+                authFetch(`${API}/api/participants/?pi=true&limit=50`).then(r => r.json()), 
+                authFetch(`${API}/api/notifications/?limit=50`).then(r => r.json()),
+                authFetch(`${API}/api/visits/?limit=50`).then(r => r.json()),
+                authFetch(`${API}/api/staff-tasks/?limit=50`).then(r => r.json()),
+                authFetch(`${API}/api/auth/personnel-fetch/?limit=50`).then(r => r.json()).catch(() => [])
             ]);
 
             // Senior Dev: Normalize DRF Paginated results to Standard Arrays

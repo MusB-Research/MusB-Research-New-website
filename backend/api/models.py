@@ -317,11 +317,11 @@ class ProgressReport(BaseMongoModel):
         return f"{self.name} - {self.study.protocol_id}"
 
 class Participant(BaseMongoModel):
-    study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='participants')
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='participant_records')
+    study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='participants', db_index=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='participant_records', db_index=True)
     
     # Section 18.3: unique study-linked ID
-    participant_sid = models.CharField(max_length=50, unique=True, verbose_name="Participant Study ID", db_index=True)
+    participant_sid = models.CharField(max_length=50, unique=False, verbose_name="Participant Study ID", db_index=True)
     
     # Enrollment Tracking
     status = models.CharField(max_length=30, default='NEW', db_index=True, choices=[
@@ -359,8 +359,27 @@ class Participant(BaseMongoModel):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta(BaseMongoModel.Meta):
+        # Optimize dashboard queries: get participant by user or by study+user
+        indexes = [
+            models.Index(fields=['user', '-created_at']),  # For fetching user's participants
+            models.Index(fields=['study', 'status']),       # For stats queries
+            models.Index(fields=['study', 'user']),          # For enrollment checks
+        ]
+        unique_together = ('study', 'participant_sid')
+        ordering = ['-created_at']
+
     def __str__(self):
         return f"{self.participant_sid} ({self.study.protocol_id})"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Invalidate related caches when participant record is updated
+        if self.user_id:
+            from .utils.cache_utils import invalidate_cache
+            invalidate_cache("participant_dashboard", user_id=self.user_id)
+            invalidate_cache("participant_me", user_id=self.user_id)
+            invalidate_cache("participants_list", user_id=self.user_id)
 
 class InterventionArm(BaseMongoModel):
     study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='arms')
@@ -381,7 +400,7 @@ class Visit(BaseMongoModel):
         ('ONBOARDING', 'Onboarding Call'),
     ]
 
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='visits')
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='visits', db_index=True)
     scheduled_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='scheduled_visits')
     updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='updated_visits', help_text="Staff who performed/completed the visit")
     visit_type = models.CharField(max_length=100) # relaxed choices
@@ -689,8 +708,8 @@ class Task(BaseMongoModel):
 
 class ParticipantTask(BaseMongoModel):
     """Instance of a task assigned to a participant with a specific window"""
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='assigned_tasks')
-    task = models.ForeignKey(Task, on_delete=models.CASCADE)
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='assigned_tasks', db_index=True)
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, db_index=True)
     
     due_date = models.DateTimeField()
     completed_at = models.DateTimeField(null=True, blank=True)
@@ -806,9 +825,9 @@ class ConsentTemplate(BaseMongoModel):
 
 class Consent(BaseMongoModel):
     """Immutable record of electronic informed consent (eConsent)"""
-    study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='consent_records')
-    template = models.ForeignKey(ConsentTemplate, on_delete=models.PROTECT, related_name='executions', null=True)
-    participant = models.ForeignKey(Participant, on_delete=models.SET_NULL, null=True, blank=True, related_name='consent_records')
+    study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='consent_records', db_index=True)
+    template = models.ForeignKey(ConsentTemplate, on_delete=models.PROTECT, related_name='executions', null=True, db_index=True)
+    participant = models.ForeignKey(Participant, on_delete=models.SET_NULL, null=True, blank=True, related_name='consent_records', db_index=True)
     
     full_name = models.CharField(max_length=255, verbose_name="Electronic Signature")
     email = models.EmailField()
@@ -1089,7 +1108,7 @@ class Compensation(BaseMongoModel):
 
 class LabResult(BaseMongoModel):
     """Clinical test data uploads"""
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='lab_results')
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='lab_results', db_index=True)
     test_name = models.CharField(max_length=255)
     value = models.CharField(max_length=100)
     units = models.CharField(max_length=50, blank=True)
@@ -1467,7 +1486,7 @@ class DailyMedicationLog(BaseMongoModel):
         ('SEVERE', 'Severe'),
     ]
 
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='daily_logs')
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='daily_logs', db_index=True)
     date = models.DateField()
     
     # A. Medicine intake
@@ -1499,6 +1518,18 @@ class DailyMedicationLog(BaseMongoModel):
     class Meta:
         unique_together = ('participant', 'date')
         ordering = ['-date']
+
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        super().save(*args, **kwargs)
+        
+        # Invalidate related caches when a log is submitted/updated
+        if self.participant and self.participant.user_id:
+            try:
+                from .utils.cache_utils import invalidate_cache
+                invalidate_cache("participant_dashboard", user_id=self.participant.user_id)
+            except Exception:
+                pass
 
 class AEReport(BaseMongoModel):
     participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='ae_reports')

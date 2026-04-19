@@ -12,7 +12,7 @@ import { apiFetch } from '../../api';
 import SEO from '../../components/SEO';
 
 // Sub-components from the new modular structure
-import { ActionModal, EditModal, LogoutConfirmationModal } from './SharedComponents';
+import { ActionModal, EditModal, EditProfileModal, LogoutConfirmationModal } from './SharedComponents';
 import DashboardView from './DashboardView';
 import TasksView from './TasksView';
 import StudyKitView from './StudyKitView';
@@ -55,6 +55,7 @@ export default function ParticipantDashboard() {
         if (route === 'compensation') return 'Compensation';
         if (route === 'profile') return 'Profile';
         if (route === 'privacy') return 'Privacy & Data';
+        if (route === 'discover') return 'Discover Studies';
         return 'Dashboard';
     });
 
@@ -174,6 +175,7 @@ export default function ParticipantDashboard() {
     const [notifications, setNotifications] = useState<any[]>([]);
     const [refreshKey, setRefreshKey] = useState(0);
     const [isDataLoading, setIsDataLoading] = useState(true);
+    const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
 
     // Tracking for notifications
     const prevStatusRef = useRef<string | null>(null);
@@ -240,6 +242,13 @@ export default function ParticipantDashboard() {
     const safeArray = (data: any) => Array.isArray(data) ? data : [];
     const safeData = (data: any) => data?.results || (Array.isArray(data) ? data : []);
 
+    const getLocalISODate = (date: Date) => {
+        const YYYY = date.getFullYear();
+        const MM = String(date.getMonth() + 1).padStart(2, '0');
+        const DD = String(date.getDate()).padStart(2, '0');
+        return `${YYYY}-${MM}-${DD}`;
+    };
+
     // ──────────────── AGGREGATED DATA MANAGEMENT (V2) ────────────────
     const processSummaryData = (data: any, currentRefreshKey: number) => {
         if (!data || !data.participant) return;
@@ -252,6 +261,23 @@ export default function ParticipantDashboard() {
         // 1. Core Profile & State
         setActiveParticipant(p);
         setActiveStudy(s);
+
+        // Sync fresh user data (ensures profile updates are reflected without re-login)
+        if (data.user) {
+            const u = data.user;
+            setUserProfile({
+                userName: u.full_name || '',
+                userEmail: u.email || '',
+                userPicture: u.profile_picture || '',
+                firstName: (u.full_name || '').split(' ')[0],
+                userPhone: u.decrypted_phone || u.mobile_number || u.phone_number || '',
+                userLocation: u.decrypted_address || u.full_address || '',
+                userTimezone: u.timezone || 'UTC',
+                userAge: u.age || '',
+                userDob: u.date_of_birth || '',
+                userRole: u.role || 'PARTICIPANT'
+            });
+        }
         
         const fetchedTasks = safeArray(data.tasks);
         const fetchedQues = safeArray(data.questionnaire_schedules);
@@ -281,11 +307,11 @@ export default function ParticipantDashboard() {
 
         // 3. Daily Log Task Synthesis
         if (s?.show_dosing_log) {
-            const todayStr = new Date().toISOString().split('T')[0];
+            const todayStr = getLocalISODate(new Date());
             for (let i = -3; i <= 3; i++) {
                 const targetDate = new Date();
                 targetDate.setDate(targetDate.getDate() - i);
-                const dateStr = targetDate.toISOString().split('T')[0];
+                const dateStr = getLocalISODate(targetDate);
 
                 const hasTaskInDB = fetchedTasks.some((t: any) =>
                     (t.task_type === 'DAILY_LOG' || t.task_details?.task_type === 'LOG' || t.task_details?.task_type === 'DAILY_LOG') &&
@@ -377,15 +403,16 @@ export default function ParticipantDashboard() {
                 isFetchingRef.current = true;
                 if (!isSilent) setIsDataLoading(true);
 
-                // PERFORMANCE: Parallel burst of Global State + Detailed Summary
+                // PERFORMANCE: Optimized parallel fetch with pagination
                 const currentP = allParticipants[selectedStudyIndex];
                 const pSid = currentP?.participant_sid;
                 const summaryUrl = pSid 
                     ? `${apiUrl}/api/participants/dashboard_summary/?participant_sid=${pSid}`
                     : `${apiUrl}/api/participants/dashboard_summary/`;
 
+                // Use pagination to reduce payload (first 50 records sufficient for most users)
                 const [pDataRes, summaryRes, userRes] = await Promise.all([
-                    apiFetch<any[]>('/api/participants/'),
+                    apiFetch<any[]>('/api/participants/?limit=50'),
                     authFetch(summaryUrl).then(res => res.ok ? res.json() : null),
                     authFetch(`${apiUrl}/api/users/me/`).then(res => res.ok ? res.json() : null)
                 ]);
@@ -399,8 +426,8 @@ export default function ParticipantDashboard() {
                         userEmail: userRes.email || '',
                         userPicture: userRes.profile_picture || userRes.picture || '',
                         firstName: (userRes.decrypted_name || userRes.full_name)?.split(' ')[0] || getDisplayName(userRes),
-                        userPhone: userRes.decrypted_phone || userRes.phone_number || '',
-                        userLocation: userRes.decrypted_address || userRes.full_address || '',
+                        userPhone: (userRes.decrypted_phone && !userRes.decrypted_phone.startsWith('gAAAA')) ? userRes.decrypted_phone : '',
+                        userLocation: (userRes.decrypted_address && !userRes.decrypted_address.startsWith('gAAAA')) ? userRes.decrypted_address : '',
                         userTimezone: userRes.timezone || 'UTC',
                         userAge: userRes.age || '',
                         userDob: userRes.date_of_birth || '',
@@ -408,26 +435,46 @@ export default function ParticipantDashboard() {
                     });
                 }
 
-                // 2. Handle Participant List & Selection
-                if (pDataRes) {
-                    const filtered = pDataRes.filter((p: any) => !['DROPPED', 'INELIGIBLE'].includes((p.status || '').toUpperCase()));
-                    const priority = ['ENROLLED', 'RANDOMIZED', 'ACTIVE', 'CONSENTED', 'COMPLETED', 'REGISTERED', 'SCREENING'];
-                    filtered.sort((a: any, b: any) => {
-                        const idxA = priority.indexOf((a.status || '').toUpperCase());
-                        const idxB = priority.indexOf((b.status || '').toUpperCase());
-                        if (idxA !== idxB) return idxA - idxB;
-                        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-                    });
-                    setAllParticipants(filtered);
-                    
-                    // Sync parallel data if studies were returned inside summary
-                    if (summaryRes?.study) {
-                        setAllStudies(prev => {
-                            const exists = prev.some(s => getId(s) === getId(summaryRes.study));
-                            return exists ? prev : [...prev, summaryRes.study];
+                    // 2. Handle Participant List & Selection
+                    if (pDataRes) {
+                        const filtered = pDataRes.filter((p: any) => !['DROPPED', 'INELIGIBLE'].includes((p.status || '').toUpperCase()));
+                        
+                        // NEW PRIORITY: ACTIVE/ENROLLED/RANDOMIZED > CONSENTED > PENDING_REVIEW > Others
+                        const priority = ['ENROLLED', 'RANDOMIZED', 'ACTIVE', 'CONSENTED', 'PENDING_REVIEW', 'COMPLETED', 'REGISTERED', 'SCREENING'];
+                        
+                        filtered.sort((a: any, b: any) => {
+                            const statusA = (a.status || '').toUpperCase();
+                            const statusB = (b.status || '').toUpperCase();
+                            
+                            let idxA = priority.indexOf(statusA);
+                            let idxB = priority.indexOf(statusB);
+                            
+                            // If status not in priority list, push to end (99)
+                            if (idxA === -1) idxA = 99;
+                            if (idxB === -1) idxB = 99;
+                            
+                            if (idxA !== idxB) return idxA - idxB;
+                            
+                            // Tie-breaker: Newest first
+                            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
                         });
+                        setAllParticipants(filtered);
+                        
+                        // Populate studies list from all participants to enable the switcher immediately
+                        const studyMap = new Map();
+                        filtered.forEach((p: any) => {
+                            if (p.study && !studyMap.has(getId(p.study))) {
+                                // If study is a full object, use it; otherwise build a brief one
+                                const studyObj = typeof p.study === 'object' ? p.study : {
+                                    id: p.study,
+                                    title: p.study_name || p.protocol_id || 'Untitled Study',
+                                    protocol_id: p.protocol_id || 'PO-XXXX'
+                                };
+                                studyMap.set(getId(p.study), studyObj);
+                            }
+                        });
+                        setAllStudies(Array.from(studyMap.values()));
                     }
-                }
 
                 // 3. Hydrate Clinical Data from Summary
                 if (summaryRes) {
@@ -527,7 +574,9 @@ export default function ParticipantDashboard() {
                 'userLocation': 'full_address',
                 'userTimezone': 'timezone',
                 'userName': 'full_name',
-                'userPicture': 'profile_picture'
+                'userPicture': 'profile_picture',
+                'userAge': 'age',
+                'userDob': 'date_of_birth'
             };
             const key = mapping[field] || field;
 
@@ -560,6 +609,64 @@ export default function ParticipantDashboard() {
             // alert("Security Sync Completed Successfully.");
         } catch (err: any) {
             console.error("Failed to update profile:", err);
+            alert(`Security Sync Failed: ${err.message || 'Please retry.'}`);
+        }
+    };
+
+    const handleSaveFullProfile = async (data: any) => {
+        try {
+            const payload: any = {};
+            const mapping: Record<string, string> = {
+                'userPhone': 'phone_number',
+                'userLocation': 'full_address',
+                'userTimezone': 'timezone',
+                'userName': 'full_name',
+                'userAge': 'age',
+                'userDob': 'date_of_birth'
+            };
+
+            Object.entries(data).forEach(([key, val]) => {
+                const backKey = mapping[key] || key;
+                payload[backKey] = val;
+            });
+
+            const resp = await authFetch(`${API}/api/users/me/`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!resp.ok) {
+                const errData = await resp.json();
+                throw new Error(errData.detail || "Bulk Profile Update Failed");
+            }
+
+            const updatedUserData = await resp.json();
+            
+            // Re-sync local state with decrypted values from backend if possible
+            setUserProfile(prev => ({ 
+                ...prev, 
+                ...data,
+                userPhone: updatedUserData.decrypted_phone || data.userPhone,
+                userLocation: updatedUserData.decrypted_address || data.userLocation,
+                userAge: updatedUserData.age || data.userAge,
+                userDob: updatedUserData.date_of_birth || updatedUserData.userDob || data.userDob
+            }));
+            
+            const u = getUser();
+            if (u) {
+                saveUser({ ...u, ...updatedUserData });
+            }
+            
+            setModalConfig({
+                isOpen: true,
+                title: 'Identity Synchronized',
+                desc: 'Your profile has been successfully re-encrypted and updated in the clinical registry.',
+                primaryAction: 'OK'
+            });
+            setIsEditProfileModalOpen(false);
+        } catch (err: any) {
+            console.error("Failed to update full profile:", err);
             alert(`Security Sync Failed: ${err.message || 'Please retry.'}`);
         }
     };
@@ -755,7 +862,7 @@ export default function ParticipantDashboard() {
             setEditModal({ isOpen: true, title: 'Edit Email Address', value: userProfile.userEmail, field: 'userEmail' });
             return;
         } else if (lowerTitle.includes('profile') && lowerTitle.includes('edit')) {
-            setEditModal({ isOpen: true, title: 'Edit Display Name', value: userProfile.userName, field: 'userName' });
+            setIsEditProfileModalOpen(true);
             return;
         } else if (lowerTitle.includes('password') || lowerTitle.includes('credential')) {
             setModalConfig({
@@ -1027,10 +1134,11 @@ export default function ParticipantDashboard() {
         }
     }, [navigate]);
 
-    const initials = userProfile.userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    const initials = (userProfile.userName || 'U').split(' ').filter(n => n).map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
     const activeParticipantStatus = (activeParticipant?.status || '').toUpperCase().trim();
-    const isEnrolled = ['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE', 'COMPLETED'].some(s => activeParticipantStatus.includes(s));
+    const isEnrolled = ['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE', 'COMPLETED'].some(s => activeParticipantStatus.includes(s))
+                        || allParticipants.some(p => ['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE'].includes((p.status || '').toUpperCase()));
 
     const navItems = [
         { label: 'Main Website', icon: Globe },
@@ -1464,6 +1572,12 @@ export default function ParticipantDashboard() {
             />
 
             <EditModal isOpen={editModal.isOpen} title={editModal.title} value={editModal.value} field={editModal.field} onClose={() => setEditModal(prev => ({ ...prev, isOpen: false }))} onSave={handleSaveProfileField} />
+            <EditProfileModal 
+                isOpen={isEditProfileModalOpen} 
+                initialData={userProfile} 
+                onClose={() => setIsEditProfileModalOpen(false)} 
+                onSave={handleSaveFullProfile} 
+            />
             <LogoutConfirmationModal isOpen={isLogoutModalOpen} onClose={() => setIsLogoutModalOpen(false)} onConfirm={performLogout} />
             <input
                 type="file" ref={fileInputRef} style={{ display: 'none' }}

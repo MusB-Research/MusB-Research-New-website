@@ -470,7 +470,7 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
         setNoticedAE(null); setAeDescription(''); setAeStartTime(''); setAeOngoing(null); setAeSeverity(null);
         setAeInterfered(null); setAeMedicalCare(null); setAeComments('');
         setOverallFeeling(null); setHealthUpdates(''); setSupportingFile(null);
-        setLogDate(new Date().toISOString().split('T')[0]);
+        setLogDate(getLocalISODate(new Date()));
         setTimeTaken(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }));
         localStorage.removeItem('musb_daily_log_draft');
     };

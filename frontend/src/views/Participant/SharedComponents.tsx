@@ -325,3 +325,115 @@ export const SkeletonText = ({ className = '', width = 'w-full', height = 'h-4' 
 export const SkeletonCircle = ({ size = 'w-12 h-12', className = '' }: any) => (
     <Skeleton variant="circle" className={`${size} ${className}`} />
 );
+
+export const EditProfileModal = ({ isOpen, onClose, onSave, initialData }: any) => {
+    const [formData, setFormData] = React.useState(initialData);
+    const [isSaving, setIsSaving] = React.useState(false);
+
+    React.useEffect(() => {
+        if (isOpen) setFormData(initialData);
+    }, [initialData, isOpen]);
+
+    if (!isOpen) return null;
+
+    const handleChange = (field: string, value: string) => {
+        setFormData((prev: any) => ({ ...prev, [field]: value }));
+    };
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await onSave(formData);
+            onClose();
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const fields = [
+        { id: 'userName', label: 'Full Name', type: 'text', placeholder: 'Enter your full name' },
+        { id: 'userPhone', label: 'Mobile Number', type: 'tel', placeholder: 'e.g. +1 (555) 000-0000' },
+        { id: 'userLocation', label: 'Residential Address', type: 'text', placeholder: 'Enter your full address' },
+        { id: 'userAge', label: 'Age', type: 'number', placeholder: 'Enter your age' },
+        { id: 'userDob', label: 'Date of Birth', type: 'date', placeholder: 'Select your birth date' },
+    ];
+
+    return (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }} 
+                className="absolute inset-0 bg-[#1A2B49]/40 backdrop-blur-md" 
+                onClick={onClose} 
+            />
+            <motion.div 
+                initial={{ scale: 0.9, opacity: 0, y: 20 }} 
+                animate={{ scale: 1, opacity: 1, y: 0 }} 
+                className="relative w-full max-w-2xl bg-white border border-[#E3ECF5] rounded-[32px] shadow-[0_32px_80px_rgba(0,0,0,0.15)] overflow-hidden"
+            >
+                {/* Header */}
+                <div className="bg-[#F8FBFF] px-10 py-8 border-b border-[#E3ECF5] flex justify-between items-center">
+                    <div>
+                        <h3 className="text-xl font-black text-[#1A2B49] uppercase tracking-tight">Modify Clinical Profile</h3>
+                        <p className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-[0.2em] mt-1">Sensitive data is re-encrypted upon submission</p>
+                    </div>
+                    <button onClick={onClose} className="p-2.5 hover:bg-white rounded-xl text-[#8A99B3] transition-all border border-transparent hover:border-[#E3ECF5]">
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
+
+                {/* Form Body */}
+                <div className="p-10 max-h-[70vh] overflow-y-auto no-scrollbar">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {fields.map((f) => (
+                            <div key={f.id} className={f.id === 'userLocation' ? 'md:col-span-2' : ''}>
+                                <label className="block text-[11px] font-black text-[#1A2B49] uppercase tracking-widest mb-2.5 ml-1">
+                                    {f.label}
+                                </label>
+                                <div className="relative group">
+                                    <input
+                                        type={f.type}
+                                        value={formData[f.id] || ''}
+                                        onChange={(e) => handleChange(f.id, e.target.value)}
+                                        placeholder={f.placeholder}
+                                        className="w-full bg-[#F8FBFF] border-2 border-[#E3ECF5] rounded-2xl px-5 py-4 text-[14px] font-bold text-[#1A2B49] outline-none focus:border-[#1E88E5] focus:bg-white transition-all group-hover:border-[#BBDEFB]"
+                                    />
+                                    <div className="absolute inset-0 rounded-2xl pointer-events-none border border-transparent group-focus-within:border-[#1E88E5]/20" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="mt-10 p-5 bg-[#E3F2FD]/30 rounded-2xl border border-[#1E88E5]/10 flex items-start gap-4">
+                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shrink-0 text-[#1E88E5] shadow-sm">
+                            <AlertCircle className="w-5 h-5" />
+                        </div>
+                        <p className="text-[12px] font-bold text-[#5F6F89] leading-relaxed uppercase tracking-tight">
+                            Note: Changes to clinical identity details may trigger an automated audit. Your study coordinator will be notified of these updates to ensure protocol compliance.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <div className="px-10 py-8 bg-[#F8FBFF] border-t border-[#E3ECF5] flex flex-col sm:flex-row gap-4 items-center justify-between">
+                    <button 
+                        onClick={onClose} 
+                        className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest hover:text-[#1A2B49] transition-colors order-2 sm:order-1"
+                    >
+                        Discard Changes
+                    </button>
+                    <button 
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="w-full sm:w-auto px-10 py-4 bg-[#1E88E5] hover:bg-[#1565C0] text-white rounded-2xl font-black text-[13px] uppercase tracking-[0.2em] shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 order-1 sm:order-2"
+                    >
+                        {isSaving ? 'Synchronizing...' : 'Save Updated Profile'}
+                    </button>
+                </div>
+            </motion.div>
+        </div>
+    );
+};

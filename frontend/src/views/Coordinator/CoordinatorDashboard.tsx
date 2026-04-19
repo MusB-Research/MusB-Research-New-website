@@ -367,12 +367,12 @@ export default function CoordinatorDashboard() {
                 participantsData,
                 questionnairesData
             ] = await Promise.all([
-                apiFetch<any[]>('/api/studies/'),
-                apiFetch<any[]>('/api/users/'),
-                apiFetch<any[]>('/api/sponsor-organizations/'),
-                apiFetch<any[]>('/api/visits/'),
-                apiFetch<any[]>('/api/participants/'),
-                apiFetch<any[]>('/api/questionnaire-schedules/')
+                apiFetch<any[]>('/api/studies/?limit=50'),
+                apiFetch<any[]>('/api/users/?limit=100'),
+                apiFetch<any[]>('/api/sponsor-organizations/?limit=50'),
+                apiFetch<any[]>('/api/visits/?limit=50'),
+                apiFetch<any[]>('/api/participants/?limit=50'),
+                apiFetch<any[]>('/api/questionnaire-schedules/?limit=50')
             ]);
 
             setStudies((studiesData || []).sort((a: any, b: any) =>

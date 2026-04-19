@@ -142,6 +142,15 @@ class User(AbstractBaseUser, PermissionsMixin):
             self.is_active = True
             
         super().save(*args, **kwargs)
+        
+        # Invalidate related caches when user profile is updated
+        # This ensures that dashboard data (which includes user info) is refreshed
+        try:
+            from api.utils.cache_utils import invalidate_cache
+            invalidate_cache("participant_dashboard", user_id=self.id)
+            invalidate_cache("participant_me", user_id=self.id)
+        except Exception:
+            pass
 
     @cached_property
     def decrypted_phone(self):

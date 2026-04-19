@@ -329,12 +329,13 @@ export default function StudyScreener() {
 
                                 setFormData((prev: any) => ({
                                     ...prev,
-                                    age: pData.age || '',
+                                    age: pData.age || currentUser.age || '',
+                                    date_of_birth: pData.date_of_birth || currentUser.date_of_birth || '',
                                     zipCode: pData.zip_code || currentUser.zip_code || '',
                                     location: pData.location || `${currentUser.city || ''}, ${currentUser.state || ''}`,
-                                    fullName: currentUser.decrypted_name || currentUser.full_name || '',
+                                    fullName: currentUser.decrypted_name || currentUser.full_name || `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim(),
                                     email: currentUser.email || '',
-                                    phone: currentUser.phone_number || '',
+                                    phone: (currentUser.decrypted_phone && !currentUser.decrypted_phone.startsWith('gAAAA')) ? currentUser.decrypted_phone : (currentUser.phone_number && !currentUser.phone_number.startsWith('gAAAA')) ? currentUser.phone_number : '',
                                     cvConsent: true,
                                     availability: 'Continuing Participant'
                                 }));
@@ -358,12 +359,13 @@ export default function StudyScreener() {
                                         // Still pre-fill from latest record even if enrolled elsewhere
                                         setFormData((prev: any) => ({
                                             ...prev,
-                                            age: latest.age || '',
+                                            age: latest.age || currentUser.age || '',
+                                            date_of_birth: latest.date_of_birth || currentUser.date_of_birth || '',
                                             zipCode: latest.zip_code || currentUser.zip_code || '',
                                             location: latest.location || `${currentUser.city || ''}, ${currentUser.state || ''}`,
-                                            fullName: currentUser.decrypted_name || currentUser.full_name || '',
+                                            fullName: currentUser.decrypted_name || currentUser.full_name || `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim(),
                                             email: currentUser.email || '',
-                                            phone: currentUser.phone_number || '',
+                                            phone: currentUser.decrypted_phone || currentUser.phone_number || '',
                                             cvConsent: true
                                         }));
                                     }
@@ -575,9 +577,12 @@ export default function StudyScreener() {
             });
 
             // 🚀 Trigger Enrollment for Logged-in Users (Requirement 8)
-            if (getAccessToken() && finalOutcome === 'ELIGIBLE' && !isEnrolledInThisStudy) {
+            if (getAccessToken() && !isEnrolledInThisStudy) {
+                const enrollmentStatus = finalOutcome === 'ELIGIBLE' ? 'CONSENTED' : 'PENDING_REVIEW';
                 const enrollRes = await authFetch(`${API}/api/studies/${id}/enroll/`, {
-                    method: 'POST'
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: enrollmentStatus })
                 });
                 if (enrollRes.ok) {
                     const eData = await enrollRes.json();
@@ -969,9 +974,9 @@ export default function StudyScreener() {
                                     <button
                                         onClick={() => {
                                             if (enrollmentResult?.is_pending_multi_enrollment) {
-                                                navigate('/portal/dashboard');
+                                                navigate('/dashboard/participant');
                                             } else if (isExistingParticipant) {
-                                                navigate('/portal/dashboard');
+                                                navigate('/dashboard/participant');
                                             } else {
                                                 // New User Flow: Redirect to signin with data
                                                 navigate('/signin', {
@@ -1005,10 +1010,16 @@ export default function StudyScreener() {
                                         </p>
                                     </div>
                                     <button
-                                        onClick={() => navigate('/trials')}
-                                        className="w-full py-5 bg-white/5 hover:bg-white/10 text-slate-300 rounded-2xl font-bold text-[10px] tracking-wide border border-white/10 transition-all"
+                                        onClick={() => {
+                                            if (isExistingParticipant || getAccessToken()) {
+                                                navigate('/dashboard/participant');
+                                            } else {
+                                                navigate('/trials');
+                                            }
+                                        }}
+                                        className="w-full py-5 bg-[#00ADEF] text-white rounded-2xl font-bold text-[11px] tracking-widest uppercase transition-all shadow-lg shadow-[#00ADEF]/20"
                                     >
-                                        Explore other trials
+                                        {isExistingParticipant || getAccessToken() ? 'Go to My Dashboard' : 'Explore other trials'}
                                     </button>
                                 </div>
                             )}

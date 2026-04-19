@@ -50,16 +50,22 @@ def cache_api_response(key_prefix, timeout=300):
 def invalidate_cache(key_prefix, user_id=None):
     """
     Invalidates cache for a specific prefix.
-    If user_id is provided, invalidate only for that user.
-    Otherwise, we'd need to track keys (redis-style) which is more complex.
-    For simplicity, we'll use a versioned or pattern-based approach if needed.
+    Supports granular user-level invalidation or global pattern clearing.
     """
-    # Note: django-redis allows deleting by pattern: cache.delete_pattern(f"{key_prefix}:*")
     try:
-        if hasattr(cache, 'delete_pattern'):
-            cache.delete_pattern(f"{key_prefix}:*")
+        if user_id:
+            # Targeted invalidation for a specific user
+            pattern = f"{key_prefix}:{user_id}:*"
         else:
-            # Fallback if not using django-redis
-            pass
+            # Global invalidation for all versions of this data
+            pattern = f"{key_prefix}:*"
+            
+        if hasattr(cache, 'delete_pattern'):
+            count = cache.delete_pattern(pattern)
+            logger.info(f"Invalidated cache for {pattern} ({count} keys removed)")
+        else:
+            # Fallback for standard cache backends
+            logger.warning(f"Cache backend does not support pattern deletion. Manual TTL expiry will apply for: {pattern}")
+            
     except Exception as e:
-        logger.error(f"Failed to invalidate cache: {e}")
+        logger.error(f"Failed to invalidate cache for {key_prefix}: {e}")

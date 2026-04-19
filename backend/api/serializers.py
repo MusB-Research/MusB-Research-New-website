@@ -170,17 +170,26 @@ class UserSerializer(SanitizedModelSerializer):
         if 'gAAAA' not in str(ret):
             return ret
 
-        from authentication.security import decrypt_data
-        
         # Decrypt identified tokens
         for field, val in ret.items():
-            if isinstance(val, str) and val.startswith('gAAAA'):
+            if isinstance(val, str) and (val.startswith('gAAAA') or val.startswith('GAAAA')):
                 try:
                     decrypted = decrypt_data(val)
                     if decrypted and decrypted != val:
                         ret[field] = decrypted
                 except:
                     pass
+        
+        # Explicit priority for decrypted properties to ensure UI consistency
+        if hasattr(instance, 'decrypted_phone') and instance.decrypted_phone:
+             ret['decrypted_phone'] = instance.decrypted_phone
+             if ret.get('mobile_number').startswith('gAAAA'):
+                 ret['mobile_number'] = instance.decrypted_phone
+        
+        if hasattr(instance, 'decrypted_address') and instance.decrypted_address:
+             ret['decrypted_address'] = instance.decrypted_address
+             if ret.get('full_address').startswith('gAAAA'):
+                 ret['full_address'] = instance.decrypted_address
                     
         return ret
 

@@ -135,11 +135,11 @@ export default function SponsorDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const studiesData = await apiFetch<any[]>('/api/studies/');
-      const teamData = await apiFetch<any[]>('/api/auth/list-team-members/');
-      const inquiriesData = await apiFetch<any[]>('/api/study-inquiries/');
-      const notifData = await apiFetch<any[]>('/api/notifications/');
-      const reportsData = await apiFetch<any[]>('/api/progress-reports/');
+      const studiesData = await apiFetch<any[]>('/api/studies/?limit=50');
+      const teamData = await apiFetch<any[]>('/api/auth/list-team-members/?limit=50');
+      const inquiriesData = await apiFetch<any[]>('/api/study-inquiries/?limit=50');
+      const notifData = await apiFetch<any[]>('/api/notifications/?limit=50');
+      const reportsData = await apiFetch<any[]>('/api/progress-reports/?limit=50');
       const allReports = reportsData || [];
 
       const mapped = (studiesData || []).map((d: any) => ({
@@ -183,7 +183,7 @@ export default function SponsorDashboard() {
     fetchData();
     const interval = setInterval(() => {
       const apiUrl = API || 'http://localhost:8000';
-      authFetch(`${apiUrl}/api/notifications/`).then(res => res.json()).then(data => {
+      authFetch(`${apiUrl}/api/notifications/?limit=5`).then(res => res.json()).then(data => {
         const mapped = data.map((n: any) => ({
           id: n.id,
           message: n.message,
@@ -194,7 +194,7 @@ export default function SponsorDashboard() {
         }));
         setNotifications(mapped.slice(0, 5));
       }).catch(err => console.warn('Refresh failed:', err));
-    }, 30000);
+    }, 60000); // Changed from 30s to 60s
     return () => clearInterval(interval);
   }, []);
 
