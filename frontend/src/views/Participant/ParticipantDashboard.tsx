@@ -157,6 +157,7 @@ export default function ParticipantDashboard() {
         userAge: string | number;
         userDob: string;
         userRole: string;
+        googleAuth?: boolean;
     }
 
     const [userProfile, setUserProfile] = useState<UserProfile>(() => {
@@ -171,7 +172,8 @@ export default function ParticipantDashboard() {
             userTimezone: u?.timezone || 'UTC',
             userAge: u?.age || '',
             userDob: u?.date_of_birth || '',
-            userRole: u?.role || 'PARTICIPANT'
+            userRole: u?.role || 'PARTICIPANT',
+            googleAuth: u?.google_auth || false
         };
     });
 
@@ -1630,8 +1632,8 @@ export default function ParticipantDashboard() {
                                     studyId={activeStudy?.protocol_id || activeStudy?.id}
                                 />
                             )}
-                            {activeNav === 'Study Kit' && <StudyKitView isLoading={isDataLoading} study={activeStudy} />}
-                            {activeNav === 'Return Label' && <ReturnLabelView isLoading={isDataLoading} study={activeStudy} />}
+                            {activeNav === 'Study Kit' && <StudyKitView isLoading={isDataLoading} study={activeStudy} onAction={handleNavClick} />}
+                            {activeNav === 'Return Label' && <ReturnLabelView onBack={() => setActiveNav('Dashboard')} />}
                             {activeNav === 'Privacy & Data' && <PrivacyDataView onAction={openActionModal} isLoading={isDataLoading} />}
                         </motion.div>
                     </AnimatePresence>

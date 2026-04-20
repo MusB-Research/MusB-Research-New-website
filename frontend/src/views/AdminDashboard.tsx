@@ -421,7 +421,7 @@ export default function AdminDashboard() {
                             fetchInquiries();
                             fetchStudies();
                         }}
-                        handlePageChange={handleModuleChange}
+                        handlePageChange={(page) => handleModuleChange(page as any)}
                         userRole={user?.role?.toUpperCase()}
                     />
                 )}

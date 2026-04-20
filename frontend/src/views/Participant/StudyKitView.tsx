@@ -7,7 +7,6 @@ import {
     Clock, Calendar, Camera, Info, X, Zap, Ship, FileText as FileIcon
 } from 'lucide-react';
 import { Card, Badge, StepIndicator, Checklist, ProgressBar, Skeleton } from './SharedComponents';
-import CollectionGuideView from './CollectionGuideView';
 import ReturnLabelView from './ReturnLabelView';
 
 interface Kit {
@@ -166,7 +165,14 @@ const StudyKitView = ({ onAction, study, kits: initialKits = [], isLoading = fal
         setCheckedItems(prev => prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]);
     };
 
-    if (subView === 'GUIDE') return <CollectionGuideView onBack={() => setSubView('LIST')} />;
+    if (subView === 'GUIDE') return (
+        <div className="p-20 text-center bg-white rounded-[40px] border border-[#E3ECF5] shadow-sm">
+            <FileIcon className="w-16 h-16 text-[#E3ECF5] mx-auto mb-6" />
+            <h3 className="text-xl font-bold text-[#1A2B49] uppercase tracking-tight">Supply Collection Manual</h3>
+            <p className="text-[#8A99B3] font-bold uppercase tracking-widest text-[12px] mt-4 max-w-sm mx-auto leading-relaxed">The clinical collection manual is currently being synchronized with the latest protocol amendment. Please contact your coordinator for immediate guidance.</p>
+            <button onClick={() => setSubView('LIST')} className="mt-10 px-10 py-3.5 bg-[#1E88E5] text-white rounded-xl font-bold uppercase tracking-widest text-[11px] shadow-lg shadow-blue-500/10">Back to Component List</button>
+        </div>
+    );
     if (subView === 'LABEL') return <ReturnLabelView onBack={() => setSubView('LIST')} />;
 
     const filteredKits = useMemo(() => {
