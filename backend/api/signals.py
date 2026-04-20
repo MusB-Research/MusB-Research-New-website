@@ -62,7 +62,7 @@ def alert_staff_on_log_submission(sender, instance, created, **kwargs):
                 title=notif_title,
                 message=msg,
                 type=notif_type,
-                link=f"/dashboard/coordinator/participants/{participant.participant_sid}/logs"
+                link=f"/dashboard/coordinator/participants/{participant.id}/logs"
             )
             
         # Notify Study PI

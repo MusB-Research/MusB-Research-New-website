@@ -45,16 +45,16 @@ class ApiConfig(AppConfig):
         # Patch ContentType.objects.get_for_model to ensure it always returns a saved instance with a PK
         # This fixes "ValueError: Model instances passed to related filters must be saved" during migrate
         from django.contrib.contenttypes.models import ContentType
-        original_get_for_model = ContentType.objects.get_for_model
-        def patched_get_for_model(model, for_concrete_model=True):
-            ct = original_get_for_model(model, for_concrete_model)
-            if ct and not ct.pk:
-                try:
-                    ct.save()
-                except Exception:
-                    pass
-            return ct
-        ContentType.objects.get_for_model = patched_get_for_model
+        # original_get_for_model = ContentType.objects.get_for_model
+        # def patched_get_for_model(model, for_concrete_model=True):
+        #     ct = original_get_for_model(model, for_concrete_model)
+        #     if ct and not ct.pk:
+        #         try:
+        #             ct.save()
+        #         except Exception:
+        #             pass
+        #     return ct
+        # ContentType.objects.get_for_model = patched_get_for_model
 
         # Only run in the main process, not the reloader
         import os

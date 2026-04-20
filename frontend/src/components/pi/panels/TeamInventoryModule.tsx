@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    Users, Mail, UserPlus, Shield, Clock, Search, 
-    Filter, Download, ChevronRight, UserCheck, 
+import {
+    Users, Mail, UserPlus, Shield, Clock, Search,
+    Filter, Download, ChevronRight, UserCheck,
     AlertCircle, Building2, UserCircle2, Calendar, Briefcase,
     X, CheckCircle2, Activity, Rocket
 } from 'lucide-react';
@@ -35,7 +35,7 @@ export default function TeamInventoryModule({ members = [], loading = false, onR
     const handleInvite = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!inviteData.email || !inviteData.email.includes('@')) return;
-        
+
         setIsInviting(true);
         try {
             const res = await authFetch(`${API}/api/auth/admin/create-user/`, {
@@ -108,7 +108,7 @@ export default function TeamInventoryModule({ members = [], loading = false, onR
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <button 
+                    <button
                         onClick={() => setShowInviteModal(true)}
                         className="px-6 py-4 bg-teal-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] hover:bg-teal-500 transition-all shadow-xl shadow-teal-600/20 flex items-center gap-2 active:scale-95"
                     >
@@ -138,7 +138,7 @@ export default function TeamInventoryModule({ members = [], loading = false, onR
             <div className="flex flex-col lg:flex-row gap-4">
                 <div className="relative flex-1 group">
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-teal-400 transition-colors" />
-                    <input 
+                    <input
                         type="text"
                         placeholder="SEARCH DEPLOYED PERSONNEL..."
                         value={searchQuery}
@@ -148,19 +148,19 @@ export default function TeamInventoryModule({ members = [], loading = false, onR
                 </div>
 
                 <div className="flex items-center gap-2 bg-[#0B101B] p-2 border border-white/5 rounded-2xl">
-                    <button 
+                    <button
                         onClick={() => setStatusFilter('ALL')}
                         className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === 'ALL' ? 'bg-white/10 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
                     >
                         Display All
                     </button>
-                    <button 
+                    <button
                         onClick={() => setStatusFilter('ACTIVE')}
                         className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === 'ACTIVE' ? 'bg-teal-500/10 text-teal-400 shadow-lg border border-teal-500/20' : 'text-slate-500 hover:text-slate-300'}`}
                     >
                         Operational
                     </button>
-                    <button 
+                    <button
                         onClick={() => setStatusFilter('PENDING')}
                         className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === 'PENDING' ? 'bg-amber-500/10 text-amber-400 shadow-lg border border-amber-500/20' : 'text-slate-500 hover:text-slate-300'}`}
                     >
@@ -188,7 +188,7 @@ export default function TeamInventoryModule({ members = [], loading = false, onR
                     <tbody className="divide-y divide-white/[0.03]">
                         <AnimatePresence mode='popLayout'>
                             {filteredMembers.map((member, idx) => (
-                                <motion.tr 
+                                <motion.tr
                                     key={member.id}
                                     initial={{ opacity: 0, x: -10 }}
                                     animate={{ opacity: 1, x: 0 }}
@@ -224,11 +224,10 @@ export default function TeamInventoryModule({ members = [], loading = false, onR
                                         </div>
                                     </td>
                                     <td className="px-8 py-5">
-                                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${
-                                            member.status === 'ACTIVE' 
-                                            ? 'bg-teal-500/10 border-teal-500/30 text-teal-400 shadow-[0_0_15px_rgba(20,184,166,0.1)]' 
+                                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${member.status === 'ACTIVE'
+                                            ? 'bg-teal-500/10 border-teal-500/30 text-teal-400 shadow-[0_0_15px_rgba(20,184,166,0.1)]'
                                             : 'bg-amber-500/10 border-amber-500/30 text-amber-500 animate-pulse'
-                                        }`}>
+                                            }`}>
                                             <div className={`w-1 h-1 rounded-full ${member.status === 'ACTIVE' ? 'bg-teal-400 shadow-[0_0_5px_teal]' : 'bg-amber-500'}`} />
                                             {member.status === 'ACTIVE' ? 'Operational' : 'Awaiting Profile'}
                                         </div>
@@ -274,17 +273,17 @@ export default function TeamInventoryModule({ members = [], loading = false, onR
                     <p className="text-xs font-bold text-slate-400 leading-relaxed uppercase tracking-tight">Contact your MusB Administrator to re-issue tokens for expired invitations or locked accounts.</p>
                 </div>
             </div>
-            
+
             {/* Invite Modal */}
             <AnimatePresence>
                 {showInviteModal && (
-                    <motion.div 
-                        initial={{ opacity: 0 }} 
-                        animate={{ opacity: 1 }} 
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/95 backdrop-blur-2xl"
                     >
-                        <motion.div 
+                        <motion.div
                             initial={{ scale: 0.9, y: 20 }}
                             animate={{ scale: 1, y: 0 }}
                             className="w-full max-w-md bg-[#0B101B] border border-white/5 rounded-[2.5rem] p-10 shadow-3xl space-y-8"
@@ -297,32 +296,32 @@ export default function TeamInventoryModule({ members = [], loading = false, onR
                             <form onSubmit={handleInvite} className="space-y-6 relative z-10 w-full text-left">
                                 <div className="space-y-2 text-left w-full">
                                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest italic ml-1 text-left">Full Name</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         placeholder="Jane Smith"
                                         className="w-full bg-slate-900/50 border border-white/5 rounded-xl px-5 py-4 text-white font-bold outline-none focus:border-teal-500/30 transition-all text-left"
                                         value={inviteData.name}
-                                        onChange={e => setInviteData({...inviteData, name: e.target.value})}
+                                        onChange={e => setInviteData({ ...inviteData, name: e.target.value })}
                                     />
                                 </div>
 
                                 <div className="space-y-2 text-left w-full">
                                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest italic ml-1 text-left">Email Address</label>
-                                    <input 
-                                        type="email" 
+                                    <input
+                                        type="email"
                                         placeholder="jane.smith@musbresearch.com"
                                         className="w-full bg-slate-900/50 border border-white/5 rounded-xl px-5 py-4 text-white font-bold outline-none focus:border-teal-500/30 transition-all text-left"
                                         value={inviteData.email}
-                                        onChange={e => setInviteData({...inviteData, email: e.target.value})}
+                                        onChange={e => setInviteData({ ...inviteData, email: e.target.value })}
                                     />
                                 </div>
 
                                 <div className="space-y-2 text-left w-full border-b border-white/5 pb-2">
                                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest italic ml-1 text-left">Platform Role</label>
-                                    <select 
+                                    <select
                                         className="w-full bg-slate-900/50 border border-white/5 rounded-xl px-5 py-4 text-white font-bold outline-none focus:border-teal-500/30 transition-all appearance-none text-left"
                                         value={inviteData.role}
-                                        onChange={e => setInviteData({...inviteData, role: e.target.value})}
+                                        onChange={e => setInviteData({ ...inviteData, role: e.target.value })}
                                     >
                                         <option value="coordinator" className="bg-slate-900">Research Coordinator</option>
                                         <option value="pi" className="bg-slate-900">Principal Investigator</option>
@@ -330,7 +329,7 @@ export default function TeamInventoryModule({ members = [], loading = false, onR
                                     </select>
                                 </div>
 
-                                <button 
+                                <button
                                     type="submit"
                                     disabled={isInviting}
                                     className="w-full py-5 bg-teal-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.25em] hover:bg-teal-500 transition-all shadow-xl shadow-teal-600/20 flex items-center justify-center gap-3 active:scale-95"

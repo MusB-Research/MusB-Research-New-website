@@ -27,9 +27,10 @@ import AlertsModule from '../../components/coordinator/panels/AlertsModule';
 import AnalyticsModule from '../../components/coordinator/panels/AnalyticsModule';
 import AnimatedBackground from '../../components/AnimatedBackground';
 import StaffTasksModule from '../../components/shared/StaffTasksModule';
-import StudyKitsModule from '../../components/shared/StudyKitsModule';
+
 import ParticipantTaskManagement from '../../components/shared/ParticipantTaskManagement';
 import CompensationManagement from '../../components/coordinator/panels/CompensationManagement';
+import StudyKitsModule from '../../components/shared/StudyKitsModule';
 
 // Modular Page Components
 import { OperationsOversight } from './modules/OperationsOversight';
@@ -38,15 +39,15 @@ import { StudyDirectory } from './modules/StudyDirectory';
 
 import {
     Calendar, Clock, ArrowRight, ChevronRight, ChevronLeft, Sparkles, Trophy,
-    Activity, FileText, CheckCircle2, Box, Zap, PlusCircle,
-    AlertCircle, MessageSquare, Ship, Microscope, History,
+    Activity, FileText, CheckCircle2, Zap, PlusCircle,
+    AlertCircle, MessageSquare, Microscope, History,
     TrendingUp, Award, LayoutDashboard, Bell, Info, ExternalLink,
     Play, Download, ClipboardList, Beaker, DraftingCompass, Users,
     ShieldCheck, Settings, Search, ChevronDown, Plus, X, Filter,
     HelpCircle, Stethoscope, UsersRound, ArrowUpRight, LogOut,
     Globe, Rocket, Menu, FlaskConical, FileSearch, Layers,
     ListFilter, CheckSquare, ScrollText, Settings2, Database,
-    AlertTriangle, FileCheck, Briefcase, DollarSign
+    AlertTriangle, FileCheck, Briefcase, DollarSign, Truck
 } from 'lucide-react';
 
 type CCModule =
@@ -68,19 +69,34 @@ type CCModule =
     | 'SPONSORS'
     | 'TASKS'
     | 'ANALYTICS'
-    | 'KITS'
+
     | 'COMPENSATION'
+    | 'LOGISTICS'
     | 'PARTICIPANT_TASKS';
 
 export default function CoordinatorDashboard() {
     const navigate = useNavigate();
     const location = useLocation();
+    const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(String(getRole()).toUpperCase());
+
+    const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
+    const [initialTab, setInitialTab] = useState('Overview');
 
     const [activeModule, setActiveModule] = useState<CCModule>(() => {
         const path = location.pathname.toLowerCase().replace(/\/$/, "");
         const parts = path.split('/');
-        const route = parts[parts.length - 1];
+        
+        // Deep Link: /participants/:id
+        if (path.includes('/participants/')) {
+            const pIdx = parts.indexOf('participants');
+            if (parts[pIdx + 1]) {
+                // We'll set this in useEffect to avoid state update during render,
+                // but the module should be PARTICIPANTS
+                return 'PARTICIPANTS';
+            }
+        }
 
+        const route = parts[parts.length - 1];
         if (route === 'studies') return 'STUDIES';
         if (route === 'team') return 'TEAM';
         if (route === 'participants') return 'PARTICIPANTS';
@@ -97,7 +113,8 @@ export default function CoordinatorDashboard() {
         if (route === 'analytics') return 'ANALYTICS';
         if (route === 'sponsors') return 'SPONSORS';
         if (route === 'tasks') return 'TASKS';
-        if (route === 'kits') return 'KITS';
+        if (route === 'logistics') return 'LOGISTICS';
+
         if (route === 'participant-tasks') return 'PARTICIPANT_TASKS';
         return 'OVERSIGHT';
     });
@@ -110,9 +127,28 @@ export default function CoordinatorDashboard() {
         const parts = path.split('/');
         const route = parts[parts.length - 1];
 
+        // Deep Link Detection
+        if (path.includes('/participants/')) {
+            const pIdx = parts.indexOf('participants');
+            const pId = parts[pIdx + 1];
+            const sub = parts[pIdx + 2];
+            
+            if (pId) {
+                if (pId !== selectedParticipantId) setSelectedParticipantId(pId);
+                setActiveModule('PARTICIPANTS');
+                if (sub === 'logs') setInitialTab('Safety');
+                else if (sub === 'assessments') setInitialTab('Outcomes');
+                else setInitialTab('Overview');
+                return;
+            }
+        }
+
         if (route === 'coordinator' || !route || route === 'oversight') setActiveModule('OVERSIGHT');
         else if (route === 'studies') setActiveModule('STUDIES');
-        else if (route === 'participants' || route === 'subject-review' || route === 'review') setActiveModule('PARTICIPANTS');
+        else if (route === 'participants' || route === 'subject-review' || route === 'review') {
+            setActiveModule('PARTICIPANTS');
+            setSelectedParticipantId(null);
+        }
         else if (route === 'team') setActiveModule('TEAM');
         else if (route === 'messages') setActiveModule('MESSAGES');
         else if (route === 'labs') setActiveModule('LABS');
@@ -123,9 +159,10 @@ export default function CoordinatorDashboard() {
         else if (route === 'launch-study') setActiveModule('LAUNCH_STUDY');
         else if (route === 'analytics') setActiveModule('ANALYTICS');
         else if (route === 'tasks') setActiveModule('TASKS');
+        else if (route === 'logistics') setActiveModule('LOGISTICS');
         else if (route === 'participant-tasks') setActiveModule('PARTICIPANT_TASKS');
         else if (route === 'sponsors') setActiveModule('SPONSORS');
-        else if (route === 'kits') setActiveModule('KITS');
+
         else if (route === 'compensation' || route === 'rewards') setActiveModule('COMPENSATION');
         else if (location.pathname.includes('/dashboard/coordinator')) {
             // Stay consistent with dashboard root
@@ -172,8 +209,9 @@ export default function CoordinatorDashboard() {
             'TASKS': 'tasks',
             'ANALYTICS': 'analytics',
             'SPONSORS': 'sponsors',
-            'KITS': 'kits',
+
             'COMPENSATION': 'compensation',
+            'LOGISTICS': 'logistics',
             'PARTICIPANT_TASKS': 'participant-tasks'
         };
         const slug = slugs[mod];
@@ -317,7 +355,6 @@ export default function CoordinatorDashboard() {
     const [loading, setLoading] = useState(true);
     const [visits, setVisits] = useState<any[]>([]);
     const [selectedStudy, setSelectedStudy] = useState<any>(null);
-    const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
     const [oversightStats, setOversightStats] = useState({
         upcomingVisits: 0,
         overdueFollowUps: 0,
@@ -518,9 +555,6 @@ export default function CoordinatorDashboard() {
         }
     };
 
-    const role = getRole();
-    const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
-
     const sidebarGroups = [
         {
             group: 'GENERAL',
@@ -540,8 +574,8 @@ export default function CoordinatorDashboard() {
                 { id: 'CONSENT', label: 'Consent', icon: ShieldCheck },
                 { id: 'VISITS', label: 'Visits', icon: Calendar },
                 { id: 'LABS', label: 'Labs', icon: Beaker },
-                { id: 'KITS', label: 'Kits', icon: Box },
                 { id: 'COMPENSATION', label: 'Payments', icon: DollarSign },
+                { id: 'LOGISTICS', label: 'Logistics', icon: Truck },
                 { id: 'PARTICIPANT_TASKS', label: 'Tasks', icon: ListFilter },
             ]
         },
@@ -568,6 +602,7 @@ export default function CoordinatorDashboard() {
         const u = getUser();
         let userName = 'Coordinator';
         let userPicture = '';
+
         try {
             if (u) {
                 userName = getDisplayName(u);
@@ -774,7 +809,7 @@ export default function CoordinatorDashboard() {
                 </div>
                 <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-1 custom-scrollbar">
                      {sidebarGroups.flatMap(g => g.items).map((item, j) => (
-                         <button 
+                          <button 
                             key={j} 
                             onClick={() => { 
                                 if (item.id === 'WEBSITE') window.open('/', '_blank'); 
@@ -784,7 +819,7 @@ export default function CoordinatorDashboard() {
                         >
                              <item.icon className={`w-4 h-4 ${activeModule === item.id ? 'text-blue-400' : 'text-slate-500 group-hover:text-white'}`} />
                              <span className="text-[13px] font-bold text-left flex-1">{item.label}</span>
-                         </button>
+                          </button>
                      ))}
                 </nav>
 
@@ -802,124 +837,152 @@ export default function CoordinatorDashboard() {
             <main className="flex-1 lg:pl-[240px] pt-24 md:pt-32 pb-20 overflow-x-hidden bg-[#0F172A] min-h-screen">
                 <div className="px-3 md:px-6 flex-1">
                     <AnimatePresence mode="wait">
-                    {activeModule === 'OVERSIGHT' && (
-                        <OperationsOversight
-                            studyCount={studies.length}
-                            stats={oversightStats}
-                            currentTime={currentTime}
-                            visits={visits}
-                            onLaunch={() => handleModuleChange('LAUNCH_STUDY')}
-                            onNavigate={(id) => handleModuleChange(id as CCModule)}
-                            isAdmin={isAdmin}
-                            isLoading={loading}
-                        />
-                    )}
-                    {activeModule === 'STUDIES' && (
-                        <StudyDirectory
-                            studies={studies}
-                            onAdd={() => handleModuleChange('LAUNCH_STUDY')}
-                            onEdit={(s) => { setSelectedStudy(s); handleModuleChange('LAUNCH_STUDY'); }}
-                            onUpdateStatus={handleUpdateStudyStatus}
-                        />
-                    )}
-                    {activeModule === 'LAUNCH_STUDY' && (
-                        <LaunchStudyForm
-                            onClose={() => { setSelectedStudy(null); handleModuleChange('STUDIES'); }}
-                            initialData={selectedStudy}
-                            onSave={handleCreateStudy}
-                            availablePIs={users.filter(u => String(u.role).toUpperCase() === 'PI')}
-                            availableCoordinators={users.filter(u => String(u.role).toUpperCase() === 'COORDINATOR')}
-                            availableSponsors={sponsorOrganizations}
-                            availableSponsorUsers={users.filter(u => String(u.role).toUpperCase() === 'SPONSOR')}
-                        />
-                    )}
-                    {activeModule === 'MESSAGES' && <CCC_MessagesModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'TEAM' && <CCC_TeamModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'PARTICIPANTS' && (
-                        selectedParticipantId ? (
-                            <CCC_SubjectReviewModule 
-                                selectedStudyId={globalSelectedStudyId} 
-                                participantId={selectedParticipantId}
-                                preloadedTracking={summaryData?.participant_tracking}
+                        {activeModule === 'OVERSIGHT' && (
+                            <OperationsOversight
+                                studyCount={studies.length}
+                                stats={oversightStats}
+                                currentTime={currentTime}
+                                visits={visits}
+                                onLaunch={() => handleModuleChange('LAUNCH_STUDY')}
+                                onNavigate={(id) => handleModuleChange(id as CCModule)}
+                                isAdmin={isAdmin}
+                                isLoading={loading}
                             />
-                        ) : (
-                            <ParticipantOversight 
+                        )}
+                        {activeModule === 'STUDIES' && (
+                            <StudyDirectory
+                                studies={studies}
+                                onAdd={() => handleModuleChange('LAUNCH_STUDY')}
+                                onEdit={(s) => { setSelectedStudy(s); handleModuleChange('LAUNCH_STUDY'); }}
+                                onUpdateStatus={handleUpdateStudyStatus}
+                                isLoading={loading}
+                            />
+                        )}
+                        {activeModule === 'LAUNCH_STUDY' && (
+                            <LaunchStudyForm
+                                onClose={() => { setSelectedStudy(null); handleModuleChange('STUDIES'); }}
+                                initialData={selectedStudy}
+                                onSave={handleCreateStudy}
+                                availablePIs={users.filter(u => String(u.role).toUpperCase() === 'PI')}
+                                availableCoordinators={users.filter(u => String(u.role).toUpperCase() === 'COORDINATOR')}
+                                availableSponsors={sponsorOrganizations}
+                                availableSponsorUsers={users.filter(u => String(u.role).toUpperCase() === 'SPONSOR')}
+                            />
+                        )}
+                        {activeModule === 'MESSAGES' && <CCC_MessagesModule selectedStudyId={globalSelectedStudyId} />}
+                        {activeModule === 'TEAM' && (
+                            <CCC_TeamModule 
                                 selectedStudyId={globalSelectedStudyId} 
-                                onOpenProfile={(id) => setSelectedParticipantId(id)} 
-                                onMessage={() => setActiveModule('MESSAGES')}
+                                initialUsers={users}
+                                onRefresh={fetchCoordinatorContent}
+                            />
+                        )}
+                        {activeModule === 'ALERTS' && (
+                            <AlertsModule 
+                                selectedStudyId={globalSelectedStudyId} 
+                                initialNotifications={notifications}
+                            />
+                        )}
+                        {activeModule === 'PARTICIPANTS' && (
+                            selectedParticipantId ? (
+                                <CCC_SubjectReviewModule 
+                                    selectedStudyId={globalSelectedStudyId} 
+                                    participantId={selectedParticipantId}
+                                    preloadedTracking={summaryData?.participant_tracking}
+                                    initialTab={initialTab}
+                                />
+                            ) : (
+                                <ParticipantOversight 
+                                    selectedStudyId={globalSelectedStudyId} 
+                                    onOpenProfile={(id) => setSelectedParticipantId(id)} 
+                                    onMessage={() => setActiveModule('MESSAGES')}
+                                    initialParticipants={participants}
+                                    onRefresh={fetchCoordinatorContent}
+                                />
+                            )
+                        )}
+                        {activeModule === 'FORMS' && <FormsQuestionnairesModule selectedStudyId={globalSelectedStudyId} />}
+                        {activeModule === 'CONSENT' && (
+                            <CCConsentModule 
+                                selectedStudyId={globalSelectedStudyId} 
+                                preloadedStudies={studies}
+                            />
+                        )}
+                        {activeModule === 'VISITS' && (
+                            <CCC_VisitsAssessmentsModule 
+                                selectedStudyId={globalSelectedStudyId} 
+                                preloadedParticipants={participants}
+                                preloadedStudies={studies}
+                                preloadedTasks={globalTasks}
+                                onRefresh={fetchCoordinatorContent}
+                                isLoading={loading}
+                            />
+                        )}
+                        {activeModule === 'LABS' && (
+                            <LabsResultsModule 
+                                selectedStudyId={globalSelectedStudyId} 
+                                preloadedStudies={studies}
+                                isLoading={loading}
+                            />
+                        )}
+                        {activeModule === 'REPORTS' && (
+                            <ReportsSignOffModule 
+                                selectedStudyId={globalSelectedStudyId} 
+                                preloadedStudies={studies}
+                                isLoading={loading}
+                            />
+                        )}
+                        {activeModule === 'STUDY_DOCS' && (
+                            <StudyDocumentsModule 
+                                selectedStudyId={globalSelectedStudyId} 
+                                preloadedStudies={studies}
+                                isLoading={loading}
+                            />
+                        )}
+                        {activeModule === 'MY_DOCS' && <MyDocumentsModule />}
+
+                        {activeModule === 'TASKS' && (
+                            <StaffTasksModule 
+                                primaryColor="blue" 
+                                preloadedTasks={globalTasks}
+                                isLoading={loading}
+                            />
+                        )}
+                        {activeModule === 'PARTICIPANT_TASKS' && (
+                            <ParticipantTaskManagement 
+                                primaryColor="blue" 
+                                selectedStudyId={globalSelectedStudyId} 
+                            />
+                        )}
+                        {activeModule === 'COMPENSATION' && <CompensationManagement selectedStudyId={globalSelectedStudyId} />}
+                        {activeModule === 'LOGISTICS' && (
+                            <StudyKitsModule 
+                                selectedStudyId={globalSelectedStudyId}
+                                preloadedStudies={studies}
+                                preloadedParticipants={participants}
+                            />
+                        )}
+                        {activeModule === 'ANALYTICS' && (
+                            <AnalyticsModule 
+                                selectedStudyId={globalSelectedStudyId}
                                 preloadedData={summaryData}
                                 isLoading={summaryLoading}
+                                onViewProfile={(id) => {
+                                    setSelectedParticipantId(id);
+                                    setActiveModule('PARTICIPANTS');
+                                }}
                             />
-                        )
-                    )}
-                    {activeModule === 'FORMS' && <FormsQuestionnairesModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'CONSENT' && (
-                        <CCConsentModule 
-                            selectedStudyId={globalSelectedStudyId} 
-                            preloadedStudies={studies}
-                        />
-                    )}
-                    {activeModule === 'VISITS' && (
-                        <CCC_VisitsAssessmentsModule 
-                            selectedStudyId={globalSelectedStudyId} 
-                            preloadedParticipants={participants}
-                            preloadedStudies={studies}
-                            preloadedTasks={globalTasks}
-                            onRefresh={fetchCoordinatorContent}
-                            isLoading={loading}
-                        />
-                    )}
-
-                    {activeModule === 'LABS' && (
-                        <LabsResultsModule 
-                            selectedStudyId={globalSelectedStudyId} 
-                            preloadedStudies={studies}
-                            isLoading={loading}
-                        />
-                    )}
-                    {activeModule === 'KITS' && (
-                        <StudyKitsModule 
-                            selectedStudyId={globalSelectedStudyId} 
-                            preloadedStudies={studies}
-                            preloadedParticipants={participants}
-                            isLoading={loading}
-                        />
-                    )}
-                    {activeModule === 'REPORTS' && <ReportsSignOffModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'STUDY_DOCS' && <StudyDocumentsModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'MY_DOCS' && <MyDocumentsModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'ALERTS' && <AlertsModule selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'TASKS' && (
-                        <StaffTasksModule 
-                            primaryColor="blue" 
-                            preloadedTasks={globalTasks}
-                            isLoading={loading}
-                        />
-                    )}
-
-                    {activeModule === 'PARTICIPANT_TASKS' && <ParticipantTaskManagement primaryColor="blue" selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'COMPENSATION' && <CompensationManagement selectedStudyId={globalSelectedStudyId} />}
-                    {activeModule === 'ANALYTICS' && (
-                        <AnalyticsModule 
-                            selectedStudyId={globalSelectedStudyId}
-                            preloadedData={summaryData}
-                            isLoading={summaryLoading}
-                            onViewProfile={(id) => {
-                                setSelectedParticipantId(id);
-                                setActiveModule('PARTICIPANTS');
-                            }}
-                        />
-                    )}
-                    {activeModule === 'SPONSORS' && (
-                        <SponsorsManagement 
-                            selectedStudyId={globalSelectedStudyId} 
-                            allUsers={users} 
-                            preloadedStudies={studies} 
-                            onRefresh={fetchCoordinatorContent}
-                            isLoading={loading}
-                        />
-                    )}
-                </AnimatePresence>
+                        )}
+                        {activeModule === 'SPONSORS' && (
+                            <SponsorsManagement 
+                                selectedStudyId={globalSelectedStudyId} 
+                                allUsers={users} 
+                                preloadedStudies={studies} 
+                                onRefresh={fetchCoordinatorContent}
+                                isLoading={loading}
+                            />
+                        )}
+                    </AnimatePresence>
                 </div>
             </main>
 

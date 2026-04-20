@@ -5,7 +5,7 @@ admin.site.site_title = "MusB Super Admin"
 admin.site.index_title = "Platform Governance"
 
 from django.contrib import admin
-from .models import Study, StudyAssignment, Participant, Visit, Kit, Form, FormResponse, BookletDownloadRequest
+from .models import Study, StudyAssignment, Participant, Visit, Form, FormResponse, BookletDownloadRequest
 
 class StudyAssignmentInline(admin.TabularInline):
     model = StudyAssignment
@@ -25,7 +25,7 @@ class ParticipantAdmin(admin.ModelAdmin):
     search_fields = ('participant_sid', 'user__email', 'user__full_name')
 
 admin.site.register(Visit)
-admin.site.register(Kit)
+
 admin.site.register(Form)
 admin.site.register(FormResponse)
 admin.site.register(BookletDownloadRequest)

@@ -18,7 +18,7 @@ router.register(r'participant-tasks', views.ParticipantTaskViewSet)
 router.register(r'staff-tasks', views.StaffTaskViewSet)
 router.register(r'consent-templates', views.ConsentTemplateViewSet)
 router.register(r'consent', views.ConsentViewSet)
-router.register(r'kits', views.KitViewSet)
+
 router.register(r'dosing-logs', views.DosingLogViewSet, basename='dosing-log')
 router.register(r'daily-medication-logs', views.DailyMedicationLogViewSet, basename='daily-medication-log')
 router.register(r'ae-reports', views.AEReportViewSet, basename='ae-report')

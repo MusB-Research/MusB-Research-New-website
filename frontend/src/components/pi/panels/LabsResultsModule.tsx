@@ -46,8 +46,8 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies, i
                         id: l.id,
                         subjectId: l.participant_sid || 'SUB-001',
                         subjectName: l.participant_name || 'Anonymous',
-                        type: l.test_name,
-                        status: l.status,
+                        type: l.test_name || 'Standard Lab',
+                        status: l.status || 'Processing',
                         value: l.value,
                         unit: l.units,
                         date: l.lab_date,
@@ -89,8 +89,9 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies, i
     };
 
     const filteredSamples = samples.filter(s => 
-        s.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.subjectName.toLowerCase().includes(searchQuery.toLowerCase())
+        (s.id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (s.subjectName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (s.type || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (

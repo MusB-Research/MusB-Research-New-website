@@ -17,17 +17,27 @@ interface Question {
     options?: string[];
 }
 
-export default function ScreenerBuilder() {
+export default function ScreenerBuilder({ 
+    initialQuestions = [], 
+    onSave, 
+    standalone = false 
+}: { 
+    initialQuestions?: Question[], 
+    onSave?: (questions: Question[]) => void,
+    standalone?: boolean
+}) {
     const [studies, setStudies] = useState<any[]>([]);
     const [selectedStudyId, setSelectedStudyId] = useState('');
-    const [questions, setQuestions] = useState<Question[]>([]);
+    const [questions, setQuestions] = useState<Question[]>(initialQuestions);
     const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [statusMessage, setStatusMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
     useEffect(() => {
-        fetchStudies();
-    }, []);
+        if (!standalone) {
+            fetchStudies();
+        }
+    }, [standalone]);
 
     const fetchStudies = async () => {
         try {
@@ -40,12 +50,12 @@ export default function ScreenerBuilder() {
     };
 
     useEffect(() => {
-        if (selectedStudyId) {
+        if (selectedStudyId && !standalone) {
             fetchExistingScreener();
-        } else {
+        } else if (!standalone) {
             setQuestions([]);
         }
-    }, [selectedStudyId]);
+    }, [selectedStudyId, standalone]);
 
     const fetchExistingScreener = async () => {
         setIsLoading(true);
@@ -89,6 +99,13 @@ export default function ScreenerBuilder() {
     };
 
     const handleSave = async () => {
+        if (onSave) {
+            onSave(questions);
+            setStatusMessage({ text: 'Screener logic cached in session.', type: 'success' });
+            setTimeout(() => setStatusMessage(null), 3000);
+            return;
+        }
+
         if (!selectedStudyId) {
             setStatusMessage({ text: 'Please select a context protocol first.', type: 'error' });
             return;
@@ -97,8 +114,6 @@ export default function ScreenerBuilder() {
         setIsSaving(true);
         setStatusMessage(null);
 
-        // Construct standard screener_config structure
-        // StudyScreener expects: { steps: [ { id: 'STEP1', type: 'system' }, { id: 'STEP2', type: 'user_input', questions: [...] }, { id: 'STEP3', type: 'system' } ] }
         const screenerConfig = {
             steps: [
                 { id: 'STEP1', type: 'system', label: 'Basics & location' },
@@ -149,29 +164,41 @@ export default function ScreenerBuilder() {
                     <p className="text-sm text-slate-400 mt-2 font-medium opacity-70">Design logical recruitment funnels with dynamic branching and integrated validation triggers.</p>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-2xl border border-white/10 h-14">
-                        <select
-                            value={selectedStudyId}
-                            onChange={(e) => setSelectedStudyId(e.target.value)}
-                            className="bg-transparent text-[12px] font-black text-white tracking-widest outline-none cursor-pointer px-6 min-w-[240px]"
-                        >
-                            <option value="" className="bg-[#0B101B]">Select context protocol</option>
-                            {studies.map(s => (
-                                <option key={s.id} value={s.id} className="bg-[#0B101B]">{s.protocol_id || s.id}</option>
-                            ))}
-                        </select>
-                    </div>
+                {!standalone ? (
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-2xl border border-white/10 h-14">
+                            <select
+                                value={selectedStudyId}
+                                onChange={(e) => setSelectedStudyId(e.target.value)}
+                                className="bg-transparent text-[12px] font-black text-white tracking-widest outline-none cursor-pointer px-6 min-w-[240px]"
+                            >
+                                <option value="" className="bg-[#0B101B]">Select context protocol</option>
+                                {studies.map(s => (
+                                    <option key={s.id} value={s.id} className="bg-[#0B101B]">{s.protocol_id || s.id}</option>
+                                ))}
+                            </select>
+                        </div>
 
-                    <button
-                        onClick={handleSave}
-                        disabled={isSaving || !selectedStudyId}
-                        className={`flex items-center gap-3 px-10 py-4 rounded-2xl text-[12px] font-black tracking-[0.2em] transition-all shadow-xl shadow-pink-500/20 active:scale-95 ${isSaving ? 'bg-pink-900 text-pink-300' : 'bg-[#be185d] text-white hover:bg-pink-600'}`}
-                    >
-                        <Save className="w-4 h-4" />
-                        {isSaving ? 'Synchronizing...' : 'Save form'}
-                    </button>
-                </div>
+                        <button
+                            onClick={handleSave}
+                            disabled={isSaving || !selectedStudyId}
+                            className={`flex items-center gap-3 px-10 py-4 rounded-2xl text-[12px] font-black tracking-[0.2em] transition-all shadow-xl shadow-pink-500/20 active:scale-95 ${isSaving ? 'bg-pink-900 text-pink-300' : 'bg-[#be185d] text-white hover:bg-pink-600'}`}
+                        >
+                            <Save className="w-4 h-4" />
+                            {isSaving ? 'Synchronizing...' : 'Save form'}
+                        </button>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={handleSave}
+                            className="flex items-center gap-3 px-10 py-4 rounded-2xl text-[12px] font-black tracking-[0.2em] transition-all shadow-xl shadow-indigo-500/20 active:scale-95 bg-indigo-600 text-white hover:bg-indigo-500"
+                        >
+                            <Save className="w-4 h-4" />
+                            Apply Logic
+                        </button>
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-12 gap-8">

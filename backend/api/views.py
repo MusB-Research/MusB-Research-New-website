@@ -8,7 +8,7 @@ from .models import (
     Compensation, LabResult, DataAuditLog, InterventionArm,
     News, Event, FacilityInquiry, Candidate, NewsletterSubscriber,
     BookletDownloadRequest, Partnership, Publication, EducationMaterial,
-    StudyInquiry, ClinicalConversation, ClinicalMessage, Kit,
+    StudyInquiry, ClinicalConversation, ClinicalMessage,
     DosingLog, AEReport, Document, Notification, ProgressReport,
     StudyActionRequest, DailyMedicationLog, AssignedForm, SponsorOrganization,
     QuestionnaireTemplate, StudyQuestionnaire, QuestionnaireScheduleInstance,
@@ -27,7 +27,7 @@ from .serializers import (
     PartnershipSerializer, PublicationSerializer, EducationMaterialSerializer,
     StudyInquirySerializer, InterventionArmSerializer,
     ClinicalConversationSerializer, ClinicalConversationBriefSerializer, ClinicalMessageSerializer,
-    KitSerializer, DosingLogSerializer, AEReportSerializer,
+    DosingLogSerializer, AEReportSerializer,
     NotificationSerializer, ProgressReportSerializer, DocumentSerializer,
     DailyMedicationLogSerializer, AssignedFormSerializer, SponsorOrganizationSerializer,
     PublicStudySerializer, QuestionnaireTemplateSerializer, StudyQuestionnaireSerializer,
@@ -55,6 +55,7 @@ class SoftPaginationMixin:
     Mixin to apply a limit-based slice to the queryset in the list view.
     Maintains a plain array response structure without metadata.
     """
+    @cache_api_response("participants_list", timeout=300)
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         
@@ -513,6 +514,97 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         if sponsor_ids: study.sponsor = sponsor_ids[0]
         study.save()
 
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def enroll(self, request, **kwargs):
+        """Allow authenticated users to self-enroll in a study."""
+        study = self.get_object()
+        user = request.user
+        
+        # Check if already enrolled in THIS study
+        existing = Participant.objects.filter(study=study, user=user).first()
+        if existing:
+            return Response({
+                'status': 'already_enrolled', 
+                'message': 'You are already enrolled in this study.', 
+                'participant_sid': existing.participant_sid
+            }, status=status.HTTP_200_OK)
+
+        # Enforce one-study-at-a-time (Soft Block): 
+        active_enrollment = Participant.objects.filter(
+            user=user
+        ).exclude(
+            status__in=['DROPPED', 'INELIGIBLE', 'COMPLETED']
+        ).exclude(study=study).first()
+
+        requested_status = request.data.get('status')
+        status_val = 'RECRUITING'
+        status_notes = ''
+
+        if active_enrollment:
+            status_val = 'PENDING_REVIEW'
+            status_notes = f"Application pending approval: User already enrolled in study {active_enrollment.study.protocol_id}."
+        elif requested_status:
+            status_val = requested_status
+            status_notes = "Status initialized from screener outcome."
+            
+        # Reuse existing SID if user is already a participant in another study to maintain consistency
+        any_existing_participant = Participant.objects.filter(user=user).first()
+        if any_existing_participant:
+            sid = any_existing_participant.participant_sid
+        else:
+            # Generate anonymous SID for new participants
+            import secrets
+            pid_clean = "".join(filter(str.isalnum, study.protocol_id))[:4].upper()
+            sid = f"{pid_clean}-{secrets.token_hex(4).upper()}"
+        
+        participant = Participant.objects.create(
+            study=study,
+            user=user,
+            participant_sid=sid,
+            status=status_val,
+            status_notes=status_notes,
+            reviewed_at=timezone.now() if status_val not in ['PENDING_REVIEW', 'RECRUITING'] else None
+        )
+        # Import AuditLog inside if needed, though it's already imported at module level
+        AuditLog.log('PARTICIPANT_SELF_ENROLL', user_email=user.email, request=request, detail=f"User self-enrolled in study {study.protocol_id}. Multi-enrolled: {bool(active_enrollment)}")
+        
+        # Notifications to Staff
+        if study.coordinator:
+            Notification.objects.create(
+                user=study.coordinator,
+                title="New Study Interest",
+                message=f"Participant {sid} has expressed interest in {study.protocol_id} and added it to their portal.",
+                type="INFO"
+            )
+            StaffTask.objects.create(
+                user=study.coordinator,
+                study=study,
+                title="Review Screener Form",
+                description=f"Participant {sid} has completed the screener for {study.protocol_id}. Please review eligibility.",
+                task_type="SCREENER_REVIEW",
+                reference_id=str(participant.pk)
+            )
+            
+        if study.pi:
+            Notification.objects.create(
+                user=study.pi,
+                title="New Study Interest",
+                message=f"Participant {sid} has expressed interest in {study.protocol_id}.",
+                type="INFO"
+            )
+        
+        msg = 'Study added to your portal. Please complete the eligibility screener to proceed.'
+        if active_enrollment:
+            msg = 'You are currently enrolled in another study. Your request will be reviewed by the PI and Coordinator.'
+
+        return Response({
+            'status': 'success', 
+            'message': msg, 
+            'participant_sid': sid,
+            'study_title': study.title,
+            'is_pending_multi_enrollment': bool(active_enrollment)
+        }, status=status.HTTP_201_CREATED)
+
 class PublicStudyViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PublicStudySerializer
     permission_classes = [permissions.AllowAny]
@@ -740,13 +832,41 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
             
         participant = qs.order_by('-created_at').first()
         if not participant:
-            return Response({'error': 'No participant record found.'}, status=status.HTTP_404_NOT_FOUND)
+            # Return 200 with null instead of 404 to prevent console noise in frontend SPAs
+            return Response(None, status=status.HTTP_200_OK)
             
         serializer = self.get_serializer(participant)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
-    @cache_api_response("participant_dashboard", timeout=900)  # Increased from 300s to 900s (15 minutes)
+    @cache_api_response("dashboard_quick", timeout=600)  # Cache for 10 minutes
+    def dashboard_quick(self, request):
+        """Lightweight endpoint - returns only menu + basic info (loads in <50ms with cache)"""
+        user = request.user
+        p_sid = request.query_params.get('participant_sid')
+        
+        if user.role == 'PARTICIPANT':
+            qs = Participant.objects.filter(user=user)
+            if p_sid:
+                qs = qs.filter(participant_sid=p_sid)
+            participant = qs.select_related('study', 'user').first()
+        else:
+            if not p_sid:
+                # Instead of 403, return 200 with null values so staff dashboards don't crash when missing context
+                return Response({'user': UserSerializer(user).data, 'participant': None}, status=200)
+            participant = Participant.objects.filter(participant_sid=p_sid).select_related('study', 'user').first()
+        
+        if not participant:
+            return Response({'user': UserSerializer(user).data, 'participant': None}, status=200)
+        
+        return Response({
+            'user': UserSerializer(participant.user).data,
+            'participant': ParticipantSerializer(participant).data,
+            'study': StudySerializer(participant.study).data,
+        })
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    @cache_api_response("participant_dashboard", timeout=900)
     def dashboard_summary(self, request):
         """
         🚀 Ultra-High-Performance Aggregated Endpoint for Participant Dashboard.
@@ -817,12 +937,7 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
             'id', 'participant_id', 'test_name', 'value', 'units',
             'status', 'lab_date', 'released_at', 'is_critical'
         )[:50])  # Only essential fields
-        
-        kits_list = list(Kit.objects.filter(
-            study_id=s_id
-        ).filter(
-            Q(participant_id=p_id) | Q(participant__isnull=True)
-        )[:30])
+
         
         # Batch 3: Communication & Compliance
         conversations_list = list(ClinicalConversation.objects.filter(
@@ -866,15 +981,48 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         unread_count = base_notifications.filter(is_read=False).count() if hasattr(Notification, 'is_read') else 0
         notifications_list = list(base_notifications.order_by('-created_at')[:15])
 
+        # Get today's log status for virtual task injection
+        has_today_log = DailyMedicationLog.objects.filter(
+            participant_id=p_id, 
+            date=timezone.now().date(),
+            is_draft=False
+        ).exists()
+
         # Serialize all data in parallel (Django handles this efficiently)
+        serialized_tasks = ParticipantTaskSerializer(tasks_list, many=True).data
+        
+        # Inject a virtual "Daily Log" task if the protocol requires it (defaulting to true for adherence tracking)
+        # and it's not already explicitly assigned as a task
+        has_formal_log_task = any(
+            isinstance(t, dict) and
+            isinstance(t.get('task_details'), dict) and 
+            t.get('task_details', {}).get('task_type') in ['LOG', 'DAILY_LOG'] 
+            for t in serialized_tasks
+        )
+        if not has_formal_log_task:
+            serialized_tasks.append({
+                'id': 'virtual-daily-log',
+                'title': 'Daily Medication Log',
+                'status': 'COMPLETED' if has_today_log else 'PENDING',
+                'due_date': timezone.now().isoformat(),
+                'task': {
+                    'title': 'Daily Medication Log',
+                    'task_type': 'DAILY_LOG',
+                    'frequency': 'DAILY'
+                },
+                'estimated_time': '2 min',
+                'priority': 'HIGH',
+                'is_virtual': True
+            })
+
         data = {
             'user': UserSerializer(participant.user).data,
             'participant': ParticipantSerializer(participant).data,
             'study': StudySerializer(participant.study).data,
-            'tasks': ParticipantTaskSerializer(tasks_list, many=True).data,
+            'tasks': serialized_tasks,
             'questionnaire_schedules': QuestionnaireScheduleInstanceSerializer(ques_list, many=True).data,
             'visits': VisitSerializer(visits_list, many=True).data,
-            'kits': KitSerializer(kits_list, many=True).data,
+
             'lab_results': LabResultSerializer(lab_results_list, many=True).data,
             'compensations': CompensationSerializer(compensations_list, many=True).data,
             'notifications': NotificationSerializer(notifications_list, many=True).data,
@@ -886,7 +1034,7 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
             'help_requests': StaffTaskSerializer(help_requests_list, many=True).data,
             'server_time': timezone.now(),
             'performance_metrics': {
-                'total_tasks': len(tasks_list),  # Use list length instead of .count()
+                'total_tasks': len(serialized_tasks),
                 'unread_notifs': unread_count
             }
         }
@@ -1820,7 +1968,7 @@ class DailyMedicationLogViewSet(viewsets.ModelViewSet):
                         user=study.coordinator,
                         title=title,
                         message=message_base,
-                        link=f"/coordinator/participants/{participant.id}/logs"
+                        link=f"/dashboard/coordinator/participants/{participant.id}/logs"
                     )
                     if is_ae:
                         StaffTask.objects.create(
@@ -1844,7 +1992,7 @@ class DailyMedicationLogViewSet(viewsets.ModelViewSet):
                         user=study.pi,
                         title=title,
                         message=message_base,
-                        link=f"/coordinator/participants/{participant.id}/logs"
+                        link=f"/dashboard/coordinator/participants/{participant.id}/logs"
                     )
                 except Exception as e:
                     print(f"PI notification error: {e}")
@@ -1906,7 +2054,7 @@ class AssignedFormViewSet(viewsets.ModelViewSet):
                 user=study.coordinator,
                 title="Form Signed",
                 message=f"Participant {af.participant.participant_sid} signed '{af.form.title}'. Pending review.",
-                link=f"/coordinator/forms/{af.id}"
+                link=f"/dashboard/coordinator/forms/{af.id}"
             )
             StaffTask.objects.create(
                 user=study.coordinator,
@@ -1939,7 +2087,7 @@ class AssignedFormViewSet(viewsets.ModelViewSet):
                 user=af.study.pi,
                 title="Form Pending PI Sign-off",
                 message=f"{af.form.title} verified by CC for {af.participant.participant_sid}.",
-                link=f"/pi/forms/{af.id}"
+                link=f"/dashboard/pi/forms/{af.id}"
             )
             
         return Response({'status': 'coordinator_signed'})
@@ -2285,7 +2433,7 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return StudyInquiry.objects.none()
-        if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
+        if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN', 'COORDINATOR', 'PI']:
             return StudyInquiry.objects.all().order_by('-created_at')
         return StudyInquiry.objects.filter(sponsor_user=user).order_by('-created_at')
 
@@ -2301,12 +2449,8 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
         else:
             inquiry.status = 'QUALIFIED'
         
-        needs = inquiry.needs or []
-        intended_target = "sales@musbresearch.com"
-        if "Biorepository" in needs: intended_target = "biorepository@musbresearch.com"
-        elif "Biomarker / Lab Support" in needs: intended_target = "lab@musbresearch.com"
-        
-        inquiry.routing_target = intended_target
+        # DIRECT ALL INQUIRIES TO INFO@MUSBRESEARCH.COM ONLY
+        inquiry.routing_target = target
         inquiry.save()
         
         # SEND EMAIL NOTIFICATION VIA RESEND
@@ -2354,7 +2498,7 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
             if inquiry.discovery_call_date and inquiry.discovery_call_time and inquiry.discovery_call_timezone:
                 try:
                     local_tz = pytz.timezone(inquiry.discovery_call_timezone)
-                    local_dt = local_tz.localize(datetime.combine(inquiry.discovery_call_date, inquiry.discovery_call_time))
+                    local_dt = local_tz.localize(datetime.datetime.combine(inquiry.discovery_call_date, inquiry.discovery_call_time))
                     est_tz = pytz.timezone('US/Eastern')
                     est_dt = local_dt.astimezone(est_tz)
                     notification_data['est_discovery_call'] = est_dt.strftime('%Y-%m-%d %I:%M %p EST')
@@ -2382,7 +2526,7 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
         import logging
         logger = logging.getLogger(__name__)
         
-        if (request.user.role or '').upper() not in ['SUPER_ADMIN', 'ADMIN']:
+        if (request.user.role or '').upper() not in ['SUPER_ADMIN', 'ADMIN', 'COORDINATOR', 'PI']:
             return Response({'error': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
         
         try:
@@ -2441,7 +2585,7 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def reject(self, request, pk=None):
         """Allows super admin to reject an inquiry lead."""
-        if (request.user.role or '').upper() not in ['SUPER_ADMIN', 'ADMIN']:
+        if (request.user.role or '').upper() not in ['SUPER_ADMIN', 'ADMIN', 'COORDINATOR', 'PI']:
             return Response({'error': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
         
         inquiry = self.get_object()
@@ -2489,74 +2633,7 @@ class InterventionArmViewSet(viewsets.ModelViewSet):
     serializer_class = InterventionArmSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-class KitViewSet(viewsets.ModelViewSet):
-    queryset = Kit.objects.all()
-    serializer_class = KitSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    pagination_class = None
 
-    def get_queryset(self):
-        user = self.request.user
-        if not user.is_authenticated: return Kit.objects.none()
-        if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN']:
-            return Kit.objects.all().order_by('-assignment_date')
-        if (user.role or '').upper() == 'PARTICIPANT':
-            return Kit.objects.filter(participant__user=user).order_by('-assignment_date')
-        # PIs, Coordinators, and Sponsors: only kits for their assigned studies
-        from django.db.models import Q
-        queryset = Kit.objects.filter(
-            Q(participant__study__pi=user) | 
-            Q(participant__study__coordinator=user) | 
-            Q(participant__study__assignments__user=user)
-        ).distinct().order_by('-assignment_date')
-        
-        study_id = self.request.query_params.get('study_id')
-        if study_id and study_id != 'all':
-            if bson.ObjectId.is_valid(study_id):
-                queryset = queryset.filter(participant__study_id=study_id)
-            else:
-                queryset = queryset.filter(participant__study__protocol_id=study_id)
-        return queryset
-
-    @action(detail=True, methods=['post'])
-    def confirm_receipt(self, request, pk=None):
-        kit = self.get_object()
-        kit.status = 'DELIVERED'
-        kit.received_date = now()
-        kit.save()
-        return Response({'status': 'DELIVERED'})
-
-    @action(detail=True, methods=['post'])
-    def initialize_collection(self, request, pk=None):
-        kit = self.get_object()
-        kit.status = 'COLLECTING'
-        kit.collection_date = now()
-        kit.save()
-        return Response({'status': 'COLLECTING'})
-
-    @action(detail=True, methods=['post'])
-    def complete_collection(self, request, pk=None):
-        kit = self.get_object()
-        kit.status = 'COLLECTED'
-        kit.save()
-        return Response({'status': 'COLLECTED'})
-
-    @action(detail=True, methods=['post'])
-    def ship_return(self, request, pk=None):
-        kit = self.get_object()
-        kit.status = 'RETURN_SHIPPED'
-        kit.shipping_date = now()
-        kit.save()
-        return Response({'status': 'RETURN_SHIPPED'})
-
-    @action(detail=True, methods=['post'])
-    def report_issue(self, request, pk=None):
-        kit = self.get_object()
-        reason = request.data.get('reason', 'Generic Issue')
-        kit.status = 'DAMAGED'
-        kit.symptom_note = f"ISSUE REPORTED: {reason}"
-        kit.save()
-        return Response({'status': 'DAMAGED'})
 
 class NotificationViewSet(viewsets.ModelViewSet):
     serializer_class = NotificationSerializer
@@ -2739,7 +2816,10 @@ class ParticipantHelpRequestView(APIView):
                 participant_id=f"REF_{str(user.id)[-6:]}",
                 action_title=action_title,
                 pi_email="info@musbresearch.com",
-                coordinator_email=None
+                coordinator_email=None,
+                age=getattr(user, 'age', None),
+                gender=getattr(user, 'gender', None),
+                contact_email=user.email
             )
             return Response({'status': 'sent', 'message': 'Help request routed to general support.'})
 
@@ -2764,7 +2844,10 @@ class ParticipantHelpRequestView(APIView):
                 participant_id=participant_sid,
                 action_title=action_title,
                 pi_email=pi_email,
-                coordinator_email=coordinator_email
+                coordinator_email=coordinator_email,
+                age=getattr(user, 'age', None),
+                gender=getattr(user, 'gender', None),
+                contact_email=user.email
             )
             
             # 2. CREATE CLINICAL CONVERSATION/MESSAGE (if participant exists)

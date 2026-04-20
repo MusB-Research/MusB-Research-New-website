@@ -62,7 +62,7 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies, i
                         id: l.id || l._id,
                         subjectId: l.participant_sid || 'ID_PENDING',
                         subjectName: l.participant_name || 'Participant Name',
-                        type: l.test_name,
+                        type: l.test_name || 'Standard Lab',
                         status: l.status && l.status.length > 0 ? (l.status.charAt(0).toUpperCase() + l.status.slice(1).toLowerCase()) as any : 'Processing',
                         value: l.value,
                         unit: l.units,
@@ -83,10 +83,10 @@ export default function LabsResultsModule({ selectedStudyId, preloadedStudies, i
     }, [apiUrl, selectedStudyId]);
 
     const filteredSamples = samples.filter(s => 
-        s.type.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        s.subjectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.subjectId.toLowerCase().includes(searchQuery.toLowerCase())
+        (s.type || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (s.subjectName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (s.id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (s.subjectId || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const getStatusStyle = (status: string) => {

@@ -1,14 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus } from 'lucide-react';
-import { PersonalDoc, INITIAL_DOCS } from '../credentials/CredentialConstants';
+import { Plus, Loader2 } from 'lucide-react';
+import { PersonalDoc, INITIAL_DOCS, mapUserToDocs } from '../credentials/CredentialConstants';
 import { CredentialCard } from '../credentials/components/CredentialCard';
 import { CredentialProfile } from '../credentials/components/CredentialProfile';
 import { ComplianceLensModal } from '../credentials/components/ComplianceLensModal';
+import { authFetch, API } from '../../../utils/auth';
 
 export default function MyDocumentsModule({ selectedStudyId }: { selectedStudyId?: string }) {
-    const [docs] = useState<PersonalDoc[]>(INITIAL_DOCS);
+    const [docs, setDocs] = useState<PersonalDoc[]>(INITIAL_DOCS);
+    const [user, setUser] = useState<any>(null);
     const [selectedDoc, setSelectedDoc] = useState<PersonalDoc | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const response = await authFetch(`${API.AUTH}/me/`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setUser(data);
+                    setDocs(mapUserToDocs(data));
+                }
+            } catch (error) {
+                console.error("Failed to fetch user credentials:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchUserData();
+    }, []);
 
     const handleBulkExport = () => {
         const blob = new Blob(['Simulated Credential Archive'], { type: 'application/zip' });
@@ -54,13 +75,20 @@ export default function MyDocumentsModule({ selectedStudyId }: { selectedStudyId
                 </div>
             </div>
 
-            <CredentialProfile />
+            <CredentialProfile user={user} />
 
             {/* Credential Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {docs.map((doc) => (
-                    <CredentialCard key={doc.id} doc={doc} onSelect={setSelectedDoc} />
-                ))}
+                {loading ? (
+                    <div className="col-span-2 flex flex-col items-center justify-center p-20 space-y-4">
+                        <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
+                        <p className="text-[12px] text-slate-500 font-black uppercase tracking-widest">Hydrating Clinical Credentials...</p>
+                    </div>
+                ) : (
+                    docs.map((doc) => (
+                        <CredentialCard key={doc.id} doc={doc} onSelect={setSelectedDoc} />
+                    ))
+                )}
             </div>
 
             {/* Regulatory Summary Banner */}

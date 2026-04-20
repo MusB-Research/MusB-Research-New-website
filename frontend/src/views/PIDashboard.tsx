@@ -29,22 +29,23 @@ import AuditLogModule from '../components/pi/panels/AuditLogModule';
 import AnalyticsModule from '../components/pi/panels/AnalyticsModule';
 import AnimatedBackground from '../components/AnimatedBackground';
 import StaffTasksModule from '../components/shared/StaffTasksModule';
-import StudyKitsModule from '../components/shared/StudyKitsModule';
+
 import ParticipantTaskManagement from '../components/shared/ParticipantTaskManagement';
 import TeamInventoryModule from '../components/pi/panels/TeamInventoryModule';
+import StudyKitsModule from '../components/shared/StudyKitsModule';
 
 
 import {
     Calendar, Clock, ArrowRight, ChevronRight, ChevronLeft, Sparkles, Trophy,
-    Activity, FileText, CheckCircle2, Box, Zap, PlusCircle,
-    AlertCircle, MessageSquare, Ship, Microscope, History,
+    Activity, FileText, CheckCircle2, Zap, PlusCircle,
+    AlertCircle, MessageSquare, Microscope, History,
     TrendingUp, Award, LayoutDashboard, Bell, Info, ExternalLink,
     Play, Download, ClipboardList, Beaker, DraftingCompass, Users,
     ShieldCheck, Settings, Search, ChevronDown, Plus, X, Filter,
     HelpCircle, Stethoscope, UsersRound, ArrowUpRight, LogOut,
     Globe, Rocket, Menu, FlaskConical, FileSearch, Layers,
     ListFilter, CheckSquare, ScrollText, Settings2, Database,
-    AlertTriangle, FileCheck, Building2
+    AlertTriangle, FileCheck, Building2, Truck
 } from 'lucide-react';
 
 type PIModule =
@@ -67,11 +68,11 @@ type PIModule =
     | 'AUDIT_LOG'
     | 'TASKS'
     | 'ANALYTICS'
-    | 'KITS'
     | 'PARTICIPANT_TASKS'
     | 'STUDY_DOCS'
     | 'MY_DOCS'
     | 'TEAM_INVENTORY'
+    | 'LOGISTICS'
     | 'SUPPORT';
 
 interface SidebarItem {
@@ -122,7 +123,7 @@ export default function PIDashboard() {
         if (route === 'audit-log' || route === 'audit') return 'AUDIT_LOG';
         if (route === 'analytics') return 'ANALYTICS';
         if (route === 'tasks') return 'TASKS';
-        if (route === 'kits') return 'KITS';
+        if (route === 'logistics') return 'LOGISTICS';
         if (route === 'participant-tasks') return 'PARTICIPANT_TASKS';
         return 'OVERVIEW';
     });
@@ -155,8 +156,8 @@ export default function PIDashboard() {
         else if (route === 'audit-log' || route === 'audit') setActiveModule('AUDIT_LOG');
         else if (route === 'analytics') setActiveModule('ANALYTICS');
         else if (route === 'tasks') setActiveModule('TASKS');
+        else if (route === 'logistics') setActiveModule('LOGISTICS');
         else if (route === 'sponsors') setActiveModule('SPONSORS');
-        else if (route === 'kits') setActiveModule('KITS');
         else if (route === 'participant-tasks') setActiveModule('PARTICIPANT_TASKS');
         else setActiveModule('OVERVIEW');
     }, [location.pathname]);
@@ -175,6 +176,7 @@ export default function PIDashboard() {
             'REPORTS': 'reports',
             'STUDY_DOCS': 'study-docs',
             'TEAM_INVENTORY': 'team-inventory',
+            'LOGISTICS': 'logistics',
             'MY_DOCS': 'my-docs',
             'MESSAGES': 'messages',
             'ALERTS': 'alerts',
@@ -184,7 +186,7 @@ export default function PIDashboard() {
             'TASKS': 'tasks',
             'ANALYTICS': 'analytics',
             'SPONSORS': 'sponsors',
-            'KITS': 'kits',
+
             'PARTICIPANT_TASKS': 'participant-tasks'
         };
         const slug = slugs[mod];
@@ -447,16 +449,17 @@ export default function PIDashboard() {
             group: 'Research',
             items: [
                 { id: 'STUDIES', label: 'My Studies', icon: Beaker },
-                { id: 'TEAM', label: 'Invited Team Members', icon: Users },
+                { id: 'TEAM', label: 'Team Members', icon: Users },
                 { id: 'PARTICIPANTS', label: 'Participants', icon: UsersRound },
                 { id: 'SUBJECT_REVIEW', label: 'Review', icon: Activity },
                 { id: 'FORMS', label: 'Screening Forms', icon: ClipboardList },
                 { id: 'CONSENT', label: 'Consent Forms', icon: ShieldCheck },
                 { id: 'VISITS', label: 'Visits & Appointments', icon: Calendar },
-                { id: 'SPONSORS', label: 'My Sponsors', icon: Building2 },
+                { id: 'SPONSORS', label: 'Sponsors', icon: Building2 },
                 { id: 'LABS', label: 'Lab Results', icon: Beaker },
-                { id: 'KITS', label: 'Kits & Logistics', icon: Box },
+
                 { id: 'PARTICIPANT_TASKS', label: 'Subject Tasks', icon: ListFilter },
+                { id: 'LOGISTICS', label: 'Logistics', icon: Truck },
                 { id: 'LAUNCH_STUDY', label: 'Start Study', icon: Rocket },
             ]
         },
@@ -541,8 +544,7 @@ export default function PIDashboard() {
 
                     <div className="flex items-center gap-4 relative" ref={profileRef}>
                         <div className="text-right hidden lg:block">
-                            <p className="text-[14px] font-bold text-white uppercase  leading-none tracking-tight">{userName}</p>
-                            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1.5">{getUser()?.email}</p>
+                            <p className="text-[13px] font-black text-white uppercase leading-none tracking-wider">{userName}</p>
                         </div>
                         <button
                             onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -712,6 +714,13 @@ export default function PIDashboard() {
                             selectedStudyId={globalSelectedStudyId}
                         />
                     )}
+                    {activeModule === 'LOGISTICS' && (
+                        <StudyKitsModule 
+                            selectedStudyId={globalSelectedStudyId}
+                            preloadedStudies={studies}
+                            preloadedParticipants={participants}
+                        />
+                    )}
                     {activeModule === 'MESSAGES' && <PIMessagesModule />}
                     {activeModule === 'SUBJECT_REVIEW' && (
                         <SubjectReviewModule 
@@ -761,14 +770,7 @@ export default function PIDashboard() {
                             isLoading={summaryLoading}
                         />
                     )}
-                    {activeModule === 'KITS' && (
-                        <StudyKitsModule 
-                            selectedStudyId={globalSelectedStudyId} 
-                            preloadedStudies={studies}
-                            preloadedParticipants={participants}
-                            isLoading={summaryLoading}
-                        />
-                    )}
+
                     {activeModule === 'ALERTS' && <AlertsModule />}
                     {activeModule === 'SUPPORT' && <PIHelpSupportModule />}
                     {activeModule === 'AUDIT_LOG' && <AuditLogModule />}

@@ -60,11 +60,26 @@ const MOCK_PARTICIPANT = {
 };
 
 // --- COMPONENT ---
-export default function CCC_SubjectReviewModule({ participantId, selectedStudyId, preloadedTracking }: { participantId?: string, selectedStudyId?: string, preloadedTracking?: any }) {
+export default function CCC_SubjectReviewModule({ 
+    participantId, 
+    selectedStudyId, 
+    preloadedTracking,
+    initialTab = 'Overview'
+}: { 
+    participantId?: string, 
+    selectedStudyId?: string, 
+    preloadedTracking?: any,
+    initialTab?: string 
+}) {
     // State
     const [participant, setParticipant] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('Overview');
+    const [activeTab, setActiveTab] = useState(initialTab);
+
+    // Sync if initialTab changes (e.g. navigation update)
+    useEffect(() => {
+        if (initialTab) setActiveTab(initialTab);
+    }, [initialTab]);
     const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
     const [toasts, setToasts] = useState<{ id: string, type: string, message: string }[]>([]);
     const [confirmModal, setConfirmModal] = useState<{ message: string, type: string, onConfirm: () => void } | null>(null);
@@ -360,7 +375,7 @@ export default function CCC_SubjectReviewModule({ participantId, selectedStudyId
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.2 }}
                         >
-                            {activeTab === 'Overview' && <SubjectOverview participant={processedParticipant} alerts={[]} addToast={addToast} logAction={logAction} />}
+                            {activeTab === 'Overview' && <SubjectOverview participant={processedParticipant} alerts={[]} addToast={addToast} logAction={logAction} setParticipant={setParticipant} />}
                             {activeTab === 'Screening Review' && <EligibilityAudit participant={processedParticipant} screeningNotes={screeningNotes} setScreeningNotes={setScreeningNotes} logAction={logAction} />}
                             {activeTab === 'Outcomes' && <ClinicalOutcomes participant={processedParticipant} />}
                             {activeTab === 'Safety' && <SafetySignals participant={processedParticipant} />}

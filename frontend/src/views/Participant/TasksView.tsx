@@ -335,7 +335,7 @@ const TasksView = ({
                                                                         className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-[#E3ECF5] bg-[#F8FBFF] hover:bg-[#E3F2FD] text-[#1E88E5] text-[11px] font-bold uppercase tracking-widest transition-all">
                                                                         <Eye className="w-3.5 h-3.5" /> Preview
                                                                     </button>
-                                                                    <button onClick={() => handleDownloadDummy(task)}
+                                                                    <button onClick={() => isDailyLog ? onAction('DOWNLOAD_LOG', task) : handleDownloadDummy(task)}
                                                                         className="px-3 flex items-center justify-center py-2.5 rounded-xl border border-[#E3ECF5] bg-white hover:bg-[#F8FBFF] text-[#5F6F89] transition-all">
                                                                         <Download className="w-3.5 h-3.5" />
                                                                     </button>

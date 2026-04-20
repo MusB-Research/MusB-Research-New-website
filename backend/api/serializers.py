@@ -5,7 +5,7 @@ from .models import (
     Compensation, LabResult, DataAuditLog, InterventionArm,
     News, Event, FacilityInquiry, Candidate, NewsletterSubscriber,
     BookletDownloadRequest, Partnership, Publication, EducationMaterial,
-    StudyInquiry, ClinicalConversation, ClinicalMessage, Kit,
+    StudyInquiry, ClinicalConversation, ClinicalMessage,
     DosingLog, AEReport, Document, Notification, ProgressReport,
     StudyActionRequest, DailyMedicationLog, AssignedForm, SponsorOrganization,
     QuestionnaireTemplate, StudyQuestionnaire, QuestionnaireScheduleInstance,
@@ -118,6 +118,8 @@ class UserSerializer(SanitizedModelSerializer):
     mobile_number = serializers.CharField(source='phone_number', required=False, allow_blank=True)
     decrypted_phone = serializers.SerializerMethodField()
     decrypted_address = serializers.SerializerMethodField()
+    decrypted_npi = serializers.SerializerMethodField()
+    decrypted_qualifications = serializers.SerializerMethodField()
 
     def get_decrypted_phone(self, obj):
         """Always return the decrypted phone_number using the model's property."""
@@ -132,19 +134,34 @@ class UserSerializer(SanitizedModelSerializer):
             return obj.decrypted_address or ''
         except Exception:
             return ''
+
+    def get_decrypted_npi(self, obj):
+        try:
+            return obj.decrypted_npi or ''
+        except Exception:
+            return ''
+
+    def get_decrypted_qualifications(self, obj):
+        try:
+            return obj.decrypted_qualifications or ''
+        except Exception:
+            return ''
     
     class Meta:
         model = User
         fields = [
             'id', 'email', 'full_name', 'decrypted_phone', 'decrypted_address',
+            'decrypted_npi', 'decrypted_qualifications',
             'role', 'phone_number', 'mobile_number',
             'profile_picture', 'password', 'last_login_formatted', 'date_joined_formatted',
             'full_address', 'city', 'state', 'zip_code', 'country', 'place_of_origin',
             'date_of_birth', 'age', 'has_active_enrollment',
-            'medical_licence', 'insurance_certificate', 'cv_document',
+            'medical_licence', 'medical_licence_expiry', 'insurance_certificate', 'insurance_expiry',
+            'cv_document', 'cv_expiry', 'gcp_training', 'gcp_training_expiry', 'financial_disclosure',
+            'npi', 'qualifications',
             'must_change_password', 'profile_completed', 'is_screener_completed', 'is_active', 'timezone',
             'status', 'affiliation', 'assigned_studies', 'created_by',
-            'first_name', 'last_name'
+            'first_name', 'last_name', 'google_auth'
         ]
 
     def validate_status(self, value):
@@ -345,8 +362,8 @@ class StudySerializer(SanitizedModelSerializer):
             'assigned_pis', 'assigned_coordinators', 'assigned_sponsors', 'approval_status', 'created_by', 'created_by_role',
             'primary_indication', 'trial_model', 'phase', 'masking_strategy', 'is_double_blind', 'has_placebo_control',
             'has_screening_log', 'shipment_mode', 'consent_mode', 'condition',
-            'trial_format', 'benefit', 'duration', 'tags', 'compensation', 'compensation_currency', 'location', 'uses_kit',
-            'time_commitment', 'overview', 'timeline', 'kits_info', 'safety_info',
+            'trial_format', 'benefit', 'duration', 'tags', 'compensation', 'compensation_currency', 'location',
+            'time_commitment', 'overview', 'timeline', 'safety_info',
             'privacy_standards', 'remote_participation', 'start_date', 'end_date',
             'launch_date', 'irb_status', 'target_subjects', 'target_screened', 'actual_screened',
             'proposal_source', 'proposal_submitted_date', 'agreement_signed_date',
@@ -395,7 +412,7 @@ class PublicStudySerializer(SanitizedModelSerializer):
         fields = [
             'id', 'title', 'protocol_id', 'description', 'condition', 
             'duration', 'location', 'compensation', 'status', 'stage', 
-            'tags', 'uses_kit', 'created_at', 'screener_config'
+            'tags', 'created_at', 'screener_config'
         ]
         ordering = ['created_at']
 
@@ -498,45 +515,6 @@ class DataAuditLogSerializer(SanitizedModelSerializer):
         model = DataAuditLog
         fields = '__all__'
 
-
-class KitSerializer(SanitizedModelSerializer):
-    id = serializers.CharField(read_only=True)
-    collection_guide_url = serializers.SerializerMethodField()
-    shipping_label_url = serializers.SerializerMethodField()
-    return_label_url = serializers.SerializerMethodField()
-    
-    participant_name = serializers.CharField(source='participant.user.full_name', read_only=True)
-    participant_sid = serializers.CharField(source='participant.participant_sid', read_only=True)
-    protocol_id = serializers.CharField(source='participant.study.protocol_id', read_only=True)
-    
-    class Meta:
-        model = Kit
-        fields = [
-            'id', 'study', 'participant', 'participant_name', 'participant_sid', 'protocol_id',
-            'kit_number', 'kit_type', 'status', 'assignment_date', 'collection_date', 
-            'shipping_date', 'received_date', 'carrier', 'tracking_number', 'tracking_url', 
-            'expected_delivery', 'collection_guide', 'shipping_label', 'return_label', 
-            'collection_guide_url', 'shipping_label_url', 'return_label_url',
-            'symptom_note', 'address_override'
-        ]
-
-    def get_collection_guide_url(self, obj):
-        if not obj.collection_guide: return None
-        request = self.context.get('request')
-        if request: return request.build_absolute_uri(obj.collection_guide.url)
-        return obj.collection_guide.url
-
-    def get_shipping_label_url(self, obj):
-        if not obj.shipping_label: return None
-        request = self.context.get('request')
-        if request: return request.build_absolute_uri(obj.shipping_label.url)
-        return obj.shipping_label.url
-
-    def get_return_label_url(self, obj):
-        if not obj.return_label: return None
-        request = self.context.get('request')
-        if request: return request.build_absolute_uri(obj.return_label.url)
-        return obj.return_label.url
 
 class FormSerializer(SanitizedModelSerializer):
     id = serializers.CharField(read_only=True)

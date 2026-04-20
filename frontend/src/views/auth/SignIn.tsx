@@ -38,6 +38,16 @@ export default function SignIn() {
     const redirectTo = (location.state as any)?.redirectTo || null;
     const recaptchaRef = useRef<ReCAPTCHA>(null);
     const googleButtonRef = useRef<HTMLDivElement>(null);
+    
+    // Handle initial mode from navigation state (e.g. from Profile page "Change Password")
+    useEffect(() => {
+        const state = location.state as any;
+        if (state?.initialMode) {
+            setMode(state.initialMode);
+            // Clear state to prevent re-triggering on refresh
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
 
     const validatePasswordComplexity = (pass: string) => {
         const checks = {
@@ -442,8 +452,8 @@ export default function SignIn() {
                 {/* Main Auth Card */}
                 <div className="bg-[#0f172a]/40 backdrop-blur-[40px] rounded-[4rem] border border-white/10 p-10 md:p-14 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8)] relative overflow-hidden group">
                     {/* Interior Glow Effect */}
-                    <div className="absolute -top-32 -right-32 w-64 h-64 bg-amber-500/10 blur-[100px] rounded-full group-hover:bg-amber-500/20 transition-all duration-1000"></div>
-                    <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full group-hover:bg-indigo-500/20 transition-all duration-1000"></div>
+                    <div className="absolute -top-32 -right-32 w-64 h-64 bg-blue-500/10 blur-[100px] rounded-full group-hover:bg-blue-500/20 transition-all duration-1000"></div>
+                    <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-sky-500/10 blur-[100px] rounded-full group-hover:bg-sky-500/20 transition-all duration-1000"></div>
 
                     {/* Branding Section */}
                     <div className="flex flex-col items-center mb-12 relative z-10">
@@ -465,16 +475,16 @@ export default function SignIn() {
                                     className="text-3xl md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none whitespace-nowrap"
                                 >
                                     {mode === 'LOGIN' ? (
-                                        <>Welcome <span className="text-amber-400">Back</span></>
+                                        <>Welcome <span className="text-blue-400">Back</span></>
                                     ) : (
-                                        <>Start <span className="text-amber-400">Journey</span></>
+                                        <>Start <span className="text-blue-400">Journey</span></>
                                     )}
                                 </motion.h1>
                             </AnimatePresence>
                             <p className="text-[12px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center justify-center gap-3">
-                                <span className="w-1.5 h-[1px] bg-amber-500/30"></span>
+                                <span className="w-1.5 h-[1px] bg-blue-500/30"></span>
                                 {mode === 'LOGIN' ? 'Enter credentials to access MusB' : 'Participant Enrollment'}
-                                <span className="w-1.5 h-[1px] bg-amber-500/30"></span>
+                                <span className="w-1.5 h-[1px] bg-blue-500/30"></span>
                             </p>
                         </div>
 
@@ -578,27 +588,27 @@ export default function SignIn() {
                                     ) : (
                                         <>
                                             <div className="space-y-4 text-center">
-                                                <h3 className="text-xl font-black text-white uppercase italic tracking-tighter">Recover <span className="text-amber-400">Account</span></h3>
+                                                <h3 className="text-xl font-black text-white uppercase italic tracking-tighter">Recover <span className="text-blue-400">Account</span></h3>
                                                 <p className="text-[12px] text-slate-600 font-black uppercase tracking-widest">Enter your email and we'll send you a magic link to reset your password</p>
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-[12px] font-black uppercase tracking-widest text-slate-500 ml-6">Email Address</label>
                                                 <div className="relative group">
-                                                    <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-amber-400 transition-colors" />
+                                                    <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-blue-400 transition-colors" />
                                                     <input
                                                         type="email"
                                                         required
                                                         placeholder="name@example.com"
                                                         value={email}
                                                         onChange={e => setEmail(e.target.value)}
-                                                        className="w-full bg-slate-950/50 border border-white/10 rounded-[1.5rem] pl-16 pr-6 py-5 text-white placeholder:text-slate-700 outline-none focus:border-amber-500/50 transition-all font-bold text-sm"
+                                                        className="w-full bg-slate-950/50 border border-white/10 rounded-[1.5rem] pl-16 pr-6 py-5 text-white placeholder:text-slate-700 outline-none focus:border-blue-500/50 transition-all font-bold text-sm"
                                                     />
                                                 </div>
                                             </div>
                                             <button
                                                 type="submit"
                                                 disabled={isLoading}
-                                                className="w-full py-6 bg-amber-500 text-slate-950 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-1 transition-all shadow-[0_20px_40px_-10px_rgba(6,182,212,0.4)] flex items-center justify-center gap-3 disabled:opacity-50"
+                                                className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-[12px] uppercase tracking-[0.2em] hover:bg-white hover:text-blue-600 hover:-translate-y-1 transition-all shadow-[0_20px_40px_-10px_rgba(37,99,235,0.4)] flex items-center justify-center gap-3 disabled:opacity-50"
                                             >
                                                 {isLoading ? 'Sending...' : 'Send Magic Link'}
                                                 <ArrowRight className="w-5 h-5" />
@@ -628,14 +638,14 @@ export default function SignIn() {
                                         <div className="space-y-2">
                                             <label className="text-[12px] font-black uppercase tracking-widest text-slate-500 ml-4">Email or User ID</label>
                                             <div className="relative group">
-                                                <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-amber-400 transition-colors" />
+                                                <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-blue-400 transition-colors" />
                                                 <input
                                                     type="text"
                                                     required
                                                     placeholder="Email or User ID"
                                                     value={email}
                                                     onChange={e => setEmail(e.target.value)}
-                                                    className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-6 py-5 text-white placeholder:text-slate-700 outline-none transition-all font-bold text-sm ${isFieldMissing('email') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-amber-500/50'}`}
+                                                    className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-6 py-5 text-white placeholder:text-slate-700 outline-none transition-all font-bold text-sm ${isFieldMissing('email') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-blue-500/50'}`}
                                                 />
                                             </div>
                                         </div>
@@ -643,19 +653,19 @@ export default function SignIn() {
                                         <div className="space-y-2">
                                             <label className="text-[12px] font-black uppercase tracking-widest text-slate-500 ml-4">Password</label>
                                             <div className="relative group">
-                                                <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-amber-400 transition-colors" />
+                                                <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-blue-400 transition-colors" />
                                                 <input
                                                     type={showPassword ? "text" : "password"}
                                                     required
                                                     placeholder="••••••••••••"
                                                     value={password}
                                                     onChange={e => setPassword(e.target.value)}
-                                                    className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-14 py-5 text-white placeholder:text-slate-800 outline-none transition-all font-bold text-sm tracking-widest ${isFieldMissing('password') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-amber-500/50'}`}
+                                                    className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-14 py-5 text-white placeholder:text-slate-800 outline-none transition-all font-bold text-sm tracking-widest ${isFieldMissing('password') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-blue-500/50'}`}
                                                 />
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowPassword(!showPassword)}
-                                                    className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-amber-400 transition-colors"
+                                                    className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-blue-400 transition-colors"
                                                 >
                                                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                                 </button>
@@ -668,7 +678,7 @@ export default function SignIn() {
                                         <button
                                             type="button"
                                             onClick={() => { setMode('FORGOT'); setStep('INFO'); setError(null); }}
-                                            className="text-[12px] font-black uppercase tracking-widest text-amber-400 hover:text-white transition-colors"
+                                            className="text-[12px] font-black uppercase tracking-widest text-blue-400 hover:text-white transition-colors"
                                         >
                                             Forgot Password?
                                         </button>
@@ -678,7 +688,7 @@ export default function SignIn() {
                                     <button
                                         type="submit"
                                         disabled={isLoading}
-                                        className="w-full py-6 bg-amber-500 text-slate-950 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-1 transition-all shadow-[0_20px_40px_-10px_rgba(6,182,212,0.4)] active:translate-y-0 flex items-center justify-center gap-3 group disabled:opacity-50"
+                                        className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-[12px] uppercase tracking-[0.2em] hover:bg-white hover:text-blue-600 hover:-translate-y-1 transition-all shadow-[0_20px_40px_-10px_rgba(37,99,235,0.4)] active:translate-y-0 flex items-center justify-center gap-3 group disabled:opacity-50"
                                     >
                                         {isLoading ? 'Processing...' : 'Sign In'}
                                         <LogIn className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -807,7 +817,7 @@ export default function SignIn() {
                                                 <div className="space-y-2">
                                                     <label className="text-[12px] font-black uppercase tracking-widest text-slate-500 ml-6">Secure Password</label>
                                                     <div className="relative group">
-                                                        <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-amber-400" />
+                                                        <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-blue-400" />
                                                         <input
                                                             type={showPassword ? "text" : "password"}
                                                             required
@@ -817,12 +827,12 @@ export default function SignIn() {
                                                                 setPassword(e.target.value);
                                                                 validatePasswordComplexity(e.target.value);
                                                             }}
-                                                            className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-14 py-5 text-white placeholder:text-slate-800 outline-none transition-all font-bold tracking-widest text-sm ${isFieldMissing('password') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-amber-500/50'}`}
+                                                            className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-14 py-5 text-white placeholder:text-slate-800 outline-none transition-all font-bold tracking-widest text-sm ${isFieldMissing('password') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-blue-500/50'}`}
                                                         />
                                                         <button
                                                             type="button"
                                                             onClick={() => setShowPassword(!showPassword)}
-                                                            className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-amber-400 transition-colors"
+                                                            className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-blue-400 transition-colors"
                                                         >
                                                             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                                         </button>
@@ -853,7 +863,7 @@ export default function SignIn() {
                                                                     { label: 'Special Char', met: /[!@#$%^&*(),.?":{}|<>]/.test(password) }
                                                                 ].map((req, i) => (
                                                                     <div key={i} className="flex items-center gap-2">
-                                                                        <div className={`w-1 h-1 rounded-full ${req.met ? 'bg-amber-500' : 'bg-slate-800'}`}></div>
+                                                                        <div className={`w-1 h-1 rounded-full ${req.met ? 'bg-blue-500' : 'bg-slate-800'}`}></div>
                                                                         <span className={`text-[12px] font-bold uppercase tracking-widest ${req.met ? 'text-slate-300' : 'text-slate-600'}`}>{req.label}</span>
                                                                     </div>
                                                                 ))}
@@ -865,19 +875,19 @@ export default function SignIn() {
                                                 <div className="space-y-2 pt-2">
                                                     <label className="text-[12px] font-black uppercase tracking-widest text-slate-500 ml-6">Confirm Password</label>
                                                     <div className="relative group">
-                                                        <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-amber-400" />
+                                                        <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-blue-400" />
                                                         <input
                                                             type={showConfirmPassword ? "text" : "password"}
                                                             required
                                                             placeholder="••••••••••••"
                                                             value={confirmPassword}
                                                             onChange={e => setConfirmPassword(e.target.value)}
-                                                            className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-14 py-5 text-white placeholder:text-slate-800 outline-none transition-all font-bold tracking-widest text-sm ${isFieldMissing('confirmPassword') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-amber-500/50'}`}
+                                                            className={`w-full bg-slate-950/50 border rounded-[1.5rem] pl-16 pr-14 py-5 text-white placeholder:text-slate-800 outline-none transition-all font-bold tracking-widest text-sm ${isFieldMissing('confirmPassword') ? 'border-red-500/50 animate-error-pulse' : 'border-white/10 focus:border-blue-500/50'}`}
                                                         />
                                                         <button
                                                             type="button"
                                                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                                            className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-amber-400 transition-colors"
+                                                            className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-600 hover:text-blue-400 transition-colors"
                                                         >
                                                             {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                                         </button>
@@ -888,7 +898,7 @@ export default function SignIn() {
                                             <button
                                                 type="submit"
                                                 disabled={isLoading}
-                                                className="w-full py-6 bg-amber-500 text-slate-950 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.2em] hover:bg-white hover:-translate-y-1 transition-all shadow-[0_20px_40px_-10px_rgba(6,182,212,0.4)] flex items-center justify-center gap-3"
+                                                className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-[12px] uppercase tracking-[0.2em] hover:bg-white hover:text-blue-600 hover:-translate-y-1 transition-all shadow-[0_20px_40px_-10px_rgba(37,99,235,0.4)] flex items-center justify-center gap-3"
                                             >
                                                 {isLoading ? 'Finishing...' : 'Complete Registration'}
                                                 <CheckCircle2 className="w-5 h-5" />
@@ -904,9 +914,9 @@ export default function SignIn() {
                                             className="text-center space-y-10"
                                         >
                                             <div className="relative inline-block">
-                                                <div className="absolute inset-0 bg-amber-500 blur-3xl opacity-20 animate-pulse"></div>
-                                                <div className="w-24 h-24 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto border border-amber-500/30 relative z-10">
-                                                    <CheckCircle2 className="w-12 h-12 text-amber-400" />
+                                                <div className="absolute inset-0 bg-blue-500 blur-3xl opacity-20 animate-pulse"></div>
+                                                <div className="w-24 h-24 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto border border-blue-500/30 relative z-10">
+                                                    <CheckCircle2 className="w-12 h-12 text-blue-400" />
                                                 </div>
                                             </div>
 
@@ -917,7 +927,7 @@ export default function SignIn() {
 
                                             <button
                                                 onClick={() => navigate('/')}
-                                                className="w-full py-6 bg-white text-slate-950 rounded-[3rem] font-black text-[12px] uppercase tracking-[0.2em] hover:bg-amber-500 transition-all shadow-2xl"
+                                                className="w-full py-6 bg-white text-blue-600 rounded-[3rem] font-black text-[12px] uppercase tracking-[0.2em] hover:bg-blue-600 hover:text-white transition-all shadow-2xl"
                                             >
                                                 Enter Dashboard
                                             </button>
@@ -962,9 +972,9 @@ export default function SignIn() {
                     <div className="mt-12 text-center relative z-10">
                         <p className="text-[12px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center justify-center gap-3">
                             {mode === 'LOGIN' ? (
-                                <>Don't have an account? <button onClick={() => { setMode('REGISTER'); setStep('INFO'); }} className="text-amber-400 hover:text-white transition-all border-b border-amber-400/30 hover:border-white font-black">Register Now</button></>
+                                <>Don't have an account? <button onClick={() => { setMode('REGISTER'); setStep('INFO'); }} className="text-blue-400 hover:text-white transition-all border-b border-blue-400/30 hover:border-white font-black">Register Now</button></>
                             ) : (
-                                <>Already connected? <button onClick={() => setMode('LOGIN')} className="text-amber-400 hover:text-white transition-all border-b border-amber-400/30 hover:border-white font-black">Log In Instead</button></>
+                                <>Already connected? <button onClick={() => setMode('LOGIN')} className="text-blue-400 hover:text-white transition-all border-b border-blue-400/30 hover:border-white font-black">Log In Instead</button></>
                             )}
                         </p>
                     </div>
@@ -977,9 +987,9 @@ export default function SignIn() {
                     transition={{ delay: 1 }}
                     className="mt-10 flex justify-center gap-10 text-[12px] font-black uppercase tracking-[0.3em] text-slate-700"
                 >
-                    <Link to="#" className="hover:text-amber-600 transition-colors">Privacy Policy</Link>
-                    <Link to="#" className="hover:text-amber-600 transition-colors">Terms of Service</Link>
-                    <Link to="#" className="hover:text-amber-600 transition-colors">Support Center</Link>
+                    <Link to="#" className="hover:text-blue-600 transition-colors">Privacy Policy</Link>
+                    <Link to="#" className="hover:text-blue-600 transition-colors">Terms of Service</Link>
+                    <Link to="#" className="hover:text-blue-600 transition-colors">Support Center</Link>
                 </motion.div>
             </motion.div>
         </div>

@@ -291,7 +291,7 @@ else:
 DEFAULT_AUTO_FIELD = 'django_mongodb_backend.fields.ObjectIdAutoField'
 
 # Email Settings
-DEFAULT_FROM_EMAIL = os.getenv('ADMIN_EMAIL', 'MusB Research <noreply@musbhealth.com>')
+DEFAULT_FROM_EMAIL = os.getenv('ADMIN_EMAIL', 'info@musbresearch.com')
 
 # Allow SMTP in development if configured, otherwise fallback to Console
 EMAIL_HOST = os.getenv('SMTP_HOST')

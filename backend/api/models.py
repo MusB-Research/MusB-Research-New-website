@@ -154,8 +154,6 @@ class Study(BaseMongoModel):
     time_commitment = models.CharField(max_length=255, blank=True)
     overview = models.TextField(blank=True)
     timeline = models.JSONField(default=list, blank=True)
-    kits_info = models.TextField(blank=True)
-    uses_kit = models.BooleanField(default=False)
     safety_info = models.TextField(blank=True)
     privacy_standards = models.JSONField(default=list, blank=True)
     remote_participation = models.BooleanField(default=False)
@@ -213,9 +211,6 @@ class Study(BaseMongoModel):
     lead_intake_enabled = models.BooleanField(default=True)
     scheduling_enabled = models.BooleanField(default=False)
     compensation_enabled = models.BooleanField(default=False)
-    kit_tracking_enabled = models.BooleanField(default=False)
-    kit_dispatch_required = models.BooleanField(default=False)
-    kit_description = models.TextField(blank=True, null=True)
     show_lab_upload = models.BooleanField(default=False)
     notifications_enabled = models.BooleanField(default=True)
     show_dosing_log = models.BooleanField(default=True)
@@ -442,54 +437,6 @@ class Visit(BaseMongoModel):
 
     def __str__(self):
         return f"{self.participant.participant_sid} - {self.visit_type}"
-
-class Kit(BaseMongoModel):
-    study = models.ForeignKey(Study, on_delete=models.CASCADE, related_name='kits')
-    participant = models.ForeignKey(Participant, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_kits')
-    kit_number = models.CharField(max_length=100, unique=True)
-    kit_type = models.CharField(max_length=100)
-    
-    status = models.CharField(max_length=30, default='ASSIGNED', choices=[
-        ('ASSIGNED', 'Kit Assigned'),
-        ('PREPARING', 'Preparing for Sync'),
-        ('SHIPPED', 'In Transit (Outbound)'),
-        ('DELIVERED', 'Delivered at Node'),
-        ('AWAITING', 'Awaiting Collection'),
-        ('COLLECTING', 'Collection Active'),
-        ('COLLECTED', 'Sample Collected'),
-        ('RETURN_SHIPPED', 'Return Transit Active'),
-        ('RECEIVED', 'Received at Central Lab'),
-        ('MISSING', 'Node Signal Lost / Missing'),
-        ('DELAYED', 'Logistics Delay'),
-        ('DAMAGED', 'Damaged / Protocol Invalid'),
-    ])
-    
-    assignment_date = models.DateTimeField(null=True, blank=True)
-    collection_date = models.DateTimeField(null=True, blank=True)
-    shipping_date = models.DateTimeField(null=True, blank=True)
-    received_date = models.DateTimeField(null=True, blank=True)
-    
-    # Advanced Tracking
-    carrier = models.CharField(max_length=50, default='FedEx')
-    tracking_number = models.CharField(max_length=100, blank=True)
-    tracking_url = models.URLField(max_length=500, blank=True, null=True)
-    expected_delivery = models.DateField(null=True, blank=True)
-    
-    # Participant Preferences
-    address_override = models.TextField(blank=True, null=True)
-    
-    # Protocol Materials (Files)
-    shipping_label = models.FileField(upload_to='shipping_labels/', null=True, blank=True)
-    collection_guide = models.FileField(upload_to='kit_guides/', null=True, blank=True)
-    return_label = models.FileField(upload_to='return_labels/', null=True, blank=True)
-    
-    # Collection Data
-    symptom_note = models.TextField(blank=True)
-    kit_photo = models.ImageField(upload_to='kit_photos/', null=True, blank=True)
-    packaging_photo = models.ImageField(upload_to='packaging_photos/', null=True, blank=True)
-
-    def __str__(self):
-        return f"Kit {self.kit_number} ({self.status})"
 
 class Form(BaseMongoModel):
     """Dynamic form definition for questionnaires"""
@@ -1178,7 +1125,7 @@ def notify_on_questionnaire_completion(sender, instance, created, **kwargs):
                 title="Questionnaire Submitted",
                 message=f"Participant {sid} has completed the '{instrument_name}' assessment.",
                 type="SUCCESS",
-                link=f"/coordinator/participants/{instance.participant.participant_sid}/assessments"
+                link=f"/dashboard/coordinator/participants/{instance.participant.id}/assessments"
             )
 
 class NewsletterSubscriber(models.Model):
@@ -1578,14 +1525,15 @@ def notify_on_study_inquiry(sender, instance, created, **kwargs):
     if created:
         from django.contrib.auth import get_user_model
         User = get_user_model()
-        admins = User.objects.filter(role='SUPER_ADMIN')
-        for admin in admins:
+        # Notify Super Admins, PIs, and Coordinators
+        recipients = User.objects.filter(role__in=['SUPER_ADMIN', 'PI', 'COORDINATOR'])
+        for user in recipients:
             Notification.objects.create(
-                user=admin,
+                user=user,
                 title="New Study Proposal",
                 message=f"New {instance.category} proposal for {instance.product_name}",
                 type="MESSAGE",
-                link="/admin/study-inquiries"
+                link="/dashboard/admin/study-inquiries" if user.role == 'SUPER_ADMIN' else "/dashboard/coordinator/study-inquiries"
             )
 # ─────────────────────────────────────────────────────────
 # SPONSOR INTELLIGENCE ALERTS (SIGNALS)
@@ -1782,7 +1730,7 @@ def sync_daily_med_log_task(sender, instance, created, **kwargs):
                                 user=staff_user,
                                 title=ae_title,
                                 message=ae_msg,
-                                link=f"/coordinator/participants/{instance.participant.id}/logs"
+                                link=f"/dashboard/coordinator/participants/{instance.participant.id}/logs"
                             )
             except Exception as e:
                 print(f"AE signal notification error: {e}")
@@ -1872,6 +1820,23 @@ def notify_on_questionnaire_completion(sender, instance, created, **kwargs):
                 title="Questionnaire Submitted",
                 message=f"Participant {sid} has completed the '{instrument_name}' assessment.",
                 type="SUCCESS",
-                link=f"/coordinator/participants/{instance.participant.participant_sid}/assessments"
+                link=f"/dashboard/coordinator/participants/{instance.participant.id}/assessments"
             )
 
+@receiver(post_save, sender=Candidate)
+def notify_on_candidate_apply(sender, instance, created, **kwargs):
+    if created:
+        from .utils.resend_utils import send_career_application_email
+        try:
+            send_career_application_email.delay(instance.id)
+        except Exception as e:
+            print(f"Error triggering career email: {e}")
+
+@receiver(post_save, sender=BookletDownloadRequest)
+def notify_on_booklet_request(sender, instance, created, **kwargs):
+    if created:
+        from .utils.resend_utils import send_booklet_request_email
+        try:
+            send_booklet_request_email.delay(instance.id)
+        except Exception as e:
+            print(f"Error triggering booklet email: {e}")

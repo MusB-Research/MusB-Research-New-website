@@ -21,6 +21,17 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
     const [showNewTaskModal, setShowNewTaskModal] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const [studies, setStudies] = useState<any[]>([]);
+    const [participants, setParticipants] = useState<any[]>([]);
+    const [formData, setFormData] = useState({
+        title: '',
+        dueDate: '',
+        studyId: '',
+        participantId: '',
+        delayAllowed: 2,
+        gracePeriod: 5
+    });
+
 
     const fetchTasks = async () => {
         try {
@@ -40,11 +51,86 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
         }
     };
 
+    const fetchInitialData = async () => {
+        try {
+            const [studyRes, partRes] = await Promise.all([
+                authFetch(`${API}/api/studies/`),
+                authFetch(`${API}/api/participants/?limit=1000`)
+            ]);
+            if (studyRes.ok) {
+                const sData = await studyRes.json();
+                setStudies(Array.isArray(sData) ? sData : (sData.results || []));
+            }
+            if (partRes.ok) {
+                const pData = await partRes.json();
+                setParticipants(Array.isArray(pData) ? pData : (pData.results || []));
+            }
+        } catch (err) {
+            console.error("Failed to load modal data:", err);
+        }
+    };
+
     useEffect(() => {
         fetchTasks();
+        fetchInitialData();
     }, [selectedStudyId]);
 
+    const activeParticipants = formData.studyId 
+        ? participants.filter(p => {
+            const sId = p.study?.id || p.study || '';
+            return String(sId) === String(formData.studyId);
+        })
+        : participants;
+
+    const handleSaveTask = async () => {
+        if (!formData.participantId || !formData.title || !formData.dueDate) {
+            alert("Please fill all required fields.");
+            return;
+        }
+
+        try {
+            const res = await authFetch(`${API}/api/participant-tasks/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    participant: formData.participantId,
+                    title: formData.title,
+                    due_date: formData.dueDate,
+                    delay_allowed: formData.delayAllowed,
+                    grace_period: formData.gracePeriod,
+                    status: 'PENDING'
+                })
+            });
+
+            if (res.ok) {
+                setShowNewTaskModal(false);
+                fetchTasks();
+                setFormData({
+                    title: '',
+                    dueDate: '',
+                    studyId: '',
+                    participantId: '',
+                    delayAllowed: 2,
+                    gracePeriod: 5
+                });
+            } else {
+                const err = await res.json();
+                alert(`Error: ${JSON.stringify(err)}`);
+            }
+        } catch (err) {
+            console.error("Save task failed:", err);
+        }
+    };
+
+
+    useEffect(() => {
+        if (selectedStudyId && selectedStudyId !== 'all') {
+            setFormData(prev => ({ ...prev, studyId: selectedStudyId }));
+        }
+    }, [selectedStudyId, showNewTaskModal]);
+
     const getStatusStyle = (status: string) => {
+
         switch (status?.toUpperCase()) {
             case 'COMPLETED': return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
             case 'OVERDUE': return 'text-red-400 bg-red-500/10 border-red-500/20';
@@ -236,35 +322,69 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-8">
+                                    <div className="space-y-4">
+                                        <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Select Study</label>
+                                        <select 
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-black text-sm uppercase tracking-widest focus:border-cyan-500/50 outline-none transition-all appearance-none"
+                                            value={formData.studyId}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, studyId: e.target.value, participantId: '' }))}
+                                        >
+                                            <option value="" className="bg-[#0B101B]">-- CHOOSE STUDY --</option>
+                                            {(studies || []).map(s => (
+                                                <option key={s.id} value={s.id} className="bg-[#0B101B]">{s.protocol_id} - {s.title}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                     <div className="col-span-2 space-y-4">
                                         <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Task Title</label>
-                                        <input type="text" placeholder="E.G. FASTING GLUCOSE LOG" className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-black text-sm uppercase tracking-widest focus:border-cyan-500/50 outline-none transition-all placeholder:text-slate-700" />
+                                        <input 
+                                            type="text" 
+                                            placeholder="E.G. FASTING GLUCOSE LOG" 
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-black text-sm uppercase tracking-widest focus:border-cyan-500/50 outline-none transition-all placeholder:text-slate-700"
+                                            value={formData.title}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                                        />
                                     </div>
                                     <div className="space-y-4">
                                         <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Deadline Date</label>
-                                        <input type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-black text-sm uppercase tracking-widest focus:border-cyan-500/50 outline-none transition-all" />
+                                        <input 
+                                            type="date" 
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-black text-sm uppercase tracking-widest focus:border-cyan-500/50 outline-none transition-all" 
+                                            value={formData.dueDate}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
+                                        />
                                     </div>
                                     <div className="space-y-4">
-                                        <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Assign to Participant ID</label>
-                                        <input type="text" placeholder="ID-49201" className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-black text-sm uppercase tracking-widest focus:border-cyan-500/50 outline-none transition-all placeholder:text-slate-700" />
+                                        <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Assign to Participant</label>
+                                        <select 
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-black text-sm uppercase tracking-widest focus:border-cyan-500/50 outline-none transition-all appearance-none"
+                                            value={formData.participantId}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, participantId: e.target.value }))}
+                                            disabled={!formData.studyId}
+                                        >
+                                            <option value="" className="bg-[#0B101B]">{!formData.studyId ? 'SELECT STUDY FIRST' : '-- CHOOSE PARTICIPANT --'}</option>
+                                            {(activeParticipants || []).map(p => (
+                                                <option key={p.id} value={p.id} className="bg-[#0B101B]">{p.decrypted_name || p.full_name || p.participant_sid} ({p.status})</option>
+                                            ))}
+                                        </select>
                                     </div>
                                     <div className="space-y-4">
                                         <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Delay Allowed (Days)</label>
                                         <div className="bg-white/5 border border-white/10 rounded-2xl px-6 py-4 flex items-center justify-between">
-                                            <span className="text-white font-black text-sm">2</span>
+                                            <span className="text-white font-black text-sm">{formData.delayAllowed}</span>
                                             <div className="flex flex-col gap-1">
-                                                <button className="text-cyan-400 hover:text-white transition-colors">▲</button>
-                                                <button className="text-cyan-400 hover:text-white transition-colors">▼</button>
+                                                <button onClick={() => setFormData(p => ({ ...p, delayAllowed: p.delayAllowed + 1 }))} className="text-cyan-400 hover:text-white transition-colors">▲</button>
+                                                <button onClick={() => setFormData(p => ({ ...p, delayAllowed: Math.max(0, p.delayAllowed - 1) }))} className="text-cyan-400 hover:text-white transition-colors">▼</button>
                                             </div>
                                         </div>
                                     </div>
                                     <div className="space-y-4">
                                         <label className="text-[12px] font-black text-slate-500 uppercase tracking-widest ml-1">Grace Period (Days)</label>
                                         <div className="bg-white/5 border border-white/10 rounded-2xl px-6 py-4 flex items-center justify-between">
-                                            <span className="text-white font-black text-sm">5</span>
+                                            <span className="text-white font-black text-sm">{formData.gracePeriod}</span>
                                             <div className="flex flex-col gap-1">
-                                                <button className="text-cyan-400 hover:text-white transition-colors">▲</button>
-                                                <button className="text-cyan-400 hover:text-white transition-colors">▼</button>
+                                                <button onClick={() => setFormData(p => ({ ...p, gracePeriod: p.gracePeriod + 1 }))} className="text-cyan-400 hover:text-white transition-colors">▲</button>
+                                                <button onClick={() => setFormData(p => ({ ...p, gracePeriod: Math.max(0, p.gracePeriod - 1) }))} className="text-cyan-400 hover:text-white transition-colors">▼</button>
                                             </div>
                                         </div>
                                     </div>
@@ -278,6 +398,7 @@ export default function ParticipantTaskManagement({ primaryColor = 'indigo', sel
                                         Cancel
                                     </button>
                                     <button 
+                                        onClick={handleSaveTask}
                                         className={`flex-1 ${primaryColor === 'blue' ? 'bg-blue-600 hover:bg-blue-500 shadow-[0_0_50px_rgba(37,99,235,0.3)]' : 'bg-cyan-600 hover:bg-cyan-500 shadow-[0_0_50px_rgba(8,145,178,0.3)]'} text-white py-5 rounded-[2rem] text-[12px] font-black uppercase tracking-[0.25em] italic transition-all`}
                                     >
                                         Save Task

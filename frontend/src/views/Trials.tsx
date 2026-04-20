@@ -99,7 +99,7 @@ export default function Trials() {
     const faqs = [
         {
             q: "Can I join a MusB™ Research study from home?",
-            a: "Yes. Many studies are 100% virtual. Please contact our team to enquire about this option. If eligible, we ship the product to your home. You share information through online surveys. Your information is kept confidential."
+            a: "Yes. Many studies are 100% virtual. Please contact our team to enquire about this option. If eligible, study materials are distributed as per the protocol. You share information through online surveys. Your information is kept confidential."
         },
         {
             q: "How do I sign up to participate?",

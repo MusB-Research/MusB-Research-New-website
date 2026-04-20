@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import {
     Calendar, Clock, ArrowRight, Activity,
-    FileText, CheckCircle2, Box, AlertCircle,
+    FileText, CheckCircle2, AlertCircle,
     MessageSquare, History, ClipboardList,
     Search, MapPin, DollarSign, Globe, ShieldCheck
 } from 'lucide-react';
@@ -212,7 +212,10 @@ const DashboardView = ({
                         </div>
                     </div>
                     <div className="space-y-2 mt-4">
-                        <ProgressBar percent={Math.min(100, (daysInStudy / 90) * 100)} height={5} />
+                        <ProgressBar 
+                            percent={daysInStudy > 0 ? Math.max(2, Math.min(100, (daysInStudy / 90) * 100)) : 0} 
+                            height={6} 
+                        />
                         <div className="flex justify-between items-center text-[10px] font-bold text-[#5F6F89] uppercase tracking-widest">
                             <span>DAY 1</span>
                             <span>Target: 90 Days</span>

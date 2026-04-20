@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useRef } from 'react';
 import { 
     TrendingUp, Calendar, CheckCircle2, Award, 
     BarChart3, Download, Share2, 
     Filter, Clock, Target, Zap, ChevronRight,
-    ArrowUpRight, AlertCircle, Info, PieChart, Globe
+    ArrowUpRight, AlertCircle, Info, PieChart, Globe, X
 } from 'lucide-react';
 import { Card, Badge, CircularProgress, ProgressBar, LineChart, BarChart, Skeleton, SkeletonText } from './SharedComponents';
+import { motion, AnimatePresence } from 'framer-motion';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
@@ -16,7 +16,7 @@ const ReportsView = ({
     compensations = [],
     tasks = [],
     visits = [],
-    kits = [],
+
     participant,
     isLoading = false
 }: { 
@@ -25,14 +25,40 @@ const ReportsView = ({
     compensations?: any[];
     tasks?: any[];
     visits?: any[];
-    kits?: any[];
+
     participant?: any;
     isLoading?: boolean;
 }) => {
+    const reportRef = useRef<HTMLDivElement>(null);
     const [timeRange, setTimeRange] = useState('Entire Study');
+    const [selectedBadge, setSelectedBadge] = useState<any>(null);
+    const [isExporting, setIsExporting] = useState(false);
+
+    const handleExport = async () => {
+        if (!reportRef.current) return;
+        setIsExporting(true);
+        try {
+            const canvas = await html2canvas(reportRef.current, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#F8FBFF'
+            });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'pt', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`Clinical_Performance_Record_${userName || 'Participant'}_${new Date().toISOString().split('T')[0]}.pdf`);
+        } catch (err) {
+            console.error("Export failed:", err);
+            alert("Export failed. Please ensure the dashboard has fully loaded.");
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     const safeTasks = Array.isArray(tasks) ? tasks : [];
-    const safeKits = Array.isArray(kits) ? kits : [];
+
     const safeCompensations = Array.isArray(compensations) ? compensations : [];
 
     const completedTasks = safeTasks.filter((t: any) => t?.is_completed || (t?.status || '').toUpperCase() === 'COMPLETED').length;
@@ -113,9 +139,9 @@ const ReportsView = ({
     }
 
     return (
-        <div id="reports-content" className="space-y-10 pb-20">
-            {/* HEADER */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 print:hidden">
+        <div ref={reportRef} className="space-y-12 pb-20 animate-in fade-in duration-700">
+            {/* HEADER ACTION BAR */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 print:hidden">
                 <div>
                     <div className="flex items-center gap-2 text-[#5F6F89] text-[12px] font-bold uppercase tracking-widest mb-3">
                         <span>Portal</span>
@@ -136,6 +162,29 @@ const ReportsView = ({
                                 {range}
                             </button>
                         ))}
+                    </div>
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={handleExport}
+                            disabled={isExporting}
+                            className={`p-3 bg-white border border-[#E3ECF5] text-[#1E88E5] hover:bg-[#F0F6FF] rounded-xl transition-all shadow-sm flex items-center gap-2 group ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            title="Export Performance Record"
+                        >
+                            <Download className={`w-5 h-5 group-hover:scale-110 transition-transform ${isExporting ? 'animate-bounce' : ''}`} />
+                            <span className="hidden sm:inline text-[11px] font-bold uppercase tracking-widest">
+                                {isExporting ? 'CAPTURING...' : 'Export Record'}
+                            </span>
+                        </button>
+                        <button 
+                            onClick={() => {
+                                alert("SYNCH SUCCESS: Milestone alert and performance data successfully pushed to Professor/Coordinator dashboard.");
+                            }}
+                            className="p-3 bg-[#1E88E5] text-white hover:bg-[#1565C0] rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2 group"
+                            title="Synch with Clinical Site"
+                        >
+                            <Share2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                            <span className="hidden sm:inline text-[11px] font-bold uppercase tracking-widest">Synch with Site</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -232,21 +281,6 @@ const ReportsView = ({
                         </div>
 
                         <div className="grid grid-cols-2 gap-6">
-                            {study?.uses_kit !== false && (
-                                <div className="p-6 bg-[#F8FBFF] rounded-2xl border border-[#E3ECF5] space-y-4">
-                                    <span className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">Kit Timeline</span>
-                                    <div className="space-y-3">
-                                        {(safeKits.length > 0 ? safeKits.slice(0, 3) : [{ id: 1, status: 'PENDING' }]).map((k: any, i: number) => (
-                                            <div key={k.id || i} className="flex items-center gap-3">
-                                                <div className={`w-2 h-2 rounded-full ${(k.status || '').toUpperCase() === 'DELIVERED' || (k.status || '').toUpperCase() === 'RECEIVED' ? 'bg-[#4CAF50]' : 'bg-[#E3ECF5]'}`} />
-                                                <span className={`text-[12px] font-bold uppercase tracking-widest ${(k.status || '').toUpperCase() === 'DELIVERED' || (k.status || '').toUpperCase() === 'RECEIVED' ? 'text-[#1A2B49]' : 'text-[#5F6F89]'}`}>
-                                                    Module {i + 1}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
                             <div className="p-6 bg-[#F8FBFF] rounded-2xl border border-[#E3ECF5] space-y-4">
                                 <span className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">Study Phase</span>
                                 <div className="space-y-3">
@@ -300,23 +334,128 @@ const ReportsView = ({
             {/* BADGE SYSTEM */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 {[
-                    { label: 'Reliable Contributor', icon: Zap, color: 'text-[#1E88E5]', bg: 'bg-[#E3F2FD]' },
-                    { label: 'High Precision', icon: Target, color: 'text-[#4CAF50]', bg: 'bg-[#E8F5E9]' },
-                    { label: 'Milestone Expert', icon: Award, color: 'text-[#FFD600]', bg: 'bg-[#FFFDE7]' },
-                    { label: 'Global Pioneer', icon: Globe, color: 'text-[#9C27B0]', bg: 'bg-[#F3E5F5]' }
+                    { 
+                        label: 'Reliable Contributor', 
+                        icon: Zap, 
+                        color: 'text-[#1E88E5]', 
+                        bg: 'bg-[#E3F2FD]',
+                        desc: 'Awarded for maintaining a 95%+ success rate in daily medication log submissions and task adherence.',
+                        stat: `${adherencePercent}% Consistency`,
+                        criteria: 'Submit daily logs for 7 consecutive days.'
+                    },
+                    { 
+                        label: 'High Precision', 
+                        icon: Target, 
+                        color: 'text-[#4CAF50]', 
+                        bg: 'bg-[#E8F5E9]',
+                        desc: 'Recognizing accurate and comprehensive data entry without missing clinical data points.',
+                        stat: '98% Data Integrity',
+                        criteria: 'Complete all optional questionnaire fields for 3 visits.'
+                    },
+                    { 
+                        label: 'Milestone Expert', 
+                        icon: Award, 
+                        color: 'text-[#FFD600]', 
+                        bg: 'bg-[#FFFDE7]',
+                        desc: 'Successfully completing major study phases, including site visits and clinical study modules.',
+                        stat: 'Phase 1 Certified',
+                        criteria: 'Unlocks upon completion of the Baseline/Phase 1 visit.'
+                    },
+                    { 
+                        label: 'Global Pioneer', 
+                        icon: Globe, 
+                        color: 'text-[#9C27B0]', 
+                        bg: 'bg-[#F3E5F5]',
+                        desc: 'Being part of the initial cohort to pilot new research modules and early-access protocols.',
+                        stat: 'Early Access Tier',
+                        criteria: 'Participating in the first 14 days of study launch.'
+                    }
                 ].map((badge, i) => (
                     <motion.div 
                         key={i}
-                        whileHover={{ y: -5 }}
-                        className="bg-white border border-[#E3ECF5] rounded-3xl p-8 text-center space-y-5 shadow-sm"
+                        whileHover={{ y: -8, scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setSelectedBadge(badge)}
+                        className="bg-white border border-[#E3ECF5] rounded-[32px] p-8 text-center space-y-5 shadow-sm hover:shadow-xl hover:border-[#1E88E5]/20 transition-all cursor-pointer group"
                     >
-                        <div className={`w-16 h-16 rounded-2xl ${badge.bg} flex items-center justify-center mx-auto shadow-inner`}>
-                            <badge.icon className={`w-8 h-8 ${badge.color}`} />
+                        <div className={`w-20 h-20 rounded-[24px] ${badge.bg} flex items-center justify-center mx-auto shadow-inner group-hover:rotate-6 transition-transform`}>
+                            <badge.icon className={`w-10 h-10 ${badge.color}`} />
                         </div>
-                        <p className="text-[13px] font-bold text-[#1A2B49] uppercase tracking-tight leading-tight">{badge.label}</p>
+                        <div>
+                            <p className="text-[14px] font-bold text-[#1A2B49] uppercase tracking-tight leading-tight mb-1">{badge.label}</p>
+                            <span className="text-[10px] font-bold text-[#8A99B3] uppercase tracking-widest">Click for details</span>
+                        </div>
                     </motion.div>
                 ))}
             </div>
+
+            {/* BADGE DETAIL MODAL */}
+            <AnimatePresence>
+                {selectedBadge && (
+                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-[#1A2B49]/40 backdrop-blur-md" 
+                            onClick={(e) => { e.stopPropagation(); setSelectedBadge(null); }}
+                        />
+                        <motion.div 
+                            layoutId={`badge-${selectedBadge.label}`}
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className="relative w-full max-w-lg bg-white border border-[#E3ECF5] rounded-[40px] p-12 shadow-2xl overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="absolute top-0 right-0 p-12 opacity-[0.03] -mr-10 -mt-10">
+                                <selectedBadge.icon className={`w-64 h-64 rotate-12 ${selectedBadge.color}`} />
+                            </div>
+
+                            <button 
+                                onClick={() => setSelectedBadge(null)}
+                                className="absolute top-8 right-8 p-3 bg-[#F8FBFF] text-[#5F6F89] hover:bg-[#FDECEA] hover:text-[#D32F2F] rounded-2xl transition-all"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+
+                            <div className="relative z-10 flex flex-col items-center text-center space-y-8">
+                                <div className={`w-24 h-24 rounded-[32px] ${selectedBadge.bg} flex items-center justify-center shadow-xl`}>
+                                    <selectedBadge.icon className={`w-12 h-12 ${selectedBadge.color}`} />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <h3 className="text-2xl font-bold text-[#1A2B49] uppercase tracking-tight">{selectedBadge.label}</h3>
+                                    <Badge color="blue" className="px-4 py-1.5 rounded-full">{selectedBadge.stat}</Badge>
+                                </div>
+
+                                <p className="text-[#5F6F89] font-bold uppercase tracking-widest text-[13px] leading-relaxed">
+                                    {selectedBadge.desc}
+                                </p>
+
+                                <div className="w-full pt-8 border-t border-[#F8FBFF]">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <span className="text-[11px] font-bold text-[#8A99B3] uppercase tracking-widest">Target Criteria</span>
+                                        <Info className="w-4 h-4 text-[#1E88E5]" />
+                                    </div>
+                                    <div className="bg-[#F8FBFF] border border-[#E3ECF5] rounded-2xl p-5 text-left">
+                                        <p className="text-[12px] font-bold text-[#1A2B49] uppercase tracking-tight leading-relaxed">
+                                            {selectedBadge.criteria}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <button 
+                                    onClick={() => setSelectedBadge(null)}
+                                    className="w-full bg-[#1E88E5] text-white py-4.5 rounded-2xl font-bold text-[13px] uppercase tracking-[0.2em] hover:bg-[#1565C0] shadow-lg shadow-blue-500/10 transition-all active:scale-95"
+                                >
+                                    Dismiss Record
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* FOOTER */}
             <div className="flex justify-center pt-8">

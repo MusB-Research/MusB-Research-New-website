@@ -202,12 +202,14 @@ function CompensationModal({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function ParticipantOversight({
-    onOpenProfile, onMessage, selectedStudyId, preloadedData, isLoading: propLoading
+    onOpenProfile, onMessage, selectedStudyId, preloadedData, initialParticipants, onRefresh, isLoading: propLoading
 }: {
     onOpenProfile?: (id: string) => void;
     onMessage?: (id: string) => void;
     selectedStudyId?: string | 'all';
     preloadedData?: any;
+    initialParticipants?: ParticipantRow[];
+    onRefresh?: () => void;
     isLoading?: boolean;
 }) {
     const [activeTab, setActiveTab] = useState<TabKey>('All');

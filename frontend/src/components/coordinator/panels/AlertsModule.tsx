@@ -16,8 +16,10 @@ import {
     Trash2,
     Calendar,
     MessageSquare,
-    ClipboardList
+    ClipboardList,
+    ExternalLink
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 import { fetchNotifications, markNotificationRead, markAllNotificationsRead, deleteNotification } from '../../../api';
 
@@ -29,49 +31,53 @@ interface AlertItem {
     category: 'Clinical' | 'Operational' | 'Safety' | 'System';
     timestamp: string;
     read: boolean;
+    link?: string;
 }
 
-export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: string }) {
+export default function AlertsModule({ selectedStudyId, initialNotifications }: { selectedStudyId?: string, initialNotifications?: any[] }) {
+    const navigate = useNavigate();
     const [activeSeverity, setActiveSeverity] = useState<'All' | 'Critical' | 'Warning' | 'Info'>('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [alerts, setAlerts] = useState<AlertItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    const mapNotificationsToAlerts = (data: any[]) => {
+        return data.map((n: any) => {
+            let category: AlertItem['category'] = 'Clinical';
+            let severity: AlertItem['severity'] = 'Info';
+
+            const type = (n.type || '').toUpperCase();
+            if (type === 'ERROR' || n.title.toLowerCase().includes('sae')) {
+                severity = 'Critical';
+                category = 'Safety';
+            } else if (type === 'WARNING') {
+                severity = 'Warning';
+                category = 'Operational';
+            } else if (type === 'SUCCESS') {
+                severity = 'Info';
+                category = 'Clinical';
+            } else if (n.title.toLowerCase().includes('maintenance') || type === 'SYSTEM') {
+                category = 'System';
+            }
+
+            return {
+                id: String(n.id),
+                title: n.title,
+                description: n.message,
+                severity,
+                category,
+                timestamp: new Date(n.created_at).toLocaleString(),
+                read: n.is_read,
+                link: n.link
+            };
+        });
+    };
+
     const fetchAlertData = async () => {
         setIsLoading(true);
         try {
             const data = await fetchNotifications();
-            // Map backend Notifications to AlertItems
-            const mapped = data.map((n: any) => {
-                // Heuristic mapping for category and severity based on backend 'type'
-                let category: AlertItem['category'] = 'Clinical';
-                let severity: AlertItem['severity'] = 'Info';
-
-                const type = (n.type || '').toUpperCase();
-                if (type === 'ERROR' || n.title.toLowerCase().includes('sae')) {
-                    severity = 'Critical';
-                    category = 'Safety';
-                } else if (type === 'WARNING') {
-                    severity = 'Warning';
-                    category = 'Operational';
-                } else if (type === 'SUCCESS') {
-                    severity = 'Info';
-                    category = 'Clinical';
-                } else if (n.title.toLowerCase().includes('maintenance') || type === 'SYSTEM') {
-                    category = 'System';
-                }
-
-                return {
-                    id: String(n.id),
-                    title: n.title,
-                    description: n.message,
-                    severity,
-                    category,
-                    timestamp: new Date(n.created_at).toLocaleString(),
-                    read: n.is_read
-                };
-            });
-            setAlerts(mapped);
+            setAlerts(mapNotificationsToAlerts(data));
         } catch (err) {
             console.error("Failed to sync alert intelligence:", err);
         } finally {
@@ -80,8 +86,13 @@ export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: st
     };
 
     React.useEffect(() => {
-        fetchAlertData();
-    }, []);
+        if (initialNotifications && initialNotifications.length > 0) {
+            setAlerts(mapNotificationsToAlerts(initialNotifications));
+            setIsLoading(false);
+        } else {
+            fetchAlertData();
+        }
+    }, [initialNotifications]);
 
     const handleMarkRead = async (id: string) => {
         try {
@@ -229,7 +240,15 @@ export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: st
                                     <p className="text-sm text-slate-500 font-bold uppercase tracking-tight italic leading-relaxed max-w-2xl">{alert.description}</p>
                                 </div>
 
-                                <div className="lg:col-span-1 flex items-center justify-end gap-3 transition-all">
+                                 <div className="lg:col-span-1 flex items-center justify-end gap-3 transition-all">
+                                    {alert.link && (
+                                        <button 
+                                            onClick={() => navigate(alert.link!)}
+                                            className="px-5 py-3 bg-blue-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest italic hover:scale-105 active:scale-95 transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2"
+                                        >
+                                            Review <ExternalLink className="w-3.5 h-3.5" />
+                                        </button>
+                                    )}
                                     {!alert.read && (
                                          <button 
                                              onClick={() => handleMarkRead(alert.id)}
@@ -240,9 +259,9 @@ export default function AlertsModule({ selectedStudyId }: { selectedStudyId?: st
                                     )}
                                      <button 
                                          onClick={() => handleResolve(alert.id)}
-                                         className="px-6 py-3.5 bg-white text-slate-950 rounded-xl font-black text-[12px] uppercase tracking-[0.15em] hover:scale-[1.05] active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,255,255,0.1)] flex items-center gap-3"
+                                         className="px-6 py-3.5 border border-white/10 bg-white/5 text-white rounded-xl font-black text-[12px] uppercase tracking-[0.15em] hover:bg-white hover:text-slate-950 transition-all active:scale-95 shadow-xl flex items-center gap-3"
                                      >
-                                        Resolve <ChevronRight className="w-4 h-4" />
+                                        Dismiss
                                      </button>
                                 </div>
                             </motion.div>

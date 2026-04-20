@@ -1297,7 +1297,7 @@ const FACILITIES_DATA = [
     { id: 2, name: 'Participant-Friendly Clinics', description: 'Designed for comfort and efficiency during research visits.', features: ['Private Bays', 'Waiting Lounge', 'Accessible Facilities'] },
     { id: 3, name: 'Central Laboratory & Biorepository', description: 'Secure on-site storage and advanced sample processing capabilities.', features: ['-80°C Freezers', 'Centrifuges', 'Cryogenic Storage'] },
     { id: 4, name: 'Sample Processing & Secure IT Systems', description: 'HIPAA-compliant, high-security infrastructure for data management.', features: ['Encrypted Servers', '24/7 Monitoring', 'Redundant Backups'] },
-    { id: 5, name: 'Mobile Clinic & Phlebotomy Services', description: 'Bringing research to the community with mobile phlebotomy units.', features: ['On-site Collection', 'Remote Monitoring', 'Outreach Kits'] },
+    { id: 5, name: 'Mobile Clinic & Phlebotomy Services', description: 'Bringing research to the community with mobile phlebotomy units.', features: ['On-site Collection', 'Remote Monitoring', 'Outreach Materials'] },
     { id: 6, name: 'Anaerobic Chcyans', description: 'Precision measurement of energy expenditure and metabolic rates.', features: ['Gas Analysis', 'Controlled Environment', 'Real-time Tracking'] }
 ];
 

@@ -31,7 +31,13 @@ interface StudyDoc {
     status?: string;
 }
 
-export default function StudyDocumentsModule({ selectedStudyId }: { selectedStudyId?: string }) {
+export default function StudyDocumentsModule({ 
+    selectedStudyId, preloadedStudies, isLoading: propLoading 
+}: { 
+    selectedStudyId?: string;
+    preloadedStudies?: any[];
+    isLoading?: boolean;
+}) {
 
     const [searchQuery, setSearchQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState<string>('All');

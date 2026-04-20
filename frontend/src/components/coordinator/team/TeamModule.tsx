@@ -10,7 +10,15 @@ import { TeamCard } from './components/TeamCard';
 import { PersonnelPanel } from './components/PersonnelPanel';
 import { authFetch, revealValue } from '../../../utils/auth';
 
-export default function TeamModule({ selectedStudyId }: { selectedStudyId?: string }) {
+export default function TeamModule({ 
+    selectedStudyId, 
+    initialUsers,
+    onRefresh
+}: { 
+    selectedStudyId?: string, 
+    initialUsers?: any[],
+    onRefresh?: () => void 
+}) {
     // State
     const [officeTeam, setOfficeTeam] = useState<TeamMember[]>([]);
     const [musbTeam, setMusbTeam] = useState<TeamMember[]>([]);
@@ -80,9 +88,41 @@ export default function TeamModule({ selectedStudyId }: { selectedStudyId?: stri
         }
     }, [addToast]);
 
+    const initialFetchAttempted = useRef(false);
+
     useEffect(() => {
-        fetchTeam();
-    }, [fetchTeam]);
+        if (!initialFetchAttempted.current) {
+            initialFetchAttempted.current = true;
+            if (initialUsers && initialUsers.length > 0) {
+                // Bootstrapping from parent data
+                const membersArray = initialUsers;
+                const formatted: TeamMember[] = membersArray.map((u: any) => ({
+                    id: u.id,
+                    name: revealValue(u.full_name, u.decrypted_name) || u.email?.split('@')[0] || 'Unknown User',
+                    email: revealValue(u.email) || u.email || 'unknown@domain',
+                    phone: u.phone_number || 'N/A',
+                    role: u.role === 'PARTICIPANT' ? 'Participant' : u.role || 'Staff',
+                    type: (u.affiliation || 'musb').toLowerCase() === 'onsite' ? 'Office' : 'MusB',
+                    status: u.is_active ? 'Active' : 'Inactive',
+                    assignedStudies: u.assigned_studies || [],
+                    permissionLevel: 'Full',
+                    expertise: u.affiliation === 'musb' ? (u.role === 'PI' ? 'Principal Investigator' : 'Clinical Ops') : undefined,
+                    documents: []
+                }));
+
+                const staffOnly = formatted.filter(m => 
+                    m.role !== 'Participant' && 
+                    m.role !== 'PARTICIPANT'
+                );
+
+                setMusbTeam(staffOnly.filter(m => m.type === 'MusB'));
+                setOfficeTeam(staffOnly.filter(m => m.type === 'Office'));
+                setLoading(false);
+            } else {
+                fetchTeam();
+            }
+        }
+    }, [initialUsers, fetchTeam]);
 
     // Handlers
     const handleSaveMember = async () => {
@@ -121,7 +161,8 @@ export default function TeamModule({ selectedStudyId }: { selectedStudyId?: stri
 
             if (response.ok) {
                 addToast(panelMode === 'edit' ? 'Clinical record synchronized' : 'Personnel record initialized');
-                fetchTeam();
+                if (onRefresh) onRefresh();
+                else fetchTeam();
                 setPanelOpen(false);
             } else {
                 const err = await response.json();
@@ -140,7 +181,8 @@ export default function TeamModule({ selectedStudyId }: { selectedStudyId?: stri
             });
             if (response.ok) {
                 addToast('Access granted to team member', 'success');
-                fetchTeam();
+                if (onRefresh) onRefresh();
+                else fetchTeam();
                 setPanelOpen(false);
             }
         } catch (error) {
@@ -157,7 +199,8 @@ export default function TeamModule({ selectedStudyId }: { selectedStudyId?: stri
                     const response = await authFetch(`/api/users/${member.id}/`, { method: 'DELETE' });
                     if (response.ok) {
                         addToast('Team member removed successfully');
-                        fetchTeam();
+                        if (onRefresh) onRefresh();
+                        else fetchTeam();
                     }
                 } catch (error) {
                     addToast('Registry purge failed', 'error');
@@ -179,7 +222,8 @@ export default function TeamModule({ selectedStudyId }: { selectedStudyId?: stri
                     });
                     if (response.ok) {
                         addToast(`Permission node status: ${newStatus}`);
-                        fetchTeam();
+                        if (onRefresh) onRefresh();
+                        else fetchTeam();
                     }
                 } catch (error) {
                     addToast('Status update failed', 'error');

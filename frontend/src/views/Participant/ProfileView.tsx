@@ -11,7 +11,7 @@ const ProfileView = ({
     userLocation, userTimezone, notificationSettings = {}, 
     toggleNotification, onAction,
     participantSid, studyId,
-    userAge, userDob, userRole,
+    userAge, userDob, userRole, googleAuth,
     isLoading = false
 }: any) => {
     if (isLoading) {
@@ -183,14 +183,16 @@ const ProfileView = ({
 
                     {/* Security */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                         <Card className="p-10 bg-white border-[#E3ECF5] hover:border-[#1E88E5]/30 transition-all shadow-lg group">
-                            <div className="flex items-center gap-4 mb-6">
-                                <div className="w-12 h-12 bg-[#F0F6FF] text-[#1E88E5] rounded-2xl flex items-center justify-center border border-[#E3F2FD]"><Lock className="w-6 h-6" /></div>
-                                <h3 className="text-[14px] font-bold text-[#1A2B49] uppercase tracking-widest">Authentication</h3>
-                            </div>
-                            <p className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest mb-10 leading-relaxed italic pr-4">Reset encrypted access credentials securely.</p>
-                            <button onClick={() => onAction('Update Credentials')} className="w-full py-4.5 bg-[#1E88E5] text-white font-bold text-[12px] uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-blue-500/10 hover:bg-[#1565C0] active:scale-95">Change Password</button>
-                        </Card>
+                         {!googleAuth && (
+                             <Card className="p-10 bg-white border-[#E3ECF5] hover:border-[#1E88E5]/30 transition-all shadow-lg group">
+                                 <div className="flex items-center gap-4 mb-6">
+                                     <div className="w-12 h-12 bg-[#F0F6FF] text-[#1E88E5] rounded-2xl flex items-center justify-center border border-[#E3F2FD]"><Lock className="w-6 h-6" /></div>
+                                     <h3 className="text-[14px] font-bold text-[#1A2B49] uppercase tracking-widest">Authentication</h3>
+                                 </div>
+                                 <p className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest mb-10 leading-relaxed italic pr-4">Reset encrypted access credentials securely.</p>
+                                 <button onClick={() => onAction('Update Credentials')} className="w-full py-4.5 bg-[#1E88E5] text-white font-bold text-[12px] uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-blue-500/10 hover:bg-[#1565C0] active:scale-95">Change Password</button>
+                             </Card>
+                         )}
                          <Card className="p-10 bg-white border-[#E3ECF5] hover:border-[#D32F2F]/30 transition-all shadow-lg group">
                             <div className="flex items-center gap-4 mb-6">
                                 <div className="w-12 h-12 bg-[#FDECEA] text-[#D32F2F] rounded-2xl flex items-center justify-center border border-[#FFCDD2]"><Shield className="w-6 h-6" /></div>

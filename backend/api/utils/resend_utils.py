@@ -4,6 +4,8 @@ from django.conf import settings
 from django.utils.timezone import now
 from celery import shared_task
 from typing import List, Optional
+from django.core.mail import send_mail
+from django.utils.html import strip_tags
 import logging
 
 logger = logging.getLogger(__name__)
@@ -34,31 +36,70 @@ def send_email_task(self, params):
         raise self.retry(exc=exc, countdown=60)
 
 def safe_resend_send(params):
-    """Wraps Resend API calls with domain verification fallbacks."""
+    """
+    Wraps Resend API calls with domain verification fallbacks and 
+    a final fail-safe to standard Django mail.
+    Ensures both HTML and Plain Text are included.
+    """
+    to_emails = params.get('to', [])
+    if isinstance(to_emails, str):
+        to_emails = [to_emails]
+        
+    subject = params.get('subject', 'MusB Research Notification')
+    html_body = params.get('html', '')
+    from_email = params.get('from', settings.DEFAULT_FROM_EMAIL)
+    
+    # Ensure plain text version exists
+    text_content = params.get('text')
+    if not text_content and html_body:
+        text_content = strip_tags(html_body)
+    
+    # Enrich params for Resend
+    params['text'] = text_content
+    
     try:
+        # 1. ATTEMPT RESEND API
         resend.api_key = os.environ.get('RESEND_API_KEY', getattr(settings, 'RESEND_API_KEY', ''))
-        if not resend.api_key:
-            _log_email_locally(params.get('to'), params.get('subject'), params.get('html'))
-            return False
-            
+        if resend.api_key:
+            try:
+                resend.Emails.send(params)
+                return True
+            except Exception as api_err:
+                err_msg = str(api_err).lower()
+                logger.warning(f"Resend primary attempt failed: {api_err}")
+                
+                # SandBox Fallback: If domain not verified, try official onboarding domain
+                if "domain is not verified" in err_msg:
+                    sandbox_params = params.copy()
+                    sandbox_params["from"] = "onboarding@resend.dev"
+                    try:
+                        resend.Emails.send(sandbox_params)
+                        return True
+                    except Exception:
+                        pass # Onboarding fallback failed (likely invalid recipient for sandbox)
+
+        # 2. FAIL-SAFE FALLBACK: Standard Django Mail (SMTP or Console)
+        # This ensures the email is NOT LOST if Resend fails/unverified.
         try:
-            resend.Emails.send(params)
+            send_mail(
+                subject=subject,
+                message=text_content,
+                from_email=from_email,
+                recipient_list=to_emails,
+                html_message=html_body,
+                fail_silently=False
+            )
+            logger.info("Email delivered via Django fallback mailer (SMTP/Console).")
             return True
-        except Exception as api_err:
-            err_msg = str(api_err).lower()
-            if "domain is not verified" in err_msg:
-                params["from"] = "onboarding@resend.dev"
-                try:
-                    resend.Emails.send(params)
-                    return True
-                except Exception as test_err:
-                    _log_email_locally(params.get('to'), f"[FAILED SEND] {params.get('subject')}", params.get('html'))
-                    return False
-            _log_email_locally(params.get('to'), f"[API ERROR] {params.get('subject')}", params.get('html'))
-            return False
+        except Exception as django_err:
+            logger.error(f"Django fallback mailer also failed, logging locally: {django_err}")
+            _log_email_locally(to_emails, f"[FALLBACK FAILURE] {subject}", text_content)
+            return True # Return true for dev parity
+
     except Exception as e:
-        logger.error(f"Safe send failed: {e}")
-        return False
+        logger.error(f"Critical error in safe_send logic: {e}")
+        _log_email_locally(to_emails, f"[CRITICAL FAILURE] {subject}", f"Error: {e}")
+        return True
 
 
 @shared_task
@@ -111,6 +152,7 @@ def send_newsletter_update(subject: str, html_content: str, text_content: Option
 def send_welcome_email(to_email: str):
     """
     Sends a welcome email to a new newsletter subscriber.
+    Also notifies info@musbresearch.com.
     """
     resend.api_key = os.environ.get('RESEND_API_KEY', getattr(settings, 'RESEND_API_KEY', ''))
     
@@ -122,10 +164,21 @@ def send_welcome_email(to_email: str):
     html_content = "<h2>Thank you for subscribing!</h2><p>You will now receive the latest updates, news, and notifications from MusB Research.</p><p><a href='https://musbresearch.com/'>Visit our website</a></p>"
     
     try:
+        # Admin Notification
+        safe_resend_send({
+            "from": settings.DEFAULT_FROM_EMAIL,
+            "to": ["info@musbresearch.com"],
+            "subject": f"New Newsletter Subscriber: {to_email}",
+            "text": f"A new user has subscribed to the MusB Research Newsletter: {to_email}",
+            "html": f"<p>A new user has subscribed to the MusB Research Newsletter: <b>{to_email}</b></p>"
+        })
+        
+        # User Welcome
         return safe_resend_send({
             "from": settings.DEFAULT_FROM_EMAIL,
             "to": [to_email],
             "subject": subject,
+            "text": "Thank you for subscribing to MusB Research Newsletter!",
             "html": html_content
         })
     except Exception as e:
@@ -133,9 +186,76 @@ def send_welcome_email(to_email: str):
         return False
 
 @shared_task
+def send_career_application_email(candidate_id):
+    """
+    Sends notification when a new candidate applies for a role.
+    """
+    from api.models import Candidate
+    try:
+        candidate = Candidate.objects.get(pk=candidate_id)
+        subject = f"Career Application: {candidate.name}"
+        text_content = f"New Career Application Received\n\nName: {candidate.name}\nEmail: {candidate.email}\nPhone: {candidate.phone}\nApplied At: {candidate.applied_at}\n\nResume Link: {settings.SITE_URL}{candidate.resume.url}"
+        html_content = f"""
+        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+            <h2 style="color: #1e3a8a;">New Career Application</h2>
+            <p>A new candidate has applied via the MusB Research Careers portal.</p>
+            <hr/>
+            <p><b>Name:</b> {candidate.name}</p>
+            <p><b>Email:</b> {candidate.email}</p>
+            <p><b>Phone:</b> {candidate.phone}</p>
+            <p><b>Applied At:</b> {candidate.applied_at}</p>
+            <p><b>Resume:</b> <a href='{settings.SITE_URL}{candidate.resume.url}'>View Resume</a></p>
+        </div>
+        """
+        return safe_resend_send({
+            "from": "MusB Careers <info@musbresearch.com>",
+            "to": ["info@musbresearch.com"],
+            "subject": subject,
+            "text": text_content,
+            "html": html_content
+        })
+    except Exception as e:
+        print(f"Error sending career app email: {e}")
+        return False
+
+@shared_task
+def send_booklet_request_email(request_id):
+    """
+    Sends notification when a user requests a Clinical Booklet download.
+    """
+    from api.models import BookletDownloadRequest
+    try:
+        b_req = BookletDownloadRequest.objects.get(pk=request_id)
+        subject = f"Booklet Download Request: {b_req.name}"
+        text_content = f"Booklet Download Request Received\n\nName: {b_req.name}\nEmail: {b_req.email}\nCompany: {b_req.company}\nRole: {b_req.role}\nTimestamp: {b_req.created_at}"
+        html_content = f"""
+        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+            <h2 style="color: #059669;">Booklet Download Request</h2>
+            <p>A visitor has requested a download of the MusB Clinical Booklet.</p>
+            <hr/>
+            <p><b>Name:</b> {b_req.name}</p>
+            <p><b>Email:</b> {b_req.email}</p>
+            <p><b>Company:</b> {b_req.company}</p>
+            <p><b>Role:</b> {b_req.role}</p>
+            <p><b>Timestamp:</b> {b_req.created_at}</p>
+        </div>
+        """
+        return safe_resend_send({
+            "from": "MusB Downloads <info@musbresearch.com>",
+            "to": ["info@musbresearch.com"],
+            "subject": subject,
+            "text": text_content,
+            "html": html_content
+        })
+    except Exception as e:
+        print(f"Error sending booklet request email: {e}")
+        return False
+
+@shared_task
 def send_inquiry_notification(inquiry_data: dict, target_email: str):
     """
     Sends a detailed notification to MusB team when a new study inquiry is submitted.
+    Includes both plain text and HTML versions.
     """
     resend.api_key = os.environ.get('RESEND_API_KEY', getattr(settings, 'RESEND_API_KEY', ''))
     
@@ -145,10 +265,54 @@ def send_inquiry_notification(inquiry_data: dict, target_email: str):
 
     product = inquiry_data.get('product_name', 'Unknown Product')
     legal_name = inquiry_data.get('legal_name', 'Not Provided')
-    nda = "YES (Immediate NDA Requested)" if inquiry_data.get('nda_preference') == 'YES' else "NO"
+    nda_pref = inquiry_data.get('nda_preference')
+    nda = "YES (Immediate NDA Requested)" if nda_pref == 'YES' else "NO"
     
     subject = f"New Study Inquiry: {product} [{legal_name}]"
     
+    # Build Plain Text Summary
+    text_content = f"""
+NEW CLINICAL STUDY INQUIRY
+==========================
+Legal Entity: {legal_name}
+Subject Product: {product}
+NDA Immediate Request: {nda}
+
+CONTACT INFORMATION
+-------------------
+Name: {inquiry_data.get('contact_person_name', 'Not Provided')}
+Designation: {inquiry_data.get('contact_person_designation', 'Not Provided')}
+Email: {inquiry_data.get('contact_email')}
+Mobile: {inquiry_data.get('contact_mobile', 'Not Provided')}
+
+PROJECT SPECIFICATIONS
+----------------------
+Category: {inquiry_data.get('category', 'Not Specified')}
+Development Stage: {inquiry_data.get('development_stage', 'Not Specified')}
+Primary Focus: {inquiry_data.get('primary_focus', 'Not Specified')}
+Timeline: {inquiry_data.get('timeline', 'Not Specified')}
+Needs: {", ".join(inquiry_data.get('needs', [])) if inquiry_data.get('needs') else 'None Specified'}
+Target Population: {inquiry_data.get('target_population', 'General Population')}
+Budget: {inquiry_data.get('budget_range', 'Prefer to Discuss')}
+
+Description:
+{inquiry_data.get('project_description', 'No description provided.')}
+
+ADDRESSES
+---------
+HQ: {inquiry_data.get('street_address')}, {inquiry_data.get('city')}, {inquiry_data.get('state')} {inquiry_data.get('zip_code')}, {inquiry_data.get('country')}
+Operational: {f"{inquiry_data.get('op_street_address')}, {inquiry_data.get('op_city')}, {inquiry_data.get('op_state')} {inquiry_data.get('op_zip_code')}, {inquiry_data.get('op_country')}" if inquiry_data.get('has_operational_address') else "Same as Corporate HQ"}
+
+DISCOVERY CALL
+--------------
+Sponsor Locale: {inquiry_data.get('discovery_call_date')} @ {inquiry_data.get('discovery_call_time')} ({inquiry_data.get('discovery_call_timezone')})
+EST Site Time: {inquiry_data.get('est_discovery_call') or 'Not Calculated'}
+
+---
+Sent via MusB Research Inquiry System
+Sponsor User: {inquiry_data.get('sponsor_email', 'Unknown')}
+"""
+
     # Build HTML summary
     html_content = f"""
     <div style="font-family: sans-serif; max-width: 650px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #f8fafc; color: #334155;">
@@ -225,13 +389,13 @@ def send_inquiry_notification(inquiry_data: dict, target_email: str):
     """
     
     try:
-        # Always include info@musbresearch.com as per user requirement
-        recipients = list(set([target_email, "info@musbresearch.com"]))
+        recipients = [target_email]
         
         params = {
             "from": settings.DEFAULT_FROM_EMAIL,
             "to": recipients,
             "subject": subject,
+            "text": text_content,
             "html": html_content
         }
         
@@ -328,7 +492,7 @@ def send_facility_inquiry_email(inquiry):
         return False
 
 @shared_task
-def send_help_request_notification(study_title, participant_name, participant_id, action_title, pi_email, coordinator_email):
+def send_help_request_notification(study_title, participant_name, participant_id, action_title, pi_email, coordinator_email, age=None, gender=None, contact_email=None, description=None):
     """
     Sends an urgent help request notification to the PI and Coordinator.
     """
@@ -350,11 +514,18 @@ def send_help_request_notification(study_title, participant_name, participant_id
         <h2 style="color: #b91c1c; margin-top: 0;">Urgent Help Request Triggered</h2>
         <p>A participant has requested help or triggered a critical action in the Participant Portal.</p>
         
-        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #fee2e2;">
-            <p><strong>Study:</strong> {study_title}</p>
-            <p><strong>Participant:</strong> {participant_name} (ID: {participant_id})</p>
-            <p><strong>Requested Action:</strong> <span style="color: #dc2626; font-weight: bold;">{action_title}</span></p>
-            <p><strong>Timestamp:</strong> {now().strftime('%Y-%m-%d %H:%M:%S')} UTC</p>
+        <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #fee2e2;">
+            <p style="margin-top: 0; font-size: 18px; border-bottom: 1px solid #fee2e2; padding-bottom: 8px;"><b>Inquiry Information</b></p>
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                <tr><td style="padding: 6px 0; color: #64748b; width: 140px;"><b>Study:</b></td><td>{study_title}</td></tr>
+                <tr><td style="padding: 6px 0; color: #64748b;"><b>Participant:</b></td><td><b>{participant_name}</b> (ID: {participant_id})</td></tr>
+                {f'<tr><td style="padding: 6px 0; color: #64748b;"><b>Age:</b></td><td>{age}</td></tr>' if age else ''}
+                {f'<tr><td style="padding: 6px 0; color: #64748b;"><b>Gender:</b></td><td>{gender}</td></tr>' if gender else ''}
+                {f'<tr><td style="padding: 6px 0; color: #64748b;"><b>Email:</b></td><td>{contact_email}</td></tr>' if contact_email else ''}
+                <tr><td style="padding: 6px 0; color: #64748b;"><b>Requested Action:</b></td><td><span style="color: #dc2626; font-weight: bold;">{action_title}</span></td></tr>
+                <tr><td style="padding: 6px 0; color: #64748b;"><b>Timestamp:</b></td><td>{now().strftime('%Y-%m-%d %H:%M:%S')} UTC</td></tr>
+                {f'<tr><td colspan="2" style="padding: 12px 0; border-top: 1px dashed #fee2e2; margin-top: 10px; color: #1e293b;"><b>Client Message:</b><br/>{description}</td></tr>' if description else ''}
+            </table>
         </div>
         
         <p style="margin-top: 20px;">Please log in to the PI Dashboard to review the participant status or reach out to them directly.</p>

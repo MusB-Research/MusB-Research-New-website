@@ -47,7 +47,13 @@ export const CredentialCard: React.FC<CredentialCardProps> = ({ doc, onSelect })
                 </div>
                 <div className="flex items-center gap-3">
                     <button 
-                        onClick={() => window.open('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', '_blank')}
+                        onClick={() => {
+                            if (doc.fileUrl && doc.fileUrl !== '#') {
+                                window.open(doc.fileUrl, '_blank');
+                            } else {
+                                alert("No file uploaded for this credential.");
+                            }
+                        }}
                         className="p-3 bg-white/5 border border-white/5 rounded-xl text-slate-400 hover:text-white transition-all active:scale-90"
                     >
                         <Download className="w-4 h-4" />

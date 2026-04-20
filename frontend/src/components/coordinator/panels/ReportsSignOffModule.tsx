@@ -29,7 +29,13 @@ interface ClinicalReport {
     author: string;
 }
 
-export default function ReportsSignOffModule({ selectedStudyId }: { selectedStudyId?: string }) {
+export default function ReportsSignOffModule({ 
+    selectedStudyId, preloadedStudies, isLoading 
+}: { 
+    selectedStudyId?: string;
+    preloadedStudies?: any[];
+    isLoading?: boolean;
+}) {
 
     const [isSigning, setIsSigning] = useState(false);
     const [selectedReport, setSelectedReport] = useState<ClinicalReport | null>(null);

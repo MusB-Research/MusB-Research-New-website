@@ -233,7 +233,7 @@ export default function SponsorDashboard() {
     } catch (e) { console.error('Mark all read failed', e); }
   };
 
-  const SIDEBAR_W = 240;
+  const SIDEBAR_W = 256;
 
   return (
     <div style={{ width: '100vw', height: '100vh', backgroundColor: 'transparent', color: 'white', fontFamily: 'Inter, system-ui, sans-serif', overflow: 'hidden', position: 'relative' }}>
@@ -270,7 +270,7 @@ export default function SponsorDashboard() {
           flexShrink: 0,
           borderRight: '1px solid rgba(255,255,255,0.05)',
           zIndex: 100,   // above overlay (99) on mobile, and above header (50) on desktop
-          background: isMobile ? '#0a0f1e' : 'rgba(13, 21, 37, 0.95)',  // fully opaque on mobile so nothing bleeds through
+          background: isMobile ? '#0b101b' : 'rgba(11, 16, 27, 0.95)',  // matching header background
           backdropFilter: isMobile ? 'none' : 'blur(20px)',
           WebkitBackdropFilter: isMobile ? 'none' : 'blur(20px)',
           boxShadow: isMobile ? '4px 0 40px rgba(0,0,0,0.8)' : 'none',
@@ -279,9 +279,11 @@ export default function SponsorDashboard() {
         }}
       >
         {/* SIDEBAR HEADER — Logo */}
-        <div className="h-24 px-8 flex justify-between items-center border-b border-white/[0.05]">
-          <Link to="/">
-            <img src="/logo.jpg" alt="MusB Research" className="h-14 w-auto object-contain rounded-2xl" />
+        <div className="h-20 px-6 flex justify-between items-center border-b border-white/[0.05]">
+          <Link to="/" className="group transition-all">
+            <div className="bg-white p-2 rounded-2xl group-hover:scale-105 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.05)]">
+              <img src="/logo.jpg" alt="MusB Research" className="h-12 w-auto object-contain rounded-xl" />
+            </div>
           </Link>
           {isMobile && (
             <button className="text-slate-400 hover:text-white" onClick={() => setIsSidebarOpen(false)}>
@@ -290,46 +292,34 @@ export default function SponsorDashboard() {
           )}
         </div>
 
-        {/* USER PROFILE CARD */}
-        <div style={{ margin: '8px 20px 24px 20px', backgroundColor: 'rgba(20, 30, 53, 0.6)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', padding: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(to bottom right, #22d3ee, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 900, overflow: 'hidden' }}>
-            {currentUser?.picture || currentUser?.avatar || currentUser?.profile_picture
-              ? <img src={currentUser.picture || currentUser.avatar || currentUser.profile_picture} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : initials}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-            <p style={{ fontSize: '16px', fontWeight: 900, color: 'white', textTransform: 'uppercase', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</p>
-            <p style={{ fontSize: '12px', fontWeight: 900, color: '#22d3ee', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>Sponsor</p>
-          </div>
-        </div>
 
         {/* NAVIGATION */}
-        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px', padding: '0 16px', overflowY: 'auto' }}>
+        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px', padding: '16px', overflowY: 'auto' }}>
           <div className="space-y-1.5">
             <button
               onClick={() => window.location.href = '/'}
-              className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-400 hover:text-white hover:bg-white/[0.04] transition-all group"
+              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-slate-400 hover:text-white hover:bg-white/[0.04] transition-all group"
             >
-              <Globe size={20} className="text-slate-500 group-hover:text-white" />
-              <span className="text-base font-bold">Main Website</span>
+              <Globe size={18} className="text-slate-500 group-hover:text-white" />
+              <span className="text-[13px] font-black uppercase tracking-wider">Back to Website</span>
             </button>
 
             {[
               { id: 'DASHBOARD', label: 'Dashboard', icon: LayoutDashboard },
-              { id: 'STUDIES', label: 'Our Studies', icon: Database },
-              { id: 'PARTICIPANTS', label: 'Participant Data', icon: Users },
-              { id: 'TEAM', label: 'Team Management', icon: Presentation },
-              { id: 'REPORTS', label: 'Reports & Data', icon: BarChart3 },
+              { id: 'STUDIES', label: 'Studies', icon: Database },
+              { id: 'PARTICIPANTS', label: 'Participants', icon: User },
+              { id: 'TEAM', label: 'Team Members', icon: Users },
+              { id: 'REPORTS', label: 'Reports', icon: BarChart3 },
             ].map((item) => {
               const isActive = activeModule === item.id;
               return (
                 <button
                   key={item.id}
                   onClick={() => handleModuleChange(item.id)}
-                  className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group ${isActive ? 'bg-[#0a1525] text-cyan-400 border border-cyan-500/30' : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'}`}
+                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all group ${isActive ? 'bg-[#0a1525] text-cyan-400 border border-cyan-500/30' : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'}`}
                 >
-                  <item.icon size={20} className={isActive ? 'text-cyan-400' : 'text-slate-500 group-hover:text-white'} />
-                  <span className="text-base font-bold">{item.label}</span>
+                  <item.icon size={18} className={isActive ? 'text-cyan-400' : 'text-slate-500 group-hover:text-white'} />
+                  <span className="text-[13px] font-black uppercase tracking-wider">{item.label}</span>
                 </button>
               );
             })}
@@ -368,7 +358,7 @@ export default function SponsorDashboard() {
             top: 0,
             right: 0,
             left: isMobile ? 0 : SIDEBAR_W,
-            height: isMobile ? '64px' : '72px',
+            height: isMobile ? '64px' : '80px',
             background: 'rgba(11, 16, 27, 0.85)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
@@ -393,7 +383,7 @@ export default function SponsorDashboard() {
             ) : null}
 
             {/* Real-time Clock */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMobile ? 'flex-start' : 'flex-end', textAlign: isMobile ? 'left' : 'right', paddingRight: '12px', borderRight: '1px solid rgba(255,255,255,0.05)', marginLeft: isMobile ? '8px' : '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', marginLeft: isMobile ? '8px' : '10px' }}>
               <span style={{ fontSize: isMobile ? '13px' : '16px', fontWeight: 900, color: '#22d3ee', fontFamily: 'monospace', letterSpacing: '-0.02em', lineHeight: 1 }}>
                 {currentTime.toLocaleTimeString('en-US', { hour12: false })}
               </span>

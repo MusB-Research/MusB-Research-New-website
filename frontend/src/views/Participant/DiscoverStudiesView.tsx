@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Loader2, ClipboardCheck, ArrowRight, Clock, MapPin, DollarSign, ChevronRight, Activity, Filter, Info, LayoutGrid, List, Banknote } from 'lucide-react';
+import { Search, Loader2, ClipboardCheck, ArrowRight, Clock, MapPin, DollarSign, ChevronRight, Activity, Filter, Info, LayoutGrid, List, Banknote, Save } from 'lucide-react';
 import { authFetch, API } from '../../utils/auth';
 import { CURRENCY_SYMBOLS } from '../../components/coordinator/LaunchStudyForm';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Card, Badge, Skeleton } from './SharedComponents';
 
-export default function DiscoverStudiesView({ loading: externalLoading }: { loading?: boolean }) {
+export default function DiscoverStudiesView({ loading: externalLoading, userProfile }: { loading?: boolean; userProfile?: any }) {
     const navigate = useNavigate();
     const [publicStudies, setPublicStudies] = useState<any[]>([]);
     const [internalLoading, setInternalLoading] = useState(true);
+    const [sendingInquiryId, setSendingInquiryId] = useState<string | null>(null);
     const loading = externalLoading !== undefined ? externalLoading : internalLoading;
 
     const [participantRecords, setParticipantRecords] = useState<any[]>([]);
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
     useEffect(() => {
         const fetchData = async () => {
@@ -54,6 +55,47 @@ export default function DiscoverStudiesView({ loading: externalLoading }: { load
         const records = Array.isArray(participantRecords) ? participantRecords : [];
         const record = records.find(p => String(p.study) === String(studyId));
         return record ? (record.status || 'REGISTERED').toUpperCase() : null;
+    };
+
+    const hasAnyActiveEnrollment = Array.isArray(participantRecords) && participantRecords.some(p => 
+        ['CONSENTED', 'ENROLLED', 'SCREENING', 'SCHEDULED', 'ACTIVE', 'RANDOMIZED'].includes((p.status || '').toUpperCase())
+    );
+
+    const handleSendInquiry = async (studyId: string) => {
+        setSendingInquiryId(studyId);
+        try {
+            const enrolledStudy = participantRecords.find(p => 
+                ['CONSENTED', 'ENROLLED', 'SCREENING', 'SCHEDULED', 'ACTIVE', 'RANDOMIZED'].includes((p.status || '').toUpperCase())
+            );
+
+            const res = await authFetch(`${API}/api/help-request/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    study_id: studyId,
+                    action_title: 'DUAL_ENROLLMENT_INQUIRY',
+                    message: `Participant ${userProfile?.userName} is interested in enrolling in a secondary study.`,
+                    metadata: {
+                        participant_name: userProfile?.userName,
+                        email: userProfile?.userEmail,
+                        age: userProfile?.age,
+                        sex: userProfile?.sex || userProfile?.gender,
+                        current_study_id: enrolledStudy?.study_protocol_id || enrolledStudy?.study,
+                        current_status: enrolledStudy?.status
+                    }
+                })
+            });
+            if (res.ok) {
+                alert("SUCCESS: Your inquiry has been sent to the study team. They will contact you shortly.");
+            } else {
+                alert("Failed to send inquiry. Please try again later.");
+            }
+        } catch (err) {
+            console.error("Inquiry failed:", err);
+            alert("An error occurred while sending your inquiry.");
+        } finally {
+            setSendingInquiryId(null);
+        }
     };
 
     if (loading) {
@@ -120,7 +162,7 @@ export default function DiscoverStudiesView({ loading: externalLoading }: { load
                     <p className="text-[13px] text-[#5F6F89] font-bold uppercase tracking-[0.2em] mt-2 italic px-8">There are no studies matching your recruitment profile at this time</p>
                 </div>
             ) : (
-                <div className={viewMode === 'grid' ? "grid-system" : "flex flex-col gap-6"}>
+                <div className={viewMode === 'list' ? "flex flex-col gap-6" : "grid-system"}>
                     {publicStudies.map(study => {
                         const enrollmentStatus = getEnrollmentStatus(study.id);
                         const isEnrolled = !!enrollmentStatus;
@@ -132,27 +174,27 @@ export default function DiscoverStudiesView({ loading: externalLoading }: { load
                                     initial={{ opacity: 0, x: -10 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     onClick={() => navigate(`/studies/${study.protocol_id || study.id}`)}
-                                    className="bg-white border border-[#E3ECF5] rounded-[24px] p-6 flex flex-col md:flex-row items-center justify-between transition-all duration-300 hover:shadow-xl hover:border-[#00ADEF]/30 group cursor-pointer"
+                                    className="bg-white border border-[#E3ECF5] rounded-[32px] p-6 flex flex-col md:flex-row items-center justify-between transition-all duration-300 hover:shadow-xl hover:border-[#00ADEF]/30 group cursor-pointer"
                                 >
                                     <div className="flex items-center gap-6 w-full">
-                                        <div className="w-14 h-14 bg-[#F8FBFF] rounded-2xl flex items-center justify-center text-[#00ADEF] group-hover:bg-[#00ADEF] group-hover:text-white transition-all shadow-sm">
-                                            <Activity className="w-6 h-6" />
+                                        <div className={`w-16 h-16 rounded-[20px] flex items-center justify-center transition-all shadow-sm ${isEnrolled ? 'bg-[#F8FBFF] text-[#00ADEF]' : 'bg-[#00ADEF] text-white'}`}>
+                                            <Activity className="w-8 h-8" />
                                         </div>
                                         <div className="flex-1 space-y-1">
                                             <div className="flex items-center gap-3">
-                                                <h3 className="text-base font-bold text-[#1A2B49] uppercase tracking-tight group-hover:text-[#00ADEF] transition-colors">
+                                                <h3 className="text-[17px] font-black text-[#1A2B49] uppercase tracking-tight group-hover:text-[#00ADEF] transition-colors leading-none">
                                                     {study.title}
                                                 </h3>
                                                 <Badge color={getStatusStyle(study.status)}>
                                                     {study.status || 'RECRUITING'}
                                                 </Badge>
                                             </div>
-                                            <div className="flex items-center gap-6">
-                                                <div className="flex items-center gap-2 text-[11px] font-bold text-[#5F6F89] uppercase tracking-wide">
+                                            <div className="flex items-center gap-6 pt-1">
+                                                <div className="flex items-center gap-2 text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">
                                                     <Clock className="w-3.5 h-3.5 text-[#00ADEF]" />
                                                     {study.duration || 'Flexible'}
                                                 </div>
-                                                <div className="flex items-center gap-2 text-[11px] font-bold text-[#5F6F89] uppercase tracking-wide">
+                                                <div className="flex items-center gap-2 text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">
                                                     <MapPin className="w-3.5 h-3.5 text-[#00ADEF]" />
                                                     {study.visits || 'Hybrid'}
                                                 </div>
@@ -160,33 +202,46 @@ export default function DiscoverStudiesView({ loading: externalLoading }: { load
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-4 mt-6 md:mt-0 w-full md:w-auto">
+                                    <div className="flex items-center gap-5 mt-6 md:mt-0 w-full md:w-auto">
                                         {isEnrolled && (
-                                            <Badge color="blue">
-                                                <span className="flex items-center gap-1.5">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-[#00ADEF] animate-pulse" />
-                                                    {enrollmentStatus}
-                                                </span>
-                                            </Badge>
+                                            <div className="px-4 py-2 bg-[#E3F2FD] rounded-full flex items-center gap-2 border border-[#BBDEFB]">
+                                                <div className="w-2 h-2 rounded-full bg-[#00ADEF] animate-pulse" />
+                                                <span className="text-[10px] font-black text-[#00ADEF] uppercase tracking-widest">{enrollmentStatus}</span>
+                                            </div>
                                         )}
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                navigate(`/studies/${study.protocol_id || study.id}/screener`);
-                                            }}
-                                            className={`px-8 py-3 rounded-xl font-bold uppercase tracking-widest text-[11px] transition-all flex items-center gap-3 ${isEnrolled && enrollmentStatus !== 'PENDING_REVIEW'
-                                                    ? 'bg-slate-50 text-slate-400'
-                                                    : 'bg-[#00ADEF] text-white hover:bg-[#1565C0] shadow-lg shadow-[#00ADEF]/10'
+                                        {hasAnyActiveEnrollment && !isEnrolled ? (
+                                            <button
+                                                disabled={sendingInquiryId === study.id}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleSendInquiry(study.id);
+                                                }}
+                                                className="min-w-[180px] py-4 rounded-[20px] font-black uppercase tracking-widest text-[11px] transition-all flex items-center justify-center gap-3 bg-[#F8FBFF] text-[#00ADEF] border border-[#BBDEFB] hover:bg-[#E3F2FD]"
+                                            >
+                                                {sendingInquiryId === study.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Info className="w-4 h-4" />}
+                                                Send Inquiry
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    navigate(`/studies/${study.protocol_id || study.id}/screener`);
+                                                }}
+                                                className={`min-w-[180px] py-4 rounded-[20px] font-black uppercase tracking-widest text-[11px] transition-all flex items-center justify-center gap-3 ${isEnrolled 
+                                                    ? (enrollmentStatus === 'CONSENTED' ? 'bg-[#F8FBFF] text-[#5F6F89] border border-[#E3ECF5]' : 'bg-[#00ADEF] text-white hover:bg-[#0096CF] shadow-lg shadow-[#00ADEF]/20')
+                                                    : 'bg-[#00ADEF] text-white hover:bg-[#0096CF] shadow-lg shadow-[#00ADEF]/20'
                                                 }`}
-                                        >
-                                            <ClipboardCheck className="w-4 h-4" />
-                                            {isEnrolled ? enrollmentStatus : 'Eligibility'}
-                                            <ArrowRight className="w-3.5 h-3.5" />
-                                        </button>
+                                            >
+                                                {enrollmentStatus === 'CONSENTED' ? <Save className="w-4 h-4" /> : <ClipboardCheck className="w-4 h-4" />}
+                                                {isEnrolled ? enrollmentStatus : 'Eligibility'}
+                                                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                                            </button>
+                                        )}
                                     </div>
                                 </motion.div>
                             );
                         }
+
 
                         return (
                             <motion.div
@@ -251,12 +306,25 @@ export default function DiscoverStudiesView({ loading: externalLoading }: { load
                                 </div>
 
                                 <div className="card-action-bottom relative z-10 pt-3">
+                                {hasAnyActiveEnrollment && !isEnrolled ? (
+                                    <button
+                                        disabled={sendingInquiryId === study.id}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleSendInquiry(study.id);
+                                        }}
+                                        className="w-full h-11 flex items-center justify-center gap-2 font-bold uppercase tracking-widest text-[10px] rounded-xl transition-all shadow-sm bg-[#F8FBFF] text-[#00ADEF] border border-[#BBDEFB] hover:bg-[#E3F2FD]"
+                                    >
+                                        {sendingInquiryId === study.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Info className="w-3.5 h-3.5" />}
+                                        Send Inquiry
+                                    </button>
+                                ) : (
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             navigate(`/studies/${study.protocol_id || study.id}/screener`);
                                         }}
-                                        className={`w-full flex items-center justify-center gap-2 font-bold uppercase tracking-widest text-[10px] py-3 rounded-xl transition-all shadow-sm ${isEnrolled && enrollmentStatus !== 'PENDING_REVIEW'
+                                        className={`w-full h-11 flex items-center justify-center gap-2 font-bold uppercase tracking-widest text-[10px] rounded-xl transition-all shadow-sm ${isEnrolled && enrollmentStatus !== 'PENDING_REVIEW'
                                                 ? 'bg-slate-100 text-slate-400 border border-slate-200'
                                                 : 'bg-[#00ADEF] text-white hover:bg-[#1565C0] shadow-blue-500/10'
                                             }`}
@@ -265,6 +333,7 @@ export default function DiscoverStudiesView({ loading: externalLoading }: { load
                                         {isEnrolled ? enrollmentStatus : 'Eligibility'}
                                         <ArrowRight className="w-2.5 h-2.5 ml-1 transition-transform group-hover:translate-x-1" />
                                     </button>
+                                )}
                                 </div>
                             </motion.div>
                         );

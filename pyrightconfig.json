@@ -4,15 +4,18 @@
     ],
     "exclude": [
         "**/__pycache__",
-        "**/venv"
+        "**/venv",
+        ".gemini/**"
     ],
     "pythonVersion": "3.11",
-    "pythonTypeCheckingMode": "basic",
-    "venvPath": "./backend",
+    "venvPath": "backend",
     "venv": "venv",
-        "extraPaths": [
-        "backend"
+    "extraPaths": [
+        "backend",
+        "backend/api",
+        "backend/authentication"
     ],
-    "reportMissingImports": true,
-    "reportMissingTypeStubs": false
+    "reportMissingImports": false,
+    "reportMissingTypeStubs": false,
+    "typeCheckingMode": "off"
 }

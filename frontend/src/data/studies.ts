@@ -15,7 +15,7 @@ export interface Study {
     timeCommitment: string;
     overview: string;
     timeline: { step: string; label: string }[];
-    kitsInfo: string;
+
     safetyInfo: string;
     privacyStandards: ('HIPAA' | 'GDPR' | 'SOC2')[];
     remoteParticipation: boolean;
@@ -57,7 +57,7 @@ export const fetchStudies = async (): Promise<Study[]> => {
             timeCommitment: d.time_commitment || 'To be determined',
             overview: d.overview || 'This clinical trial is designed to evaluate safely and efficacy.',
             timeline: d.timeline || [],
-            kitsInfo: d.kits_info,
+
             safetyInfo: d.safety_info,
             privacyStandards: d.privacy_standards || [],
             remoteParticipation: d.remote_participation || (d.study_type === 'VIRTUAL'),

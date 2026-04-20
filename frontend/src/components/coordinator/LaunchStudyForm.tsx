@@ -7,9 +7,11 @@ import {
     AlertCircle, History, CheckSquare, TrendingUp,
     ShieldCheck, Microscope, UserPlus, FileCheck, Layers,
     Briefcase, Plus, Calendar, Award, DollarSign,
-    Building2, Search, Building, Check, ExternalLink
+    Building2, Search, Building, Check, ExternalLink, MousePointer2
 } from 'lucide-react';
 import { authFetch, API, revealValue } from '../../utils/auth';
+import QuestionnaireBuilder from './QuestionnaireBuilder';
+import ScreenerBuilder from './ScreenerBuilder';
 
 export const CURRENCY_SYMBOLS: Record<string, string> = {
     'USD': '$',
@@ -55,6 +57,7 @@ interface DocumentFile {
     category: 'Protocol' | 'IRB_Letter' | 'Flyer' | 'Other';
     version: string;
     status: 'Current' | 'Draft';
+    visible_to: string[]; // Roles: 'PARTICIPANT', 'PI', 'COORDINATOR', 'SPONSOR'
 }
 
 const toIdArray = (value: any, fallback?: any): string[] => {
@@ -69,6 +72,38 @@ const toIdArray = (value: any, fallback?: any): string[] => {
         })
         .filter(Boolean);
 };
+
+const QuestionPreview = ({ field, index }: { field: any, index: number }) => (
+    <div className="group bg-white/[0.03] border border-white/5 rounded-2xl p-5 transition-all hover:bg-white/[0.05] hover:border-indigo-500/30">
+        <div className="flex gap-4 mb-4">
+            <span className="text-indigo-500 font-black italic text-xs tracking-tighter opacity-70 group-hover:opacity-100">
+                {index + 1 < 10 ? `0${index + 1}` : index + 1}
+            </span>
+            <h5 className="text-[11px] font-bold text-white/90 leading-relaxed uppercase tracking-tight">
+                {field.label || field.question}
+            </h5>
+        </div>
+        
+        {(field.type === 'multiple_choice' || field.type === 'choice') && field.options && (
+            <div className="grid grid-cols-1 gap-2 pl-8">
+                {field.options.map((opt: string, oi: number) => (
+                    <div key={oi} className="flex items-center gap-3 py-1.5 px-3 rounded-lg bg-black/20 border border-white/5">
+                        <div className="w-2 h-2 rounded-full border border-indigo-500/50" />
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{opt}</span>
+                    </div>
+                ))}
+            </div>
+        )}
+
+        {(field.type === 'text' || field.type === 'short_text') && (
+            <div className="pl-8">
+                <div className="w-full h-8 bg-black/20 border border-dashed border-white/10 rounded-lg flex items-center px-3">
+                    <span className="text-[8px] text-slate-600 font-black uppercase tracking-widest">Text Response Area</span>
+                </div>
+            </div>
+        )}
+    </div>
+);
 
 const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], availableCoordinators = [], availableSponsors = [], availableSponsorUsers = [] }: LaunchStudyFormProps) => {
     const [currentStep, setCurrentStep] = useState<StepID>(1);
@@ -87,6 +122,8 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
     const [inviteLoading, setInviteLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isInviting, setIsInviting] = useState(false);
+    const [showQuestionnaireBuilder, setShowQuestionnaireBuilder] = useState(false);
+    const [showScreenerBuilder, setShowScreenerBuilder] = useState(false);
 
     const displayPIs = useMemo(() => (availablePIs && availablePIs.length > 0) ? availablePIs : fetchedPIs, [availablePIs, fetchedPIs]);
     const displayCoordinators = useMemo(() => (availableCoordinators && availableCoordinators.length > 0) ? availableCoordinators : fetchedCoordinators, [availableCoordinators, fetchedCoordinators]);
@@ -128,26 +165,29 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
         reward_logic: initialData?.reward_logic || 'PER_TASK',
         reward_config: initialData?.reward_config || { tasks: {}, visits: {}, full_study: 0 },
         reward_amount: initialData?.reward_amount || 0,
-        uses_kit: initialData?.uses_kit || false,
-        kit_dispatch_required: initialData?.kit_dispatch_required || false,
-        kit_tracking_enabled: initialData?.kit_tracking_enabled || false,
-        kit_description: initialData?.kit_description || '',
-        study_questionnaires: initialData?.study_questionnaires || []
+        study_questionnaires: initialData?.study_questionnaires || [],
+        screener_questions: initialData?.screener_config?.steps?.find((s: any) => s.type === 'user_input')?.questions || []
     });
 
     const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
     
+    const fetchTemplates = useCallback(async () => {
+        try {
+            const res = await authFetch(`${API}/api/questionnaire-templates/`);
+            if (res.ok) {
+                const data = await res.json();
+                setAvailableTemplates(Array.isArray(data) ? data : (data.results || []));
+            }
+        } catch (err) { }
+    }, []);
+
     useEffect(() => {
-        const fetchTemplates = async () => {
-            try {
-                const res = await authFetch(`${API}/api/questionnaire-templates/`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setAvailableTemplates(Array.isArray(data) ? data : (data.results || []));
-                }
-            } catch (err) { }
-        };
-        
+        if (!showQuestionnaireBuilder) {
+            fetchTemplates();
+        }
+    }, [showQuestionnaireBuilder, fetchTemplates]);
+
+    useEffect(() => {
         const fetchTeamData = async () => {
             try {
                 const [piRes, ccRes, spRes] = await Promise.all([
@@ -171,7 +211,6 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
             } catch (err) { console.error("Failed to fetch team data:", err); }
         };
 
-        fetchTemplates();
         fetchTeamData();
     }, []);
 
@@ -242,10 +281,22 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                 name: file.name,
                 category: 'Protocol',
                 version: 'V1.0 (Draft)',
-                status: 'Draft'
+                status: 'Draft',
+                visible_to: ['PARTICIPANT', 'PI', 'COORDINATOR', 'SPONSOR'] // Default to all
             };
             setUploadedDocs(prev => [newDoc, ...prev]);
         }
+    };
+
+    const toggleDocVisibility = (docId: string, role: string) => {
+        setUploadedDocs(prev => prev.map(d => {
+            if (d.id !== docId) return d;
+            const roles = [...d.visible_to];
+            const idx = roles.indexOf(role);
+            if (idx > -1) roles.splice(idx, 1);
+            else roles.push(role);
+            return { ...d, visible_to: roles };
+        }));
     };
 
     const steps = useMemo(() => [
@@ -316,7 +367,25 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
             pi_ids: Array.isArray(pi_id) ? pi_id : [],
             coordinator_ids: Array.isArray(coordinator_id) ? coordinator_id : [],
             status: 'RECRUITING',
-            stage: 'RECRUITING'
+            stage: 'RECRUITING',
+            operational_artifacts: uploadedDocs.map(d => ({
+                name: d.name,
+                category: d.category,
+                version: d.version,
+                visible_to: d.visible_to
+            })),
+            screener_config: {
+                steps: [
+                    { id: 'STEP1', type: 'system', label: 'Basics & location' },
+                    { 
+                        id: 'STEP2', 
+                        type: 'user_input', 
+                        label: 'Eligibility criteria',
+                        questions: formData.screener_questions
+                    },
+                    { id: 'STEP3', type: 'system', label: 'Contact & availability' }
+                ]
+            }
         };
 
         setIsSubmitting(true);
@@ -652,7 +721,13 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                         <div className="bg-white/5 border border-white/5 rounded-2xl p-6 flex items-center justify-between">
                                             <div>
                                                 <p className="text-[11px] font-black text-indigo-400 uppercase tracking-widest">Target Sample Size</p>
-                                                <p className="text-3xl font-black text-white italic mt-1">{formData.target_subjects}</p>
+                                                <input 
+                                                    type="number" 
+                                                    value={formData.target_subjects === 0 ? '' : formData.target_subjects} 
+                                                    onChange={(e) => setFormData({ ...formData, target_subjects: parseInt(e.target.value, 10) || 0 })}
+                                                    placeholder="0"
+                                                    className="bg-transparent border-none text-3xl font-black text-white italic mt-1 outline-none w-40 p-0 focus:ring-0 placeholder:text-white/20"
+                                                />
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <button onClick={() => setFormData({ ...formData, target_subjects: Math.max(0, formData.target_subjects - 10) })} className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all font-black text-lg">-</button>
@@ -676,51 +751,6 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                 </div>
 
                                 <div className="pt-6 border-t border-white/5 space-y-6">
-                                    <div className="flex items-center justify-between ml-1">
-                                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest italic">Clinical Logistics (Study Kits)</label>
-                                        <div className="flex items-center gap-2 bg-white/5 p-1 rounded-lg border border-white/10">
-                                            <button
-                                                onClick={() => setFormData({ ...formData, uses_kit: true })}
-                                                className={`px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${formData.uses_kit ? 'bg-cyan-600 text-white shadow-lg' : 'text-slate-500'}`}
-                                            >
-                                                Kit Required
-                                            </button>
-                                            <button
-                                                onClick={() => setFormData({ ...formData, uses_kit: false })}
-                                                className={`px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${!formData.uses_kit ? 'bg-slate-700 text-white' : 'text-slate-500'}`}
-                                            >
-                                                No Kit
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {formData.uses_kit && (
-                                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-6">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                <div className="bg-white/5 border border-white/5 rounded-xl p-4">
-                                                    <p className="text-[11px] font-black text-cyan-400 uppercase tracking-widest mb-2">Dispatch Workflow</p>
-                                                    <label className="flex items-center gap-2 cursor-pointer group">
-                                                        <input type="checkbox" checked={formData.kit_dispatch_required} onChange={(e) => setFormData({ ...formData, kit_dispatch_required: e.target.checked })} className="hidden" />
-                                                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${formData.kit_dispatch_required ? 'bg-cyan-600 border-cyan-500 shadow-md' : 'border-white/20'}`}>
-                                                            {formData.kit_dispatch_required && <CheckSquare className="w-3.5 h-3.5 text-white" />}
-                                                        </div>
-                                                        <span className="text-[11px] font-black text-white uppercase tracking-widest group-hover:text-cyan-300 transition-colors">Local Dispatch System</span>
-                                                    </label>
-                                                </div>
-                                                <div className="bg-white/5 border border-white/5 rounded-xl p-4">
-                                                    <p className="text-[11px] font-black text-cyan-400 uppercase tracking-widest mb-2">Sync Strategy</p>
-                                                    <label className="flex items-center gap-2 cursor-pointer group">
-                                                        <input type="checkbox" checked={formData.kit_tracking_enabled} onChange={(e) => setFormData({ ...formData, kit_tracking_enabled: e.target.checked })} className="hidden" />
-                                                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${formData.kit_tracking_enabled ? 'bg-indigo-600 border-indigo-500' : 'border-white/20'}`}>
-                                                            {formData.kit_tracking_enabled && <CheckSquare className="w-3.5 h-3.5 text-white" />}
-                                                        </div>
-                                                        <span className="text-[11px] font-black text-white uppercase tracking-widest group-hover:text-indigo-300 transition-colors">Courier Tracking</span>
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            <textarea name="kit_description" value={formData.kit_description} onChange={handleChange} placeholder="Specify swabs, tubes, sensors, or other medical supplies included..." className="w-full h-20 bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-[11px] text-white font-medium outline-none focus:border-cyan-500/50 resize-none placeholder:opacity-20 italic" />
-                                        </motion.div>
-                                    )}
 
                                     <div className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="bg-white/5 border border-white/5 rounded-xl p-5">
@@ -888,8 +918,22 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                         <motion.div key="step4" initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="space-y-8">
                             <div className="bg-[#0B101B] border border-white/5 rounded-[2rem] p-8 space-y-8 shadow-2xl relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-8 opacity-5"><Layers className="w-40 h-40 text-white" /></div>
-                                <div className="flex items-center gap-4 border-l-4 border-indigo-500 pl-6">
+                                <div className="flex items-center justify-between border-l-4 border-indigo-500 pl-6">
                                     <h2 className="text-lg font-black text-white uppercase tracking-tighter italic">Instrument Scheduling</h2>
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            onClick={() => setShowScreenerBuilder(true)}
+                                            className="px-6 py-2 bg-[#0B101B] border border-pink-500/30 rounded-xl text-[10px] font-black text-pink-500 uppercase tracking-widest hover:bg-pink-500/10 transition-all shadow-lg active:scale-95 flex items-center gap-2"
+                                        >
+                                            <MousePointer2 className="w-3.5 h-3.5" /> Design Recruitment Funnel
+                                        </button>
+                                        <button
+                                            onClick={() => setShowQuestionnaireBuilder(true)}
+                                            className="px-6 py-2 bg-indigo-600 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 flex items-center gap-2"
+                                        >
+                                            <Plus className="w-3.5 h-3.5" /> Generate New Protocol
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -952,9 +996,10 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                                     <input 
                                                                         type="number" 
                                                                         min="1"
-                                                                        value={config.frequency_interval || 1}
-                                                                        onChange={e => setFormData({...formData, study_questionnaires: formData.study_questionnaires.map((sq: any) => sq.template === t.id ? {...sq, frequency_interval: parseInt(e.target.value) || 1} : sq)})}
-                                                                        className="w-16 bg-white/5 border border-white/10 rounded-lg p-2 text-[11px] font-black text-indigo-400 text-center"
+                                                                        value={config.frequency_interval === 0 ? '' : config.frequency_interval}
+                                                                        onChange={e => setFormData({...formData, study_questionnaires: formData.study_questionnaires.map((sq: any) => sq.template === t.id ? {...sq, frequency_interval: parseInt(e.target.value, 10) || 0} : sq)})}
+                                                                        placeholder="1"
+                                                                        className="w-16 bg-white/5 border border-white/10 rounded-lg p-2 text-[11px] font-black text-indigo-400 text-center placeholder:text-indigo-400/20"
                                                                     />
                                                                     <select 
                                                                         value={config.frequency_unit || 'WEEKS'}
@@ -973,15 +1018,16 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                                     <input 
                                                                         type="number" 
                                                                         min="1"
-                                                                        value={config.repetitions}
-                                                                        onChange={e => setFormData({...formData, study_questionnaires: formData.study_questionnaires.map((sq: any) => sq.template === t.id ? {...sq, repetitions: parseInt(e.target.value)} : sq)})}
-                                                                        className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-[10px] font-black text-white"
+                                                                        value={config.repetitions === 0 ? '' : config.repetitions}
+                                                                        onChange={e => setFormData({...formData, study_questionnaires: formData.study_questionnaires.map((sq: any) => sq.template === t.id ? {...sq, repetitions: parseInt(e.target.value, 10) || 0} : sq)})}
+                                                                        placeholder="1"
+                                                                        className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-[10px] font-black text-white placeholder:text-white/20"
                                                                     />
                                                                 </div>
                                                                 <div className="flex-1">
                                                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 block">Baseline Week</label>
-                                                                    <div className="bg-white/5 border border-white/10 rounded-lg p-2 text-[10px] font-black text-indigo-300 text-center">
-                                                                        Week 0
+                                                                    <div className="bg-white/5 border border-white/10 rounded-lg p-2 text-[10px] font-black text-indigo-300 text-center uppercase">
+                                                                        {(config.frequency_unit || 'WEEKS').replace('S', '')} 0
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -1016,54 +1062,47 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                                                 <span className="text-[9px] text-white/40 font-bold uppercase">Intelligence Preview</span>
                                                             </div>
                                                             <div className="max-h-[300px] overflow-y-auto pr-2 custom-scrollbar space-y-4">
-                                                                {t.json_structure?.sections?.map((section: any, si: number) => (
-                                                                    <div key={si} className="space-y-4">
-                                                                        <div className="flex items-center gap-3 mb-2">
-                                                                            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                                                                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] font-mono italic">{section.label || section.title}</p>
-                                                                            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                                                                {config.mode === 'PDF' ? (
+                                                                    <div className="py-12 text-center border border-dashed border-indigo-500/30 rounded-2xl bg-indigo-500/5">
+                                                                        <div className="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center mx-auto mb-4 border border-indigo-500/20">
+                                                                            <FileText className="w-6 h-6 text-indigo-400" />
                                                                         </div>
-                                                                        
-                                                                        {section.fields?.map((field: any, fi: number) => (
-                                                                            <div key={fi} className="group bg-white/[0.03] border border-white/5 rounded-2xl p-5 transition-all hover:bg-white/[0.05] hover:border-indigo-500/30">
-                                                                                <div className="flex gap-4 mb-4">
-                                                                                    <span className="text-indigo-500 font-black italic text-xs tracking-tighter opacity-70 group-hover:opacity-100">
-                                                                                        {fi + 1 < 10 ? `0${fi + 1}` : fi + 1}
-                                                                                    </span>
-                                                                                    <h5 className="text-[11px] font-bold text-white/90 leading-relaxed uppercase tracking-tight">
-                                                                                        {field.label || field.question}
-                                                                                    </h5>
-                                                                                </div>
-                                                                                
-                                                                                {field.type === 'multiple_choice' && field.options && (
-                                                                                    <div className="grid grid-cols-1 gap-2 pl-8">
-                                                                                        {field.options.map((opt: string, oi: number) => (
-                                                                                            <div key={oi} className="flex items-center gap-3 py-1.5 px-3 rounded-lg bg-black/20 border border-white/5">
-                                                                                                <div className="w-2 h-2 rounded-full border border-indigo-500/50" />
-                                                                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{opt}</span>
-                                                                                            </div>
-                                                                                        ))}
-                                                                                    </div>
-                                                                                )}
-
-                                                                                {field.type === 'text' && (
-                                                                                    <div className="pl-8">
-                                                                                        <div className="w-full h-8 bg-black/20 border border-dashed border-white/10 rounded-lg flex items-center px-3">
-                                                                                            <span className="text-[8px] text-slate-600 font-black uppercase tracking-widest">Text Response Area</span>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                )) || (
-                                                                    <div className="py-8 text-center border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
-                                                                        <AlertCircle className="w-6 h-6 text-slate-700 mx-auto mb-3 opacity-50" />
-                                                                        <p className="text-[10px] text-slate-600 font-black uppercase italic tracking-[0.2em] leading-relaxed">
-                                                                            Intelligence Protocol Empty<br/>
-                                                                            <span className="text-[8px] opacity-50 mt-1 block">Deploy logic via Questionnaire Builder</span>
+                                                                        <p className="text-[11px] text-indigo-300 font-black uppercase italic tracking-[0.2em] leading-relaxed px-10">
+                                                                            Paper-Integrated PDF Capture Mode<br/>
+                                                                            <span className="text-[8px] opacity-70 mt-1 block font-bold text-slate-500 uppercase tracking-widest italic">System will ingest physical scan of the source document</span>
                                                                         </p>
                                                                     </div>
+                                                                ) : (
+                                                                    (t.json_structure?.sections?.length > 0 || t.json_structure?.questions?.length > 0) ? (
+                                                                        <>
+                                                                            {/* Render Sections if they exist */}
+                                                                            {t.json_structure?.sections?.map((section: any, si: number) => (
+                                                                                <div key={si} className="space-y-4">
+                                                                                    <div className="flex items-center gap-3 mb-2">
+                                                                                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                                                                                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] font-mono italic">{section.label || section.title}</p>
+                                                                                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                                                                                    </div>
+                                                                                    {section.fields?.map((field: any, fi: number) => (
+                                                                                        <QuestionPreview key={fi} field={field} index={fi} />
+                                                                                    ))}
+                                                                                </div>
+                                                                            ))}
+                                                                            
+                                                                            {/* Fallback to flat questions if no sections */}
+                                                                            {(!t.json_structure?.sections || t.json_structure?.sections.length === 0) && t.json_structure?.questions?.map((field: any, fi: number) => (
+                                                                                <QuestionPreview key={fi} field={field} index={fi} />
+                                                                            ))}
+                                                                        </>
+                                                                    ) : (
+                                                                        <div className="py-8 text-center border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
+                                                                            <AlertCircle className="w-6 h-6 text-slate-700 mx-auto mb-3 opacity-50" />
+                                                                            <p className="text-[10px] text-slate-600 font-black uppercase italic tracking-[0.2em] leading-relaxed">
+                                                                                Intelligence Protocol Empty<br/>
+                                                                                <span className="text-[8px] opacity-50 mt-1 block">Deploy logic via Questionnaire Builder</span>
+                                                                            </p>
+                                                                        </div>
+                                                                    )
                                                                 )}
                                                             </div>
                                                         </div>
@@ -1091,17 +1130,61 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                     <Plus className="w-4 h-4" /> Add Documents
                                 </button>
 
-                                <div className="mt-12 w-full max-w-2xl space-y-3">
+                                <div className="mt-12 w-full max-w-3xl space-y-4">
                                     {Array.isArray(uploadedDocs) && uploadedDocs.map(doc => (
-                                        <div key={doc.id} className="bg-white/5 border border-white/5 rounded-2xl px-6 py-4 flex items-center justify-between group">
-                                            <div className="flex items-center gap-4">
-                                                <div className="p-2 bg-white/5 rounded-lg group-hover:bg-indigo-500/10"><Microscope className="w-5 h-5 text-indigo-400" /></div>
-                                                <div>
-                                                    <p className="text-[13px] font-black text-white uppercase tracking-tighter">{doc.name}</p>
-                                                    <p className="text-[10px] text-slate-500 uppercase tracking-widest italic">{doc.category} • {doc.version}</p>
+                                        <div key={doc.id} className="bg-white/5 border border-white/5 rounded-3xl p-6 flex flex-col gap-6 group transition-all hover:border-indigo-500/30 shadow-xl">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="p-3 bg-white/5 rounded-2xl group-hover:bg-indigo-500/10 transition-all">
+                                                        <Microscope className="w-6 h-6 text-indigo-400" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[14px] font-black text-white uppercase tracking-tight">{doc.name}</p>
+                                                        <p className="text-[10px] text-slate-500 uppercase tracking-widest italic font-bold">
+                                                            {doc.category} • {doc.version}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <button 
+                                                    onClick={() => setUploadedDocs(prev => prev.filter(d => d.id !== doc.id))} 
+                                                    className="p-2 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
+                                                >
+                                                    <X className="w-5 h-5" />
+                                                </button>
+                                            </div>
+
+                                            <div className="pt-4 border-t border-white/5">
+                                                <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+                                                    <ShieldCheck className="w-3 h-3 text-indigo-500" />
+                                                    Identity Visibility Permissions
+                                                </p>
+                                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                                    {[
+                                                        { role: 'PARTICIPANT', label: 'Participants', icon: Users },
+                                                        { role: 'PI', label: 'Principal Inves.', icon: Award },
+                                                        { role: 'COORDINATOR', label: 'Coordinators', icon: UserPlus },
+                                                        { role: 'SPONSOR', label: 'Sponsors', icon: Building2 },
+                                                    ].map((opt) => {
+                                                        const isSelected = doc.visible_to.includes(opt.role);
+                                                        return (
+                                                            <button
+                                                                key={opt.role}
+                                                                onClick={() => toggleDocVisibility(doc.id, opt.role)}
+                                                                className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                                                                    isSelected 
+                                                                        ? 'bg-indigo-600/10 border-indigo-500/40 text-indigo-400 shadow-[0_0_15px_rgba(79,70,229,0.1)]' 
+                                                                        : 'bg-white/[0.02] border-white/5 text-slate-600 hover:border-white/10'
+                                                                }`}
+                                                            >
+                                                                <div className={`w-6 h-6 rounded-lg flex items-center justify-center border ${isSelected ? 'bg-indigo-500 border-indigo-400 text-white' : 'bg-white/5 border-white/10'}`}>
+                                                                    {isSelected ? <Check className="w-3 h-3" /> : <opt.icon className="w-3 h-3" />}
+                                                                </div>
+                                                                <span className="text-[10px] font-black uppercase tracking-widest">{opt.label}</span>
+                                                            </button>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
-                                            <button onClick={() => setUploadedDocs(prev => prev.filter(d => d.id !== doc.id))} className="text-slate-600 hover:text-red-400 transition-colors"><X className="w-4 h-4" /></button>
                                         </div>
                                     ))}
                                 </div>
@@ -1120,28 +1203,42 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 space-y-6">
-                                        <h4 className="text-[11px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2 italic"><Layers className="w-4 h-4" /> Identity Synopsis</h4>
-                                        <div className="grid grid-cols-2 gap-6">
-                                            <div><p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Study ID</p><p className="text-sm font-bold text-white mt-1 italic font-mono">{formData.protocol_id}</p></div>
-                                            <div><p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Target Sample</p><p className="text-lg font-black text-white mt-1 italic">{formData.target_subjects}</p></div>
-                                            <div><p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Sponsor</p><p className="text-[12px] font-black text-indigo-300 mt-1 uppercase italic truncate">{formData.sponsor_name || "MISSING"}</p></div>
-                                            <div><p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Indication</p><p className="text-[12px] font-black text-emerald-400 mt-1 uppercase italic truncate">{formData.indication || "MISSING"}</p></div>
-                                        </div>
-                                    </div>
-                                    <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-2xl p-6 space-y-4">
-                                        <h4 className="text-[11px] font-black text-white uppercase tracking-widest italic flex items-center gap-2"><TrendingUp className="w-4 h-4" /> Deployment Timeline</h4>
-                                        <div className="flex items-center gap-4">
-                                            <div className="flex-1 p-4 bg-black/20 rounded-xl border border-white/5 text-center">
-                                                <p className="text-[9px] font-black text-slate-600 uppercase">Commence</p>
-                                                <p className="text-sm font-black text-white mt-1 italic">{formData.startDate || "TBD"}</p>
+
+
+                                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+                                    <h4 className="text-[11px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2 mb-6 italic">
+                                        <ShieldCheck className="w-4 h-4" /> Document Distribution Hub
+                                    </h4>
+                                    <div className="space-y-3">
+                                        {uploadedDocs.map(doc => (
+                                            <div key={doc.id} className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/5">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                                                    <span className="text-[11px] font-black text-white uppercase italic truncate max-w-[200px]">{doc.name}</span>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    {['PARTICIPANT', 'PI', 'COORDINATOR', 'SPONSOR'].map(role => {
+                                                        const isShared = doc.visible_to.includes(role);
+                                                        return (
+                                                            <div 
+                                                                key={role} 
+                                                                title={`${role} visibility`}
+                                                                className={`w-6 h-6 rounded-lg flex items-center justify-center text-[8px] font-black border transition-all ${
+                                                                    isShared 
+                                                                        ? 'bg-indigo-600/10 border-indigo-500/30 text-indigo-400' 
+                                                                        : 'bg-white/5 border-white/5 text-slate-700 opacity-30'
+                                                                }`}
+                                                            >
+                                                                {role.charAt(0)}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
-                                            <div className="flex-1 p-4 bg-black/20 rounded-xl border border-white/5 text-center">
-                                                <p className="text-[9px] font-black text-slate-600 uppercase">Terminate</p>
-                                                <p className="text-sm font-black text-white mt-1 italic">{formData.endDate || "TBD"}</p>
-                                            </div>
-                                        </div>
+                                        ))}
+                                        {uploadedDocs.length === 0 && (
+                                            <p className="text-[10px] text-slate-600 font-bold uppercase italic text-center py-4">No operational artifacts attached</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -1168,7 +1265,7 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                         Discard <span className="opacity-0 group-hover:opacity-100 transition-opacity ml-1">Study</span>
                     </button>
 
-                    {currentStep < 5 ? (
+                    {currentStep < 6 ? (
                         <button onClick={handleNext} className="px-8 md:px-12 py-4 h-12 bg-indigo-600 text-white rounded-2xl flex items-center gap-3 shadow-2xl shadow-indigo-600/30 hover:scale-[1.02] active:scale-95 transition-all group">
                             <span className="text-[11px] font-black uppercase tracking-[0.2em]">Next Step</span>
                             <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -1305,6 +1402,99 @@ const LaunchStudyFormRoot = ({ onClose, onSave, initialData, availablePIs = [], 
                     )}
                 </AnimatePresence>
                 , document.body)}
+
+            {/* In-Workflow Questionnaire Builder Modal */}
+            {typeof document !== 'undefined' && createPortal(
+                <AnimatePresence>
+                    {showQuestionnaireBuilder && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[10000] flex items-center justify-center p-6 bg-[#05060f]/98 backdrop-blur-2xl">
+                            <motion.div 
+                                initial={{ scale: 0.95, y: 30, opacity: 0 }} 
+                                animate={{ scale: 1, y: 0, opacity: 1 }} 
+                                className="w-full max-w-7xl bg-[#0B101B] border border-white/10 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col h-[90vh]"
+                            >
+                                <div className="px-10 py-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                                    <div className="flex items-center gap-6">
+                                        <div className="w-14 h-14 rounded-[1.5rem] bg-indigo-600 flex items-center justify-center text-white shadow-xl shadow-indigo-600/20">
+                                            <Layers className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">Intelligence Engine</h3>
+                                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-2">Design real-time clinical assessment protocols</p>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={() => setShowQuestionnaireBuilder(false)} 
+                                        className="p-4 hover:bg-white/5 rounded-2xl transition-all border border-white/5 group"
+                                    >
+                                        <X className="w-6 h-6 text-slate-500 group-hover:text-white transition-colors" />
+                                    </button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-10 custom-scrollbar bg-black/20">
+                                    <div className="max-w-6xl mx-auto">
+                                        <QuestionnaireBuilder initialTab="Create New" />
+                                    </div>
+                                </div>
+                                <div className="px-10 py-6 bg-white/[0.02] border-t border-white/5 flex items-center justify-center">
+                                    <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.4em] italic">
+                                        PROTOCOL VALIDATION ACTIVE • INTERNAL SECURED SESSION
+                                    </p>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            , document.body)}
+
+            {/* In-Workflow Screener Builder Modal */}
+            {typeof document !== 'undefined' && createPortal(
+                <AnimatePresence>
+                    {showScreenerBuilder && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[10000] flex items-center justify-center p-6 bg-[#05060f]/98 backdrop-blur-2xl">
+                            <motion.div 
+                                initial={{ scale: 0.95, y: 30, opacity: 0 }} 
+                                animate={{ scale: 1, y: 0, opacity: 1 }} 
+                                className="w-full max-w-7xl bg-[#0B101B] border border-white/10 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col h-[90vh]"
+                            >
+                                <div className="px-10 py-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                                    <div className="flex items-center gap-6">
+                                        <div className="w-14 h-14 rounded-[1.5rem] bg-pink-600 flex items-center justify-center text-white shadow-xl shadow-pink-600/20">
+                                            <MousePointer2 className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">Recruitment Funnel Designer</h3>
+                                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-2">Architect high-conversion patient eligibility screeners</p>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={() => setShowScreenerBuilder(false)} 
+                                        className="p-4 hover:bg-white/5 rounded-2xl transition-all border border-white/5 group"
+                                    >
+                                        <X className="w-6 h-6 text-slate-500 group-hover:text-white transition-colors" />
+                                    </button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-10 custom-scrollbar bg-black/20">
+                                    <div className="max-w-6xl mx-auto">
+                                        <ScreenerBuilder 
+                                            initialQuestions={formData.screener_questions}
+                                            standalone={true}
+                                            onSave={(qs) => {
+                                                setFormData({ ...formData, screener_questions: qs });
+                                                setShowScreenerBuilder(false);
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="px-10 py-6 bg-white/[0.02] border-t border-white/5 flex items-center justify-center">
+                                    <p className="text-[10px] text-pink-600 font-black uppercase tracking-[0.4em] italic">
+                                        FUNNEL ARCHITECTURE ACTIVE • CONVERSION OPTIMIZATION MODE
+                                    </p>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            , document.body)}
         </div>
     );
 };

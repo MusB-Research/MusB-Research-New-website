@@ -386,7 +386,7 @@ export const statusColors: Record<string, {bg:string, color:string}> = {
 export const StatusBadge = ({ status }: { status: string }) => {
   const s = statusColors[status] || { bg:'rgba(100,116,139,0.15)', color:'#94a3b8' };
   return (
-    <span style={{ background:s.bg, color:s.color, padding:'6px 14px', borderRadius:999, fontSize:16, fontWeight:800, whiteSpace:'nowrap', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+    <span style={{ background:s.bg, color:s.color, padding:'4px 10px', borderRadius:6, fontSize:'11px', fontWeight:900, whiteSpace:'nowrap', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
       {status}
     </span>
   );
@@ -413,7 +413,7 @@ export const PillButton = ({ active, children, onClick }: any) => (
   <button onClick={onClick} style={{ 
     background: active ? '#2563eb' : 'transparent', color: active ? '#fff' : '#94a3b8',
     border: active ? '1px solid #2563eb' : '1px solid #334155',
-    borderRadius: 999, padding: '10px 24px', fontSize: 17, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', letterSpacing: '0.02em'
+    borderRadius: 999, padding: '8px 20px', fontSize: 13, fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s', letterSpacing: '0.02em', textTransform: 'uppercase'
   }}>{children}</button>
 );
 

@@ -31,7 +31,7 @@ HARDCODED_STUDIES = [
             { 'step': 'Week 2-6', 'label': 'Active Phase: Daily Supplement Use' },
             { 'step': 'Week 12', 'label': 'Final Evaluation & Health Report Delivery' }
         ],
-        'kitsInfo': 'Participants will receive an at-home microbiome testing kit and a 12-week supply of the study probiotic during the first clinic visit.',
+
         'safetyInfo': 'All natural ingredients. Product is manufactured in GMP-certified facilities and has been safety-validated in clinical lab settings.',
         'privacyStandards': ['HIPAA', 'GDPR'],
         'remoteParticipation': True
@@ -56,7 +56,7 @@ HARDCODED_STUDIES = [
             { 'step': 'Month 2-4', 'label': 'Controlled Probiotic Intake' },
             { 'step': 'Month 5', 'label': 'Cellular Health Re-assessment' }
         ],
-        'kitsInfo': 'Bloodwork and skin vitality assessments performed on-site. Home kits provided for daily monitoring.',
+
         'safetyInfo': 'Standard probiotic profile. Minor bloating may occur in the first few days. All data is de-identified.',
         'privacyStandards': ['HIPAA'],
         'remoteParticipation': False
@@ -81,7 +81,7 @@ HARDCODED_STUDIES = [
             { 'step': 'Week 4', 'label': 'Progress Check-in' },
             { 'step': 'Week 12', 'label': 'Final Lab Panel' }
         ],
-        'kitsInfo': 'Hormone tracking kits and supplements provided at the Tampa facility.',
+
         'safetyInfo': 'Clinically tested herbal extracts. No synthetic hormones used.',
         'privacyStandards': ['GDPR'],
         'remoteParticipation': True
@@ -106,7 +106,7 @@ HARDCODED_STUDIES = [
             { 'step': 'Week 4', 'label': 'Interim Assessment' },
             { 'step': 'Week 8', 'label': 'Conclusion & Results' }
         ],
-        'kitsInfo': 'On-site clinical visits required for absorption testing.',
+
         'safetyInfo': 'Bioenhancers are derived from food-grade sources. Safety profile is well-documented.',
         'privacyStandards': ['HIPAA', 'SOC2'],
         'remoteParticipation': False
@@ -146,7 +146,7 @@ def populate():
             'time_commitment': data['timeCommitment'],
             'overview': data['overview'],
             'timeline': data['timeline'],
-            'kits_info': data['kitsInfo'],
+
             'safety_info': data['safetyInfo'],
             'privacy_standards': data['privacyStandards'],
             'remote_participation': data['remoteParticipation'],

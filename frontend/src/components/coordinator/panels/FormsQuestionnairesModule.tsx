@@ -287,53 +287,7 @@ export default function FormsQuestionnairesModule({ selectedStudyId }: { selecte
                         </table>
                     </div>
 
-                    {/* NEW: ACTIVE TEMPLATES SECTION */}
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-2 px-1">
-                            <h3 className="text-sm font-black text-indigo-400 uppercase tracking-widest">Deployed Study Templates</h3>
-                            <div className="h-px bg-indigo-500/20 flex-1" />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {templates.map((t, i) => (
-                                <div key={i} className="bg-slate-900/40 border border-slate-800 p-5 rounded-2xl hover:border-indigo-500/40 transition-all group">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="p-2 bg-indigo-500/10 rounded-lg group-hover:bg-indigo-500/20">
-                                            <Database className="w-4 h-4 text-indigo-400" />
-                                        </div>
-                                        <span className={`px-3 py-1 rounded text-xs font-black uppercase tracking-widest ${t.is_published ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-500'}`}>
-                                            {t.is_published ? 'LIVE' : 'DRAFT'}
-                                        </span>
-                                        <button 
-                                            onClick={() => handleDeleteTemplate(t.id)}
-                                            className="ml-2 p-1.5 text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-md transition-all"
-                                            title="Delete Template"
-                                        >
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
-                                    </div>
-                                    <h5 className="text-base font-black text-white mb-2 group-hover:text-indigo-400 transition-colors uppercase truncate">{t.name}</h5>
-                                    <p className="text-xs text-slate-500 font-medium line-clamp-2 mb-4 italic">"{t.name} protocol template"</p>
-                                    <div className="flex items-center justify-between pt-4 border-t border-slate-800/50">
-                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">v1.0</span>
-                                        <button 
-                                            onClick={() => {
-                                                setSelectedTemplate(t);
-                                                setView('Architect');
-                                            }}
-                                            className="text-xs font-black text-indigo-400 uppercase tracking-widest hover:text-white transition-colors"
-                                        >
-                                            Modify Template →
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                            {templates.length === 0 && (
-                                <div className="col-span-full py-10 border-2 border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-600">
-                                     <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-500">No templates deployed</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+
                 </div>
             )}
 

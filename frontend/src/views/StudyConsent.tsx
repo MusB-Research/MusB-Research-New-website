@@ -177,7 +177,7 @@ export default function StudyConsent() {
                                 <p>You are invited to participate in a clinical research study titled <strong>{study.title}</strong>. The purpose of this study is to investigate specific digital or physical biomarkers over a defined duration. Your participation will contribute to scientific knowledge and potential future therapies.</p>
                                 
                                 <h3 className="font-bold text-white uppercase tracking-widest text-[12px] border-b border-white/10 pb-2 pt-4">2. Procedures & Time Commitment</h3>
-                                <p>If you agree to participate, you will be expected to complete regular digital tasks, surveys, and potentially utilize shipped physical kits. The estimated duration of the trial is {study.duration || "Study Duration varies by protocol"}. All activities are outlined within your Participant Portal.</p>
+                                <p>If you agree to participate, you will be expected to complete regular digital tasks and surveys. The estimated duration of the trial is {study.duration || "Study Duration varies by protocol"}. All activities are outlined within your Participant Portal.</p>
                                 
                                 <h3 className="font-bold text-white uppercase tracking-widest text-[12px] border-b border-white/10 pb-2 pt-4">3. Data Privacy & GDPR/HIPAA Compliance</h3>
                                 <p>Your privacy is our utmost priority. All personal health information is strictly protected by global compliance frameworks (including HIPAA in the US and GDPR for EU/UK participants).</p>
@@ -189,7 +189,7 @@ export default function StudyConsent() {
                                 </ul>
                                 
                                 <h3 className="font-bold text-white uppercase tracking-widest text-[12px] border-b border-white/10 pb-2 pt-4">4. Risks & Discomforts</h3>
-                                <p>While this is primarily an observational or decentralized study, there may be minor risks associated with data entry or standard kit usage. Full risk disclosure is maintained by the designated Principal Investigator (PI).</p>
+                                <p>While this is primarily an observational or decentralized study, there may be minor risks associated with data entry or clinical assessment participation. Full risk disclosure is maintained by the designated Principal Investigator (PI).</p>
     
                                 <h3 className="font-bold text-white uppercase tracking-widest text-[12px] border-b border-white/10 pb-2 pt-4">5. Compensation</h3>
                                 <p>If financial compensation is rendered applicable to this protocol arm, details will be strictly issued via our compliant payment gateway upon successful completion of required trial milestones.</p>

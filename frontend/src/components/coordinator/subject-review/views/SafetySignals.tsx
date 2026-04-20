@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, Activity, FileText } from 'lucide-react';
 import { COLORS, S } from '../SubRevConstants';
 
 interface SafetySignalsProps {
@@ -49,44 +49,92 @@ export const SafetySignals: React.FC<SafetySignalsProps> = ({ participant }) => 
             
             <div>
                 <h3 style={S.title}>Subject Daily Health Logs</h3>
-                <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {(participant.daily_logs || []).filter((log: any) => log.noticed_side_effects).map((log: any, i: number) => (
-                        <div key={i} style={{...S.card, borderLeft: '4px solid #F59E0B'}}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                                <span style={{ fontSize: '13px', fontWeight: 900, color: '#F59E0B' }}>SIDE EFFECT REPORTED: {log.date}</span>
-                                <span style={{...S.badge('#F59E0B'), color: 'white'}}>DAILY LOG SIGNAL</span>
+                <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    {(participant.daily_logs || []).map((log: any, i: number) => {
+                        const hasAE = log.noticed_side_effects;
+                        return (
+                            <div key={i} style={{...S.card, borderLeft: hasAE ? '4px solid #F59E0B' : `1px solid ${COLORS.border}`}}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: hasAE ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <Activity size={16} color={hasAE ? '#F59E0B' : COLORS.accent} />
+                                        </div>
+                                        <span style={{ fontSize: '13px', fontWeight: 900, color: hasAE ? '#F59E0B' : 'white' }}>DAILY LOG: {new Date(log.date).toLocaleDateString()}</span>
+                                    </div>
+                                    <span style={{...S.badge(hasAE ? '#F59E0B' : COLORS.success), color: 'white'}}>{log.is_draft ? 'DRAFT' : 'FINALIZED'}</span>
+                                </div>
+                                
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+                                    <div>
+                                        <label style={S.label}>Medication</label>
+                                        <p style={{ fontSize: '12px', fontWeight: 'bold', color: log.took_medicine ? COLORS.success : COLORS.danger }}>
+                                            {log.took_medicine ? 'TAKEN' : 'MISSED'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label style={S.label}>Wellness</label>
+                                        <p style={{ fontSize: '12px', fontWeight: 'bold' }}>{log.overall_feeling || 'Not Rated'}</p>
+                                    </div>
+                                    <div>
+                                        <label style={S.label}>Side Effects</label>
+                                        <p style={{ fontSize: '12px', fontWeight: 'bold', color: hasAE ? COLORS.danger : COLORS.success }}>
+                                            {hasAE ? 'YES' : 'NO'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label style={S.label}>Dose</label>
+                                        <p style={{ fontSize: '12px', fontWeight: 'bold' }}>{log.full_dose ? 'FULL' : 'PARTIAL'}</p>
+                                    </div>
+                                    
+                                    {log.side_effect_description && (
+                                        <div style={{ gridColumn: 'span 4', padding: '1rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                            <label style={S.label}>AE Description</label>
+                                            <p style={{ fontSize: '12px', color: '#CBD5E1', lineHeight: 1.5 }}>{log.side_effect_description}</p>
+                                        </div>
+                                    )}
+
+                                    {log.supporting_file && (
+                                        <div style={{ gridColumn: 'span 4' }}>
+                                            <label style={S.label}>Supporting Evidence / Photo</label>
+                                            <div style={{ marginTop: '0.5rem' }}>
+                                                <a 
+                                                    href={log.supporting_file} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    style={{ 
+                                                        display: 'inline-flex', 
+                                                        alignItems: 'center', 
+                                                        gap: '0.5rem', 
+                                                        backgroundColor: 'rgba(59, 130, 246, 0.1)', 
+                                                        color: '#60A5FA', 
+                                                        padding: '0.75rem 1.25rem', 
+                                                        borderRadius: '10px',
+                                                        fontSize: '11px',
+                                                        fontWeight: 900,
+                                                        border: '1px solid rgba(59, 130, 246, 0.2)',
+                                                        textDecoration: 'none',
+                                                        textTransform: 'uppercase',
+                                                        letterSpacing: '0.05em'
+                                                    }}
+                                                >
+                                                    <FileText size={14} />
+                                                    View Attached Document
+                                                </a>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem' }}>
-                                <div>
-                                    <label style={S.label}>Severity</label>
-                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{log.severity || 'Not Rated'}</p>
-                                </div>
-                                <div style={{ gridColumn: 'span 2' }}>
-                                    <label style={S.label}>Description</label>
-                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{log.side_effect_description}</p>
-                                </div>
-                                <div>
-                                    <label style={S.label}>Care Sought?</label>
-                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{log.sought_medical_care ? 'YES' : 'NO'}</p>
-                                </div>
-                                <div>
-                                    <label style={S.label}>Medication Taken?</label>
-                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{log.took_medicine ? 'YES' : 'NO'}</p>
-                                </div>
-                                <div>
-                                    <label style={S.label}>Interfered with Activities?</label>
-                                    <p style={{ fontSize: '13px', fontWeight: 'bold' }}>{log.interfered_daily_activities ? 'YES' : 'NO'}</p>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                    {!(participant.daily_logs || []).some((log: any) => log.noticed_side_effects) && (
-                        <div style={{ ...S.card, textAlign: 'center', padding: '2rem', opacity: 0.5 }}>
-                            <p style={{...S.title, fontSize: '14px'}}>No side effects reported in daily logs</p>
+                        );
+                    })}
+                    {!(participant.daily_logs || []).length && (
+                        <div style={{ ...S.card, textAlign: 'center', padding: '4rem', opacity: 0.5 }}>
+                            <p style={S.title}>No Health Logs Recorded</p>
                         </div>
                     )}
                 </div>
             </div>
+
         </div>
     );
 };

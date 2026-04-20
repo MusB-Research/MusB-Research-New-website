@@ -20,12 +20,13 @@ import ApprovalModule from '../components/admin/ApprovalModule';
 import SubmitContentForms from '../components/coordinator/SubmitContentForms';
 import WorkflowModerationPanel from '../components/admin/WorkflowModerationPanel';
 import PIMessagesModule from '../components/pi/PIMessagesModule';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Mail } from 'lucide-react';
+import StudyInquiriesModule from '../components/admin/StudyInquiriesModule';
 
 
 
 
-type AdminModule = 'DASHBOARD' | 'STUDIES' | 'TEAM' | 'SCREENER_BUILDER' | 'AUDIT_LOGS' | 'SETTINGS' | 'WEBSITE' | 'COMPLIANCE' | 'APPROVALS' | 'SUBMIT_CONTENT' | 'WORKFLOW' | 'MESSAGES';
+type AdminModule = 'DASHBOARD' | 'STUDIES' | 'TEAM' | 'SCREENER_BUILDER' | 'AUDIT_LOGS' | 'SETTINGS' | 'WEBSITE' | 'COMPLIANCE' | 'APPROVALS' | 'SUBMIT_CONTENT' | 'WORKFLOW' | 'MESSAGES' | 'INQUIRIES';
 
 
 
@@ -46,6 +47,7 @@ export default function AdminDashboard() {
         if (route === 'content') return 'SUBMIT_CONTENT';
         if (route === 'workflow') return 'WORKFLOW';
         if (route === 'messages') return 'MESSAGES';
+        if (route === 'inquiries') return 'INQUIRIES';
         return 'DASHBOARD';
     });
 
@@ -62,6 +64,7 @@ export default function AdminDashboard() {
         else if (route === 'content') setActiveModule('SUBMIT_CONTENT');
         else if (route === 'workflow') setActiveModule('WORKFLOW');
         else if (route === 'messages') setActiveModule('MESSAGES');
+        else if (route === 'inquiries') setActiveModule('INQUIRIES');
         else if (location.pathname.endsWith('/admin') || !route || route === 'admin') setActiveModule('DASHBOARD');
     }, [location.pathname]);
 
@@ -77,7 +80,8 @@ export default function AdminDashboard() {
             'APPROVALS': 'approvals',
             'SUBMIT_CONTENT': 'content',
             'WORKFLOW': 'workflow',
-            'MESSAGES': 'messages'
+            'MESSAGES': 'messages',
+            'INQUIRIES': 'inquiries'
         };
         const slug = slugs[mod];
         setActiveModule(mod);
@@ -88,6 +92,7 @@ export default function AdminDashboard() {
     const [participants, setParticipants] = useState<any[]>([]);
     const [staff, setStaff] = useState<any[]>([]);
     const [auditLogs, setAuditLogs] = useState<any[]>([]);
+    const [studyInquiries, setStudyInquiries] = useState<any[]>([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedStudy, setSelectedStudy] = useState<any>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -107,6 +112,15 @@ export default function AdminDashboard() {
             setStudies(data || []);
         } catch (error) {
             console.error('Fetch error:', error);
+        }
+    };
+
+    const fetchInquiries = async () => {
+        try {
+            const data = await apiFetch<any[]>('/api/study-inquiries/');
+            setStudyInquiries(data || []);
+        } catch (error) {
+            console.error('Inquiries fetch error:', error);
         }
     };
 
@@ -167,6 +181,7 @@ export default function AdminDashboard() {
 
         if (userStr) setUser(JSON.parse(userStr));
         fetchStudies();
+        fetchInquiries();
         fetchDashboardMetrics();
     }, [navigate]);
 
@@ -208,6 +223,7 @@ export default function AdminDashboard() {
         { id: 'COMPLIANCE', label: 'Compliance Docs', icon: ShieldCheck, roles: ['coordinator', 'pi'] },
         { id: 'SUBMIT_CONTENT', label: 'Submit Content', icon: Plus, roles: ['super_admin', 'admin', 'coordinator', 'pi'] },
         { id: 'WORKFLOW', label: 'Moderation Queue', icon: ShieldCheck, roles: ['super_admin', 'admin'] },
+        { id: 'INQUIRIES', label: 'Study Inquiries', icon: Mail, roles: ['super_admin', 'admin', 'coordinator', 'pi'] },
         { id: 'WEBSITE', label: 'View Public Site', icon: Globe, roles: ['*'] },
 
 
@@ -393,6 +409,21 @@ export default function AdminDashboard() {
 
                 {activeModule === 'MESSAGES' && (
                     <PIMessagesModule />
+                )}
+
+                {activeModule === 'INQUIRIES' && (
+                    <StudyInquiriesModule 
+                        studyInquiries={studyInquiries}
+                        studies={studies}
+                        authFetch={authFetch}
+                        API={apiUrl}
+                        fetchData={() => {
+                            fetchInquiries();
+                            fetchStudies();
+                        }}
+                        handlePageChange={handleModuleChange}
+                        userRole={user?.role?.toUpperCase()}
+                    />
                 )}
 
 

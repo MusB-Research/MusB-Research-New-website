@@ -14,6 +14,7 @@ from .serializers import (
 )
 from api.utils.cache_utils import cache_api_response
 from api.utils.resend_utils import send_email_task
+from authentication.security import encrypt_data, decrypt_data
 
 class ContactPageSettingsView(generics.RetrieveAPIView):
     serializer_class = ContactPageSettingsSerializer
@@ -114,6 +115,7 @@ class SubmissionCreateView(generics.CreateAPIView):
 
         # Generate a clean, plain-text style list for the screening data (if any)
         data_content = ""
+        data_text = ""
         if is_screener:
             for key, value in form_data.items():
                 if not value or key in ['cvConsent']: continue
@@ -123,6 +125,7 @@ class SubmissionCreateView(generics.CreateAPIView):
                     label = "Health Conditions"
                     if isinstance(value, list): value = ", ".join(value)
                 
+                data_text += f"{label}: {value}\n"
                 data_content += f"""
                 <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9;">
                     <p style="margin: 0; font-size: 11px; color: #94a3b8; font-weight: 800; text-transform: uppercase;">{label}</p>
@@ -134,6 +137,20 @@ class SubmissionCreateView(generics.CreateAPIView):
         header_title = "MusB Clinical Screening" if is_screener else "MusB Research Inquiry"
         admin_subject = f"Alert: New { 'Screening [' + outcome + ']' if is_screener else 'Inquiry' } - {submission.name}"
         
+        # Plain text versions
+        admin_text = f"{header_title}\nProtocol: {study_protocol}\n\nOutcome: {outcome}\n\nCandidate Details:\nName: {submission.name}\nEmail: {submission.email}\nPhone: {submission.phone or 'N/A'}\n\n"
+        if is_screener:
+            admin_text += f"Screening Data:\n{data_text}\n"
+        if submission.message:
+            admin_text += f"Message:\n{submission.message}\n"
+            
+        participant_text = f"Hello {submission.name},\n\n"
+        if is_screener:
+            participant_text += f"Thank you for completing the eligibility protocol for {study_protocol}.\nOur clinical team has received your information and will reach out within 24-48 hours."
+        else:
+            participant_text += f"Thank you for reaching out to MusB Research.\nOur team has received your message and will get back to you shortly."
+        participant_text += "\n\nIf you have urgent questions, please contact us at info@musbresearch.com."
+
         # If it's a general inquiry, we should show the raw message
         message_html = ""
         if submission.message and not is_screener:
@@ -210,10 +227,15 @@ class SubmissionCreateView(generics.CreateAPIView):
             from api.utils.resend_utils import safe_resend_send
             from_email = 'MusB Research <info@musbresearch.com>'
             
-            # Fetch study to get PI/Coordinator if available
-            study_id = self.request.data.get('study_id')
+            # Default recipient
             recipients = ["info@musbresearch.com"]
             
+            # Add recipient from Inquiry Type if present
+            if submission.inquiry_type and submission.inquiry_type.recipient_email:
+                recipients.append(submission.inquiry_type.recipient_email)
+            
+            # Fetch study to get PI/Coordinator if available
+            study_id = self.request.data.get('study_id')
             if study_id:
                 try:
                     from api.models import Study
@@ -231,14 +253,19 @@ class SubmissionCreateView(generics.CreateAPIView):
                 except Exception as study_err:
                     print(f"Warning: Could not fetch study team for email: {study_err}")
 
-            # deduplicate
+            # Deduplicate and filter
             recipients = list(set([r for r in recipients if r]))
+            
+            # Store routing info for audit trail
+            submission.routed_to = ", ".join(recipients)
+            submission.save()
 
             # Send to Admin & Study Team
             send_email_task.delay({
                 "from": from_email,
                 "to": recipients,
                 "subject": admin_subject,
+                "text": admin_text,
                 "html": admin_html
             })
             
@@ -247,6 +274,7 @@ class SubmissionCreateView(generics.CreateAPIView):
                 "from": from_email,
                 "to": [submission.email],
                 "subject": participant_subject,
+                "text": participant_text,
                 "html": participant_html,
                 "reply_to": "info@musbresearch.com"
             })
@@ -335,15 +363,16 @@ class SubmissionCreateView(generics.CreateAPIView):
                             user_obj.zip_code = form_data.get('zipCode')
                             needs_save = True
                         if not user_obj.phone_number and form_data.get('phone'):
-                            user_obj.phone_number = form_data.get('phone')
+                            user_obj.phone_number = encrypt_data(form_data.get('phone'))
                             needs_save = True
                         if not user_obj.full_address and form_data.get('location'):
-                            user_obj.full_address = form_data.get('location')
+                            user_obj.full_address = encrypt_data(form_data.get('location'))
                             needs_save = True
                             
                         # Update name if empty
-                        if not decrypt_data(user_obj.full_name) and submission.name:
-                            user_obj.full_name = submission.name
+                        current_name = decrypt_data(user_obj.full_name) if user_obj.full_name else ""
+                        if not current_name and submission.name:
+                            user_obj.full_name = encrypt_data(submission.name)
                             needs_save = True
 
                         if needs_save:

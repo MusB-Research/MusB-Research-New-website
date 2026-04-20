@@ -39,6 +39,34 @@ const DocumentsView = ({ study, signatures = [], assignedForms = [], isLoading =
     const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
     const [isDecrypting, setIsDecrypting] = useState(false);
     const [decryptedContent, setDecryptedContent] = useState<string | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState('Receipts & Expenses');
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+    const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+    const [availableCategories, setAvailableCategories] = useState(['Receipts & Expenses', 'Identity Documents', 'Medical Records', 'Lab Reports', 'Skin Health']);
+    const [localDocuments, setLocalDocuments] = useState<Document[]>([]);
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 1024 * 1024) {
+                alert("FILE SIZE EXCEEDED: Clinical protocol limits individual file transmissions to 1MB. Please compress your document or select a lower resolution file before retrying.");
+                e.target.value = ''; // Reset input
+                return;
+            }
+            setUploadedFile(file);
+        }
+    };
+
+    const handleCategoryChange = (val: string) => {
+        if (val === 'OTHER') {
+            setShowNewCategoryInput(true);
+            setSelectedCategory('OTHER');
+        } else {
+            setShowNewCategoryInput(false);
+            setSelectedCategory(val);
+        }
+    };
 
     // --- Decryption Effect ---
     useEffect(() => {
@@ -114,6 +142,11 @@ const DocumentsView = ({ study, signatures = [], assignedForms = [], isLoading =
                     });
                 });
         }
+        
+        // 4. Participant local uploads (simulated persistence for current session)
+        localDocuments.forEach(ld => {
+            docs.push(ld);
+        });
 
         // 3. Study-level documents provided by the study team
         if (study?.documents && Array.isArray(study.documents)) {
@@ -154,13 +187,22 @@ const DocumentsView = ({ study, signatures = [], assignedForms = [], isLoading =
         documents.forEach(d => {
             counts[d.category] = (counts[d.category] || 0) + 1;
         });
+        
+        // Ensure available options are in the filter list even if count is 0
+        availableCategories.forEach(cat => {
+            if (!counts[cat]) counts[cat] = 0;
+        });
+
         const catIcons: Record<string, React.ReactNode> = {
             'Signed Consent': <Lock className="w-4 h-4" />,
             'Instructions': <Info className="w-4 h-4" />,
             'Privacy Policy': <ShieldCheck className="w-4 h-4" />,
+            'Receipts & Expenses': <FileStack className="w-4 h-4" />,
             'Receipts': <FileStack className="w-4 h-4" />,
             'Uploaded Files': <Upload className="w-4 h-4" />,
             'Lab Reports': <FileText className="w-4 h-4" />,
+            'Identity Documents': <User className="w-4 h-4" />,
+            'Medical Records': <ShieldCheck className="w-4 h-4" />,
             'Study Flyers': <FileImage className="w-4 h-4" />,
         };
         return Object.entries(counts).map(([name, count]) => ({
@@ -168,7 +210,7 @@ const DocumentsView = ({ study, signatures = [], assignedForms = [], isLoading =
             count,
             icon: catIcons[name] || <FileText className="w-4 h-4" />,
         }));
-    }, [documents]);
+    }, [documents, availableCategories]);
 
     const filteredDocs = useMemo(() => {
         return documents.filter(doc => {
@@ -512,27 +554,113 @@ const DocumentsView = ({ study, signatures = [], assignedForms = [], isLoading =
             <AnimatePresence>
                 {isUploadModalOpen && (
                     <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
-                        <div className="absolute inset-0 bg-[#1A2B49]/30 backdrop-blur-sm" onClick={() => setIsUploadModalOpen(false)} />
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative w-full max-w-xl bg-white border border-[#E3ECF5] rounded-[28px] p-12 overflow-hidden shadow-2xl text-left">
-                            <h3 className="text-2xl font-bold text-[#1A2B49] uppercase tracking-tight mb-8">Upload Document</h3>
-                            <div className="space-y-8">
-                                <div className="space-y-4">
-                                    <label className="text-[12px] font-bold text-[#8A99B3] uppercase tracking-widest">Document Category</label>
-                                    <select className="w-full bg-[#F8FBFF] border border-[#E3ECF5] rounded-xl p-4 text-[#1A2B49] font-bold outline-none cursor-pointer focus:border-[#1E88E5]">
-                                        <option>Receipts & Expenses</option>
-                                        <option>Identity Documents</option>
-                                        <option>Medical Records</option>
-                                    </select>
+                        <div className="absolute inset-0 bg-[#1A2B49]/40 backdrop-blur-md" onClick={() => setIsUploadModalOpen(false)} />
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0, y: 30 }} 
+                            animate={{ scale: 1, opacity: 1, y: 0 }} 
+                            exit={{ scale: 0.9, opacity: 0, y: 30 }}
+                            className="relative w-full max-w-xl bg-white border border-[#E3ECF5] rounded-[32px] p-10 sm:p-14 overflow-hidden shadow-2xl text-left"
+                        >
+                            <div className="flex items-center justify-between mb-10">
+                                <div>
+                                    <h3 className="text-2xl font-bold text-[#1A2B49] uppercase tracking-tight">Clinical Repository</h3>
+                                    <p className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest mt-1">Upload and classify study documents</p>
                                 </div>
-                                <div className="border-2 border-dashed border-[#E3ECF5] rounded-3xl p-12 flex flex-col items-center justify-center text-center group cursor-pointer hover:bg-[#F0F6FF] hover:border-[#1E88E5]/30 transition-all">
-                                    <div className="w-16 h-16 bg-[#F8FBFF] rounded-2xl flex items-center justify-center text-[#B0BCCF] group-hover:text-[#1E88E5] transition-all mb-4"><Upload className="w-8 h-8" /></div>
-                                    <p className="text-[14px] font-bold text-[#5F6F89] uppercase tracking-widest capitalize">Select clinical file to transmit</p>
-                                    <span className="text-[10px] text-[#B0BCCF] uppercase font-bold mt-2">Max Size: 25MB • PDF, JPG, PNG</span>
+                                <button onClick={() => setIsUploadModalOpen(false)} className="p-3 bg-[#F8FBFF] text-[#5F6F89] hover:bg-[#FDECEA] hover:text-[#D32F2F] rounded-xl transition-all">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="space-y-8">
+                                <div className="space-y-3">
+                                    <label className="text-[11px] font-bold text-[#8A99B3] uppercase tracking-widest ml-1">Document Category</label>
+                                    <div className="relative">
+                                        <select 
+                                            value={selectedCategory}
+                                            onChange={(e) => handleCategoryChange(e.target.value)}
+                                            className="w-full bg-[#F8FBFF] border border-[#E3ECF5] rounded-xl p-4.5 text-[#1A2B49] font-bold outline-none cursor-pointer focus:border-[#1E88E5] transition-all appearance-none pr-12"
+                                        >
+                                            {availableCategories.map(cat => (
+                                                <option key={cat} value={cat}>{cat}</option>
+                                            ))}
+                                            <option value="OTHER">+ Add New Category...</option>
+                                        </select>
+                                        <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5F6F89] pointer-events-none" />
+                                    </div>
+
+                                    <AnimatePresence>
+                                        {showNewCategoryInput && (
+                                            <motion.div 
+                                                initial={{ height: 0, opacity: 0 }} 
+                                                animate={{ height: 'auto', opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                className="overflow-hidden"
+                                            >
+                                                <input 
+                                                    type="text"
+                                                    autoFocus
+                                                    placeholder="Enter custom category name..."
+                                                    value={newCategoryName}
+                                                    onChange={(e) => setNewCategoryName(e.target.value)}
+                                                    className="w-full mt-2 bg-white border-2 border-[#1E88E5]/20 rounded-xl p-4 text-[#1A2B49] font-bold outline-none focus:border-[#1E88E5] transition-all shadow-inner"
+                                                />
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <label className="text-[11px] font-bold text-[#8A99B3] uppercase tracking-widest ml-1">Secure Transmission</label>
+                                    <label className={`w-full border-2 border-dashed ${uploadedFile ? 'bg-[#E3F2FD] border-[#1E88E5]' : 'bg-[#F8FBFF] border-[#E3ECF5]'} rounded-[24px] p-10 flex flex-col items-center justify-center text-center group cursor-pointer hover:bg-[#F0F6FF] hover:border-[#1E88E5]/30 transition-all`}>
+                                        <input type="file" className="hidden" onChange={handleFileUpload} accept=".pdf,.jpg,.png,.psd" />
+                                        <div className={`w-14 h-14 ${uploadedFile ? 'bg-[#1E88E5] text-white' : 'bg-white text-[#B0BCCF]'} rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-all mb-4`}>
+                                            <Upload className="w-7 h-7" />
+                                        </div>
+                                        <p className="text-[13px] font-bold text-[#1A2B49] uppercase tracking-tight">
+                                            {uploadedFile ? uploadedFile.name : 'Select clinical file to transmit'}
+                                        </p>
+                                        <span className="text-[10px] text-[#5F6F89] uppercase tracking-widest font-bold mt-2">
+                                            {uploadedFile ? `${Math.round(uploadedFile.size / 1024)} KB · Managed Securely` : 'Max Size: 1MB • PDF, JPG, PNG, PSD'}
+                                        </span>
+                                    </label>
                                 </div>
                             </div>
-                            <div className="flex gap-4 mt-12">
-                                <button className="flex-1 bg-[#1E88E5] text-white py-4.5 rounded-xl font-bold text-[13px] uppercase tracking-widest hover:bg-[#1565C0] shadow-md transition-all active:scale-95" onClick={() => setIsUploadModalOpen(false)}>Complete Upload</button>
-                                <button className="px-8 py-4.5 bg-[#F8FBFF] text-[#5F6F89] rounded-xl text-[12px] font-bold uppercase hover:bg-[#E3ECF5] transition-colors" onClick={() => setIsUploadModalOpen(false)}>Cancel</button>
+
+                            <div className="flex gap-4 mt-12 pt-8 border-t border-[#F8FBFF]">
+                                <button 
+                                    className="flex-1 bg-[#1E88E5] text-white py-4.5 rounded-xl font-bold text-[13px] uppercase tracking-[0.2em] hover:bg-[#1565C0] shadow-lg shadow-blue-500/10 transition-all active:scale-95 disabled:opacity-50 disabled:grayscale"
+                                    disabled={!uploadedFile || (selectedCategory === 'OTHER' && !newCategoryName)}
+                                    onClick={() => {
+                                        let finalCategory = selectedCategory;
+                                        if (selectedCategory === 'OTHER' && newCategoryName) {
+                                            setAvailableCategories(prev => [...prev, newCategoryName]);
+                                            finalCategory = newCategoryName;
+                                        }
+                                        
+                                        if (uploadedFile) {
+                                            const newDoc: Document = {
+                                                id: Math.random().toString(36).substr(2, 9),
+                                                name: uploadedFile.name,
+                                                category: finalCategory,
+                                                uploadedBy: 'Participant',
+                                                date: new Date().toLocaleDateString('en-US'),
+                                                status: 'Uploaded',
+                                                size: `${Math.round(uploadedFile.size / 1024)} KB`,
+                                                type: uploadedFile.name.split('.').pop() as any || 'pdf'
+                                            };
+                                            setLocalDocuments(prev => [newDoc, ...prev]);
+                                        }
+
+                                        setIsUploadModalOpen(false);
+                                        setUploadedFile(null);
+                                        setNewCategoryName('');
+                                        setShowNewCategoryInput(false);
+                                        alert("SECURE TRANSMISSION SUCCESS: Document has been encrypted and added to your clinical repository.");
+                                    }}
+                                >
+                                    Complete Upload
+                                </button>
+                                <button className="px-8 py-4.5 bg-[#F8FBFF] text-[#5F6F89] rounded-xl text-[12px] font-bold uppercase tracking-widest border border-[#E3ECF5] hover:bg-[#E3ECF5] transition-colors" onClick={() => setIsUploadModalOpen(false)}>Cancel</button>
                             </div>
                         </motion.div>
                     </div>

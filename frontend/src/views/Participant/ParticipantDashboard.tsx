@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { jsPDF } from 'jspdf';
 import NotificationBell from '../../components/NotificationBell';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    LayoutDashboard, ClipboardList, Box, Activity, MessageSquare,
+    LayoutDashboard, ClipboardList, Activity, MessageSquare,
     FileText, Trophy, User, ShieldCheck, LogOut, Menu, X,
-    Bell, Zap, TrendingUp, Globe, Search, LifeBuoy, Calendar, RefreshCcw
+    Bell, Zap, TrendingUp, Globe, Search, LifeBuoy, Calendar, RefreshCcw,
+    Package, Truck
 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authFetch, clearToken, getRole, performLogout, getUser, saveUser, getDisplayName, API } from '../../utils/auth';
@@ -15,7 +17,7 @@ import SEO from '../../components/SEO';
 import { ActionModal, EditModal, EditProfileModal, LogoutConfirmationModal } from './SharedComponents';
 import DashboardView from './DashboardView';
 import TasksView from './TasksView';
-import StudyKitView from './StudyKitView';
+
 import LogsView from './LogsView';
 import MessagesView from './MessagesView';
 import DocumentsView from './DocumentsView';
@@ -24,6 +26,8 @@ import CompensationView from './CompensationView';
 
 import ProfileView from './ProfileView';
 import VisitsView from './VisitsView';
+import StudyKitView from './StudyKitView';
+import ReturnLabelView from './ReturnLabelView';
 import PrivacyDataView from './PrivacyDataView';
 import ConsentModal from './ConsentModal';
 import FormSignatureModal from './FormSignatureModal';
@@ -46,7 +50,7 @@ export default function ParticipantDashboard() {
         // Init from URL if present
         const route = location.pathname.split('/').pop();
         if (route === 'tasks') return 'Tasks';
-        if (route === 'study-kit') return 'Study Kit';
+
         if (route === 'logs') return 'Logs';
         if (route === 'messages') return 'Messages';
         if (route === 'documents') return 'Documents';
@@ -63,7 +67,7 @@ export default function ParticipantDashboard() {
     useEffect(() => {
         const route = location.pathname.split('/').pop();
         if (route === 'tasks') setActiveNav('Tasks');
-        else if (route === 'study-kit') setActiveNav('Study Kit');
+
         else if (route === 'logs') setActiveNav('Logs');
         else if (route === 'messages') setActiveNav('Messages');
         else if (route === 'documents') setActiveNav('Documents');
@@ -81,7 +85,7 @@ export default function ParticipantDashboard() {
         const normalizedLabel = label.split(' ').map(w => w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : '').join(' ');
 
         const slugs: Record<string, string> = {
-            'Dashboard': '', 'Tasks': 'tasks', 'Study Kit': 'study-kit', 'Logs': 'logs',
+            'Dashboard': '', 'Tasks': 'tasks', 'Logs': 'logs',
             'Messages': 'messages', 'Documents': 'documents', 'Reports': 'reports',
             'Visits': 'visits', 'Compensation': 'compensation', 'Profile': 'profile', 'Privacy & Data': 'privacy',
             'Discover Studies': 'discover'
@@ -95,6 +99,12 @@ export default function ParticipantDashboard() {
         } else {
             setActiveNav(finalLabel);
             navigate(`/dashboard/participant${slug ? '/' + slug : ''}`);
+            
+            // Lazy load clinical data for tabs that need it
+            const clinicalTabs = ['Tasks', 'Visits', 'Reports', 'Documents', 'Logs', 'Compensation', 'Messages'];
+            if (clinicalTabs.includes(finalLabel) && !tasks.length) {
+                loadClinicalData();
+            }
         }
     };
 
@@ -104,7 +114,7 @@ export default function ParticipantDashboard() {
     const [isActionProcessing, setIsActionProcessing] = useState(false);
 
     const [tasks, setTasks] = useState<any[]>([]);
-    const [kits, setKits] = useState<any[]>([]);
+
     const [activeStudy, setActiveStudy] = useState<any>(null);
     const [allStudies, setAllStudies] = useState<any[]>([]);
     const [selectedStudyIndex, setSelectedStudyIndex] = useState(0);
@@ -275,7 +285,8 @@ export default function ParticipantDashboard() {
                 userTimezone: u.timezone || 'UTC',
                 userAge: u.age || '',
                 userDob: u.date_of_birth || '',
-                userRole: u.role || 'PARTICIPANT'
+                userRole: u.role || 'PARTICIPANT',
+                googleAuth: u.google_auth || false
             });
         }
         
@@ -285,7 +296,7 @@ export default function ParticipantDashboard() {
         const fetchedConversations = safeArray(data.conversations);
         
         setVisits(safeArray(data.visits));
-        setKits(safeArray(data.kits));
+
         setLabResults(safeArray(data.lab_results));
         setCompensations(safeArray(data.compensations));
         setConversations(fetchedConversations);
@@ -393,7 +404,22 @@ export default function ParticipantDashboard() {
         lastFetchIdRef.current = `${pId}-${sId}-${currentRefreshKey}`;
     };
 
-    // ──────────────── UNIFIED DASHBOARD LOADER ────────────────
+    // Lazy load clinical data when user navigates to tabs
+    const loadClinicalData = async () => {
+        const apiUrl = API || 'http://localhost:8000';
+        const pSid = activeParticipant?.participant_sid;
+        if (!pSid || !activeStudy) return;
+
+        try {
+            const summaryUrl = `${apiUrl}/api/participants/dashboard_summary/?participant_sid=${pSid}`;
+            const res = await authFetch(summaryUrl).then(r => r.ok ? r.json() : null);
+            if (res) processSummaryData(res, refreshKey);
+        } catch (err) {
+            console.error("Failed to load clinical data:", err);
+        }
+    };
+
+    // ──────────────── UNIFIED DASHBOARD LOADER (LAZY LOADING) ────────────────
     useEffect(() => {
         const loadDashboard = async (isSilent = false) => {
             const apiUrl = API || 'http://localhost:8000';
@@ -403,17 +429,16 @@ export default function ParticipantDashboard() {
                 isFetchingRef.current = true;
                 if (!isSilent) setIsDataLoading(true);
 
-                // PERFORMANCE: Optimized parallel fetch with pagination
+                // FAST: Load lightweight menu first (no clinical data)
                 const currentP = allParticipants[selectedStudyIndex];
                 const pSid = currentP?.participant_sid;
-                const summaryUrl = pSid 
-                    ? `${apiUrl}/api/participants/dashboard_summary/?participant_sid=${pSid}`
-                    : `${apiUrl}/api/participants/dashboard_summary/`;
+                const quickUrl = pSid 
+                    ? `${apiUrl}/api/participants/dashboard_quick/?participant_sid=${pSid}`
+                    : `${apiUrl}/api/participants/dashboard_quick/`;
 
-                // Use pagination to reduce payload (first 50 records sufficient for most users)
-                const [pDataRes, summaryRes, userRes] = await Promise.all([
+                const [pDataRes, quickRes, userRes] = await Promise.all([
                     apiFetch<any[]>('/api/participants/?limit=50'),
-                    authFetch(summaryUrl).then(res => res.ok ? res.json() : null),
+                    authFetch(quickUrl).then(res => res.ok ? res.json() : null),
                     authFetch(`${apiUrl}/api/users/me/`).then(res => res.ok ? res.json() : null)
                 ]);
 
@@ -431,7 +456,8 @@ export default function ParticipantDashboard() {
                         userTimezone: userRes.timezone || 'UTC',
                         userAge: userRes.age || '',
                         userDob: userRes.date_of_birth || '',
-                        userRole: userRes.role || 'PARTICIPANT'
+                        userRole: userRes.role || 'PARTICIPANT',
+                        googleAuth: userRes.google_auth || false
                     });
                 }
 
@@ -476,11 +502,19 @@ export default function ParticipantDashboard() {
                         setAllStudies(Array.from(studyMap.values()));
                     }
 
-                // 3. Hydrate Clinical Data from Summary
-                if (summaryRes) {
-                    processSummaryData(summaryRes, refreshKey);
-                    if (summaryRes.notifications) {
-                         setNotifications(summaryRes.notifications);
+                // 3. Set basic participant/study from quick endpoint (no clinical data yet)
+                if (quickRes) {
+                    setActiveParticipant(quickRes.participant);
+                    setActiveStudy(quickRes.study);
+                    if (quickRes.user) {
+                        const u = quickRes.user;
+                        setUserProfile(prev => ({
+                            ...prev,
+                            userName: u.full_name || '',
+                            firstName: (u.full_name || '').split(' ')[0],
+                            userEmail: u.email || '',
+                            googleAuth: u.google_auth || false
+                        }));
                     }
                 }
 
@@ -494,7 +528,13 @@ export default function ParticipantDashboard() {
 
         loadDashboard(false);
     }, [selectedStudyIndex, refreshKey]);
- // Removed activeStudy as it was redundant and caused duplicate firing
+
+    // AUTO-LOAD CLINICAL DATA (Tasks, Visits, etc.) when selection changes
+    useEffect(() => {
+        if (activeParticipant && activeStudy && !isDataLoading) {
+            loadClinicalData();
+        }
+    }, [activeParticipant?.participant_sid, activeStudy?.id]);
 
     const activeStudyId = String(activeStudy?.id || activeStudy?._id?.$oid || activeStudy?._id || activeStudy?.$oid || '').trim();
 
@@ -534,10 +574,7 @@ export default function ParticipantDashboard() {
         return matched;
     }, [tasks, activeStudyId, activeParticipant]);
 
-    const filteredKits = useMemo(() => {
-        if (activeStudyId === '') return [];
-        return safeArray(kits).filter(k => getId(k.study) === activeStudyId);
-    }, [kits, activeStudyId]);
+
 
     const filteredVisits = useMemo(() => {
         if (!activeParticipant) return [];
@@ -736,7 +773,7 @@ export default function ParticipantDashboard() {
                 return;
             }
             if (taskType === 'DAILY_LOG') {
-                const dateStr = task.due_date;
+                const dateStr = task.due_date?.split('T')[0];
                 const logEntry = logs.find((l: any) => l.date === dateStr);
                 if (logEntry) {
                     setSelectedLog(logEntry);
@@ -765,6 +802,74 @@ export default function ParticipantDashboard() {
                     isOpen: true,
                     title: 'Generation in Progress',
                     desc: "Your signed Form PDF is still being generated. Please retry in a few minutes.",
+                    primaryAction: 'OK'
+                });
+                return;
+            }
+        }
+
+        // ── LOG DOWNLOAD HANDLER ──────────────────────────
+        if (title === 'DOWNLOAD_LOG') {
+            const dateStr = task.due_date?.split('T')[0];
+            const logEntry = logs.find((l: any) => l.date === dateStr);
+            
+            if (logEntry) {
+                const doc = new jsPDF();
+                
+                // Header
+                doc.setFillColor(30, 136, 229);
+                doc.rect(0, 0, 210, 40, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(22);
+                doc.setFont("helvetica", "bold");
+                doc.text("Medication Intake Record", 105, 25, { align: 'center' });
+                
+                // Metadata
+                doc.setTextColor(100, 100, 100);
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                doc.text(`Protocol: ${activeStudy?.protocol_id || 'MusB-RES'}`, 20, 55);
+                doc.text(`Participant: ${activeParticipant?.participant_sid || 'PO-USER'}`, 20, 62);
+                doc.text(`Log Date: ${logEntry.date}`, 20, 69);
+                
+                // Content section
+                doc.setTextColor(26, 43, 73);
+                doc.setFontSize(14);
+                doc.setFont("helvetica", "bold");
+                doc.text("Observation Details", 20, 85);
+                doc.line(20, 87, 190, 87);
+                
+                doc.setFontSize(12);
+                doc.setFont("helvetica", "normal");
+                const items = [
+                    ["Medication Taken:", logEntry.took_medicine ? "YES" : "NO"],
+                    ["Reason for Missed Dose:", logEntry.missed_dose_reason || "N/A"],
+                    ["Overall Feeling:", logEntry.overall_feeling?.replace(/_/g, ' ') || "AS EXPECTED"],
+                    ["Adverse Events:", logEntry.noticed_side_effects ? "YES (Reported)" : "NONE"],
+                    ["Side Effects Details:", logEntry.side_effects_description || "N/A"],
+                    ["Submission Timestamp:", new Date(logEntry.created_at || Date.now()).toLocaleString()]
+                ];
+                
+                let y = 100;
+                items.forEach(([label, value]) => {
+                    doc.setFont("helvetica", "bold");
+                    doc.text(label, 20, y);
+                    doc.setFont("helvetica", "normal");
+                    doc.text(String(value), 80, y);
+                    y += 10;
+                });
+                
+                doc.setTextColor(150, 150, 150);
+                doc.setFontSize(8);
+                doc.text("Verified research data - Generated from MusB Research secure clinical portal.", 105, 280, { align: 'center' });
+                
+                doc.save(`Medication_Log_${logEntry.date}.pdf`);
+                return;
+            } else {
+                setModalConfig({
+                    isOpen: true,
+                    title: 'Record Syncing',
+                    desc: "This log record is currently being synchronized with our clinical database. Please retry in a few seconds.",
                     primaryAction: 'OK'
                 });
                 return;
@@ -865,18 +970,14 @@ export default function ParticipantDashboard() {
             setIsEditProfileModalOpen(true);
             return;
         } else if (lowerTitle.includes('password') || lowerTitle.includes('credential')) {
-            setModalConfig({
-                isOpen: true,
-                title: 'Clinical Access Rotation',
-                desc: 'You are about to change your password. Continue to proceed?',
-                primaryAction: "CONTINUE"
-            });
+            // REDIRECT TO FORGOT PASSWORD PAGE AS REQUESTED
+            navigate('/signin', { state: { initialMode: 'FORGOT' } });
             return;
         } else if (lowerTitle.includes('withdraw') || lowerTitle.includes('leave')) {
             setModalConfig({
                 isOpen: true,
                 title: 'Study Exit Protocol',
-                desc: 'You are choosing to leave the study. This will notify your team. Proceed to confirmation?',
+                desc: 'You are choosing to leave the study. This will notify our clinical team, and someone will contact you shortly to finalize the closure procedures. Proceed to confirmation?',
                 primaryAction: "INITIATE WITHDRAWAL"
             });
             return;
@@ -893,7 +994,6 @@ export default function ParticipantDashboard() {
         const directNav: Record<string, string> = {
             'tasks': 'Tasks',
             'protocol': 'Tasks',
-            'kit': 'Study Kit',
             'logs': 'Logs',
             'dose': 'Logs',
             'supplement': 'Logs',
@@ -917,7 +1017,7 @@ export default function ParticipantDashboard() {
                 const slugs: Record<string, string> = {
                     'Dashboard': '',
                     'Tasks': 'tasks',
-                    'Study Kit': 'study-kit',
+
                     'Logs': 'logs',
                     'Messages': 'messages',
                     'Documents': 'documents',
@@ -975,7 +1075,7 @@ export default function ParticipantDashboard() {
             }
         }
 
-        setTimeout(() => {
+        setTimeout(async () => {
             setIsActionProcessing(false);
 
             if (task) {
@@ -1010,7 +1110,7 @@ export default function ParticipantDashboard() {
 
             if (title.toLowerCase().includes('receipt')) {
                 alert("we got your request and our team members contact you shortly");
-                setActiveNav('Study Kit');
+                setActiveNav('Tasks');
                 return;
             }
 
@@ -1024,22 +1124,43 @@ export default function ParticipantDashboard() {
                 if (taskToUpdate) {
                     setTasks((prev: any[]) => prev.map(t => t.id === taskToUpdate.id ? { ...t, status: 'COMPLETED' } : t));
                 }
-                alert("we got your request and our team members contact you shortly");
+                alert("SUCCESS: Your request has been received. Our clinical team members will contact you shortly.");
                 if (title.toLowerCase().includes('task')) setActiveNav('Tasks');
                 if (title.toLowerCase().includes('dose') || title.toLowerCase().includes('symptom')) setActiveNav('Logs');
                 return;
             }
 
             if (title.toLowerCase().includes('withdraw')) {
-                if (window.confirm("FINAL WARNING: withdrawing from the study will scrub all active clinical records and terminate your enrollment. This action requires PI review and is irreversible. CONFIRM WITHDRAWAL?")) {
-                    alert("⚠️ WITHDRAWAL PROTOCOL ACTIVATED: The study team has been notified. Your clinical access will be phased out within 24 hours.");
-                    setActiveNav('Dashboard');
+                const sId = activeStudy?.id || activeStudy?._id || task?.task_details?.study || task?.study;
+                
+                if (window.confirm("You are choosing to leave the study. This will notify our team and someone from our team will contact you soon. Proceed to confirmation?")) {
+                    try {
+                        const user = getUser();
+                        await authFetch(`${API}/api/help-request/`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                study_id: sId,
+                                action_title: 'STUDY_WITHDRAWAL_REQUEST',
+                                description: `OFFICIAL NOTIFICATION: Participant ${user?.full_name || 'Subject'} (${user?.email}) has initiated a formal study withdrawal request. Priority: HIGH. PI and Coordinator must be notified immediately.`,
+                                alert_priority: 'HIGH',
+                                notify_roles: ['PI', 'COORDINATOR'],
+                                message: "Participant has requested to leave the study via the portal. Immediate follow-up required for closure protocol."
+                            })
+                        });
+                        alert("⚠️ WITHDRAWAL PROTOCOL ACTIVATED: The study team has been notified. Someone from our clinical team will contact you soon regarding your closure protocol.");
+                        setActiveNav('Dashboard');
+                    } catch (err) {
+                        console.error("Withdrawal notification failed:", err);
+                        alert("The notification system is temporarily unavailable. Please contact your coordinator directly to finalize withdrawal.");
+                    }
                 }
                 return;
             }
 
             if (title.toLowerCase().includes('credentials') || title.toLowerCase().includes('rotate')) {
-                alert("🔒 SUCCESS: Clinical credentials successfully rotated. Your new session tokens have been synchronized across all verified systems.");
+                // Redirect to OTP-based reset flow for security
+                navigate('/forgot-password');
                 return;
             }
 
@@ -1145,7 +1266,7 @@ export default function ParticipantDashboard() {
         { label: 'Discover Studies', icon: Search },
         { label: 'Dashboard', icon: LayoutDashboard },
         { label: 'Tasks', icon: ClipboardList, hidden: !isEnrolled },
-        { label: 'Study Kit', icon: Box, hidden: !isEnrolled || activeStudy?.uses_kit === false },
+
         { label: 'Logs', icon: Activity, hidden: !isEnrolled },
         { label: 'Messages', icon: MessageSquare },
         { label: 'Documents', icon: FileText, hidden: !isEnrolled },
@@ -1154,6 +1275,8 @@ export default function ParticipantDashboard() {
         { label: 'Compensation', icon: Trophy, hidden: !isEnrolled },
 
         { label: 'Profile', icon: User },
+        { label: 'Study Kit', icon: Package, hidden: !isEnrolled },
+        { label: 'Return Label', icon: Truck, hidden: !isEnrolled },
         { label: 'Privacy & Data', icon: ShieldCheck },
     ].filter(item => !item.hidden);
 
@@ -1424,7 +1547,7 @@ export default function ParticipantDashboard() {
                                 animate={{ opacity: 1 }}
                                 transition={{ duration: 0.15 }}
                             >
-                                {activeNav === 'Discover Studies' && <DiscoverStudiesView loading={isDataLoading} />}
+                                {activeNav === 'Discover Studies' && <DiscoverStudiesView loading={isDataLoading} userProfile={userProfile} />}
                             {activeNav === 'Dashboard' && (
                                 <DashboardView
                                     isLoading={isDataLoading}
@@ -1443,13 +1566,13 @@ export default function ParticipantDashboard() {
                                     }}
                                     compensations={filteredCompensations}
                                     visits={filteredVisits}
-                                    kits={filteredKits}
+
                                     labResults={filteredLabResults}
                                     conversations={filteredConversations}
                                 />
                             )}
                             {activeNav === 'Tasks' && <TasksView isLoading={isDataLoading} tasks={filteredTasks} onAction={openActionModal} study={activeStudy} userName={userProfile.userName} defaultFilter={tasksDefaultFilter} />}
-                            {activeNav === 'Study Kit' && <StudyKitView isLoading={isDataLoading} onAction={openActionModal} study={activeStudy} kits={filteredKits} />}
+
                             {activeNav === 'Logs' && <LogsView study={activeStudy} onAction={openActionModal} preselectedDate={logsPreselectedDate} preselectedLog={selectedLog} defaultViewMode={logsDefaultViewMode} initialLogs={logs} />}
                             {activeNav === 'Messages' && <MessagesView isLoading={isDataLoading} study={activeStudy} conversations={filteredConversations} onAction={refreshData} fullConversations={fullConversations} setFullConversations={setFullConversations} />}
                             {activeNav === 'Documents' && (
@@ -1478,7 +1601,7 @@ export default function ParticipantDashboard() {
                                     compensations={filteredCompensations}
                                     tasks={filteredTasks}
                                     visits={filteredVisits}
-                                    kits={filteredKits}
+
                                     participant={activeParticipant}
                                     isLoading={isDataLoading}
                                 />
@@ -1495,7 +1618,7 @@ export default function ParticipantDashboard() {
                                 />
                             )}
 
-                            {activeNav === 'Profile' && (
+                            { activeNav === 'Profile' && (
                                 <ProfileView
                                     {...userProfile}
                                     initials={initials}
@@ -1507,6 +1630,8 @@ export default function ParticipantDashboard() {
                                     studyId={activeStudy?.protocol_id || activeStudy?.id}
                                 />
                             )}
+                            {activeNav === 'Study Kit' && <StudyKitView isLoading={isDataLoading} study={activeStudy} />}
+                            {activeNav === 'Return Label' && <ReturnLabelView isLoading={isDataLoading} study={activeStudy} />}
                             {activeNav === 'Privacy & Data' && <PrivacyDataView onAction={openActionModal} isLoading={isDataLoading} />}
                         </motion.div>
                     </AnimatePresence>

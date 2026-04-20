@@ -39,6 +39,19 @@ const ResetForced = lazy(() => import('./views/auth/ResetForced'));
 const ResetPassword = lazy(() => import('./views/auth/ResetPassword'));
 const ProfileSetup = lazy(() => import('./views/auth/ProfileSetup'));
 
+// --- Helper Redirects for Legacy URLs ---
+const CoordinatorRedirect = () => {
+    const location = useLocation();
+    const newPath = location.pathname.replace(/^\/coordinator/, '/dashboard/coordinator');
+    return <Navigate to={newPath + location.search} replace />;
+};
+
+const PIRedirect = () => {
+    const location = useLocation();
+    const newPath = location.pathname.replace(/^\/pi/, '/dashboard/pi');
+    return <Navigate to={newPath + location.search} replace />;
+};
+
 function AppContent() {
     const location = useLocation();
     const navigate = useNavigate();
@@ -135,6 +148,11 @@ function AppContent() {
                         <Route path="/dashboard/pi/*" element={<PIDashboard />} />
                         <Route path="/dashboard/coordinator/*" element={<CoordinatorDashboard />} />
                         <Route path="/dashboard/sponsor/*" element={<SponsorDashboard />} />
+                        
+                        {/* Legacy Redirects for old notification links */}
+                        {/* Legacy Redirects for old notification links - preserving full path */}
+                        <Route path="/coordinator/*" element={<CoordinatorRedirect />} />
+                        <Route path="/pi/*" element={<PIRedirect />} />
                         <Route path="/auth/reset-forced" element={<ResetForced />} />
                         <Route path="/reset-password" element={<ResetPassword />} />
                         <Route path="/auth/profile-setup" element={<ProfileSetup />} />

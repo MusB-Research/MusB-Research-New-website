@@ -28,8 +28,16 @@ export const DocumentRegistry: React.FC<DocumentRegistryProps> = ({ participant 
             v: d.version || '1.0',
             t: d.file ? d.file.split('.').pop().toUpperCase() : 'DOC',
             url: d.file_url
+        })),
+        ...(participant.daily_logs || []).filter((l: any) => l.supporting_file).map((l: any) => ({
+            n: `Daily Log Evidence - ${l.date}`,
+            d: l.date,
+            v: '1.0',
+            t: l.supporting_file.split('.').pop().toUpperCase(),
+            url: l.supporting_file
         }))
     ];
+
 
     return (
         <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '3rem' }}>

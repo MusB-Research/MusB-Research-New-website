@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+
 import { authFetch, API, getUser } from '../../utils/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -11,17 +12,20 @@ import { Card, Badge, ProgressBar, Skeleton } from './SharedComponents';
 
 // --- SUB-COMPONENTS ---
 
-const SectionHeader = ({ title, icon: Icon, subtitle }: any) => (
-    <div className="flex items-center gap-4 mb-2">
-        <div className="w-12 h-12 bg-[#F0F6FF] rounded-2xl flex items-center justify-center border border-[#E3F2FD] text-[#1E88E5] shadow-sm">
-            <Icon className="w-6 h-6" />
+const SectionHeader = ({ title, icon: Icon, subtitle }: any) => {
+    return (
+        <div className="flex items-center gap-4 mb-3">
+            <div className="w-12 h-12 bg-[#F0F6FF] rounded-2xl flex items-center justify-center border border-[#E3F2FD] text-[#1E88E5] shadow-sm">
+                <Icon className="w-6 h-6" />
+            </div>
+            <div>
+                <h4 className="text-[18px] font-black text-[#1A2B49] uppercase tracking- tight italic">{title}</h4>
+                <p className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest">{subtitle}</p>
+            </div>
         </div>
-        <div>
-            <h4 className="text-[15px] font-bold text-[#1A2B49] uppercase tracking-tight">{title}</h4>
-            <p className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">{subtitle}</p>
-        </div>
-    </div>
-);
+    );
+};
+
 
 const BooleanChoice = ({ value, onChange, label, inverse = false }: any) => {
     const getYesStyle = () => {
@@ -39,21 +43,261 @@ const BooleanChoice = ({ value, onChange, label, inverse = false }: any) => {
     };
 
     return (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-1">
-            {label && <label className="text-[12px] font-bold text-[#5F6F89] uppercase tracking-widest flex-1 text-center sm:text-left">{label}</label>}
-            <div className="flex gap-1.5 p-1 bg-[#F8FBFF] border border-[#E3ECF5] rounded-[1.25rem] w-full sm:w-fit shadow-inner relative overflow-hidden shrink-0">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2 border-b border-dashed border-[#E3ECF5]/50 last:border-0">
+            {label && <label className="text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest flex-1 text-center sm:text-left">{label}</label>}
+            <div className="flex gap-1.5 p-1.5 bg-[#F8FBFF] border border-[#E3ECF5] rounded-2xl w-full sm:w-fit shadow-inner relative overflow-hidden shrink-0">
                 <button
                     onClick={() => onChange(true)}
-                    className={`flex-1 sm:px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${getYesStyle()}`}
+                    className={`flex-1 sm:px-8 py-3 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all duration-300 ${getYesStyle()}`}
                 >
                     Yes
                 </button>
                 <button
                     onClick={() => onChange(false)}
-                    className={`flex-1 sm:px-6 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all duration-300 ${getNoStyle()}`}
+                    className={`flex-1 sm:px-8 py-3 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all duration-300 ${getNoStyle()}`}
                 >
                     No
                 </button>
+            </div>
+        </div>
+    );
+};
+
+
+/**
+ * A custom scrollable/clickable clock for precise time entry
+ */
+const ScrollableClock = ({ value, onChange, label, icon: Icon }: { value: string, onChange: (val: string) => void, label?: string, icon?: any }) => {
+    // value is HH:mm (24h)
+    const [h24, m] = (value || '00:00').split(':').map(Number);
+    const period = h24 >= 12 ? 'pm' : 'am';
+    const h12 = h24 % 12 || 12;
+
+    const hourRef = useRef<HTMLDivElement>(null);
+    const minRef = useRef<HTMLDivElement>(null);
+    const hiddenInputRef = useRef<HTMLInputElement>(null);
+
+    const updateTime = (h: number, min: number, p: string) => {
+        let finalH = h;
+        if (p === 'pm' && h < 12) finalH += 12;
+        if (p === 'am' && h === 12) finalH = 0;
+        onChange(`${finalH.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`);
+    };
+
+    const adjustHour = (dir: number) => {
+        let nextH = h12 + dir;
+        if (nextH > 12) nextH = 1;
+        if (nextH < 1) nextH = 12;
+        updateTime(nextH, m, period);
+    };
+
+    const adjustMinute = (dir: number) => {
+        let nextM = m + dir;
+        if (nextM > 59) nextM = 0;
+        if (nextM < 0) nextM = 59;
+        updateTime(h12, nextM, period);
+    };
+
+    useEffect(() => {
+        const hEl = hourRef.current;
+        const mEl = minRef.current;
+        
+        const handleHourWheel = (e: WheelEvent) => {
+            e.preventDefault(); e.stopPropagation();
+            adjustHour(e.deltaY < 0 ? 1 : -1);
+        };
+        const handleMinWheel = (e: WheelEvent) => {
+            e.preventDefault(); e.stopPropagation();
+            adjustMinute(e.deltaY < 0 ? 1 : -1);
+        };
+
+        if (hEl) hEl.addEventListener('wheel', handleHourWheel, { passive: false });
+        if (mEl) mEl.addEventListener('wheel', handleMinWheel, { passive: false });
+
+        return () => {
+            if (hEl) hEl.removeEventListener('wheel', handleHourWheel);
+            if (mEl) mEl.removeEventListener('wheel', handleMinWheel);
+        };
+    }, [h12, m, period]);
+
+    const togglePeriod = () => {
+        updateTime(h12, m, period === 'am' ? 'pm' : 'am');
+    };
+
+    return (
+        <div className="space-y-3">
+            {label && (
+                <label className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest flex items-center gap-2">
+                    {Icon && <Icon className="w-4 h-4 text-[#1E88E5]" />} {label}
+                </label>
+            )}
+            <div className="flex items-center gap-4 bg-[#F8FBFF] border border-[#1E88E5] rounded-[1.5rem] p-5 w-full justify-between shadow-inner group transition-all hover:bg-white hover:shadow-lg overflow-hidden relative">
+                <input 
+                    type="time" 
+                    ref={hiddenInputRef}
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="absolute opacity-0 pointer-events-none"
+                    style={{ width: 0, height: 0, top: '50%', left: '50%' }}
+                />
+                
+                <div className="flex items-center gap-2">
+                    <div className="flex items-center font-mono text-3xl font-black text-[#1A2B49] select-none">
+                        {/* Hour Cluster */}
+                        <div ref={hourRef} className="relative group/h cursor-ns-resize">
+                            <motion.div 
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => adjustHour(1)}
+                                className="bg-[#1E88E5] text-white px-3 py-1.5 rounded-lg min-w-[3.5rem] text-center shadow-lg shadow-blue-500/20 flex items-center justify-center transition-all hover:brightness-110"
+                            >
+                                {h12.toString().padStart(2, '0')}
+                            </motion.div>
+                        </div>
+
+                        <span className="text-[#1E88E5] mx-2 opacity-50">:</span>
+
+                        {/* Minute Cluster */}
+                        <div ref={minRef} className="relative group/m cursor-ns-resize">
+                            <motion.div 
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => adjustMinute(1)}
+                                className="px-2 py-1.5 hover:text-[#1E88E5] transition-colors"
+                            >
+                                {m.toString().padStart(2, '0')}
+                            </motion.div>
+                        </div>
+                        
+                        {/* Period Switcher */}
+                        <motion.div 
+                            whileTap={{ scale: 0.9 }}
+                            onClick={togglePeriod}
+                            className="ml-6 text-xl font-bold uppercase tracking-widest text-[#5F6F89] cursor-pointer hover:text-[#1E88E5] bg-white border border-[#E3ECF5] px-4 py-2 rounded-xl transition-all shadow-sm"
+                        >
+                            {period}
+                        </motion.div>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-4 shrink-0">
+                    <div className="hidden sm:flex flex-col gap-1 items-end opacity-40">
+                        <div className="text-[10px] font-black text-[#1A2B49] uppercase tracking-widest text-right whitespace-nowrap">Adjust Time</div>
+                        <div className="text-[8px] font-bold text-[#8A99B3] uppercase tracking-tighter text-right whitespace-nowrap">Scroll Segments</div>
+                    </div>
+                    <motion.button 
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => hiddenInputRef.current?.showPicker()}
+                        className="bg-[#F0F6FF] p-2.5 rounded-xl text-[#1E88E5] hover:bg-[#1E88E5] hover:text-white transition-all shadow-sm"
+                    >
+                        <Clock className="w-5 h-5" />
+                    </motion.button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
+
+const ScrollableDatePicker = ({ value, onChange, label, icon: Icon }: { value: string, onChange: (val: string) => void, label?: string, icon?: any }) => {
+    // value is YYYY-MM-DD
+    const [y, m, d] = (value || '2026-04-20').split('-').map(Number);
+    
+    const dayRef = useRef<HTMLDivElement>(null);
+    const monthRef = useRef<HTMLDivElement>(null);
+    const yearRef = useRef<HTMLDivElement>(null);
+    const hiddenInputRef = useRef<HTMLInputElement>(null);
+
+    const updateDate = (newY: number, newM: number, newD: number) => {
+        const daysInMonth = new Date(newY, newM, 0).getDate();
+        const finalD = Math.min(newD, daysInMonth);
+        onChange(`${newY}-${newM.toString().padStart(2, '0')}-${finalD.toString().padStart(2, '0')}`);
+    };
+
+    const adjustDay = (dir: number) => {
+        const daysInMonth = new Date(y, m, 0).getDate();
+        let nextD = d + dir;
+        if (nextD > daysInMonth) nextD = 1;
+        if (nextD < 1) nextD = daysInMonth;
+        updateDate(y, m, nextD);
+    };
+
+    const adjustMonth = (dir: number) => {
+        let nextM = m + dir;
+        if (nextM > 12) nextM = 1;
+        if (nextM < 1) nextM = 12;
+        updateDate(y, nextM, d);
+    };
+
+    const adjustYear = (dir: number) => {
+        updateDate(y + dir, m, d);
+    };
+
+    useEffect(() => {
+        const dEl = dayRef.current;
+        const mEl = monthRef.current;
+        const yEl = yearRef.current;
+
+        const handleDayWheel = (e: WheelEvent) => { e.preventDefault(); e.stopPropagation(); adjustDay(e.deltaY < 0 ? 1 : -1); };
+        const handleMonthWheel = (e: WheelEvent) => { e.preventDefault(); e.stopPropagation(); adjustMonth(e.deltaY < 0 ? 1 : -1); };
+        const handleYearWheel = (e: WheelEvent) => { e.preventDefault(); e.stopPropagation(); adjustYear(e.deltaY < 0 ? 1 : -1); };
+
+        if (dEl) dEl.addEventListener('wheel', handleDayWheel, { passive: false });
+        if (mEl) mEl.addEventListener('wheel', handleMonthWheel, { passive: false });
+        if (yEl) yEl.addEventListener('wheel', handleYearWheel, { passive: false });
+
+        return () => {
+            if (dEl) dEl.removeEventListener('wheel', handleDayWheel);
+            if (mEl) mEl.removeEventListener('wheel', handleMonthWheel);
+            if (yEl) yEl.removeEventListener('wheel', handleYearWheel);
+        };
+    }, [y, m, d]);
+
+    return (
+        <div className="space-y-3">
+            {label && (
+                <label className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest flex items-center gap-2">
+                    {Icon && <Icon className="w-4 h-4 text-[#1E88E5]" />} {label}
+                </label>
+            )}
+            <div className="flex items-center gap-4 bg-[#F8FBFF] border border-[#E3ECF5] rounded-[1.5rem] p-5 w-full justify-between shadow-inner group transition-all hover:bg-white hover:shadow-lg overflow-hidden relative">
+                <input 
+                    type="date" 
+                    ref={hiddenInputRef}
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="absolute opacity-0 pointer-events-none"
+                    style={{ width: 0, height: 0, top: '50%', left: '50%' }}
+                />
+
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center font-mono text-2xl font-black text-[#1A2B49] select-none">
+                        {/* Month Segment */}
+                        <div ref={monthRef} className="relative cursor-ns-resize px-2 py-1.5 hover:text-[#1E88E5] transition-colors" onClick={() => adjustMonth(1)}>
+                            {m.toString().padStart(2, '0')}
+                        </div>
+
+                        <span className="text-[#8A99B3] mx-1">/</span>
+                        
+                        {/* Day Segment */}
+                        <div ref={dayRef} className="relative cursor-ns-resize px-2 py-1.5 hover:text-[#1E88E5] transition-colors" onClick={() => adjustDay(1)}>
+                            {d.toString().padStart(2, '0')}
+                        </div>
+
+                        <span className="text-[#8A99B3] mx-1">/</span>
+
+                        {/* Year Segment */}
+                        <div ref={yearRef} className="relative cursor-ns-resize px-2 py-1.5 hover:text-[#1E88E5] transition-colors" onClick={() => adjustYear(1)}>
+                            {y}
+                        </div>
+                    </div>
+                </div>
+                <motion.button 
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => hiddenInputRef.current?.showPicker()}
+                    className="bg-[#F0F6FF] p-2.5 rounded-xl text-[#1E88E5] hover:bg-[#1E88E5] hover:text-white transition-all shadow-sm"
+                >
+                    <Calendar className="w-5 h-5" />
+                </motion.button>
             </div>
         </div>
     );
@@ -390,16 +634,20 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
 
     React.useEffect(() => {
         const today = getLocalISODate(new Date());
-        
+
         // 🚀 PERFORMANT ORCHESTRATION: Use preloaded logs instead of re-fetching
         if (initialLogs && initialLogs.length > 0) {
             setHistory(initialLogs);
             setIsLoadingHistory(false);
-            
+
             const existing = initialLogs.find((l: any) => l.date === today);
             if (existing) {
                 setTodayLog(existing);
                 populateFormFromLog(existing);
+                // CRITICAL: If a finalized log exists for today, clear any stale draft from storage
+                if (!existing.is_draft) {
+                    localStorage.removeItem('musb_daily_log_draft');
+                }
             }
         } else {
             // Fallback for direct deep-links or manual refresh
@@ -607,25 +855,26 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                     {/* Section A: Medicine Intake */}
                     <Card className="p-6 bg-white">
                         <section className="space-y-4">
-                            <SectionHeader icon={Thermometer} title="A. Medication Adherence" subtitle="Documenting daily study medicine use" />
+                            <SectionHeader icon={Thermometer} title="Medication Adherence" subtitle="Documenting daily study medicine use" />
 
                             <div className="space-y-6">
                                 <BooleanChoice label="Did you take your medicine today?" value={tookMedicine} onChange={setTookMedicine} />
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-[#F8FBFF] pt-6">
-                                    <div className="space-y-3">
-                                        <label className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest flex items-center gap-2">
-                                            <Calendar className="w-4 h-4 text-[#1E88E5]" /> Entry Date
-                                        </label>
-                                        <input type="date" value={logDate} onChange={(e) => setLogDate(e.target.value)} className="w-full bg-[#F8FBFF] border border-[#E3ECF5] rounded-xl p-3 text-[#1A2B49] font-bold text-lg outline-none focus:border-[#1E88E5] transition-all" />
-                                    </div>
-                                    <div className="space-y-3">
-                                        <label className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest flex items-center gap-2">
-                                            <Clock className="w-4 h-4 text-[#1E88E5]" /> Time of Action
-                                        </label>
-                                        <input type="time" value={timeTaken} onChange={(e) => setTimeTaken(e.target.value)} className="w-full bg-[#F8FBFF] border border-[#E3ECF5] rounded-xl p-3 text-[#1A2B49] font-bold text-lg outline-none focus:border-[#1E88E5] transition-all" />
-                                    </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-[#F8FBFF] pt-6 items-end">
+                                    <ScrollableDatePicker 
+                                        label="Entry Date" 
+                                        icon={Calendar} 
+                                        value={logDate} 
+                                        onChange={setLogDate} 
+                                    />
+                                    <ScrollableClock 
+                                        label="Time of Action" 
+                                        icon={Clock} 
+                                        value={timeTaken} 
+                                        onChange={setTimeTaken} 
+                                    />
                                 </div>
+
                             </div>
 
                             <AnimatePresence>
@@ -635,11 +884,11 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                                         {fullDose === false && (
                                             <div className="space-y-8 animate-in fade-in duration-300">
                                                 <div className="space-y-3">
-                                                    <label className="text-[14px] font-bold text-[#5F6F89] uppercase tracking-widest block">How much was administered?</label>
+                                                    <label className="text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest block">How much was administered?</label>
                                                     <input type="text" placeholder="Specify (e.g., 2.5ml, 1 pill)" value={doseAmount} onChange={(e) => setDoseAmount(e.target.value)} className="w-full bg-white border border-[#E3ECF5] rounded-xl p-4 text-[#1A2B49] font-bold outline-none focus:border-[#1E88E5]" />
                                                 </div>
                                                 <div className="space-y-3">
-                                                    <label className="text-[14px] font-bold text-[#5F6F89] uppercase tracking-widest block">Reason for partial dose</label>
+                                                    <label className="text-[13px] font-bold text-[#5F6F89] uppercase tracking-widest block">Reason for partial dose</label>
                                                     <textarea placeholder="Please specify..." value={reasonMissed} onChange={(e) => setReasonMissed(e.target.value)} className="w-full bg-white border border-[#E3ECF5] rounded-xl p-4 h-24 text-[#1A2B49] font-bold outline-none focus:border-[#1E88E5] resize-none" />
                                                 </div>
                                             </div>
@@ -660,7 +909,7 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                     {/* Section B: Adverse Events */}
                     <Card className="p-6 bg-white">
                         <section className="space-y-10">
-                            <SectionHeader icon={AlertTriangle} title="B. Adverse Events Monitoring" subtitle="Participant safety tracking" />
+                            <SectionHeader icon={AlertTriangle} title="Adverse Events Monitoring" subtitle="Participant safety tracking" />
 
                             <BooleanChoice label="Did you notice any side effects or unusual symptoms?" value={noticedAE} onChange={setNoticedAE} inverse={true} />
 
@@ -688,9 +937,9 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                                                     { id: 'MODERATE', color: 'bg-[#FFAB00]', border: 'border-[#FFAB00]' },
                                                     { id: 'SEVERE', color: 'bg-[#D32F2F]', border: 'border-[#D32F2F]' }
                                                 ].map(lvl => (
-                                                    <button 
-                                                        key={lvl.id} 
-                                                        onClick={() => setAeSeverity(lvl.id)} 
+                                                    <button
+                                                        key={lvl.id}
+                                                        onClick={() => setAeSeverity(lvl.id)}
                                                         className={`py-4 rounded-xl text-[12px] font-bold uppercase tracking-widest border transition-all ${aeSeverity === lvl.id ? `${lvl.color} ${lvl.border} text-white shadow-md` : 'bg-[#F8FBFF] border-[#E3ECF5] text-[#5F6F89] hover:text-[#5F6F89]'}`}
                                                     >
                                                         {lvl.id}
@@ -712,7 +961,7 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                     {/* Section C: Health Wellness */}
                     <Card className="p-6 sm:p-8 bg-white">
                         <section className="space-y-4">
-                            <SectionHeader icon={Activity} title="C. Holistic Wellness Review" subtitle="General health status" />
+                            <SectionHeader icon={Activity} title="Holistic Wellness Review" subtitle="General health status" />
 
                             <div className="space-y-8">
                                 <label className="text-[14px] font-bold text-[#5F6F89] uppercase tracking-widest block">Overall wellness today?</label>
@@ -723,9 +972,9 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                                         { id: 'FAIR', label: 'FAIR', color: 'bg-[#FFD600]', border: 'border-[#FFD600]' },
                                         { id: 'POOR', label: 'POOR', color: 'bg-[#FF5252]', border: 'border-[#FF5252]' }
                                     ].map(opt => (
-                                        <button 
-                                            key={opt.id} 
-                                            onClick={() => setOverallFeeling(opt.id)} 
+                                        <button
+                                            key={opt.id}
+                                            onClick={() => setOverallFeeling(opt.id)}
                                             className={`py-4 rounded-xl text-[11px] font-bold uppercase tracking-widest border transition-all ${overallFeeling === opt.id ? `${opt.color} ${opt.border} text-white shadow-md scale-[1.03]` : 'bg-[#F8FBFF] border-[#E3ECF5] text-[#5F6F89]'}`}
                                         >
                                             {opt.label}
@@ -758,19 +1007,19 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                                                     <span className="text-[12px] font-bold text-[#1A2B49] truncate max-w-[200px]">{supportingFile.name}</span>
                                                     <div className="flex items-center gap-1 ml-4 border-l pl-3 border-[#E3ECF5] relative z-20">
                                                         {previewUrl && (
-                                                            <button 
-                                                                type="button" 
-                                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(previewUrl, '_blank'); }} 
-                                                                className="p-1.5 text-[#1E88E5] hover:bg-[#E3F2FD] rounded-lg transition-all" 
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.open(previewUrl, '_blank'); }}
+                                                                className="p-1.5 text-[#1E88E5] hover:bg-[#E3F2FD] rounded-lg transition-all"
                                                                 title="Preview File"
                                                             >
                                                                 <Eye className="w-4.5 h-4.5" />
                                                             </button>
                                                         )}
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSupportingFile(null); }} 
-                                                            className="p-1.5 text-[#D32F2F] hover:bg-[#FDECEA] rounded-lg transition-all" 
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSupportingFile(null); }}
+                                                            className="p-1.5 text-[#D32F2F] hover:bg-[#FDECEA] rounded-lg transition-all"
                                                             title="Delete File"
                                                         >
                                                             <X className="w-4.5 h-4.5" />
@@ -821,35 +1070,35 @@ const LogsView = ({ study, onAction, preselectedDate, preselectedLog, defaultVie
                     ) : (
                         <div className="grid grid-cols-1 gap-3">
                             {history.map((log: any) => (
-                            <Card key={log.id} onClick={() => setSelectedLog(log)} className="p-5 hover:border-[#1E88E5]/30 transition-all cursor-pointer group shadow-sm bg-white">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${log.took_medicine ? 'bg-[#E9F7EF] text-[#1E7F4F]' : 'bg-[#FDECEA] text-[#D32F2F]'}`}>
-                                            <Calendar className="w-5 h-5" />
-                                        </div>
-                                        <div>
-                                            <h5 className="text-[14px] font-bold text-[#1A2B49] uppercase tracking-tight">ENTRY DATE: {new Date(log.date).toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' })}</h5>
-                                            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                                                <Badge color={log.took_medicine ? 'green' : 'red'}>{log.took_medicine ? 'MEDICINE TAKEN' : 'DOSE MISSED'}</Badge>
-                                                {log.overall_feeling && <span className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">{log.overall_feeling.replace('_', ' ')}</span>}
-                                                {log.noticed_side_effects && <Badge color="red">AE REPORTED</Badge>}
-                                                {log.supporting_file && (
-                                                    <div className="flex items-center gap-1.5 ml-2 border-l border-[#E3ECF5] pl-3">
-                                                        <FileText className="w-3.5 h-3.5 text-[#1E88E5]" />
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); window.open(log.supporting_file, '_blank'); }}
-                                                            className="text-[10px] font-bold text-[#1E88E5] hover:underline uppercase"
-                                                        >
-                                                            View Attachment
-                                                        </button>
-                                                    </div>
-                                                )}
+                                <Card key={log.id} onClick={() => setSelectedLog(log)} className="p-5 hover:border-[#1E88E5]/30 transition-all cursor-pointer group shadow-sm bg-white">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${log.took_medicine ? 'bg-[#E9F7EF] text-[#1E7F4F]' : 'bg-[#FDECEA] text-[#D32F2F]'}`}>
+                                                <Calendar className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <h5 className="text-[14px] font-bold text-[#1A2B49] uppercase tracking-tight">ENTRY DATE: {new Date(log.date).toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' })}</h5>
+                                                <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                                                    <Badge color={log.took_medicine ? 'green' : 'red'}>{log.took_medicine ? 'MEDICINE TAKEN' : 'DOSE MISSED'}</Badge>
+                                                    {log.overall_feeling && <span className="text-[11px] font-bold text-[#5F6F89] uppercase tracking-widest">{log.overall_feeling.replace('_', ' ')}</span>}
+                                                    {log.noticed_side_effects && <Badge color="red">AE REPORTED</Badge>}
+                                                    {log.supporting_file && (
+                                                        <div className="flex items-center gap-1.5 ml-2 border-l border-[#E3ECF5] pl-3">
+                                                            <FileText className="w-3.5 h-3.5 text-[#1E88E5]" />
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); window.open(log.supporting_file, '_blank'); }}
+                                                                className="text-[10px] font-bold text-[#1E88E5] hover:underline uppercase"
+                                                            >
+                                                                View Attachment
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
+                                        <div className="w-10 h-10 bg-[#F8FBFF] rounded-xl flex items-center justify-center text-[#B0BCCF] group-hover:text-[#1E88E5] group-hover:bg-[#E3F2FD] transition-all shrink-0"><ChevronRight className="w-6 h-6" /></div>
                                     </div>
-                                    <div className="w-10 h-10 bg-[#F8FBFF] rounded-xl flex items-center justify-center text-[#B0BCCF] group-hover:text-[#1E88E5] group-hover:bg-[#E3F2FD] transition-all shrink-0"><ChevronRight className="w-6 h-6" /></div>
-                                </div>
-                            </Card>
+                                </Card>
                             ))}
                         </div>
 

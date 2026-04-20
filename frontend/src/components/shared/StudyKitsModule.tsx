@@ -34,69 +34,8 @@ interface StudyKit {
     return_label_url?: string;
 }
 
-// ── Dummy/demo kits shown when the API returns no data ───────────────────────
-const MOCK_KITS: StudyKit[] = [
-    {
-        id: 'mock-1',
-        kit_number: 'SK-2025-0041',
-        participant_name: 'Bijesh Kumar',
-        participant_id: 'BTB-001',
-        protocol_id: 'MUSB-BTB-1001',
-        address: '4820 Bloom Ave, Tampa, FL 33612',
-        status: 'SHIPPED',
-        carrier: 'FedEx',
-        last_updated: '2025-04-10',
-        tracking_number: '7489234701289034',
-    },
-    {
-        id: 'mock-2',
-        kit_number: 'SK-2025-0042',
-        participant_name: 'Sarah Mitchell',
-        participant_id: 'BTB-002',
-        protocol_id: 'MUSB-BTB-1001',
-        address: '112 Oak Creek Blvd, Orlando, FL 32801',
-        status: 'DELIVERED',
-        carrier: 'UPS',
-        last_updated: '2025-04-08',
-        tracking_number: '1Z999AA10123456784',
-    },
-    {
-        id: 'mock-3',
-        kit_number: 'SK-2025-0043',
-        participant_name: 'James Okafor',
-        participant_id: 'BTB-003',
-        protocol_id: 'MUSB-BTB-1001',
-        address: '77 Research Pkwy, Miami, FL 33101',
-        status: 'PREPARING',
-        carrier: 'DHL',
-        last_updated: '2025-04-12',
-        tracking_number: '',
-    },
-    {
-        id: 'mock-4',
-        kit_number: 'SK-2025-0044',
-        participant_name: 'Linda Reyes',
-        participant_id: 'MS-011',
-        protocol_id: 'MUSB-MS-2002',
-        address: '305 Clinical Dr, Jacksonville, FL 32202',
-        status: 'RETURN_SHIPPED',
-        carrier: 'FedEx',
-        last_updated: '2025-04-11',
-        tracking_number: '7489234701389055',
-    },
-    {
-        id: 'mock-5',
-        kit_number: 'SK-2025-0045',
-        participant_name: 'Carlos Hernandez',
-        participant_id: 'MS-012',
-        protocol_id: 'MUSB-MS-2002',
-        address: '918 Wellness Ln, Gainesville, FL 32601',
-        status: 'ASSIGNED',
-        carrier: 'USPS',
-        last_updated: '2025-04-13',
-        tracking_number: '',
-    },
-];
+// ────────────── No Mock Data (Database Only) ───────────────────────
+
 
 export default function StudyKitsModule({ selectedStudyId, preloadedStudies, preloadedParticipants, isLoading: propLoading }: { selectedStudyId?: string, preloadedStudies?: any[], preloadedParticipants?: any[], isLoading?: boolean }) {
     const [searchQuery, setSearchQuery] = useState('');
@@ -144,16 +83,16 @@ export default function StudyKitsModule({ selectedStudyId, preloadedStudies, pre
                     }));
                     setKits(mapped);
                 } else {
-                    // No records in DB yet — show demo data
-                    setKits(MOCK_KITS);
+                    // No records in DB yet — show empty state
+                    setKits([]);
                 }
             } else {
-                setKits(MOCK_KITS);
+                setKits([]);
             }
         } catch (err) {
             console.error("Failed to fetch kits:", err);
-            // On network error also fall back to mock data
-            setKits(MOCK_KITS);
+            // On network error also fall back to empty array
+            setKits([]);
         } finally {
             setInternalLoading(false);
         }

@@ -88,8 +88,19 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     # Credentials (PI, Coordinator, Sponsor)
     medical_licence = models.CharField(max_length=1024, blank=True, null=True)
+    medical_licence_expiry = models.DateField(null=True, blank=True)
     insurance_certificate = models.CharField(max_length=1024, blank=True, null=True)
+    insurance_expiry = models.DateField(null=True, blank=True)
     cv_document = models.CharField(max_length=1024, blank=True, null=True)
+    cv_expiry = models.DateField(null=True, blank=True)
+    gcp_training = models.CharField(max_length=1024, blank=True, null=True)
+    gcp_training_expiry = models.DateField(null=True, blank=True)
+    financial_disclosure = models.CharField(max_length=1024, blank=True, null=True)
+    
+    # MD, PhD, etc.
+    qualifications = models.CharField(max_length=512, blank=True, null=True)
+    npi = models.CharField(max_length=128, blank=True, null=True)
+    
     
     # GDPR & Privacy Compliance
     has_consented_to_data_use = models.BooleanField(default=False)
@@ -128,7 +139,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         # Only encrypt high-sensitivity PII that isn't used for UI filtering/search
         # ─────────────────────────────────────────────────────────
         fields_to_encrypt = [
-            'phone_number', 'full_address', 'place_of_origin'
+            'phone_number', 'full_address', 'place_of_origin', 'npi', 'qualifications'
         ]
         
         for field in fields_to_encrypt:
@@ -163,6 +174,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     @cached_property
     def decrypted_origin(self):
         return decrypt_data(self.place_of_origin)
+
+    @cached_property
+    def decrypted_npi(self):
+        return decrypt_data(self.npi)
+
+    @cached_property
+    def decrypted_qualifications(self):
+        return decrypt_data(self.qualifications)
 
     @cached_property
     def decrypted_name(self):
