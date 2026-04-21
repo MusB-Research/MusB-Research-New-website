@@ -5,6 +5,10 @@ urlpatterns = [
     # Email OTP
     path('request-otp/', otp.send_otp, name='request_otp'),
     path('verify-otp/', otp.verify_otp, name='verify_otp'),
+    
+    # Phone OTP (MFA)
+    path('send-phone-otp/', otp.send_phone_otp, name='send_phone_otp'),
+    path('verify-phone-otp/', otp.verify_phone_otp, name='verify_phone_otp'),
 
 
     

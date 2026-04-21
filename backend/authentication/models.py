@@ -127,15 +127,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['full_name']
 
-    def __hash__(self) -> int:
-        # Compatibility patch for Django 5.x + MongoDB
-        pk = getattr(self, 'pk', None)
-        if pk is None:
-            return id(self)
-        try:
-            return hash(str(pk))
-        except Exception:
-            return id(self)
+    # __hash__ is now handled by global patch in settings.py
 
     def save(self, *args, **kwargs):
         # ─────────────────────────────────────────────────────────
@@ -207,14 +199,7 @@ class RefreshToken(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='refresh_tokens')
     token_hash = models.CharField(max_length=64, unique=True)  # SHA-256 hex digest
 
-    def __hash__(self) -> int:
-        pk = getattr(self, 'pk', None)
-        if pk is None:
-            return id(self)
-        try:
-            return hash(str(pk))
-        except Exception:
-            return id(self)
+    # __hash__ is now handled by global patch in settings.py
     jti = models.CharField(max_length=64, unique=True)         # JWT ID claim
     issued_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
@@ -243,14 +228,7 @@ class TokenBlacklist(models.Model):
     expires_at = models.DateTimeField()   # So we can clean up expired entries
     reason = models.CharField(max_length=50, default='logout')  # logout | password_change | admin_revoke
 
-    def __hash__(self) -> int:
-        pk = getattr(self, 'pk', None)
-        if pk is None:
-            return id(self)
-        try:
-            return hash(str(pk))
-        except Exception:
-            return id(self)
+    # __hash__ is now handled by global patch in settings.py
 
     @classmethod
     def is_blacklisted(cls, jti: str) -> bool:
@@ -292,14 +270,7 @@ class AuditLog(models.Model):
     detail = models.CharField(max_length=500, blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
 
-    def __hash__(self) -> int:
-        pk = getattr(self, 'pk', None)
-        if pk is None:
-            return id(self)
-        try:
-            return hash(str(pk))
-        except Exception:
-            return id(self)
+    # __hash__ is now handled by global patch in settings.py
 
     class Meta:
         ordering = ['-timestamp']
@@ -351,7 +322,8 @@ class Invitation(models.Model):
         return f"Invite for {self.email} to join {self.organization}"
 
 class OTP(models.Model):
-    email = models.EmailField()
+    email = models.EmailField(null=True, blank=True)
+    phone = models.CharField(max_length=20, null=True, blank=True)
     code_hash = models.CharField(max_length=128) # Store hashed code
     attempts = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -397,14 +369,7 @@ class ApprovalRequest(models.Model):
     reviewed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def __hash__(self) -> int:
-        pk = getattr(self, 'pk', None)
-        if pk is None:
-            return id(self)
-        try:
-            return hash(str(pk))
-        except Exception:
-            return id(self)
+    # __hash__ is now handled by global patch in settings.py
 
     def __str__(self):
         return f"Request for {self.target_user.email} by {self.requested_by.email}"

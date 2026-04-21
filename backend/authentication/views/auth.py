@@ -115,6 +115,16 @@ def login_view(request):
         AuditLog.log('LOGIN_FAILED', user_email=login_id, request=request, detail='Account pending approval')
         return Response({'error': 'Your account is pending Super Admin approval.'}, status=status.HTTP_403_FORBIDDEN)
 
+    # Capturing last login and timezone updates (Requirement Restoration)
+    user.last_login = now()
+    client_timezone = request.data.get('timezone')
+    update_fields = ['last_login']
+    if client_timezone and getattr(user, 'timezone', None) != client_timezone:
+        user.timezone = client_timezone
+        update_fields.append('timezone')
+    
+    user.save(update_fields=update_fields)
+
     # ─────────────────────────────────────────────────────────
     # 2FA Check (App-based TOTP)
     # ─────────────────────────────────────────────────────────

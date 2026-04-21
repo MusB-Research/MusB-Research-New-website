@@ -157,4 +157,81 @@ def verify_otp(request):
             'attempts_remaining': remaining
         }, status=status.HTTP_400_BAD_REQUEST)
 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def send_phone_otp(request):
+    """
+    Phone-based OTP Request (Simulated).
+    Generates a 6-digit numeric OTP and stores it securely.
+    """
+    phone = request.data.get('phone', '').strip()
+    if not phone:
+        return Response({'error': 'Phone number is required'}, status=status.HTTP_400_BAD_REQUEST)
 
+    code = OTP.generate_code()
+    
+    # Invalidate previous unverified requests for this phone
+    OTP.objects.filter(phone=phone, is_verified=False).delete()
+
+    # Create secure hashed record
+    from ..utils import hash_otp
+    OTP.objects.create(
+        phone=phone,
+        code_hash=hash_otp(code),
+        expires_at=now() + timedelta(minutes=5)
+    )
+
+    # ─────────────────────────────────────────────────────────
+    # SMS Dispatch Simulation
+    # ─────────────────────────────────────────────────────────
+    logger.info(f"SMS OTP SENT to {phone}: {code}")
+    print(f"SMS OTP SENT to {phone}: {code}") 
+    
+    return Response({
+        'message': 'SMS OTP sent successfully (Simulated)',
+        'phone': phone
+    })
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_phone_otp(request):
+    """Verifies the 6-digit SMS code."""
+    phone = request.data.get('phone', '').strip()
+    otp_input = request.data.get('code', '').strip()
+
+    if not phone or not otp_input:
+        return Response({'error': 'Phone and OTP are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Get latest record
+    otp_record = OTP.objects.filter(phone=phone, is_verified=False).order_by('-created_at').first()
+
+    if not otp_record:
+        return Response({'error': 'No active verification request found.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if otp_record.is_expired():
+        otp_record.delete()
+        return Response({'error': 'Code has expired.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if otp_record.attempts >= 5:
+        otp_record.delete()
+        return Response({'error': 'Too many failed attempts.'}, status=status.HTTP_403_FORBIDDEN)
+
+    from ..utils import hash_otp
+    if hash_otp(otp_input) == otp_record.code_hash:
+        otp_record.is_verified = True
+        otp_record.save()
+        
+        # Log success
+        from ..models import AuditLog
+        AuditLog.log('PHONE_VERIFIED', user_email=phone, request=request)
+        
+        return Response({
+            'message': 'Phone verified successfully', 
+            'verified': True
+        })
+    else:
+        otp_record.increment_attempts()
+        return Response({
+            'error': 'Invalid code.',
+            'attempts_remaining': 5 - otp_record.attempts
+        }, status=status.HTTP_400_BAD_REQUEST)

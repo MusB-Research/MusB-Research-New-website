@@ -8,16 +8,7 @@ class BaseMongoModel(models.Model):
     class Meta:
         abstract = True
 
-    def __hash__(self) -> int:
-        # Compatibility patch for Django 6.x + MongoDB
-        # Ensures unsaved instances can be hashed during migration construction
-        pk = getattr(self, 'pk', None)
-        if pk is None:
-            return id(self)
-        try:
-            return hash(str(pk))
-        except Exception:
-            return id(self)
+    # __hash__ is now handled by global patch in settings.py
 
 class SponsorOrganization(BaseMongoModel):
     name = models.CharField(max_length=255, unique=True)

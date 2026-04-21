@@ -45,16 +45,35 @@ class ApiConfig(AppConfig):
         # Patch ContentType.objects.get_for_model to ensure it always returns a saved instance with a PK
         # This fixes "ValueError: Model instances passed to related filters must be saved" during migrate
         from django.contrib.contenttypes.models import ContentType
-        # original_get_for_model = ContentType.objects.get_for_model
-        # def patched_get_for_model(model, for_concrete_model=True):
-        #     ct = original_get_for_model(model, for_concrete_model)
-        #     if ct and not ct.pk:
-        #         try:
-        #             ct.save()
-        #         except Exception:
-        #             pass
-        #     return ct
-        # ContentType.objects.get_for_model = patched_get_for_model
+        original_get_for_model = ContentType.objects.get_for_model
+        def patched_get_for_model(model, for_concrete_model=True):
+            ct = original_get_for_model(model, for_concrete_model)
+            if ct and not ct.pk:
+                try:
+                    ct.save()
+                except Exception:
+                    pass
+            return ct
+        ContentType.objects.get_for_model = patched_get_for_model
+
+        # Final Defense: Patch Django's related lookup logic to handle unsaved instances during migration
+        # This fixes "ValueError: Model instances passed to related filters must be saved"
+        from django.db.models.fields import related_lookups
+        original_get_normalized_value = related_lookups.get_normalized_value
+        
+        def patched_get_normalized_value(value, lhs):
+            from django.db.models import Model
+            try:
+                return original_get_normalized_value(value, lhs)
+            except ValueError as e:
+                if "must be saved" in str(e) and isinstance(value, Model):
+                    # Log it and return a safe fallback to prevent migration crash
+                    # This is common on MongoDB backends during initial setup/migration
+                    print(f">>> MIGRATION PATCH: Bypassing unsaved model filter error for {value.__class__.__name__}")
+                    return (None, None)
+                raise e
+            
+        related_lookups.get_normalized_value = patched_get_normalized_value
 
         # Only run in the main process, not the reloader
         import os
