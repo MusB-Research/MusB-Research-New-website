@@ -17,7 +17,7 @@ from .models import (
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from .serializers import (
-    VisitSerializer, StudySerializer, StudyAssignmentSerializer, ParticipantSerializer, 
+    VisitSerializer, StudySerializer, StudyBriefSerializer, StudyAssignmentSerializer, ParticipantSerializer, 
     ParticipantBriefSerializer, DeIdentifiedParticipantSerializer, UserSerializer, FormSerializer, 
     FormResponseSerializer, TaskSerializer, ParticipantTaskSerializer, StaffTaskSerializer, 
     ConsentSerializer, ConsentTemplateSerializer, LeadSerializer, CommunicationLogSerializer,
@@ -32,9 +32,9 @@ from .serializers import (
     DailyMedicationLogSerializer, AssignedFormSerializer, SponsorOrganizationSerializer,
     PublicStudySerializer, QuestionnaireTemplateSerializer, StudyQuestionnaireSerializer,
     QuestionnaireScheduleInstanceSerializer,
-    TechnologySerializer, InnovationPageSettingsSerializer, SponsorInquirySerializer
+    TechnologySerializer, InnovationPageSettingsSerializer, SponsorInquirySerializer, InvitationSerializer
 )
-from authentication.models import User, AuditLog
+from authentication.models import User, AuditLog, Invitation
 from django.db.models import Q, Count, Case, When, IntegerField, FloatField, Avg
 from django.utils import timezone
 from django.utils.timezone import now
@@ -185,7 +185,7 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
                 stage__in=['RECRUITING', 'ACTIVE'],
                 approval_status='approved',
                 is_archived=False
-            ).order_by('-created_at')
+            ).order_by('created_at')  # Oldest first — first study created at top
         
         role = (user.role or '').strip().upper()
         
@@ -207,7 +207,12 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         return Study.objects.filter(
             participants__user=user,
             approval_status='approved'
-        ).distinct().order_by('created_at')
+        ).distinct().select_related('pi', 'coordinator', 'sponsor', 'created_by').prefetch_related('assignments', 'assignments__user').order_by('created_at')
+    
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return StudyBriefSerializer
+        return StudySerializer
     
     @cache_api_response("studies_list", timeout=3600)  # Keep at 1 hour since studies change less frequently
     def list(self, request, *args, **kwargs):
@@ -743,9 +748,15 @@ class PublicStudyViewSet(viewsets.ReadOnlyModelViewSet):
         }, status=status.HTTP_201_CREATED)
 
 class SponsorViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = User.objects.filter(role='SPONSOR')
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        return User.objects.filter(role='SPONSOR').exclude(
+            Q(must_change_password=True) |
+            Q(status__iexact='PENDING') |
+            Q(status__iexact='pending')
+        )
     @action(detail=True, methods=['get'])
     def team(self, request, pk=None):
         sponsor = self.get_object()
@@ -774,7 +785,7 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         
         # Staff roles see everyone
         if role in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']:
-            qs = Participant.objects.select_related('user', 'study', 'study__coordinator', 'reviewed_by')
+            qs = Participant.objects.select_related('user', 'study', 'study__coordinator', 'study__pi', 'reviewed_by').prefetch_related('user__groups')
             
             # Optimization: Only prefetch heavy relations for detail view
             if self.action == 'retrieve' or self.action == 'me':
@@ -785,7 +796,7 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
             
         # Participants can ONLY see their own records
         if role == 'PARTICIPANT':
-            qs = Participant.objects.filter(user=user).select_related('user', 'study')
+            qs = Participant.objects.filter(user=user).select_related('user', 'study', 'study__coordinator')
             if self.action == 'retrieve' or self.action == 'me':
                 qs = qs.prefetch_related('visits', 'daily_logs')
             return qs.order_by('created_at')
@@ -1362,13 +1373,13 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
 
         role = (user.role or '').upper()
         if role in ['SUPER_ADMIN', 'ADMIN']:
-            return Participant.objects.all().order_by('-created_at')
+            return Participant.objects.all().select_related('user', 'study').order_by('-created_at')
             
         if role == 'PARTICIPANT':
-            return Participant.objects.filter(user=user).order_by('-created_at')
+            return Participant.objects.filter(user=user).select_related('user', 'study').order_by('-created_at')
             
         # PIs and Coordinators only see participants in studies they are explicitly assigned to
-        return Participant.objects.filter(study__assignments__user=user).distinct().order_by('-created_at')
+        return Participant.objects.filter(study__assignments__user=user).distinct().select_related('user', 'study').order_by('-created_at')
 
 class VisitViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
     queryset = Visit.objects.all()
@@ -1383,11 +1394,11 @@ class VisitViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated: return Visit.objects.none()
         if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
-            return Visit.objects.select_related('participant', 'participant__user', 'participant__study').order_by('-scheduled_date')
+            return Visit.objects.select_related('participant', 'participant__user', 'participant__study', 'participant__study__pi', 'participant__study__coordinator', 'scheduled_by', 'updated_by').order_by('-scheduled_date')
         if (user.role or '').upper() == 'PARTICIPANT':
-            return Visit.objects.filter(participant__user=user).select_related('participant', 'participant__study').order_by('-scheduled_date')
+            return Visit.objects.filter(participant__user=user).select_related('participant', 'participant__user', 'participant__study', 'participant__study__pi', 'participant__study__coordinator', 'scheduled_by', 'updated_by').order_by('-scheduled_date')
         # PIs, Coordinators, and Sponsors see visits for assigned studies
-        return Visit.objects.filter(participant__study__assignments__user=user).select_related('participant', 'participant__user', 'participant__study').distinct().order_by('-scheduled_date')
+        return Visit.objects.filter(participant__study__assignments__user=user).select_related('participant', 'participant__user', 'participant__study', 'participant__study__pi', 'participant__study__coordinator', 'scheduled_by', 'updated_by').distinct().order_by('-scheduled_date')
 
     def perform_create(self, serializer):
         visit = serializer.save(scheduled_by=self.request.user)
@@ -1413,8 +1424,15 @@ class VisitViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def check_missed(self, request):
         from .tasks import check_missed_visits
-        # Trigger background task
-        check_missed_visits.delay()
+        from django.conf import settings
+        
+        # Trigger background task. If Redis is missing locally, Celery EAGER blocks the entire thread for 10s!
+        if getattr(settings, 'CELERY_TASK_ALWAYS_EAGER', False):
+            import threading
+            threading.Thread(target=check_missed_visits, daemon=True).start()
+        else:
+            check_missed_visits.delay()
+            
         return Response({'status': 'Background check initiated', 'message': 'Missed visits are being processed in the background.'})
 
     def perform_update(self, serializer):
@@ -1432,8 +1450,8 @@ class LeadViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated: return Lead.objects.none()
-        if (user.role or '').upper() == 'SUPER_ADMIN': return Lead.objects.select_related('study').all()
-        return Lead.objects.filter(study__assignments__user=user).select_related('study')
+        if (user.role or '').upper() == 'SUPER_ADMIN': return Lead.objects.all().select_related('study')
+        return Lead.objects.filter(study__assignments__user=user).select_related('study').distinct()
 
 class CommunicationLogViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
     queryset = CommunicationLog.objects.all()
@@ -1442,7 +1460,7 @@ class CommunicationLogViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated: return CommunicationLog.objects.none()
-        if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']: return CommunicationLog.objects.select_related('participant', 'participant__user', 'participant__study').all()
+        if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']: return CommunicationLog.objects.all().select_related('participant', 'participant__user', 'participant__study')
         return CommunicationLog.objects.filter(participant__study__assignments__user=user).select_related('participant', 'participant__user', 'participant__study').distinct()
 
 class CompensationViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
@@ -1454,11 +1472,11 @@ class CompensationViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated: return Compensation.objects.none()
         if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
-            queryset = Compensation.objects.select_related('participant', 'study').order_by('-paid_at')
+            queryset = Compensation.objects.all().select_related('participant', 'participant__user', 'study').order_by('-paid_at')
         elif (user.role or '').upper() == 'PARTICIPANT':
-            queryset = Compensation.objects.filter(participant__user=user).select_related('participant', 'study').order_by('-paid_at')
+            queryset = Compensation.objects.filter(participant__user=user).select_related('participant', 'participant__user', 'study').order_by('-paid_at')
         else:
-            queryset = Compensation.objects.filter(participant__study__assignments__user=user).distinct().select_related('participant', 'study').order_by('-paid_at')
+            queryset = Compensation.objects.filter(participant__study__assignments__user=user).select_related('participant', 'participant__user', 'study').distinct().order_by('-paid_at')
         
         study_id = self.request.query_params.get('study_id')
         if study_id and study_id != 'all':
@@ -1477,10 +1495,10 @@ class LabResultViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated: return LabResult.objects.none()
         if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
-            return LabResult.objects.select_related('participant', 'participant__study').order_by('-lab_date')
+            return LabResult.objects.all().select_related('participant', 'participant__user', 'participant__study').order_by('-lab_date')
         if (user.role or '').upper() == 'PARTICIPANT':
-            return LabResult.objects.filter(participant__user=user, is_released=True).select_related('participant').order_by('-lab_date')
-        queryset = LabResult.objects.filter(participant__study__assignments__user=user).distinct().select_related('participant', 'participant__study').order_by('-lab_date')
+            return LabResult.objects.filter(participant__user=user, is_released=True).select_related('participant', 'participant__user').order_by('-lab_date')
+        queryset = LabResult.objects.filter(participant__study__assignments__user=user).select_related('participant', 'participant__user', 'participant__study').distinct().order_by('-lab_date')
         
         study_id = self.request.query_params.get('study_id')
         if study_id and study_id != 'all':
@@ -1521,9 +1539,14 @@ class DataAuditLogViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class ConsentTemplateViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
-    queryset = ConsentTemplate.objects.all().order_by('-created_at')
+    queryset = ConsentTemplate.objects.all().order_by('-created_at').select_related('study')
     serializer_class = ConsentTemplateSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    @cache_api_response("consent_templates", timeout=180)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def get_permissions(self):
         if self.action == 'list' and self.request.query_params.get('public') == 'true':
             return [permissions.AllowAny()]
@@ -1540,18 +1563,18 @@ class ConsentTemplateViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
             
             import bson
             if bson.ObjectId.is_valid(study_id):
-                return ConsentTemplate.objects.filter(study_id=study_id, status='ACTIVE')
+                return ConsentTemplate.objects.filter(study_id=study_id, status='ACTIVE').select_related('study')
             else:
-                return ConsentTemplate.objects.filter(study__protocol_id=study_id, status='ACTIVE')
+                return ConsentTemplate.objects.filter(study__protocol_id=study_id, status='ACTIVE').select_related('study')
 
         if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN']:
-            queryset = ConsentTemplate.objects.all().order_by('-created_at')
+            queryset = ConsentTemplate.objects.all().select_related('study').order_by('-created_at')
         # For Staff (Admin, Coordinator, PI): Filter templates by studies the user is assigned to
         elif (user.role or '').upper() in ['PI', 'COORDINATOR']:
-            queryset = ConsentTemplate.objects.filter(study__assignments__user=user).distinct().order_by('-created_at')
+            queryset = ConsentTemplate.objects.filter(study__assignments__user=user).select_related('study').distinct().order_by('-created_at')
         elif (user.role or '').upper() == 'PARTICIPANT':
             # For Participants: Filter templates by studies they are enrolled in
-            queryset = ConsentTemplate.objects.filter(study__participants__user=user).distinct().order_by('-created_at')
+            queryset = ConsentTemplate.objects.filter(study__participants__user=user).select_related('study').distinct().order_by('-created_at')
         else:
             # Other roles or default
             queryset = ConsentTemplate.objects.none()
@@ -1619,10 +1642,16 @@ class DocumentViewSet(viewsets.ModelViewSet):
         AuditLog.log('DOCUMENT_UPLOADED', user_email=self.request.user.email, request=self.request, detail=f"Uploaded document {serializer.instance.title} for study {serializer.instance.study.protocol_id}")
 
 class ConsentViewSet(viewsets.ModelViewSet):
-    queryset = Consent.objects.all().order_by('-agreed_at')
+    queryset = Consent.objects.all().order_by('-agreed_at').select_related(
+        'participant__user', 'participant__study', 'template', 'study'
+    )
     serializer_class = ConsentSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
+
+    @cache_api_response("consent_list", timeout=120)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def get_queryset(self):
         user = self.request.user
@@ -2068,9 +2097,15 @@ class DailyMedicationLogViewSet(viewsets.ModelViewSet):
 
 
 class AssignedFormViewSet(viewsets.ModelViewSet):
-    queryset = AssignedForm.objects.all()
+    queryset = AssignedForm.objects.all().select_related(
+        'participant__user', 'participant__study', 'form', 'study'
+    )
     serializer_class = AssignedFormSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    @cache_api_response("assigned_forms", timeout=120)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def get_queryset(self):
         user = self.request.user
@@ -2262,7 +2297,10 @@ class ParticipantTaskViewSet(viewsets.ModelViewSet):
         if not user.is_authenticated:
             return ParticipantTask.objects.none()
             
-        queryset = ParticipantTask.objects.all()
+        queryset = ParticipantTask.objects.all().select_related(
+            'participant', 'participant__user', 'participant__study', 
+            'task', 'assigned_form'
+        )
         
         # Staff can filter by study or participant
         if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']:
@@ -2273,10 +2311,19 @@ class ParticipantTaskViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(participant__study_id=study_id)
             if participant_id:
                 queryset = queryset.filter(participant_id=participant_id)
-            return queryset
+            return queryset.order_by('due_date')
 
-        # Maintenance: Auto-lock logic on query (Requirement 3)
-        for task in queryset.filter(status='PENDING'):
+        # Maintenance: Auto-lock logic on query (Requirement 3) - OPTIMIZED to only hit overdue items
+        from django.utils.timezone import now
+        now_time = now()
+        # Only iterate over tasks that ARE actually overdue and not yet locked
+        overdue = queryset.filter(
+            participant__user=user,
+            status='PENDING', 
+            due_date__lt=now_time, 
+            is_locked=False
+        )
+        for task in overdue:
              task.check_and_lock()
 
         visible_statuses = ['ENROLLED', 'CONSENTED', 'RANDOMIZED', 'ACTIVE', 'COMPLETED']
@@ -2349,7 +2396,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid():
-            print(f"!!! USER CREATION VALIDATION FAILED: {serializer.errors}")
+            logger.warning("User creation validation failed: %s", serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         try:
@@ -2357,7 +2404,7 @@ class UserViewSet(viewsets.ModelViewSet):
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         except Exception as e:
-            print(f"!!! USER CREATION EXCEPTION: {e}")
+            logger.error("User creation exception: %s", e)
             return Response({"error": "System failure during record creation", "detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def get_queryset(self):
@@ -2366,8 +2413,13 @@ class UserViewSet(viewsets.ModelViewSet):
             return User.objects.none()
         
         # Base: Staff management views should EXCLUDE participants (who are managed in /api/participants/)
-        staff_qs = User.objects.exclude(role__in=['PARTICIPANT', 'participant', 'Participant'])
-
+        # Also exclude pending/unactivated users so they only appear in the Invitations module
+        staff_qs = User.objects.exclude(
+            Q(role__in=['PARTICIPANT', 'participant', 'Participant']) |
+            Q(must_change_password=True) |
+            Q(status__iexact='PENDING') |
+            Q(status__iexact='pending')
+        ).select_related('created_by')  # eliminate N+1 on created_by
         # Super Admins and Admins see all staff
         if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN']:
             return staff_qs.order_by('-date_joined')
@@ -2407,14 +2459,104 @@ class UserViewSet(viewsets.ModelViewSet):
                 return Response(serializer.data)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class InvitationViewSet(viewsets.ModelViewSet):
+    queryset = Invitation.objects.all()
+    serializer_class = InvitationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN']:
+            return Invitation.objects.all().order_by('-created_at')
+        return Invitation.objects.filter(invited_by=user).order_by('-created_at')
+
+    def perform_create(self, serializer):
+        # Auto-set invited_by and handle expiry
+        expires = now() + datetime.timedelta(days=7)
+        import uuid
+        token = str(uuid.uuid4())
+        invitation = serializer.save(
+            invited_by=self.request.user,
+            expires_at=expires,
+            token=token
+        )
+
+        # Send email in background thread — don't block the API response (was causing 4.5s delay)
+        def _send_invite_email():
+            try:
+                from django.conf import settings as django_settings
+                import urllib.parse
+                frontend_url = getattr(django_settings, 'FRONTEND_URL', 'http://localhost:5173')
+                invitee_email = invitation.email or ''
+                invitee_role = invitation.role or 'Staff'
+                invitee_org = invitation.organization or 'MusB Research'
+                qs = urllib.parse.urlencode({'token': token, 'email': invitee_email, 'role': invitee_role, 'org': invitee_org})
+                accept_link = f"{frontend_url}/auth/accept-invitation?{qs}"
+                invitee_name = invitee_email.split('@')[0].replace('.', ' ').replace('_', ' ').title()
+                from .utils.email_utils import send_musb_system_email
+                send_musb_system_email(
+                    user_email=invitee_email,
+                    user_name=invitee_name,
+                    mode='INVITE',
+                    secret_data=accept_link,
+                )
+            except Exception as exc:
+                import logging
+                logging.getLogger(__name__).error(f"Invitation email delivery failed for token {token}: {exc}")
+
+        import threading
+        threading.Thread(target=_send_invite_email, daemon=True).start()
+
+
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
+    def verify(self, request):
+        token = request.query_params.get('token')
+        if not token:
+            return Response({'error': 'Token is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        invitation = Invitation.objects.filter(token=token, is_accepted=False).first()
+        if not invitation:
+            return Response({'error': 'Invalid or expired invitation'}, status=status.HTTP_404_NOT_FOUND)
+            
+        if invitation.is_expired():
+            return Response({'error': 'Invitation has expired'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        return Response({
+            'email': invitation.email,
+            'role': invitation.role,
+            'organization': invitation.organization,
+            'invited_by': invitation.invited_by.full_name if invitation.invited_by else "Admin"
+        })
+
 class NewsViewSet(viewsets.ModelViewSet):
     queryset = News.objects.all().order_by('-published_at')
     serializer_class = NewsSerializer
-    permission_classes = [permissions.AllowAny]
+
+    def get_permissions(self):
+        # Public can read; authenticated staff can create/edit/delete
+        if self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
 
     @cache_api_response("news_list", timeout=3600)
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache('news_list')
+        serializer.save()
+
+    def perform_update(self, serializer):
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache('news_list')
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache('news_list')
+        instance.delete()
 
 class StaffTaskViewSet(viewsets.ModelViewSet):
     queryset = StaffTask.objects.all()
@@ -2426,8 +2568,8 @@ class StaffTaskViewSet(viewsets.ModelViewSet):
         if not user.is_authenticated:
             return StaffTask.objects.none()
         if (user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN']:
-            return StaffTask.objects.all().order_by('-created_at')
-        return StaffTask.objects.filter(user=user).order_by('-created_at')
+            return StaffTask.objects.all().select_related('user', 'study').order_by('-created_at')
+        return StaffTask.objects.filter(user=user).select_related('user', 'study').order_by('-created_at')
 
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
@@ -2450,11 +2592,30 @@ class StaffTaskViewSet(viewsets.ModelViewSet):
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all().order_by('-date')
     serializer_class = EventSerializer
-    permission_classes = [permissions.AllowAny]
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
 
     @cache_api_response("events_list", timeout=3600)
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache('events_list')
+        serializer.save()
+
+    def perform_update(self, serializer):
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache('events_list')
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache('events_list')
+        instance.delete()
 
 from rest_framework.views import APIView
 
@@ -2509,10 +2670,50 @@ class PartnershipViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
 
+    @cache_api_response("partnerships_list", timeout=3600)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache('partnerships_list')
+        super().perform_create(serializer)
+
+    def perform_update(self, serializer):
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache('partnerships_list')
+        super().perform_update(serializer)
+
+    def perform_destroy(self, instance):
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache('partnerships_list')
+        instance.delete()
+
+
 class PublicationViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
     queryset = Publication.objects.all().order_by('-publication_date')
     serializer_class = PublicationSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    @cache_api_response("publications_list", timeout=3600)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache('publications_list')
+        super().perform_create(serializer)
+
+    def perform_update(self, serializer):
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache('publications_list')
+        super().perform_update(serializer)
+
+    def perform_destroy(self, instance):
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache('publications_list')
+        instance.delete()
+
 
 class EducationMaterialViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
     queryset = EducationMaterial.objects.all().order_by('-created_at')
@@ -2520,18 +2721,41 @@ class EducationMaterialViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
 
+    @cache_api_response("education_list", timeout=3600)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache('education_list')
+        super().perform_create(serializer)
+
+    def perform_update(self, serializer):
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache('education_list')
+        super().perform_update(serializer)
+
+    def perform_destroy(self, instance):
+        from .utils.cache_utils import invalidate_cache
+        invalidate_cache('education_list')
+        instance.delete()
+
 class StudyInquiryViewSet(viewsets.ModelViewSet):
-    queryset = StudyInquiry.objects.all().order_by('-created_at')
+    queryset = StudyInquiry.objects.all().order_by('-created_at').select_related('sponsor_user')
     serializer_class = StudyInquirySerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated:
             return StudyInquiry.objects.none()
         if (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN', 'COORDINATOR', 'PI']:
-            return StudyInquiry.objects.all().order_by('-created_at')
-        return StudyInquiry.objects.filter(sponsor_user=user).order_by('-created_at')
+            return StudyInquiry.objects.all().order_by('-created_at').select_related('sponsor_user')
+        return StudyInquiry.objects.filter(sponsor_user=user).order_by('-created_at').select_related('sponsor_user')
+
+    @cache_api_response("study_inquiries", timeout=120)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         import logging
@@ -2601,7 +2825,7 @@ class StudyInquiryViewSet(viewsets.ModelViewSet):
                 except Exception as tz_err:
                     logger.warning(f"Timezone conversion failed: {tz_err}")
 
-            send_inquiry_notification.delay(notification_data, target)
+            send_inquiry_notification(notification_data, target)
 
         except Exception as e:
             logger.error(f"Failed to send inquiry notification: {e}")
@@ -3000,8 +3224,15 @@ class StudyMetaView(APIView):
             'STUDY_TYPES': [{'val': k, 'label': v} for k, v in Study.STUDY_TYPES]
         })
 class QuestionnaireTemplateViewSet(viewsets.ModelViewSet):
-    queryset = QuestionnaireTemplate.objects.all().order_by('-created_at')
+    # 'studyquestionnaire_set' is the correct reverse accessor (no related_name set on FK)
+    queryset = QuestionnaireTemplate.objects.all().order_by('-created_at').prefetch_related(
+        'studyquestionnaire_set__study'
+    )
     serializer_class = QuestionnaireTemplateSerializer
+
+    @cache_api_response("questionnaire_templates", timeout=300)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
     def _get_pdf_content(self, template):
         """Adaptive retrieval engine for both Cloudinary and Local clinical PDFs."""
         import requests, io
@@ -3015,10 +3246,10 @@ class QuestionnaireTemplateViewSet(viewsets.ModelViewSet):
             content = template.pdf_file.read()
             template.pdf_file.close()
             if content and len(content) > 100:
-                print(f"DEBUG: Successfully read {len(content)} bytes from local storage for {template.name}")
+                logger.debug("Read %d bytes from local storage for %s", len(content), template.name)
                 return content, None
         except Exception as e:
-            print(f"DEBUG: Direct stream attempt failed for {template.name}: {e}")
+            logger.debug("Direct stream failed for %s: %s", template.name, e)
 
         # 2. Secondary Attempt: Cloudinary-specific Signed URL retrieval
         # Only attempt if Cloudinary settings exist to avoid AttributeError
@@ -3090,7 +3321,7 @@ class QuestionnaireTemplateViewSet(viewsets.ModelViewSet):
                     text = page.extract_text()
                     if text: raw_text += text + "\n"
             except (PdfStreamError, Exception) as pe:
-                print(f"DEBUG: Memory-based parse failed, trying TempFile path: {pe}")
+                logger.debug("Memory-based PDF parse failed, trying TempFile: %s", pe)
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
                     tmp.write(content)
                     tmp_path = tmp.name
@@ -3164,10 +3395,19 @@ class StudyQuestionnaireViewSet(viewsets.ModelViewSet):
         return self.queryset.all()
 
 class QuestionnaireScheduleInstanceViewSet(viewsets.ModelViewSet):
-    queryset = QuestionnaireScheduleInstance.objects.all()
+    queryset = QuestionnaireScheduleInstance.objects.all().select_related(
+        'participant__user',
+        'participant__study',
+        'study_questionnaire__template',
+        'study_questionnaire__study',
+    ).order_by('scheduled_date')
     serializer_class = QuestionnaireScheduleInstanceSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = None
+
+    @cache_api_response("questionnaire_schedules", timeout=120)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 
 

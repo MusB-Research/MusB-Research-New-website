@@ -133,7 +133,9 @@ def login_view(request):
             'email': user.email
         }, status=status.HTTP_200_OK)
 
-    AuditLog.log('LOGIN_SUCCESS', user_email=user.email, request=request)
+    # Offload non-critical logging to background thread for better UX speed
+    import threading
+    threading.Thread(target=AuditLog.log, args=('LOGIN_SUCCESS', user.email, request)).start()
 
     # Token Generation
     try:

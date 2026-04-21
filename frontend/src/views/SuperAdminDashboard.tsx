@@ -1541,7 +1541,8 @@ export default function SuperAdminDashboard() {
                   <Megaphone className="w-7 h-7" />
                 </div>
                 <div>
-                  <h4 className="text-xl font-black text-white uppercase italic group-hover:text-emerald-400 transition-all">{a.title}</h4>
+                  <h4 className="text-xl font-black text-white uppercase italic group-hover:text-emerald-400 transition-all"
+                      dangerouslySetInnerHTML={{ __html: a.title }} />
                   <div className="flex items-center gap-4 mt-2">
                     <span className="text-[12px] text-slate-500 font-black uppercase tracking-widest">{new Date(a.published_at).toLocaleDateString()}</span>
                     <span className="text-[12px] text-slate-500">•</span>

@@ -349,8 +349,8 @@ class MagicLink(models.Model):
     is_used = models.BooleanField(default=False)
 
     def is_expired(self):
-        # Magic link valid for 1 hour
-        return now() > self.created_at + datetime.timedelta(hours=1)
+        # Magic link valid for 10 minutes
+        return now() > self.created_at + datetime.timedelta(minutes=10)
 
 class ApprovalRequest(models.Model):
     """Tracks onsite PI requests for team member account activation"""

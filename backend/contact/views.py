@@ -13,7 +13,8 @@ from .serializers import (
     SubmissionSerializer
 )
 from api.utils.cache_utils import cache_api_response
-from api.utils.resend_utils import send_email_task
+from api.utils.resend_utils import safe_resend_send
+from django.utils.html import strip_tags
 from authentication.security import encrypt_data, decrypt_data
 
 class ContactPageSettingsView(generics.RetrieveAPIView):
@@ -85,12 +86,11 @@ class SubmissionCreateView(generics.CreateAPIView):
                     <p style="color:#e53e3e;font-size:12px;">DB Error: {str(e)[:500]}</p>
                 </div>
                 """
-                from api.utils.resend_utils import safe_resend_send
-                send_email_task.delay({
-                    "from": "MusB Research <info@musbresearch.com>",
+                safe_resend_send({
+                    "from": "MusB Research <onboarding@resend.dev>",
                     "to": ["info@musbresearch.com"],
                     "subject": f"[FALLBACK] Contact Form: {name}",
-                    "html": fallback_html
+                    "text": strip_tags(fallback_html)
                 })
 
                 # Confirm to the user — they submitted successfully even if DB failed
@@ -136,13 +136,28 @@ class SubmissionCreateView(generics.CreateAPIView):
         # Decide on headers and subjects based on whether this is a screener or regular inquiry
         header_title = "MusB Clinical Screening" if is_screener else "MusB Research Inquiry"
         admin_subject = f"Alert: New { 'Screening [' + outcome + ']' if is_screener else 'Inquiry' } - {submission.name}"
-        
-        # Plain text versions
-        admin_text = f"{header_title}\nProtocol: {study_protocol}\n\nOutcome: {outcome}\n\nCandidate Details:\nName: {submission.name}\nEmail: {submission.email}\nPhone: {submission.phone or 'N/A'}\n\n"
+
+        # Structured Plain Text Notification
+        admin_text = f"""
+{header_title.upper()}
+{'=' * len(header_title)}
+Protocol: {study_protocol}
+Timestamp: {submission.submitted_at.strftime('%Y-%m-%d %H:%M:%S')} UTC
+
+CANDIDATE DETAILS
+-----------------
+Name: {submission.name}
+Email: {submission.email}
+Phone: {submission.phone or 'Not Provided'}
+{f'Outcome: {outcome}' if is_screener else ''}
+"""
         if is_screener:
-            admin_text += f"Screening Data:\n{data_text}\n"
+            admin_text += f"\nSCREENING RESPONSES\n-------------------\n{data_text}"
+        
         if submission.message:
-            admin_text += f"Message:\n{submission.message}\n"
+            admin_text += f"\nMESSAGE / DETAILS\n-----------------\n{submission.message}\n"
+        
+        admin_text += f"\n---\nSent via MusB Research Inquiry System\n"
             
         participant_text = f"Hello {submission.name},\n\n"
         if is_screener:
@@ -225,33 +240,10 @@ class SubmissionCreateView(generics.CreateAPIView):
         # 3. Send emails — this block NEVER causes a 500, all failures are caught
         try:
             from api.utils.resend_utils import safe_resend_send
-            from_email = 'MusB Research <info@musbresearch.com>'
+            from_email = 'MusB Research <onboarding@resend.dev>'
             
-            # Default recipient
+            # ONLY send to info@musbresearch.com as requested
             recipients = ["info@musbresearch.com"]
-            
-            # Add recipient from Inquiry Type if present
-            if submission.inquiry_type and submission.inquiry_type.recipient_email:
-                recipients.append(submission.inquiry_type.recipient_email)
-            
-            # Fetch study to get PI/Coordinator if available
-            study_id = self.request.data.get('study_id')
-            if study_id:
-                try:
-                    from api.models import Study
-                    study = None
-                    try:
-                        study = Study.objects.get(pk=study_id)
-                    except Exception:
-                        study = Study.objects.filter(protocol_id=study_id).first()
-                    
-                    if study:
-                        if study.pi and study.pi.email:
-                            recipients.append(study.pi.email)
-                        if study.coordinator and study.coordinator.email:
-                            recipients.append(study.coordinator.email)
-                except Exception as study_err:
-                    print(f"Warning: Could not fetch study team for email: {study_err}")
 
             # Deduplicate and filter
             recipients = list(set([r for r in recipients if r]))
@@ -260,23 +252,12 @@ class SubmissionCreateView(generics.CreateAPIView):
             submission.routed_to = ", ".join(recipients)
             submission.save()
 
-            # Send to Admin & Study Team
-            send_email_task.delay({
+            # Send to Admin ONLY (Plain Text)
+            safe_resend_send({
                 "from": from_email,
-                "to": recipients,
+                "to": ["info@musbresearch.com"],
                 "subject": admin_subject,
-                "text": admin_text,
-                "html": admin_html
-            })
-            
-            # Send to Participant
-            send_email_task.delay({
-                "from": from_email,
-                "to": [submission.email],
-                "subject": participant_subject,
-                "text": participant_text,
-                "html": participant_html,
-                "reply_to": "info@musbresearch.com"
+                "text": admin_text
             })
         except Exception as e:
             print(f"Email sending error (non-critical): {e}")

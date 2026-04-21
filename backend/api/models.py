@@ -214,7 +214,7 @@ class Study(BaseMongoModel):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta(BaseMongoModel.Meta):
-        ordering = ['-created_at']
+        ordering = ['created_at']  # Oldest first — first study created appears at the top everywhere
 
     def __hash__(self) -> int:
         # Patch for Django 6.x + MongoDB crash during migration construction
@@ -454,6 +454,13 @@ class Visit(BaseMongoModel):
 
     def __str__(self):
         return f"{self.participant.participant_sid} - {self.visit_type}"
+
+    class Meta(BaseMongoModel.Meta):
+        ordering = ['-scheduled_date']
+        indexes = [
+            models.Index(fields=['participant', '-scheduled_date']),
+            models.Index(fields=['status']),
+        ]
 
 class Form(BaseMongoModel):
     """Dynamic form definition for questionnaires"""
@@ -696,6 +703,10 @@ class ParticipantTask(BaseMongoModel):
 
     class Meta(BaseMongoModel.Meta):
         ordering = ['due_date']
+        indexes = [
+            models.Index(fields=['participant', 'status', 'due_date']),
+            models.Index(fields=['is_locked']),
+        ]
 
     def __str__(self):
         return f"{self.participant.participant_sid} - {self.task.title}"
@@ -736,6 +747,10 @@ class StaffTask(BaseMongoModel):
 
     class Meta(BaseMongoModel.Meta):
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['study', '-created_at']),
+        ]
 
     def __str__(self):
         return f"{self.title} for {self.user.email}"
@@ -1134,6 +1149,10 @@ class Notification(BaseMongoModel):
 
     class Meta(BaseMongoModel.Meta):
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['user', 'is_read']),
+        ]
 
     def __str__(self):
         return f"{self.user.email} - {self.title} ({'Read' if self.is_read else 'Unread'})"
@@ -1546,7 +1565,7 @@ def notify_team_on_facility_inquiry(sender, instance, created, **kwargs):
             )
         from .utils.resend_utils import send_facility_inquiry_email
         try:
-            send_facility_inquiry_email.delay(instance)
+            send_facility_inquiry_email(instance)
         except Exception as e:
             print(f"Error triggering facility inquiry email: {e}")
 
@@ -1836,7 +1855,7 @@ def notify_team_on_sponsor_inquiry(sender, instance, created, **kwargs):
     if created:
         from .utils.resend_utils import send_sponsor_inquiry_email
         try:
-            send_sponsor_inquiry_email.delay(instance)
+            send_sponsor_inquiry_email(instance)
         except Exception as e:
             print(f"Error triggering sponsor inquiry email: {e}")
 
@@ -1865,7 +1884,7 @@ def notify_on_candidate_apply(sender, instance, created, **kwargs):
     if created:
         from .utils.resend_utils import send_career_application_email
         try:
-            send_career_application_email.delay(instance.id)
+            send_career_application_email(instance.id)
         except Exception as e:
             print(f"Error triggering career email: {e}")
 
@@ -1874,6 +1893,6 @@ def notify_on_booklet_request(sender, instance, created, **kwargs):
     if created:
         from .utils.resend_utils import send_booklet_request_email
         try:
-            send_booklet_request_email.delay(instance.id)
+            send_booklet_request_email(instance.id)
         except Exception as e:
             print(f"Error triggering booklet email: {e}")

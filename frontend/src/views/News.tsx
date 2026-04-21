@@ -42,11 +42,37 @@ const sectionDefinitions: { type: NewsType; label: string; accent: string }[] = 
 
 const HARDCODED_NEWS: NewsItem[] = [];
 
-const decodeHTML = (html: string) => {
-    if (!html) return '';
-    const txt = document.createElement("textarea");
-    txt.innerHTML = html;
-    return txt.value;
+/** Strip HTML tags, comments, and decode entities — for plain-text card previews */
+const stripToPlainText = (raw: string, maxLen = 180): string => {
+    if (!raw) return '';
+    // 1. Remove HTML comments (e.g. <!--StartFragment-->)
+    let text = raw.replace(/<!--[\s\S]*?-->/g, '');
+    // 2. Replace block-level tags with a space so words don't run together
+    text = text.replace(/<\/(p|div|li|br|h[1-6]|blockquote)[^>]*>/gi, ' ');
+    // 3. Strip all remaining HTML tags
+    text = text.replace(/<[^>]+>/g, '');
+    // 4. Decode HTML entities via textarea trick
+    try {
+        const txt = document.createElement('textarea');
+        txt.innerHTML = text;
+        text = txt.value;
+    } catch {}
+    // 5. Collapse whitespace
+    text = text.replace(/\s+/g, ' ').trim();
+    // 6. Truncate
+    return text.length > maxLen ? text.substring(0, maxLen).trimEnd() + '…' : text;
+};
+
+/** Decode HTML entities only (for titles that are already plain text but may have &amp; etc.) */
+const decodeEntities = (str: string): string => {
+    if (!str) return '';
+    try {
+        const txt = document.createElement('textarea');
+        txt.innerHTML = str;
+        return txt.value;
+    } catch {
+        return str;
+    }
 };
 
 export default function News() {
@@ -95,10 +121,10 @@ export default function News() {
                     combined = [...combined, ...newsArray.map((n: any) => ({
                         ...n,
                         type: n.is_success_story ? 'Success Story' : 'News',
-                        title: decodeHTML(n.title || 'Untitled News'),
-                        excerpt: decodeHTML(n.excerpt || n.content?.substring(0, 150) || 'No excerpt available.'),
+                        title: decodeEntities(n.title || 'Untitled News'),
+                        excerpt: stripToPlainText(n.excerpt || n.content || 'No excerpt available.'),
                         date: new Date(n.published_at || n.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                        imageUrl: n.image_url || n.image // Standardized to imageUrl
+                        imageUrl: n.image_url || n.image
                     }))];
                 }
 
@@ -108,10 +134,10 @@ export default function News() {
                     combined = [...combined, ...eventsArray.map((e: any) => ({
                         ...e,
                         type: 'Event',
-                        title: decodeHTML(e.title || e.name || 'Untitled Event'),
-                        excerpt: decodeHTML(e.description || e.excerpt || 'No description available.'),
+                        title: decodeEntities(e.title || e.name || 'Untitled Event'),
+                        excerpt: stripToPlainText(e.description || e.excerpt || 'No description available.'),
                         date: new Date(e.date || e.event_date || e.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                        imageUrl: e.image_url || e.image // Standardized to imageUrl
+                        imageUrl: e.image_url || e.image
                     }))];
                 }
 
@@ -121,8 +147,8 @@ export default function News() {
                     combined = [...combined, ...partnersArray.map((p: any) => ({
                         ...p,
                         type: 'Partnership',
-                        title: p.name || p.partner_name || p.title || 'New Partnership',
-                        excerpt: p.description || p.collaboration_details || 'Partnership details not provided.',
+                        title: decodeEntities(p.name || p.partner_name || p.title || 'New Partnership'),
+                        excerpt: stripToPlainText(p.description || p.collaboration_details || 'Partnership details not provided.'),
                         date: new Date(p.announcement_date || p.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     }))];
                 }
@@ -133,8 +159,8 @@ export default function News() {
                     combined = [...combined, ...pubsArray.map((p: any) => ({
                         ...p,
                         type: 'Publication',
-                        title: p.title || 'Untitled Publication',
-                        excerpt: p.abstract || p.summary || 'No abstract available.',
+                        title: decodeEntities(p.title || 'Untitled Publication'),
+                        excerpt: stripToPlainText(p.abstract || p.summary || 'No abstract available.'),
                         date: new Date(p.publication_date || p.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     }))];
                 }
@@ -145,8 +171,8 @@ export default function News() {
                     combined = [...combined, ...eduArray.map((e: any) => ({
                         ...e,
                         type: 'Educational Material',
-                        title: e.title || 'Untitled Material',
-                        excerpt: e.content || e.description || e.summary || 'No description available.',
+                        title: decodeEntities(e.title || 'Untitled Material'),
+                        excerpt: stripToPlainText(e.content || e.description || e.summary || 'No description available.'),
                         date: new Date(e.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     }))];
                 }

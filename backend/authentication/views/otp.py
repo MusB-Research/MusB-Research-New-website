@@ -15,7 +15,7 @@ from ..utils import (
 logger = logging.getLogger(__name__)
 
 class OTPRequestThrottle(AnonRateThrottle):
-    rate = '3/5min'
+    rate = '3/minute'
     scope = 'otp_request'
 
 @api_view(['POST'])
@@ -44,13 +44,23 @@ def send_otp(request):
         expires_at=expires_at
     )
 
-    # Deliver via Premium Gmail SMTP
-    success = send_mail_premium(
-        to_email=email,
-        subject='Verification Code - MusB Research',
-        title='Clinical ID Verification',
-        body=f'Your secure verification code is below. For your protection, this code will expire in <strong>5 minutes</strong>.<br><br><div style="text-align: center; margin: 32px 0;"><span style="font-size: 36px; font-weight: 900; letter-spacing: 12px; color: #0f172a; background: #f8fafc; padding: 16px 32px; border-radius: 12px; border: 1px solid #e2e8f0;">{code}</span></div>'
-    )
+    # Deliver via MusB branded Gmail SMTP (no Resend)
+    try:
+        from api.utils.email_utils import send_musb_system_email
+        success = send_musb_system_email(
+            user_email=email,
+            user_name=email.split('@')[0].replace('.', ' ').replace('_', ' ').title(),
+            mode='VERIFY',
+            secret_data=code,
+        )
+    except Exception:
+        # Fallback to legacy premium mailer
+        success = send_mail_premium(
+            to_email=email,
+            subject='Verification Code - MusB Research',
+            title='Clinical ID Verification',
+            body=f'Your secure verification code is <strong>{code}</strong>. It expires in 10 minutes.',
+        )
 
     if success:
         return Response({'message': 'OTP sent successfully'})

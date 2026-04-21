@@ -44,18 +44,18 @@ def send_mail_premium(to_email, subject, title, body, button_text=None, button_u
     if qr_url:
         qr_api = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={qr_url}"
         qr_img_html = f"""
-        <div style="margin-top: 30px; text-align: center; background: #f8fafc; padding: 25px; border-radius: 24px; border: 1px solid #e2e8f0;">
-            <p style="margin-bottom: 15px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b;">Instant Mobile Access</p>
-            <img src="{qr_api}" width="160" height="160" style="display: block; margin: 0 auto; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);">
-            <p style="margin-top: 15px; font-size: 11px; color: #94a3b8; font-weight: 500;">Scan with your phone camera to open immediately</p>
+        <div style="margin-top: 30px; text-align: center; background: #f8fafc; padding: 25px; border-radius: 16px; border: 1px solid #e2e8f0;">
+            <p style="margin-bottom: 15px; font-size: 14px; font-weight: 700; color: #1e293b;">Scan to Enroll Instantly</p>
+            <img src="{qr_api}" width="160" height="160" style="display: block; margin: 0 auto; border-radius: 8px;">
+            <p style="margin-top: 15px; font-size: 12px; color: #64748b;">Scan this code with your phone camera</p>
         </div>
         """
 
     button_html = ""
     if button_text and button_url:
         button_html = f"""
-        <div style="margin: 40px 0; text-align: center;">
-            <a href="{button_url}" style="background-color: #0f172a; color: #ffffff; padding: 16px 36px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 15px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); display: inline-block;">
+        <div style="margin: 30px 0; text-align: center;">
+            <a href="{button_url}" style="background-color: #10b981; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px; display: inline-block;">
                 {button_text}
             </a>
         </div>
@@ -64,8 +64,8 @@ def send_mail_premium(to_email, subject, title, body, button_text=None, button_u
     role_badge = ""
     if role:
         role_badge = f"""
-        <div style="display: inline-block; padding: 6px 12px; background: #f1f5f9; color: #475569; font-size: 11px; font-weight: 900; border-radius: 100px; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 20px;">
-            {role} Platform Access
+        <div style="display: inline-block; padding: 4px 10px; background: #d1fae5; color: #065f46; font-size: 12px; font-weight: 700; border-radius: 6px; margin-bottom: 15px;">
+            {role}
         </div>
         """
 
@@ -75,35 +75,36 @@ def send_mail_premium(to_email, subject, title, body, button_text=None, button_u
     <head>
         <meta charset="utf-8">
         <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
-            body {{ font-family: 'Inter', system-ui, sans-serif; line-height: 1.6; color: #1e293b; margin: 0; padding: 0; background-color: #f8fafc; }}
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+            body {{ font-family: 'Inter', system-ui, sans-serif; line-height: 1.6; color: #334155; margin: 0; padding: 0; background-color: #f1f5f9; }}
         </style>
     </head>
     <body>
-        <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 32px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
-            <div style="padding: 40px 40px 20px 40px; text-align: center;">
-                <div style="font-size: 20px; font-weight: 900; color: #0f172a; letter-spacing: 0.2em; text-transform: uppercase;">MUSB RESEARCH</div>
-                <div style="height: 2px; width: 30px; background: #0f172a; margin: 12px auto;"></div>
+        <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+            <div style="padding: 40px 40px 10px 40px; text-align: center;">
+                <div style="font-size: 28px; font-weight: 800; color: #10b981; letter-spacing: -0.01em;">MusB Research</div>
+                <div style="font-size: 14px; color: #64748b; margin-top: 4px;">Clinical Operations Program</div>
             </div>
             
-            <div style="padding: 20px 50px 50px 50px;">
-                <div style="text-align: center;">
+            <div style="padding: 20px 50px 40px 50px;">
+                <div style="margin-bottom: 24px;">
                     {role_badge}
-                    <h1 style="color: #0f172a; font-size: 26px; font-weight: 800; margin-bottom: 24px; letter-spacing: -0.02em;">{title}</h1>
+                    <h1 style="color: #0f172a; font-size: 20px; font-weight: 800; margin: 0 0 15px 0;">{title}</h1>
                 </div>
                 
-                <div style="font-size: 16px; color: #475569; line-height: 1.8;">
+                <div style="font-size: 15px; color: #475569; line-height: 1.8;">
                     {body}
                 </div>
                 
                 {button_html}
                 {qr_img_html}
                 
-                {f'<div style="margin-top: 30px; text-align: center; border: 1px dashed #e2e8f0; padding: 15px; border-radius: 12px;"><p style="font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px;">Trouble with the button?</p><a href="{button_url}" style="color: #0ea5e9; font-size: 11px; word-break: break-all; font-family: monospace;">{button_url}</a></div>' if button_url else ''}
+                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;">
+                
+                {f'<div style="text-align: left;"><p style="font-size: 12px; color: #94a3b8; margin-bottom: 4px;">If the button above does not work, copy and paste this link:</p><a href="{button_url}" style="color: #10b981; font-size: 12px; word-break: break-all;">{button_url}</a></div>' if button_url else ''}
 
-                <div style="margin-top: 50px; padding-top: 30px; border-top: 1px solid #f1f5f9; text-align: center;">
-                    <p style="color: #94a3b8; font-size: 13px; margin: 0;">&bull; Secure Clinical Communication &bull;</p>
-                    <p style="color: #cbd5e1; font-size: 11px; margin-top: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em;">© 2026 MusB Health Technology</p>
+                <div style="margin-top: 40px; text-align: center;">
+                    <p style="color: #94a3b8; font-size: 12px; margin: 0;">© 2026 MusB Research. All rights reserved.</p>
                 </div>
             </div>
         </div>

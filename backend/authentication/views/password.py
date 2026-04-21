@@ -1,7 +1,8 @@
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes, throttle_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.throttling import AnonRateThrottle
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 import logging
@@ -12,8 +13,12 @@ from ..utils import generate_token
 
 logger = logging.getLogger(__name__)
 
+class PasswordResetThrottle(AnonRateThrottle):
+    scope = 'password_reset'
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([PasswordResetThrottle])
 def forgot_password(request):
     email = request.data.get('email')
     if not email:
@@ -34,7 +39,7 @@ def forgot_password(request):
         to_email=email,
         subject='Reset Your Password - MusB Research',
         title='Identity Recovery',
-        body=f"Hello,<br><br>We received a request to reset your MusB Research password. For your security, you can either click the button below or scan the QR code with your mobile device to set a new password.<br><br>This recovery link is temporary and will <strong>expire in 1 hour</strong>.",
+        body=f"Hello,<br><br>We received a request to reset your MusB Research password. For your security, you can either click the button below or scan the QR code with your mobile device to set a new password.<br><br>This recovery link is temporary and will <strong>expire in 10 minutes</strong>.",
         button_text='Reset Password',
         button_url=reset_link,
         qr_url=reset_link

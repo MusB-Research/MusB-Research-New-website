@@ -9,6 +9,7 @@ router.register(r'public-studies', views.PublicStudyViewSet, basename='public-st
 router.register(r'sponsors', views.SponsorViewSet, basename='sponsor')
 router.register(r'sponsor-organizations', views.SponsorOrganizationViewSet)
 router.register(r'users', views.UserViewSet)
+router.register(r'invitations', views.InvitationViewSet)
 router.register(r'forms', views.FormViewSet)
 router.register(r'form-responses', views.FormResponseViewSet)
 router.register(r'participants', views.ParticipantViewSet)

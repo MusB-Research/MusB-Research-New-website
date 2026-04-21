@@ -48,14 +48,16 @@ interface ConfirmModal {
   
 
 const ROLE_DOCS: Record<string, string[]> = {
-    'Clinical Coordinator': ['CV', 'GCP Certificate', 'HSP Certificate', 'HIPAA Agreement', 'Study Training'],
-    'APRN': ['CV', 'APRN License', 'Malpractice Insurance', 'GCP Certificate', 'HIPAA Agreement'],
-    'Sub-Investigator': ['Medical License', 'CV', 'GCP Certificate', 'DOB/ID'],
-    'Phlebotomist': ['CV', 'Training Certificate', 'Venipuncture Competency', 'OSHA Training', 'HIPAA Agreement'],
-    'Other': ['CV']
+    'COORDINATOR': ['CV', 'GCP Certificate', 'HSP Certificate', 'HIPAA Agreement', 'Study Training'],
+    'PI': ['Medical License', 'CV', 'GCP Certificate', 'DOB/ID'],
+    'TEAM_MEMBER': ['CV', 'Training Certificate', 'Venipuncture Competency', 'OSHA Training', 'HIPAA Agreement'],
 };
 
-const STUDIES = ['HI-202B', 'PT-901', 'OB-442', 'VX-001', 'DM-772'];
+const ROLE_LABELS: Record<string, string> = {
+    'COORDINATOR': 'Clinical Coordinator',
+    'PI': 'Sub-Investigator',
+    'TEAM_MEMBER': 'Staff / Other'
+};
 
 interface PITeamModuleProps {
     allUsers?: any[];
@@ -71,6 +73,8 @@ export default function PITeamModule({
     onRefresh,
     selectedStudyId 
 }: PITeamModuleProps) {
+    const STUDIES = allStudies.map(s => s.protocol_id || s.id);
+
     // State
     const [officeTeam, setOfficeTeam] = useState<TeamMember[]>([]);
     const [musbTeam, setMusbTeam] = useState<TeamMember[]>([]);
@@ -162,14 +166,20 @@ export default function PITeamModule({
         }
 
         try {
+            const nameParts = (editedMember.name || '').trim().split(/\s+/);
+            const first_name = nameParts[0] || 'Unknown';
+            const last_name = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'User';
+
             const payload = {
-                full_name: editedMember.name,
+                first_name,
+                last_name,
                 email: editedMember.email,
-                role: editedMember.role?.toLowerCase() || 'team_member',
+                role: editedMember.role || 'TEAM_MEMBER',
                 phone_number: editedMember.phone || '',
                 affiliation: 'onsite',
+                study_id: editedMember.assignedStudies?.[0] || 'all',
                 assigned_studies: editedMember.assignedStudies || [],
-                status: 'active'
+                status: 'ACTIVE'
             };
 
             if (panelMode === 'add') {
@@ -210,7 +220,7 @@ export default function PITeamModule({
         try {
             const res = await authFetch(`${API}/api/users/${id}/`, {
                 method: 'PATCH',
-                body: JSON.stringify({ status: 'active' })
+                body: JSON.stringify({ status: 'ACTIVE' })
             });
             if (res.ok) {
                 addToast('User account activated', 'success');
@@ -262,7 +272,7 @@ export default function PITeamModule({
                 try {
                     const res = await authFetch(`${API}/api/users/${member.id}/`, {
                         method: 'PATCH',
-                        body: JSON.stringify({ status: newStatus })
+                        body: JSON.stringify({ status: newStatus.toUpperCase() })
                     });
                     if (res.ok) {
                         addToast(`User status updated to ${newStatus}`);
@@ -299,15 +309,44 @@ export default function PITeamModule({
     };
 
     // --- LOGIC: MUSB SELECTION ---
-    const handleApplyMusBChanges = () => {
-        // Toggle 'Assigned' status based on selection
-        setMusbTeam(prev => prev.map(m => ({
-            ...m,
-            status: tempMusbSelected.includes(m.id) ? 'Active' : 'Inactive'
-        } as TeamMember)));
+    const handleApplyMusBChanges = async () => {
+        if (!selectedStudyId || selectedStudyId === 'all') {
+            addToast('Please select a specific study first', 'warning');
+            return;
+        }
 
-        addToast('MusB team updated', 'success');
-        setMusbModalOpen(false);
+        try {
+            // Update assigned_studies for each MusB member whose selection changed
+            const updates = musbTeam.map(async (m) => {
+                const isSelected = tempMusbSelected.includes(m.id);
+                const isAlreadyAssigned = m.assignedStudies.includes(selectedStudyId);
+
+                if (isSelected && !isAlreadyAssigned) {
+                    return authFetch(`${API}/api/users/${m.id}/`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ 
+                            assigned_studies: [...m.assignedStudies, selectedStudyId],
+                            status: 'ACTIVE'
+                        })
+                    });
+                } else if (!isSelected && isAlreadyAssigned) {
+                    return authFetch(`${API}/api/users/${m.id}/`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ 
+                            assigned_studies: m.assignedStudies.filter((s: string) => s !== selectedStudyId)
+                        })
+                    });
+                }
+                return null;
+            });
+
+            await Promise.all(updates);
+            addToast('MusB team assignments updated', 'success');
+            onRefresh?.();
+            setMusbModalOpen(false);
+        } catch (error) {
+            addToast('Error updating assignments', 'error');
+        }
     };
 
     // --- FILTERING ---
@@ -613,11 +652,12 @@ export default function PITeamModule({
                     }}>+ Select MusB Coordinators</button>
                     <button style={S.btnPrimary} onClick={() => {
                         setPanelMode('add');
-                        const defaultRole = 'Clinical Coordinator';
+                        const defaultRole = 'COORDINATOR';
                         setEditedMember({
                             name: '', email: '', phone: '', role: defaultRole,
-                            assignedStudies: [], permissionLevel: 'Read-only',
-                            documents: ROLE_DOCS[defaultRole].map(name => ({
+                            assignedStudies: selectedStudyId && selectedStudyId !== 'all' ? [selectedStudyId] : [],
+                            permissionLevel: 'Read-only',
+                            documents: (ROLE_DOCS[defaultRole] || []).map(name => ({
                                 id: Math.random().toString(36).substr(2, 9),
                                 name, status: 'Missing', isRequired: true
                             }))
@@ -810,7 +850,8 @@ export default function PITeamModule({
                                         }))
                                     });
                                 }}>
-                                    {Object.keys(ROLE_DOCS).map(r => <option key={r} value={r} style={{ backgroundColor: '#0B101B', color: 'white' }}>{r.toUpperCase()}</option>)}
+                                    <option value="" disabled>SELECT ROLE</option>
+                                    {Object.keys(ROLE_DOCS).map(r => <option key={r} value={r} style={{ backgroundColor: '#0B101B', color: 'white' }}>{ROLE_LABELS[r] || r}</option>)}
                                 </select>
                             </div>
                             <div>

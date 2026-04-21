@@ -38,6 +38,7 @@ const StudyConsent = lazy(() => import('./views/StudyConsent'));
 const ResetForced = lazy(() => import('./views/auth/ResetForced'));
 const ResetPassword = lazy(() => import('./views/auth/ResetPassword'));
 const ProfileSetup = lazy(() => import('./views/auth/ProfileSetup'));
+const AcceptInvitation = lazy(() => import('./views/auth/AcceptInvitation'));
 
 // --- Helper Redirects for Legacy URLs ---
 const CoordinatorRedirect = () => {
@@ -62,7 +63,8 @@ function AppContent() {
         const user = getUser();
         const isAuthPage = location.pathname.includes('/auth/profile-setup') || 
                           location.pathname.includes('/signin') || 
-                          location.pathname.includes('/auth/reset-forced');
+                          location.pathname.includes('/auth/reset-forced') ||
+                          location.pathname.includes('/auth/accept-invitation');
         
         if (user && user.profile_incomplete && !isAuthPage && isDashboard) {
             navigate('/auth/profile-setup', { replace: true });
@@ -156,6 +158,7 @@ function AppContent() {
                         <Route path="/auth/reset-forced" element={<ResetForced />} />
                         <Route path="/reset-password" element={<ResetPassword />} />
                         <Route path="/auth/profile-setup" element={<ProfileSetup />} />
+                        <Route path="/auth/accept-invitation" element={<AcceptInvitation />} />
                     </Routes>
                 </Suspense>
             </Layout>

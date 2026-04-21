@@ -11,7 +11,7 @@ from .models import (
     QuestionnaireTemplate, StudyQuestionnaire, QuestionnaireScheduleInstance,
     Technology, InnovationPageSettings, SponsorInquiry
 )
-from authentication.models import User
+from authentication.models import User, Invitation
 from authentication.security import decrypt_data
 from .utils.sanitizers import sanitize_html
 import bson
@@ -53,24 +53,23 @@ class SanitizedModelSerializer(serializers.ModelSerializer):
         return data
 
     def to_representation(self, instance):
-        """Handle MongoDB ObjectId serialization and authorized decryption (SUPER_ADMIN, etc.)."""
-        # 1. Base Serialization
+        """Optimized MongoDB ObjectId serialization and conditional decryption."""
         ret = super().to_representation(instance)
         
-        # 2. Recursive Sanitization (MANDATORY for MongoDB ObjectId -> JSON)
-        ret = SanitizedModelSerializer.sanitize_data(ret)
+        # 1. Targeted Sanitization (Only if keys exist)
+        # Avoid full recursion where possible. Most models only have 'id' as ObjectId.
+        for k, v in ret.items():
+            if type(v).__name__ == 'ObjectId':
+                ret[k] = str(v)
+            elif isinstance(v, (list, dict)):
+                 ret[k] = self.sanitize_data(v)
 
-        # 3. Optimization: Quick exit if no encrypted data is present
-        # Most objects won't have encrypted data. A single string scan is cheaper than a loop with permission checks.
-        ret_str = str(ret) # Quick serialization check
-        if 'gAAAA' not in ret_str:
-            return ret
-
+        # 2. Optimized Decryption Search (Avoid str(ret) which is slow)
         request = self.context.get('request')
         user = request.user if request else None
         is_authorized = user and user.is_authenticated and (user.role or '').upper() in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR']
         
-        # 4. Target Decryption (avoid nested loops where possible)
+        # Determine if we even need to check for decryption
         for key, value in ret.items():
             if isinstance(value, str) and value.startswith('gAAAA'):
                 can_decrypt = is_authorized
@@ -179,17 +178,9 @@ class UserSerializer(SanitizedModelSerializer):
             return value.upper()
         return value
 
-    def to_representation(self, instance):
-        """Ultra-robust decryption enforcement for all User fields."""
-        # Use simple string check for performance first
-        ret = super().to_representation(instance)
-        
-        if 'gAAAA' not in str(ret):
-            return ret
-
-        # Decrypt identified tokens
+        # 2. Targeted Decryption
         for field, val in ret.items():
-            if isinstance(val, str) and (val.startswith('gAAAA') or val.startswith('GAAAA')):
+            if isinstance(val, str) and val.startswith('gAAAA'):
                 try:
                     decrypted = decrypt_data(val)
                     if decrypted and decrypted != val:
@@ -377,10 +368,11 @@ class StudySerializer(SanitizedModelSerializer):
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        # Populate the ID lists from assignments — cast to str to handle MongoDB ObjectIds
-        ret['pi_ids'] = [str(a.user.id) for a in instance.assignments.filter(role='PI')]
-        ret['coordinator_ids'] = [str(a.user.id) for a in instance.assignments.filter(role='COORDINATOR')]
-        ret['sponsor_ids'] = [str(a.user.id) for a in instance.assignments.filter(role='SPONSOR_ADMIN')]
+        # Optimized ID Extraction: Avoids 3 database queries per object by using prefetched list
+        all_assignments = list(instance.assignments.all())
+        ret['pi_ids'] = [str(a.user_id) for a in all_assignments if a.role == 'PI']
+        ret['coordinator_ids'] = [str(a.user_id) for a in all_assignments if a.role == 'COORDINATOR']
+        ret['sponsor_ids'] = [str(a.user_id) for a in all_assignments if a.role == 'SPONSOR_ADMIN']
         return ret
 
     def to_internal_value(self, data):
@@ -402,8 +394,17 @@ class StudySerializer(SanitizedModelSerializer):
         try:
             return super().to_internal_value(data)
         except Exception as e:
-            logger.error(f"[StudySerializer] Validation Error: {e}")
-            raise
+            raise serializers.ValidationError({"detail": str(e)})
+
+class StudyBriefSerializer(SanitizedModelSerializer):
+    """High-Performance serializer for study lists/grids."""
+    class Meta:
+        model = Study
+        fields = [
+            'id', 'title', 'protocol_id', 'sponsor_name', 'study_type', 'status', 'stage',
+            'created_at', 'updated_at', 'primary_indication', 'condition', 'phase',
+            'is_archived', 'approval_status'
+        ]
 
 class PublicStudySerializer(SanitizedModelSerializer):
     """Lighter version for discovery page to boost performance"""
@@ -988,16 +989,12 @@ class ParticipantBriefSerializer(SanitizedModelSerializer):
     user_details = UserSerializer(source='user', read_only=True)
     study_name = serializers.CharField(source='study.title', read_only=True)
     protocol_id = serializers.CharField(source='study.protocol_id', read_only=True)
-    # Added for Clinical Dashboard Timeline/Action awareness
-    visits = VisitSerializer(many=True, read_only=True)
-    ae_reports = AEReportSerializer(many=True, read_only=True)
-    
+    # Removed nested heavy relations (visits, ae_reports) from brief list view to fix 1.6s delay
     class Meta:
         model = Participant
         fields = [
             'id', 'study', 'study_name', 'protocol_id', 'user', 'user_details',
-            'participant_sid', 'status', 'created_at', 'reviewed_at',
-            'visits', 'ae_reports'
+            'participant_sid', 'status', 'created_at', 'reviewed_at'
         ]
 
 class DeIdentifiedParticipantSerializer(SanitizedModelSerializer):
@@ -1050,8 +1047,8 @@ class StudyActionRequestSerializer(SanitizedModelSerializer):
         ]
 
 class CompensationSerializer(SanitizedModelSerializer):
-    participant_details = ParticipantSerializer(source='participant', read_only=True)
-    study_details = StudySerializer(source='study', read_only=True)
+    participant_details = ParticipantBriefSerializer(source='participant', read_only=True)
+    study_details = StudyBriefSerializer(source='study', read_only=True)
     task_details = TaskSerializer(source='task', read_only=True)
     visit_details = VisitSerializer(source='visit', read_only=True)
     study_protocol = serializers.CharField(source='study.protocol_id', read_only=True)
@@ -1072,12 +1069,15 @@ class QuestionnaireTemplateSerializer(SanitizedModelSerializer):
         fields = '__all__'
 
     def get_used_in_studies(self, obj):
-        from .models import StudyQuestionnaire
-        # Find all studies using this template through StudyQuestionnaire mapping
-        sqs = StudyQuestionnaire.objects.filter(template=obj).select_related('study')
+        # Use Django's prefetch cache (key = 'studyquestionnaire_set', the default reverse accessor)
+        sqs = getattr(obj, '_prefetched_objects_cache', {}).get('studyquestionnaire_set', None)
+        if sqs is None:
+            from .models import StudyQuestionnaire
+            sqs = StudyQuestionnaire.objects.filter(template=obj).select_related('study')
         return [
             {'id': str(sq.study.id), 'title': sq.study.title, 'protocol_id': sq.study.protocol_id}
             for sq in sqs
+            if sq.study
         ]
 
 
@@ -1120,3 +1120,15 @@ class QuestionnaireScheduleInstanceSerializer(SanitizedModelSerializer):
             'sid': obj.participant.participant_sid,
             'name': obj.participant.user.full_name if obj.participant.user else 'Subject'
         }
+
+class InvitationSerializer(SanitizedModelSerializer):
+    invited_by_name = serializers.CharField(source='invited_by.full_name', read_only=True)
+    
+    class Meta:
+        model = Invitation
+        fields = [
+            'id', 'email', 'role', 'invited_by', 'invited_by_name', 
+            'organization', 'scope', 'study_ids', 'is_accepted', 
+            'created_at', 'expires_at'
+        ]
+        read_only_fields = ['id', 'is_accepted', 'created_at', 'invited_by', 'expires_at']

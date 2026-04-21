@@ -35,6 +35,7 @@ import StudyKitsModule from '../../components/shared/StudyKitsModule';
 // Modular Page Components
 import { OperationsOversight } from './modules/OperationsOversight';
 import { StudyDirectory } from './modules/StudyDirectory';
+import InvitationsModule from '../../components/shared/InvitationsModule';
 
 
 import {
@@ -47,7 +48,7 @@ import {
     HelpCircle, Stethoscope, UsersRound, ArrowUpRight, LogOut,
     Globe, Rocket, Menu, FlaskConical, FileSearch, Layers,
     ListFilter, CheckSquare, ScrollText, Settings2, Database,
-    AlertTriangle, FileCheck, Briefcase, DollarSign, Truck
+    AlertTriangle, FileCheck, Briefcase, DollarSign, Truck, UserPlus
 } from 'lucide-react';
 
 type CCModule =
@@ -65,6 +66,7 @@ type CCModule =
     | 'MY_DOCS'
     | 'MESSAGES'
     | 'ALERTS'
+    | 'INVITATIONS'
     | 'LAUNCH_STUDY'
     | 'SPONSORS'
     | 'TASKS'
@@ -109,6 +111,7 @@ export default function CoordinatorDashboard() {
         if (route === 'my-docs') return 'MY_DOCS';
         if (route === 'messages') return 'MESSAGES';
         if (route === 'alerts') return 'ALERTS';
+        if (route === 'invitations') return 'INVITATIONS';
         if (route === 'launch-study') return 'LAUNCH_STUDY';
         if (route === 'analytics') return 'ANALYTICS';
         if (route === 'sponsors') return 'SPONSORS';
@@ -156,6 +159,7 @@ export default function CoordinatorDashboard() {
         else if (route === 'study-docs' || route === 'docs') setActiveModule('STUDY_DOCS');
         else if (route === 'my-docs') setActiveModule('MY_DOCS');
         else if (route === 'alerts') setActiveModule('ALERTS');
+        else if (route === 'invitations') setActiveModule('INVITATIONS');
         else if (route === 'launch-study') setActiveModule('LAUNCH_STUDY');
         else if (route === 'analytics') setActiveModule('ANALYTICS');
         else if (route === 'tasks') setActiveModule('TASKS');
@@ -205,6 +209,7 @@ export default function CoordinatorDashboard() {
             'MY_DOCS': 'my-docs',
             'MESSAGES': 'messages',
             'ALERTS': 'alerts',
+            'INVITATIONS': 'invitations',
             'LAUNCH_STUDY': 'launch-study',
             'TASKS': 'tasks',
             'ANALYTICS': 'analytics',
@@ -583,6 +588,7 @@ export default function CoordinatorDashboard() {
                 { id: 'STUDY_DOCS', label: 'Documents', icon: FileText },
                 { id: 'MY_DOCS', label: 'Credentials', icon: Briefcase },
                 { id: 'MESSAGES', label: 'Messages', icon: MessageSquare },
+                { id: 'INVITATIONS', label: 'Invitations', icon: UserPlus },
                 { id: 'ALERTS', label: 'Alerts', icon: Bell, hasNotify: true },
             ]
         },
@@ -876,6 +882,9 @@ export default function CoordinatorDashboard() {
                                 initialUsers={users}
                                 onRefresh={fetchCoordinatorContent}
                             />
+                        )}
+                        {activeModule === 'INVITATIONS' && (
+                            <InvitationsModule allStudies={studies} />
                         )}
                         {activeModule === 'ALERTS' && (
                             <AlertsModule 

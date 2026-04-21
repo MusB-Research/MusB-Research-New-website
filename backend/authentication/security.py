@@ -17,7 +17,11 @@ _PRIVATE_KEY_CACHE = None
 _PUBLIC_KEY_CACHE = None
 
 def get_all_ciphers():
-    """Returns a list of potential ciphers to try for decryption."""
+    """Returns a list of potential ciphers to try for decryption. Cached for performance."""
+    global _CIPHER_CACHE
+    if _CIPHER_CACHE is not None:
+        return _CIPHER_CACHE
+
     ciphers = []
     
     # 1. Main explicit encryption key from .env
@@ -44,7 +48,8 @@ def get_all_ciphers():
         ciphers.append(Fernet(default_key))
     except:
         pass
-        
+    
+    _CIPHER_CACHE = ciphers
     return ciphers
 
 

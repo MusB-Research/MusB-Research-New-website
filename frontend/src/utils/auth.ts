@@ -142,7 +142,11 @@ export async function authFetch(url: string, options: any = {}) {
     const performFetch = async (): Promise<Response> => {
         let response: Response;
         try {
-            response = await fetch(fullUrl, { ...options, headers });
+            response = await fetch(fullUrl, { 
+                credentials: 'include', 
+                ...options, 
+                headers 
+            });
             
             if (response.status === 401 && getRefreshToken()) {
                 if (!_refreshPromise) {
@@ -155,7 +159,7 @@ export async function authFetch(url: string, options: any = {}) {
                 if (refreshed) {
                     const newAccessToken = getAccessToken();
                     const retryHeaders = { ...headers, 'Authorization': `Bearer ${newAccessToken}` };
-                    response = await fetch(fullUrl, { ...options, headers: retryHeaders });
+                    response = await fetch(fullUrl, { credentials: 'include', ...options, headers: retryHeaders });
                 } else {
                     performLogout();
                 }

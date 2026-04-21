@@ -25,81 +25,47 @@ def _log_email_locally(to_email, subject, content):
     except Exception as e:
         logger.error(f"Failed to log email locally: {e}")
 
-@shared_task(bind=True, max_retries=3)
-def send_email_task(self, params):
-    """Async task to send email with automatic retries."""
-    try:
-        success = safe_resend_send(params)
-        if not success:
-            raise Exception("Email sending failed according to safe_resend_send logic.")
-    except Exception as exc:
-        raise self.retry(exc=exc, countdown=60)
+def send_email_task(params):
+    """
+    Directly sends email with threading fallback.
+    Renamed from task to maintain compatibility but removed Celery logic.
+    """
+    return safe_resend_send(params)
+
+import threading
 
 def safe_resend_send(params):
     """
-    Wraps Resend API calls with domain verification fallbacks and 
-    a final fail-safe to standard Django mail.
-    Ensures both HTML and Plain Text are included.
+    Directly sends email via Resend API.
+    As requested: No Celery, No SMTP fallback.
+    Uses threading to prevent blocking the HTTP response.
     """
-    to_emails = params.get('to', [])
-    if isinstance(to_emails, str):
-        to_emails = [to_emails]
-        
-    subject = params.get('subject', 'MusB Research Notification')
-    html_body = params.get('html', '')
-    from_email = params.get('from', settings.DEFAULT_FROM_EMAIL)
-    
-    # Ensure plain text version exists
-    text_content = params.get('text')
-    if not text_content and html_body:
-        text_content = strip_tags(html_body)
-    
-    # Enrich params for Resend
-    params['text'] = text_content
-    
+    thread = threading.Thread(target=_execute_resend_only, args=(params,))
+    thread.start()
+    return True
+
+def _execute_resend_only(params):
+    """Internal execution logic for Resend only."""
     try:
-        # 1. ATTEMPT RESEND API
         resend.api_key = os.environ.get('RESEND_API_KEY', getattr(settings, 'RESEND_API_KEY', ''))
-        if resend.api_key:
-            try:
-                resend.Emails.send(params)
-                return True
-            except Exception as api_err:
-                err_msg = str(api_err).lower()
-                logger.warning(f"Resend primary attempt failed: {api_err}")
-                
-                # SandBox Fallback: If domain not verified, try official onboarding domain
-                if "domain is not verified" in err_msg:
-                    sandbox_params = params.copy()
-                    sandbox_params["from"] = "onboarding@resend.dev"
-                    try:
-                        resend.Emails.send(sandbox_params)
-                        return True
-                    except Exception:
-                        pass # Onboarding fallback failed (likely invalid recipient for sandbox)
-
-        # 2. FAIL-SAFE FALLBACK: Standard Django Mail (SMTP or Console)
-        # This ensures the email is NOT LOST if Resend fails/unverified.
-        try:
-            send_mail(
-                subject=subject,
-                message=text_content,
-                from_email=from_email,
-                recipient_list=to_emails,
-                html_message=html_body,
-                fail_silently=False
-            )
-            logger.info("Email delivered via Django fallback mailer (SMTP/Console).")
-            return True
-        except Exception as django_err:
-            logger.error(f"Django fallback mailer also failed, logging locally: {django_err}")
-            _log_email_locally(to_emails, f"[FALLBACK FAILURE] {subject}", text_content)
-            return True # Return true for dev parity
-
-    except Exception as e:
-        logger.error(f"Critical error in safe_send logic: {e}")
-        _log_email_locally(to_emails, f"[CRITICAL FAILURE] {subject}", f"Error: {e}")
+        if not resend.api_key:
+            logger.error("Resend API key missing.")
+            return False
+            
+        # Ensure plain text version exists (fallback from HTML if needed)
+        if not params.get('text') and params.get('html'):
+            params['text'] = strip_tags(params['html'])
+            
+        resend.Emails.send(params)
+        logger.info(f"Direct Resend call successful: {params.get('subject')}")
         return True
+    except Exception as e:
+        logger.error(f"Resend Direct Send Failed: {e}")
+        # Even if it fails, we don't use SMTP as requested.
+        # We just log it locally for safety.
+        to_emails = params.get('to', [])
+        _log_email_locally(to_emails, f"[FAILED] {params.get('subject')}", params.get('text', 'No text'))
+        return False
 
 
 @shared_task
@@ -165,12 +131,12 @@ def send_welcome_email(to_email: str):
     
     try:
         # Admin Notification
+        admin_text = f"NEW NEWSLETTER SUBSCRIBER\n=========================\nEmail: {to_email}\nTimestamp: {now().strftime('%Y-%m-%d %H:%M:%S')} UTC"
         safe_resend_send({
-            "from": settings.DEFAULT_FROM_EMAIL,
+            "from": "MusB Inquiry <onboarding@resend.dev>",
             "to": ["info@musbresearch.com"],
             "subject": f"New Newsletter Subscriber: {to_email}",
-            "text": f"A new user has subscribed to the MusB Research Newsletter: {to_email}",
-            "html": f"<p>A new user has subscribed to the MusB Research Newsletter: <b>{to_email}</b></p>"
+            "text": admin_text
         })
         
         # User Welcome
@@ -185,77 +151,70 @@ def send_welcome_email(to_email: str):
         print(f"Error sending welcome email via Resend to {to_email}: {e}")
         return False
 
-@shared_task
 def send_career_application_email(candidate_id):
     """
     Sends notification when a new candidate applies for a role.
+    Now direct/threaded (No Celery).
     """
     from api.models import Candidate
     try:
         candidate = Candidate.objects.get(pk=candidate_id)
-        subject = f"Career Application: {candidate.name}"
-        text_content = f"New Career Application Received\n\nName: {candidate.name}\nEmail: {candidate.email}\nPhone: {candidate.phone}\nApplied At: {candidate.applied_at}\n\nResume Link: {settings.SITE_URL}{candidate.resume.url}"
-        html_content = f"""
-        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
-            <h2 style="color: #1e3a8a;">New Career Application</h2>
-            <p>A new candidate has applied via the MusB Research Careers portal.</p>
-            <hr/>
-            <p><b>Name:</b> {candidate.name}</p>
-            <p><b>Email:</b> {candidate.email}</p>
-            <p><b>Phone:</b> {candidate.phone}</p>
-            <p><b>Applied At:</b> {candidate.applied_at}</p>
-            <p><b>Resume:</b> <a href='{settings.SITE_URL}{candidate.resume.url}'>View Resume</a></p>
-        </div>
-        """
+        text_content = f"""
+NEW CAREER APPLICATION
+======================
+Name: {candidate.name}
+Email: {candidate.email}
+Phone: {candidate.phone}
+Applied At: {candidate.applied_at}
+
+Resume Link:
+{settings.SITE_URL}{candidate.resume.url}
+"""
+        
+        subject = f"Alert: New Career Application - {candidate.name}"
         return safe_resend_send({
-            "from": "MusB Careers <info@musbresearch.com>",
+            "from": "MusB Careers <onboarding@resend.dev>",
             "to": ["info@musbresearch.com"],
             "subject": subject,
-            "text": text_content,
-            "html": html_content
+            "text": text_content
         })
     except Exception as e:
         print(f"Error sending career app email: {e}")
         return False
 
-@shared_task
 def send_booklet_request_email(request_id):
     """
     Sends notification when a user requests a Clinical Booklet download.
+    Now direct/threaded (No Celery).
     """
     from api.models import BookletDownloadRequest
     try:
         b_req = BookletDownloadRequest.objects.get(pk=request_id)
-        subject = f"Booklet Download Request: {b_req.name}"
-        text_content = f"Booklet Download Request Received\n\nName: {b_req.name}\nEmail: {b_req.email}\nCompany: {b_req.company}\nRole: {b_req.role}\nTimestamp: {b_req.created_at}"
-        html_content = f"""
-        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
-            <h2 style="color: #059669;">Booklet Download Request</h2>
-            <p>A visitor has requested a download of the MusB Clinical Booklet.</p>
-            <hr/>
-            <p><b>Name:</b> {b_req.name}</p>
-            <p><b>Email:</b> {b_req.email}</p>
-            <p><b>Company:</b> {b_req.company}</p>
-            <p><b>Role:</b> {b_req.role}</p>
-            <p><b>Timestamp:</b> {b_req.created_at}</p>
-        </div>
-        """
+        text_content = f"""
+NEW CATALOG/BOOKLET REQUEST
+===========================
+Name: {b_req.name}
+Email: {b_req.email}
+Company: {b_req.company}
+Role: {b_req.role}
+Timestamp: {b_req.created_at}
+"""
+        
+        subject = f"Alert: New Booklet/Catalog Request - {b_req.name}"
         return safe_resend_send({
-            "from": "MusB Downloads <info@musbresearch.com>",
+            "from": "MusB Downloads <onboarding@resend.dev>",
             "to": ["info@musbresearch.com"],
             "subject": subject,
-            "text": text_content,
-            "html": html_content
+            "text": text_content
         })
     except Exception as e:
         print(f"Error sending booklet request email: {e}")
         return False
 
-@shared_task
 def send_inquiry_notification(inquiry_data: dict, target_email: str):
     """
     Sends a detailed notification to MusB team when a new study inquiry is submitted.
-    Includes both plain text and HTML versions.
+    Now direct/threaded (No Celery). Uses plain text for maximum readability.
     """
     resend.api_key = os.environ.get('RESEND_API_KEY', getattr(settings, 'RESEND_API_KEY', ''))
     
@@ -387,27 +346,22 @@ Sponsor User: {inquiry_data.get('sponsor_email', 'Unknown')}
         </p>
     </div>
     """
-    
     try:
-        recipients = [target_email]
-        
-        params = {
-            "from": settings.DEFAULT_FROM_EMAIL,
-            "to": recipients,
+        # Send as Plain Text Only as requested for the Admin
+        return safe_resend_send({
+            "from": "MusB Study Inquiry <onboarding@resend.dev>",
+            "to": [target_email],
             "subject": subject,
-            "text": text_content,
-            "html": html_content
-        }
-        
-        return safe_resend_send(params)
+            "text": text_content
+        })
     except Exception as e:
         print(f"Error sending inquiry notification: {e}")
         return False
 
-@shared_task
 def send_facility_inquiry_email(inquiry):
     """
     Sends an email notification when a new Facility Inquiry is submitted.
+    Now direct/threaded (No Celery).
     """
     resend.api_key = os.environ.get('RESEND_API_KEY', getattr(settings, 'RESEND_API_KEY', ''))
     
@@ -468,25 +422,30 @@ def send_facility_inquiry_email(inquiry):
     </div>
     """
     
+    # Build Plain Text Summary
+    text_content = f"""
+NEW FACILITY INQUIRY
+====================
+Name: {inquiry.name}
+Email: {inquiry.email}
+Phone: {inquiry.phone or 'N/A'}
+Company: {inquiry.company or 'N/A'}
+Inquiry Type: {inquiry.inquiry_type or 'N/A'}
+
+Message / Concept:
+{inquiry.message}
+
+---
+Submitted on {inquiry.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC
+"""
     try:
-        # 1. Admin
-        res1 = safe_resend_send({
-            "from": "MusB Research System <info@musbresearch.com>",
+        # 1. Admin ONLY Notification (Strict Plain Text)
+        return safe_resend_send({
+            "from": "MusB Facility Inquiry <onboarding@resend.dev>",
             "to": [admin_recipient],
             "subject": subject,
-            "html": html_content
+            "text": text_content
         })
-        
-        # 2. Participant
-        res2 = safe_resend_send({
-            "from": "MusB Research Team <info@musbresearch.com>",
-            "to": [inquiry.email],
-            "subject": participant_subject,
-            "html": participant_html,
-            "reply_to": "info@musbresearch.com"
-        })
-        
-        return res1 or res2
     except Exception as e:
         print(f"Error sending facility inquiry email: {e}")
         return False
@@ -536,20 +495,38 @@ def send_help_request_notification(study_title, participant_name, participant_id
     </div>
     """
 
+    # Build Plain Text Summary
+    text_content = f"""
+URGENT: PARTICIPANT HELP REQUESTED
+==================================
+Study: {study_title}
+Participant: {participant_name} (ID: {participant_id})
+Age: {age or 'N/A'}
+Gender: {gender or 'N/A'}
+Contact Email: {contact_email or 'N/A'}
+Requested Action: {action_title}
+
+Description:
+{description or 'No additional description provided.'}
+
+---
+Timestamp: {now().strftime('%Y-%m-%d %H:%M:%S')} UTC
+View Dashboard: https://musbresearch.com/admin
+"""
+
     params = {
-        "from": "MusB Research Alerts <info@musbresearch.com>",
+        "from": "MusB Alerts <onboarding@resend.dev>",
         "to": recipients,
         "subject": subject,
-        "html": html_content
+        "text": text_content
     }
 
     return safe_resend_send(params)
 
-@shared_task
 def send_sponsor_inquiry_email(inquiry):
     """
     Sends an email notification when a new Sponsor Inquiry (Partnership) is submitted.
-    Includes an admin notification and a confirmation to the inquirer.
+    Now direct/threaded (No Celery).
     """
     resend.api_key = os.environ.get('RESEND_API_KEY', getattr(settings, 'RESEND_API_KEY', ''))
     
@@ -608,25 +585,28 @@ def send_sponsor_inquiry_email(inquiry):
     </div>
     """
     
+    # Build Plain Text Summary
+    text_content = f"""
+NEW PARTNERSHIP INQUIRY
+=======================
+Name: {inquiry.name}
+Email: {inquiry.email}
+Company: {inquiry.company}
+
+Inquiry Message:
+{inquiry.message}
+
+---
+Submitted on {inquiry.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC
+"""
     try:
-        # Send Admin Notification
-        res1 = safe_resend_send({
-            "from": "MusB Partnership System <info@musbresearch.com>",
+        # Send Admin ONLY Notification (Strict Plain Text)
+        return safe_resend_send({
+            "from": "MusB Partnership <onboarding@resend.dev>",
             "to": [admin_recipient],
             "subject": subject,
-            "html": html_content
+            "text": text_content
         })
-        
-        # Send Inquirer Confirmation
-        res2 = safe_resend_send({
-            "from": "MusB Research Team <info@musbresearch.com>",
-            "to": [inquiry.email],
-            "subject": confirmation_subject,
-            "html": confirmation_html,
-            "reply_to": "info@musbresearch.com"
-        })
-        
-        return res1 or res2
     except Exception as e:
         print(f"Error sending sponsor inquiry emails: {e}")
         return False

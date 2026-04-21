@@ -71,18 +71,20 @@ export default function SponsorsManagement({ onRefresh, selectedStudyId, preload
 
   const [newSponsor, setNewSponsor] = useState({ firstName: '', lastName: '', email: '', company: '' });
 
-  const sponsors: Sponsor[] = useMemo(() => rawSponsors.map(u => ({
-    id: u.id,
-    raw: u,
-    name: u.decrypted_name || u.full_name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email?.split('@')[0] || 'Unnamed',
-    email: u.email || '',
-    company: u.company || u.organization || 'Independent / CRO',
-    status: (u.status === 'suspended' || u.status === 'Suspended') ? 'Inactive' : 'Active',
-    studies: allStudies
-      .filter(s => String(s.sponsor) === String(u.id) || String(s.sponsor_id) === String(u.id))
-      .map(s => s.title || s.name || 'Untitled Study'),
-    registeredDate: u.date_joined ? new Date(u.date_joined).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'N/A',
-    mustChangePassword: !!u.must_change_password,
+  const sponsors: Sponsor[] = useMemo(() => rawSponsors
+    .filter(u => !u.must_change_password && u.status !== 'PENDING' && u.status !== 'pending')
+    .map(u => ({
+      id: u.id,
+      raw: u,
+      name: u.decrypted_name || u.full_name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email?.split('@')[0] || 'Unnamed',
+      email: u.email || '',
+      company: u.company || u.organization || 'Independent / CRO',
+      status: (u.status === 'suspended' || u.status === 'Suspended') ? 'Inactive' : 'Active',
+      studies: allStudies
+        .filter(s => String(s.sponsor) === String(u.id) || String(s.sponsor_id) === String(u.id))
+        .map(s => s.title || s.name || 'Untitled Study'),
+      registeredDate: u.date_joined ? new Date(u.date_joined).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'N/A',
+      mustChangePassword: !!u.must_change_password,
   })), [rawSponsors, allStudies]);
 
   const filteredSponsors = sponsors.filter(s =>

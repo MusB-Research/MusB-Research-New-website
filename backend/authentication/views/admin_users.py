@@ -367,18 +367,23 @@ def admin_get_audit_logs(request):
     if not admin_user or not admin_user.is_authenticated or admin_user.role.upper() not in ['SUPER_ADMIN', 'ADMIN', 'COORDINATOR', 'PI']:
         return Response({'error': 'Unauthorized access.'}, status=status.HTTP_403_FORBIDDEN)
 
-    logs = AuditLog.objects.all()[:100] # Limit to 100 for dashboard performance
+    # Cache for 60 seconds — audit logs are append-only so brief caching is safe
+    from django.core.cache import cache
+    cache_key = f'audit_logs_{admin_user.role}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return Response(cached)
+
+    logs = AuditLog.objects.all().order_by('-timestamp')[:100]
     data = []
-    
-    # Map backend AuditLog model to frontend Activity interface
+
     for log in logs:
-        # Determine category based on action
         category = 'System:Auth'
         if 'ROLE' in log.action or 'ACCOUNT' in log.action:
             category = 'User:Mgmt'
         elif 'CONFIG' in log.action or 'STUDY' in log.action:
             category = 'Project:Data'
-            
+
         data.append({
             'id': f'log-{log.id}',
             'timestamp': log.timestamp.strftime('%d/%m/%Y %H:%M:%S'),
@@ -387,9 +392,11 @@ def admin_get_audit_logs(request):
             'user': log.user_email or 'Anonymous',
             'details': log.detail or 'Platform operation successful',
             'ip': log.ip_address or 'Unknown',
-            'severity': 'danger' if 'FAILED' in log.action or 'LIMITED' in log.action else 
+            'severity': 'danger' if 'FAILED' in log.action or 'LIMITED' in log.action else
                         ('warning' if 'RESET' in log.action or 'REISSUED' in log.action else 'info')
         })
+
+    cache.set(cache_key, data, timeout=60)
     return Response(data)
 
 @api_view(['GET'])
@@ -500,11 +507,23 @@ def admin_get_analytics_stats(request):
 def admin_list_users(request):
     """
     List users by role for administrative assignment (e.g., Launch Study flow).
+    Supports limit and offset for performance.
     """
     role = request.query_params.get('role', '').upper()
-    
+    try:
+        limit = int(request.query_params.get('limit', 100))
+        limit = max(1, min(limit, 1000))
+    except (ValueError, TypeError):
+        limit = 100
+
     # Base queryset: Exclude participants from professional team views by default
-    users = User.objects.exclude(role__in=['PARTICIPANT', 'participant', 'Participant'])
+    # Also exclude pending/unactivated users so they only appear in the Invitations module
+    users = User.objects.select_related('invited_by').exclude(
+        Q(role__in=['PARTICIPANT', 'participant', 'Participant']) |
+        Q(must_change_password=True) |
+        Q(status__iexact='PENDING') |
+        Q(status__iexact='pending')
+    )
 
     if role:
         users = users.filter(
@@ -513,20 +532,22 @@ def admin_list_users(request):
             Q(role=role.capitalize())
         )
     
-    # Simple serialization for assignment dropdowns
-    data = []
-    for u in users:
-        data.append({
-            'id': str(u.id),
-            'first_name': u.first_name,
-            'last_name': u.last_name,
-            'email': u.email,
-            'role': u.role,
-            'full_name': u.full_name or f"{u.first_name} {u.last_name}".strip() or u.email,
-            'status': (u.status or 'PENDING').upper(),
-            'invitation_status': 'Accepted' if (u.status or '').upper() == 'ACTIVE' else 'Pending',
-            'date': u.date_joined.strftime('%Y-%m-%d') if u.date_joined else '',
-            'invited_by': u.invited_by.full_name if u.invited_by else 'Super Admin',
-            'study': u.invited_in_study or 'N/A'
-        })
+    # Apply limit
+    users = users.order_by('-date_joined')[:limit]
+    
+    # Efficient serialization
+    data = [{
+        'id': str(u.id),
+        'first_name': u.first_name,
+        'last_name': u.last_name,
+        'email': u.email,
+        'role': u.role,
+        'full_name': u.full_name or f"{u.first_name} {u.last_name}".strip() or u.email,
+        'status': (u.status or 'PENDING').upper(),
+        'invitation_status': 'Accepted' if (u.status or '').upper() == 'ACTIVE' else 'Pending',
+        'date': u.date_joined.strftime('%Y-%m-%d') if u.date_joined else '',
+        'invited_by': u.invited_by.full_name if u.invited_by else 'Super Admin',
+        'study': u.invited_in_study or 'N/A'
+    } for u in users]
+    
     return Response(data)

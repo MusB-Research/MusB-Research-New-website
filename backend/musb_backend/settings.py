@@ -53,6 +53,9 @@ DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
 if os.getenv('RENDER'):
     DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() in ('true', '1', 'yes')
 
+# Frontend URL used for generating email links
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+
 ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,musb-backend.onrender.com,musb-research-new-website.onrender.com').split(',') if h.strip()]
 if DEBUG:
     ALLOWED_HOSTS = ['*']
@@ -291,20 +294,30 @@ else:
 # Default primary key field type (MongoDB ObjectId)
 DEFAULT_AUTO_FIELD = 'django_mongodb_backend.fields.ObjectIdAutoField'
 
-# Email Settings
-DEFAULT_FROM_EMAIL = os.getenv('ADMIN_EMAIL', 'info@musbresearch.com')
+# ─────────────────────────────────────────────────────────────────────────────
+#  Email / SMTP Configuration
+#  Reads from .env: SMTP_EMAIL, SMTP_PASSWORD, SMTP_HOST, SMTP_PORT
+#  Falls back to console backend only when no credentials are configured.
+# ─────────────────────────────────────────────────────────────────────────────
+_smtp_email    = os.getenv('SMTP_EMAIL', '')
+_smtp_password = os.getenv('SMTP_PASSWORD', '')
+_smtp_host     = os.getenv('SMTP_HOST', 'smtp.gmail.com')
+_smtp_port     = int(os.getenv('SMTP_PORT', 587))
 
-# Allow SMTP in development if configured, otherwise fallback to Console
-EMAIL_HOST = os.getenv('SMTP_HOST')
-if DEBUG and not EMAIL_HOST:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+if _smtp_email and _smtp_password:
+    # Real SMTP (Gmail or any provider) — used in both dev and production
+    EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST          = _smtp_host
+    EMAIL_PORT          = _smtp_port
+    EMAIL_USE_TLS       = os.getenv('EMAIL_USE_TLS', 'True').strip().lower() in ('true', '1', 'yes')
+    EMAIL_HOST_USER     = _smtp_email
+    EMAIL_HOST_PASSWORD = _smtp_password
+    DEFAULT_FROM_EMAIL  = f'MusB Research <{_smtp_email}>'
+    SMTP_EMAIL          = _smtp_email   # expose for email_utils.py
 else:
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = EMAIL_HOST or 'smtp.gmail.com'
-    EMAIL_PORT = int(os.getenv('SMTP_PORT', 587))
-    EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
-    EMAIL_HOST_USER = os.getenv('SMTP_EMAIL')
-    EMAIL_HOST_PASSWORD = os.getenv('SMTP_PASSWORD')
+    # Console fallback — no credentials configured
+    EMAIL_BACKEND      = 'django.core.mail.backends.console.EmailBackend'
+    DEFAULT_FROM_EMAIL = os.getenv('ADMIN_EMAIL', 'info@musbresearch.com')
 
 # Production Security Settings
 if not DEBUG:
@@ -354,7 +367,8 @@ REST_FRAMEWORK = {
         'user': '2000/day',
         'login': '10/minute',   # Scoped throttle for login endpoint only
         'refresh': '30/minute', # Scoped throttle for token refresh
-        'otp_request': '3/5min', # Production-ready OTP rate limiting
+        'otp_request': '3/minute', # Production-ready OTP rate limiting
+        'password_reset': '3/minute', # Prevent spamming reset emails (3 per minute max)
     }
 }
 

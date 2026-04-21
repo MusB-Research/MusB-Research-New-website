@@ -14,6 +14,7 @@ import SubjectReviewModule from '../components/coordinator/subject-review/Subjec
 import PITeamModule from '../components/pi/PITeamModule';
 import VisitsModule from '../components/coordinator/VisitsModule';
 import PIHelpSupportModule from '../components/pi/PIHelpSupportModule';
+import InvitationsModule from '../components/shared/InvitationsModule';
 
 
 // New PI Panel Modules
@@ -45,7 +46,7 @@ import {
     HelpCircle, Stethoscope, UsersRound, ArrowUpRight, LogOut,
     Globe, Rocket, Menu, FlaskConical, FileSearch, Layers,
     ListFilter, CheckSquare, ScrollText, Settings2, Database,
-    AlertTriangle, FileCheck, Building2, Truck
+    AlertTriangle, FileCheck, Building2, Truck, UserPlus
 } from 'lucide-react';
 
 type PIModule =
@@ -73,6 +74,7 @@ type PIModule =
     | 'MY_DOCS'
     | 'TEAM_INVENTORY'
     | 'LOGISTICS'
+    | 'INVITATIONS'
     | 'SUPPORT';
 
 interface SidebarItem {
@@ -450,6 +452,7 @@ export default function PIDashboard() {
             items: [
                 { id: 'STUDIES', label: 'My Studies', icon: Beaker },
                 { id: 'TEAM', label: 'Team Members', icon: Users },
+                { id: 'INVITATIONS', label: 'Invitations', icon: UserPlus },
                 { id: 'PARTICIPANTS', label: 'Participants', icon: UsersRound },
                 { id: 'SUBJECT_REVIEW', label: 'Review', icon: Activity },
                 { id: 'FORMS', label: 'Screening Forms', icon: ClipboardList },
@@ -738,6 +741,9 @@ export default function PIDashboard() {
                             onRefresh={fetchAllData} 
                             selectedStudyId={globalSelectedStudyId}
                         />
+                    )}
+                    {activeModule === 'INVITATIONS' && (
+                        <InvitationsModule allStudies={studies} />
                     )}
                     {activeModule === 'PARTICIPANTS' && <ParticipantOversight
                         selectedStudyId={globalSelectedStudyId}
