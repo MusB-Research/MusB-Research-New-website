@@ -392,7 +392,8 @@ export default function SignIn() {
     };
 
     const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>, isPhone = false) => {
-        if (e.key === 'Backspace' && !(isPhone ? phoneOtp[index] : otp[index]) && index > 0) {
+        const currentVal = isPhone ? '' : otp[index];
+        if (e.key === 'Backspace' && !currentVal && index > 0) {
             const prevInput = document.getElementById(`${isPhone ? 'phone-' : ''}otp-${index - 1}`);
             prevInput?.focus();
         }

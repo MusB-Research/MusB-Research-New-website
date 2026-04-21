@@ -33,7 +33,7 @@ interface LiveForm {
 
 export default function FormsQuestionnairesModule() {
     const [view, setView] = useState<'Splash' | 'Tracking' | 'Screeners' | 'Architect'>('Splash');
-    const [builderTab, setBuilderTab] = useState<'Catalog' | 'Create New'>('Catalog');
+    const [builderTab, setBuilderTab] = useState<'Catalog' | 'Create New' | 'Templates'>('Catalog');
     const [selectedStudyForDetails, setSelectedStudyForDetails] = useState<any>(null);
     const [studies, setStudies] = useState<any[]>([]);
     const [leads, setLeads] = useState<any[]>([]);

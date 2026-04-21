@@ -4,7 +4,7 @@ import {
     Plus, Save, Layout, FileText, List, Calendar,
     X, AlertCircle, ChevronDown, MousePointer2,
     Settings2, Trash2, LayoutGrid, Type,
-    ChevronLeft, Database, Boxes, Rocket, Eye, Terminal, CheckCircle2, AlertTriangle
+    ChevronLeft, ChevronRight, Database, Boxes, Rocket, Eye, Terminal, CheckCircle2, AlertTriangle
 } from 'lucide-react';
 import { authFetch, API } from '../../utils/auth';
 
