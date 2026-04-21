@@ -32,6 +32,7 @@ export default function ScreenerBuilder({
     const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [statusMessage, setStatusMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+    const [showImportModal, setShowImportModal] = useState(false);
 
     useEffect(() => {
         if (!standalone) {
@@ -97,11 +98,35 @@ export default function ScreenerBuilder({
     const updateQuestion = (id: string, updates: Partial<Question>) => {
         setQuestions(questions.map(q => q.id === id ? { ...q, ...updates } : q));
     };
+    
+    const handleImport = async (sourceStudyId: string) => {
+        try {
+            const res = await authFetch(`${API}/api/studies/${sourceStudyId}/`);
+            if (res.ok) {
+                const data = await res.json();
+                const screenerStep = data.screener_config?.steps?.find((s: any) => s.type === 'user_input');
+                if (screenerStep && screenerStep.questions) {
+                    // Generate new IDs for imported questions to avoid collisions
+                    const imported = screenerStep.questions.map((q: Question) => ({
+                        ...q,
+                        id: `sq_imp_${Math.random().toString(36).substr(2, 9)}`
+                    }));
+                    setQuestions([...questions, ...imported]);
+                    setStatusMessage({ text: `Imported ${imported.length} questions from ${data.protocol_id}.`, type: 'success' });
+                    setShowImportModal(false);
+                } else {
+                    setStatusMessage({ text: 'Source protocol has no screener questions defined.', type: 'error' });
+                }
+            }
+        } catch (err) {
+            setStatusMessage({ text: 'Failed to fetch source screener.', type: 'error' });
+        }
+    };
 
     const handleSave = async () => {
         if (onSave) {
             onSave(questions);
-            setStatusMessage({ text: 'Screener logic cached in session.', type: 'success' });
+            setStatusMessage({ text: 'Screener questions saved for now.', type: 'success' });
             setTimeout(() => setStatusMessage(null), 3000);
             return;
         }
@@ -139,7 +164,7 @@ export default function ScreenerBuilder({
             });
 
             if (res.ok) {
-                setStatusMessage({ text: 'Screener architecture deployed and synchronized.', type: 'success' });
+                setStatusMessage({ text: 'Screener saved and updated successfully.', type: 'success' });
                 setTimeout(() => setStatusMessage(null), 5000);
             } else {
                 setStatusMessage({ text: 'Failed to synchronize screener.', type: 'error' });
@@ -158,10 +183,10 @@ export default function ScreenerBuilder({
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <Terminal className="w-4 h-4 text-pink-500" />
-                        <span className="text-[10px] font-black text-pink-500 tracking-[0.3em]">Architecture: Protocol design</span>
+                        <span className="text-[10px] font-black text-pink-500 tracking-[0.3em]">STUDY SETTING: ELIGIBILITY CHECK</span>
                     </div>
-                    <h2 className="text-3xl font-black text-white italic tracking-tighter leading-none">Screener builder</h2>
-                    <p className="text-sm text-slate-400 mt-2 font-medium opacity-70">Design logical recruitment funnels with dynamic branching and integrated validation triggers.</p>
+                    <h2 className="text-3xl font-black text-white italic tracking-tighter leading-none">Eligibility Designer</h2>
+                    <p className="text-sm text-slate-400 mt-2 font-medium opacity-70">Create a simple questionnaire for potential participants to see if they qualify.</p>
                 </div>
 
                 {!standalone ? (
@@ -172,12 +197,21 @@ export default function ScreenerBuilder({
                                 onChange={(e) => setSelectedStudyId(e.target.value)}
                                 className="bg-transparent text-[12px] font-black text-white tracking-widest outline-none cursor-pointer px-6 min-w-[240px]"
                             >
-                                <option value="" className="bg-[#0B101B]">Select context protocol</option>
+                                <option value="" className="bg-[#0B101B]">Select Study</option>
                                 {studies.map(s => (
                                     <option key={s.id} value={s.id} className="bg-[#0B101B]">{s.protocol_id || s.id}</option>
                                 ))}
                             </select>
                         </div>
+
+
+                        <button
+                            onClick={() => setShowImportModal(true)}
+                            disabled={!selectedStudyId}
+                            className="flex items-center gap-3 px-6 h-14 bg-white/5 border border-white/10 rounded-2xl text-[11px] font-black text-slate-400 uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95 disabled:opacity-30"
+                        >
+                            <Database className="w-4 h-4" /> Import Questions
+                        </button>
 
                         <button
                             onClick={handleSave}
@@ -185,7 +219,7 @@ export default function ScreenerBuilder({
                             className={`flex items-center gap-3 px-10 py-4 rounded-2xl text-[12px] font-black tracking-[0.2em] transition-all shadow-xl shadow-pink-500/20 active:scale-95 ${isSaving ? 'bg-pink-900 text-pink-300' : 'bg-[#be185d] text-white hover:bg-pink-600'}`}
                         >
                             <Save className="w-4 h-4" />
-                            {isSaving ? 'Synchronizing...' : 'Save form'}
+                            {isSaving ? 'Saving...' : 'Save Screener'}
                         </button>
                     </div>
                 ) : (
@@ -195,7 +229,7 @@ export default function ScreenerBuilder({
                             className="flex items-center gap-3 px-10 py-4 rounded-2xl text-[12px] font-black tracking-[0.2em] transition-all shadow-xl shadow-indigo-500/20 active:scale-95 bg-indigo-600 text-white hover:bg-indigo-500"
                         >
                             <Save className="w-4 h-4" />
-                            Apply Logic
+                            Done
                         </button>
                     </div>
                 )}
@@ -205,13 +239,13 @@ export default function ScreenerBuilder({
                 {/* Left: Toolbox */}
                 <div className="col-span-12 lg:col-span-3 space-y-6">
                     <div className="bg-[#0f172a]/50 border border-white/5 rounded-[2rem] p-8">
-                        <h3 className="text-[11px] font-black text-slate-500 tracking-widest mb-2">Question toolbox</h3>
-                        <p className="text-[9px] text-slate-600 font-bold tracking-widest mb-8">Tap component to append to architecture</p>
+                        <h3 className="text-[11px] font-black text-slate-500 tracking-widest mb-2">ADD QUESTIONS</h3>
+                        <p className="text-[9px] text-slate-600 font-bold tracking-widest mb-8">Click a button to add to your list</p>
                         
                         <div className="space-y-3">
                             {[
-                                { type: 'short_text', icon: Type, label: 'Short response' },
-                                { type: 'choice', icon: List, label: 'Single/multi choice' },
+                                { type: 'short_text', icon: Type, label: 'Text info' },
+                                { type: 'choice', icon: List, label: 'Multiple choices' },
                                 { type: 'dropdown', icon: ChevronDown, label: 'Dropdown list' },
                                 { type: 'date', icon: Calendar, label: 'Date selection' }
                             ].map((item) => (
@@ -236,7 +270,7 @@ export default function ScreenerBuilder({
                         <div className="flex items-start gap-4">
                             <AlertCircle className="w-5 h-5 text-pink-500 shrink-0" />
                             <p className="text-[10px] text-slate-400 font-medium leading-relaxed italic">
-                                Protocols must be approved before screeners can be globally activated.
+                                Scripts may need review before being sent to participants.
                             </p>
                         </div>
                     </div>
@@ -244,6 +278,14 @@ export default function ScreenerBuilder({
 
                 {/* Right: Canvas */}
                 <div className="col-span-12 lg:col-span-9">
+                    {selectedStudyId && (
+                        <div className="flex items-center gap-4 mb-4 px-10">
+                            <Rocket className="w-4 h-4 text-pink-500" />
+                            <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">
+                                Current Study: <span className="text-pink-500">{studies.find(s => s.id === selectedStudyId)?.protocol_id || 'Unknown Protocol'}</span>
+                            </span>
+                        </div>
+                    )}
                     <div className="min-h-[600px] border-2 border-dashed border-white/5 rounded-[3rem] p-10 flex flex-col items-center bg-black/20">
                         <AnimatePresence mode="popLayout">
                             {questions.length === 0 ? (
@@ -256,8 +298,8 @@ export default function ScreenerBuilder({
                                     <div className="w-24 h-24 rounded-3xl bg-white/5 flex items-center justify-center mb-8 border border-white/5">
                                         <LayoutGrid className="w-10 h-10 text-slate-700" />
                                     </div>
-                                    <h3 className="text-2xl font-black text-white italic tracking-tighter mb-2">Virtual canvas empty</h3>
-                                    <p className="text-[10px] text-slate-500 font-black tracking-[0.3em]">Deploy components from the toolbox</p>
+                                    <h3 className="text-2xl font-black text-white italic tracking-tighter mb-2">No questions yet</h3>
+                                    <p className="text-[10px] text-slate-500 font-black tracking-[0.3em]">Start adding questions from the left menu</p>
                                 </motion.div>
                             ) : (
                                 <div className="w-full space-y-4 max-w-4xl">
@@ -267,10 +309,22 @@ export default function ScreenerBuilder({
                                             layout
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
-                                            className="bg-[#0f172a] border border-white/5 rounded-3xl p-8 group relative"
+                                            className={`bg-gradient-to-br ${
+                                                q.type === 'short_text' ? 'from-blue-600/10 via-[#0f172a] to-[#0f172a] border-blue-500/20' :
+                                                q.type === 'choice' ? 'from-indigo-600/10 via-[#0f172a] to-[#0f172a] border-indigo-500/20' :
+                                                q.type === 'dropdown' ? 'from-violet-600/10 via-[#0f172a] to-[#0f172a] border-violet-500/20' :
+                                                q.type === 'date' ? 'from-pink-600/10 via-[#0f172a] to-[#0f172a] border-pink-500/20' :
+                                                'bg-[#0f172a] border-white/5'
+                                            } border rounded-[2.5rem] p-8 group relative shadow-2xl transition-all duration-500 hover:shadow-indigo-500/5`}
                                         >
                                             <div className="flex items-start gap-8">
-                                                <div className="text-3xl font-black text-slate-800 italic group-hover:text-pink-500/20 transition-colors">
+                                                <div className={`text-3xl font-black italic opacity-30 group-hover:opacity-100 transition-all duration-700 ${
+                                                    q.type === 'short_text' ? 'text-blue-500' :
+                                                    q.type === 'choice' ? 'text-indigo-500' :
+                                                    q.type === 'dropdown' ? 'text-violet-500' :
+                                                    q.type === 'date' ? 'text-pink-500' :
+                                                    'text-slate-800'
+                                                }`}>
                                                     {(idx + 1).toString().padStart(2, '0')}
                                                 </div>
                                                 <div className="flex-1 space-y-6">
@@ -278,8 +332,8 @@ export default function ScreenerBuilder({
                                                          <input
                                                              value={q.label}
                                                              onChange={(e) => updateQuestion(q.id, { label: e.target.value })}
-                                                             placeholder="Click to define eligibility criteria question..."
-                                                             className="w-full bg-transparent text-xl font-bold text-white outline-none border-b border-transparent focus:border-pink-500/30 transition-all pb-2"
+                                                             placeholder="Type your question here..."
+                                                             className="w-full bg-transparent text-xl font-bold text-white outline-none border-b border-white/5 focus:border-indigo-500/50 transition-all pb-2"
                                                          />
                                                          <div className="flex items-center gap-3 ml-4">
                                                               <button
@@ -297,12 +351,12 @@ export default function ScreenerBuilder({
                                                      {(q.type === 'choice' || q.type === 'dropdown') && (
                                                          <div className="space-y-3 bg-white/[0.02] p-6 rounded-2xl border border-white/5">
                                                              <div className="flex items-center justify-between mb-2">
-                                                                 <span className="text-[10px] font-bold text-slate-500 tracking-wider">Response options</span>
+                                                                 <span className="text-[10px] font-bold text-slate-500 tracking-wider">Choices</span>
                                                                  <button
-                                                                     onClick={() => updateQuestion(q.id, { options: [...(q.options || []), `Option ${(q.options?.length || 0) + 1}`] })}
+                                                                     onClick={() => updateQuestion(q.id, { options: [...(q.options || []), `Choice ${(q.options?.length || 0) + 1}`] })}
                                                                      className="text-[10px] font-bold text-pink-500 tracking-wider hover:text-white transition-all"
                                                                  >
-                                                                     + Add response option
+                                                                     + Add a choice
                                                                  </button>
                                                              </div>
                                                              <div className="grid grid-cols-2 gap-3">
@@ -355,6 +409,63 @@ export default function ScreenerBuilder({
                         {statusMessage.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
                         <span className="text-[11px] font-black uppercase tracking-widest">{statusMessage.text}</span>
                     </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Import Modal */}
+            <AnimatePresence>
+                {showImportModal && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowImportModal(false)}
+                            className="fixed inset-0 bg-black/80 backdrop-blur-md z-[150]"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="fixed inset-0 m-auto w-full max-w-2xl h-fit bg-[#0f172a] border border-white/10 rounded-[2.5rem] p-10 z-[151] shadow-2xl"
+                        >
+                            <div className="flex items-center justify-between mb-8">
+                                <div>
+                                    <h3 className="text-2xl font-black text-white italic tracking-tighter">Copy from another study</h3>
+                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">Select a study to copy its questions</p>
+                                </div>
+                                <button onClick={() => setShowImportModal(false)} className="p-3 text-slate-500 hover:text-white transition-all bg-white/5 rounded-xl"><X /></button>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3 max-h-[400px] overflow-y-auto pr-4">
+                                {studies.filter(s => s.id !== selectedStudyId).map(s => (
+                                    <button
+                                        key={s.id}
+                                        onClick={() => handleImport(s.id)}
+                                        className="w-full flex items-center justify-between p-6 bg-white/[0.02] border border-white/5 rounded-2xl hover:bg-pink-500/5 hover:border-pink-500/30 transition-all group"
+                                    >
+                                        <div className="flex items-center gap-5">
+                                            <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-pink-500 transition-colors">
+                                                <Database className="w-5 h-5" />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-xs font-black text-white uppercase tracking-widest group-hover:text-pink-500 transition-colors">{s.protocol_id}</p>
+                                                <p className="text-[10px] font-bold text-slate-500 mt-1 line-clamp-1">{s.title}</p>
+                                            </div>
+                                        </div>
+                                        <ChevronRight className="w-5 h-5 text-slate-700" />
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="mt-10 p-6 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex items-start gap-4">
+                                <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+                                <p className="text-[10px] text-slate-400 font-medium leading-relaxed italic">
+                                    Importing will append questions from the source protocol to your current draft. You can then modify or reorder them as needed.
+                                </p>
+                            </div>
+                        </motion.div>
+                    </>
                 )}
             </AnimatePresence>
         </div>

@@ -127,6 +127,8 @@ export default function PIMessagesModule() {
     const [actionPanelOpen, setActionPanelOpen] = useState(true);
     const [participantDrawerOpen, setParticipantDrawerOpen] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [fetchedStudies, setFetchedStudies] = useState<any[]>([]);
+    const [fetchedParticipants, setFetchedParticipants] = useState<any[]>([]);
     
     // Refs
     const threadEndRef = useRef<HTMLDivElement>(null);
@@ -208,6 +210,22 @@ export default function PIMessagesModule() {
     // Auto-scroll on active conversation or messages change
     useEffect(() => {
         fetchConversations();
+        
+        const fetchSystemData = async () => {
+            try {
+                const sRes = await authFetch(`${API}/api/studies/`);
+                if (sRes.ok) {
+                    const data = await sRes.json();
+                    setFetchedStudies(Array.isArray(data) ? data : (data.results || []));
+                }
+                const pRes = await authFetch(`${API}/api/participants/`);
+                if (pRes.ok) {
+                    const data = await pRes.json();
+                    setFetchedParticipants(Array.isArray(data) ? data : (data.results || []));
+                }
+            } catch (err) {}
+        };
+        fetchSystemData();
     }, []);
 
     useEffect(() => {
@@ -619,13 +637,20 @@ export default function PIMessagesModule() {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '2.5rem' }}>
                             <div>
                                 <label style={G.label}>Participant ID / To</label>
-                                <input style={{ ...G.btnGhost, width: '100%', padding: '1rem', marginTop: '0.5rem', textAlign: 'left', cursor: 'text' }} placeholder="Select Recipient..." />
+                                <select style={{ ...G.btnGhost, width: '100%', padding: '1rem', marginTop: '0.5rem', backgroundColor: '#0B101B', textTransform: 'uppercase' }}>
+                                    <option value="" disabled selected>SELECT RECIPIENT...</option>
+                                    {fetchedParticipants.map(p => (
+                                        <option key={p.id} value={p.participant_sid || p.id}>{p.participant_sid || 'ID PENDING'} {p.user?.full_name ? `(${p.user.full_name})` : ''}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
                                 <label style={G.label}>Select Study</label>
-                                <select style={{ ...G.btnGhost, width: '100%', padding: '1rem', marginTop: '0.5rem', backgroundColor: '#0B101B' }}>
-                                    <option>Beat the Bloat</option>
-                                    <option>Menopause Study</option>
+                                <select style={{ ...G.btnGhost, width: '100%', padding: '1rem', marginTop: '0.5rem', backgroundColor: '#0B101B', textTransform: 'uppercase' }}>
+                                    <option value="" disabled selected>SELECT STUDY...</option>
+                                    {fetchedStudies.map(s => (
+                                        <option key={s.id} value={s.title}>{s.title}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>

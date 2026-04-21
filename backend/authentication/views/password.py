@@ -8,7 +8,7 @@ import logging
 import os
 
 from ..models import User, MagicLink
-from ..utils import send_resend_email, generate_token
+from ..utils import generate_token
 
 logger = logging.getLogger(__name__)
 
@@ -29,21 +29,22 @@ def forgot_password(request):
 
     reset_link = f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/reset-password?token={token}"
     
-    html_content = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #1e293b; border-radius: 10px; background-color: #0B101B; color: white;">
-        <h2 style="color: #06b6d4;">MusB Research - Reset Your Password</h2>
-        <p>You requested a password reset. Click the button below to set a new password. This link is valid for 1 hour.</p>
-        <div style="text-align: center; margin: 30px 0;">
-            <a href="{reset_link}" style="background-color: #06b6d4; color: #0B101B; padding: 12px 24px; border-radius: 5px; text-decoration: none; font-weight: bold;">Reset Password</a>
-        </div>
-        <p style="color: #64748b; font-size: 12px;">If you did not request this, please ignore this email.</p>
-    </div>
-    """
+    from ..utils import send_mail_premium
+    success = send_mail_premium(
+        to_email=email,
+        subject='Reset Your Password - MusB Research',
+        title='Identity Recovery',
+        body=f"Hello,<br><br>We received a request to reset your MusB Research password. For your security, you can either click the button below or scan the QR code with your mobile device to set a new password.<br><br>This recovery link is temporary and will <strong>expire in 1 hour</strong>.",
+        button_text='Reset Password',
+        button_url=reset_link,
+        qr_url=reset_link
+    )
 
-    if send_resend_email(email, "Reset Your Password - MusB Research", html_content):
+    if success:
         return Response({'message': 'Reset link sent successfully'})
     else:
         return Response({'error': 'Failed to send reset link'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus, Save, Layout, FileText, List, Calendar,
     X, AlertCircle, ChevronDown, Layers, MousePointer2,
-    CheckSquare, GripVertical, Settings2, Trash2, Upload, Eye, FileUp, ExternalLink
+    CheckSquare, GripVertical, Settings2, Trash2, Upload, Eye, FileUp, ExternalLink, Database
 } from 'lucide-react';
 import { apiFetch } from '../../api';
 import { authFetch, API } from '../../utils/auth';
@@ -23,6 +23,7 @@ interface Template {
     pdf_file: string | null;
     json_structure: { questions?: Question[]; instructions?: string };
     created_at: string;
+    used_in_studies?: { id: string, title: string, protocol_id: string }[];
 }
 
 interface QuestionnaireBuilderProps {
@@ -385,9 +386,26 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                                 </div>
                             </div>
                             <h3 className="text-lg font-black text-white uppercase italic tracking-tight truncate">{t.name}</h3>
-                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">
+                             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">
                                 {t.pdf_file ? 'Source: Legal PDF Protocol' : `Source: Structured Form (${t.json_structure?.questions?.length || 0} fields)`}
                             </p>
+                            <div className="mt-4 px-3 py-1.5 bg-white/5 border border-white/5 rounded-lg flex items-center gap-2 w-fit">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]" />
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Global - Available for all studies</span>
+                            </div>
+
+                            {t.used_in_studies && t.used_in_studies.length > 0 && (
+                                <div className="mt-4 flex flex-wrap gap-1.5">
+                                    <div className="w-full text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                                        <Database className="w-3 h-3" /> Linked to Protocols
+                                    </div>
+                                    {t.used_in_studies.map(s => (
+                                        <span key={s.id} className="px-2 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-md text-[9px] font-black text-indigo-400 uppercase tracking-tighter">
+                                            {s.protocol_id || s.title}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
 
                             <div className="flex items-center gap-3 mt-6">
                                 {t.pdf_file && (
@@ -423,7 +441,7 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                         <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                             <Plus className="w-8 h-8 text-slate-600" />
                         </div>
-                        <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest">Create Structured Template</span>
+                        <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest">Create New Form Design</span>
                     </button>
                 </div>
             ) : (
@@ -433,7 +451,7 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                             <input
                                 value={name}
                                 onChange={e => setName(e.target.value)}
-                                placeholder="Enter Questionnaire Name..."
+                                placeholder="Enter Form Title..."
                                 className="w-full bg-transparent text-4xl font-black text-white uppercase italic outline-none mb-4 border-b border-white/5 pb-4 focus:border-indigo-500/50"
                             />
 
@@ -501,7 +519,7 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                                                 <input
                                                     value={q.label}
                                                     onChange={e => setQuestions(questions.map(item => item.id === q.id ? { ...item, label: e.target.value } : item))}
-                                                    placeholder="Enter Clinical Question Label"
+                                                    placeholder="Enter Field Label"
                                                     className="bg-transparent text-lg font-bold text-white outline-none flex-1 border-b border-transparent focus:border-indigo-500/30 transition-all pb-1"
                                                 />
                                             </div>
@@ -528,7 +546,7 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                                             <div className="pl-14 pr-4">
                                                 <div className="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
                                                     <div className="flex items-center justify-between mb-4">
-                                                        <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Options / Selection Levels</h5>
+                                                        <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Response Choices / Levels</h5>
                                                         <button
                                                             onClick={() => {
                                                                 const opts = q.options || [];
@@ -536,7 +554,7 @@ export default function QuestionnaireBuilder({ initialTemplate, initialTab }: Qu
                                                             }}
                                                             className="text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:text-white transition-all"
                                                         >
-                                                            + Add New Level
+                                                            + Add Option
                                                         </button>
                                                     </div>
                                                     <div className="flex flex-wrap gap-2">

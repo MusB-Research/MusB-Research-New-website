@@ -243,12 +243,20 @@ export default function AlertsModule({ selectedStudyId, initialNotifications }: 
                                  <div className="lg:col-span-1 flex items-center justify-end gap-3 transition-all">
                                     {alert.link && (
                                         <button 
-                                            onClick={() => navigate(alert.link!)}
+                                            onClick={() => {
+                                                // For cross-dashboard links, use window.location to ensure full route resolution
+                                                if (alert.link!.startsWith('http')) {
+                                                    window.open(alert.link!, '_blank');
+                                                } else {
+                                                    window.location.href = alert.link!;
+                                                }
+                                            }}
                                             className="px-5 py-3 bg-blue-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest italic hover:scale-105 active:scale-95 transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2"
                                         >
                                             Review <ExternalLink className="w-3.5 h-3.5" />
                                         </button>
                                     )}
+
                                     {!alert.read && (
                                          <button 
                                              onClick={() => handleMarkRead(alert.id)}

@@ -235,6 +235,16 @@ class Study(BaseMongoModel):
         except Exception:
             return id(self)
 
+    @property
+    def avg_screener_duration(self):
+        """Calculates the average time leads spend on the screener for this study."""
+        leads = Lead.objects.filter(study_id=self.id)
+        valid_leads = [l for l in leads if l.metadata.get('performance', {}).get('total_seconds')]
+        if not valid_leads:
+            return 0
+        total = sum(l.metadata['performance']['total_seconds'] for l in valid_leads)
+        return total / len(valid_leads)
+
     def __str__(self):
         return f"{self.protocol_id} - {self.title}"
 
@@ -336,10 +346,26 @@ class Participant(BaseMongoModel):
     eligibility_data = models.JSONField(default=dict, blank=True, help_text="Stored results from the eligibility/screener form")
     submitted_at = models.DateTimeField(null=True, blank=True)
     
-    # Review Data
+    # Review & Approval Infrastructure (Requirement 3)
     reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_participants')
     reviewed_at = models.DateTimeField(null=True, blank=True)
     status_notes = models.TextField(blank=True, help_text="Notes from PI/Coordinator regarding status changes")
+
+    coordinator_approved = models.BooleanField(default=False)
+    coordinator_approved_at = models.DateTimeField(null=True, blank=True)
+    coordinator_signature = models.TextField(blank=True, null=True, help_text="Base64 signature of the coordinator")
+    
+    pi_approved = models.BooleanField(default=False)
+    pi_approved_at = models.DateTimeField(null=True, blank=True)
+    pi_signature = models.TextField(blank=True, null=True, help_text="Base64 signature of the PI")
+    
+    approval_status = models.CharField(max_length=50, default='PENDING_INITIAL_REVIEW', choices=[
+        ('PENDING_INITIAL_REVIEW', 'Pending Initial Review'),
+        ('COORDINATOR_REVIEWED', 'Reviewed by Coordinator (Pending PI)'),
+        ('PI_REVIEWED', 'Reviewed by PI (Pending Coordinator)'),
+        ('FULLY_APPROVED', 'Fully Approved & Enrolled'),
+        ('REJECTED', 'Rejected / Ineligible'),
+    ])
     
     # Demographics (PII - only visible to Admin/PI/Coordinator)
     gender = models.CharField(max_length=20, blank=True)
@@ -1073,15 +1099,23 @@ class LabResult(BaseMongoModel):
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
 class DataAuditLog(BaseMongoModel):
-    """Field-level audit trail for every data point modification"""
+    """Protocol-compliant audit trail for system and clinical actions"""
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
-    action = models.CharField(max_length=10, choices=[('CREATE', 'Created'), ('UPDATE', 'Updated'), ('DELETE', 'Deleted')])
-    model_name = models.CharField(max_length=100)
-    record_id = models.CharField(max_length=100)
+    action = models.CharField(max_length=50, db_index=True) # e.g., 'WITHDRAWAL', 'ELIGIBILITY_REVIEW', 'ENROLLMENT'
+    model_name = models.CharField(max_length=100, db_index=True)
+    record_id = models.CharField(max_length=100, db_index=True) # Usually the participant_sid or object ID
     
     # Store changes as JSON: {"field": {"old": val, "new": val}}
-    changes = models.JSONField()
+    changes = models.JSONField(default=dict, blank=True)
+    details = models.TextField(blank=True, help_text="Human-readable description of the action")
     timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta(BaseMongoModel.Meta):
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['model_name', 'record_id']),
+            models.Index(fields=['action', 'timestamp']),
+        ]
 
 class PermissionMatrix(BaseMongoModel):
     """Dynamic RBAC control configurable by Super Admin"""
@@ -1527,13 +1561,20 @@ def notify_on_study_inquiry(sender, instance, created, **kwargs):
         User = get_user_model()
         # Notify Super Admins, PIs, and Coordinators
         recipients = User.objects.filter(role__in=['SUPER_ADMIN', 'PI', 'COORDINATOR'])
+        
+        role_link_map = {
+            'SUPER_ADMIN': '/dashboard/admin/study-inquiries',
+            'PI': '/dashboard/pi/alerts',
+            'COORDINATOR': '/dashboard/coordinator/alerts',
+        }
+        
         for user in recipients:
             Notification.objects.create(
                 user=user,
                 title="New Study Proposal",
                 message=f"New {instance.category} proposal for {instance.product_name}",
                 type="MESSAGE",
-                link="/dashboard/admin/study-inquiries" if user.role == 'SUPER_ADMIN' else "/dashboard/coordinator/study-inquiries"
+                link=role_link_map.get((user.role or '').upper(), '/dashboard/coordinator/alerts')
             )
 # ─────────────────────────────────────────────────────────
 # SPONSOR INTELLIGENCE ALERTS (SIGNALS)

@@ -11,7 +11,7 @@ import string
 import secrets
 import logging
 from ..models import User, AuditLog
-from ..utils import send_resend_email
+from ..utils import send_mail_premium
 from api.views import IsAdminOrCoordinator
 
 logger = logging.getLogger(__name__)
@@ -47,6 +47,10 @@ def check_permission(creator, target_role):
         # Onsite PIs restricted to their own team or participants
         return t_role in ["team_member", "participant"]
 
+    if c_role == "sponsor":
+        # Sponsors can create PIs, Coordinators, or other Sponsor team members
+        return t_role in ["pi", "coordinator", "sponsor", "team_member"]
+
     return False
 
 def generate_secure_password(length=12):
@@ -74,7 +78,7 @@ def admin_create_user(request):
     Role-specific credentials delivery and mandatory reset flags.
     """
     admin_user = request.user
-    if not admin_user or not admin_user.is_authenticated or admin_user.role.upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR']:
+    if not admin_user or not admin_user.is_authenticated or admin_user.role.upper() not in ['SUPER_ADMIN', 'ADMIN', 'PI', 'COORDINATOR', 'SPONSOR']:
         return Response({'error': 'Unauthorized access.'}, status=status.HTTP_403_FORBIDDEN)
 
     # 1. Extraction
@@ -82,20 +86,21 @@ def admin_create_user(request):
     first_name  = request.data.get('first_name', '').strip()
     middle_name = request.data.get('middle_name', '').strip() or None
     last_name   = request.data.get('last_name', '').strip()
-    role_input = request.data.get('role', '').strip()
+    role_input  = request.data.get('role', '').strip()
     
     # 2. Validation
     if not all([email, first_name, last_name, role_input]):
+        logger.warning(f"Validation failed for user creation by {admin_user.email}. Missing fields: {[f for f in ['email', 'first_name', 'last_name', 'role'] if not request.data.get(f)]}")
         return Response({'error': 'First Name, Last Name, Email, and Role are mandatory.'}, status=status.HTTP_400_BAD_REQUEST)
     
     # Find matching role in choices regardless of case
     role = None
     role_choices_keys = [r[0].lower() for r in User.ROLE_CHOICES]
     if role_input.lower() in role_choices_keys:
-        # Use the actual key from ROLE_CHOICES (respecting original case like PARTICIPANT)
         role = [r[0] for r in User.ROLE_CHOICES if r[0].lower() == role_input.lower()][0]
     
     if not role:
+        logger.warning(f"Invalid role requested: {role_input} by {admin_user.email}")
         return Response({'error': f'Invalid role. Allowed: {", ".join([r[1] for r in User.ROLE_CHOICES])}'}, status=status.HTTP_400_BAD_REQUEST)
 
     # 3. RBAC Permission Check
@@ -116,11 +121,24 @@ def admin_create_user(request):
             }
         }, status=status.HTTP_400_BAD_REQUEST)
 
-    # 3. Generation
+    # Generation
     username = generate_unique_username(first_name, last_name)
     temp_password = generate_secure_password(14)
     study_id = request.data.get('study_id')
     
+    # 5. Create Magic Link for Seamless First Login
+    from ..utils import generate_token
+    from ..models import MagicLink
+    invite_token = generate_token()
+    MagicLink.objects.create(email=email, token=invite_token)
+    
+    # Determine correct login URL based on role
+    frontend_base = getattr(settings, 'FRONTEND_URL', 'https://musbhealth.com')
+    if role.lower() == 'super_admin':
+        login_url = f"{frontend_base.rstrip('/')}/mainframe/restricted-auth?token={invite_token}"
+    else:
+        login_url = f"{frontend_base.rstrip('/')}/signin?token={invite_token}"
+
     # 4. Atomic Creation
     try:
         # Rule 1.1: HOW AFFILIATION IS DETERMINED
@@ -222,40 +240,30 @@ def admin_create_user(request):
         
         subject = subject_map.get(role.lower(), 'Account Created — MusB Research')
         
-        # Determine correct login URL based on role (Section 2.1)
-        frontend_base = getattr(settings, 'FRONTEND_URL', 'https://musbhealth.com')
+        from ..utils import send_mail_premium
         
-        if role.lower() == 'super_admin':
-            login_url = f"{frontend_base.rstrip('/')}/mainframe/restricted-auth"
-        else:
-            login_url = f"{frontend_base.rstrip('/')}/signin"
-        
-        html_content = f"""
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #4f46e5;">Welcome to MusB Research</h2>
-            <p>Hello <strong>{first_name} {last_name}</strong>,</p>
-            <p>Your professional account has been provisioned on the MusB Research Platform.</p>
-            
-            <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 0; color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Credentials</p>
-                <p style="font-size: 18px; margin: 10px 0;"><strong>Username:</strong> {username}</p>
-                <p style="font-size: 18px; margin: 10px 0;"><strong>Temporary Password:</strong> <span style="font-family: monospace; background: #eee; padding: 2px 6px;">{temp_password}</span></p>
-            </div>
-            
-            <p style="color: #ef4444; font-weight: bold;">SECURITY NOTICE:</p>
-            <ul>
-                <li>This password is temporary. You <strong>must</strong> reset it immediately on your first login.</li>
-                <li>This temporary access expires in 48 hours.</li>
-                <li>Do not share these credentials with anyone.</li>
-            </ul>
-            
-            <a href="{login_url}" style="display: inline-block; background: #4f46e5; color: white; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 20px;">Access Secure Terminal</a>
-            
-            <p style="margin-top: 30px; font-size: 12px; color: #9ca3af;">If you did not expect this email, please ignore or contact support.</p>
+        # Personalized body based on role
+        body_content = f"""
+        Hello <strong>{first_name}</strong>,<br><br>
+        You have been invited by {admin_user.full_name} to join the MusB Research platform as a <strong>{role.upper()}</strong>. 
+        Your professional account has been provisioned with the following secure credentials:<br><br>
+        <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; font-family: monospace;">
+            <strong>Username:</strong> {username}<br>
+            <strong>Temp Password:</strong> {temp_password}
         </div>
+        <br>Log in to the secure terminal and complete your profile setup. You will be required to set a permanent password upon your first entry.
         """
         
-        email_sent = send_resend_email(email, subject, html_content)
+        email_sent = send_mail_premium(
+            to_email=email,
+            subject=subject,
+            title='Onboarding Documentation',
+            body=body_content,
+            button_text='Access Secure Terminal',
+            button_url=login_url,
+            qr_url=login_url,
+            role=role.upper()
+        )
         
         if email_sent:
             new_user.temp_password_sent = True
@@ -283,6 +291,8 @@ def admin_create_user(request):
             'first_name': new_user.first_name,
             'last_name': new_user.last_name,
             'role': new_user.role,
+            'status': (new_user.status or 'PENDING').upper(),
+            'invitation_status': 'Accepted' if (new_user.status or '').upper() == 'ACTIVE' else 'Pending',
         }, status=status.HTTP_201_CREATED)
 
     except Exception as e:
@@ -321,22 +331,17 @@ def admin_resend_credentials(request, user_id):
         else:
             login_url = f"{frontend_base.rstrip('/')}/signin"
         
-        html_content = f"""
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #4f46e5; border-radius: 10px;">
-            <h2 style="color: #4f46e5;">Access Reset - MusB Research</h2>
-            <p>Hello <strong>{target_user.first_name}</strong>,</p>
-            <p>An administrator has re-issued your temporary credentials.</p>
-            
-            <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <p style="font-size: 18px; margin: 10px 0;"><strong>Username:</strong> {target_user.username}</p>
-                <p style="font-size: 18px; margin: 10px 0;"><strong>New Temporary Password:</strong> <span style="font-family: monospace; background: #eee; padding: 2px 6px;">{new_temp_password}</span></p>
-            </div>
-            
-            <a href="{login_url}" style="display: inline-block; background: #4f46e5; color: white; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-weight: bold;">Access Terminal</a>
-        </div>
-        """
-        
-        email_sent = send_resend_email(target_user.email, subject, html_content)
+        from ..utils import send_mail_premium
+        email_sent = send_mail_premium(
+            to_email=target_user.email,
+            subject=subject,
+            title='Identity Credentials Reissued',
+            body=f"Hello <strong>{target_user.first_name}</strong>,<br><br>An administrator has re-issued your temporary access credentials for the <strong>{target_user.role.upper()}</strong> platform.<br><br><div style='background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; font-family: monospace;'><strong>Username:</strong> {target_user.username}<br><strong>New Temp Password:</strong> {new_temp_password}</div><br>Please log in immediately to secure your account.",
+            button_text='Access Secure Terminal',
+            button_url=login_url,
+            qr_url=login_url,
+            role=target_user.role.upper()
+        )
         
         AuditLog.log(
             action='CREDENTIALS_REISSUED',
@@ -517,8 +522,9 @@ def admin_list_users(request):
             'last_name': u.last_name,
             'email': u.email,
             'role': u.role,
-            'full_name': f"{u.first_name} {u.last_name}".strip() or u.email,
+            'full_name': u.full_name or f"{u.first_name} {u.last_name}".strip() or u.email,
             'status': (u.status or 'PENDING').upper(),
+            'invitation_status': 'Accepted' if (u.status or '').upper() == 'ACTIVE' else 'Pending',
             'date': u.date_joined.strftime('%Y-%m-%d') if u.date_joined else '',
             'invited_by': u.invited_by.full_name if u.invited_by else 'Super Admin',
             'study': u.invited_in_study or 'N/A'

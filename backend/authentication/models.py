@@ -59,13 +59,17 @@ class User(AbstractBaseUser, PermissionsMixin):
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     profile_picture = models.URLField(max_length=1024, blank=True, null=True)
     
-    # Onboarding Flags
+    # Security & 2FA
     must_change_password = models.BooleanField(default=False)
     profile_completed = models.BooleanField(default=False)
     is_screener_completed = models.BooleanField(default=False)
-    google_auth = models.BooleanField(default=False)
+    google_auth = models.BooleanField(default=False) # Legacy flag
+    is_2fa_enabled = models.BooleanField(default=False)
+    totp_secret = models.CharField(max_length=64, null=True, blank=True)
     temp_password_sent = models.BooleanField(default=False)
     temp_token_expiry = models.DateTimeField(null=True, blank=True)
+    last_otp_sent = models.DateTimeField(null=True, blank=True)
+
     
     # Mandatory Profile Data
     gender = models.CharField(max_length=20, blank=True, null=True)
@@ -347,19 +351,24 @@ class Invitation(models.Model):
         return f"Invite for {self.email} to join {self.organization}"
 
 class OTP(models.Model):
-    email = models.EmailField(null=True, blank=True)
-    phone = models.CharField(max_length=20, null=True, blank=True)
-    code = models.CharField(max_length=6)
+    email = models.EmailField()
+    code_hash = models.CharField(max_length=128) # Store hashed code
+    attempts = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
     is_verified = models.BooleanField(default=False)
 
     def is_expired(self):
-        # OTP valid for 10 minutes
-        return now() > self.created_at + datetime.timedelta(minutes=10)
+        return now() > self.expires_at
 
     @staticmethod
     def generate_code():
         return ''.join([str(random.randint(0, 9)) for _ in range(6)])
+
+    def increment_attempts(self):
+        self.attempts += 1
+        self.save(update_fields=['attempts'])
+
 
 class MagicLink(models.Model):
     email = models.EmailField()

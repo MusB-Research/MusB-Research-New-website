@@ -371,7 +371,7 @@ class StudySerializer(SanitizedModelSerializer):
             'show_dosing_log', 'show_ae_report', 'show_lab_upload', 'is_archived',
             'reward_type', 'reward_logic', 'reward_config',
             'consent_template_file', 'consent_templates', 'documents',
-            'study_questionnaires', 'screener_config',
+            'study_questionnaires', 'screener_config', 'avg_screener_duration',
             'created_at', 'updated_at'
         ]
 
@@ -587,6 +587,10 @@ class ParticipantTaskSerializer(SanitizedModelSerializer):
             'is_locked', 'current_data', 'assigned_form', 'assigned_form_details',
             'participant_name', 'protocol_id'
         ]
+        extra_kwargs = {
+            'task': {'required': False, 'allow_null': True}
+        }
+
 
 class StaffTaskSerializer(SanitizedModelSerializer):
     id = ObjectIdField(read_only=True)
@@ -939,7 +943,9 @@ class ParticipantSerializer(SanitizedModelSerializer):
             'id', 'participant_sid', 'participant_status', 'user', 'user_details', 'study', 'study_name', 'protocol_id',
             'coordinator_name', 'gender', 'dob', 'age', 'status', 'assigned_arm', 'completion_date',
             'created_at', 'updated_at', 'reviewed_at', 'reviewed_by', 'reviewer_name',
-            'visits', 'ae_reports', 'daily_logs', 'lab_results', 'consent_records'
+            'visits', 'ae_reports', 'daily_logs', 'lab_results', 'consent_records',
+            'coordinator_approved', 'coordinator_approved_at', 'coordinator_signature',
+            'pi_approved', 'pi_approved_at', 'pi_signature', 'approval_status'
         ]
 
     def validate(self, data):
@@ -1059,9 +1065,21 @@ class CompensationSerializer(SanitizedModelSerializer):
             'paid_at', 'notes', 'created_at'
         ]
 class QuestionnaireTemplateSerializer(SanitizedModelSerializer):
+    used_in_studies = serializers.SerializerMethodField()
+
     class Meta:
         model = QuestionnaireTemplate
         fields = '__all__'
+
+    def get_used_in_studies(self, obj):
+        from .models import StudyQuestionnaire
+        # Find all studies using this template through StudyQuestionnaire mapping
+        sqs = StudyQuestionnaire.objects.filter(template=obj).select_related('study')
+        return [
+            {'id': str(sq.study.id), 'title': sq.study.title, 'protocol_id': sq.study.protocol_id}
+            for sq in sqs
+        ]
+
 
 class QuestionnaireScheduleInstanceSerializer(SanitizedModelSerializer):
     class Meta:

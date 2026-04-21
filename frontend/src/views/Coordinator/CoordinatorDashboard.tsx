@@ -412,9 +412,7 @@ export default function CoordinatorDashboard() {
                 apiFetch<any[]>('/api/questionnaire-schedules/?limit=50')
             ]);
 
-            setStudies((studiesData || []).sort((a: any, b: any) =>
-                (a.id || "").localeCompare(b.id || "")
-            ));
+            setStudies(studiesData || []);
 
             setUsers((usersData || []).map((u: any) => ({
                 ...u,
@@ -627,7 +625,9 @@ export default function CoordinatorDashboard() {
                                  onChange={(e) => setGlobalSelectedStudyId(e.target.value)}
                                  className="bg-transparent text-[12px] font-black text-blue-400 uppercase tracking-[0.15em] outline-none cursor-pointer px-3 min-w-[140px] max-w-[240px] truncate"
                              >
-                                 <option value="all" className="bg-[#0B101B]">All Studies ({Object.values(participantsByStudy).reduce((a,b)=>a+b,0)} participants)</option>
+                                 <option value="all" className="bg-[#0B101B]">
+                                     All Studies ({Object.values(participantsByStudy).reduce((a,b)=>a+b,0)} participant{Object.values(participantsByStudy).reduce((a,b)=>a+b,0) !== 1 ? 's' : ''})
+                                 </option>
                                  {studies.map(s => {
                                      const cnt = participantsByStudy[s.id] ?? 0;
                                      return (

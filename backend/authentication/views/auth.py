@@ -115,6 +115,66 @@ def login_view(request):
         AuditLog.log('LOGIN_FAILED', user_email=login_id, request=request, detail='Account pending approval')
         return Response({'error': 'Your account is pending Super Admin approval.'}, status=status.HTTP_403_FORBIDDEN)
 
+    # ─────────────────────────────────────────────────────────
+    # 2FA Check (App-based TOTP)
+    # ─────────────────────────────────────────────────────────
+    if user.is_2fa_enabled:
+        return Response({
+            'mfa_required': True,
+            'message': 'Two-factor authentication required',
+            'email': user.email
+        }, status=status.HTTP_200_OK)
+
+    AuditLog.log('LOGIN_SUCCESS', user_email=user.email, request=request)
+
+    # Token Generation
+    try:
+        access_token           = generate_access_token(user)
+        refresh_token, ref_jti = generate_refresh_token(user)
+    except Exception as e:
+        logger.error(f'JWT signing failed: {e}')
+        return Response({'error': 'Token generation failed.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    # Persistent Storage
+    ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
+    RefreshToken.objects.create(
+        user=user,
+        token_hash=hash_token(refresh_token),
+        jti=ref_jti,
+        expires_at=now() + REFRESH_TOKEN_LIFETIME,
+        user_agent=request.META.get('HTTP_USER_AGENT', '')[:512],
+        ip_address=ip.split(',')[0].strip() if ip and ',' in ip else ip,
+    )
+
+    response = Response({
+        'message': 'Login successful',
+        'access': access_token, 
+        'refresh': refresh_token,
+        'user': get_user_data_dict(user),
+        'user_profile_incomplete': not user.profile_completed
+    })
+    return _set_auth_cookies(response, access_token, refresh_token)
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_2fa_login(request):
+    """Finalizes login after TOTP verification."""
+    email = request.data.get('email')
+    token = request.data.get('token')
+    password = request.data.get('password') # For security re-verification
+
+    if not email or not token:
+        return Response({'error': 'Email and token are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = authenticate(request=request, username=email, password=password)
+    if not user:
+        return Response({'error': 'Re-authentication failed'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    from ..utils import verify_totp
+    if not verify_totp(user.totp_secret, token):
+        return Response({'error': 'Invalid 2FA token'}, status=status.HTTP_401_UNAUTHORIZED)
+
     try:
         access_token           = generate_access_token(user)
         refresh_token, ref_jti = generate_refresh_token(user)
@@ -132,18 +192,7 @@ def login_view(request):
         ip_address=ip.split(',')[0].strip() if ip and ',' in ip else ip,
     )
 
-    user.last_login = now()
-    
-    # Auto-detect and update timezone if provided by frontend
-    client_timezone = request.data.get('timezone')
-    update_fields = ['last_login']
-    if client_timezone and user.timezone != client_timezone:
-        user.timezone = client_timezone
-        update_fields.append('timezone')
-        
-    user.save(update_fields=update_fields)
-
-    AuditLog.log('LOGIN_SUCCESS', user_email=user.email, request=request)
+    AuditLog.log('LOGIN_SUCCESS', user_email=user.email, request=request, detail='MFA Verified')
 
     response = Response({
         'message': 'Login successful',
@@ -153,6 +202,7 @@ def login_view(request):
         'user_profile_incomplete': not user.profile_completed
     })
     return _set_auth_cookies(response, access_token, refresh_token)
+
 
 @csrf_exempt
 @api_view(['POST'])

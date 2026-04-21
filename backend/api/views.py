@@ -42,13 +42,13 @@ import pytz
 from .utils.reward_logic import trigger_reward_logic
 import datetime
 import bson
-from .utils.cache_utils import cache_api_response
+from .utils.cache_utils import cache_api_response, invalidate_cache
 
 class IsAdminOrCoordinator(permissions.BasePermission):
     def has_permission(self, request, view):
         if not request.user.is_authenticated:
             return False
-        return (request.user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI']
+        return (request.user.role or '').upper() in ['ADMIN', 'SUPER_ADMIN', 'COORDINATOR', 'PI', 'SPONSOR']
 
 class SoftPaginationMixin:
     """
@@ -185,7 +185,7 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
                 stage__in=['RECRUITING', 'ACTIVE'],
                 approval_status='approved',
                 is_archived=False
-            ).order_by('created_at')
+            ).order_by('-created_at')
         
         role = (user.role or '').strip().upper()
         
@@ -193,11 +193,9 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         if role == 'SUPER_ADMIN':
             return Study.objects.all().order_by('created_at')
             
-        # 2. Staff Roles (PI, COORDINATOR, ADMIN): Assigned studies or those they created
+        # 2. Staff Roles (PI, COORDINATOR, ADMIN): All studies for research oversight & collaboration
         if role in ['PI', 'COORDINATOR', 'ADMIN']:
-            return Study.objects.filter(
-                Q(pi=user) | Q(coordinator=user) | Q(created_by=user) | Q(assignments__user=user)
-            ).distinct().order_by('created_at')
+            return Study.objects.all().order_by('created_at')
 
         # 3. Sponsors: Studies where they are the direct sponsor user OR assigned via StudyAssignment
         if role == 'SPONSOR':
@@ -282,6 +280,9 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
         AuditLog.log('UPDATE_STUDY', user_email=user.email, request=self.request, detail=f"Created study {study.title}")
         if (user.role or '').upper() in ['PI', 'COORDINATOR']:
             StudyAssignment.objects.get_or_create(study=study, user=user, role=user.role)
+            
+        # Invalidate cache so it shows up globally
+        invalidate_cache("studies_list")
 
     @action(detail=True, methods=['get'], permission_classes=[IsAdminOrCoordinator])
     @cache_api_response("study_stats", timeout=300)
@@ -312,7 +313,7 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
             missed=Count(Case(When(status='MISSED', then=1), output_field=IntegerField())),
         )
         
-        v_stats = Visit.objects.filter(study=study).aggregate(
+        v_stats = Visit.objects.filter(participant__study=study).aggregate(
             total=Count('id'),
             completed=Count(Case(When(status='COMPLETED', then=1), output_field=IntegerField())),
             upcoming=Count(Case(When(status='SCHEDULED', scheduled_date__gt=now(), then=1), output_field=IntegerField())),
@@ -487,6 +488,10 @@ class StudyViewSet(WorkflowContentMixin, viewsets.ModelViewSet):
 
         self._sync_assignments(study, pi_ids, coord_ids, sponsor_ids)
         AuditLog.log('UPDATE_STUDY', user_email=user.email, request=self.request, detail=f"Modified study {study.title}")
+        
+        # Invalidate cache
+        invalidate_cache("studies_list")
+        invalidate_cache("coordinator_summary")
 
     def _sync_assignments(self, study, pi_ids, coord_ids, sponsor_ids=None):
         if pi_ids is not None:
@@ -776,14 +781,14 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
                 qs = qs.prefetch_related(
                     'visits', 'daily_logs', 'lab_results', 'ae_reports', 'consent_records'
                 )
-            return qs.order_by('-created_at')
+            return qs.order_by('created_at')
             
         # Participants can ONLY see their own records
         if role == 'PARTICIPANT':
             qs = Participant.objects.filter(user=user).select_related('user', 'study')
             if self.action == 'retrieve' or self.action == 'me':
                 qs = qs.prefetch_related('visits', 'daily_logs')
-            return qs.order_by('-created_at')
+            return qs.order_by('created_at')
             
         # Default to nothing for security
         return Participant.objects.none()
@@ -791,6 +796,19 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
     @cache_api_response("participants_list", timeout=600)  # Increased from 300s to 600s (10 minutes)
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+        
+    def perform_create(self, serializer):
+        serializer.save()
+        invalidate_cache("participants_list")
+        
+    def perform_update(self, serializer):
+        serializer.save()
+        invalidate_cache("participants_list")
+        
+    def perform_destroy(self, instance):
+        instance.delete()
+        invalidate_cache("participants_list")
+
 
     # Removed _ensure_test_participant logic to allow 'No Active Study' states for testing as per user request.
 
@@ -1151,110 +1169,154 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], permission_classes=[IsAdminOrCoordinator])
     def review_eligibility(self, request, *args, **kwargs):
-        """Review endpoint for PI/Coordinator (Requirement 4)"""
+        """Review endpoint for PI/Coordinator (Requirement 4) with multi-signatory workflow"""
         participant = self.get_object()
         decision = request.data.get('decision') # 'ACCEPT' or 'REJECT'
         notes = request.data.get('notes', '')
+        signature = request.data.get('signature') # Base64 signature
+        user = request.user
+        role = (user.role or '').upper()
+
+        if decision in ['REJECT', 'INELIGIBLE']:
+            participant.status = 'INELIGIBLE'
+            participant.approval_status = 'REJECTED'
+            participant.status_notes = notes
+            participant.reviewed_by = user
+            participant.reviewed_at = timezone.now()
+            participant.save()
+            return Response({'status': 'rejected', 'message': 'Subject marked as ineligible.'})
 
         if decision in ['ACCEPT', 'ELIGIBLE']:
-            participant.status = 'ENROLLED'
-            # TRIGGER FORM ASSIGNMENT (Requirement 1)
-            # Find all forms marked as is_required_on_enrollment for this study
-            required_forms = Form.objects.filter(study=participant.study, is_required_on_enrollment=True)
-            for f in required_forms:
-                # 1. Create the AssignedForm tracking record
-                af = AssignedForm.objects.create(
-                    participant=participant,
-                    form=f,
-                    study=participant.study,
-                    status='PENDING'
-                )
+            # Handle Multi-Signatory Logic
+            if role in ['COORDINATOR', 'ADMIN', 'SUPER_ADMIN']:
+                participant.coordinator_approved = True
+                participant.coordinator_approved_at = timezone.now()
+                if signature:
+                    participant.coordinator_signature = signature
                 
-                # 2. Create the ParticipantTask UI record to trigger the form in their portal
+                if participant.approval_status == 'PENDING_INITIAL_REVIEW':
+                    participant.approval_status = 'COORDINATOR_REVIEWED'
+                elif participant.approval_status == 'PI_REVIEWED':
+                    participant.approval_status = 'FULLY_APPROVED'
+
+            if role in ['PI', 'SUPER_ADMIN']:
+                participant.pi_approved = True
+                participant.pi_approved_at = timezone.now()
+                if signature:
+                    participant.pi_signature = signature
                 
-                # Create a specific task for this form signature
-                Task.objects.get_or_create(
-                    study=participant.study,
-                    title=f.title,
-                    task_type='FORM_SIGNATURE',
-                    form=f,
-                    frequency='ONCE'
-                )
+                if participant.approval_status == 'PENDING_INITIAL_REVIEW':
+                    participant.approval_status = 'PI_REVIEWED'
+                elif participant.approval_status == 'COORDINATOR_REVIEWED':
+                    participant.approval_status = 'FULLY_APPROVED'
+
+            participant.status_notes = notes
+            participant.reviewed_by = user
+            participant.reviewed_at = timezone.now()
+            
+            # Check if fully approved
+            if participant.approval_status == 'FULLY_APPROVED':
+                participant.status = 'ENROLLED'
                 
-                # Assign the task instance
-                t_obj = Task.objects.filter(study=participant.study, form=f, task_type='FORM_SIGNATURE').first()
-                if t_obj:
-                    ParticipantTask.objects.create(
+                # TRIGGER FORM ASSIGNMENT (Requirement 1)
+                required_forms = Form.objects.filter(study=participant.study, is_required_on_enrollment=True)
+                for f in required_forms:
+                    af = AssignedForm.objects.create(
                         participant=participant,
-                        task=t_obj,
-                        due_date=timezone.now() + datetime.timedelta(days=7),
-                        status='PENDING',
-                        visit_name='Onboarding',
-                        timeline_group='Initial Enrollment',
-                        estimated_time='10 min',
-                        assigned_form=af
+                        form=f,
+                        study=participant.study,
+                        status='PENDING'
                     )
+                    
+                    Task.objects.get_or_create(
+                        study=participant.study,
+                        title=f.title,
+                        task_type='FORM_SIGNATURE',
+                        form=f,
+                        frequency='ONCE'
+                    )
+                    
+                    t_obj = Task.objects.filter(study=participant.study, form=f, task_type='FORM_SIGNATURE').first()
+                    if t_obj:
+                        ParticipantTask.objects.create(
+                            participant=participant,
+                            task=t_obj,
+                            due_date=timezone.now() + datetime.timedelta(days=7),
+                            status='PENDING',
+                            visit_name='Onboarding',
+                            timeline_group='Initial Enrollment',
+                            estimated_time='10 min',
+                            assigned_form=af
+                        )
 
-            # Also ensure a Consent task exists if the study is eConsent
-            if participant.study.consent_mode in ['ECONSENT', 'HYBRID']:
-                c_task, _ = Task.objects.get_or_create(
-                    study=participant.study,
-                    title='Informed Consent Agreement',
-                    task_type='CONSENT',
-                    frequency='ONCE'
+                if participant.study.consent_mode in ['ECONSENT', 'HYBRID']:
+                    c_task, _ = Task.objects.get_or_create(
+                        study=participant.study,
+                        title='Informed Consent Agreement',
+                        task_type='CONSENT',
+                        frequency='ONCE'
+                    )
+                    ParticipantTask.objects.get_or_create(
+                        participant=participant,
+                        task=c_task,
+                        defaults={
+                            'due_date': timezone.now() + datetime.timedelta(days=2),
+                            'status': 'PENDING',
+                            'visit_name': 'Screening',
+                            'timeline_group': 'Pre-Enrolled'
+                        }
+                    )
+            
+            participant.save()
+
+            # Notify Participant (only on full enrollment or rejection)
+            if participant.user and (participant.approval_status == 'FULLY_APPROVED' or participant.approval_status == 'REJECTED'):
+                msg = "Accepted into study." if participant.approval_status == 'FULLY_APPROVED' else "Not eligible at this time."
+                Notification.objects.create(
+                    user=participant.user,
+                    title="Status Updated",
+                    message=f"{participant.study.protocol_id}: {msg}",
+                    type="SUCCESS" if participant.approval_status == 'FULLY_APPROVED' else "WARNING"
                 )
-                ParticipantTask.objects.get_or_create(
-                    participant=participant,
-                    task=c_task,
-                    defaults={
-                        'due_date': timezone.now() + datetime.timedelta(days=2),
-                        'status': 'PENDING',
-                        'visit_name': 'Screening',
-                        'timeline_group': 'Pre-Enrolled'
-                    }
-                )
 
-        elif decision in ['REJECT', 'INELIGIBLE']:
-            participant.status = 'INELIGIBLE'
-        else:
-            return Response({'error': 'Invalid decision.'}, status=status.HTTP_400_BAD_REQUEST)
+        DataAuditLog.objects.create(
+            user=user,
+            action='ELIGIBILITY_REVIEW',
+            model_name='Participant',
+            record_id=participant.participant_sid,
+            details=f"Eligibility reviewed by {user.get_role_display()}. Decision: {decision}. Approval State: {participant.approval_status}",
+            changes={'status': {'old': 'PENDING_REVIEW', 'new': participant.status}}
+        )
 
-        participant.reviewed_by = request.user
-        participant.reviewed_at = timezone.now()
-        participant.status_notes = notes
-        participant.save()
+        return Response({
+            'status': participant.status,
+            'approval_status': participant.approval_status,
+            'message': f'Approval recorded for {role}. Current Status: {participant.approval_status}'
+        })
 
-        # Notify Participant
-        if participant.user:
-            msg = "Accepted into study." if decision == 'ACCEPT' else "Not eligible at this time."
-            Notification.objects.create(
-                user=participant.user,
-                title="Status Updated",
-                message=f"{participant.study.protocol_id}: {msg}",
-                type="SUCCESS" if decision == 'ACCEPT' else "WARNING"
-            )
-
-        return Response({'status': 'reviewed', 'new_status': participant.status})
+        return Response({'error': 'Invalid decision.'}, status=status.HTTP_400_BAD_REQUEST)
         
     @action(detail=True, methods=['post'], permission_classes=[IsAdminOrCoordinator])
     def withdraw(self, request, *args, **kwargs):
         """Terminate subject participation and set status to DROPPED"""
         participant = self.get_object()
         reason = request.data.get('reason', 'PI Initiated Withdrawal')
+        user = request.user
         
+        old_status = participant.status
         participant.status = 'DROPPED'
         current_notes = participant.status_notes or ""
         participant.status_notes = current_notes + f"\n[WITHDRAWAL {timezone.now().date()}]: {reason}"
         participant.save()
         
         # Log to Audit Trail
-        from .models import DataAuditLog
         DataAuditLog.objects.create(
-            user=request.user,
-            entity_type='PARTICIPANT',
-            entity_id=participant.participant_sid,
+            user=user,
             action='WITHDRAWAL',
-            details=f"Subject withdrawn by {request.user.email}. Reason: {reason}"
+            model_name='Participant',
+            record_id=participant.participant_sid,
+            details=f"Subject withdrawn by {user.full_name} ({user.role}). Reason: {reason}",
+            changes={'status': {'old': old_status, 'new': 'DROPPED'}}
         )
         
         return Response({'status': 'withdrawn', 'new_status': 'DROPPED'})
@@ -2227,6 +2289,32 @@ class ParticipantTaskViewSet(viewsets.ModelViewSet):
         ).update(is_locked=True)
         return Response({'locked_count': updated})
 
+    def perform_create(self, serializer):
+        """
+        Allow ad-hoc task creation from the frontend by accepting a raw 'title' field.
+        If no 'task' FK is provided, auto-create (or reuse) a Task record from the title.
+        """
+        from .models import Task
+        task_obj = serializer.validated_data.get('task')
+        
+        if task_obj is None:
+            # Frontend sent a title but no task FK - create an ad-hoc Task template
+            title = self.request.data.get('title', 'Ad-hoc Task')
+            participant = serializer.validated_data.get('participant')
+            study = getattr(participant, 'study', None) if participant else None
+            
+            task_obj, _ = Task.objects.get_or_create(
+                title=title,
+                study=study,
+                defaults={
+                    'task_type': 'GENERAL',
+                    'description': f'Ad-hoc task: {title}',
+                    'is_active': True,
+                }
+            )
+        
+        serializer.save(task=task_obj)
+
     def perform_update(self, serializer):
         # Strict Restriction: Locked tasks cannot be edited (Requirement 3)
         if serializer.instance.is_locked:
@@ -2235,6 +2323,7 @@ class ParticipantTaskViewSet(viewsets.ModelViewSet):
         instance = serializer.save()
         if instance.status == 'COMPLETED':
             trigger_reward_logic(instance, 'TASK')
+
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()

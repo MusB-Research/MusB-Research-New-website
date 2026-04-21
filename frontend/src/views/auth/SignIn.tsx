@@ -20,8 +20,6 @@ export default function SignIn() {
     const [email, setEmail] = useState('');
     const [name, setName] = useState('');
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
-    const [phone, setPhone] = useState('');
-    const [phoneOtp, setPhoneOtp] = useState(['', '', '', '', '', '']);
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -29,6 +27,7 @@ export default function SignIn() {
     const [captchaToken, setCaptchaToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [resendCooldown, setResendCooldown] = useState(0);
     const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: 'Weak', color: 'bg-red-500' });
     const [isAttemptingSubmit, setIsAttemptingSubmit] = useState(false);
     const googleInitRef = useRef(false);
@@ -44,10 +43,17 @@ export default function SignIn() {
         const state = location.state as any;
         if (state?.initialMode) {
             setMode(state.initialMode);
-            // Clear state to prevent re-triggering on refresh
             window.history.replaceState({}, document.title);
         }
     }, [location.state]);
+
+    useEffect(() => {
+        let timer: any;
+        if (resendCooldown > 0) {
+            timer = setInterval(() => setResendCooldown(c => c - 1), 1000);
+        }
+        return () => clearInterval(timer);
+    }, [resendCooldown]);
 
     const validatePasswordComplexity = (pass: string) => {
         const checks = {
@@ -81,7 +87,7 @@ export default function SignIn() {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await fetch(`${API}/api/auth/send-otp/`, {
+            const response = await fetch(`${API}/api/auth/request-otp/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, captcha: captchaToken })
@@ -89,6 +95,7 @@ export default function SignIn() {
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || 'Failed to send OTP');
             setStep('OTP');
+            setResendCooldown(60);
             setIsAttemptingSubmit(false);
         } catch (err: any) {
             setError(err.message);
@@ -105,55 +112,31 @@ export default function SignIn() {
             const response = await fetch(`${API}/api/auth/verify-otp/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, code: otp.join('') })
+                body: JSON.stringify({ email, otp: otp.join('') })
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || 'Invalid code');
-            setStep('PASSWORD'); // Move directly to Password
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleSendPhoneOTP = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!phone) {
-            setError('Phone number is required');
-            return;
-        }
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await fetch(`${API}/api/auth/send-phone-otp/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone })
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Failed to send SMS');
-            // Success just shows we are in PHONE state waiting for code
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleVerifyPhoneOTP = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await fetch(`${API}/api/auth/verify-phone-otp/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone, code: phoneOtp.join('') })
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Invalid phone code');
             setStep('PASSWORD');
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleResendOTP = async () => {
+        if (resendCooldown > 0) return;
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await fetch(`${API}/api/auth/request-otp/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, captcha: captchaToken })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Failed to send OTP');
+            setResendCooldown(60);
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -187,7 +170,6 @@ export default function SignIn() {
                     email,
                     full_name: name,
                     password,
-                    phone_number: phone,
                     timezone: detectedTimezone,
                 })
             });
@@ -800,6 +782,18 @@ export default function SignIn() {
                                                 {isLoading ? 'Verifying...' : 'Verify Identity'}
                                                 <Key className="w-5 h-5" />
                                             </button>
+
+                                            <div className="text-center pt-4">
+                                                <button
+                                                    type="button"
+                                                    disabled={resendCooldown > 0 || isLoading}
+                                                    onClick={handleResendOTP}
+                                                    className="text-[12px] font-black uppercase tracking-widest text-slate-500 hover:text-amber-400 transition-colors disabled:opacity-50"
+                                                >
+                                                    {resendCooldown > 0 ? `Resend Code in ${resendCooldown}s` : 'Did not receive code? Resend'}
+                                                </button>
+                                            </div>
+
                                         </motion.form>
                                     )}
 

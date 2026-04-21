@@ -81,6 +81,7 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = 'authentication.User'
 
 MIDDLEWARE = [
+    'musb_backend.middleware.TimingMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.gzip.GZipMiddleware',
@@ -353,6 +354,7 @@ REST_FRAMEWORK = {
         'user': '2000/day',
         'login': '10/minute',   # Scoped throttle for login endpoint only
         'refresh': '30/minute', # Scoped throttle for token refresh
+        'otp_request': '3/5min', # Production-ready OTP rate limiting
     }
 }
 

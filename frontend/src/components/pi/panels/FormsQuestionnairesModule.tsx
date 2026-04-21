@@ -14,7 +14,9 @@ import {
     Settings2,
     Database,
     RefreshCw,
-    MessageSquare
+    MessageSquare,
+    Activity,
+    X
 } from 'lucide-react';
 
 interface LiveForm {
@@ -30,8 +32,11 @@ interface LiveForm {
 }
 
 export default function FormsQuestionnairesModule() {
-    const [view, setView] = useState<'Tracking' | 'Splash' | 'Architect'>('Tracking');
-    const [builderTab, setBuilderTab] = useState('Create New');
+    const [view, setView] = useState<'Splash' | 'Tracking' | 'Screeners' | 'Architect'>('Splash');
+    const [builderTab, setBuilderTab] = useState<'Catalog' | 'Create New'>('Catalog');
+    const [selectedStudyForDetails, setSelectedStudyForDetails] = useState<any>(null);
+    const [studies, setStudies] = useState<any[]>([]);
+    const [leads, setLeads] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [forms, setForms] = useState<LiveForm[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -104,7 +109,51 @@ export default function FormsQuestionnairesModule() {
         }
     }, [apiUrl]);
 
-    useEffect(() => { loadForms(); }, [loadForms]);
+    const loadStudiesAndLeads = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const [sRes, lRes] = await Promise.all([
+                authFetch(`${API}/api/studies/`),
+                authFetch(`${API}/api/leads/`)
+            ]);
+            if (sRes.ok) {
+                const sData = await sRes.json();
+                setStudies(sData.results || sData || []);
+            }
+            if (lRes.ok) {
+                const lData = await lRes.json();
+                setLeads(lData.results || lData || []);
+            }
+        } catch (err) {
+            console.error("Failed to load study data:", err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    const getScreenerFieldCount = (s: any) => {
+        const inputStep = s.screener_config?.steps?.find((st: any) => st.type === 'user_input');
+        return inputStep?.questions?.length || 0;
+    };
+
+    const getScreenerQuestions = (s: any) => {
+        const inputStep = s.screener_config?.steps?.find((st: any) => st.type === 'user_input');
+        return inputStep?.questions || [];
+    };
+
+    const getAvgTime = (studyId: string) => {
+        const studyLeads = leads.filter(l => l.study === studyId && l.metadata?.performance?.total_seconds);
+        if (studyLeads.length === 0) return 'N/A';
+        const total = studyLeads.reduce((acc, l) => acc + l.metadata.performance.total_seconds, 0);
+        const avg = total / studyLeads.length;
+        if (avg > 60) return `${Math.floor(avg / 60)}m ${Math.round(avg % 60)}s`;
+        return `${Math.round(avg)}s`;
+    };
+
+    useEffect(() => {
+        loadForms();
+        loadStudiesAndLeads();
+    }, [loadForms, loadStudiesAndLeads]);
 
     // ── KPI Computations ──────────────────────────────────────────
     const total = forms.length;
@@ -138,7 +187,7 @@ export default function FormsQuestionnairesModule() {
                         ELIGIBILITY <span className="text-teal-400">QUESTIONNAIRES</span>
                     </h2>
                     <p className="text-[11px] text-white/50 font-bold uppercase tracking-[0.4em] mt-2 italic">
-                        eCRF Management &amp; Dynamic Instrument Design
+                        Participant Progress & Form Design
                         {lastRefresh && <span className="ml-3 text-teal-600">· Synced {lastRefresh}</span>}
                     </p>
                 </div>
@@ -178,7 +227,7 @@ export default function FormsQuestionnairesModule() {
                                 { label: 'Completion Rate', val: `${completionRate}%`, icon: CheckCircle2, color: 'emerald' },
                                 { label: 'Pending Forms',   val: String(pending),       icon: Clock,        color: 'amber'   },
                                 { label: 'Query Open',      val: String(queryOpen),     icon: MessageSquare,color: 'red'     },
-                                { label: 'Total eCRFs',     val: String(total),         icon: Database,     color: 'teal'    },
+                                { label: 'Total Forms',     val: String(total),         icon: Database,     color: 'teal'    },
                             ].map((stat, i) => (
                                 <div key={i} className="flex items-center gap-4 group bg-white/[0.02] border border-white/5 rounded-2xl p-3">
                                     <div className={`flex-shrink-0 w-10 h-10 bg-${stat.color}-500/5 border border-${stat.color}-500/10 rounded-xl flex items-center justify-center text-${stat.color}-400 group-hover:scale-110 transition-transform`}>
@@ -216,14 +265,26 @@ export default function FormsQuestionnairesModule() {
                         {isLoading ? (
                             <div className="flex items-center justify-center py-20 gap-3">
                                 <RefreshCw className="w-5 h-5 text-teal-400 animate-spin" />
-                                <span className="text-sm text-slate-500 font-black uppercase tracking-widest">Loading eCRF Records...</span>
+                                <span className="text-sm text-slate-500 font-black uppercase tracking-widest">Loading Records...</span>
                             </div>
                         ) : filtered.length === 0 ? (
-                            <div className="py-16 text-center space-y-4">
-                                <ClipboardList className="w-12 h-12 text-slate-800 mx-auto" />
-                                <p className="text-sm font-black text-slate-600 uppercase tracking-widest italic">
-                                    {searchQuery ? 'No forms match your search.' : 'No assigned forms found for this study.'}
-                                </p>
+                            <div className="py-20 text-center space-y-6">
+                                <div className="w-20 h-20 bg-white/5 rounded-[2rem] flex items-center justify-center mx-auto mb-4 border border-white/5 opacity-40">
+                                    <ClipboardList className="w-10 h-10 text-slate-600" />
+                                </div>
+                                <div className="max-w-sm mx-auto">
+                                    <h3 className="text-xl font-black text-white italic uppercase tracking-tighter mb-4">No Active Submissions Found</h3>
+                                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed italic">
+                                        Once subjects start filling out questionnaires, their progress will appear here. 
+                                        {searchQuery && ' No forms match your current search.'}
+                                    </p>
+                                    <button 
+                                        onClick={() => setView('Splash')}
+                                        className="mt-8 px-8 py-3 bg-teal-600/10 border border-teal-500/20 text-teal-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-600 hover:text-white transition-all italic"
+                                    >
+                                        Go to Form Builder →
+                                    </button>
+                                </div>
                             </div>
                         ) : (
                             /* Table */
@@ -231,10 +292,10 @@ export default function FormsQuestionnairesModule() {
                                 <table className="w-full text-left min-w-[900px] border-t border-white/5">
                                     <thead>
                                         <tr className="bg-white/[0.02] border-b border-white/5">
-                                            <th className="px-4 py-3 text-[10px] font-black text-white/60 uppercase tracking-widest border-r border-white/5">eCRF Instrument</th>
+                                            <th className="px-4 py-3 text-[10px] font-black text-white/60 uppercase tracking-widest border-r border-white/5">Document Title</th>
                                             <th className="px-4 py-3 text-[10px] font-black text-white/60 uppercase tracking-widest border-r border-white/5">Subject ID</th>
                                             <th className="px-4 py-3 text-[10px] font-black text-white/60 uppercase tracking-widest border-r border-white/5">Study Visit</th>
-                                            <th className="px-4 py-3 text-[10px] font-black text-white/60 uppercase tracking-widest border-r border-white/5">Form Health</th>
+                                            <th className="px-4 py-3 text-[10px] font-black text-white/60 uppercase tracking-widest border-r border-white/5">Status</th>
                                             <th className="px-4 py-3 text-[10px] font-black text-white/60 uppercase tracking-widest text-right">Actions</th>
                                         </tr>
                                     </thead>
@@ -287,11 +348,11 @@ export default function FormsQuestionnairesModule() {
                                                         <button className="p-2 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-all">
                                                             <Settings2 className="w-3.5 h-3.5" />
                                                         </button>
-                                                        <button
-                                                            onClick={() => alert(`Opening eCRF for ${f.formName} — Subject ${f.subjectId}`)}
+                                                        <button 
+                                                            onClick={() => alert(`Opening ${f.formName}`)}
                                                             className="px-4 py-2 bg-gradient-to-br from-teal-600 to-teal-800 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all flex items-center gap-1.5 whitespace-nowrap"
                                                         >
-                                                            Open eCRF <ChevronRight className="w-3.5 h-3.5" />
+                                                            View Form <ChevronRight className="w-3.5 h-3.5" />
                                                         </button>
                                                     </div>
                                                 </td>
@@ -308,17 +369,101 @@ export default function FormsQuestionnairesModule() {
                 )}
 
                 {view === 'Splash' && (
-                    <motion.div key="splash" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="p-16 bg-[#0B101B]/40 border border-white/5 rounded-[3rem] flex flex-col items-center text-center space-y-8 group">
-                        <div className="w-24 h-24 bg-teal-600/10 border border-teal-500/20 rounded-[2.5rem] flex items-center justify-center text-teal-400 group-hover:scale-110 transition-transform">
-                            <DraftingCompass className="w-12 h-12" />
+                    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center justify-center min-h-[600px]">
+                        <div onClick={() => setView('Tracking')} className="group p-10 bg-white/5 border border-white/5 rounded-[2.5rem] flex flex-col items-center text-center hover:bg-white/[0.08] hover:border-indigo-500/30 transition-all cursor-pointer h-full">
+                            <div className="w-20 h-20 bg-indigo-500/10 rounded-3xl flex items-center justify-center mb-8 border border-indigo-500/20 text-indigo-400 group-hover:scale-110 transition-transform">
+                                <Activity className="w-10 h-10" />
+                            </div>
+                            <h3 className="text-xl font-black text-white uppercase italic tracking-tighter mb-4">Participant Oversight</h3>
+                            <p className="text-sm text-slate-500 font-bold uppercase tracking-widest leading-relaxed">Track active form completion and data entry for enrolled subjects.</p>
                         </div>
-                        <div className="max-w-xl space-y-3">
-                            <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">Instrument Architect</h3>
-                            <p className="text-sm text-slate-500 font-bold uppercase tracking-widest leading-relaxed italic">Design multi-page electronic case report forms (eCRF) with built-in edit checks, logic branching, and dynamic field visibility.</p>
+
+                        <div onClick={() => setView('Screeners')} className="group p-10 bg-white/5 border border-white/5 rounded-[2.5rem] flex flex-col items-center text-center hover:bg-white/[0.08] hover:border-pink-500/30 transition-all cursor-pointer h-full">
+                            <div className="w-20 h-20 bg-pink-500/10 rounded-3xl flex items-center justify-center mb-8 border border-pink-500/20 text-pink-400 group-hover:scale-110 transition-transform">
+                                <Search className="w-10 h-10" />
+                            </div>
+                            <h3 className="text-xl font-black text-white uppercase italic tracking-tighter mb-4">Screening Registry</h3>
+                            <p className="text-sm text-slate-500 font-bold uppercase tracking-widest leading-relaxed">Review potential leads and eligibility screener responses across all protocols.</p>
                         </div>
-                        <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
-                            <button onClick={() => { setBuilderTab('Create New'); setView('Architect'); }} className="py-4 bg-white text-slate-950 rounded-[2rem] text-xs font-black uppercase tracking-widest hover:scale-[1.05] transition-all">Create New eCRF</button>
-                            <button onClick={() => { setBuilderTab('Templates'); setView('Architect'); }} className="py-4 bg-white/5 border border-white/10 text-slate-400 rounded-[2rem] text-xs font-black uppercase tracking-widest hover:text-white transition-all">Import Template</button>
+
+                        <div className="md:col-span-2 p-12 bg-indigo-600/10 border border-indigo-500/20 rounded-[3rem] flex flex-col md:flex-row items-center gap-12 group hover:bg-indigo-600/[0.15] transition-all">
+                            <div className="w-24 h-24 bg-white/5 rounded-[2rem] flex items-center justify-center border border-white/10 text-white shrink-0 group-hover:rotate-12 transition-transform">
+                                <DraftingCompass className="w-12 h-12" />
+                            </div>
+                            <div className="flex-1 space-y-3 text-center md:text-left">
+                                <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">Form Designer</h3>
+                                <p className="text-sm text-slate-500 font-bold uppercase tracking-widest leading-relaxed italic">Design multi-page electronic forms with built-in checks, logic branching, and dynamic field visibility.</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 w-full md:w-auto max-w-sm">
+                                <button onClick={() => { setBuilderTab('Create New'); setView('Architect'); }} className="px-8 py-4 bg-white text-slate-950 rounded-[2rem] text-[10px] font-black uppercase tracking-widest hover:scale-[1.05] transition-all">New Form</button>
+                                <button onClick={() => { setBuilderTab('Templates'); setView('Architect'); }} className="px-8 py-4 bg-white/5 border border-white/10 text-white rounded-[2rem] text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all">Browse Library</button>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+
+                {view === 'Screeners' && (
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                        <div className="mb-8 flex items-center justify-between">
+                            <button onClick={() => setView('Splash')} className="text-xs font-black text-slate-600 uppercase tracking-widest hover:text-white transition-all">← Back to Overview</button>
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-pink-500/10 border border-pink-500/20 rounded-xl flex items-center gap-2">
+                                    <Search className="w-4 h-4 text-pink-400" />
+                                    <span className="text-[10px] font-black text-pink-400 uppercase tracking-widest">{leads.length} Leads Screened</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-6">
+                            <div className="bg-[#0f172a] border border-white/5 rounded-[2rem] overflow-hidden">
+                                <div className="p-8 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+                                    <h3 className="text-lg font-black text-white uppercase italic tracking-widest flex items-center gap-3">
+                                        <Database className="w-5 h-5 text-indigo-400" /> Study Eligibility Catalog
+                                    </h3>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active Screener Definitions</p>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-1 p-1 bg-white/[0.01]">
+                                    {studies.map(s => (
+                                        <div 
+                                            key={s.id} 
+                                            onClick={() => setSelectedStudyForDetails(s)}
+                                            className="p-6 bg-[#0f172a] hover:bg-white/[0.03] transition-all border border-white/5 m-1 rounded-2xl group cursor-pointer"
+                                        >
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-[11px] font-black text-indigo-400 uppercase tracking-widest">
+                                                    {s.protocol_id}
+                                                </div>
+                                                <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-all">
+                                                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                                                </div>
+                                            </div>
+                                            <h4 className="text-base font-black text-white uppercase italic leading-tight mb-2 line-clamp-1">{s.title}</h4>
+                                            <div className="flex items-center gap-4 mt-4 pt-4 border-t border-white/5">
+                                                <div>
+                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Screener Quality</p>
+                                                    <p className="text-sm font-black text-slate-300 uppercase tracking-widest mt-0.5">
+                                                        {getScreenerFieldCount(s)} Fields
+                                                    </p>
+                                                </div>
+                                                <div className="h-8 w-px bg-white/5" />
+                                                <div>
+                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Submissions</p>
+                                                    <p className="text-sm font-black text-slate-300 uppercase tracking-widest mt-0.5">
+                                                        {leads.filter(l => l.study === s.id).length}
+                                                    </p>
+                                                </div>
+                                                <div className="h-8 w-px bg-white/5" />
+                                                <div>
+                                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Avg. Time</p>
+                                                    <p className="text-sm font-black text-slate-300 uppercase tracking-widest mt-0.5">
+                                                        {getAvgTime(s.id)}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </motion.div>
                 )}
@@ -326,10 +471,66 @@ export default function FormsQuestionnairesModule() {
                 {view === 'Architect' && (
                     <motion.div key="architect" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
                         <div className="mb-4">
-                            <button onClick={() => setView('Splash')} className="text-xs font-black text-slate-600 uppercase tracking-widest hover:text-white transition-all">← Back to Architect Home</button>
+                            <button onClick={() => setView('Splash')} className="text-xs font-black text-slate-600 uppercase tracking-widest hover:text-white transition-all">← Back to Designer Home</button>
                         </div>
                         <QuestionnaireBuilder initialTab={builderTab} />
                     </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Screener Detail Modal */}
+            <AnimatePresence>
+                {selectedStudyForDetails && (
+                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+                        <motion.div 
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-[#0B101B] border border-white/10 rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]"
+                        >
+                            <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                                <div>
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <Database className="w-4 h-4 text-pink-500" />
+                                        <span className="text-sm font-black text-pink-500 tracking-widest uppercase">{selectedStudyForDetails.protocol_id}</span>
+                                    </div>
+                                    <h3 className="text-2xl md:text-3xl font-black text-white italic uppercase tracking-tighter">{selectedStudyForDetails.title}</h3>
+                                </div>
+                                <button onClick={() => setSelectedStudyForDetails(null)} className="p-3 hover:bg-white/5 rounded-xl transition-all group">
+                                    <X className="w-6 h-6 text-slate-500 group-hover:text-white" />
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
+                                <section>
+                                    <h5 className="text-xs md:text-sm font-black text-slate-500 uppercase tracking-[0.2em] mb-6">Eligibility Questions</h5>
+                                    <div className="space-y-4">
+                                        {getScreenerQuestions(selectedStudyForDetails).length > 0 ? (
+                                            getScreenerQuestions(selectedStudyForDetails).map((q: any, idx: number) => (
+                                                <div key={idx} className="p-5 bg-white/5 border border-white/5 rounded-xl flex items-start gap-5 group hover:border-indigo-500/30 transition-all">
+                                                    <span className="text-sm md:text-base font-black text-slate-600 group-hover:text-indigo-400 mt-1">{(idx+1).toString().padStart(2, '0')}</span>
+                                                    <div className="flex-1">
+                                                        <p className="text-base md:text-lg font-bold text-white mb-2">{q.label}</p>
+                                                        <div className="flex items-center gap-4">
+                                                            <span className="text-[11px] md:text-xs font-black text-slate-500 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-md border border-white/10">{q.type.replace('_', ' ')}</span>
+                                                            {q.required && <span className="text-[11px] md:text-xs font-black text-pink-500/80 uppercase tracking-widest">Required</span>}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="py-12 flex flex-col items-center justify-center text-center opacity-40">
+                                                <AlertCircle className="w-12 h-12 text-slate-600 mb-4" />
+                                                <p className="text-sm font-black text-slate-500 uppercase tracking-widest">No questions configured for this protocol</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </section>
+                            </div>
+                            <div className="p-6 bg-white/[0.01] border-t border-white/5 flex items-center justify-center">
+                                <p className="text-[10px] md:text-[11px] font-black text-slate-600 uppercase tracking-[0.3em] italic">SECURE DATA VIEW · MusB RESEARCH</p>
+                            </div>
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
         </motion.div>

@@ -507,7 +507,9 @@ export default function PIDashboard() {
                             onChange={(e) => setGlobalSelectedStudyId(e.target.value)}
                             className="bg-transparent text-[13px] font-bold text-teal-400 uppercase tracking-widest outline-none cursor-pointer px-4"
                         >
-                            <option value="all" className="bg-[#0B101B]">ALL ACTIVE STUDIES ({Object.values(participantsByStudy).reduce((a,b)=>a+b,0)} total)</option>
+                            <option value="all" className="bg-[#0B101B]">
+                                ALL ACTIVE STUDIES ({Object.values(participantsByStudy).reduce((a,b)=>a+b,0)} participant{Object.values(participantsByStudy).reduce((a,b)=>a+b,0) !== 1 ? 's' : ''} total)
+                            </option>
                             {studies.map(s => {
                                 const cnt = participantsByStudy[s.id] ?? 0;
                                 return (

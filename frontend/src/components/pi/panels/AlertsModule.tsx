@@ -16,7 +16,8 @@ import {
     Trash2,
     Calendar,
     MessageSquare,
-    ClipboardList
+    ClipboardList,
+    ExternalLink
 } from 'lucide-react';
 import { authFetch, API } from '../../../utils/auth';
 
@@ -28,6 +29,7 @@ interface AlertItem {
     category: 'Clinical' | 'Operational' | 'Safety' | 'System';
     timestamp: string;
     read: boolean;
+    link?: string;
 }
 
 export default function AlertsModule() {
@@ -47,12 +49,13 @@ export default function AlertsModule() {
                     title: n.title,
                     description: n.message,
                     severity: mapTypeToSeverity(n.type),
-                    category: 'System', // Backend notification types are generic (INFO, SUCCESS, WARNING)
+                    category: 'System',
                     timestamp: new Date(n.created_at).toLocaleString('en-US', { 
                         month: 'short', day: 'numeric', year: 'numeric',
                         hour: '2-digit', minute: '2-digit'
                     }),
-                    read: n.is_read
+                    read: n.is_read,
+                    link: n.link || undefined
                 }));
                 setAlerts(mapped);
             }
@@ -219,6 +222,20 @@ export default function AlertsModule() {
                                 </div>
 
                                 <div className="lg:col-span-1 flex items-center justify-end gap-3 transition-all">
+                                    {alert.link && (
+                                        <button 
+                                            onClick={() => {
+                                                if (alert.link!.startsWith('http')) {
+                                                    window.open(alert.link!, '_blank');
+                                                } else {
+                                                    window.location.href = alert.link!;
+                                                }
+                                            }}
+                                            className="px-5 py-3 bg-teal-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest italic hover:scale-105 active:scale-95 transition-all shadow-lg shadow-teal-500/20 flex items-center gap-2"
+                                        >
+                                            Review <ExternalLink className="w-3.5 h-3.5" />
+                                        </button>
+                                    )}
                                     {!alert.read && (
                                         <button 
                                             onClick={() => handleMarkRead(alert.id)}
@@ -231,7 +248,7 @@ export default function AlertsModule() {
                                         onClick={() => handleResolve(alert.id)}
                                         className="px-6 py-3.5 bg-white text-slate-950 rounded-xl font-black text-sm uppercase tracking-[0.15em] hover:scale-[1.05] active:scale-95 transition-all shadow-[0_10px_30px_rgba(255,255,255,0.1)] flex items-center gap-3"
                                     >
-                                        Resolve <ChevronRight className="w-4 h-4" />
+                                        Dismiss <ChevronRight className="w-4 h-4" />
                                     </button>
                                 </div>
                             </motion.div>

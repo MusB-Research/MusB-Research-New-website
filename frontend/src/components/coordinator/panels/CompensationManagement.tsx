@@ -230,7 +230,7 @@ export default function CompensationManagement({ selectedStudyId }: { selectedSt
                                             </div>
                                             <div>
                                                 <p className="text-base font-black text-white italic leading-none group-hover:text-blue-400 transition-colors uppercase tracking-tight">{c.description}</p>
-                                                <p className="text-[12px] text-slate-500 font-bold tracking-widest mt-2 uppercase italic">{c.transaction_type.replace('_', ' ')} • {new Date(c.created_at).toLocaleDateString()}</p>
+                                                <p className="text-[12px] text-slate-500 font-bold tracking-widest mt-2 uppercase italic">{(c.transaction_type || 'N/A').replace('_', ' ')} • {new Date(c.created_at).toLocaleDateString()}</p>
                                             </div>
                                         </div>
                                     </td>
@@ -240,7 +240,7 @@ export default function CompensationManagement({ selectedStudyId }: { selectedSt
                                     </td>
                                     <td className="px-6 py-4 border-r border-white/5">
                                         <p className="text-2xl font-black text-white italic tracking-tighter leading-none">${c.amount.toFixed(2)}</p>
-                                        <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.2em] mt-2 italic">{c.payment_method.replace('_', ' ')}</p>
+                                        <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.2em] mt-2 italic">{(c.payment_method || 'PENDING').replace('_', ' ')}</p>
                                     </td>
                                     <td className="px-6 py-4 border-r border-white/5">
                                         <div className={`inline-flex items-center gap-3 px-5 py-2 rounded-xl border text-[11px] font-black uppercase tracking-widest shadow-lg ${getStatusStyles(c.status)}`}>

@@ -265,6 +265,11 @@ export default function StudyScreener() {
     const [isLocating, setIsLocating] = useState(false);
     const locationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // ── Time Tracking ─────────────────────────────────────────────────────
+    const [startTime] = useState(Date.now());
+    const [stepStartTimes, setStepStartTimes] = useState<Record<number, number>>({ 0: Date.now() });
+    const [stepDurations, setStepDurations] = useState<Record<number, number>>({});
+
     // ── Dynamic Steps Logic ──────────────────────────────────────────────
     const [steps, setSteps] = useState<StepConfig[]>([
         { id: 'STEP1', title: 'BASICS & LOCATION', type: 'auto', editable: true, required: true },
@@ -499,8 +504,16 @@ export default function StudyScreener() {
 
         // If this is the last step, perform final submission logic
         if (currentStepIndex === steps.length - 1) {
-            await handleSubmit();
+            const now = Date.now();
+            const lastStepDuration = (now - stepStartTimes[currentStepIndex]) / 1000;
+            const updatedDurations = { ...stepDurations, [currentStepIndex]: lastStepDuration };
+            await handleSubmit(updatedDurations);
         } else {
+            const now = Date.now();
+            const duration = (now - stepStartTimes[currentStepIndex]) / 1000;
+            setStepDurations(prev => ({ ...prev, [currentStepIndex]: duration }));
+            setStepStartTimes(prev => ({ ...prev, [currentStepIndex + 1]: now }));
+
             setIsAttemptingSubmit(false);
             window.scrollTo({ top: 0, behavior: 'smooth' });
             setCurrentStepIndex(currentStepIndex + 1);
@@ -526,9 +539,12 @@ export default function StudyScreener() {
         return false;
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (finalStepDurations?: Record<number, number>) => {
         setIsLoading(true);
         let finalOutcome: OutcomeType = 'ELIGIBLE';
+
+        const durations = finalStepDurations || stepDurations;
+        const totalDuration = (Date.now() - startTime) / 1000;
 
         // Logic check
         const ageNum = parseInt(formData.age || '0');
@@ -552,7 +568,11 @@ export default function StudyScreener() {
                     metadata: {
                         outcome: finalOutcome,
                         formData,
-                        conditionDetails
+                        conditionDetails,
+                        performance: {
+                            total_seconds: totalDuration,
+                            step_durations: durations
+                        }
                     }
                 }),
                 headers: { 'Content-Type': 'application/json' }
@@ -678,7 +698,7 @@ export default function StudyScreener() {
                                     {currentStep.id === 'STEP1' && (
                                         <div className="space-y-6">
                                             <div className="space-y-4">
-                                                <label className={`text-base font-black italic tracking-tight ${isFieldInvalid('date_of_birth') ? 'text-red-500' : 'text-white'}`}>
+                                                <label className={`text-lg font-black italic tracking-tight ${isFieldInvalid('date_of_birth') ? 'text-red-500' : 'text-white'}`}>
                                                     Birth Date <span className="text-[#00ADEF] ml-0.5">*</span>
                                                 </label>
                                                 <BirthDateField
@@ -696,7 +716,7 @@ export default function StudyScreener() {
                                             </div>
 
                                             <div className="space-y-4">
-                                                <label className="text-base font-black italic tracking-tight text-white/50">
+                                                <label className="text-lg font-black italic tracking-tight text-white/50">
                                                     Self-reported Age
                                                 </label>
                                                 <div className="relative">
@@ -704,13 +724,13 @@ export default function StudyScreener() {
                                                         type="text"
                                                         readOnly
                                                         value={formData.age}
-                                                        className={`w-full bg-[#161f35]/50 border border-white/5 rounded-2xl px-8 py-5 text-[#00ADEF] text-lg outline-none cursor-not-allowed font-bold italic`}
+                                                        className={`w-full bg-[#161f35]/50 border border-white/5 rounded-2xl px-8 py-5 text-[#00ADEF] text-xl outline-none cursor-not-allowed font-bold italic`}
                                                         placeholder="Auto-calculated"
                                                     />
                                                 </div>
                                             </div>
                                             <div className="space-y-4">
-                                                <label className="text-base font-black italic tracking-tight text-white">
+                                                <label className="text-lg font-black italic tracking-tight text-white">
                                                     Zip / Postal code
                                                 </label>
                                                 <div className="relative">
@@ -719,14 +739,14 @@ export default function StudyScreener() {
                                                         readOnly={isStepReadOnly}
                                                         value={formData.zipCode}
                                                         onChange={(e) => handleZipChange(e.target.value)}
-                                                        className={`w-full bg-[#161f35] border border-white/10 rounded-2xl px-8 py-5 text-white text-lg outline-none focus:border-[#00ADEF]/80 ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                        className={`w-full bg-[#161f35] border border-white/10 rounded-2xl px-8 py-5 text-white text-xl outline-none focus:border-[#00ADEF]/80 ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                         placeholder="e.g. 90210"
                                                     />
                                                     {isLocating && <Loader2 className="absolute right-6 top-6 w-5 h-5 text-[#00ADEF] animate-spin" />}
                                                 </div>
                                             </div>
                                             <div className="space-y-4">
-                                                <label className={`text-base font-black italic tracking-tight ${isFieldInvalid('location') ? 'text-red-500' : 'text-white'}`}>
+                                                <label className={`text-lg font-black italic tracking-tight ${isFieldInvalid('location') ? 'text-red-500' : 'text-white'}`}>
                                                     Current city, state, country
                                                 </label>
                                                 <input
@@ -734,7 +754,7 @@ export default function StudyScreener() {
                                                     readOnly={isStepReadOnly}
                                                     value={formData.location}
                                                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                                    className={`w-full bg-[#161f35] border rounded-2xl px-8 py-5 text-white text-lg outline-none transition-all ${isFieldInvalid('location') ? 'border-red-500/50' : 'border-white/10 focus:border-[#00ADEF]/80'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    className={`w-full bg-[#161f35] border rounded-2xl px-8 py-5 text-white text-xl outline-none transition-all ${isFieldInvalid('location') ? 'border-red-500/50' : 'border-white/10 focus:border-[#00ADEF]/80'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                     placeholder="Auto-filled from zip code or enter manually"
                                                 />
                                             </div>
@@ -747,7 +767,7 @@ export default function StudyScreener() {
                                             <div className="space-y-6 bg-white/[0.02] p-8 rounded-[2rem] border border-white/5 shadow-2xl shadow-black/20">
                                                 <div className="space-y-2">
                                                     <span className="text-xs font-bold tracking-wide text-white italic block">Quick eligibility check</span>
-                                                    <h4 className="text-base font-bold text-slate-300 leading-relaxed">Have you participated in any other clinical trial in the last 30 days?</h4>
+                                                    <h4 className="text-lg font-bold text-slate-300 leading-relaxed">Have you participated in any other clinical trial in the last 30 days?</h4>
                                                 </div>
                                                 <div className="flex gap-4">
                                                     {['Yes', 'No'].map(opt => (
@@ -772,7 +792,7 @@ export default function StudyScreener() {
                                                         return (
                                                             <div key={fid} className="space-y-4">
                                                                 <div className="flex items-baseline gap-3">
-                                                                    <h4 className={`text-base font-black italic tracking-tight transition-colors leading-relaxed ${isMissing ? 'text-red-500' : 'text-white'}`}>
+                                                                    <h4 className={`text-lg font-black italic tracking-tight transition-colors leading-relaxed ${isMissing ? 'text-red-500' : 'text-white'}`}>
                                                                         {q.label} {q.required && <span className="text-[#00ADEF] ml-0.5">*</span>}
                                                                     </h4>
                                                                     {q.type === 'date' && (
@@ -784,7 +804,7 @@ export default function StudyScreener() {
                                                                 {q.type?.toLowerCase().includes('text') || q.type === 'number' ? (
                                                                     <input
                                                                         type="text"
-                                                                        className={`w-full bg-[#161f35] border rounded-2xl px-8 py-5 text-white outline-none transition-all ${isMissing ? 'border-red-500/50' : 'border-white/10 focus:border-[#00ADEF]/80'}`}
+                                                                        className={`w-full bg-[#161f35] border rounded-2xl px-8 py-5 text-white text-xl outline-none transition-all ${isMissing ? 'border-red-500/50' : 'border-white/10 focus:border-[#00ADEF]/80'}`}
                                                                         value={formData[fid] || ''}
                                                                         onChange={(e) => setFormData({ ...formData, [fid]: e.target.value })}
                                                                         placeholder={q.placeholder || "Enter response..."}
@@ -850,47 +870,47 @@ export default function StudyScreener() {
                                     {currentStep.id === 'STEP3' && (
                                         <div className="space-y-8">
                                             <div className="space-y-4">
-                                                <label className={`text-base font-bold ${isFieldInvalid('fullName') ? 'text-red-500' : 'text-slate-300'}`}>Full name</label>
+                                                <label className={`text-lg font-bold ${isFieldInvalid('fullName') ? 'text-red-500' : 'text-slate-300'}`}>Full name</label>
                                                 <input
                                                     type="text"
                                                     readOnly={isStepReadOnly}
                                                     value={formData.fullName}
                                                     onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                                                    className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-slate-200 text-lg outline-none transition-all ${isFieldInvalid('fullName') ? 'border-red-500/50' : 'border-white/5 focus:border-[#00ADEF]/50'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-slate-200 text-xl outline-none transition-all ${isFieldInvalid('fullName') ? 'border-red-500/50' : 'border-white/5 focus:border-[#00ADEF]/50'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                     placeholder="John Doe"
                                                 />
                                             </div>
                                             <div className="space-y-4">
-                                                <label className={`text-base font-bold ${isFieldInvalid('email') ? 'text-red-500' : 'text-slate-300'}`}>Email address</label>
+                                                <label className={`text-lg font-bold ${isFieldInvalid('email') ? 'text-red-500' : 'text-slate-300'}`}>Email address</label>
                                                 <input
                                                     type="email"
                                                     readOnly={isStepReadOnly}
                                                     value={formData.email}
                                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                                    className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-slate-200 text-lg outline-none transition-all ${isFieldInvalid('email') ? 'border-red-500/50' : 'border-white/5 focus:border-[#00ADEF]/50'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-slate-200 text-xl outline-none transition-all ${isFieldInvalid('email') ? 'border-red-500/50' : 'border-white/5 focus:border-[#00ADEF]/50'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                     placeholder="you@example.com"
                                                 />
                                             </div>
                                             <div className="space-y-4">
-                                                <label className={`text-base font-bold ${isFieldInvalid('phone') ? 'text-red-500' : 'text-slate-300'}`}>Phone number</label>
+                                                <label className={`text-lg font-bold ${isFieldInvalid('phone') ? 'text-red-500' : 'text-slate-300'}`}>Phone number</label>
                                                 <input
                                                     type="tel"
                                                     readOnly={isStepReadOnly}
                                                     value={formData.phone}
                                                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                                    className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-slate-200 text-lg outline-none transition-all ${isFieldInvalid('phone') ? 'border-red-500/50' : 'border-white/5 focus:border-[#00ADEF]/50'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                    placeholder="(555) 123-4567"
+                                                    className={`w-full bg-[#0d1424] border rounded-2xl px-8 py-5 text-slate-200 text-xl outline-none transition-all ${isFieldInvalid('phone') ? 'border-red-500/50' : 'border-white/5 focus:border-[#00ADEF]/50'} ${isStepReadOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    placeholder="e.g. +1 (555) 000-0000"
                                                 />
                                             </div>
                                             <div className="space-y-4">
-                                                <label className={`text-base font-bold ${isFieldInvalid('availability') ? 'text-red-500' : 'text-slate-300'}`}>Availability for onboarding call</label>
+                                                <label className={`text-lg font-bold ${isFieldInvalid('availability') ? 'text-red-500' : 'text-slate-300'}`}>Availability for onboarding call</label>
                                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                                     {['Morning', 'Afternoon', 'Evening'].map((opt) => (
                                                         <button
                                                             key={opt}
                                                             type="button"
                                                             onClick={() => setFormData({ ...formData, availability: opt })}
-                                                            className={`py-5 rounded-full border text-sm font-bold transition-all ${formData.availability === opt ? 'bg-[#00ADEF] border-[#00ADEF] text-white shadow-[0_0_20px_rgba(0,173,239,0.3)]' : 'bg-white/5 border-white/5 text-slate-500 hover:bg-white/10'}`}
+                                                            className={`py-5 rounded-full border text-base font-bold transition-all ${formData.availability === opt ? 'bg-[#00ADEF] border-[#00ADEF] text-white shadow-[0_0_20px_rgba(0,173,239,0.3)]' : 'bg-white/5 border-white/5 text-slate-500 hover:bg-white/10'}`}
                                                         >
                                                             {opt}
                                                         </button>
@@ -904,16 +924,17 @@ export default function StudyScreener() {
                                                             type="checkbox"
                                                             checked={formData.cvConsent}
                                                             onChange={(e) => setFormData({ ...formData, cvConsent: e.target.checked })}
-                                                            className="w-5 h-5 rounded border-white/20 bg-black appearance-none checked:bg-white transition-all cursor-pointer"
+                                                            className="w-6 h-6 rounded border-white/20 bg-black appearance-none checked:bg-white transition-all cursor-pointer"
                                                         />
-                                                        {formData.cvConsent && <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-black"><CheckCircle2 className="w-3.5 h-3.5" /></div>}
+                                                        {formData.cvConsent && <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-black"><CheckCircle2 className="w-4 h-4" /></div>}
                                                     </div>
                                                     <div className="space-y-2">
-                                                        <span className="text-sm font-bold tracking-wide text-white block italic">Consent to contact</span>
-                                                        <p className="text-[14px] text-slate-500 leading-relaxed font-bold tracking-tight">By checking this box, I agree that the research team may contact me via email or phone regarding my eligibility and potential study participation.</p>
+                                                        <span className="text-base font-bold tracking-wide text-white block italic">Consent to contact</span>
+                                                        <p className="text-base text-slate-500 leading-relaxed font-bold tracking-tight">By checking this box, I agree that the research team may contact me via email or phone regarding my eligibility and potential study participation.</p>
                                                     </div>
                                                 </label>
                                             </div>
+
                                         </div>
                                     )}
                                 </div>

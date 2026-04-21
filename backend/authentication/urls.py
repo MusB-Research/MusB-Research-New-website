@@ -2,15 +2,17 @@ from django.urls import path
 from .views import auth, otp, registration, password, admin_users
 
 urlpatterns = [
-    # OTP
-    path('send-otp/', otp.send_otp, name='send_otp'),
+    # Email OTP
+    path('request-otp/', otp.send_otp, name='request_otp'),
     path('verify-otp/', otp.verify_otp, name='verify_otp'),
-    path('send-phone-otp/', otp.send_phone_otp, name='send_phone_otp'),
-    path('verify-phone-otp/', otp.verify_phone_otp, name='verify_phone_otp'),
+
+
     
     # Auth
     path('login/', auth.login_view, name='login'),
+    path('verify-2fa-login/', auth.verify_2fa_login, name='verify_2fa_login'),
     path('logout/', auth.logout_view, name='logout'),
+
     path('refresh/', auth.refresh_token_view, name='refresh'),
     path('verify/', auth.verify_token, name='verify_token'),
     path('google-login/', auth.google_login, name='google_login'),

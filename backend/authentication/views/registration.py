@@ -12,7 +12,7 @@ from datetime import timedelta
 from typing import List
 
 from ..models import User, OTP, Invitation, RefreshToken, AuditLog
-from ..utils import send_resend_email, handle_credential_upload
+from ..utils import handle_credential_upload
 from ..security import generate_access_token, generate_refresh_token, hash_token, REFRESH_TOKEN_LIFETIME, decrypt_data
 from .auth import _set_auth_cookies
 
@@ -82,18 +82,18 @@ def invite_team_member(request):
         existing_invite.save()
         
         setup_link = f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/setup-credentials?token={existing_invite.token}"
-        html_content = f"""
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #1e293b; border-radius: 10px; background-color: #0B101B; color: white;">
-            <h2 style="color: #f59e0b;">MusB Research - Team Invitation (Updated)</h2>
-            <p>You have been re-invited to join <strong>{organization}</strong> as a <strong>{role}</strong> on the MusB Research Platform.</p>
-            <p>Click the button below to set up your secure login credentials and access your dashboard.</p>
-            <div style="text-align: center; margin: 30px 0;">
-                <a href="{setup_link}" style="background-color: #f59e0b; color: #0B101B; padding: 12px 24px; border-radius: 5px; text-decoration: none; font-weight: bold;">Set Up Credentials</a>
-            </div>
-            <p style="color: #64748b; font-size: 11px;">This invitation expires on {existing_invite.expires_at.strftime('%Y-%m-%d')}.</p>
-        </div>
-        """
-        if send_resend_email(target_email, f"Invitation to join {organization} - MusB Research", html_content):
+        
+        from ..utils import send_mail_premium
+        success = send_mail_premium(
+            to_email=target_email,
+            subject=f"Invitation to join {organization} - MusB Research",
+            title="Team Invitation (Updated)",
+            body=f"You have been re-invited to join <strong>{organization}</strong> as a <strong>{role}</strong>. Click below to finalize your secure credentials and access your clinical research dashboard.",
+            button_text="Set Up Credentials",
+            button_url=setup_link
+        )
+        
+        if success:
             return Response({'message': 'Existing invitation updated and resent successfully', 'token': existing_invite.token})
         return Response({'message': 'Invitation updated but email failed', 'setup_link': setup_link})
 
@@ -115,23 +115,23 @@ def invite_team_member(request):
     )
     
     setup_link = f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/setup-credentials?token={token}"
-    html_content = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #1e293b; border-radius: 10px; background-color: #0B101B; color: white;">
-        <h2 style="color: #f59e0b;">MusB Research - Team Invitation</h2>
-        <p>You have been invited to join <strong>{organization}</strong> as a <strong>{role}</strong> on the MusB Research Platform.</p>
-        <p>Click the button below to set up your secure login credentials and access your dashboard.</p>
-        <div style="text-align: center; margin: 30px 0;">
-            <a href="{setup_link}" style="background-color: #f59e0b; color: #0B101B; padding: 12px 24px; border-radius: 5px; text-decoration: none; font-weight: bold;">Set Up Credentials</a>
-        </div>
-        <p style="color: #64748b; font-size: 11px;">This invitation expires on {expires_at.strftime('%Y-%m-%d')}.</p>
-    </div>
-    """
     
-    if send_resend_email(target_email, f"Invitation to join {organization} - MusB Research", html_content):
+    from ..utils import send_mail_premium
+    success = send_mail_premium(
+        to_email=target_email,
+        subject=f"Invitation to join {organization} - MusB Research",
+        title="Welcome to MusB Research",
+        body=f"You have been invited to join <strong>{organization}</strong> as a <strong>{role}</strong>. Secure your account and access your specialized dashboard by clicking the button below.",
+        button_text="Accept Invitation",
+        button_url=setup_link
+    )
+    
+    if success:
         return Response({'message': 'Invitation sent successfully', 'token': token})
     else:
         logger.warning(f"Failed to send invitation email to {target_email}. Link: {setup_link}")
         return Response({'message': 'Invitation recorded but email failed to send', 'setup_link': setup_link}, status=status.HTTP_200_OK)
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -357,19 +357,19 @@ def resend_invitation(request, invitation_id):
     invitation.save()
     
     setup_link = f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/setup-credentials?token={invitation.token}"
-    html_content = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #1e293b; border-radius: 10px; background-color: #0B101B; color: white;">
-        <h2 style="color: #f59e0b;">MusB Research - Team Invitation (Resent)</h2>
-        <p>This is a reminder that you have been invited to join <strong>{org}</strong> as a <strong>{invitation.role}</strong> on the MusB Research Platform.</p>
-        <p>Click the button below to set up your secure login credentials and access your dashboard.</p>
-        <div style="text-align: center; margin: 30px 0;">
-            <a href="{setup_link}" style="background-color: #f59e0b; color: #0B101B; padding: 12px 24px; border-radius: 5px; text-decoration: none; font-weight: bold;">Set Up Credentials</a>
-        </div>
-        <p style="color: #64748b; font-size: 11px;">This invitation expires on {invitation.expires_at.strftime('%Y-%m-%d')}.</p>
-    </div>
-    """
     
-    if send_resend_email(invitation.email, f"Invitation (Resent) to join {org} - MusB Research", html_content):
+    from ..utils import send_mail_premium
+    success = send_mail_premium(
+        to_email=invitation.email,
+        subject=f"Invitation (Resent) to join {org} - MusB Research",
+        title="Invitation Reminder",
+        body=f"This is a reminder that you have been invited to join <strong>{org}</strong> as a <strong>{invitation.role}</strong>. Please complete your account setup by clicking the button below.",
+        button_text="Set Up Credentials",
+        button_url=setup_link
+    )
+    
+    if success:
         return Response({'message': 'Invitation resent successfully'})
     else:
         return Response({'error': 'Failed to send email'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
