@@ -36,7 +36,7 @@ def send_otp(request):
     # Generate NEW OTP
     code = OTP.generate_code()
     code_hash = hash_otp(code)
-    expires_at = now() + timedelta(minutes=5)
+    expires_at = now() + timedelta(minutes=10)
 
     OTP.objects.create(
         email=email,
@@ -178,7 +178,7 @@ def send_phone_otp(request):
     OTP.objects.create(
         phone=phone,
         code_hash=hash_otp(code),
-        expires_at=now() + timedelta(minutes=5)
+        expires_at=now() + timedelta(minutes=10)
     )
 
     # ─────────────────────────────────────────────────────────

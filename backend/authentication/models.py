@@ -331,8 +331,7 @@ class OTP(models.Model):
     is_verified = models.BooleanField(default=False)
 
     def is_expired(self):
-        # OTP valid for 10 minutes (Requirement sync)
-        return now() > self.created_at + datetime.timedelta(minutes=10)
+        return now() > self.expires_at
 
     @staticmethod
     def generate_code():

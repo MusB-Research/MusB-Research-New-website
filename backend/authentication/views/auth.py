@@ -115,13 +115,13 @@ def login_view(request):
         AuditLog.log('LOGIN_FAILED', user_email=login_id, request=request, detail='Account pending approval')
         return Response({'error': 'Your account is pending Super Admin approval.'}, status=status.HTTP_403_FORBIDDEN)
 
-    # Capturing last login and timezone updates (Requirement Restoration)
-    user.last_login = now()
+    # Robust update for last login and timezone (bypass Djongo save() quirks)
+    update_data = {'last_login': now()}
     client_timezone = request.data.get('timezone')
-    if client_timezone and getattr(user, 'timezone', None) != client_timezone:
-        user.timezone = client_timezone
+    if client_timezone:
+        update_data['timezone'] = client_timezone
     
-    user.save()
+    User.objects.filter(pk=user.pk).update(**update_data)
 
     # ─────────────────────────────────────────────────────────
     # 2FA Check (App-based TOTP)
