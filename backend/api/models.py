@@ -1091,8 +1091,13 @@ class LabResult(BaseMongoModel):
 
 class DataAuditLog(BaseMongoModel):
     """Protocol-compliant audit trail for system and clinical actions"""
+    ACTION_CHOICES = [
+        ('CREATE', 'Created'),
+        ('UPDATE', 'Updated'),
+        ('DELETE', 'Deleted'),
+    ]
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
-    action = models.CharField(max_length=50, db_index=True) # e.g., 'WITHDRAWAL', 'ELIGIBILITY_REVIEW', 'ENROLLMENT'
+    action = models.CharField(max_length=10, choices=ACTION_CHOICES)
     model_name = models.CharField(max_length=100, db_index=True)
     record_id = models.CharField(max_length=100, db_index=True) # Usually the participant_sid or object ID
     

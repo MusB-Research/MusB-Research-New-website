@@ -118,12 +118,10 @@ def login_view(request):
     # Capturing last login and timezone updates (Requirement Restoration)
     user.last_login = now()
     client_timezone = request.data.get('timezone')
-    update_fields = ['last_login']
     if client_timezone and getattr(user, 'timezone', None) != client_timezone:
         user.timezone = client_timezone
-        update_fields.append('timezone')
     
-    user.save(update_fields=update_fields)
+    user.save()
 
     # ─────────────────────────────────────────────────────────
     # 2FA Check (App-based TOTP)

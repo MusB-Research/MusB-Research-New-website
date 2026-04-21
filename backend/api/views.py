@@ -1051,6 +1051,13 @@ class ParticipantViewSet(SoftPaginationMixin, viewsets.ModelViewSet):
             'medication_logs': DailyMedicationLogSerializer(logs_list, many=True).data,
             'help_requests': StaffTaskSerializer(help_requests_list, many=True).data,
             'server_time': timezone.now(),
+            'links': {
+                'study_inquiries': "/dashboard/admin/study-inquiries" if user.role == 'SUPER_ADMIN' else "/dashboard/coordinator/study-inquiries",
+            },
+            'enabled_modules': [
+                'study_questionnaires', 'screener_config', 'visits', 'ae_reports', 
+                'daily_logs', 'lab_results', 'consent_records'
+            ],
             'performance_metrics': {
                 'total_tasks': len(serialized_tasks),
                 'unread_notifs': unread_count
